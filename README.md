@@ -109,6 +109,11 @@ System/Application требования, а Task DB — согласованны
 
 ## Документация
 
+- [Все команды Poise](docs/operator/poise-command-reference.md) — назначение,
+  аргументы запуска и корректные примеры с подробными контрактами.
+- [Настройка Bootstrap](docs/operator/bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла) —
+  параметризованные команды, рабочие файлы и подключаемый обработчик результата.
+  Подготовленный Bootstrap не переключает действующего оператора автоматически.
 - [Оглавление](docs/README.md) и [пакетный Requirements
   CRUD](docs/workflows/requirements-registry.md#пакетный-crud): Query, Command, связи, примеры и
   восстановление.

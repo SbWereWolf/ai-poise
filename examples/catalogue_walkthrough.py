@@ -26,17 +26,17 @@ from poise.common import load_config
 EMPTY={'sections':[],'routes':[],'requirements':[]}
 
 
-def _stage_contracts(process):
-    requirements=process['content_contract']['requirements']
+def _stage_contracts(workflow):
+    requirements=workflow['content_contract']['requirements']
     return [{'stage_id':stage['id'],'allowed_paths':list(stage['allowed_paths']),
              'entry_requirements':[rule['id'] for rule in requirements
                  if stage['id'] in rule['stages'] and rule['phase']=='pre'],
              'exit_requirements':[rule['id'] for rule in requirements
                  if stage['id'] in rule['stages'] and rule['phase']=='post']}
-            for stage in process['stages']]
+            for stage in workflow['stages']]
 
 
-def _decomposition(process, goal):
+def _decomposition(workflow, goal):
     integration = None
     kind = 'ordinary'
     if goal == 'integration':
@@ -51,7 +51,7 @@ def _decomposition(process, goal):
         'kind': kind,
         'phases': [
             {'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
-            for stage in process['stages']
+            for stage in workflow['stages']
         ],
         'integration': integration,
     }
@@ -70,7 +70,7 @@ def _selection(entry,ident):return {'id':ident,'version':entry['version'],'diges
 
 def install(home):
     source=SOURCE/'config/catalogue'
-    for directory in ('process-templates','task-templates'):
+    for directory in ('workflow-templates','task-templates'):
         shutil.copytree(source/directory,home/'config/catalogue'/directory)
     for template, name in (
         ('settings.example.json', 'settings.json'),
@@ -82,7 +82,7 @@ def install(home):
     repo=FileCatalogue(path)
     commands=CatalogueCommands(repo,goal_config_tools(repo.editor.path),repo.raw['max_items'])
     request=[{'goal_type':goal,'request_id':'install-'+goal,'mode':'create','expected_revision':None,
-              'template':repo.process_selection(goal),'changes':[]} for goal in repo.editor.raw['processes']]
+              'template':repo.workflow_selection(goal),'changes':[]} for goal in repo.editor.raw['workflows']]
     result=commands.install(request)
     assert result['count']==13
     return repo,commands
@@ -160,10 +160,10 @@ def _method_inputs(goal, methods):
             for m in methods]
 
 
-def _evidence(process,methods):
+def _evidence(workflow,methods):
     ids={m['id']:m for m in methods};out={}
     checkers=[]
-    for stage in process['stages']:
+    for stage in workflow['stages']:
         sid=stage['id'];kind=stage['handler']
         out[sid]={'subject_methods':{},'arguments':[],'review_arguments':[]}
         if kind in ('observe','check'):
@@ -171,8 +171,8 @@ def _evidence(process,methods):
     return out,ids,checkers
 
 
-def _initial_checks(process, methods):
-    schedule={stage['id']:[] for stage in process['stages']}
+def _initial_checks(workflow, methods):
+    schedule={stage['id']:[] for stage in workflow['stages']}
     declared={method['id'] for method in methods}
     by_stage={
         'baseline':['BASELINE'],
@@ -190,22 +190,22 @@ def _initial_checks(process, methods):
 
 
 def prepare_task(
-    repo, commands, processes, decomposition_policy, goal, task_id, home,
+    repo, commands, workflows, decomposition_policy, goal, task_id, home,
     membership=None,
 ):
-    process=processes[goal];methods=_methods(goal,home)
+    workflow=workflows[goal];methods=_methods(goal,home)
     blueprint=repo.task_blueprint(_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'))
     # The development reference scenario supplies its concrete initial schedule. The
     # product template neither names future methods nor invents a missing schedule.
     if goal == 'development':
-        checks = _initial_checks(process, methods)
+        checks = _initial_checks(workflow, methods)
     elif blueprint.data['task']['checks'] == {'$input': 'checks'}:
         # These exact commands belong to this fixture, never to a Task starter.
         reference = json.loads((SOURCE/'config/catalogue/reference.json').read_text())
         schedule = next(item['method_schedule'] for item in reference['goal_types']
                         if item['id'] == goal)
         checks = {stage['id']: ([schedule[stage['id']]] if stage['id'] in schedule else [])
-                  for stage in process['stages']}
+                  for stage in workflow['stages']}
     else:
         checks = blueprint.data['task']['checks']
     surfaces={
@@ -219,7 +219,7 @@ def prepare_task(
         ('integration','COMBINED'):['src/**'],
     }
     for method in methods:
-        scheduled=[stage['id'] for stage in process['stages'] if method['id'] in checks[stage['id']]]
+        scheduled=[stage['id'] for stage in workflow['stages'] if method['id'] in checks[stage['id']]]
         red=scheduled if method['expected_exit_code'] else []
         failure=None
         if red:
@@ -233,8 +233,8 @@ def prepare_task(
             'green_stages':[] if red else scheduled,
             'red_failure':failure,
         }
-    evidence,by_id,_=_evidence(process,methods)
-    for stage in process['stages']:
+    evidence,by_id,_=_evidence(workflow,methods)
+    for stage in workflow['stages']:
         sid=stage['id'];mids=checks[sid]
         if stage['handler'] in ('observe','check'):
             for mid in mids:
@@ -242,12 +242,12 @@ def prepare_task(
                 # A negative product observation is a recognized procedure outcome.
                 evidence[sid]['subject_methods'][mid]={'exit_codes':[0,1] if goal=='verification' else [m['expected_exit_code']],
                     'stdout_contains':['VALUE='] if goal=='verification' else [],'stderr_contains':[]}
-        post=[x for x in process['content_contract']['sections'] if sid in x['write_stages']]
+        post=[x for x in workflow['content_contract']['sections'] if sid in x['write_stages']]
         if post and mids:
             evidence[sid]['arguments']=[{'id':'argument-'+sid,'kind':'logical','phase':'continue','observation_methods':mids}]
-    for stage in process['stages']:
+    for stage in workflow['stages']:
         if stage['handler']=='inspect':
-            preceding = {item['id'] for item in process['stages'][:process['stages'].index(stage)]}
+            preceding = {item['id'] for item in workflow['stages'][:workflow['stages'].index(stage)]}
             evidence[stage['id']]['review_arguments']=[
                 argument['id'] for sid, value in evidence.items() if sid in preceding
                 for argument in value['arguments']
@@ -258,15 +258,15 @@ def prepare_task(
           'methods':methods,'method_inputs':_method_inputs(goal,methods),
           'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
           'contract':deepcopy(EMPTY),'evidence':evidence,
-          'stage_contracts':_stage_contracts(process),
-          'decomposition':_decomposition(process, goal)}
+          'stage_contracts':_stage_contracts(workflow),
+          'decomposition':_decomposition(workflow, goal)}
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
     if blueprint.data['task']['checks'] == {'$input': 'checks'}:
         vals['checks'] = checks
     task = commands.tasks(
         [{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
-          'parameters':vals}], processes, [], decomposition_policy
+          'parameters':vals}], workflows, [], decomposition_policy
     )['tasks'][0]
     return task
 
@@ -335,24 +335,24 @@ def _run(directory,goal,scenario,feedback_edge=None):
     git(directory,'init','--bare',str(remote))
     git(app,'remote','add','backup',str(remote))
     repo,commands=install(home)
-    cfg=json.loads((home/'project.json').read_text());cfg['processes']=deepcopy(repo.editor.raw['processes']);cfg['automatic_checks']=[]
+    cfg=json.loads((home/'project.json').read_text());cfg['workflows']=deepcopy(repo.editor.raw['workflows']);cfg['automatic_checks']=[]
     save(home/'project.json',cfg)
-    _,_,processes=load_config(home/'project.json');process=processes[goal]
+    _,_,workflows=load_config(home/'project.json');workflow=workflows[goal]
     base,sources=_seed(app,home,goal,scenario)
     task=prepare_task(
-        repo,commands,processes,cfg['task_decomposition'],goal,'MAIN',home
+        repo,commands,workflows,cfg['task_decomposition'],goal,'MAIN',home
     )
     _bind_requirements(task,home)
     children=[];sprint_body=None
     if goal in ('task_planning','sprint_planning'):
         sid=None if goal=='task_planning' else 'PUBLISHED-SPRINT'
         children=[prepare_task(
-            repo,commands,processes,cfg['task_decomposition'],
+            repo,commands,workflows,cfg['task_decomposition'],
             'review','CHILD-A',home,sid
         )]
         if sid is not None:
             children.append(prepare_task(
-                repo,commands,processes,cfg['task_decomposition'],
+                repo,commands,workflows,cfg['task_decomposition'],
                 'review','CHILD-B',home,sid
             ))
             sprint_body={'sprint_id':sid,'template':{'id':'basic','version':'1'},'changes':[
@@ -365,7 +365,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
     executor=Poise(home/'project.json','CATALOGUE-EXECUTOR',SystemClock())
     reviewer=Poise(home/'project.json','CATALOGUE-REVIEWER',SystemClock())
     # Explicit fixture participants; public handoff preserves role separation.
-    entry=next(s for s in process['stages'] if s['id']==process['route']['entry'])
+    entry=next(s for s in workflow['stages'] if s['id']==workflow['route']['entry'])
     h={'executor': executor, 'reviewer': reviewer}[entry['role']]
     tool=WorkTools(h);calls=[];handoffs=0
     def invoke(op,args):
@@ -375,7 +375,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
     def boot(decision=None,target=None):
         nonlocal h,tool,handoffs
         next_id=target or h.runner.context(task['id'])['next_stage']
-        next_stage=next(s for s in process['stages'] if s['id']==next_id)
+        next_stage=next(s for s in workflow['stages'] if s['id']==next_id)
         receiver={'executor': executor, 'reviewer': reviewer}[next_stage['role']]
         if receiver is not h:
             handoffs+=1
@@ -397,7 +397,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
         if feedback_edge is not None:
             e=next(e for e in edges if e['id']==feedback_edge);selected={e['from_stage']:e['to_stage']}
             # Enter a remediation branch through its existing first inspection.
-            nodes={n['id']:n for n in process['stages']};happy=set();cur=process['route']['entry']
+            nodes={n['id']:n for n in workflow['stages']};happy=set();cur=workflow['route']['entry']
             while cur is not None and cur not in happy:
                 happy.add(cur);n=nodes[cur]
                 outcome='clear' if n['handler']=='inspect' else ('satisfied' if n['handler']=='check' else 'complete')
@@ -408,7 +408,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
     counts={};reports=[];accepted=[];traversed=[];read_only_checks=0;feedback_cycles=0;counter=0
     while True:
         counter+=1
-        sid=ctx['stage'];stage=next(s for s in process['stages'] if s['id']==sid);kind=stage['handler']
+        sid=ctx['stage'];stage=next(s for s in workflow['stages'] if s['id']==sid);kind=stage['handler']
         counts[sid]=counts.get(sid,0)+1;wt=Path(ctx['worktree']);before=git(wt,'rev-parse','HEAD^{tree}')
         current=ctx['workflow']['feedback'];pending=current['pending_resolutions'];open_findings=current['open_findings']
         # Source-code/fixture editing is scenario work, not Poise bookkeeping.
@@ -429,12 +429,12 @@ def _run(directory,goal,scenario,feedback_edge=None):
             elif name=='test_registry':p['sections'][name]=json.dumps({'methods':[m['id'] for m in task['methods']],'checks':task['checks']})
             elif name=='product_findings':p['sections'][name]='The supplied product has double(2)=3 rather than 4. This is a result of review, not an internal blocker.'
             else:p['sections'][name]=f'{goal}.{sid}, approach {counts[sid]}: {name}. The reference fixture records explicit inputs, exact methods and a review of the declared result; this text is authored by the scenario, not a model quality evaluation.'
-        for extra in process['content_contract']['sections']:
+        for extra in workflow['content_contract']['sections']:
             if sid in extra['write_stages'] and not task['checks'][sid]:
                 p['sections'][extra['id']]='Known fixture input: the service-state file is initially ready=false; reproduction follows as its own exact command. No new command result is claimed.'
         if goal in ('development','test_development') and sid=='test_implementation':
             method=next(item for item in task['methods'] if item['id']=='TEST_GREEN')
-            scheduled=[stage['id'] for stage in process['stages'] if method['id'] in task['checks'][stage['id']]]
+            scheduled=[stage['id'] for stage in workflow['stages'] if method['id'] in task['checks'][stage['id']]]
             p['method_additions']={
                 'request_id':f'{goal}-current-registry-1',
                 'expected_revision':0,
@@ -495,7 +495,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
         if out['status']=='awaiting_continuation':
             receipt_ids=[r['id'] for r in out['checks']]
             p=deepcopy(out['context']['result_template'])
-            for extra in process['content_contract']['sections']:
+            for extra in workflow['content_contract']['sections']:
                 if sid in extra['write_stages']:
                     p['sections'][extra['id']]='Observed receipts confirm the explicitly scoped fact. No claim beyond this fixture experiment is made.'
             p['evidence_work']={'phase':'continue','arguments':[{'id':a['id'],'kind':a['kind'],
@@ -528,7 +528,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
         pub_tasks=[c['id'] for c in children]
         assert all(h.task_queries.record(c)['status']=='available' for c in pub_tasks)
         start_child=invoke('bootstrap',{'task':{'id':pub_tasks[0]},'decision':None,'feedback':None,'rework_stage':None})
-        child_valid=start_child['stage']==processes['review']['route']['entry']
+        child_valid=start_child['stage']==workflows['review']['route']['entry']
     # A publish stage records the accepted local intent only. The separate
     # public integration lifecycle actually advances the configured local target.
     integration = None

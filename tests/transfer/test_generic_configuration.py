@@ -109,7 +109,7 @@ def test_transfer_without_recovery_refuses_before_effects(project, action):
     assert not (project['root'] / 'state' / 'transfers').exists()
 
 
-def test_generic_checks_capture_current_systems_without_delivery(project):
+def test_generic_checks_capture_current_systems_without_delivery(project, tmp_path):
     project['cfg']['runtime_services']['transfer']['recovery']['systems']['future_option'] = None
     for spec in project['cfg']['runtime_services']['transfer']['recovery']['systems'].values():
         if isinstance(spec, dict):
@@ -123,7 +123,7 @@ def test_generic_checks_capture_current_systems_without_delivery(project):
     assert report['checks']
     for receipt in report['checks']:
         assert set(receipt['systems']) == {'poise', 'project'}
-        assert receipt['systems']['poise']['commit'] == git(project['root'] / 'installed-poise', 'rev-parse', 'HEAD')
+        assert receipt['systems']['poise']['commit'] == git(tmp_path / 'poise' / 'installed-poise', 'rev-parse', 'HEAD')
         assert receipt['systems']['project']['commit'] == git(project['app'], 'rev-parse', 'HEAD')
         for owner, names in [('poise', ['project.json', 'poise_overlay.json']),
                              ('project', ['project_config.json', 'project_overlay.json'])]:

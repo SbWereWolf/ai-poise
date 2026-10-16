@@ -1,22 +1,17 @@
 {
   "schema": "project-setup-settings-1",
-  "root": "..",
+  "root": "${SETUP_ROOT}",
   "templates": {
     "linux-reference": {
-      "path": "config/project-templates/linux-reference.json",
-      "version": "7",
-      "digest": "924ca9cc0d61986b5acbee25972740ff136a570e1023eab4ae891dc7aef2b6e4"
+      "path": "app/config/project-templates/linux-reference.json"
     },
     "wsl-poise": {
-      "path": "config/project-templates/wsl-poise.json",
-      "version": "9",
-      "digest": "cb3d0827244b8cf4d7ce45467083bf7bb8b4baef4ce09747368104d3d59c559f"
+      "path": "app/config/project-templates/wsl-poise.json"
     }
   },
   "manifest": "project.json",
-  "receipt": "setup-receipt.json",
-  "registry": "config/project-registry.json",
-  "lock": "projects/.project-setup.lock",
+  "registry": "app/config/project-registry.json",
+  "lock": "app/projects/.project-setup.lock",
   "file_mode": 384,
   "directory_mode": 448,
   "json_indent": 2,

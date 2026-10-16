@@ -144,11 +144,11 @@ def direct_git_snapshot(project):
 def definition(goal_type="development"):
     intent, _ = creation_fixture()
     task = intent["task"]
-    process = json.loads((ROOT / "config/catalogue/process-templates" / f"{goal_type}.json").read_text())
+    workflow = json.loads((ROOT / "config/catalogue/workflow-templates" / f"{goal_type}.json").read_text())
     task.update(id="CONTRACT", goal_type=goal_type, goal="Verify synthetic Task contract semantics.")
     if goal_type == "documentation":
         task.pop("executable_obligations")
-    entry = process["route"]["entry"]
+    entry = workflow["route"]["entry"]
     task["methods"] = [method("BASELINE", plan={
         "responsibility": "Guard the existing repository before produced changes.",
         "change_surface": [], "red_stages": [], "green_stages": [entry], "red_failure": None,
@@ -157,24 +157,24 @@ def definition(goal_type="development"):
         "method_id": "BASELINE", "repository_inputs": [], "future_outputs": [],
         "reference_profile": {"runner": "python", "parser": "inline-no-path-arguments", "version": 1},
     }]
-    stages = [stage["id"] for stage in process["stages"]]
+    stages = [stage["id"] for stage in workflow["stages"]]
     task["checks"] = {stage: ["BASELINE"] if stage == entry else [] for stage in stages}
     task["evidence_plan"] = {stage: {
         "arguments": [], "review_arguments": [],
         "subject_methods": {"BASELINE": {"exit_codes": [0], "stdout_contains": ["OK"], "stderr_contains": []}} if stage == entry else {},
     } for stage in stages}
-    requirements = process["content_contract"]["requirements"]
+    requirements = workflow["content_contract"]["requirements"]
     task["stage_contracts"] = [{
         "stage_id": stage["id"], "allowed_paths": stage["allowed_paths"],
         "entry_requirements": [r["id"] for r in requirements if r["phase"] == "pre" and stage["id"] in r["stages"]],
         "exit_requirements": [r["id"] for r in requirements if r["phase"] == "post" and stage["id"] in r["stages"]],
-    } for stage in process["stages"]]
+    } for stage in workflow["stages"]]
     task["decomposition"]["phases"] = [{"stage": stage, "skills": ["workflow"], "areas": []} for stage in stages]
     if goal_type == "documentation":
         task["methods"] = []
         task["method_inputs"] = []
         task["checks"] = {stage: [] for stage in stages}
-        for stage in process["stages"]:
+        for stage in workflow["stages"]:
             plan = task["evidence_plan"][stage["id"]]
             plan["subject_methods"] = {}
             if stage["handler"] == "check":
@@ -182,12 +182,12 @@ def definition(goal_type="development"):
                     "id": stage["id"] + "-argument", "kind": "logical",
                     "phase": "prepare", "observation_methods": [],
                 }]
-    return task, process
+    return task, workflow
 
 
 def immutable_write_conflict(
     task,
-    process,
+    workflow,
     *,
     producer,
     consumer,
@@ -221,12 +221,12 @@ def immutable_write_conflict(
         })
     task["content_contract"]["requirements"].extend(requirements)
     contracts = {item["stage_id"]: item for item in task["stage_contracts"]}
-    process_stages = {item["id"]: item for item in process["stages"]}
+    workflow_stages = {item["id"]: item for item in workflow["stages"]}
     for stage in dict.fromkeys((producer, writer)):
         contracts[stage]["allowed_paths"] = list(dict.fromkeys(
             contracts[stage]["allowed_paths"] + ["build/**"]
         ))
-        process_stages[stage]["allowed_paths"] = list(contracts[stage]["allowed_paths"])
+        workflow_stages[stage]["allowed_paths"] = list(contracts[stage]["allowed_paths"])
     contracts[producer]["exit_requirements"].append("immutable-output")
     contracts[consumer]["entry_requirements"].append("immutable-input")
     if writer_is_artifact:
@@ -245,13 +245,13 @@ def immutable_write_conflict(
         "reference_profile": {"runner": "pytest", "parser": "positional-paths", "version": 1},
     })
     task["checks"][writer].append("LATE_WRITE")
-    return task, process
+    return task, workflow
 
 
-def existing_artifact_write_conflict(task, process, *, source, writer):
+def existing_artifact_write_conflict(task, workflow, *, source, writer):
     """Require an already immutable artifact, then plan a later write to it."""
     path = "build/file.md"
-    entry = process["route"]["entry"]
+    entry = workflow["route"]["entry"]
     task["artifact_requirements"] = [{
         "scope": "task", "pattern": path, "minimum": 1, "maximum": 1,
     }]
@@ -261,12 +261,12 @@ def existing_artifact_write_conflict(task, process, *, source, writer):
         "minimum": 1, "maximum": 1, "source": source,
     })
     contracts = {item["stage_id"]: item for item in task["stage_contracts"]}
-    process_stages = {item["id"]: item for item in process["stages"]}
+    workflow_stages = {item["id"]: item for item in workflow["stages"]}
     contracts[entry]["entry_requirements"].append("immutable-input")
     contracts[writer]["allowed_paths"] = list(dict.fromkeys(
         contracts[writer]["allowed_paths"] + ["build/**"]
     ))
-    process_stages[writer]["allowed_paths"] = list(contracts[writer]["allowed_paths"])
+    workflow_stages[writer]["allowed_paths"] = list(contracts[writer]["allowed_paths"])
     late_write = method("LATE_WRITE", plan={
         "responsibility": "Verify the planned later write.",
         "change_surface": [path], "red_stages": [], "green_stages": [writer],
@@ -281,7 +281,7 @@ def existing_artifact_write_conflict(task, process, *, source, writer):
         "reference_profile": {"runner": "pytest", "parser": "positional-paths", "version": 1},
     })
     task["checks"][writer].append("LATE_WRITE")
-    return task, process
+    return task, workflow
 
 
 def remove_late_write_method(task, writer):
@@ -294,41 +294,41 @@ def remove_late_write_method(task, writer):
 
 @pytest.mark.parametrize("goal_type", ["development", "documentation"])
 def test_baseline_guard_domain_contract(goal_type):
-    task, process = definition(goal_type)
-    validated = validate_creation(task, process, [], decomposition_policy())
+    task, workflow = definition(goal_type)
+    validated = validate_creation(task, workflow, [], decomposition_policy())
     assert validated["contract"] == task
     if goal_type == "development":
         assert task["methods"][0]["verification_plan"]["change_surface"] == []
-        assert task["checks"][process["route"]["entry"]] == ["BASELINE"]
+        assert task["checks"][workflow["route"]["entry"]] == ["BASELINE"]
     else:
         assert task["methods"] == []
         assert "executable_obligations" not in task
 
 
 def test_produced_result_cannot_disguise_itself_as_empty_surface_baseline():
-    task, process = definition()
-    entry = process["route"]["entry"]
+    task, workflow = definition()
+    entry = workflow["route"]["entry"]
     task["methods"][0]["verification_plan"]["green_stages"] = ["implementation"]
     task["checks"][entry] = []
     task["checks"]["implementation"] = ["BASELINE"]
     with pytest.raises(DomainError, match="route entry"):
-        validate_creation(task, process, [], decomposition_policy())
+        validate_creation(task, workflow, [], decomposition_policy())
 
 
 @pytest.mark.parametrize("goal_type", ["development", "documentation"])
-def test_obligations_field_follows_exact_process_schema(goal_type):
-    task, process = definition(goal_type)
+def test_obligations_field_follows_exact_workflow_schema(goal_type):
+    task, workflow = definition(goal_type)
     if goal_type == "development":
         del task["executable_obligations"]
     else:
         task["executable_obligations"] = []
     with pytest.raises(DomainError, match="executable_obligations"):
-        validate_creation(task, process, [], decomposition_policy())
+        validate_creation(task, workflow, [], decomposition_policy())
 
 
 @pytest.mark.parametrize("goal_type", ["development", "documentation"])
 def test_public_creation_preserves_baseline_and_obligations(project, goal_type):
-    task, process = definition(goal_type)
+    task, workflow = definition(goal_type)
     cfg = project["cfg"]
     cfg["automatic_checks"] = []
     cfg["task_ids"] = {
@@ -336,8 +336,8 @@ def test_public_creation_preserves_baseline_and_obligations(project, goal_type):
         "progression": {"first": 1, "step": 1},
     }
     cfg["task_decomposition"] = decomposition_policy()
-    cfg["processes"] = {goal_type: f"config/processes/{goal_type}.json"}
-    write_json(project["root"] / cfg["processes"][goal_type], process)
+    cfg["workflows"] = {goal_type: f"config/workflows/{goal_type}.json"}
+    write_json(project["root"] / cfg["workflows"][goal_type], workflow)
     write_json(project["config_path"], cfg)
     bind_task_requirements(task, project["requirements_registry"])
     task.pop("id")
@@ -357,17 +357,17 @@ def test_public_creation_preserves_baseline_and_obligations(project, goal_type):
         return
     baseline = next(item["method"] for item in registry["current"] if item["method"]["id"] == "BASELINE")
     assert baseline["verification_plan"]["change_surface"] == []
-    assert baseline["verification_plan"]["green_stages"] == [process["route"]["entry"]]
+    assert baseline["verification_plan"]["green_stages"] == [workflow["route"]["entry"]]
 
 
 def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     immutable_write_conflict(
         task,
-        process,
+        workflow,
         producer="tests",
         consumer="test_review",
         writer="implementation",
@@ -378,7 +378,7 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
         "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
         "progression": {"first": 1, "step": 1},
     }
-    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["root"] / cfg["workflows"]["development"], workflow)
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "immutable-creation-owner"))
@@ -410,12 +410,12 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
 
 def test_creation_rejects_later_stage_output_without_method_future_output(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     immutable_write_conflict(
         task,
-        process,
+        workflow,
         producer="tests",
         consumer="test_review",
         writer="implementation",
@@ -427,7 +427,7 @@ def test_creation_rejects_later_stage_output_without_method_future_output(projec
         "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
         "progression": {"first": 1, "step": 1},
     }
-    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["root"] / cfg["workflows"]["development"], workflow)
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "stage-output-creation-owner"))
@@ -465,12 +465,12 @@ def test_creation_rejects_overlapping_later_stage_output_patterns(
     later_pattern,
 ):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     immutable_write_conflict(
         task,
-        process,
+        workflow,
         producer="tests",
         consumer="test_review",
         writer="implementation",
@@ -488,7 +488,7 @@ def test_creation_rejects_overlapping_later_stage_output_patterns(
         "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
         "progression": {"first": 1, "step": 1},
     }
-    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["root"] / cfg["workflows"]["development"], workflow)
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "glob-creation-owner"))
@@ -518,12 +518,12 @@ def test_creation_rejects_overlapping_later_stage_output_patterns(
 
 def test_creation_rejects_preexisting_artifact_rewrite(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     existing_artifact_write_conflict(
         task,
-        process,
+        workflow,
         source={"kind": "preexisting"},
         writer="implementation",
     )
@@ -533,7 +533,7 @@ def test_creation_rejects_preexisting_artifact_rewrite(project):
         "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
         "progression": {"first": 1, "step": 1},
     }
-    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["root"] / cfg["workflows"]["development"], workflow)
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "preexisting-creation-owner"))
@@ -563,12 +563,12 @@ def test_creation_rejects_preexisting_artifact_rewrite(project):
 
 def test_creation_allows_distinct_later_stage_output(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     immutable_write_conflict(
         task,
-        process,
+        workflow,
         producer="tests",
         consumer="test_review",
         writer="implementation",
@@ -582,7 +582,7 @@ def test_creation_allows_distinct_later_stage_output(project):
     task.pop("requirements_snapshot")
     task.pop("requirements_agreement")
 
-    validated = validate_creation(task, process, [], project["cfg"]["task_decomposition"])
+    validated = validate_creation(task, workflow, [], project["cfg"]["task_decomposition"])
 
     assert next(
         item for item in validated["contract"]["content_contract"]["requirements"]
@@ -592,12 +592,12 @@ def test_creation_allows_distinct_later_stage_output(project):
 
 def test_creation_allows_nonoverlapping_later_stage_output_patterns(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     immutable_write_conflict(
         task,
-        process,
+        workflow,
         producer="tests",
         consumer="test_review",
         writer="implementation",
@@ -612,7 +612,7 @@ def test_creation_allows_nonoverlapping_later_stage_output_patterns(project):
     task.pop("requirements_snapshot")
     task.pop("requirements_agreement")
 
-    validated = validate_creation(task, process, [], project["cfg"]["task_decomposition"])
+    validated = validate_creation(task, workflow, [], project["cfg"]["task_decomposition"])
 
     patterns = {
         item["pattern"] for item in validated["contract"]["content_contract"]["requirements"]
@@ -623,12 +623,12 @@ def test_creation_allows_nonoverlapping_later_stage_output_patterns(project):
 
 def test_creation_allows_zero_count_preexisting_predicate_before_first_output(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     existing_artifact_write_conflict(
         task,
-        process,
+        workflow,
         source={"kind": "preexisting"},
         writer="implementation",
     )
@@ -642,7 +642,7 @@ def test_creation_allows_zero_count_preexisting_predicate_before_first_output(pr
         "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
         "progression": {"first": 1, "step": 1},
     }
-    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["root"] / cfg["workflows"]["development"], workflow)
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "zero-count-creation-owner"))
@@ -658,12 +658,12 @@ def test_creation_allows_zero_count_preexisting_predicate_before_first_output(pr
 
 def test_creation_allows_future_output_at_its_first_declared_producer(project):
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     immutable_write_conflict(
         task,
-        process,
+        workflow,
         producer="tests",
         consumer="test_review",
         writer="tests",
@@ -671,7 +671,7 @@ def test_creation_allows_future_output_at_its_first_declared_producer(project):
     task.pop("requirements_snapshot")
     task.pop("requirements_agreement")
 
-    validated = validate_creation(task, process, [], project["cfg"]["task_decomposition"])
+    validated = validate_creation(task, workflow, [], project["cfg"]["task_decomposition"])
 
     assert validated["contract"]["method_inputs"][-1]["future_outputs"] == [{
         "path": "build/file.md", "producer_stage": "tests",
@@ -683,20 +683,20 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
     from tasks.test_newborn_lifecycle import create, edit, task_action
 
     ordinary_task = deepcopy(project["task"])
-    ordinary_process = deepcopy(project["process"])
-    for stage in ordinary_process["stages"]:
+    ordinary_workflow = deepcopy(project["workflow"])
+    for stage in ordinary_workflow["stages"]:
         stage["rework_targets"] = ["implementation"]
     immutable_write_conflict(
         ordinary_task,
-        ordinary_process,
+        ordinary_workflow,
         producer="implementation",
         consumer="code_review",
         writer="tests",
         writer_is_artifact=False,
     )
     project["cfg"]["automatic_checks"] = []
-    process_path = project["root"] / project["cfg"]["processes"]["development"]
-    write_json(process_path, ordinary_process)
+    workflow_path = project["root"] / project["cfg"]["workflows"]["development"]
+    write_json(workflow_path, ordinary_workflow)
     write_json(project["config_path"], project["cfg"])
     configure(project)
     ordinary_tools = WorkTools(WorkPoise(project["config_path"], "ordinary-ready-owner"))
@@ -720,18 +720,18 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
     assert ordinary_ready["status"] == "available"
 
     rework_task = deepcopy(project["task"])
-    rework_process = deepcopy(ordinary_process)
-    rework_stages = {item["id"]: item for item in rework_process["stages"]}
+    rework_workflow = deepcopy(ordinary_workflow)
+    rework_stages = {item["id"]: item for item in rework_workflow["stages"]}
     rework_stages["implementation"]["rework_targets"] = ["tests"]
     immutable_write_conflict(
         rework_task,
-        rework_process,
+        rework_workflow,
         producer="implementation",
         consumer="code_review",
         writer="tests",
         writer_is_artifact=False,
     )
-    write_json(process_path, rework_process)
+    write_json(workflow_path, rework_workflow)
     configure(project)
     rework_tools = WorkTools(WorkPoise(project["config_path"], "immutable-ready-owner"))
     born = create(rework_tools, "IMMUTABLE-READY")
@@ -781,17 +781,17 @@ def test_ready_rejects_declared_arrival_artifact_rewrite(project):
     from tasks.test_newborn_lifecycle import create, edit, task_action
 
     task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    for stage in process["stages"]:
+    workflow = deepcopy(project["workflow"])
+    for stage in workflow["stages"]:
         stage["rework_targets"] = ["tests"]
     existing_artifact_write_conflict(
         task,
-        process,
+        workflow,
         source={"kind": "declared_arrival", "arrival_stage": "tests"},
         writer="implementation",
     )
     project["cfg"]["automatic_checks"] = []
-    write_json(project["root"] / project["cfg"]["processes"]["development"], process)
+    write_json(project["root"] / project["cfg"]["workflows"]["development"], workflow)
     write_json(project["config_path"], project["cfg"])
     configure(project)
     tools = WorkTools(WorkPoise(project["config_path"], "arrival-ready-owner"))
@@ -862,8 +862,8 @@ def test_trace_can_be_planned_but_is_required_before_code():
 
 @pytest.mark.parametrize('entry_name', ['reproduce', 'initial_observation'])
 def test_empty_surface_observation_accepts_planner_named_entry(entry_name):
-    task, process = definition()
-    previous = process['route']['entry']
+    task, workflow = definition()
+    previous = workflow['route']['entry']
 
     def rename(value):
         if isinstance(value, str):
@@ -874,9 +874,9 @@ def test_empty_surface_observation_accepts_planner_named_entry(entry_name):
             return {rename(key): rename(item) for key, item in value.items()}
         return value
 
-    task, process = rename(task), rename(process)
-    validated = validate_creation(task, process, [], decomposition_policy())
-    assert validated['process']['route']['entry'] == entry_name
+    task, workflow = rename(task), rename(workflow)
+    validated = validate_creation(task, workflow, [], decomposition_policy())
+    assert validated['workflow']['route']['entry'] == entry_name
     assert validated['contract']['methods'][0]['verification_plan']['change_surface'] == []
 
 

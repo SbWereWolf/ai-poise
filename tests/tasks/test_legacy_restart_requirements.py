@@ -286,8 +286,8 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
     import json
 
     task_id = "PROOF-REVISED"
-    project["process"]["stages"][0]["sections"]["test_registry"] = "Register the audited method."
-    write_json(project["root"] / "config/processes/development.json", project["process"])
+    project["workflow"]["stages"][0]["sections"]["test_registry"] = "Register the audited method."
+    write_json(project["root"] / "config/workflows/development.json", project["workflow"])
     client = tools(project, "proof-owner")
     initial = deepcopy(project["task"])
     initial["id"] = task_id
@@ -357,7 +357,7 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
     ("snapshot-only", "Task requirements snapshot does not match Task requirements"),
     ("agreement-only", "Explicit full-text requirements agreement is required"),
     ("missing-snapshot", "Task requirements snapshot has an invalid shape"),
-    ("missing-agreement", "Explicit full-text requirements agreement is required"),
+    ("invalid-agreement", "Explicit full-text requirements agreement is required"),
 ))
 def test_rejects_invalid_changed_context(project, invalid, expected_cause):
     _assert_source_identity()
@@ -382,8 +382,8 @@ def test_rejects_invalid_changed_context(project, invalid, expected_cause):
         }
     elif invalid == "missing-snapshot":
         patch = {"requirements_snapshot": None}
-    elif invalid == "missing-agreement":
-        patch = {"requirements_agreement": None}
+    elif invalid == "invalid-agreement":
+        patch = {"requirements_agreement": False}
     broken = edit(client, task_id, changed["revision"], patch, f"break-{invalid}")
     before = _observable_state(client, task_id)
     with pytest.raises(PoiseError) as failure:

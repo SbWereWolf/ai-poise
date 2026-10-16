@@ -1,5 +1,6 @@
 """A saved Task, not the current live registry, owns retry authorization."""
 from copy import deepcopy
+import json
 from pathlib import Path
 
 import pytest
@@ -43,6 +44,44 @@ def test_full_retry_preserves_wip_and_historical_requirements(project, monkeypat
     assert result['worktree'] == context['worktree']
     assert sentinel.read_bytes() == b'keep this exact WIP\n'
     assert preserved(runtime) == before
+
+
+def test_full_retry_preserves_an_absent_decision_and_wip(project, monkeypatch):
+    setup(project)
+    expected = json.loads((Path(__file__).parent / 'fixtures/initial_ready_contract.json').read_text())
+    runtime = WorkPoise(project['config_path'], 'replay-owner')
+    contract = task(project, 'REPLAY')
+    contract['sprint_id'] = None
+    contract['requirements'] = expected['requirements']
+    contract['requirements_snapshot'] = expected['snapshot']
+    del contract['requirements_agreement']
+    tools = WorkTools(runtime)
+    packet = request('bootstrap', {
+        'task': contract, 'decision': None, 'feedback': None, 'rework_stage': None,
+    })
+    context = tools.invoke(packet)
+    sentinel = Path(context['worktree']) / 'uncommitted-sentinel.txt'
+    sentinel.write_bytes(b'keep this exact WIP\n')
+    with runtime.store.unit_of_work() as unit:
+        before = tuple(unit.tasks.db.execute(
+            'SELECT id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata '
+            'FROM tasks WHERE id=?', ('REPLAY',)).fetchone())
+    metadata = json.loads(before[-1])
+    assert metadata['requirements_snapshot'] == expected['snapshot']
+    assert metadata['requirements_agreement'] is None
+
+    def no_live_registry():
+        raise AssertionError('replay must not observe the live registry')
+
+    monkeypatch.setattr(runtime.task_commands.requirements_gate, '_registry_loader', no_live_registry)
+    result = tools.invoke(packet)
+    assert result['worktree'] == context['worktree']
+    assert sentinel.read_bytes() == b'keep this exact WIP\n'
+    with runtime.store.unit_of_work() as unit:
+        after = tuple(unit.tasks.db.execute(
+            'SELECT id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata '
+            'FROM tasks WHERE id=?', ('REPLAY',)).fetchone())
+    assert after == before
 
 
 @pytest.mark.parametrize('field', ['goal', 'snapshot', 'agreement', 'missing_snapshot', 'missing_agreement'])

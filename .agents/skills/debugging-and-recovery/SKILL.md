@@ -6,6 +6,12 @@ version: 1.0.0
 
 # Evidence-driven recovery
 
+For a Poise refusal blocking authorized work, also apply
+[harness-recovery](../harness-recovery/SKILL.md). Its
+[canonical recovery
+contract](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+owns incident classification, manual correction and repair-draft decisions.
+
 ## Inputs
 
 The failed operation and its stable identity, terminal result or confirmed loss of its owner, saved complete logs/artifacts, current Task/stage and worktree, exact source/runtime identity, required outcome and selected Poise project configuration. Obtain these through [poise-workflow](../poise/SKILL.md) and the [existing batch reads](../../../docs/workflows/batch-work.md#пакетное-чтение), not reconstructed lifecycle state.
@@ -19,7 +25,13 @@ The failed operation and its stable identity, terminal result or confirmed loss 
 5. Preserve runner-owned C033 timing policy. Do not hard-code skill timeouts or increase a limit without evidence of useful progress and authorization through its owner. A progress-supported diagnostic rerun is not a new successful maximum until it passes. Current Poise verification-method contracts do not declare per-method timeouts; do not reintroduce one through this skill. Infrastructure-probe limits remain owned by their current runner/configuration.
 6. Classify a missing binary, service, credential, configuration or runtime precisely. Fix a non-destructive in-scope development dependency through its normal owner when permitted; otherwise record the exact missing input, blocked stage and setup required. Never silently substitute host tooling, a sample configuration or a different runtime. Do not repeat discovery for a capability already proved unavailable.
 7. For a post-merge regression, first recover the previously verified code and evidence through the owning recovery/integration mechanism, compare that code with the actual requirements, then isolate the new difference. Never reset another worktree or lose unique work to obtain a clean-looking result.
-8. Use N01 generic public phase recovery only when the installed API implements it. Use the currently documented [work/rework operations](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) otherwise, respecting pending resolution inspection. Never edit the Task DB, lifecycle state, claim or evidence to move a Task forward.
+8. Use N01 generic public phase recovery only when the installed API implements it. Use the
+   currently documented [work/rework
+   operations](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях)
+   otherwise, respecting pending resolution inspection. Do not alter managed state merely to bypass
+   a gate. When the public owner cannot recover a proven defect, use only an authorized, audited
+   correction under the canonical harness recovery contract; preserve history, evidence and foreign
+   ownership.
 9. Run the smallest diagnostic or regression check justified by the changed cause, then the maintained smoke where required. A deterministic failure needs a changed cause before rerun. A flaky pass alone is not validation; preserve the failing signal and repair or formally track the unrelated defect without silently passing its blocked obligation.
 
 ## Output

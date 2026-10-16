@@ -100,7 +100,7 @@ F1 исполнен по [подготовке F1](f1-preparation-2026-09-15.md)
 |---|---|
 | `ERP-MIG-F1-04-C026-2` | `cbd5c14`: read-only navigation через прежние probes, exact copy/indexed-file proof; live IDE не заявлена. |
 | `ERP-MIG-F1-11-C002` | `44beff6`: документированный reuse/no-change из `d301978`, без повторной реализации. |
-| `ERP-MIG-F1-08-C025` | `63bd5e2`: reuse runtime helpers, ранний отказ неподдерживаемой POSIX process-group среды. |
+| `ERP-MIG-F1-08-C025` | `63bd5e2`: reuse runtime helpers, ранний отказ неподдерживаемой POSIX workflow-group среды. |
 | `ERP-MIG-F1-12-C003` | `914402a`: декларативные условия выбора существующих skills AI-poise; no ERP profiles. |
 | `ERP-MIG-F1-02-C027-4` | `d0542e8`: explicit-file check/fix Markdown fallback после неприменимой IDE. |
 | `ERP-MIG-F1-13-C004` | `15621ac`: один router для direct CLI, bootstrap и refresh; публичное opt-in поле конфигурации. |

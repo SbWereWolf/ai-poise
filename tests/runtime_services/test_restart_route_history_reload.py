@@ -19,7 +19,7 @@ from verification.test_current_registry_mutation import (
 def test_ready_reloads_retired_stages_and_replays_without_checks(project, verification_calls):
     configure_public_registry_case(project)
     fields = [
-        "process", "methods", "method_inputs", "checks", "content_contract",
+        "workflow", "methods", "method_inputs", "checks", "content_contract",
         "evidence_plan", "stage_contracts", "decomposition",
     ]
     project["task"]["planning"] = {
@@ -40,9 +40,9 @@ def test_ready_reloads_retired_stages_and_replays_without_checks(project, verifi
     old_calls = list(verification_calls)
     assert old_calls
     newborn = restart_task(tools, "T1")
-    process = deepcopy(newborn["process"])
-    producer = next(s for s in process["stages"] if s["id"] == "test_remediation")
-    inspector = next(s for s in process["stages"] if s["id"] == "test_inspection")
+    workflow = deepcopy(newborn["workflow"])
+    producer = next(s for s in workflow["stages"] if s["id"] == "test_remediation")
+    inspector = next(s for s in workflow["stages"] if s["id"] == "test_inspection")
     producer.update(
         handler="produce", read_only=True, allowed_paths=[],
         sections={"report": "Observe the committed result.", "test_registry": "Register current guards."},
@@ -53,12 +53,12 @@ def test_ready_reloads_retired_stages_and_replays_without_checks(project, verifi
         rework_targets=["test_remediation"],
         transitions={"changes_requested": "test_remediation", "clear": None},
     )
-    process["stages"] = [producer, inspector]
-    process["route"]["entry"] = "test_remediation"
-    process["content_contract"] = {"sections": [], "routes": [], "requirements": []}
+    workflow["stages"] = [producer, inspector]
+    workflow["route"]["entry"] = "test_remediation"
+    workflow["content_contract"] = {"sections": [], "routes": [], "requirements": []}
     stages = ["test_remediation", "test_inspection"]
     patch = {
-        "process": process, "methods": [], "method_inputs": [],
+        "workflow": workflow, "methods": [], "method_inputs": [],
         "checks": {stage: [] for stage in stages},
         "content_contract": {"sections": [], "routes": [], "requirements": []},
         "evidence_plan": {stage: {"subject_methods": {}, "arguments": [], "review_arguments": []} for stage in stages},
@@ -73,7 +73,7 @@ def test_ready_reloads_retired_stages_and_replays_without_checks(project, verifi
     ready = ready_task(tools, "T1", edited["revision"])
     assert ready["status"] == "available"
     record = tools.runtime.task_queries.record("T1")
-    assert record["process"] == process
+    assert record["workflow"] == workflow
     assert record["status"] == "available"
     assert record["claimed_by"] is None
     after = projection(tools)

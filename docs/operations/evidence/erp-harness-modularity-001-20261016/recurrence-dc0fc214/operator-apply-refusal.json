@@ -1,0 +1,23 @@
+{
+  "kind": "observed-terminal-operator-apply-refusal",
+  "date": "2026-10-16",
+  "executor_thread": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+  "script_sha256": "d0579e814ea3b545192360965e5e9582c6fcaa9b2f1f8581af627fb5abc0cefb",
+  "approved_plan_sha256": "153a688964c83815f2296cbf43674e811ec6fb178e9afa99ad853d9ab7261c78",
+  "actual_exit_code": 1,
+  "terminal_output_path": "operator-apply-refusal.log",
+  "terminal_output_sha256": "c4000618292c5b84dc3ad753a2d2f3a396160de9e95481488826fbc7311a2bc7",
+  "terminal_output_provenance": "operator-command-provenance.json",
+  "terminal_output_source_truncated": false,
+  "exception": "poise.modules.foundation.errors.LockUnavailable: Истёк лимит ожидания внешнего lock",
+  "failure_boundary": "ProjectRuntimeFence(CONFIG, STATE).locked(), operator-recovery-v2.py line210; project_resources.py line76; locking.py line26",
+  "database_opened_by_this_invocation": false,
+  "managed_writes_by_this_invocation": false,
+  "precommit_output_exists": false,
+  "applied_output_exists": false,
+  "basis": "Observed terminal traceback and subsequent explicit output-absence checks. The reviewed source opens the database only after the failed fence and later artifact/task locks. This does not assert absence of independent foreign writes.",
+  "old_unknown_outcomes": "not reclassified",
+  "native_acceptance": false,
+  "third_verify_started": false,
+  "continuation": "Wait for owner-coordinated window, then revalidate exact CAS before any retry. Do not delete locks, kill foreign processes or increase limits."
+}

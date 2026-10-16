@@ -877,7 +877,7 @@
     {
       "id": "GS-VER-02",
       "title": "verification.execution",
-      "text": "verification.execution: PREPARE принимает manual_evidence для методов по имеющимся фактам и проверяет их наличие до executable OBSERVE. OBSERVE исполняет только явно объявленные точные команды. Если план требует reasoning по новым receipts, возвращает awaiting_agent с полным контекстом; CONTINUE принимает observed_manual_evidence и не повторяет команды. CHECK регистрирует manual/observed proposals и command receipts как разные evidence, проверяет покрытие methods/subject и неизменность target. SEAL требует все обязательные proposals, но не придумывает reviewer verdict. Logical-only имеет 0 external invocations; отсутствующее доказательство блокирует verified. Подробный независимый контракт — process-matrices.json:verification и lifecycle-contracts.json:noncommand_evidence.",
+      "text": "verification.execution: PREPARE принимает manual_evidence для методов по имеющимся фактам и проверяет их наличие до executable OBSERVE. OBSERVE исполняет только явно объявленные точные команды. Если план требует reasoning по новым receipts, возвращает awaiting_agent с полным контекстом; CONTINUE принимает observed_manual_evidence и не повторяет команды. CHECK регистрирует manual/observed proposals и command receipts как разные evidence, проверяет покрытие methods/subject и неизменность target. SEAL требует все обязательные proposals, но не придумывает reviewer verdict. Logical-only имеет 0 external invocations; отсутствующее доказательство блокирует verified. Подробный независимый контракт — workflow-matrices.json:verification и lifecycle-contracts.json:noncommand_evidence.",
       "review_findings": [
         "R-01",
         "S3-01"

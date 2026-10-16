@@ -7,6 +7,16 @@ from .common import PoiseError,load_config
 from .infrastructure.session_establishment import direct_caller,establish_poise
 
 
+class SingleArgument(argparse.Action):
+    """Reject repeated selection and owner arguments, including equal values."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        if getattr(namespace, self.dest, None) is not None:
+            parser.error(f'{option_string} may be supplied only once')
+        if isinstance(values, str) and not values.strip():
+            parser.error(f'{option_string} requires a nonempty value')
+        setattr(namespace, self.dest, values)
+
+
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
@@ -34,9 +44,9 @@ def parser():
     sub.add_parser('work',help='work, sprint, handoff, transfer: один декларативный JSON-пакет')
     runtime=sub.add_parser('runtime',help='Explicit identity/capabilities/transcript plus one work packet')
     runtime.add_argument('--settings',type=Path,required=True)
-    editor=sub.add_parser('goal-config',help='Создать/изменить process одним JSON-пакетом')
+    editor=sub.add_parser('goal-config',help='Создать/изменить workflow одним JSON-пакетом')
     editor.add_argument('--settings',type=Path,required=True)
-    catalogue=sub.add_parser('catalogue',help='Batch install independent processes or prepare typed tasks')
+    catalogue=sub.add_parser('catalogue',help='Batch install independent workflows or prepare typed tasks')
     catalogue.add_argument('--settings',type=Path,required=True)
     skills=sub.add_parser('skills',help='Read skill metadata or validate decomposition without a Task session')
     skills.add_argument('--catalog',type=Path,required=True)
@@ -50,8 +60,9 @@ def parser():
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
-    bound.add_argument('--settings',type=Path,required=True)
-    bound.add_argument('--binding',type=Path,required=True)
+    bound.add_argument('--settings',type=Path,required=True,action=SingleArgument)
+    bound.add_argument('--binding',type=Path,required=True,action=SingleArgument)
+    bound.add_argument('--project',action=SingleArgument,help='Exact selected project ID')
     backup=sub.add_parser('backup',help='Task DB backup list, create, restore and help')
     actions=backup.add_subparsers(dest='backup_action',required=True)
     actions.add_parser('help',help='Show backup commands and the exclusive-operator requirement')
@@ -63,10 +74,11 @@ def parser():
     restore.add_argument('backup_name')
     migration=sub.add_parser('route-migrate',help='Remove retired route count limits from one project')
     migration.add_argument('--config',type=Path,required=True)
-    task_process_migration=sub.add_parser(
-        'task-process-migrate', help='Migrate one explicitly authorized Task process-snapshot batch'
+    task_workflow_migration=sub.add_parser(
+        'task-workflow-migrate', help='Migrate one explicitly authorized Task workflow-snapshot batch'
     )
-    task_process_migration.add_argument('--config',type=Path,required=True)
+    task_workflow_migration.add_argument('--config',type=Path,required=True)
+    task_workflow_migration.add_argument('--project-settings',type=Path)
     requirements=sub.add_parser(
         'requirements', help='Apply/query one project Requirements Registry JSON packet'
     )
@@ -101,12 +113,11 @@ def main():
             settings=ProjectSettings(args.settings)
             if args.template not in settings.raw['templates']:
                 raise PoiseError('Unknown explicitly selected project template')
-            selection=settings.raw['templates'][args.template]
         except PoiseError as exc:
             print(str(exc),file=sys.stderr)
             return 2
         request={'schema':'project-setup-1','request_id':args.request_id,'destination':args.destination,
-            'template':{'id':args.template,'version':selection['version'],'digest':selection['digest']},'edits':[],
+            'template':{'id':args.template},'edits':[],
             'probe_repository':args.probe_repository=='yes'}
         return interactive(args.settings,request,sys.stdin,sys.stdout,sys.stderr)
     if args.command=='catalogue':
@@ -138,9 +149,9 @@ def main():
     if args.command=='route-migrate':
         from .interfaces.route_migration import execute
         return execute(args.config,sys.stdout)
-    if args.command=='task-process-migrate':
-        from .interfaces.task_process_migration import execute
-        return execute(args.config,sys.stdin.buffer,sys.stdout)
+    if args.command=='task-workflow-migrate':
+        from .interfaces.task_workflow_migration import execute
+        return execute(args.config,sys.stdin.buffer,sys.stdout,args.project_settings)
     if args.command=='requirements':
         from .interfaces.requirements_registry import execute
         return execute(args.config,sys.stdin.buffer,sys.stdout)

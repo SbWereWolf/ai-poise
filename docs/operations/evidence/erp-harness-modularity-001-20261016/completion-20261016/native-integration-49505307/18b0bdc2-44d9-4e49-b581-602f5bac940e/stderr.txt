@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py", line 864, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py", line 851, in main
+    test()
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results
+    assert hashlib.sha256((historical / "evidence" / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+                                                                                                ~~~~^^^^^^^^^^
+KeyError: 'sha256'

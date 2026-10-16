@@ -11,8 +11,8 @@ import sys
 
 import pytest
 
-from poise.application.task_process_migration import TaskProcessMigrationCommands
-from poise.interfaces import task_process_migration
+from poise.application.task_workflow_migration import TaskWorkflowMigrationCommands
+from poise.interfaces import task_workflow_migration
 from poise.modules.foundation.errors import PoiseError
 from conftest import write_json
 from conftest import WorkPoise
@@ -67,7 +67,7 @@ def test_new_single_apply_request_reaches_existing_migration_port():
     packet = fixture("migration-request.json")
     expected = fixture("migration-success-response.json")
     port = RecordingPort(expected)
-    observed = TaskProcessMigrationCommands(port).migrate(packet)
+    observed = TaskWorkflowMigrationCommands(port).migrate(packet)
     assert observed == expected
     assert len(port.requests) == 1
     assert port.requests[0].schema == "task-stage-criteria-migration-1"
@@ -92,16 +92,16 @@ def test_invalid_mapping_is_rejected_before_port_dispatch(fault):
         packet["authorization"] = ""
     port = RecordingPort({})
     with pytest.raises(PoiseError):
-        TaskProcessMigrationCommands(port).migrate(packet)
+        TaskWorkflowMigrationCommands(port).migrate(packet)
     assert port.requests == []
 
 
 def test_cli_partial_publication_returns_exact_recovery_envelope_and_exit_two(monkeypatch, tmp_path):
     expected = fixture("migration-recovery-response.json")
     port = RecordingPort(expected)
-    monkeypatch.setattr(task_process_migration, "task_process_migration_tools", lambda path: port)
+    monkeypatch.setattr(task_workflow_migration, "task_workflow_migration_tools", lambda path: port)
     output = io.StringIO()
-    code = task_process_migration.execute(
+    code = task_workflow_migration.execute(
         tmp_path / "project.json",
         io.BytesIO(json.dumps(fixture("migration-request.json")).encode("utf-8")),
         output,
@@ -117,16 +117,16 @@ def invoke_cli(project, packet):
     root = Path(__file__).resolve().parents[2]
     environment = {**os.environ, "PYTHONPATH": str(root / "src")}
     return subprocess.run(
-        [sys.executable, "-B", "-m", "poise", "task-process-migrate", "--config", str(project["config_path"])],
+        [sys.executable, "-B", "-m", "poise", "task-workflow-migrate", "--config", str(project["config_path"])],
         input=json.dumps(packet), text=True, capture_output=True, check=False,
         cwd=root, env=environment,
     )
 
 
 def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preserves_data(project):
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     before = snapshot(database)
-    original_process = json.loads(process_path.read_text(encoding="utf-8"))
+    original_workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
     command = invoke_cli(project, packet)
     assert command.returncode == 0, (command.stdout, command.stderr)
     response = json.loads(command.stdout)
@@ -136,27 +136,27 @@ def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preser
     assert response["replayed"] is False
     assert isinstance(response["receipt"], str) and response["receipt"]
     assert [(r["kind"], r.get("task_id", r.get("goal_type"))) for r in response["resources"]] == [
-        ("process_definition", "development"), ("executable_task", "T1"), ("executable_task", "T2"),
+        ("workflow_definition", "development"), ("executable_task", "T1"), ("executable_task", "T2"),
     ]
     for resource, mapping in zip(response["resources"], packet["mapping"], strict=True):
         assert resource["old_digest"] != resource["new_digest"]
-        if resource["kind"] == "process_definition":
+        if resource["kind"] == "workflow_definition":
             assert resource["old_revision"] == mapping["expected_revision"]
         else:
             assert resource["version"] == mapping["expected_version"]
-    migrated_process = json.loads(process_path.read_text(encoding="utf-8"))
-    assert [s["purpose"] for s in migrated_process["stages"]] == [
+    migrated_workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+    assert [s["purpose"] for s in migrated_workflow["stages"]] == [
         "design", "observation", "execution", "observation",
     ]
-    for stage in migrated_process["stages"]:
+    for stage in migrated_workflow["stages"]:
         assert stage.pop("criteria_authority") == {"propose": [], "decide": []}
         stage.pop("purpose")
-    assert migrated_process == original_process
+    assert migrated_workflow == original_workflow
     after = snapshot(database)
     assert_history_preserved(before, after)
-    assert_mapped_documents(database, packet, process_path)
-    assert_definition_digests(before, after, original_process, process_path, response["resources"])
-    publication = assert_publication(project, response["resources"][0], process_path)
+    assert_mapped_documents(database, packet, workflow_path)
+    assert_definition_digests(before, after, original_workflow, workflow_path, response["resources"])
+    publication = assert_publication(project, response["resources"][0], workflow_path)
     replay = invoke_cli(project, packet)
     assert replay.returncode == 0, (replay.stdout, replay.stderr)
     assert json.loads(replay.stdout) == {**response, "replayed": True}
@@ -184,9 +184,9 @@ def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preser
 
 
 def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_provenance(project):
-    database, packet, process_path = historical_project(project, include_newborn=True)
+    database, packet, workflow_path = historical_project(project, include_newborn=True)
     before = snapshot(database)
-    original_process = json.loads(process_path.read_text(encoding="utf-8"))
+    original_workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
     command = invoke_cli(project, packet)
     assert command.returncode == 0, (command.stdout, command.stderr)
     response = json.loads(command.stdout)
@@ -199,9 +199,9 @@ def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_p
     assert newborn["old_digest"] != newborn["new_digest"]
     after = snapshot(database)
     assert_history_preserved(before, after)
-    assert_mapped_documents(database, packet, process_path)
-    assert_definition_digests(before, after, original_process, process_path, response["resources"])
-    assert_publication(project, response["resources"][0], process_path)
+    assert_mapped_documents(database, packet, workflow_path)
+    assert_definition_digests(before, after, original_workflow, workflow_path, response["resources"])
+    assert_publication(project, response["resources"][0], workflow_path)
     with sqlite3.connect(database) as connection:
         assert connection.execute(
             "SELECT count(*) FROM task_execution WHERE task_id=?", ("N1",),
@@ -279,7 +279,7 @@ def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_p
 
 @pytest.mark.parametrize("fault", ["missing_resource", "extra_resource", "stale_version", "missing_stage", "false_start"])
 def test_real_migration_preflight_rejects_incomplete_or_false_mapping_before_any_write(project, fault):
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     if fault == "missing_resource":
         packet["mapping"].pop()
     elif fault == "extra_resource":
@@ -292,7 +292,7 @@ def test_real_migration_preflight_rejects_incomplete_or_false_mapping_before_any
         packet["mapping"][-1]["stages"].pop()
     else:
         packet["mapping"][-1]["stages"][2]["execution"]["state"] = "started"
-    before, process_bytes = snapshot(database), process_path.read_bytes()
+    before, workflow_bytes = snapshot(database), workflow_path.read_bytes()
     command = invoke_cli(project, packet)
     assert command.returncode == 2
     response = json.loads(command.stdout)
@@ -300,7 +300,7 @@ def test_real_migration_preflight_rejects_incomplete_or_false_mapping_before_any
     assert response["status"] == "rejected"
     assert isinstance(response["reason"], str) and response["reason"]
     assert snapshot(database) == before
-    assert process_path.read_bytes() == process_bytes
+    assert workflow_path.read_bytes() == workflow_bytes
 
 
 @pytest.mark.parametrize("fault", [
@@ -311,7 +311,7 @@ def test_real_migration_preflight_rejects_incomplete_or_false_mapping_before_any
 def test_configured_publication_owner_must_match_exact_project_target_and_managed_head(project, fault):
     from poise.infrastructure.goal_config import EditorSettings, FileGoalConfigRepository
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     path = project["root"] / "criteria-editor.json"
     settings = json.loads(path.read_text(encoding="utf-8"))
     owner_database = project["root"] / settings["database"]
@@ -320,21 +320,21 @@ def test_configured_publication_owner_must_match_exact_project_target_and_manage
         write_json(project["config_path"], project["cfg"])
     elif fault == "missing_settings":
         write_json(project["root"] / "criteria-catalogue.json", {
-            "schema": "process-catalogue-1", "editor": "missing-editor.json",
+            "schema": "workflow-catalogue-1", "editor": "missing-editor.json",
             "task_templates": {}, "max_items": 1000,
         })
     elif fault == "malformed_settings":
         write_json(path, {"schema": "not-editor-settings"})
     elif fault == "unregistered_goal":
-        settings["processes"] = {"other": "config/processes/managed-other.json"}
+        settings["workflows"] = {"other": "config/workflows/managed-other.json"}
         write_json(path, settings)
     elif fault == "different_registered_target":
-        twin = "config/processes/unmanaged-twin.json"
-        write_json(project["root"] / twin, json.loads(process_path.read_text(encoding="utf-8")))
-        project["cfg"]["processes"]["development"] = twin
+        twin = "config/workflows/unmanaged-twin.json"
+        write_json(project["root"] / twin, json.loads(workflow_path.read_text(encoding="utf-8")))
+        project["cfg"]["workflows"]["development"] = twin
         write_json(project["config_path"], project["cfg"])
-        configured = project["root"] / project["cfg"]["processes"]["development"]
-        assert json.loads(configured.read_text(encoding="utf-8")) == json.loads(process_path.read_text(encoding="utf-8"))
+        configured = project["root"] / project["cfg"]["workflows"]["development"]
+        assert json.loads(configured.read_text(encoding="utf-8")) == json.loads(workflow_path.read_text(encoding="utf-8"))
     elif fault in ("no_managed_head", "missing_owner_database"):
         settings["database"] = "state/unmanaged-config.sqlite"
         write_json(path, settings)
@@ -345,9 +345,9 @@ def test_configured_publication_owner_must_match_exact_project_target_and_manage
     elif fault == "stale_managed_revision":
         packet["mapping"][0]["expected_revision"] = "0" * 64
     elif fault == "live_head_drift":
-        document = json.loads(process_path.read_text(encoding="utf-8"))
+        document = json.loads(workflow_path.read_text(encoding="utf-8"))
         document["stages"][0]["instruction"] = "An external writer changed the source after its managed publication."
-        write_json(process_path, document)
+        write_json(workflow_path, document)
     else:
         # Test-owned pending journal input. Keep the genuine head/receipt intact;
         # copying its candidate is arrangement, not a generated migration oracle.
@@ -378,8 +378,8 @@ def test_configured_publication_owner_must_match_exact_project_target_and_manage
             )
 
     owner_before = owner_rows()
-    before, published = snapshot(database), process_path.read_bytes()
-    configured_path = project["root"] / project["cfg"]["processes"]["development"]
+    before, published = snapshot(database), workflow_path.read_bytes()
+    configured_path = project["root"] / project["cfg"]["workflows"]["development"]
     configured_bytes = configured_path.read_bytes()
     command = invoke_cli(project, packet)
     assert command.returncode == 2
@@ -388,78 +388,78 @@ def test_configured_publication_owner_must_match_exact_project_target_and_manage
     assert response["status"] == "rejected"
     assert response["reason"]
     assert snapshot(database) == before
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert configured_path.read_bytes() == configured_bytes
     assert owner_rows() == owner_before
 
 
 def test_real_migration_rechecks_drift_after_preflight_without_overwriting_the_writer(project):
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     before = snapshot(database)
-    process_bytes = process_path.read_bytes()
+    workflow_bytes = workflow_path.read_bytes()
 
     def drift():
         with sqlite3.connect(database) as connection:
             connection.execute("UPDATE tasks SET version=version+1 WHERE id=?", ("T2",))
 
-    port = SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_preflight=drift)
+    port = SqliteTaskWorkflowMigration(project["config_path"], FixtureClock(), after_preflight=drift)
     with pytest.raises(PoiseError):
-        TaskProcessMigrationCommands(port).migrate(packet)
+        TaskWorkflowMigrationCommands(port).migrate(packet)
     after = snapshot(database)
     expected = deepcopy(before)
     expected["tasks"][-1] = (*before["tasks"][-1][:5], before["tasks"][-1][5] + 1, *before["tasks"][-1][6:])
     assert after == expected
-    assert process_path.read_bytes() == process_bytes
+    assert workflow_path.read_bytes() == workflow_bytes
 
 
-def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resumable_receipt(project):
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+def test_published_workflow_and_rolled_back_tasks_have_truthful_recovery_and_resumable_receipt(project):
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     before = snapshot(database)
-    original_process = json.loads(process_path.read_text(encoding="utf-8"))
+    original_workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
     calls = []
 
     def fail_after_update(task_id):
         calls.append(task_id)
         raise OSError("Fixture failure after Task update, before transaction commit.")
 
-    failing = SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_update=fail_after_update)
-    response = TaskProcessMigrationCommands(failing).migrate(packet)
+    failing = SqliteTaskWorkflowMigration(project["config_path"], FixtureClock(), after_update=fail_after_update)
+    response = TaskWorkflowMigrationCommands(failing).migrate(packet)
     assert calls == ["T1"]
     assert set(response) == {"status", "request_id", "receipt", "resources", "reason"}
     assert response["status"] == "recovery_required"
     assert response["request_id"] == packet["request_id"]
     assert response["reason"]
     assert [(r["kind"], r.get("goal_type")) for r in response["resources"]] == [
-        ("process_definition", "development"),
+        ("workflow_definition", "development"),
     ]
     partial = snapshot(database)
     for table in ("tasks", "events", "submissions", "evidence", "execution"):
         assert partial[table] == before[table]
-    published = process_path.read_bytes()
+    published = workflow_path.read_bytes()
     assert [s["purpose"] for s in json.loads(published)["stages"]] == [
         "design", "observation", "execution", "observation",
     ]
-    publication = assert_publication(project, response["resources"][0], process_path)
-    assert_definition_digests(before, partial, original_process, process_path, response["resources"])
+    publication = assert_publication(project, response["resources"][0], workflow_path)
+    assert_definition_digests(before, partial, original_workflow, workflow_path, response["resources"])
     completed_calls = []
-    recovered = TaskProcessMigrationCommands(SqliteTaskProcessMigration(
+    recovered = TaskWorkflowMigrationCommands(SqliteTaskWorkflowMigration(
         project["config_path"], FixtureClock(), after_update=completed_calls.append,
     )).migrate(packet)
     assert recovered["status"] == "migrated"
     assert recovered["receipt"] == response["receipt"]
     assert completed_calls == ["T1", "T2"]
     assert recovered["resources"][:1] == response["resources"]
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert publication_rows(project) == publication
-    assert_mapped_documents(database, packet, process_path)
+    assert_mapped_documents(database, packet, workflow_path)
     final = snapshot(database)
     assert_history_preserved(before, final)
-    assert_definition_digests(before, final, original_process, process_path, recovered["resources"])
-    replay = TaskProcessMigrationCommands(SqliteTaskProcessMigration(
+    assert_definition_digests(before, final, original_workflow, workflow_path, recovered["resources"])
+    replay = TaskWorkflowMigrationCommands(SqliteTaskWorkflowMigration(
         project["config_path"], FixtureClock(), after_update=completed_calls.append,
     )).migrate(packet)
     assert replay == {**recovered, "replayed": True}
@@ -469,9 +469,9 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
 
 
 def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_provenance(project):
-    database, packet, process_path = historical_state_variants(project)
+    database, packet, workflow_path = historical_state_variants(project)
     before = snapshot(database)
-    original_process = json.loads(process_path.read_text(encoding="utf-8"))
+    original_workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
     source_submission = packet["mapping"][2]["stages"][2]["execution"]["source_refs"][0]["id"]
     with sqlite3.connect(database) as connection:
         assert connection.execute("SELECT task_id,stage FROM submissions WHERE seq=?", (source_submission,)).fetchone() == ("T2", "implementation")
@@ -482,9 +482,9 @@ def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_prove
     assert [r.get("task_id") for r in response["resources"][1:]] == ["T1", "T2"]
     after = snapshot(database)
     assert_history_preserved(before, after, control_ids=("CONTROL",))
-    assert_mapped_documents(database, packet, process_path)
-    assert_publication(project, response["resources"][0], process_path)
-    assert_definition_digests(before, after, original_process, process_path, response["resources"])
+    assert_mapped_documents(database, packet, workflow_path)
+    assert_publication(project, response["resources"][0], workflow_path)
+    assert_definition_digests(before, after, original_workflow, workflow_path, response["resources"])
     tools = WorkTools(WorkPoise(project["config_path"], "continue-known-start"))
     tools.invoke(request("bootstrap", {"task": {"id": "T2"}, "decision": None, "feedback": None, "rework_stage": None}))
     assert_original_stage_digests(tools, json.loads(next(row[7] for row in before["tasks"] if row[0] == "T2")), response["receipt"])
@@ -545,8 +545,8 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
     # A valid frozen owner-produced contract with no checks. Only import
     # provenance is arranged here: it cannot prove whether execution started.
     source = json.loads(fixture("historical-owner-sources.json")["unstarted"]["task"][0][7])
-    database, packet, process_path = historical_project(
-        project, process_source=source["process"], contract_source=source["contract"],
+    database, packet, workflow_path = historical_project(
+        project, workflow_source=source["workflow"], contract_source=source["contract"],
     )
     for resource in packet["mapping"]:
         resource["stages"][0]["criteria_authority"]["propose"] = ["implementation"]
@@ -588,7 +588,7 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
         key: value for key, value in completed.items() if key != "history"
     }
     assert protected["history"][:len(completed["history"])] == completed["history"]
-    before, process_bytes, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    before, workflow_bytes, owner = snapshot(database), workflow_path.read_bytes(), publication_rows(project)
     candidate = proposal(tools, "implementation")
     with pytest.raises(PoiseError, match="target_started_requires_restart"):
         tools.invoke(verify_packet(design, {"request_id": "deny-unknown-state-refinement", "expected_version": version(tools),
@@ -596,7 +596,7 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
     assert show(tools, "implementation") == protected
     assert snapshot(database)["tasks"] == before["tasks"]
     assert snapshot(database)["submissions"] == before["submissions"]
-    assert process_path.read_bytes() == process_bytes
+    assert workflow_path.read_bytes() == workflow_bytes
     assert publication_rows(project) == owner
 
 
@@ -604,7 +604,7 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
 def test_backup_and_source_reference_failures_reject_without_mapped_writes(project, fault):
     from tests.backups.helpers import backup_directory
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     backup = backup_directory(project) / packet["backup_name"]
     if fault == "missing_backup":
         packet["backup_name"] = "absent-criteria-source.sqlite"
@@ -623,14 +623,14 @@ def test_backup_and_source_reference_failures_reject_without_mapped_writes(proje
         packet["mapping"][1]["stages"][2]["execution"]["source_refs"] = [
             {"kind": "submission", "id": foreign} if fault == "foreign_submission" else {"kind": "task_event", "id": 999999},
         ]
-    before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    before, published, owner = snapshot(database), workflow_path.read_bytes(), publication_rows(project)
     command = invoke_cli(project, packet)
     assert command.returncode == 2
     response = json.loads(command.stdout)
     assert set(response) == {"status", "reason"}
     assert response["status"] == "rejected" and response["reason"]
     assert snapshot(database) == before
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert publication_rows(project) == owner
 
 
@@ -638,7 +638,7 @@ def test_backup_and_source_reference_failures_reject_without_mapped_writes(proje
 def test_original_stage_contract_must_exist_uniquely_before_migration_writes(project, fault):
     from tests.backups.helpers import backup_commands
 
-    database, packet, process_path = historical_project(project, create_backup=False)
+    database, packet, workflow_path = historical_project(project, create_backup=False)
     with sqlite3.connect(database) as connection:
         metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", ("T1",)).fetchone()[0])
         contracts = metadata["contract"]["stage_contracts"]
@@ -653,14 +653,14 @@ def test_original_stage_contract_must_exist_uniquely_before_migration_writes(pro
     packet["backup_name"] = backup_commands(project).create()["name"]
     for stage in packet["mapping"][1]["stages"]:
         stage["execution"]["source_refs"] = [{"kind": "contract", "digest": identity(metadata["contract"])}]
-    before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    before, published, owner = snapshot(database), workflow_path.read_bytes(), publication_rows(project)
     command = invoke_cli(project, packet)
     assert command.returncode == 2
     response = json.loads(command.stdout)
     assert set(response) == {"status", "reason"}
     assert response["status"] == "rejected" and response["reason"]
     assert snapshot(database) == before
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert publication_rows(project) == owner
 
 
@@ -668,7 +668,7 @@ def test_original_stage_contract_must_exist_uniquely_before_migration_writes(pro
 def test_unhashable_original_definition_is_rejected_before_mapped_writes(project, fault):
     from tests.backups.helpers import backup_commands
 
-    database, packet, process_path = historical_project(project, create_backup=False)
+    database, packet, workflow_path = historical_project(project, create_backup=False)
     with sqlite3.connect(database) as connection:
         metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", ("T1",)).fetchone()[0])
         # The complete historical contract is the preimage; this is source
@@ -679,37 +679,37 @@ def test_unhashable_original_definition_is_rejected_before_mapped_writes(project
     packet["backup_name"] = backup_commands(project).create()["name"]
     for stage in packet["mapping"][1]["stages"]:
         stage["execution"]["source_refs"] = [{"kind": "task_event", "id": source_event}]
-    before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    before, published, owner = snapshot(database), workflow_path.read_bytes(), publication_rows(project)
     command = invoke_cli(project, packet)
     assert command.returncode == 2
     response = json.loads(command.stdout)
     assert set(response) == {"status", "reason"}
     assert response["status"] == "rejected" and response["reason"]
     assert snapshot(database) == before
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert publication_rows(project) == owner
 
 
 @pytest.mark.parametrize("drift", ["published_process", "remaining_task"])
 def test_partial_publication_recovery_refuses_intervening_drift_without_overwrite(project, drift):
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
 
     def failure(_):
         raise OSError("Stop after process publication with the Task transaction uncommitted.")
 
-    partial = TaskProcessMigrationCommands(SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_update=failure)).migrate(packet)
+    partial = TaskWorkflowMigrationCommands(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock(), after_update=failure)).migrate(packet)
     assert partial["status"] == "recovery_required"
-    owner = assert_publication(project, partial["resources"][0], process_path)
+    owner = assert_publication(project, partial["resources"][0], workflow_path)
     if drift == "published_process":
-        document = json.loads(process_path.read_text())
+        document = json.loads(workflow_path.read_text())
         document["stages"][0]["instruction"] = "An intervening writer owns this changed instruction."
-        write_json(process_path, document)
+        write_json(workflow_path, document)
     else:
         with sqlite3.connect(database) as connection:
             connection.execute("UPDATE tasks SET version=version+1 WHERE id=?", ("T2",))
-    before, published = snapshot(database), process_path.read_bytes()
+    before, published = snapshot(database), workflow_path.read_bytes()
     command = invoke_cli(project, packet)
     assert command.returncode == 2
     response = json.loads(command.stdout)
@@ -719,18 +719,18 @@ def test_partial_publication_recovery_refuses_intervening_drift_without_overwrit
     assert response["receipt"] == partial["receipt"]
     assert response["resources"] == partial["resources"]
     assert snapshot(database) == before
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert publication_rows(project) == owner
 
 
 @pytest.mark.parametrize("schema,task_ids", [
-    ("task-process-migration-1", ["0077", "0081", "0079", "0078", "0074", "0063"]),
-    ("task-process-migration-2", ["0082"]),
-    ("task-process-migration-3", ["0082"]),
-    ("task-process-migration-4", ["ERP-HARNESS-COMPARISON-PLAN"]),
+    ("task-workflow-migration-1", ["0077", "0081", "0079", "0078", "0074", "0063"]),
+    ("task-workflow-migration-2", ["0082"]),
+    ("task-workflow-migration-3", ["0082"]),
+    ("task-workflow-migration-4", ["ERP-HARNESS-COMPARISON-PLAN"]),
 ])
 def test_historical_migration_schemas_keep_their_exact_request_contract(schema, task_ids):
-    from poise.modules.tasks.process_migration import MigrationRequest
+    from poise.modules.tasks.workflow_migration import MigrationRequest
 
     packet = {"schema": schema, "request_id": "preserve-historical-wire", "backup_name": "fixture.sqlite",
               "task_ids": task_ids, "authorization": "Preserve the existing schema contract."}
@@ -743,7 +743,7 @@ def test_historical_migration_schemas_keep_their_exact_request_contract(schema, 
 
 
 @pytest.mark.parametrize("case", [
-    "completed_same_intent", "absent_completed", "foreign_completion", "process_only",
+    "completed_same_intent", "absent_completed", "foreign_completion", "workflow_only",
     "conflicting_completions", "candidate_drift", "pending",
 ])
 def test_migrated_available_task_requires_completed_same_intent_evidence(project, case):
@@ -757,7 +757,7 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
             ).fetchall()
         return publication_rows(project), digests
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     original = snapshot(database)
     migrated = invoke_cli(project, packet)
     assert migrated.returncode == 0, (migrated.stdout, migrated.stderr)
@@ -775,12 +775,12 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
         assert completion["result"] == receipt
         if case == "absent_completed":
             connection.execute("DELETE FROM journal WHERE seq=?", (row[0],))
-        elif case in ("foreign_completion", "process_only", "conflicting_completions"):
+        elif case in ("foreign_completion", "workflow_only", "conflicting_completions"):
             changed = deepcopy(completion)
             if case == "foreign_completion":
                 changed["result"]["receipt"] = "f" * 64
                 changed["result"]["resources"][1]["task_id"] = "FOREIGN"
-            elif case == "process_only":
+            elif case == "workflow_only":
                 changed["result"]["resources"] = changed["result"]["resources"][:1]
             else:
                 # Both records retain the same request/receipt/Task identity;
@@ -805,7 +805,7 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
             connection.execute("UPDATE task_execution SET data=? WHERE task_id=?", (json.dumps(execution), "T1"))
 
     tools = WorkTools(WorkPoise(project["config_path"], "completed-migration-start"))
-    before, owner, published = snapshot(database), owner_records(), process_path.read_bytes()
+    before, owner, published = snapshot(database), owner_records(), workflow_path.read_bytes()
     files = {path: path.read_bytes() for path in (
         project["config_path"], settings, project["root"] / "criteria-editor.json",
         project["root"] / "criteria-catalogue.json", project["root"] / "state/project-registry.json",
@@ -813,7 +813,7 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
     listed = project_tools(settings).next("demo")
     assert snapshot(database) == before
     assert owner_records() == owner
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert all(path.read_bytes() == content for path, content in files.items())
     identities = [(item["project"], item["task"]) for item in listed["tasks"]]
     bootstrap = request("bootstrap", {
@@ -855,7 +855,7 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
         assert after["tasks"][0][4] == "completed-migration-start"
         assert context["worktree"] and Path(context["worktree"]).is_dir()
     assert owner_records() == owner
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     assert all(path.read_bytes() == content for path, content in files.items())
 
 
@@ -863,7 +863,7 @@ def test_migrated_available_task_rechecks_current_claim_after_discovery(project)
     from poise.composition import project_tools
     from tests.projects.helpers import setup_case
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     migrated = invoke_cli(project, packet)
     assert migrated.returncode == 0, (migrated.stdout, migrated.stderr)
     settings, _, _ = setup_case(project)
@@ -879,7 +879,7 @@ def test_migrated_available_task_rechecks_current_claim_after_discovery(project)
             ("foreign-owner-after-discovery", "T1", 7),
         ).rowcount == 1
     writer = snapshot(database)
-    owner, published = publication_rows(project), process_path.read_bytes()
+    owner, published = publication_rows(project), workflow_path.read_bytes()
     with pytest.raises(PoiseError):
         tools.invoke(request("bootstrap", {
             "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
@@ -890,18 +890,18 @@ def test_migrated_available_task_rechecks_current_claim_after_discovery(project)
             assert after[table] == writer[table], table
     assert after["tasks"][0][4:6] == ("foreign-owner-after-discovery", 8)
     assert publication_rows(project) == owner
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
 
 
 @pytest.mark.parametrize("case", ["preintent_manifest", "resume_target_binding", "final_manifest"])
 def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_recovery(project, monkeypatch, case):
     from poise.infrastructure.goal_config import FileGoalConfigRepository
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     original_tasks = snapshot(database)
     original_manifest = project["config_path"].read_bytes()
-    original_process = process_path.read_bytes()
+    original_workflow = workflow_path.read_bytes()
     owner_before = publication_rows(project)
 
     def operation_records():
@@ -934,8 +934,8 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
             # The real owner has released its lock and committed its operation.
             assert_publication(project, {
                 "goal_type": "development", "old_revision": result["previous_revision"],
-                "new_revision": result["revision"], "new_digest": identity(json.loads(process_path.read_bytes())),
-            }, process_path)
+                "new_revision": result["revision"], "new_digest": identity(json.loads(workflow_path.read_bytes())),
+            }, workflow_path)
             observed.append("owner_completed")
             change_manifest()
         return result
@@ -943,30 +943,30 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
     def execute(port):
         output = io.StringIO()
         with monkeypatch.context() as patch:
-            patch.setattr(task_process_migration, "task_process_migration_tools", lambda path: TaskProcessMigrationCommands(port))
-            code = task_process_migration.execute(
+            patch.setattr(task_workflow_migration, "task_workflow_migration_tools", lambda path: TaskWorkflowMigrationCommands(port))
+            code = task_workflow_migration.execute(
                 project["config_path"], io.BytesIO(json.dumps(packet).encode()), output,
             )
         return code, json.loads(output.getvalue())
 
     if case == "resume_target_binding":
-        code, partial = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_update=fail_update))
+        code, partial = execute(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock(), after_update=fail_update))
         assert code == 2 and partial["status"] == "recovery_required"
         assert observed == [("after_update", "T1")]
         assert len(partial["resources"]) == 1
-        assert_publication(project, partial["resources"][0], process_path)
-        alternate = project["root"] / "config/processes/writer-development.json"
-        write_json(alternate, json.loads(process_path.read_bytes()))
+        assert_publication(project, partial["resources"][0], workflow_path)
+        alternate = project["root"] / "config/workflows/writer-development.json"
+        write_json(alternate, json.loads(workflow_path.read_bytes()))
         alternate_editor = project["root"] / "writer-editor.json"
         editor = fixture("migration-editor.json")
-        editor["processes"]["development"] = "config/processes/writer-development.json"
+        editor["workflows"]["development"] = "config/workflows/writer-development.json"
         write_json(alternate_editor, editor)
         alternate_catalogue = project["root"] / "writer-catalogue.json"
         catalogue = fixture("migration-catalogue.json")
         catalogue["editor"] = "writer-editor.json"
         write_json(alternate_catalogue, catalogue)
         manifest = json.loads(original_manifest)
-        manifest["processes"]["development"] = "config/processes/writer-development.json"
+        manifest["workflows"]["development"] = "config/workflows/writer-development.json"
         manifest["task_planning"]["catalogue"] = str(alternate_catalogue)
         write_json(project["config_path"], manifest)
         writer = {path: path.read_bytes() for path in (
@@ -974,15 +974,15 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
         )}
         before = snapshot(database)
         owner_before = publication_rows(project)
-        code, response = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+        code, response = execute(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock()))
     elif case == "preintent_manifest":
         before = snapshot(database)
-        code, response = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_preflight=change_manifest))
+        code, response = execute(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock(), after_preflight=change_manifest))
     else:
         before = snapshot(database)
         with monkeypatch.context() as patch:
             patch.setattr(FileGoalConfigRepository, "publish_migration", publish_then_write)
-            code, response = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+            code, response = execute(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock()))
 
     assert writer and all(path.read_bytes() == content for path, content in writer.items())
     if case == "preintent_manifest":
@@ -993,7 +993,7 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
         assert snapshot(database) == before
         assert publication_rows(project) == owner_before
         assert operation_records() == operations_before
-        assert process_path.read_bytes() == original_process
+        assert workflow_path.read_bytes() == original_workflow
     else:
         if case == "final_manifest":
             assert observed == ["owner_completed", "manifest_writer"]
@@ -1006,7 +1006,7 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
         if case == "resume_target_binding":
             assert response["receipt"] == partial["receipt"]
             assert response["resources"] == partial["resources"]
-        owner = assert_publication(project, response["resources"][0], process_path)
+        owner = assert_publication(project, response["resources"][0], workflow_path)
         operations = operation_records()
         after = snapshot(database)
         for table in original_tasks:
@@ -1014,24 +1014,24 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
                 assert after[table] == original_tasks[table], table
         assert not any(json.loads(row[5]).get("phase") == "completed"
                        for row in after["journal"] if row[4] == "task_stage_criteria_migration")
-        published = process_path.read_bytes()
-        retry_code, retry = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+        published = workflow_path.read_bytes()
+        retry_code, retry = execute(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock()))
         assert retry_code == 2 and retry["status"] == "recovery_required"
         assert retry["receipt"] == response["receipt"] and retry["resources"] == response["resources"]
         assert snapshot(database) == after
         assert publication_rows(project) == owner
         assert operation_records() == operations
-        assert process_path.read_bytes() == published
+        assert workflow_path.read_bytes() == published
         assert all(path.read_bytes() == content for path, content in writer.items())
         # Explicit fixture writer restores its own manifest, never source state.
         write_json(project["config_path"], json.loads(original_manifest))
-        recovered_code, recovered = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+        recovered_code, recovered = execute(SqliteTaskWorkflowMigration(project["config_path"], FixtureClock()))
         assert recovered_code == 0 and recovered["status"] == "migrated"
         assert recovered["receipt"] == response["receipt"]
         assert recovered["resources"][:1] == response["resources"]
         assert publication_rows(project) == owner
         assert operation_records() == operations
-        assert process_path.read_bytes() == published
+        assert workflow_path.read_bytes() == published
         for path, content in writer.items():
             if path != project["config_path"]:
                 assert path.read_bytes() == content
@@ -1039,11 +1039,11 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
 
 def test_migration_reports_owner_completion_before_coordinator_observation_and_replays_once(project, monkeypatch):
     from poise.infrastructure.goal_config import FileGoalConfigRepository
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
-    database, packet, process_path = historical_project(project)
+    database, packet, workflow_path = historical_project(project)
     before = snapshot(database)
-    old_document = json.loads(process_path.read_bytes())
+    old_document = json.loads(workflow_path.read_bytes())
     observed = []
     original_publish = FileGoalConfigRepository.publish_migration
 
@@ -1058,31 +1058,31 @@ def test_migration_reports_owner_completion_before_coordinator_observation_and_r
     def completed_then_fail(self, *args, **kwargs):
         result = original_publish(self, *args, **kwargs)
         if not observed:
-            document = json.loads(process_path.read_bytes())
+            document = json.loads(workflow_path.read_bytes())
             # Independent summary preimages use the actual preserved old file
             # and literal expected new purpose/grants, not product builders.
-            expected_document = fixture("boundary-migrated-process.json")
+            expected_document = fixture("boundary-migrated-workflow.json")
             assert document == expected_document
             summary = {
-                "kind": "process_definition", "goal_type": "development",
+                "kind": "workflow_definition", "goal_type": "development",
                 "old_digest": identity(old_document), "new_digest": identity(expected_document),
                 "old_revision": packet["mapping"][0]["expected_revision"],
                 "new_revision": identity(expected_document),
             }
-            owner = assert_publication(project, summary, process_path)
+            owner = assert_publication(project, summary, workflow_path)
             rows = migration_operations()
             assert len(rows) == 1 and rows[0][6] == "completed"
             assert json.loads(rows[0][5]) == result
-            observed.append((summary, owner, rows, process_path.read_bytes()))
+            observed.append((summary, owner, rows, workflow_path.read_bytes()))
             raise OSError("Editor effect is durable before coordinator observation.")
         return result
 
     output = io.StringIO()
     with monkeypatch.context() as patch:
         patch.setattr(FileGoalConfigRepository, "publish_migration", completed_then_fail)
-        patch.setattr(task_process_migration, "task_process_migration_tools", lambda path:
-                      TaskProcessMigrationCommands(SqliteTaskProcessMigration(path, FixtureClock())))
-        code = task_process_migration.execute(
+        patch.setattr(task_workflow_migration, "task_workflow_migration_tools", lambda path:
+                      TaskWorkflowMigrationCommands(SqliteTaskWorkflowMigration(path, FixtureClock())))
+        code = task_workflow_migration.execute(
             project["config_path"], io.BytesIO(json.dumps(packet).encode()), output,
         )
     assert len(observed) == 1
@@ -1108,7 +1108,7 @@ def test_migration_reports_owner_completion_before_coordinator_observation_and_r
     assert success["resources"][:1] == [expected_summary]
     assert publication_rows(project) == owner
     assert migration_operations() == operations
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
     after = snapshot(database)
     completed = [json.loads(row[5]) for row in after["journal"]
                  if row[4] == "task_stage_criteria_migration" and json.loads(row[5])["phase"] == "completed"]
@@ -1119,7 +1119,7 @@ def test_migration_reports_owner_completion_before_coordinator_observation_and_r
     assert snapshot(database) == after
     assert publication_rows(project) == owner
     assert migration_operations() == operations
-    assert process_path.read_bytes() == published
+    assert workflow_path.read_bytes() == published
 
 
 @pytest.fixture

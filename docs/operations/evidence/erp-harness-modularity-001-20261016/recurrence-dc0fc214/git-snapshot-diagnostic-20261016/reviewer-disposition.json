@@ -1,0 +1,11 @@
+{
+  "kind": "independent-process-configuration-review",
+  "reviewer_thread": "01a138ea-a400-7273-82da-527a190135b1",
+  "decision": "approved-scoped-explicit-configuration",
+  "helper_sha256": "61babac4b95287d06998e74a61b8fabd382e04a47e6e31f1d625ad9de673ddd9",
+  "result_sha256": "eda2ca8f7ad006c9dd120fa036078028a78d55b148c9b6af860b3e96b4dfdd3f",
+  "conditions": ["Append core.fsmonitor=false to validated inherited Git environment entries", "Only the current direct public work process and its children", "Same native identity, project configuration, interpreter and exact7ee packet", "Preserve configured15s Git timeout and all real check obligations", "No shared config write, daemon mutation, lock deletion, fabricated snapshot or source edit"],
+  "diagnostic_is_native_acceptance": false,
+  "unique_timeout_cause_proven": false,
+  "later_shared_configuration_observation": "Reviewer found core.fsmonitor absent and made no configuration writes. Prior true observation is historical, not asserted current."
+}

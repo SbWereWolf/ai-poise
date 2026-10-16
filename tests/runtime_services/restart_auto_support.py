@@ -141,7 +141,7 @@ def assert_projection(case, response, *, mode="target", target="code_review",
         assert set(visit) == {"stage", "visit_id", "commit"}
         assert type(visit["visit_id"]) is int
     record = case["client"].runtime.task_queries.record("T1")
-    assert record["process"]["stages"][record["stage_index"]]["id"] == (task_stage or stage)
+    assert record["workflow"]["stages"][record["stage_index"]]["id"] == (task_stage or stage)
     assert record["id"] == "T1"
     assert record["worktree"] == str(case["root"])
     assert git(case["root"], "symbolic-ref", "--short", "HEAD") == case["branch"]
@@ -190,20 +190,20 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
     # Make each accepted commit distinct without altering historical test semantics.
-    project["process"]["stages"][1].update(read_only=False, allowed_paths=["tests/**"])
+    project["workflow"]["stages"][1].update(read_only=False, allowed_paths=["tests/**"])
     project["task"]["stage_contracts"][1]["allowed_paths"] = ["tests/**"]
     if rework:
-        project["process"]["stages"][-1]["rework_targets"].append("tests")
+        project["workflow"]["stages"][-1]["rework_targets"].append("tests")
     if publish:
-        terminal = deepcopy(project["process"]["stages"][-1])
+        terminal = deepcopy(project["workflow"]["stages"][-1])
         terminal.update(id="publish", handler="publish", transitions={"complete": None},
                         rework_targets=[])
-        project["process"]["stages"][-1].update(
+        project["workflow"]["stages"][-1].update(
             handler="inspect", role="reviewer",
             transitions={"clear": "publish", "changes_requested": "implementation"},
             rework_targets=["implementation"],
         )
-        project["process"]["stages"].append(terminal)
+        project["workflow"]["stages"].append(terminal)
         project["task"]["stage_contracts"].append({
             "stage_id": "publish", "allowed_paths": [],
             "entry_requirements": [], "exit_requirements": [],
@@ -214,10 +214,10 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
         project["task"]["evidence_plan"]["publish"] = {
             "subject_methods": {}, "arguments": [], "review_arguments": [],
         }
-    write_json(project["root"] / "config/processes/development.json", project["process"])
+    write_json(project["root"] / "config/workflows/development.json", project["workflow"])
     if alternating_roles:
-        project["process"]["stages"][1]["role"] = "reviewer"
-        write_json(project["root"] / "config/processes/development.json", project["process"])
+        project["workflow"]["stages"][1]["role"] = "reviewer"
+        write_json(project["root"] / "config/workflows/development.json", project["workflow"])
     method = deepcopy(project["task"]["methods"][1])
     log = project["root"] / "historical-checks.txt"
     log.write_text("")
@@ -235,12 +235,12 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
     ] if checks else []
     project["task"]["checks"] = {
         stage["id"]: ["GREEN"] if checks and stage["id"] != "publish" else []
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     }
     if route_revision:
         project["task"]["planning"] = {
             "schema": "task-planning-1", "template": None,
-            "restart_revision_policy": {"reviewer": [], "user": ["process"]},
+            "restart_revision_policy": {"reviewer": [], "user": ["workflow"]},
         }
     client = WorkTools(WorkPoise(project["config_path"], "replay-owner"))
     if sprint:
@@ -359,13 +359,13 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
                      if route_revision else "User authorized recovery of this unfinished Task.")
     born = restart(client, "T1", current["version"], authorization=authorization)
     if route_revision:
-        revised_process = deepcopy(project["process"])
-        revised_process["stages"][0]["transitions"] = {"complete": "implementation"}
-        revised_process["stages"][1]["transitions"] = {"complete": "code_review"}
-        revised_process["stages"][2]["transitions"] = {"complete": "test_review"}
+        revised_workflow = deepcopy(project["workflow"])
+        revised_workflow["stages"][0]["transitions"] = {"complete": "implementation"}
+        revised_workflow["stages"][1]["transitions"] = {"complete": "code_review"}
+        revised_workflow["stages"][2]["transitions"] = {"complete": "test_review"}
         born = client.invoke(request("task", {
             "action": "edit", "task_id": "T1", "request_id": "reorder-route",
-            "expected_revision": born["revision"], "patch": {"process": revised_process},
+            "expected_revision": born["revision"], "patch": {"workflow": revised_workflow},
             "remove": [],
         }))
     if revise:

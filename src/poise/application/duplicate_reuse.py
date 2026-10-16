@@ -19,7 +19,7 @@ def reusable_contract(task, context):
         contract.pop(key, None)
     contract['methods'] = [entry.to_dict() for entry in task.check_registry.entries]
     contract['content_contract'] = task.content_policy.to_layers()
-    return {'contract': contract, 'process': context['process'],
+    return {'contract': contract, 'workflow': context['workflow'],
             'requirements_snapshot': context['requirements_snapshot'],
             'requirements_agreement': context['requirements_agreement']}
 

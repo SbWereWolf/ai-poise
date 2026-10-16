@@ -11,119 +11,112 @@ from poise.composition import project_tools
 from poise.infrastructure.hook_transport import HookSettings
 from poise.infrastructure.projects import ProjectSettings, FileProjectSetup
 
+from .helpers import shipped_setup, shipped_edits, fill_markers
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize('name', ['linux-reference', 'wsl-poise'])
 def test_new_project_publishes_separate_stores_at_explicit_project_root(tmp_path, name):
     tools = tmp_path / 'tools'
-    shutil.copytree(ROOT / 'config', tools / 'config')
-    settings_path = tools / 'config/project-setup.example.json'
-    (tools / 'config/project-registry.json').write_text(json.dumps({
-        'schema': 'configured-project-registry-1', 'projects': {},
-    }))
+    settings_path = shipped_setup(tools)
     settings = ProjectSettings(settings_path)
-    entry = settings.raw['templates'][name]
-    blueprint = FileProjectSetup(settings).template({'id': name, **{
-        key: entry[key] for key in ('version', 'digest')
-    }})
+    blueprint = FileProjectSetup(settings).template({'id': name})
     assert blueprint.data['config']['paths']['database'] == 'tasks/tasks.sqlite'
-    assert blueprint.data['config']['paths']['requirements_database'] == 'requirements/requirements.sqlite'
+    assert blueprint.data['config']['paths']['requirements_database'] == '${PROJECT_DATA_ROOT}/requirements/requirements.sqlite'
     data = tmp_path / 'project-data' / 'demo'
     trees = tmp_path / 'code' / 'worktrees'
-    values = {'project': 'demo', 'repository': str(tmp_path / 'code'), 'base': 'main',
-              'remote': 'origin', 'author_name': 'Fixture',
-              'author_email': 'fixture@example.invalid', 'push': False,
-              'state': str(data), 'worktrees': str(trees), 'environment': ['PATH']}
-    edits = [{'path': question['path'], 'value': values[question['id']]}
-             for question in blueprint.data['questions']]
+    edits = shipped_edits(blueprint.data, tools=tools, project='demo', repository=tmp_path/'code',
+                          data=data, trees=trees)
     result = project_tools(settings_path).apply({
         'schema': 'project-setup-1', 'request_id': 'new-project-layout',
         'destination': 'projects/demo/config', 'template': {
-            'id': name, 'version': entry['version'], 'digest': entry['digest'],
+            'id': name,
         }, 'edits': edits, 'probe_repository': False,
     })
     assert result['status'] == 'created'
-    _, config, processes = load_config(Path(result['config_path']))
+    _, config, workflows = load_config(Path(result['config_path']))
     assert config['paths']['state'] == str(data)
     assert config['paths']['database'] == 'tasks/tasks.sqlite'
     assert config['paths']['lock'] == 'tasks/tasks.lock'
-    assert config['paths']['requirements_database'] == 'requirements/requirements.sqlite'
-    assert config['paths']['requirements_lock'] == 'requirements/requirements.lock'
+    assert config['paths']['requirements_database'] == str(data / 'requirements/requirements.sqlite')
+    assert config['paths']['requirements_lock'] == str(data / 'requirements/requirements.lock')
     assert config['accounting']['storage'] == {
         'database': 'telemetry/events.sqlite', 'lock': 'telemetry/events.lock',
     }
     assert config['paths']['worktrees'] == str(trees)
-    assert len(processes) == 13
-    assert not data.exists()  # Publication is configuration, not initialization/migration.
+    assert len(workflows) == 13
+    assert (data / 'workflows/development.json').is_file()
+    assert not (data / 'tasks/tasks.sqlite').exists()
+    assert not (data / 'requirements/requirements.sqlite').exists()
     assert not trees.exists()
     assert not (tools / 'projects/demo/config/state').exists()
 
 
 def test_hook_example_validates_independent_registry_with_actual_owner(tmp_path):
     example = json.loads((ROOT / 'config/hook-settings.example.json').read_text())
-    assert example['state'] == 'poise-project-data/demo/codex-hook'
-    assert example['database'] == 'sessions-runtime.sqlite'
-    assert example['lock'] == 'poise-project-data/demo/codex-hook/sessions-runtime.lock'
+    example = fill_markers(example, {'FILESYSTEM_ROOT': tmp_path, 'PROJECT_DATA_PARENT_ROOT': tmp_path/'poise-project-data',
+                                     'PROJECT_DATA_ROOT': tmp_path/'poise-project-data/demo',
+                                     'PROJECT_CONFIG_ROOT': tmp_path/'config', 'POISE_SOURCE_ROOT': ROOT,
+                                     'PYTHON_EXECUTABLE': sys.executable, 'PYTHON_PACKAGE_ROOT': ROOT/'src'})
     example.update(root=str(tmp_path), python=sys.executable, source_root=str(ROOT / 'src'),
                    cwd_roots=[str(tmp_path)])
     settings = HookSettings.proposed(tmp_path / 'hook-settings.json', example)
-    assert settings.database == tmp_path / 'poise-project-data/demo/codex-hook/sessions-runtime.sqlite'
+    assert settings.database == tmp_path / 'poise-project-data/poise-op/codex-hook/sessions-runtime.sqlite'
     assert settings.bindings == settings.state / 'bindings'
     assert settings.observations == settings.state / 'probes'
     assert not settings.state.exists()
     assert not settings.database.exists()
 
 
-def test_manifest_example_uses_canonical_stores_and_validates_with_process_owner(tmp_path):
+def test_manifest_example_uses_canonical_stores_and_validates_with_workflow_owner(tmp_path):
     example = json.loads((ROOT / 'config/project.example.json').read_text())
     assert example['paths']['database'] == 'tasks/tasks.sqlite'
     assert example['paths']['lock'] == 'tasks/tasks.lock'
-    assert example['paths']['requirements_database'] == 'requirements/requirements.sqlite'
-    assert example['paths']['requirements_lock'] == 'requirements/requirements.lock'
+    assert example['paths']['requirements_database'] == '${PROJECT_DATA_ROOT}/requirements/requirements.sqlite'
+    assert example['paths']['requirements_lock'] == '${PROJECT_DATA_ROOT}/requirements/requirements.lock'
     assert example['accounting']['storage'] == {
         'database': 'telemetry/events.sqlite', 'lock': 'telemetry/events.lock',
     }
     data = tmp_path / 'project-data/demo'
-    example['paths']['state'] = str(data)
+    example = fill_markers(example, {'PROJECT_DATA_ROOT': data, 'PROJECT_CONFIG_ROOT': tmp_path/'configuration',
+                                    'POISE_SOURCE_ROOT': ROOT, 'REPOSITORY_ROOT': tmp_path/'code',
+                                    'PROJECT_ID': 'demo', 'COMMIT_AUTHOR_NAME': 'Fixture',
+                                    'COMMIT_AUTHOR_EMAIL': 'fixture@example.invalid'})
     example['paths']['worktrees'] = str(tmp_path / 'code/worktrees')
-    example['git']['repository'] = str(tmp_path / 'code')
     example['git']['push_required'] = False
+    example['runtime_resources'] = {'project_setup': str(ROOT/'config/project-setup.json'), 'hooks': []}
     manifest = tmp_path / 'configuration/project.json'
     manifest.parent.mkdir()
     manifest.write_text(json.dumps(example))
-    for goal, relative in example['processes'].items():
+    for goal, relative in example['workflows'].items():
         target = manifest.parent / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / 'config/catalogue/processes' / (goal + '.json'), target)
+        shutil.copyfile(ROOT / 'config/catalogue/workflows' / (goal + '.json'), target)
     _, actual, _ = load_config(manifest)
     assert actual['paths']['state'] == str(data)
-    assert not data.exists()
+    assert (data / 'workflows/development.json').is_file()
+    assert not (data / 'tasks/tasks.sqlite').exists()
 
 
 @pytest.mark.parametrize('name', ['linux-reference', 'wsl-poise'])
 def test_missing_worktrees_answer_refuses_before_project_or_data_publication(tmp_path, name):
     tools = tmp_path / 'tools'
-    shutil.copytree(ROOT / 'config', tools / 'config')
-    settings_path = tools / 'config/project-setup.example.json'
-    registry_path = tools / 'config/project-registry.json'
-    registry_path.write_text(json.dumps({'schema':'configured-project-registry-1','projects':{}}))
+    settings_path = shipped_setup(tools)
+    registry_path = tools/'config/project-registry.json'
     before = registry_path.read_bytes()
     settings = ProjectSettings(settings_path)
-    entry = settings.raw['templates'][name]
-    selection = {'id':name, **{k:entry[k] for k in ('version','digest')}}
+    selection = {'id':name}
     blueprint = FileProjectSetup(settings).template(selection)
     assert any(q['id']=='worktrees' and q['type']=='text' for q in blueprint.data['questions'])
-    values = {'project':'demo','repository':str(tmp_path/'code'),'base':'main','remote':'origin',
-              'author_name':'Fixture','author_email':'fixture@example.invalid','push':False,
-              'state':str(tmp_path/'project-data/demo'),'environment':['PATH']}
+    edits = shipped_edits(blueprint.data, tools=tools, project='demo', repository=tmp_path/'code',
+                          data=tmp_path/'project-data/demo', trees=tmp_path/'code/worktrees')
     from poise.common import PoiseError
     with pytest.raises(PoiseError, match='worktrees'):
         project_tools(settings_path).apply({
             'schema':'project-setup-1','request_id':'missing-worktrees',
             'destination':'projects/demo/config','template':selection,
-            'edits':[{'path':q['path'],'value':values[q['id']]}
-                     for q in blueprint.data['questions'] if q['id']!='worktrees'],
+            'edits':[edit for edit in edits if edit['path'] != ['paths','worktrees']],
             'probe_repository':False,
         })
     assert registry_path.read_bytes()==before
@@ -138,8 +131,7 @@ def test_pilot_request_accepts_explicit_roots_and_stops_before_task_work(tmp_pat
     pilot = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pilot)
     tools = tmp_path / 'tools'
-    shutil.copytree(ROOT / 'config', tools / 'config')
-    shutil.copyfile(tools / 'config/project-setup.example.json', tools / 'config/project-setup.json')
+    shipped_setup(tools)
     captured = []
 
     class BeforePublication(Exception):
@@ -165,9 +157,9 @@ def test_pilot_request_accepts_explicit_roots_and_stops_before_task_work(tmp_pat
     assert not (tools / 'projects/demo/config').exists()
 
 
-def test_all_new_project_process_sources_declare_purpose_without_implicit_authority():
+def test_all_new_project_workflow_sources_declare_purpose_without_implicit_authority():
     from poise.modules.goal_config.domain import GoalTypeDefinition
-    sources = ROOT / 'config/catalogue/processes'
+    sources = ROOT / 'config/catalogue/workflows'
     for goal in ('analysis','design','development','documentation','environment_diagnostics',
                  'environment_remediation','integration','profiling','review','sprint_planning',
                  'task_planning','test_development','verification'):

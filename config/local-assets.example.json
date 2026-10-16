@@ -1,7 +1,7 @@
 {
   "schema": "local-assets-1",
   "project": "ERP",
-  "target_root": "/absolute/path/to/erp",
+  "target_root": "${REPOSITORY_ROOT}",
   "assets": [
     {
       "path": "ai-assistant/agent/document-intake-policy.example.json",

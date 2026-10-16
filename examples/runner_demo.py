@@ -12,18 +12,18 @@ from demo import create, save, git, SOURCE
 
 def run_one(directory: Path, goal: str, feedback: bool):
     home = create(directory)
-    process = json.loads((SOURCE / f'config/processes/{goal}.json').read_text())
-    for stage in process['stages']:
+    workflow = json.loads((SOURCE / f'config/workflows/{goal}.json').read_text())
+    for stage in workflow['stages']:
         stage['role'] = 'executor'  # This isolated demo intentionally uses one actor.
-    save(home / f'config/processes/{goal}.json', process)
+    save(home / f'config/workflows/{goal}.json', workflow)
     cfg = json.loads((home / 'project.json').read_text())
-    cfg['processes'] = {goal: f'config/processes/{goal}.json'}
+    cfg['workflows'] = {goal: f'config/workflows/{goal}.json'}
     cfg['automatic_checks'] = []
     save(home / 'project.json', cfg)
     if goal == 'development':
         task = json.loads((home / 'task.json').read_text())
         task['artifact_requirements'] = []
-        task['checks'] = {s['id']: ['RED'] if s['id'] in ('tests', 'test_fix') else ['GREEN'] if s['id'] in ('implementation', 'code_review', 'code_fix', 'code_recheck') else [] for s in process['stages']}
+        task['checks'] = {s['id']: ['RED'] if s['id'] in ('tests', 'test_fix') else ['GREEN'] if s['id'] in ('implementation', 'code_review', 'code_fix', 'code_recheck') else [] for s in workflow['stages']}
         task['methods'][0]['verification_plan']['red_stages'] = ['tests', 'test_fix']
         task['methods'][1]['verification_plan']['green_stages'] = [
             'implementation', 'code_review', 'code_fix', 'code_recheck',
@@ -31,17 +31,17 @@ def run_one(directory: Path, goal: str, feedback: bool):
     else:
         task = json.loads((SOURCE / 'examples/documentation-task.example.json').read_text())
         task['methods'][0]['argv'][0] = sys.executable
-    task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in process['stages']}
+    task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in workflow['stages']}
     task['stage_contracts'] = [
         {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
          'entry_requirements': [], 'exit_requirements': []}
-        for stage in process['stages']
+        for stage in workflow['stages']
     ]
     task['decomposition'] = {
         'kind': 'ordinary',
         'phases': [
             {'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
-            for stage in process['stages']
+            for stage in workflow['stages']
         ],
         'integration': None,
     }

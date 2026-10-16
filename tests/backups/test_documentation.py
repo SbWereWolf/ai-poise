@@ -29,7 +29,7 @@ def test_backup_documentation_matches_public_cli_and_storage_scope():
         "task",
         "sprint",
         "agent",
-        "process",
+        "workflow",
     ):
         assert fragment in text
     assert "task-db-backups.md" in (ROOT / "README.md").read_text(encoding="utf-8")

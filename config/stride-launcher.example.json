@@ -1,26 +1,28 @@
 {
   "schema": "stride-launcher-1",
-  "poise_root": "/opt/poise/app",
-  "data_root": "/var/lib/stride",
-  "project_id": "example-project",
-  "project_setup": "config/project-setup.json",
+  "poise_root": "${LAUNCHER_ROOT}",
+  "data_root": "${PROJECT_DATA_PARENT_ROOT}",
+  "project_id": "${PROJECT_ID}",
+  "project_setup": "app/config/project-setup.json",
   "command": [
-    "/opt/poise/.venv/bin/python",
-    "-I",
+    "${PYTHON_EXECUTABLE}",
+    "-P",
+    "-s",
     "-B",
     "-m",
     "poise"
   ],
   "overrides": {
     "next": [
-      "/opt/poise/.venv/bin/python",
-      "-I",
+      "${PYTHON_EXECUTABLE}",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "poise",
       "next",
       "--settings",
-      "/opt/poise/app/config/project-setup.json"
+      "${POISE_SOURCE_ROOT}/config/project-setup.json"
     ]
   },
   "exit_codes": {

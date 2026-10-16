@@ -41,5 +41,5 @@ def test_unusable_output_budget_rejected_before_business_publication(tmp_path):
     r=subprocess.run([sys.executable,'-m','poise','goal-config','--settings',str(cfg)],
         input=json.dumps(request('create','writing',None,[],selection=selection)),text=True,capture_output=True,timeout=10)
     assert r.returncode!=0
-    assert not (tmp_path/'config/processes/writing.json').exists()
+    assert not (tmp_path/'config/workflows/writing.json').exists()
     assert 'output_chars' in r.stdout+r.stderr

@@ -77,14 +77,14 @@ def work_tools(config_path, session):
 
 
 def project_revision(config_path):
-    _, config, processes = load_config(config_path)
-    return digest({"config": config, "processes": processes})
+    _, config, workflows = load_config(config_path)
+    return digest({"config": config, "workflows": workflows})
 
 
-def process_change(process, instruction="Task 0033 uses the public project update API."):
+def workflow_change(workflow, instruction="Task 0033 uses the public project update API."):
     return {
         "goal_type": "development",
-        "expected_revision": digest(process),
+        "expected_revision": digest(workflow),
         "changes": [
             {
                 "op": "patch_stage",
@@ -96,7 +96,7 @@ def process_change(process, instruction="Task 0033 uses the public project updat
 
 
 def update_request(config_path, revision, *, request_id="project-update-1",
-                   process_updates=None, manifest_edits=None, state_relocation=None,
+                   workflow_updates=None, manifest_edits=None, state_relocation=None,
                    probe_repository=False):
     return {
         "schema": "project-config-update-1",
@@ -104,16 +104,16 @@ def update_request(config_path, revision, *, request_id="project-update-1",
         "config_path": str(config_path),
         "expected_revision": revision,
         "manifest_edits": [] if manifest_edits is None else manifest_edits,
-        "process_updates": [] if process_updates is None else process_updates,
+        "workflow_updates": [] if workflow_updates is None else workflow_updates,
         "state_relocation": state_relocation,
         "probe_repository": probe_repository,
         "receipt_path": "operations/project-update-1.json",
     }
 
 
-def read_process(config_path):
-    _, _, processes = load_config(config_path)
-    return processes["development"]
+def read_workflow(config_path):
+    _, _, workflows = load_config(config_path)
+    return workflows["development"]
 
 
 def test_project_update_rejects_retired_recovery_schema():
@@ -125,12 +125,12 @@ def test_project_update_rejects_retired_recovery_schema():
         validate_request(packet, 1000)
 
 
-def test_process_update_publishes_complete_candidate_and_durable_receipt(project):
+def test_workflow_update_publishes_complete_candidate_and_durable_receipt(project):
     settings, config_path, created = installed_project(project)
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path))],
+        workflow_updates=[workflow_change(read_workflow(config_path))],
     )
 
     result = update_tools(settings).apply(request)
@@ -140,7 +140,7 @@ def test_process_update_publishes_complete_candidate_and_durable_receipt(project
     assert result["prior_revision"] == created["revision"]
     assert result["revision"] == project_revision(config_path)
     assert result["replayed"] is False
-    assert read_process(config_path)["stages"][0]["instruction"].startswith("Task 0033")
+    assert read_workflow(config_path)["stages"][0]["instruction"].startswith("Task 0033")
     receipt = project["root"] / request["receipt_path"]
     saved = json.loads(receipt.read_text())
     assert saved["request_id"] == request["request_id"]
@@ -165,7 +165,7 @@ def test_exact_retry_replays_and_conflicting_request_id_cannot_overwrite(project
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path))],
+        workflow_updates=[workflow_change(read_workflow(config_path))],
     )
     first = api.apply(request)
 
@@ -174,27 +174,27 @@ def test_exact_retry_replays_and_conflicting_request_id_cannot_overwrite(project
     assert replay["replayed"] is True
     assert replay["revision"] == first["revision"]
     conflicting = deepcopy(request)
-    conflicting["process_updates"][0]["changes"][0]["set"]["instruction"] = "different"
+    conflicting["workflow_updates"][0]["changes"][0]["set"]["instruction"] = "different"
     with pytest.raises(PoiseError, match="request|запрос"):
         api.apply(conflicting)
     assert project_revision(config_path) == first["revision"]
 
 
-def test_interrupted_process_publication_recovers_one_known_revision(project, monkeypatch):
+def test_interrupted_workflow_publication_recovers_one_known_revision(project, monkeypatch):
     import poise.infrastructure.project_config as infrastructure
 
     settings, config_path, created = installed_project(project)
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path))],
+        workflow_updates=[workflow_change(read_workflow(config_path))],
     )
     original = infrastructure.atomic_write
-    process_name = Path(json.loads(config_path.read_text())["processes"]["development"]).name
+    workflow_name = Path(json.loads(config_path.read_text())["workflows"]["development"]).name
 
     def replace_then_interrupt(path, content, mode):
         original(path, content, mode)
-        if path.name == process_name:
+        if path.name == workflow_name:
             raise OSError("interrupted after process replacement")
 
     with monkeypatch.context() as patch:
@@ -214,17 +214,17 @@ def test_interrupted_process_publication_recovers_one_known_revision(project, mo
 def test_stale_or_invalid_candidate_never_partially_publishes(project, case):
     settings, config_path, created = installed_project(project)
     before_manifest = config_path.read_bytes()
-    process_path = config_path.parent / "config/processes/development.json"
-    before_process = process_path.read_bytes()
+    workflow_path = config_path.parent / "config/workflows/development.json"
+    before_workflow = workflow_path.read_bytes()
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path))],
+        workflow_updates=[workflow_change(read_workflow(config_path))],
     )
     if case == "stale":
         request["expected_revision"] = "0" * 64
     elif case == "bad_process":
-        request["process_updates"][0]["changes"][0]["set"] = {"transitions": {"complete": "missing"}}
+        request["workflow_updates"][0]["changes"][0]["set"] = {"transitions": {"complete": "missing"}}
     elif case == "escape_receipt":
         request["receipt_path"] = "../outside.json"
     else:
@@ -234,47 +234,47 @@ def test_stale_or_invalid_candidate_never_partially_publishes(project, case):
         update_tools(settings).apply(request)
 
     assert config_path.read_bytes() == before_manifest
-    assert process_path.read_bytes() == before_process
+    assert workflow_path.read_bytes() == before_workflow
     assert not (project["root"].parent / "outside.json").exists()
 
 
-def test_stale_process_revision_never_partially_publishes(project):
+def test_stale_workflow_revision_never_partially_publishes(project):
     settings, config_path, created = installed_project(project)
-    process_path = config_path.parent / "config/processes/development.json"
+    workflow_path = config_path.parent / "config/workflows/development.json"
     before_manifest = config_path.read_bytes()
-    before_process = process_path.read_bytes()
-    update = process_change(read_process(config_path))
+    before_workflow = workflow_path.read_bytes()
+    update = workflow_change(read_workflow(config_path))
     update["expected_revision"] = "0" * 64
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[update],
+        workflow_updates=[update],
     )
 
     with pytest.raises(VersionConflict, match="Process revision is stale"):
         update_tools(settings).apply(request)
 
     assert config_path.read_bytes() == before_manifest
-    assert process_path.read_bytes() == before_process
+    assert workflow_path.read_bytes() == before_workflow
     assert project_revision(config_path) == created["revision"]
     assert not (project["root"] / request["receipt_path"]).exists()
 
 
-def test_external_file_change_is_not_adopted_as_a_known_revision(project):
+def test_current_valid_external_file_change_is_accepted_without_provenance(project):
     settings, config_path, created = installed_project(project)
-    process_path = config_path.parent / "config/processes/development.json"
-    external = json.loads(process_path.read_text())
+    workflow_path = config_path.parent / "config/workflows/development.json"
+    external = json.loads(workflow_path.read_text())
     external["stages"][0]["instruction"] = "unmanaged external edit"
-    write_json(process_path, external)
+    write_json(workflow_path, external)
     request = update_request(config_path, project_revision(config_path))
 
-    with pytest.raises(PoiseError, match="вне|external|known"):
-        update_tools(settings).apply(request)
+    result = update_tools(settings).apply(request)
 
-    assert json.loads(process_path.read_text()) == external
+    assert result["revision"] == project_revision(config_path)
+    assert json.loads(workflow_path.read_text()) == external
 
 
-def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(project):
+def test_active_task_keeps_workflow_snapshot_and_new_task_uses_updated_workflow(project):
     settings, config_path, created = installed_project(project)
     active = work_tools(config_path, "active-owner")
     first = active.invoke({
@@ -286,7 +286,7 @@ def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(pr
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path), changed_instruction)],
+        workflow_updates=[workflow_change(read_workflow(config_path), changed_instruction)],
     )
     update_tools(settings).apply(request)
 
@@ -326,7 +326,7 @@ def test_manifest_change_is_allowed_while_task_work_is_active(project):
 
 def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_request(project):
     settings, config_path, created = installed_project(project)
-    before_process = read_process(config_path)
+    before_workflow = read_workflow(config_path)
     request = update_request(
         config_path,
         created["revision"],
@@ -336,10 +336,10 @@ def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_reques
 
     result = update_tools(settings).apply(request)
 
-    _, config, processes = load_config(config_path)
+    _, config, workflows = load_config(config_path)
     assert config["git"]["remote"] == "changed"
     assert config["git"]["push_required"] is False
-    assert processes["development"] == before_process
+    assert workflows["development"] == before_workflow
     assert result["prior_revision"] == created["revision"]
     assert result["revision"] == project_revision(config_path)
     assert result["changed"] is True
@@ -525,13 +525,13 @@ def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, fa
     assert not source.exists()
 
 
-def test_project_config_cli_publishes_process_update_and_durable_receipt(project):
+def test_project_config_cli_publishes_workflow_update_and_durable_receipt(project):
     settings, config_path, created = installed_project(project)
     instruction = "Task 0033 updates this process through the public CLI."
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path), instruction)],
+        workflow_updates=[workflow_change(read_workflow(config_path), instruction)],
     )
 
     completed = subprocess.run(
@@ -546,7 +546,7 @@ def test_project_config_cli_publishes_process_update_and_durable_receipt(project
     assert result["status"] == "updated"
     assert result["changed"] is True
     assert result["revision"] == project_revision(config_path)
-    assert read_process(config_path)["stages"][0]["instruction"] == instruction
+    assert read_workflow(config_path)["stages"][0]["instruction"] == instruction
     receipt = project["root"] / request["receipt_path"]
     saved = json.loads(receipt.read_text())
     assert saved["request_digest"] == digest(request)
@@ -557,17 +557,17 @@ def test_project_config_cli_publishes_process_update_and_durable_receipt(project
 def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, case):
     settings, config_path, created = installed_project(project)
     _, config, _ = load_config(config_path)
-    process_path = config_path.parent / config["processes"]["development"]
+    workflow_path = config_path.parent / config["workflows"]["development"]
     state_move = relocation(config_path, project["root"].parent / f"rejected-{case}-state")
     source = Path(state_move["expected_source"])
     source.mkdir(parents=True)
     (source / "precious.txt").write_text("must remain at source")
     before_manifest = config_path.read_bytes()
-    before_process = process_path.read_bytes()
+    before_workflow = workflow_path.read_bytes()
     request = update_request(
         config_path,
         created["revision"],
-        process_updates=[process_change(read_process(config_path))],
+        workflow_updates=[workflow_change(read_workflow(config_path))],
         manifest_edits=[{"path": ["git", "push_required"], "value": False}],
         state_relocation=state_move,
     )
@@ -589,7 +589,7 @@ def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, c
     assert completed.returncode == 2
     assert json.loads(completed.stdout)["status"] == "rejected"
     assert config_path.read_bytes() == before_manifest
-    assert process_path.read_bytes() == before_process
+    assert workflow_path.read_bytes() == before_workflow
     assert project_revision(config_path) == created["revision"]
     assert (source / "precious.txt").read_text() == "must remain at source"
     assert not Path(state_move["destination"]).exists()

@@ -1,0 +1,10 @@
+{
+  "operation": "prepare",
+  "project_config": "$CONFIG",
+  "checkout": "$CHECKOUT",
+  "policy": "$POLICY",
+  "paths": [
+    "src/billing/invoice.py"
+  ],
+  "previous": null
+}

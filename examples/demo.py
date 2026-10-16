@@ -30,14 +30,23 @@ def create(directory: Path):
     git(app, 'add', '.')
     git(app, 'commit', '-m', 'Initial demo')
     home = directory / 'poise'
-    home.mkdir()
+    inputs = directory / 'setup-inputs'
+    setup_path = inputs / 'project-setup.json'
     stages = []
-    for sid, ro, paths in [('tests', False, ['tests/**']), ('test_review', True, []), ('implementation', False, ['src/**']), ('code_review', True, [])]:
-        stages.append({'id': sid, 'instruction': f'Выполнить только этап {sid}, затем доклад пользователю.', 'read_only': ro, 'allowed_paths': paths, 'normalization': 'strip', 'sections': {'report': 'Заполнить результат этапа.'}, 'required_sections': ['report'], 'artifact_requirements': []})
+    for sid, purpose, ro, paths in [
+        ('tests', 'execution', False, ['tests/**']),
+        ('test_review', 'observation', True, []),
+        ('implementation', 'execution', False, ['src/**']),
+        ('code_review', 'observation', True, []),
+    ]:
+        stages.append({'id': sid, 'purpose': purpose,
+            'criteria_authority': {'propose': [], 'decide': []},
+            'instruction': f'Выполнить только этап {sid}, затем доклад пользователю.', 'read_only': ro, 'allowed_paths': paths, 'normalization': 'strip', 'sections': {'report': 'Заполнить результат этапа.'}, 'required_sections': ['report'], 'artifact_requirements': []})
     for i, stage in enumerate(stages):
         stage.update(handler='produce', role='executor', transitions={'complete': stages[i + 1]['id'] if i + 1 < len(stages) else None}, rework_targets=[stage['id']])
-    save(home / 'config/processes/development.json', {'route': {'entry': 'tests'}, 'goal_type': 'development', 'worktree_required': True, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, 'stages': stages, 'content_contract': {'sections': [], 'routes': [], 'requirements': []}})
-    cfg = {'schema': 'ddd-accounting-12', 'project': 'demo', 'paths': {'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock', 'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints', 'worktrees': 'worktrees', 'git_index': 'snapshot.index', 'runs': 'runs', 'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json'}, 'limits': {'lock_seconds': 2.0, 'lock_poll_seconds': 0.01, 'git_seconds': 15.0, 'verify_attempts': 5, 'output_chars': 2200, 'preview_chars': 300}, 'git': {'repository': str(app), 'base_ref': 'main', 'remote': 'backup', 'branch_template': 'tasks/{task_id}', 'commit_pattern': '.+', 'author_name': 'Demo agent', 'author_email': 'demo-agent@example.invalid', 'push_required': False}, 'processes': {'development': 'config/processes/development.json'}, 'environment_names': ['PATH', 'HOME', 'LANG'], 'automatic_checks': [{'paths': ['src/**', 'tests/**'], 'by_stage': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': []}}]}
+    workflow_source = inputs / 'development.json'
+    save(workflow_source, {'route': {'entry': 'tests'}, 'goal_type': 'development', 'worktree_required': True, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, 'stages': stages, 'content_contract': {'sections': [], 'routes': [], 'requirements': []}})
+    cfg = {'schema': 'ddd-accounting-12', 'project': 'demo', 'paths': {'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock', 'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints', 'worktrees': 'worktrees', 'git_index': 'snapshot.index', 'runs': 'runs', 'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json'}, 'limits': {'lock_seconds': 2.0, 'lock_poll_seconds': 0.01, 'git_seconds': 15.0, 'verify_attempts': 5, 'output_chars': 2200, 'preview_chars': 300}, 'git': {'repository': str(app), 'base_ref': 'main', 'remote': 'backup', 'branch_template': 'tasks/{task_id}', 'commit_pattern': '.+', 'author_name': 'Demo agent', 'author_email': 'demo-agent@example.invalid', 'push_required': False}, 'workflows': {'development': 'config/workflows/development.json'}, 'environment_names': ['PATH', 'HOME', 'LANG'], 'automatic_checks': [{'paths': ['src/**', 'tests/**'], 'by_stage': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': []}}]}
     cfg['paths'].update(requirements_database='database/requirements.sqlite', requirements_lock='database/requirements.lock')
     cfg['accounting'] = json.loads((SOURCE / 'config/accounting.example.json').read_text())
     cfg['accounting']['time_mode'] = 'reported'
@@ -53,7 +62,26 @@ def create(directory: Path):
             {'path': 'docs/**', 'responsibility': 'documentation'},
         ],
     }
-    save(home / 'project.json', cfg)
+    cfg['runtime_resources'] = {'project_setup': str(setup_path), 'hooks': []}
+    save(inputs / 'project-blueprint.json', {
+        'schema': 'project-blueprint-1', 'config': cfg,
+        'workflow_sources': {'development': {'path': str(workflow_source)}},
+        'questions': [{'id': 'project', 'path': ['project'], 'type': 'text',
+                       'prompt': 'Идентификатор учебного проекта'}],
+    })
+    setup = json.loads((SOURCE / 'config/project-setup.example.json').read_text())
+    setup.update(root=str(directory), manifest='project.json',
+        templates={'demo': {'path': 'setup-inputs/project-blueprint.json'}},
+        registry='setup-inputs/project-registry.json', lock='setup-inputs/project-setup.lock')
+    save(setup_path, setup)
+    save(inputs / 'project-registry.json', {'schema': 'configured-project-registry-1', 'projects': {}})
+    from poise.composition import project_tools
+    created = project_tools(setup_path).apply({
+        'schema': 'project-setup-1', 'request_id': 'demo-project',
+        'destination': 'poise', 'template': {'id': 'demo'},
+        'edits': [{'path': ['project'], 'value': 'demo'}], 'probe_repository': True,
+    })
+    assert created['status'] == 'created'
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     red_argv = [sys.executable, '-B', '-c', "import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"]
     red_output = '{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}\n'
@@ -68,7 +96,8 @@ def create(directory: Path):
     task = {'id': 'DEMO-1', 'sprint_id': None, 'goal_type': 'development', 'goal': 'Исправить double(2), получить 4.', 'requirements': ['double(n) возвращает n*2'], 'definition_of_done': ['Регрессионный тест RED до правки, GREEN после.'], 'methods': methods, 'method_inputs': method_inputs, 'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']}, 'artifact_requirements': [{'scope': 'task', 'pattern': 'artifacts/result.md', 'minimum': 1, 'maximum': 1}], 'content_contract': {'sections': [], 'routes': [], 'requirements': []}}
     task['stage_contracts'] = [
         {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
-         'entry_requirements': [], 'exit_requirements': []}
+         'entry_requirements': [], 'exit_requirements': [],
+         'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
         for stage in stages
     ]
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in stages}

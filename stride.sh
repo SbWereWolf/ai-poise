@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 1 || $1 != /* || ! -f $1 ]]; then
-  printf '%s\n' 'Stride requires an existing absolute bootstrap .env path.' >&2
+stride_poise_root=
+stride_project=
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --poise-root)
+      stride_poise_root=$2
+      shift 2
+      ;;
+    --project)
+      stride_project=$2
+      shift 2
+      ;;
+    *) break ;;
+  esac
+done
+if [[ -z $stride_poise_root || -z $stride_project || $# -lt 1 ]]; then
+  printf '%s\n' 'Usage: stride.sh --poise-root PATH --project ID BOOTSTRAP.env [arguments...]' >&2
   exit 2
 fi
 stride_bootstrap=$1
@@ -25,4 +40,5 @@ if [[ ! -f $STRIDE_CONFIG ]]; then
   printf 'STRIDE_CONFIG does not exist: %s\n' "$STRIDE_CONFIG" >&2
   exit 2
 fi
-exec "$STRIDE_PYTHON" -I -B -m poise.stride --config "$STRIDE_CONFIG" -- "${stride_arguments[@]}"
+export PYTHONPATH="$stride_poise_root/src"
+exec "$STRIDE_PYTHON" -P -s -B -m poise.stride --config "$STRIDE_CONFIG" --project "$stride_project" -- "${stride_arguments[@]}"

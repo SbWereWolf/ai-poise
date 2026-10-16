@@ -20,12 +20,13 @@
 AI poise — декларативный harness: типовые механические действия выполняет инструмент,
 а смысл работы определяет агент. Выбор `goal_type` материализует зарегистрированный
 Task template в newborn. Шаблон сохраняется только как происхождение исходного черновика:
-его ID, версия и digest. После materialization задача не перечитывает template при
+его ID; прежние версия и digest сохраняются как необязательный исторический текст,
+без требования наличия и сверки с исходником. После materialization задача не перечитывает template при
 редактировании того же типа, `ready`, запуске или возобновлении.
 
 Технически планировщик меняет собственный draft через `task/edit`: goal, requirements, DoD,
 methods и method_inputs, checks, artifact_requirements, content_contract, evidence_plan,
-executable_obligations, stage_contracts, decomposition и process. Типовая форма не
+executable_obligations, stage_contracts, decomposition и workflow. Типовая форма не
 ограничивает допустимый смысл работы. Необходимые содержательные параметры, которых
 нет во входе, не заменяются выдуманными требованиями: соответствующие поля остаются
 незаполненными до решения планировщика. В гибком draft поле можно явно удалить через
@@ -40,7 +41,7 @@ executable_obligations, stage_contracts, decomposition и process. Типова�
 Критерии конкретного этапа хранятся отдельно от общих требований задачи:
 `stage_contracts` содержит `criteria` с `requirements`, `definition_of_ready`
 и `definition_of_done`, а также `entry_requirements` и `exit_requirements`.
-Назначение этапа и его явные полномочия заданы в process snapshot.
+Назначение этапа и его явные полномочия заданы в workflow snapshot.
 Уточнение критериев будущего выполнения через `verify.criteria_work` не
 размораживает остальные поля Task; см. [канонический протокол](stage-criteria.md)
 и [границы перемотки](paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
@@ -53,8 +54,8 @@ executable_obligations, stage_contracts, decomposition и process. Типова�
 {
   "catalogue": "/absolute/ai-poise/config/catalogue/settings.json",
   "restart_revision_policy": {
-    "reviewer": ["goal", "requirements", "requirements_snapshot", "requirements_agreement", "stage_contracts", "process"],
-    "user": ["goal", "goal_type", "requirements", "requirements_snapshot", "requirements_agreement", "definition_of_done", "methods", "method_inputs", "checks", "artifact_requirements", "content_contract", "evidence_plan", "executable_obligations", "stage_contracts", "decomposition", "process", "planning"]
+    "reviewer": ["goal", "requirements", "requirements_snapshot", "requirements_agreement", "stage_contracts", "workflow"],
+    "user": ["goal", "goal_type", "requirements", "requirements_snapshot", "requirements_agreement", "definition_of_done", "methods", "method_inputs", "checks", "artifact_requirements", "content_contract", "evidence_plan", "executable_obligations", "stage_contracts", "decomposition", "workflow", "planning"]
   }
 }
 ```
@@ -86,28 +87,28 @@ executable_obligations, stage_contracts, decomposition и process. Типова�
 `patch` применяются после исходных значений. Повтор точного запроса возвращает receipt,
 даже если исходный template уже недоступен. Конфликтующий повтор не создаёт другую Task.
 
-В ответе — draft, process, revision и `planning`. Последний содержит
+В ответе — draft, workflow, revision и `planning`. Последний содержит
 `schema: "task-planning-1"`, `template` и `restart_revision_policy`. Планировщик может
 изменить предложенную политику до `ready`. Для уже существующего untyped newborn
 первый `edit` с `goal_type` также материализует отсутствующие типовые поля; ранее
 написанный текст сохраняется. Повтор того же goal type не сбрасывает локальные изменения.
 
 Старые проекты без `task_planning` сохраняют прежнее создание пустого newborn. Полный
-task-local process можно передать непосредственно в `patch.process`, с явным `planning`
+task-local workflow можно передать непосредственно в `patch.workflow`, с явным `planning`
 и `template: null`; глобальный goal type и новый reusable template не нужны.
 
-## Process и границы изменений
+## Workflow и границы изменений
 
-`patch.process` — полный валидный `GoalTypeDefinition` той же цели.
-`patch.process_changes` — существующие именованные операции редактора process,
+`patch.workflow` — полный валидный `GoalTypeDefinition` той же цели.
+`patch.process_changes` — существующие именованные операции редактора workflow,
 например `patch_stage`, `put_stage`, `remove_stage`, `patch_route`.
-Операции применяются к сохранённому process этой Task, не публикуют глобальную
-конфигурацию и проходят обычный graph validator. Явный полный process выбирается
+Операции применяются к сохранённому workflow этой Task, не публикуют глобальную
+конфигурацию и проходят обычный graph validator. Явный полный workflow выбирается
 раньше project route. Для типа, которого нет в проекте, каталог может дать свой
-зарегистрированный process; это не устанавливает новый глобальный маршрут.
+зарегистрированный workflow; это не устанавливает новый глобальный маршрут.
 
 Фактическая файловая граница этапа задаётся `stage_contracts[].allowed_paths`.
-`process.stages[].allowed_paths` — предложение process, а не второй whitelist поверх
+`workflow.stages[].allowed_paths` — предложение workflow, а не второй whitelist поверх
 решения планировщика. Проверка будущих файлов методов также использует Task scope.
 При смене набора этапов планировщик согласует checks, evidence_plan, decomposition
 и stage_contracts с новым графом. `ready` выявляет оставшиеся несоответствия.
@@ -144,7 +145,7 @@ Task-only `integrate` и явно разрешённая ручная поста
 его и WIP. `worktree_required` нельзя переключать редактированием draft так, чтобы
 оставить прежний каталог без законного владения. Решение о перемещении/замене уже
 выделенного ресурса принадлежит существующему владельцу workspace, а не шаблону.
-До выделения workspace этот параметр можно выбирать вместе с локальным process.
+До выделения workspace этот параметр можно выбирать вместе с локальным workflow.
 
 ### Будущие пути и границы этапа
 
@@ -201,7 +202,7 @@ expected_version, request_id и reason. `role: "reviewer"` фиксирует р
 
 `revision_fields` — непустой список уникальных изменяемых полей Task; он заменяет
 обычный список из policy для этого restart. Остальные поля менять нельзя. AI poise
-сохраняет выбранные поля, полный before_contract/process, digest, актёра и
+сохраняет выбранные поля, полный before_contract/workflow, digest, актёра и
 authorization в restart_history. Изменения вне записанного решения отклоняются
 до записи. Повторный restart в newborn может записать новое согласование проверяющего,
 по-прежнему относительно исходного frozen контракта, а не промежуточного draft.
@@ -260,7 +261,7 @@ Requirements Registry. После подготовки, непосредстве
 симлинком, отсутствующая или недоступная рабочая область отклоняется без создания
 замены и без очистки WIP. Запись нового `entry_tree` и переход Task атомарны;
 ошибка сохранения откатывает оба изменения. Старые execution receipts и результаты
-не переписываются. Смена process через `restart → edit → ready` не требуется
+не переписываются. Смена workflow через `restart → edit → ready` не требуется
 для обхода старой точки сравнения, но остаётся отдельной явно разрешаемой ревизией.
 
 ## Доказательства и границы поставки

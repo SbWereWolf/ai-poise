@@ -18,8 +18,8 @@ def test_installed_bootstrap_adds_only_association_and_replays(project, tmp_path
     case = arrange_bootstrap(project, tmp_path)
     before = files(case['root'])
     assert 'runtime_resources' not in json.loads(case['config_path'].read_text())
-    process, done = bootstrap_cli(bootstrap_python, case)
-    assert process.returncode == 0, done
+    workflow, done = bootstrap_cli(bootstrap_python, case)
+    assert workflow.returncode == 0, done
     assert done['status'] == 'completed'
     assert done['schema'] == 'project-runtime-resources-bootstrap-result-1'
     assert done['before_revision'] == case['packet']['expected_revision']
@@ -27,8 +27,8 @@ def test_installed_bootstrap_adds_only_association_and_replays(project, tmp_path
     assert done['after_revision'] != done['before_revision']
     assert_only_publication(case, before)
     published = files(case['root'])
-    process, replay = bootstrap_cli(bootstrap_python, case)
-    assert process.returncode == 0 and replay['replayed'] is True
+    workflow, replay = bootstrap_cli(bootstrap_python, case)
+    assert workflow.returncode == 0 and replay['replayed'] is True
     for name in ('before_revision', 'after_revision', 'request_id'):
         assert replay[name] == done[name]
     assert files(case['root']) == published
@@ -70,8 +70,8 @@ def test_installed_bootstrap_rejects_bad_authority_without_side_effects(
             'settings_path': str(hook_path),
         }]
     before = files(case['root'])
-    process, rejected = bootstrap_cli(bootstrap_python, case, packet)
-    assert process.returncode == 2 and rejected['status'] == 'rejected'
+    workflow, rejected = bootstrap_cli(bootstrap_python, case, packet)
+    assert workflow.returncode == 2 and rejected['status'] == 'rejected'
     assert rejected['reason'].strip()
     # Distinguish a real authority refusal from blanket unsupported-schema denial.
     probe = deepcopy(packet)
@@ -86,8 +86,8 @@ def test_installed_bootstrap_rejects_bad_authority_without_side_effects(
 def test_installed_bootstrap_conflicts_preserve_confirmed_publication(
         project, tmp_path, bootstrap_python, fault):
     case = arrange_bootstrap(project, tmp_path)
-    process, done = bootstrap_cli(bootstrap_python, case)
-    assert process.returncode == 0, done
+    workflow, done = bootstrap_cli(bootstrap_python, case)
+    assert workflow.returncode == 0, done
     packet = deepcopy(case['packet'])
     if fault == 'same-request-changed-input':
         packet['runtime_resources']['preserved_unknown_resource']['future'].append('changed')
@@ -105,8 +105,8 @@ def test_installed_bootstrap_conflicts_preserve_confirmed_publication(
         change['receipt_path'] = 'operations/operator-edit.json'
         update_tools(case['settings']).apply(change)
     before = files(case['root'])
-    process, rejected = bootstrap_cli(bootstrap_python, case, packet)
-    assert process.returncode == 2 and rejected['status'] == 'rejected'
+    workflow, rejected = bootstrap_cli(bootstrap_python, case, packet)
+    assert workflow.returncode == 2 and rejected['status'] == 'rejected'
     assert files(case['root']) == before
 
 
@@ -188,13 +188,13 @@ def test_installed_bootstrap_preserves_existing_nonempty_hook_installation(
     case = arrange_bootstrap(project, tmp_path, native_hooks=True)
     previous = restore_legacy_hook(case)
     before = files(case['root'])
-    process, done = bootstrap_cli(bootstrap_python, case)
-    assert process.returncode == 0, done
+    workflow, done = bootstrap_cli(bootstrap_python, case)
+    assert workflow.returncode == 0, done
     assert done['status'] == 'completed'
     assert_only_publication(case, before)
     published = files(case['root'])
-    process, replay = bootstrap_cli(bootstrap_python, case)
-    assert process.returncode == 0 and replay['replayed'] is True
+    workflow, replay = bootstrap_cli(bootstrap_python, case)
+    assert workflow.returncode == 0 and replay['replayed'] is True
     assert files(case['root']) == published
     assert previous['database'].read_bytes() == before[str(previous['database'].relative_to(case['root']))]
 
@@ -224,8 +224,8 @@ def test_installed_bootstrap_rejects_changed_existing_hook_authority(
         native['hooks']['SessionStart'][0]['hooks'][0]['command'] = 'echo foreign-command'
         previous['native_hooks'].write_text(json.dumps(native, ensure_ascii=False, indent=2) + '\n')
     before = files(case['root'])
-    process, denied = bootstrap_cli(bootstrap_python, case, packet)
-    assert process.returncode == 2 and denied['status'] == 'rejected'
+    workflow, denied = bootstrap_cli(bootstrap_python, case, packet)
+    assert workflow.returncode == 2 and denied['status'] == 'rejected'
     probe = deepcopy(packet)
     probe['schema'] = 'test-owned-unknown-bootstrap-schema'
     _, unsupported = bootstrap_cli(bootstrap_python, case, probe)

@@ -3,13 +3,13 @@
 ## Файлы раздела
 
 - [lifecycle-contracts.json](lifecycle-contracts.json)
-- [process-matrices.json](process-matrices.json)
+- [workflow-matrices.json](workflow-matrices.json)
 - [requirements.json](requirements.json)
 - [stateful-scenarios.json](stateful-scenarios.json)
 
 Обновлено: 2026-09-06T14:30:44+05:00.
 
-requirements/process-matrices/lifecycle-contracts сохраняют целевой полный контракт.
+requirements/workflow-matrices/lifecycle-contracts сохраняют целевой полный контракт.
 stateful-scenarios содержит исправленные приёмочные примеры, НЕ реализацию и НЕ выполненные
 испытания.
 
@@ -26,7 +26,7 @@ TEST_RED/TEST_GREEN. S4-03: согласованы 1 manual proposal / 0 command
 
 requirements.json и соответствующие разделы основного ТЗ обновлены: HR-002/020/032 и новые
 HR-098…HR-106. Это изменение требований/плана, не schema upgrade рабочего config или БД. Детальные
-process matrices и прежние stateful fixtures оставлены как сохранённые материалы полного продукта.
+workflow matrices и прежние stateful fixtures оставлены как сохранённые материалы полного продукта.
 Новые cases для DDD-04A/04B — в ../planning-data/batch-tools-cases.json, статус NOT_RUN.
 
 ## Обновление 2026-09-14
@@ -34,5 +34,5 @@ process matrices и прежние stateful fixtures оставлены как �
 Действующий инвариант запрещает `git push` всем агентам и execution paths AI poise без waiver.
 `push_required=true` отклоняется до Git, `push_required=false` не обращается к remote, а принятый
 результат публикуется локальным `integrate` через `git merge --ff-only`. Более ранние упоминания
-private/target push в сохранённых process matrices и stateful fixtures являются историческими
+private/target push в сохранённых workflow matrices и stateful fixtures являются историческими
 сценариями, не действующим требованием, capability или разрешением на исполнение.

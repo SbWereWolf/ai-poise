@@ -147,10 +147,10 @@ def test_supported_filesystem_input_controls(case, variant):
     elif variant == 'transfer-whitespace-name':
         cfg['runtime_services']['transfer']['archive'] = '   '
     elif variant == 'process-whitespace-name':
-        original = project['root'] / cfg['processes']['development']
-        target = project['root'] / 'config/processes/   '
+        original = project['root'] / cfg['workflows']['development']
+        target = project['root'] / 'config/workflows/   '
         target.write_bytes(original.read_bytes())
-        cfg['processes']['development'] = 'config/processes/   '
+        cfg['workflows']['development'] = 'config/workflows/   '
     elif variant == 'optional-present':
         cfg.update(deepcopy(data('lock-path-optional-inputs.json')))
     write_json(project['config_path'], cfg)

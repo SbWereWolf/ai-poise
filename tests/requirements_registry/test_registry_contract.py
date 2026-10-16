@@ -24,8 +24,8 @@ def _load_contract():
         from poise.common import load_config
         from poise.infrastructure.requirements_registry import (
             RequirementsStore,
-            TaskRequirementsSnapshotStore,
         )
+        from requirements_registry.snapshot_store import TaskRequirementsSnapshotStore
         from poise.modules.requirements_registry.domain import RequirementsRegistry
         from poise.modules.requirements_registry.service import TaskRequirementsGate
         from poise.modules.tasks.domain import TaskStatus
@@ -374,7 +374,7 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             }
         ]
         plan = live["registry"].plan_task(task_requirements)
-        process = {
+        workflow = {
             "goal_type": "development",
             "stages": [
                 {
@@ -435,7 +435,7 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                     "config_hash": "saved-config",
                     "contract": stored_contract,
                     "creation_request": None,
-                    "process": process,
+                    "workflow": workflow,
                     "requirements_agreement": agreement,
                     "requirements_snapshot": plan["snapshot"],
                     "restart_history": [],
@@ -576,10 +576,10 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             "requirements_agreement": agreement,
         }
         with self.assertRaisesRegex(Exception, "snapshot"):
-            commands.prepare_creation(ordinary_creation, process, [], "base-revision", {"skills": [], "areas": []})
+            commands.prepare_creation(ordinary_creation, workflow, [], "base-revision", {"skills": [], "areas": []})
         self.assertEqual(
             tuple(inspect.signature(commands.prepare_creation).parameters),
-            ("intent", "process", "automatic_checks", "base_revision", "decomposition_policy"),
+            ("intent", "workflow", "automatic_checks", "base_revision", "decomposition_policy"),
         )
 
         ready = commands.ready_newborn(
@@ -634,7 +634,7 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                 },
             },
             actor="session",
-            process={},
+            workflow={},
             automatic_checks=[],
             base_metadata={},
             execution=None,
@@ -658,7 +658,7 @@ class RequirementsRegistryDeliveryTests(unittest.TestCase):
             root = Path(raw)
             config_root = root / "config"
             config_root.mkdir()
-            for relative in source["processes"].values():
+            for relative in source["workflows"].values():
                 target = config_root / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text((source_path.parent / relative).read_text(encoding="utf-8"), encoding="utf-8")

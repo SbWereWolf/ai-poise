@@ -1,0 +1,3 @@
+Generated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-6o2lj8bo/config.toml
+Windows launcher literal command contract passed; no Windows execution
+repo-checks MCP contracts passed

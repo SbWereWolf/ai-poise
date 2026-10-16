@@ -19,16 +19,16 @@ def _binding(task):
             "iteration": None,
         }
     contract = task.get("contract")
-    process = task.get("process")
+    workflow = task.get("workflow")
     stage_index = task.get("stage_index")
     stage = None
     if (
-        isinstance(process, dict)
-        and isinstance(process.get("stages"), list)
+        isinstance(workflow, dict)
+        and isinstance(workflow.get("stages"), list)
         and type(stage_index) is int
-        and 0 <= stage_index < len(process["stages"])
+        and 0 <= stage_index < len(workflow["stages"])
     ):
-        stage = process["stages"][stage_index]["id"]
+        stage = workflow["stages"][stage_index]["id"]
     return {
         "task": task["id"],
         "sprint": task.get("sprint_id"),

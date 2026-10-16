@@ -93,7 +93,7 @@ def prepare_completed_task(
             "transitions": {"complete": "implementation"},
             "rework_targets": ["verification_planning"],
         })
-    process = {
+    workflow = {
         "route": {"entry": stages[0]["id"]},
         "goal_type": "development",
         "worktree_required": True,
@@ -101,7 +101,7 @@ def prepare_completed_task(
         "benefit": {"git_categories": ["code"], "sections": []},
         "content_contract": {"sections": [], "routes": [], "requirements": []},
     }
-    write_json(project["root"] / "config/processes/development.json", process)
+    write_json(project["root"] / "config/workflows/development.json", workflow)
     task = {
         "id": task_id,
         "sprint_id": None,

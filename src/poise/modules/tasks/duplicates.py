@@ -11,9 +11,9 @@ class DuplicateStartBlocked(DomainError):
         super().__init__(decision['reason'])
 
 
-def positive_terminal_distances(process):
+def positive_terminal_distances(workflow):
     """Reverse breadth-first traversal of the saved, directed unit-edge route."""
-    route = RouteDefinition.from_process(process)
+    route = RouteDefinition.from_workflow(workflow)
     reverse = {node.stage_id: [] for node in route.nodes}
     distance = {}
     queue = deque()
@@ -60,13 +60,13 @@ def assess_duplicate_start(family, current_id, actor, *, force_duplicate_start=F
             d = 0
         else:
             try:
-                d = positive_terminal_distances(member['process']).get(stage)
+                d = positive_terminal_distances(member['workflow']).get(stage)
             except (DomainError, TypeError, KeyError, ValueError):
                 d = None
         if d is None:
             invalid.append(member['task_id'])
         else:
-            ranked.append({k: v for k, v in member.items() if k != 'process'} | {'stage_id': stage, 'distance': d})
+            ranked.append({k: v for k, v in member.items() if k != 'workflow'} | {'stage_id': stage, 'distance': d})
     minimum = min((m['distance'] for m in ranked), default=None)
     now = next((m for m in ranked if m['task_id'] == current_id), None)
     nearest = [m for m in ranked if m['distance'] == minimum]

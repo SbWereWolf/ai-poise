@@ -16,7 +16,7 @@ from batch.helpers import request
 from conftest import WorkPoise as Poise, git, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
-from poise.modules.goal_config.domain import BatchValidationError, validate_process
+from poise.modules.goal_config.domain import BatchValidationError, validate_workflow
 from sprints.helpers import changes as sprint_changes
 from sprints.helpers import setup as setup_sprint
 from sprints.helpers import task as sprint_task
@@ -25,11 +25,11 @@ from sprints.helpers import task as sprint_task
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _configure_process(project, worktree_required):
-    process = deepcopy(project["process"])
-    process["worktree_required"] = worktree_required
-    project["process"] = process
-    write_json(project["root"] / "config/processes/development.json", process)
+def _configure_workflow(project, worktree_required):
+    workflow = deepcopy(project["workflow"])
+    workflow["worktree_required"] = worktree_required
+    project["workflow"] = workflow
+    write_json(project["root"] / "config/workflows/development.json", workflow)
 
 
 def _task(project, task_id):
@@ -96,7 +96,7 @@ def _fingerprint(path):
 
 def test_storage_rejects_duplicate_task_and_worktree_claims(project):
     """The database, not a later reader, enforces one owner per resource."""
-    _configure_process(project, False)
+    _configure_workflow(project, False)
     first, _ = _bootstrap(project, "first-seed", "FIRST")
     first.runtime.ownership.release_task("FIRST")
     second, _ = _bootstrap(project, "second-seed", "SECOND")
@@ -196,33 +196,33 @@ def test_v12_ownership_upgrade_releases_stale_terminal_worktree_bindings(tmp_pat
 
 
 def test_four_combinations_and_task_type_dependency(project):
-    packs = sorted((ROOT / "config/processes").glob("*.json"))
-    packs += sorted((ROOT / "config/projects/ai-poise/config/processes").glob("*.json"))
-    packs += sorted((ROOT / "config/catalogue/processes").glob("*.json"))
-    packs += sorted((ROOT / "config/catalogue/process-templates").glob("*.json"))
+    packs = sorted((ROOT / "config/workflows").glob("*.json"))
+    packs += sorted((ROOT / "config/projects/ai-poise/config/workflows").glob("*.json"))
+    packs += sorted((ROOT / "config/catalogue/workflows").glob("*.json"))
+    packs += sorted((ROOT / "config/catalogue/workflow-templates").glob("*.json"))
     packs += sorted((ROOT / "config/templates").glob("*.json"))
     assert packs
     for path in packs:
-        process = json.loads(path.read_text(encoding="utf-8"))
-        assert type(process["worktree_required"]) is bool, path
-        validate_process(process)
+        workflow = json.loads(path.read_text(encoding="utf-8"))
+        assert type(workflow["worktree_required"]) is bool, path
+        validate_workflow(workflow)
 
     candidate = json.loads(packs[0].read_text(encoding="utf-8"))
     candidate.pop("worktree_required")
     with pytest.raises(BatchValidationError, match="worktree_required"):
-        validate_process(candidate)
+        validate_workflow(candidate)
     candidate["worktree_required"] = "yes"
     with pytest.raises(BatchValidationError, match="worktree_required"):
-        validate_process(candidate)
+        validate_workflow(candidate)
 
-    _configure_process(project, False)
+    _configure_workflow(project, False)
     _, task_only = _bootstrap(project, "task-only", "TASK-ONLY")
     assert task_only["worktree"] is None
     task_claims, worktree_claims = _ownership_rows(Poise(project["config_path"], "reader"))
     assert task_claims["TASK-ONLY"] == "task-only"
     assert worktree_claims["task-only"] is None
 
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     complete, context = _bootstrap(project, "complete", "COMPLETE")
     assert Path(context["worktree"]).is_dir()
     complete.runtime.ownership.release_task("COMPLETE")
@@ -267,16 +267,16 @@ def test_four_combinations_and_task_type_dependency(project):
 
 
 def test_worktree_free_task_verifies_hands_off_and_resumes(project):
-    _configure_process(project, False)
+    _configure_workflow(project, False)
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
     task = _task(project, "TASK-ONLY-LIFECYCLE")
     task["methods"] = []
     task["method_inputs"] = []
-    task["checks"] = {stage["id"]: [] for stage in project["process"]["stages"]}
+    task["checks"] = {stage["id"]: [] for stage in project["workflow"]["stages"]}
     task["evidence_plan"] = {
         stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     }
     first = WorkTools(Poise(project["config_path"], "task-only-first"))
     context = first.invoke(request("bootstrap", {
@@ -321,7 +321,7 @@ def test_worktree_free_task_verifies_hands_off_and_resumes(project):
 
 
 def test_complete_set_acquisition_replaces_same_kind_atomically(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     tools, first = _bootstrap(project, "executor", "OLD")
     second = tools.invoke(request("bootstrap", {
         "task": _task(project, "NEW"), "decision": None,
@@ -343,7 +343,7 @@ def test_complete_set_acquisition_replaces_same_kind_atomically(project):
 
 
 def test_self_acquisition_is_idempotent_and_live_owner_is_rejected(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     owner, _ = _bootstrap(project, "owner", "TARGET")
     contender, current = _bootstrap(project, "contender", "CURRENT")
     before = _ownership_rows(contender.runtime)
@@ -404,7 +404,7 @@ def test_self_acquisition_is_idempotent_and_live_owner_is_rejected(project):
 
 
 def test_partial_acquisition_rolls_back(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     target_owner, _ = _bootstrap(project, "target-owner", "TARGET")
     target_owner.runtime.ownership.release_task("TARGET")
     current, _ = _bootstrap(project, "executor", "CURRENT")
@@ -421,7 +421,7 @@ def test_partial_acquisition_rolls_back(project):
 
 
 def test_release_couples_required_worktree_but_preserves_independent(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     dependent, _ = _bootstrap(project, "dependent", "DEPENDENT")
     receipt = dependent.invoke(request("handoff", {
         "request_id": "release-dependent",
@@ -444,7 +444,7 @@ def test_release_couples_required_worktree_but_preserves_independent(project):
 
 
 def test_dead_owner_recovery_requires_definitive_liveness(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     old, _ = _bootstrap(project, "old", "TARGET")
     contender = Poise(project["config_path"], "new")
     before = _ownership_rows(contender)
@@ -469,7 +469,7 @@ def test_dead_owner_recovery_requires_definitive_liveness(project):
 
 
 def test_one_task_and_one_worktree_limit(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     first, _ = _bootstrap(project, "first", "FIRST")
     second, _ = _bootstrap(project, "second", "SECOND")
     before = _ownership_rows(second.runtime)
@@ -490,7 +490,7 @@ def test_one_task_and_one_worktree_limit(project):
 
 
 def test_acquire_release_preserve_cwd_roots_and_wip(project, monkeypatch):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     tools, first = _bootstrap(project, "executor", "OLD")
     worktree = Path(first["worktree"])
     tracked = worktree / "src/double.py"

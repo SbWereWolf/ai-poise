@@ -1,0 +1,74 @@
+{
+  "kind": "snapshot-owner-diagnostic",
+  "configured_git_seconds": 15.0,
+  "explicit_process_only_git_config": {
+    "core.fsmonitor": false
+  },
+  "shared_configuration_written": false,
+  "task_operation_invoked": false,
+  "native_acceptance": false,
+  "commands": [
+    {
+      "arguments": [
+        "config",
+        "--get",
+        "core.fsmonitor"
+      ],
+      "timeout_seconds": 15.0,
+      "exit_code": 0,
+      "duration_seconds": 0.0035482329999467765
+    },
+    {
+      "arguments": [
+        "rev-parse",
+        "--git-path",
+        "index"
+      ],
+      "timeout_seconds": 15.0,
+      "exit_code": 0,
+      "duration_seconds": 0.003057266999803687
+    },
+    {
+      "arguments": [
+        "rev-parse",
+        "HEAD^{tree}"
+      ],
+      "timeout_seconds": 15.0,
+      "exit_code": 0,
+      "duration_seconds": 0.0035184419998586236
+    },
+    {
+      "arguments": [
+        "read-tree",
+        "HEAD"
+      ],
+      "timeout_seconds": 15.0,
+      "exit_code": 0,
+      "duration_seconds": 0.015381116999833466
+    },
+    {
+      "arguments": [
+        "add",
+        "--all"
+      ],
+      "timeout_seconds": 15.0,
+      "exit_code": 0,
+      "duration_seconds": 0.6611870839997209
+    },
+    {
+      "arguments": [
+        "write-tree"
+      ],
+      "timeout_seconds": 15.0,
+      "exit_code": 0,
+      "duration_seconds": 0.00868679199993494
+    }
+  ],
+  "real_index_sha256_before": "086887dcdcbe6c7ed00bbd8d28a77e8d92660063f18865cfca4c9fce4f832645",
+  "observed_tree": "c2b4dabc97df090336282ae24568fff620bd2366",
+  "expected_head_tree": "c2b4dabc97df090336282ae24568fff620bd2366",
+  "real_index_sha256_after": "086887dcdcbe6c7ed00bbd8d28a77e8d92660063f18865cfca4c9fce4f832645",
+  "matches_head": true,
+  "real_index_unchanged": true,
+  "status": "observed"
+}

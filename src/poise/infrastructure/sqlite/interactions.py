@@ -37,7 +37,7 @@ class InteractionStore:
                     if row is None:
                         newborn = task['status'] == 'newborn'
                         stage = ('newborn' if newborn else
-                                 task['process']['stages'][task['stage_index']]['id'])
+                                 task['workflow']['stages'][task['stage_index']]['id'])
                         goal_type = (task.get('goal_type') or 'newborn' if newborn
                                      else task['contract']['goal_type'])
                         db.execute('INSERT INTO interaction_bindings VALUES(?,?,?,?,?,?,?,?)',
@@ -72,7 +72,7 @@ class InteractionStore:
                     'task':None if task is None else task['id'],
                     'goal_type':None if task is None else (task.get('goal_type') if newborn else task['contract']['goal_type']),
                     'outcome':None if task is None else task['status'],
-                    'planned_content_stages_count':None if task is None or newborn else sum(s['handler']!=HandlerKind.PUBLISH.value for s in task['process']['stages']),
+                    'planned_content_stages_count':None if task is None or newborn else sum(s['handler']!=HandlerKind.PUBLISH.value for s in task['workflow']['stages']),
                     'delivered_stages_count':len({r['stage'] for r in delivered}),
                     'delivered_iterations_count':len(delivered),
                     'delivery_observation':'tool_result_returned'}

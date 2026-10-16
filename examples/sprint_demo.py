@@ -16,7 +16,7 @@ def stage(name,kind,next_steps,readonly,paths,role):
             'normalization':'strip','sections':{'report':'Заполнить.'},'required_sections':['report'],'artifact_requirements':[]}
 
 
-def process(kind):
+def workflow(kind):
     paths=['src/**'] if kind=='development' else ['docs/**']
     return {'goal_type':kind,'worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'write'},
        'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':[
@@ -42,10 +42,10 @@ def task(tid,kind,command):
        'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in ('write','inspect','amend','confirm')},
        'stage_contracts':[{'stage_id':item['id'],'allowed_paths':list(item['allowed_paths']),
                            'entry_requirements':[],'exit_requirements':[]}
-                          for item in process(kind)['stages']],
+                          for item in workflow(kind)['stages']],
        'decomposition':{'kind':'ordinary','phases':[
            {'stage':item['id'],'skills':['workflow'],'areas':[]}
-           for item in process(kind)['stages']],
+           for item in workflow(kind)['stages']],
            'integration':None}}
 
 
@@ -54,8 +54,8 @@ def run(directory):
     baseline_source=(directory/'application/src/double.py').read_text()
     cfg=json.loads((home/'project.json').read_text());cfg['automatic_checks']=[]
     for kind in ('development','documentation'):
-        save(home/f'config/processes/{kind}.json',process(kind))
-        cfg['processes'][kind]=f'config/processes/{kind}.json'
+        save(home/f'config/workflows/{kind}.json',workflow(kind))
+        cfg['workflows'][kind]=f'config/workflows/{kind}.json'
     save(home/'project.json',cfg)
     env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/'sprint-demo.caller.json')}
     env={k:v for k,v in env.items() if not k.startswith('CODEX_') and k != 'POISE_SESSION'}

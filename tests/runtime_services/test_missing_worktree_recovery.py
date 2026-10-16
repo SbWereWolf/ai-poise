@@ -12,8 +12,8 @@ from runner.test_runner_paths import edit, result, setup_project
 
 def _cleaned_verified(project, *, foreign_claim=False, integrate=True):
     executor = setup_project(project, "development")
-    process = json.loads(
-        (project["root"] / "config/processes/development.json").read_text(encoding="utf-8")
+    workflow = json.loads(
+        (project["root"] / "config/workflows/development.json").read_text(encoding="utf-8")
     )
     task = project["task"]
     task["stage_contracts"] = [{
@@ -21,7 +21,7 @@ def _cleaned_verified(project, *, foreign_claim=False, integrate=True):
         "allowed_paths": list(stage["allowed_paths"]),
         "entry_requirements": [],
         "exit_requirements": [],
-    } for stage in process["stages"]]
+    } for stage in workflow["stages"]]
     write_json(project["task_path"], task)
     context = executor.bootstrap(task_file=project["task_path"])
     edit(context, "development", "verified recovery source\n")

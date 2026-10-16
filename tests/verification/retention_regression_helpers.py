@@ -135,10 +135,10 @@ def integration_ready(project, methods):
     cfg = deepcopy(project['cfg'])
     cfg['automatic_checks'] = []
     write_json(project['config_path'], cfg)
-    process = deepcopy(project['process'])
+    workflow = deepcopy(project['workflow'])
     stages = json.loads((FIXTURES / 'retention_integration_route.json').read_text())
-    process.update(route={'entry': 'implementation'}, stages=stages)
-    write_json(project['root'] / 'config/processes/development.json', process)
+    workflow.update(route={'entry': 'implementation'}, stages=stages)
+    write_json(project['root'] / 'config/workflows/development.json', workflow)
     task = deepcopy(project['task'])
     task['methods'] = deepcopy(methods)
     for method in task['methods']:

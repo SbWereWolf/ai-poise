@@ -1,0 +1,136 @@
+{
+  "collected": 26,
+  "failed": [
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_bad_saved_input_never_runs_probes_and_refresh_recovers[json]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_bad_saved_input_never_runs_probes_and_refresh_recovers[missing]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_bad_saved_input_never_runs_probes_and_refresh_recovers[structure]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_refresh",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_explicit_refresh_with_binding_and_no_snapshot",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_failed_probe_boundaries_preserve_other_results[output-Probe result exceeds configured output bound]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_failed_probe_boundaries_preserve_other_results[timeout-Capability probe timed out]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_failed_snapshot_replacement_preserves_previous_finished_data",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_invalid_batch_is_rejected_before_execution[duplicate]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_invalid_batch_is_rejected_before_execution[required]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_mcp_summary_preserves_data_saved_reads_and_refresh[False]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_mcp_summary_preserves_data_saved_reads_and_refresh[True]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_one_failed_probe_preserves_later_observations",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_oversize_native_context_reports_error_but_keeps_finished_snapshot[context]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_oversize_native_context_reports_error_but_keeps_finished_snapshot[output]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_refresh_preserves_session_workspace_binding",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_refresh_replaces_data_and_time_then_read_is_saved",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_refresh_works_through_actual_cli",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_requiredness_controls_readiness_and_cli_exit[False]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_requiredness_controls_readiness_and_cli_exit[True]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_saved_cli_reads_execute_no_probes",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_saved_read",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_saved_read_accepts_independently_arranged_snapshot",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_session_isolation_and_existing_identity_admission",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_start_delivers_complete_configured_summary[clear]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_start_delivers_complete_configured_summary[compact]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_start_delivers_complete_configured_summary[resume]",
+      "phase": "call"
+    },
+    {
+      "kind": "missing_session_summary",
+      "nodeid": "tests/hook_transport/test_session_readiness.py::test_start_delivers_complete_configured_summary[startup]",
+      "phase": "call"
+    }
+  ],
+  "passed": 0
+}

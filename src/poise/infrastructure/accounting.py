@@ -119,12 +119,12 @@ class RuntimeAccounting:
     def _account(self,task,observation):
         if task is None or task['base'] is None:return
         if self.repo.baseline(task['id']) is None:
-            d=BenefitDefinition.parse(task['process']['benefit'])
+            d=BenefitDefinition.parse(task['workflow']['benefit'])
             if set(d.git_categories)-self.policy.data['path_categories'].keys():raise PoiseError('Unconfigured useful Git category')
             # A new task begins without authored sections. Existing early content is not
             # silently adopted as zero: direct API users must bootstrap before submissions.
             self.repo.ensure_account(task,{'git_base':task['base'],'sections':{n:'' for n in d.sections},
-                'benefit':task['process']['benefit'],'policy':self.policy.data,'origin':'task_start'},observation.audit_utc)
+                'benefit':task['workflow']['benefit'],'policy':self.policy.data,'origin':'task_start'},observation.audit_utc)
 
     @staticmethod
     def _observation(value):
@@ -199,9 +199,9 @@ class RuntimeAccounting:
         for task_id,task in snapshot['tasks'].items():
             if task_id in credited or task['status'] not in ('completed','cancelled'):
                 continue
-            definition=BenefitDefinition.parse(task['process']['benefit'])
+            definition=BenefitDefinition.parse(task['workflow']['benefit'])
             baseline={'git_base':task['base'],'sections':{name:'' for name in definition.sections},
-                'benefit':task['process']['benefit'],'policy':self.policy.data,'origin':'task_start'}
+                'benefit':task['workflow']['benefit'],'policy':self.policy.data,'origin':'task_start'}
             if task['status']=='completed':
                 try:measurement=self.measurer.measure(task,baseline)
                 except PoiseError as exc:

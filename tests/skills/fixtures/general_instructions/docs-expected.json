@@ -1,0 +1,66 @@
+[
+  {
+    "kind": "rule",
+    "id": "AGENTS.md",
+    "root": "checkout",
+    "path": "AGENTS.md",
+    "scopes": [
+      "docs/guide.md"
+    ],
+    "required": true,
+    "reasons": [
+      "ancestor:docs/guide.md"
+    ],
+    "available": true,
+    "sha256": "96d6e1adbf3e611aaf81c445497891eb786c8b032c35f5b1d95a77ee20cee7a9",
+    "content": "# Project rules\nRead selected instructions before editing. Customer name: Иван.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nEND-ROOT-UNCLIPPED\n"
+  },
+  {
+    "kind": "rule",
+    "id": "docs/AGENTS.md",
+    "root": "checkout",
+    "path": "docs/AGENTS.md",
+    "scopes": [
+      "docs/guide.md"
+    ],
+    "required": true,
+    "reasons": [
+      "ancestor:docs/guide.md"
+    ],
+    "available": true,
+    "sha256": "d75b86c495aeb8322b58267f811105f6cef02a6944545b16eae926a4179e0afc",
+    "content": "# Documentation rules\nDescribe verified behavior.\n"
+  },
+  {
+    "kind": "skill",
+    "id": "core",
+    "root": "instructions",
+    "path": ".agents/skills/core/SKILL.md",
+    "scopes": [
+      "docs/guide.md"
+    ],
+    "required": true,
+    "reasons": [
+      "universal"
+    ],
+    "available": true,
+    "sha256": "9d75cbe77517e10158d807e329def0bf933e24061ec31089c9ffcfe861382c08",
+    "content": "# Core instruction\r\nUse the selected project only. Unicode: café, Иван, 日本語.\r\nEND-CORE-CRLF\r\n"
+  },
+  {
+    "kind": "skill",
+    "id": "writing",
+    "root": "instructions",
+    "path": ".agents/skills/writing/SKILL.md",
+    "scopes": [
+      "docs/guide.md"
+    ],
+    "required": true,
+    "reasons": [
+      "profile:writing:baseline"
+    ],
+    "available": true,
+    "sha256": "2e0bed6bf9ad5ad8caca6b9e4ebfbddb2722ec6dcb51be3f33891887920ca629",
+    "content": "# Writing instruction\nKeep examples accurate.\n"
+  }
+]

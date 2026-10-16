@@ -1,0 +1,18 @@
+{
+  "general": [
+    "tests/skills/test_general_instruction_delivery.py::test_common_preparation_and_poise_selection_use_one_dispatch",
+    "tests/skills/test_general_instruction_delivery.py::test_missing_recommended_and_unselected_materials_do_not_block_ready",
+    "tests/skills/test_general_instruction_delivery.py::test_missing_selected_profile_instruction_blocks_readiness",
+    "tests/skills/test_general_instruction_delivery.py::test_missing_selected_required_instruction_blocks_readiness",
+    "tests/skills/test_general_instruction_delivery.py::test_missing_selection_inputs_have_actionable_diagnostics",
+    "tests/skills/test_general_instruction_delivery.py::test_multi_area_selection_preserves_scope_and_deduplicates",
+    "tests/skills/test_general_instruction_delivery.py::test_refresh_reports_instruction_content_changes",
+    "tests/skills/test_general_instruction_delivery.py::test_refresh_reports_working_path_changes",
+    "tests/skills/test_general_instruction_delivery.py::test_taskless_prepare_delivers_selected_instructions",
+    "tests/skills/test_general_instruction_delivery.py::test_two_projects_use_their_own_policy_and_roots"
+  ],
+  "policy": [
+    "tests/skills/test_development_routing.py::test_shipped_policy_accepts_catalog_and_records_intentional_exclusions",
+    "tests/skills/test_instruction_selection_policy.py::test_requirements_registry_paths_select_requirements_db"
+  ]
+}

@@ -8,6 +8,7 @@ from ..modules.tasks.definition import path_identifier, validate_creation
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
+from .task_cleanup import initialize_cleanup_in
 from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
                     rewrite_task_plan, validate_creation_intent, materialize_draft_task_identity_in)
 
@@ -37,11 +38,11 @@ def require_sprint_execution_in(uow, task_id):
 
 
 class SprintCommands:
-    def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
+    def __init__(self,unit_of_work,project,actor,policy,task_id_policy,workflows,
                  automatic_checks,decomposition_policy,execution_hash,
                  prepare_creation,creation_base,prepare_newborn_ready,promote_newborn_ready_in):
         self.uow=unit_of_work;self.project=project;self.actor=actor
-        self.policy=SprintPolicy.parse(policy);self.processes=deepcopy(processes)
+        self.policy=SprintPolicy.parse(policy);self.workflows=deepcopy(workflows)
         self.task_id_policy=task_id_policy
         self.automatic_checks=deepcopy(automatic_checks);self.execution_hash=execution_hash
         self.decomposition_policy=deepcopy(decomposition_policy)
@@ -62,10 +63,10 @@ class SprintCommands:
                     if fact['status']!='newborn':
                         continue
                     body={'id':t,'sprint_id':s.plan.data['id'],**deepcopy(fact['_newborn_draft'])}
-                    process=fact['_newborn_process']
-                    if process is None:raise DomainError('Unknown goal_type')
+                    workflow=fact['_newborn_workflow']
+                    if workflow is None:raise DomainError('Unknown goal_type')
                     validate_creation(
-                        _creation_definition(body), process, record['automatic_checks'],
+                        _creation_definition(body), workflow, record['automatic_checks'],
                         record['task_decomposition'],
                     )
                     if not fact.get('ready',False):
@@ -73,25 +74,14 @@ class SprintCommands:
                     continue
                 body=t['task'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t
                 kind=body.get('goal_type')
-                if not isinstance(kind,str) or kind not in record['processes']:raise DomainError('Unknown goal_type')
+                if not isinstance(kind,str) or kind not in record['workflows']:raise DomainError('Unknown goal_type')
                 validate_creation_intent(
                     ({**t, 'task': _creation_definition(body)} if 'task' in t
-                     else _creation_definition(body)), record['processes'][kind], record['automatic_checks'],
+                     else _creation_definition(body)), record['workflows'][kind], record['automatic_checks'],
                     record['task_decomposition'],
                 )
             except PoiseError as exc:errors.append(f"Task creation intent: {exc}")
         return errors
-
-    @staticmethod
-    def _save_cleanup(uow, task_id, pending):
-        if not uow.execution.exists(task_id):
-            uow.execution.create(task_id,{"worktree":None,"branch":None,"base":None,"attempts":0,
-                "publication":None,"pending":pending,"entry_tree":None,"last_report":None})
-            return
-        execution,version=uow.execution.load(task_id)
-        if execution['pending'] is not None:raise DomainError('External operation outcome must be resolved first')
-        execution['pending']=pending
-        uow.execution.save(task_id,execution,version)
 
     @staticmethod
     def _available_membership(snapshot, expected_sprint):
@@ -162,7 +152,7 @@ class SprintCommands:
         for task_id in task_ids:
             uow.sprints.remove_draft_member(sid,task_id)
 
-    def _materialize_draft_changes(self,uow,sid,changes,processes,execution_hash):
+    def _materialize_draft_changes(self,uow,sid,changes,workflows,execution_hash):
         """Replace embedded definitions with editable real newborn Task members."""
         prepared,adoptions=self._adoption_changes(uow,sid,changes)
         members=[];aliases={}
@@ -201,7 +191,7 @@ class SprintCommands:
                     if updates:
                         if newborn.claimed_by not in (None,self.actor):
                             raise DomainError('Newborn Task is owned by another session')
-                        changed=newborn.materialize_draft(updates,processes,self.actor)
+                        changed=newborn.materialize_draft(updates,workflows,self.actor)
                         changed=replace(changed,claimed_by=newborn.claimed_by)
                         uow.tasks.save_newborn(
                             changed,newborn.version,execution_hash,'newborn_edited'
@@ -215,18 +205,18 @@ class SprintCommands:
                     uow.tasks.create_newborn(newborn,execution_hash)
                     members.append(task_id)
                     if draft:
-                        changed=newborn.materialize_draft(draft,processes,self.actor)
+                        changed=newborn.materialize_draft(draft,workflows,self.actor)
                         changed=replace(changed,claimed_by=None)
                         uow.tasks.save_newborn(
                             changed,newborn.version,execution_hash,'newborn_edited'
                         )
                         newborn=changed
                 try:
-                    process=newborn.process
-                    if process is None:raise DomainError('Unknown goal_type')
+                    workflow=newborn.workflow
+                    if workflow is None:raise DomainError('Unknown goal_type')
                     body={'id':task_id,'sprint_id':sid,**deepcopy(newborn.draft)}
                     validate_creation(
-                        _creation_definition(body), process, self.automatic_checks,
+                        _creation_definition(body), workflow, self.automatic_checks,
                         self.decomposition_policy,
                     )
                 except PoiseError:
@@ -266,7 +256,7 @@ class SprintCommands:
             'dependencies':deepcopy(s.plan.data['dependencies']),
             'tasks':[{'id':i,**{k:value for k,value in v.items()
                                 if not k.startswith('_')}} for i,v in facts.items()],
-            'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('available','active','verified','accepted','completed','cancelled')},
+            'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('newborn','available','active','verified','accepted','completed','cancelled')},
             'errors':self._errors(record,facts) if s.state=='draft' else [],
             'next_work':'Исправить draft и опубликовать одним пакетом' if s.state=='draft' else
                         'Выбрать одну доступную задачу; продолжать поручение через advance с действующими ограничениями',
@@ -324,7 +314,7 @@ class SprintCommands:
                     + sprint.plan.graph_errors(sprint.policy))
             if errors:raise DomainError('; '.join(errors))
             intents=deepcopy(sprint.plan.data['tasks'])
-            processes=deepcopy(record['processes'])
+            workflows=deepcopy(record['workflows'])
             automatic_checks=deepcopy(record['automatic_checks'])
             snapshot=fingerprint(record)
             facts=u.sprints.facts(sid)
@@ -364,7 +354,7 @@ class SprintCommands:
                 continue
             body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
             prepared.append({'creation':self.prepare_creation(
-                intent,processes[body['goal_type']],automatic_checks,base,
+                intent,workflows[body['goal_type']],automatic_checks,base,
                 record['task_decomposition'],
             ),'newborn':None})
         return {'record':snapshot,'prepared':prepared,'facts':facts}
@@ -389,13 +379,13 @@ class SprintCommands:
                 if record is None:
                     if expected is not None:raise VersionConflict('New sprint requires explicit null revision')
                     changes,members,adoptions=self._materialize_draft_changes(
-                        u,sid,packet['changes'],self.processes,self.execution_hash
+                        u,sid,packet['changes'],self.workflows,self.execution_hash
                     )
                     s=Sprint.draft(SprintPlan.create(sid,packet['template'],self.policy),self.policy)
                     plan=s.plan.apply(changes,s.policy);self._validate_dependency_membership(plan)
                     s=Sprint(plan,s.policy,s.revision,s.state,s.waivers,s.decisions)
                     record={'project':self.project,'actor':self.actor,'aggregate':s.to_dict(),
-                            'processes':deepcopy(self.processes),'automatic_checks':deepcopy(self.automatic_checks),
+                            'workflows':deepcopy(self.workflows),'automatic_checks':deepcopy(self.automatic_checks),
                             'task_decomposition':deepcopy(self.decomposition_policy),
                             'execution_hash':self.execution_hash}
                 else:
@@ -408,7 +398,7 @@ class SprintCommands:
                         Sprint.restore(record['aggregate']).plan.data['tasks']
                         if isinstance(item,str)}
                     changes,members,adoptions=self._materialize_draft_changes(
-                        u,sid,packet['changes'],record['processes'],record['execution_hash']
+                        u,sid,packet['changes'],record['workflows'],record['execution_hash']
                     )
                     s=Sprint.restore(record['aggregate']);plan=s.plan.apply(changes,s.policy)
                     self._validate_dependency_membership(plan)
@@ -498,7 +488,7 @@ class SprintCommands:
                         raise DomainError('Sprint draft has no legacy embedded Task definitions')
                     converted,members,adoptions=self._materialize_draft_changes(
                         u,sid,[{'kind':'upsert_tasks','tasks':legacy}],
-                        record['processes'],record['execution_hash']
+                        record['workflows'],record['execution_hash']
                     )
                     ids=list(converted[0]['tasks'])
                     plan=deepcopy(s.plan.data);plan['tasks']=sorted(ids)
@@ -544,7 +534,7 @@ class SprintCommands:
                             raise VersionConflict('Task changed after cancellation preflight')
                         change=task.cancel_from_sprint(packet['reason'])
                         u.tasks.save(change,task.state.version)
-                        self._save_cleanup(u,tid,expected['cleanup_pending'])
+                        initialize_cleanup_in(u,tid,expected['cleanup_pending'])
                     self._detach_draft_members(u,sid,draft_members)
                     s=s.cancel(ids,packet['reason']) if whole else s.record_task_cancellation(ids,packet['reason'])
                 record={**record,'actor':self.actor,'aggregate':s.to_dict()}

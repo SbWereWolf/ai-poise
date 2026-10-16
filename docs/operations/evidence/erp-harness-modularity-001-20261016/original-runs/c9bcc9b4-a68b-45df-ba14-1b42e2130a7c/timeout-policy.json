@@ -1,0 +1,29 @@
+{
+  "history_evidence_ids": [
+    "a8cef144-eaec-4d53-8076-4ac4b1568568"
+  ],
+  "profile": {
+    "command": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "-c",
+      "import runpy; runpy.run_path(\"ai-assistant/tests/checks/harness-modularity.py\", run_name=\"__main__\")"
+    ],
+    "runtime": {
+      "executable": "/usr/bin/bash",
+      "platform": "linux"
+    },
+    "workload": "MODULARITY-CONTRACTS"
+  },
+  "selection": {
+    "basis": "verified_success_history",
+    "diagnostic_evidence_run_id": null,
+    "diagnostic_override_reason": null,
+    "history_count": 1,
+    "history_multiplier": 1.1,
+    "longest_verified_success_seconds": 3.36184038000647,
+    "poll_seconds": 0.1,
+    "progress_gap_seconds": 360.0,
+    "seconds": 360.0
+  }
+}

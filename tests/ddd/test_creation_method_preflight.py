@@ -36,15 +36,15 @@ def _stage(identifier, *, allowed_paths, target):
 
 
 def _configure(project, stages):
-    process = deepcopy(project["process"])
-    process.update(
+    workflow = deepcopy(project["workflow"])
+    workflow.update(
         goal_type="documentation",
         stages=stages,
         route={"entry": stages[0]["id"]},
     )
-    write_json(project["root"] / "config/processes/documentation.json", process)
+    write_json(project["root"] / "config/workflows/documentation.json", workflow)
     cfg = deepcopy(project["cfg"])
-    cfg["processes"] = {"documentation": "config/processes/documentation.json"}
+    cfg["workflows"] = {"documentation": "config/workflows/documentation.json"}
     cfg["automatic_checks"] = []
     cfg["task_ids"] = {
         "namespace": {"minimum": 1, "maximum": 20},
@@ -53,10 +53,10 @@ def _configure(project, stages):
     }
     write_json(project["config_path"], cfg)
     project["cfg"] = cfg
-    return process
+    return workflow
 
 
-def _linear_process(project, *, producer_allowed=("tests/**",), producer_first=True):
+def _linear_workflow(project, *, producer_allowed=("tests/**",), producer_first=True):
     if producer_first:
         stages = [
             _stage("producer", allowed_paths=producer_allowed, target="validation"),
@@ -91,7 +91,7 @@ def _method(path=MISSING_TEST):
     }
 
 
-def _task(project, process, *, method_inputs=...):
+def _task(project, workflow, *, method_inputs=...):
     task = deepcopy(project["task"])
     task.update(
         id="UNALLOCATED",
@@ -101,28 +101,28 @@ def _task(project, process, *, method_inputs=...):
         requirements=["Every repository input is reachable."],
         definition_of_done=["Invalid paths are rejected before allocation."],
         methods=[_method()],
-        checks={stage["id"]: (["CHECK"] if stage["id"] == "validation" else []) for stage in process["stages"]},
+        checks={stage["id"]: (["CHECK"] if stage["id"] == "validation" else []) for stage in workflow["stages"]},
         evidence_plan={
             stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-            for stage in process["stages"]
+            for stage in workflow["stages"]
         },
         stage_contracts=[{
             "stage_id": stage["id"],
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
-        } for stage in process["stages"]],
+        } for stage in workflow["stages"]],
     )
     task["methods"][0]["verification_plan"]["green_stages"] = [
         stage["id"]
-        for stage in process["stages"]
+        for stage in workflow["stages"]
         if stage["id"] == "validation"
     ]
     if method_inputs is not ...:
         task["method_inputs"] = deepcopy(method_inputs)
     task["decomposition"] = {"kind": "ordinary", "phases": [
         {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
-        for stage in process["stages"]], "integration": None}
+        for stage in workflow["stages"]], "integration": None}
     registry = Poise(project["config_path"], "requirements-fixture").requirements_store.registry()
     return bind_task_requirements(task, registry)
 
@@ -173,7 +173,7 @@ def _inline_inputs(identifier):
     }
 
 
-def _branch_process(project, *, left_scope, right_scope):
+def _branch_workflow(project, *, left_scope, right_scope):
     gate = _stage("branch_gate", allowed_paths=(), target=None)
     gate.update(
         handler="inspect", role="reviewer",
@@ -235,9 +235,9 @@ def _assert_rejected(tools, intent, *, tokens):
 
 
 def test_legacy_documentation_task_with_missing_pytest_path_is_rejected_before_allocation(project):
-    process = _linear_process(project, producer_allowed=("docs/**",))
+    workflow = _linear_workflow(project, producer_allowed=("docs/**",))
     tools = WorkTools(Poise(project["config_path"], "legacy-red"))
-    legacy = _task(project, process)
+    legacy = _task(project, workflow)
 
     _assert_rejected(
         tools,
@@ -245,11 +245,11 @@ def test_legacy_documentation_task_with_missing_pytest_path_is_rejected_before_a
         tokens=("CHECK", "method_inputs"),
     )
 
-    escaped_process = _linear_process(project)
+    escaped_workflow = _linear_workflow(project)
     escaped_tools = WorkTools(Poise(project["config_path"], "escaped-cwd-red"))
     escaped = _task(
         project,
-        escaped_process,
+        escaped_workflow,
         method_inputs=_inputs(future=((MISSING_TEST, "producer"),)),
     )
     escaped["methods"][0]["cwd"] = "../outside"
@@ -261,9 +261,9 @@ def test_legacy_documentation_task_with_missing_pytest_path_is_rejected_before_a
 
 
 def test_existing_baseline_input_and_explicit_empty_future_are_accepted(project):
-    process = _linear_process(project)
+    workflow = _linear_workflow(project)
     tools = WorkTools(Poise(project["config_path"], "baseline-positive"))
-    task = _task(project, process, method_inputs=_inputs(baseline=("src/double.py",)))
+    task = _task(project, workflow, method_inputs=_inputs(baseline=("src/double.py",)))
     task["methods"] = [_method("src/double.py")]
 
     result = _bootstrap(tools, _intent(task, "baseline-positive"))
@@ -274,11 +274,11 @@ def test_existing_baseline_input_and_explicit_empty_future_are_accepted(project)
 
 
 def test_reachable_future_output_allowed_before_first_execution_is_accepted(project):
-    process = _linear_process(project)
+    workflow = _linear_workflow(project)
     tools = WorkTools(Poise(project["config_path"], "future-positive"))
     task = _task(
         project,
-        process,
+        workflow,
         method_inputs=_inputs(future=((MISSING_TEST, "producer"),)),
     )
 
@@ -302,12 +302,12 @@ def test_public_creation_red_reproduces_early_green_for_late_docs_surface(projec
         check=True,
         capture_output=True,
     )
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("implementation_green", allowed_paths=("src/**",), target="docs_writer"),
         _stage("docs_writer", allowed_paths=("docs/**",), target=None),
     ])
     tools = WorkTools(Poise(project["config_path"], "public-early-green-red"))
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     selected = _inline_method(
         "EARLY_DOCS_GREEN",
         responsibility="Verify documentation before its producer runs.",
@@ -329,12 +329,12 @@ def test_public_creation_red_reproduces_early_green_for_late_docs_surface(projec
 
 
 def test_creation_rejects_green_before_only_declared_surface_producer_atomically(project):
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("early_green", allowed_paths=(), target="docs_writer"),
         _stage("docs_writer", allowed_paths=("docs/**",), target=None),
     ])
     tools = WorkTools(Poise(project["config_path"], "green-before-docs"))
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     task["methods"] = [_inline_method(
         "DOC_GREEN",
         responsibility="Verify the canonical documentation contract.",
@@ -352,12 +352,12 @@ def test_creation_rejects_green_before_only_declared_surface_producer_atomically
 
 
 def test_creation_rejects_task_0050_partially_unsupported_surface_atomically(project):
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("docs_writer", allowed_paths=("docs/**",), target="final_check"),
         _stage("final_check", allowed_paths=(), target=None),
     ])
     tools = WorkTools(Poise(project["config_path"], "task-0050-surface"))
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     task["methods"] = [_inline_method(
         "TASK_0050_GREEN",
         responsibility="Verify documentation and both agent instruction surfaces.",
@@ -381,13 +381,13 @@ def test_creation_rejects_task_0050_partially_unsupported_surface_atomically(pro
 
 
 def test_valid_behaviour_documentation_and_combined_green_split_is_accepted(project):
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("code_writer", allowed_paths=("src/**",), target="docs_writer"),
         _stage("docs_writer", allowed_paths=("docs/**",), target="combined_check"),
         _stage("combined_check", allowed_paths=(), target=None),
     ])
     tools = WorkTools(Poise(project["config_path"], "valid-split"))
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     task["methods"] = [
         _inline_method(
             "BEHAVIOUR_GREEN",
@@ -421,9 +421,9 @@ def test_valid_behaviour_documentation_and_combined_green_split_is_accepted(proj
 
 
 def test_branching_route_accepts_collective_surface_producers_on_every_path(project):
-    process = _branch_process(project, left_scope="docs/**", right_scope="docs/**")
+    workflow = _branch_workflow(project, left_scope="docs/**", right_scope="docs/**")
     tools = WorkTools(Poise(project["config_path"], "branch-valid"))
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     task["methods"] = [_inline_method(
         "BRANCH_GREEN",
         responsibility="Verify documentation after either configured writer path.",
@@ -444,9 +444,9 @@ def test_branching_route_accepts_collective_surface_producers_on_every_path(proj
 
 
 def test_branching_route_rejects_path_that_reaches_green_without_surface_producer(project):
-    process = _branch_process(project, left_scope="docs/**", right_scope="src/**")
+    workflow = _branch_workflow(project, left_scope="docs/**", right_scope="src/**")
     tools = WorkTools(Poise(project["config_path"], "branch-invalid"))
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     task["methods"] = [_inline_method(
         "BRANCH_DOCS_GREEN",
         responsibility="Verify documentation after every configured branch.",
@@ -469,7 +469,7 @@ def test_branching_route_rejects_path_that_reaches_green_without_surface_produce
 
 
 @pytest.mark.parametrize(
-    ("case", "process_options", "inputs", "tokens"),
+    ("case", "workflow_options", "inputs", "tokens"),
     [
         (
             "missing-producer",
@@ -525,19 +525,19 @@ def test_branching_route_rejects_path_that_reaches_green_without_surface_produce
     ],
 )
 def test_invalid_method_input_contract_is_rejected_atomically(
-    project, case, process_options, inputs, tokens
+    project, case, workflow_options, inputs, tokens
 ):
-    process = _linear_process(project, **process_options)
+    workflow = _linear_workflow(project, **workflow_options)
     tools = WorkTools(Poise(project["config_path"], case))
-    task = _task(project, process, method_inputs=inputs)
+    task = _task(project, workflow, method_inputs=inputs)
 
     _assert_rejected(tools, _intent(task, case), tokens=tokens)
 
 
 def test_missing_baseline_path_is_rejected_with_actionable_method_context(project):
-    process = _linear_process(project)
+    workflow = _linear_workflow(project)
     tools = WorkTools(Poise(project["config_path"], "missing-baseline"))
-    task = _task(project, process, method_inputs=_inputs(baseline=(MISSING_TEST,)))
+    task = _task(project, workflow, method_inputs=_inputs(baseline=(MISSING_TEST,)))
 
     _assert_rejected(
         tools,
@@ -547,9 +547,9 @@ def test_missing_baseline_path_is_rejected_with_actionable_method_context(projec
 
 
 def test_invalid_exact_replay_stays_empty_and_corrected_new_request_uses_digest(project):
-    process = _linear_process(project)
+    workflow = _linear_workflow(project)
     tools = WorkTools(Poise(project["config_path"], "replay"))
-    invalid = _task(project, process, method_inputs=_inputs(baseline=(MISSING_TEST,)))
+    invalid = _task(project, workflow, method_inputs=_inputs(baseline=(MISSING_TEST,)))
     intent = _intent(invalid, "invalid-request")
 
     _assert_rejected(tools, intent, tokens=("CHECK", MISSING_TEST, "base"))
@@ -557,7 +557,7 @@ def test_invalid_exact_replay_stays_empty_and_corrected_new_request_uses_digest(
 
     corrected = _task(
         project,
-        process,
+        workflow,
         method_inputs=_inputs(future=((MISSING_TEST, "producer"),)),
     )
     result = _bootstrap(tools, _intent(corrected, "corrected-request"))

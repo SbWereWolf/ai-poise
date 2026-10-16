@@ -64,7 +64,7 @@ def test_multiple_bad_inputs_are_reported_together():
  lambda x:x["stages"][0].update(artifact_requirements=[{"scope":"task","pattern":"*.json","minimum":2,"maximum":1}]),
  lambda x:x["content_contract"]["requirements"].append({"id":"bad","kind":"section","stages":["draft"],"phase":"pre","section":"none","states":["populated"]}),
 ])
-def test_invalid_final_process_is_rejected(mutate):
+def test_invalid_final_workflow_is_rejected(mutate):
     raw=template(); mutate(raw)
     with pytest.raises(BatchValidationError): GoalTypeDefinition.build("writing",raw,[])
 

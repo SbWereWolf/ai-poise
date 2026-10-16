@@ -12,7 +12,7 @@ def prepared(project, *, command='print("checked")'):
     setup(project)
     runtime = WorkPoise(project['config_path'], 'planner')
     contract = task(project, 'P', command=command);contract['sprint_id'] = None
-    runtime.task_commands.create(contract,runtime.session,runtime.processes['development'],[],
+    runtime.task_commands.create(contract,runtime.session,runtime.workflows['development'],[],
         {'config_hash':runtime.config_hash},None,runtime.cfg.get('task_ids'),runtime._creation_base(),
         runtime.cfg['task_decomposition'])
     client = WorkTools(runtime)
@@ -32,7 +32,7 @@ def test_native_duplicate_and_reverse_projection_survive_ready_publish(project):
     assert (born['status'],born['claimed_by'],born['duplicate']['parent_id'])==('newborn',None,'P')
     d = h.task_queries.record('D')
     assert d['draft']['requirements']==before['contract']['requirements']
-    assert d['process']==before['process'] and d['worktree'] is None
+    assert d['workflow']==before['workflow'] and d['worktree'] is None
     assert h.current_task() is None
     assert h.task_queries.record('P')['duplicate']=={'kind':'duplicate','role':'parent','parent_id':'P','children':['D']}
     assert h.task_queries.record('P')['history']==before['history']

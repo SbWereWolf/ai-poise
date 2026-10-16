@@ -1,0 +1,8 @@
+{
+  "schema": "poise-project-instruction-policy-1",
+  "version": "1",
+  "universal_skills": [
+    "writing"
+  ],
+  "profiles": []
+}

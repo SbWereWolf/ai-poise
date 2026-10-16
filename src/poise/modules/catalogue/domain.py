@@ -79,11 +79,11 @@ class TaskBlueprint:
         return {key: _render(value, values) for key, value in raw['task'].items()
                 if _references(value) <= set(values)}
 
-    def instantiate(self,values,process,automatic_checks,decomposition_policy):
+    def instantiate(self,values,workflow,automatic_checks,decomposition_policy):
         raw=self.data
         exact_keys(values,set(raw['parameters']),'task template parameters')
         for key,kind in raw['parameters'].items():_parameter(values[key],kind,key)
         contract=_render(raw['task'],values)
         # Reuse the exact same owner as standalone/sprint creation. No second schema.
-        validate_creation(contract,process,automatic_checks,decomposition_policy)
+        validate_creation(contract,workflow,automatic_checks,decomposition_policy)
         return contract

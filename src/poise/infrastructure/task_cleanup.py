@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from ..artifacts import inspect_paths
+from ..application.task_cleanup import initialize_cleanup_in
 from ..modules.foundation.errors import PoiseError
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, TaskOwnedResource
 from .git_transport import run_git_receipt
@@ -123,7 +124,11 @@ class RuntimeTaskResourceCleanup:
         if record is None: raise PoiseError("Task does not exist")
         if record["status"] != "cancelled" and not (record["status"] == "completed" and record.get("duplicate_reuse") is not None):
             raise PoiseError("Cleanup requires a terminal cancelled Task")
-        return record["pending"]
+        with self.h.store.unit_of_work() as uow:
+            if not uow.execution.exists(task_id):
+                return None
+            data, _ = uow.execution.load(task_id)
+            return data["pending"]
 
     def save(self, task_id, pending):
         with self.h.store.unit_of_work() as uow:
@@ -141,14 +146,12 @@ class RuntimeTaskResourceCleanup:
 
     def initialize(self, task_id, pending):
         with self.h.store.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            if task.state.status.value != "cancelled" and not (task.state.status.value == "completed" and task.duplicate_reuse is not None):
+            state = uow.tasks.load_state(task_id)
+            if state.status.value != "cancelled" and not (
+                state.status.value == "completed" and uow.tasks.load(task_id).duplicate_reuse is not None
+            ):
                 raise PoiseError("Cleanup initialization requires a terminal cancelled Task")
-            data, version = uow.execution.load(task_id)
-            if data["pending"] is not None:
-                raise PoiseError("Task acquired a pending external operation during cleanup initialization")
-            data["pending"] = pending
-            uow.execution.save(task_id, data, version)
+            initialize_cleanup_in(uow, task_id, pending)
 
     def finish(self, task_id):
         root = self.resource_root(task_id)

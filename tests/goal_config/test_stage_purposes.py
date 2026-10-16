@@ -10,15 +10,15 @@ from poise.modules.foundation.errors import DomainError
 from poise.modules.goal_config.domain import GoalTypeDefinition
 
 
-FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria/process.json"
+FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria/workflow.json"
 
 
-def process():
+def workflow():
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
 def test_four_purposes_and_explicit_other_authority_survive_validation():
-    source = process()
+    source = workflow()
     before = deepcopy(source)
     parsed = GoalTypeDefinition.parse(source).data
     assert [stage["purpose"] for stage in parsed["stages"]] == [
@@ -31,7 +31,7 @@ def test_four_purposes_and_explicit_other_authority_survive_validation():
 
 
 def test_configuration_does_not_discard_known_purpose_or_authority():
-    source = process()
+    source = workflow()
     source["stages"][0]["vendor_note"] = "Preserve unrelated configuration extensions."
     parsed = GoalTypeDefinition.from_configuration(source).data
     assert parsed["stages"][0]["purpose"] == "design"
@@ -43,7 +43,7 @@ def test_configuration_does_not_discard_known_purpose_or_authority():
 
 
 def test_editor_changes_purpose_without_changing_role_handler_or_extensions():
-    source = process()
+    source = workflow()
     source["stages"][0]["vendor_note"] = "Keep this extension."
     edited = GoalTypeDefinition.build_configuration("development", source, [
         {"op": "patch_stage", "id": "sketch", "set": {"purpose": "other"}},
@@ -59,7 +59,7 @@ def test_editor_changes_purpose_without_changing_role_handler_or_extensions():
 
 
 def test_arbitrary_role_names_do_not_determine_purpose_or_grants():
-    source = process()
+    source = workflow()
     source["stages"][0]["role"] = "quality-strategist"
     source["stages"][1]["role"] = "implementation-specialist"
     parsed = GoalTypeDefinition.parse(source).data
@@ -70,7 +70,7 @@ def test_arbitrary_role_names_do_not_determine_purpose_or_grants():
 
 @pytest.mark.parametrize("field", ["purpose", "criteria_authority"])
 def test_missing_explicit_stage_classification_is_rejected(field):
-    source = process()
+    source = workflow()
     del source["stages"][0][field]
     with pytest.raises(DomainError):
         GoalTypeDefinition.from_configuration(source)
@@ -78,7 +78,7 @@ def test_missing_explicit_stage_classification_is_rejected(field):
 
 @pytest.mark.parametrize("value", [None, "", "automatic", True, ["design"]])
 def test_unknown_or_nontext_purpose_is_rejected(value):
-    source = process()
+    source = workflow()
     source["stages"][0]["purpose"] = value
     with pytest.raises(DomainError):
         GoalTypeDefinition.from_configuration(source)
@@ -93,14 +93,14 @@ def test_unknown_or_nontext_purpose_is_rejected(value):
     {"propose": ["assess"], "decide": []},
 ])
 def test_invalid_authority_is_not_silently_replaced_by_empty_grants(value):
-    source = process()
+    source = workflow()
     source["stages"][0]["criteria_authority"] = value
     with pytest.raises(DomainError):
         GoalTypeDefinition.from_configuration(source)
 
 
 def test_other_with_explicit_empty_grants_remains_valid_without_implicit_authority():
-    source = process()
+    source = workflow()
     source["stages"][3]["criteria_authority"] = {"propose": [], "decide": []}
     parsed = GoalTypeDefinition.parse(source).data
     assert parsed["stages"][3]["purpose"] == "other"
@@ -108,7 +108,7 @@ def test_other_with_explicit_empty_grants_remains_valid_without_implicit_authori
 
 
 def test_unknown_authority_extension_is_ignored_only_at_configuration_boundary():
-    source = process()
+    source = workflow()
     source["stages"][0]["criteria_authority"]["vendor_note"] = "This grants no authority."
     parsed = GoalTypeDefinition.from_configuration(source).data
     assert parsed["stages"][0]["criteria_authority"] == {"propose": ["build"], "decide": []}

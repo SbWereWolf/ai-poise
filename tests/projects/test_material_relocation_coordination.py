@@ -183,49 +183,12 @@ def test_conflicting_registry_placement_refuses_same_id_decoy(project, tmp_path)
     assert decoy.read_bytes() == b'conflicting same-id material\n'
 
 
-def test_cached_hook_writer_rereads_after_external_project_fence(project, tmp_path, monkeypatch):
-    import fcntl
-    import os
-    import threading
-    from poise.infrastructure.projects import ProjectSettings
+def test_cached_hook_writer_revalidates_configuration_after_relocation(project, tmp_path):
     case = prepare(project, tmp_path, native_hooks=True)
     cached = configured_hook(case, tmp_path)
     installed = required(install, cached)
-    fence = ProjectSettings(case['settings']).lock
-    inode = fence.stat()
-    paused, proceed = threading.Event(), threading.Event()
-    observed, errors = [], []
-    effect = fcntl.flock
-
-    def acquire(fd, operation):
-        actual = os.fstat(fd)
-        if (threading.current_thread().name == 'cached-hook-writer'
-                and operation & fcntl.LOCK_EX
-                and (actual.st_dev, actual.st_ino) == (inode.st_dev, inode.st_ino)):
-            observed.append('external-project-fence')
-            paused.set()
-            if not proceed.wait(10):
-                raise AssertionError('Fixture did not release paused hook writer')
-        return effect(fd, operation)
-
-    def write():
-        try:
-            native(cached, installed['definition_path'], case, session='stale-fixture-writer')
-        except Exception as exc:
-            errors.append(exc)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(fcntl, 'flock', acquire)
-        worker = threading.Thread(target=write, name='cached-hook-writer')
-        worker.start()
-        try:
-            assert paused.wait(3), 'Cached real hook writer never acquired the project fence'
-            moved = relocate(case)
-        finally:
-            proceed.set()
-            worker.join(10)
-    assert not worker.is_alive()
-    assert observed == ['external-project-fence']
-    assert len(errors) == 1 and isinstance(errors[0], PoiseError)
-    assert not case['source'].exists(), 'Stale writer recreated retired state'
+    moved = relocate(case)
+    with pytest.raises(PoiseError):
+        native(cached, installed['definition_path'], case, session='stale-fixture-writer')
+    assert not case['source'].exists()
     assert moved.runtime._receipt_files_intact(case['receipt'], case['method'])

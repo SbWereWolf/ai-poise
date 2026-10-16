@@ -7,10 +7,10 @@ import sys
 import pytest
 
 from poise.modules.foundation.errors import DomainError
-from poise.modules.tasks.process_migration import MigrationRequest
+from poise.modules.tasks.workflow_migration import MigrationRequest
 
 
-ROLE_SCHEMA = "task-process-role-migration-1"
+ROLE_SCHEMA = "task-workflow-role-migration-1"
 
 
 def role_projection_request(backup_name: str = "state-backup.sqlite") -> dict:
@@ -33,7 +33,7 @@ def test_role_projection_schema_is_not_supported_by_public_cli(project):
     env = os.environ.copy()
     env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
     completed = subprocess.run(
-        [sys.executable, "-m", "poise", "task-process-migrate", "--config", str(project["config_path"])],
+        [sys.executable, "-m", "poise", "task-workflow-migrate", "--config", str(project["config_path"])],
         cwd=root,
         env=env,
         input=json.dumps(role_projection_request()),

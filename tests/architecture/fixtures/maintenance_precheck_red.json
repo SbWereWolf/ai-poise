@@ -1,0 +1,1 @@
+{"collected":1,"failed":[{"cause":false,"nodeid":"tests/architecture/test_bootstrap_repair_preconditions.py::test_missing_verification_setting_precedes_mutation","phase":"call"}],"passed":0}

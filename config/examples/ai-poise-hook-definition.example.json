@@ -6,7 +6,7 @@
       "async": false,
       "context_limit": 2000,
       "event": "SessionStart",
-      "matcher": "startup|resume|compact|clear",
+      "matcher": "",
       "status_message": "Bind AI poise session",
       "timeout_seconds": 15
     },
@@ -45,7 +45,7 @@
   "probes": [
     {
       "argv": [
-        "/ABSOLUTE/PATH/TO/AI_POISE/.venv/bin/python",
+        "${PYTHON_EXECUTABLE}",
         "-B",
         "-c",
         "import sys; print(\"ready\" if sys.version_info[:2] == (3,13) else \"unsupported\")"

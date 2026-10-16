@@ -252,7 +252,7 @@ class RuntimePlanActions:
         self.validate(data,payload);h=self.h
         if 'kind' in payload['stage_work']:
             from ..application.planning_publication import PlanningPublications
-            service=PlanningPublications(h.store.unit_of_work,h.cfg['project'],h.processes,
+            service=PlanningPublications(h.store.unit_of_work,h.cfg['project'],h.workflows,
                 h.cfg['automatic_checks'],h.cfg['sprint'],h.cfg.get('task_ids'),
                 h.cfg['task_decomposition'],h.config_hash,h.cfg['batch']['max_items'],
                 h.task_commands.prepare_creation,h._creation_base)

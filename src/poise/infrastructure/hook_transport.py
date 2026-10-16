@@ -3,20 +3,23 @@
 The adapter never edits Codex trust or starts task transitions from native events.
 """
 from copy import deepcopy
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
 import shlex
+import string
+from dataclasses import replace
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
 from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
 from ..modules.capabilities.domain import positive
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
 from ..modules.foundation.validation import configuration_fields, nonempty
-from ..application.capabilities import CapabilityChecks
+from ..application.capabilities import CapabilityChecks,SessionReadiness
 from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
-from .capabilities import LocalProbeExecutor
+from .capabilities import LocalProbeExecutor,FileCapabilitySummary
 from .goal_config import read_document,atomic_write
 from .session_establishment import establish_poise,native_session
 from .sqlite.hook_transport import HookRegistry
@@ -59,12 +62,34 @@ class HookSettings:
         self.root=(self.path.parent/s['root']).resolve()
         if not self.root.is_dir():raise PoiseError('hook settings.root: existing directory required')
         self.project_config=descendant(self.root,s['project_config'])
-        self.hooks_file=descendant(self.root,s['hooks_file'])
+        native_path = Path(s['hooks_file'])
+        if native_path.is_absolute():
+            if 'repository_scope' not in s:
+                raise PoiseError('An absolute native hooks file requires explicit repository_scope')
+            self.hooks_file = native_path.resolve()
+        else:
+            self.hooks_file=descendant(self.root,s['hooks_file'])
         self.definitions=descendant(self.root,s['definitions'])
         self.state=descendant(self.root,s['state']);self.lock=descendant(self.root,s['lock'])
         self.database=descendant(self.state,s['database'])
         self.bindings=descendant(self.state,s['bindings'])
         self.observations=descendant(self.state,s['observations'])
+        self.hooks_lock = None
+        if 'repository_scope' in s:
+            scope = configuration_fields(s['repository_scope'], {'repository', 'timeout_seconds'},
+                                         'repository_scope')
+            nonempty(scope['repository'], 'repository_scope.repository')
+            if not Path(scope['repository']).is_absolute() or not Path(scope['repository']).is_dir():
+                raise PoiseError('repository_scope.repository requires an existing absolute directory')
+            positive(scope['timeout_seconds'], 'repository_scope.timeout_seconds')
+            nonempty(s.get('hooks_lock'), 'hooks_lock')
+            if not Path(s['hooks_lock']).is_absolute():
+                raise PoiseError('hooks_lock requires an explicit absolute path')
+            self.hooks_lock = Path(s['hooks_lock']).resolve()
+            if self.hooks_lock in (self.hooks_file, self.database, self.lock, self.path):
+                raise PoiseError('The shared native-file lock must have its own path')
+        elif 'hooks_lock' in s:
+            raise PoiseError('hooks_lock requires explicit repository_scope')
         for name in files.values():descendant(self.state,name)
         for key in ('launcher','binding_file','response_file'):descendant(self.state,s[key])
         if s['launcher']==s['binding_file']:raise PoiseError('Binding and launcher filenames must differ')
@@ -81,6 +106,54 @@ class HookSettings:
         if not s['executable_mode'] & 0o100:raise PoiseError('Launcher mode must allow owner execution')
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
+        if 'capability_summary' in s:
+            self.require_summary()
+        if 'project_launcher' in s:
+            value=configuration_fields(s['project_launcher'],{'settings_path','context_template'},'project_launcher')
+            nonempty(value['settings_path'],'project_launcher.settings_path')
+            if not Path(value['settings_path']).is_absolute():
+                raise PoiseError('project_launcher.settings_path requires an absolute path')
+            nonempty(value['context_template'],'project_launcher.context_template')
+            try:
+                fields={field for _,field,_,_ in string.Formatter().parse(value['context_template']) if field is not None}
+                if fields!={'launcher'}:raise ValueError('Expected launcher field')
+                value['context_template'].format(launcher='sample')
+            except (KeyError,ValueError,IndexError) as exc:
+                raise PoiseError('Invalid project_launcher.context_template') from exc
+
+    def require_summary(self):
+        """The feature is mandatory for its operations, independent of core inspection."""
+        if 'capability_summary' not in self.raw:
+            raise PoiseError('Missing capability_summary; configure file, header_template and item_template')
+        value = configuration_fields(self.raw['capability_summary'],
+            {'file', 'header_template', 'item_template'}, 'capability_summary')
+        nonempty(value['file'], 'capability_summary.file')
+        path = descendant(self.bindings, value['file'])
+        if path in (descendant(self.bindings, self.raw['binding_file']),
+                    descendant(self.bindings, self.raw['launcher'])):
+            raise PoiseError('capability_summary.file must differ from binding and launcher')
+        for key, allowed in (
+            ('header_template', {'ready', 'checked_at', 'workspace', 'snapshot_path'}),
+            ('item_template', {'id', 'status', 'required', 'reason', 'remediation'}),
+        ):
+            nonempty(value[key], 'capability_summary.' + key)
+            try:
+                fields = {field for _, field, _, _ in string.Formatter().parse(value[key]) if field is not None}
+                if fields != allowed:
+                    raise ValueError('Template must contain exactly its named fields')
+                value[key].format(**{field: 'sample' for field in allowed})
+            except (KeyError, ValueError, IndexError) as exc:
+                raise PoiseError('Invalid capability_summary.' + key) from exc
+        return value
+
+    @contextmanager
+    def native_file_locked(self):
+        if self.hooks_lock is None:
+            yield
+            return
+        from .locking import exclusive_lock
+        with exclusive_lock(self.hooks_lock, self.raw['lock_seconds'], self.raw['lock_poll_seconds']):
+            yield
 
     def require_runtime(self,launcher=None):
         """Check selected executable paths without choosing a replacement runtime."""
@@ -126,9 +199,13 @@ class HookSettings:
     def command(self,verb,*args):
         return self._direct_command(['-B'],verb,*args)
 
+    def launcher_bytes(self, binding_path):
+        return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + ' "$@"\n').encode()
+
     def prior_launcher_commands(self,verb,*args):
         """Exact superseded forms accepted only for an owned launcher upgrade."""
         return (
+            self._direct_command(['-B'],verb,*args),
             self._superseded_guarded_command(['-B'],verb,*args),
             self._superseded_guarded_command([],verb,*args),
             self._direct_command([],verb,*args),
@@ -144,11 +221,43 @@ def _read_definition(settings,path):
     return HookDefinition.parse(value)
 
 
+def matches_repository_scope(settings, cwd):
+    """A shared native source selects its Git repository before Task runtime."""
+    if 'repository_scope' not in settings.raw:
+        return True
+    from .git_transport import run_git_receipt
+    nonempty(cwd, 'Native cwd')
+    if not Path(cwd).is_absolute():
+        raise PoiseError('Native cwd requires an absolute path')
+    scope = settings.raw['repository_scope']
+    arguments = ['rev-parse', '--path-format=absolute', '--git-common-dir']
+    # These local observations select repositories by explicit paths, not by
+    # a caller's inherited Git repository/configuration controls.
+    environment = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    selected = run_git_receipt(scope['repository'], arguments, scope['timeout_seconds'], environment)
+    if selected['actual_exit_code'] != 0:
+        raise PoiseError('Configured session repository is unavailable: ' + selected['stderr'])
+    def common_directory(receipt):
+        value = receipt['stdout'].removesuffix('\n')
+        if not value or not Path(value).is_absolute():
+            raise PoiseError('An absolute Git common directory is required from the selected Git command')
+        return Path(value).resolve()
+    selected_directory = common_directory(selected)
+    observed = run_git_receipt(cwd, arguments, scope['timeout_seconds'], environment)
+    if observed['actual_exit_code'] != 0:
+        return False
+    return selected_directory == common_directory(observed)
+
+
 class FileHookRepository:
     def __init__(self,settings,registry):self.settings,self.registry=settings,registry
 
     def relocate(self, target, installation, request_id):
         """Publish this installation under an already held project/source lease."""
+        with self.settings.native_file_locked():
+            return self._relocate(target, installation, request_id)
+
+    def _relocate(self, target, installation, request_id):
         import hashlib
         import shutil
         proposed = HookSettings.proposed(target['settings_path'], target['settings'])
@@ -161,7 +270,8 @@ class FileHookRepository:
         definition = _read_definition(source, definition_path)
         if definition.data['id'] != target['installation_id']:
             raise PoiseError('Hook relocation installation identity differs')
-        if proposed.definitions != source.definitions or proposed.hooks_file != source.hooks_file:
+        if (proposed.definitions != source.definitions or proposed.hooks_file != source.hooks_file
+                or proposed.hooks_lock != source.hooks_lock):
             raise PoiseError('Hook relocation requires explicit unchanged definition/native-file owners')
         if not proposed.state.exists():
             shutil.copytree(source.state, proposed.state)
@@ -273,11 +383,13 @@ class FileHookRepository:
         return removed,proof,row[0]
 
     def install(self,request_id,expected_revision,definition):
-        return self._install(request_id,expected_revision,definition,None)
+        with self.settings.native_file_locked():
+            return self._install(request_id,expected_revision,definition,None)
 
     def reconcile(self,request_id,expected_revision,definition,previous_installation_id,live_definition_path):
-        return self._install(request_id,expected_revision,definition,{
-            'previous_installation_id':previous_installation_id,'live_definition_path':live_definition_path})
+        with self.settings.native_file_locked():
+            return self._install(request_id,expected_revision,definition,{
+                'previous_installation_id':previous_installation_id,'live_definition_path':live_definition_path})
 
     def _install(self,request_id,expected_revision,definition,reconciliation):
         s=self.settings
@@ -379,11 +491,17 @@ class HookService:
 
     def revision(self):return self.repository.revision()
     def install(self,packet):
+        self.settings.require_summary()
         with self.project_fence.locked():
             return self.commands.install(packet)
     def reconcile(self,packet):
+        self.settings.require_summary()
         with self.project_fence.locked():
             return self.commands.reconcile(packet)
+
+    def reconfigure(self, packet):
+        from .hook_reconfiguration import reconfigure
+        return reconfigure(self.settings.path, packet)
 
     def definition(self,path):return _read_definition(self.settings,path)
 
@@ -396,9 +514,12 @@ class HookService:
         definition=self.definition(definition_path)
         native=parse_native_event(event,definition)
         cwd=Path(native['cwd'])
-        if not cwd.is_absolute() or not any(cwd.resolve().is_relative_to(Path(r).resolve()) for r in self.settings.raw['cwd_roots']):
+        accepted = (matches_repository_scope(self.settings, str(cwd))
+                    if 'repository_scope' in self.settings.raw else
+                    any(cwd.resolve().is_relative_to(Path(r).resolve()) for r in self.settings.raw['cwd_roots']))
+        if not cwd.is_absolute() or not accepted:
             raise PoiseError('Native cwd outside configured roots')
-        _,cfg,_=load_config(self.settings.project_config)
+        cfg=self.project_fence.hook_manifest()
         d=definition.data
         if cfg['batch']['message_source']!={'id':d['message_source'],'mode':'runtime_event'}:
             raise PoiseError('Do not combine hook and transcript/reported message sources')
@@ -421,7 +542,7 @@ class HookService:
         raw=(json.dumps(record,ensure_ascii=False,indent=2)+'\n').encode()
         if binding.exists() and binding.read_bytes()!=raw:raise PoiseError('Binding file was changed externally')
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
-        script=('#!/bin/sh\nexec '+self.settings.command('hook-work','--binding',str(binding))+'\n').encode()
+        script=self.settings.launcher_bytes(binding)
         priors=tuple(('#!/bin/sh\nexec '+command+'\n').encode() for command in
             self.settings.prior_launcher_commands('hook-work','--binding',str(binding)))
         if launcher.exists():
@@ -456,12 +577,54 @@ class HookService:
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
     def event(self,definition_path,event):
+        if isinstance(event, dict) and event.get('hook_event_name') == 'SessionStart':
+            self.settings.require_summary()
         with self.project_fence.locked():
-            return self._event_locked(definition_path,event)
+            result, definition, native, binding = self._event_locked(definition_path,event)
+        if native['event'] == 'SessionStart':
+            from .clock import SystemClock
+            readiness = self._readiness(binding)
+            summary = readiness.refresh(binding['session_id'], native['cwd'],
+                                        definition.data['probes'], SystemClock()).to_dict()
+            options = self.settings.require_summary()
+            lines = [options['header_template'].format(
+                ready=summary['ready'], checked_at=summary['checked_at'], workspace=summary['workspace'],
+                snapshot_path=str(readiness.store.path))]
+            lines.extend(options['item_template'].format(**item) for item in summary['observations'])
+            context = result['hookSpecificOutput']['additionalContext'] + '\n' + '\n'.join(lines)
+            limit = next(e['context_limit'] for e in definition.data['events'] if e['event'] == 'SessionStart')
+            if len(context) > limit:
+                raise PoiseError('Capability summary context exceeds configured native context limit')
+            result['hookSpecificOutput']['additionalContext'] = context
+        return result
 
     def _event_locked(self,definition_path,event):
-        from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
+        if native['event'] == 'SessionStart':
+            event_id = self.registry.record_event(
+                binding['session_id'], native['event'], native['turn_id'], None,
+                {'source': event['source'], 'workspace': native['cwd']})
+            try:
+                result = self._runtime_event(definition, native, binding, event, event_id)
+            except Exception as exc:
+                # Transport authority/binding already succeeded. Subject runtime
+                # recovery cannot take the session's own entry away from it.
+                context = definition.data['context_template'].format(
+                    launcher=binding['launcher'], state=event['source'])
+                result = {'hookSpecificOutput': {'hookEventName': native['event'],
+                                                 'additionalContext': context},
+                          'systemMessage': str(exc)}
+        else:
+            result = self._runtime_event(definition, native, binding, event, None)
+        if native['event'] in ('SessionStart','UserPromptSubmit') and 'project_launcher' in self.settings.raw:
+            result['hookSpecificOutput']['additionalContext'] += '\n' + self.settings.raw['project_launcher']['context_template'].format(launcher=binding['launcher'])
+            limit=next(e['context_limit'] for e in definition.data['events'] if e['event']==native['event'])
+            if len(result['hookSpecificOutput']['additionalContext'])>limit:
+                raise PoiseError('Project selection context exceeds configured native context limit')
+        return result, definition, native, binding
+
+    def _runtime_event(self,definition,native,binding,event,event_id):
+        from .clock import SystemClock
         caller=CallerIdentity.native(binding['project'],binding['external_session'])
         h=establish_poise(self.settings.project_config,caller,[],SystemClock(),binding['session_id']).runtime
         task=h.current_task()
@@ -471,14 +634,14 @@ class HookService:
             message={'conversation_id':native['session_id'],'message_id':native['turn_id'],
                      'occurred_at':None,'reason':None,'subject':None}
             h.interactions.record(h.interactions.prepare([message]),h.session,active)
-        event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message,
-            {'source': event['source']} if native['event'] == 'SessionStart' else None)
+        if native['event'] != 'SessionStart':
+            event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message)
         recovery = None
         if native['event'] == 'SessionStart' and h.context_reader is not None:
             recovery = h.restore_context(reason=event['source'], event_id=f'hook-event:{event_id}',
                 facts=[], cwd=native['cwd'], reads=[])
 
-        state='idle' if task is None else f"{task['id']} / {task['status']} / {task['process']['stages'][task['stage_index']]['id']}"
+        state='idle' if task is None else f"{task['id']} / {task['status']} / {task['workflow']['stages'][task['stage_index']]['id']}"
         if native['event'] in ('SessionStart','UserPromptSubmit'):
             context=definition.data['context_template'].format(launcher=binding['launcher'],state=state)
             if recovery is not None:
@@ -491,11 +654,41 @@ class HookService:
                             + 'Prior receipts do not prove remembered text.')
                 limit = next(e['context_limit'] for e in definition.data['events']
                              if e['event'] == native['event'])
-                if len(context) > limit:
+                if native['event'] != 'SessionStart' and len(context) > limit:
                     raise PoiseError('Context recovery exceeds configured native context limit')
-            return {'hookSpecificOutput':{'hookEventName':native['event'],'additionalContext':context}}
-        if native['event']=='Stop':return {'systemMessage':definition.data['stop_template'].format(state=state)}
-        return {}  # Advisory session observation; no Task transition or direct PID signal.
+            result = {'hookSpecificOutput':{'hookEventName':native['event'],'additionalContext':context}}
+        elif native['event']=='Stop':
+            result = {'systemMessage':definition.data['stop_template'].format(state=state)}
+        else:
+            result = {}  # Advisory observation; no Task transition or direct PID signal.
+        return result
+
+    def _readiness(self, record):
+        options = self.settings.require_summary()
+        path = descendant(Path(record['binding_path']).parent, options['file'])
+        store = FileCapabilitySummary(path, self.settings.raw['file_mode'],
+                                      self.settings.raw['max_input_bytes'], self.project_fence)
+        checks = CapabilityChecks(LocalProbeExecutor(self.settings.observations,
+            self.settings.raw['file_mode'], self.settings.raw['probe_files']), self.settings.raw['max_probes'])
+        return SessionReadiness(checks, store)
+
+    def read_summary(self, packet):
+        self.settings.require_summary()
+        exact_keys(packet, {'binding_path'}, 'summary packet')
+        nonempty(packet['binding_path'], 'binding_path')
+        record, _ = self._owned_record(packet['binding_path'])
+        return self._readiness(record).read(record['session_id']).to_dict()
+
+    def refresh_summary(self, packet):
+        from .clock import SystemClock
+        self.settings.require_summary()
+        exact_keys(packet, {'binding_path'}, 'refresh packet')
+        nonempty(packet['binding_path'], 'binding_path')
+        record, _ = self._owned_record(packet['binding_path'])
+        workspace = self.registry.session_workspace(record['session_id'])
+        definition = self.definition(record['definition_path'])
+        return self._readiness(record).refresh(record['session_id'], workspace,
+                                               definition.data['probes'], SystemClock()).to_dict()
 
     def probes(self,definition_path,workspace):
         d=self.definition(definition_path)
@@ -529,13 +722,65 @@ class HookService:
         if result is None:result=invoke()
         return {**result,'capability_checks':checks,'hook_session':record['session_id']}
 
-    def work(self,binding_path,packet):
-        from .clock import SystemClock
+    def _owned_record(self, binding_path):
         observed = native_session(os.environ, required=True)
         record,message=self._record(binding_path)
         if observed != record['external_session']:
             raise PoiseError('Invoking native session identity does not own this launcher; use its own SessionStart launcher')
-        caller=CallerIdentity.native(record['project'],observed)
+        return record, message
+
+    def _selected_work(self, project_id, record, packet):
+        from ..application.project_launch import ProjectLaunchCommands
+        from .project_launch import FileProjectLaunch
+        from ..modules.projects.launch import text
+        from ..modules.hook_transport.domain import MissingHookBinding
+        from .clock import SystemClock
+        from ..modules.work.domain import parse_request
+        from .result_views import preflight_work_result
+        text(project_id,'project_id')
+        options=self.settings.raw.get('project_launcher')
+        if options is None:raise PoiseError('Explicit project selection requires project_launcher configuration')
+        port=FileProjectLaunch()
+        selected=replace(port.read_settings(options['settings_path']),project_id=project_id)
+        config_path=Path(ProjectLaunchCommands(port).resolve(selected)).resolve()
+        if config_path==self.settings.project_config:
+            return None
+        _,cfg,_=load_config(config_path)
+        hooks=cfg['runtime_resources']['hooks']
+        if hooks:
+            candidates=[]
+            for association in hooks:
+                target=HookService(association['settings_path'])
+                if target.settings.project_config!=config_path:
+                    raise PoiseError('Selected hook association does not bind its project manifest')
+                try:
+                    binding=target.registry.find(record['external_session'],None)
+                except MissingHookBinding:
+                    continue
+                if target.definition(binding['definition_path']).data['id']!=association['installation_id']:
+                    raise PoiseError('Selected hook installation does not match its native binding')
+                candidates.append((target,binding))
+            if len(candidates)!=1:
+                raise PoiseError('Selected hooked project requires its own native binding; use its own native launcher')
+            target,binding=candidates[0]
+            result=target.work(binding['binding_path'],packet)
+            self.runtime=target.runtime
+            return result
+        caller=CallerIdentity.native(cfg['project'],record['external_session'])
+        h=establish_poise(config_path,caller,[],SystemClock()).runtime
+        self.runtime=h
+        h.store.ensure_session(h.session)
+        req=parse_request(packet,h.cfg['batch'])
+        preflight_work_result(h,req)
+        return WorkTools(h).invoke(req)
+
+    def work(self,binding_path,packet,project_id=None):
+        from .clock import SystemClock
+        record,message=self._owned_record(binding_path)
+        if project_id is not None:
+            selected=self._selected_work(project_id,record,packet)
+            if selected is not None:return selected
+        caller=CallerIdentity.native(record['project'],record['external_session'])
         h=establish_poise(
             self.settings.project_config,
             caller,
@@ -569,6 +814,7 @@ def setup_runtime(settings_path,packet):
     if value['expected_revision'] is not None:nonempty(value['expected_revision'],'expected_revision')
     definition=HookDefinition.parse(value['definition'])
     s=HookSettings.proposed(settings_path,packet['settings'])
+    s.require_summary()
     if not s.path.is_relative_to(s.root):raise PoiseError('Adapter settings must live in the Poise codebase')
     if s.path.is_relative_to(s.state):raise PoiseError('Adapter settings must not live in operational state')
     if len(definition.data['probes'])>s.raw['max_probes']:raise PoiseError('Too many probes')

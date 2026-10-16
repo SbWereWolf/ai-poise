@@ -1,0 +1,22 @@
+{
+  "kind": "snapshot-owner-diagnostic",
+  "configured_git_seconds": 15.0,
+  "explicit_process_only_git_config": {
+    "core.fsmonitor": false
+  },
+  "shared_configuration_written": false,
+  "task_operation_invoked": false,
+  "native_acceptance": false,
+  "commands": [
+    {
+      "arguments": [
+        "config",
+        "--get",
+        "core.fsmonitor"
+      ],
+      "timeout_seconds": 15.0,
+      "error": "'executable'",
+      "duration_seconds": 1.1091000033047749e-05
+    }
+  ]
+}

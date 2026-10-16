@@ -16,7 +16,7 @@ from poise.modules.verification.domain import CheckRegistry
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_PATH = ROOT / "config/catalogue/task-templates/development.json"
-PROCESS_PATH = ROOT / "config/catalogue/process-templates/development.json"
+WORKFLOW_PATH = ROOT / "config/catalogue/workflow-templates/development.json"
 
 
 def _policy() -> dict:
@@ -27,9 +27,9 @@ def _policy() -> dict:
 
 
 def _documents() -> tuple[dict, dict]:
-    process = json.loads(PROCESS_PATH.read_text())
+    workflow = json.loads(WORKFLOW_PATH.read_text())
     template = json.loads(TEMPLATE_PATH.read_text())
-    return process, template
+    return workflow, template
 
 
 def _load_walkthrough() -> dict:
@@ -41,8 +41,8 @@ def _load_walkthrough() -> dict:
         sys.path.remove(examples)
 
 
-def _empty_schedule(process: dict) -> dict[str, list[str]]:
-    return {stage["id"]: [] for stage in process["stages"]}
+def _empty_schedule(workflow: dict) -> dict[str, list[str]]:
+    return {stage["id"]: [] for stage in workflow["stages"]}
 
 
 def _baseline_method() -> dict:
@@ -68,15 +68,15 @@ def _baseline_method() -> dict:
     }
 
 
-def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) -> dict:
+def _parameters(workflow: dict, checks: dict, methods: list[dict] | None = None) -> dict:
     selected_methods = [] if methods is None else methods
-    stages = [stage["id"] for stage in process["stages"]]
+    stages = [stage["id"] for stage in workflow["stages"]]
     evidence = {
         stage: {"subject_methods": {}, "arguments": [], "review_arguments": []}
         for stage in stages
     }
     methods_by_id = {method["id"]: method for method in selected_methods}
-    for stage in process["stages"]:
+    for stage in workflow["stages"]:
         if stage["handler"] not in ("observe", "check"):
             continue
         for method_id in checks.get(stage["id"], []):
@@ -118,7 +118,7 @@ def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) 
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
-        } for stage in process["stages"]],
+        } for stage in workflow["stages"]],
         "decomposition": {
             "kind": "ordinary",
             "phases": [
@@ -131,11 +131,11 @@ def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) 
 
 
 def _instantiate(checks: dict, methods: list[dict] | None = None) -> dict:
-    process, template = _documents()
-    parsed_process = GoalTypeDefinition.parse(process).data
+    workflow, template = _documents()
+    parsed_workflow = GoalTypeDefinition.parse(workflow).data
     return TaskBlueprint.parse(template).instantiate(
-        _parameters(process, checks, methods),
-        parsed_process,
+        _parameters(workflow, checks, methods),
+        parsed_workflow,
         [],
         _policy(),
     )
@@ -151,8 +151,8 @@ def test_development_template_requires_caller_supplied_checks_without_fixed_meth
 
 
 def test_development_template_accepts_complete_empty_initial_schedule():
-    process, _ = _documents()
-    checks = _empty_schedule(process)
+    workflow, _ = _documents()
+    checks = _empty_schedule(workflow)
     created = _instantiate(checks)
     assert created["checks"] == checks
     assert CheckRegistry.from_task(
@@ -163,9 +163,9 @@ def test_development_template_accepts_complete_empty_initial_schedule():
 
 
 def test_development_template_accepts_explicit_nonempty_initial_schedule():
-    process, _ = _documents()
+    workflow, _ = _documents()
     method = _baseline_method()
-    checks = _empty_schedule(process)
+    checks = _empty_schedule(workflow)
     checks["baseline"] = [method["id"]]
     created = _instantiate(checks, [method])
     assert created["checks"]["baseline"] == ["CUSTOM_BASELINE"]
@@ -173,13 +173,13 @@ def test_development_template_accepts_explicit_nonempty_initial_schedule():
 
 
 def test_development_template_does_not_default_missing_checks():
-    process, template = _documents()
-    parameters = _parameters(process, _empty_schedule(process))
+    workflow, template = _documents()
+    parameters = _parameters(workflow, _empty_schedule(workflow))
     parameters.pop("checks")
     with pytest.raises(PoiseError):
         TaskBlueprint.parse(template).instantiate(
             parameters,
-            GoalTypeDefinition.parse(process).data,
+            GoalTypeDefinition.parse(workflow).data,
             [],
             _policy(),
         )
@@ -187,8 +187,8 @@ def test_development_template_does_not_default_missing_checks():
 
 @pytest.mark.parametrize("mutation", ["missing_stage", "extra_stage", "unknown_method"])
 def test_development_template_reuses_exact_task_schedule_validation(mutation):
-    process, _ = _documents()
-    checks = _empty_schedule(process)
+    workflow, _ = _documents()
+    checks = _empty_schedule(workflow)
     if mutation == "missing_stage":
         checks.pop("documentation")
     elif mutation == "extra_stage":
@@ -200,8 +200,8 @@ def test_development_template_reuses_exact_task_schedule_validation(mutation):
 
 
 def _instantiate_active_subjectless_observe() -> dict:
-    process, template = _documents()
-    parameters = _parameters(process, _empty_schedule(process))
+    workflow, template = _documents()
+    parameters = _parameters(workflow, _empty_schedule(workflow))
     parameters["evidence"]["baseline"]["arguments"] = [{
         "id": "ACTIVE_WITHOUT_SUBJECT",
         "kind": "logical",
@@ -210,7 +210,7 @@ def _instantiate_active_subjectless_observe() -> dict:
     }]
     return TaskBlueprint.parse(template).instantiate(
         parameters,
-        GoalTypeDefinition.parse(process).data,
+        GoalTypeDefinition.parse(workflow).data,
         [],
         _policy(),
     )
@@ -238,21 +238,21 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
     assert reference["methods"]["development"] == {}
     walkthrough = _load_walkthrough()
     catalogue = FileCatalogue(ROOT / "config/catalogue/settings.example.json")
-    process = GoalTypeDefinition.parse(json.loads(PROCESS_PATH.read_text())).data
+    workflow = GoalTypeDefinition.parse(json.loads(WORKFLOW_PATH.read_text())).data
     task = walkthrough["prepare_task"](
         catalogue,
         CatalogueCommands(catalogue, None, catalogue.raw["max_items"]),
-        {"development": process},
+        {"development": workflow},
         _policy(),
         "development",
         "REAL-CONSUMER",
         ROOT,
     )
     assert task["checks"] == walkthrough["_initial_checks"](
-        process,
+        workflow,
         task["methods"],
     )
-    expected_contracts = walkthrough["_stage_contracts"](process)
+    expected_contracts = walkthrough["_stage_contracts"](workflow)
     assert task["stage_contracts"] == expected_contracts
     assert any(
         contract["entry_requirements"] or contract["exit_requirements"]
@@ -264,7 +264,7 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
         for requirement_id in contract["entry_requirements"] + contract["exit_requirements"]
     }
     assert active == {
-        requirement["id"] for requirement in process["content_contract"]["requirements"]
+        requirement["id"] for requirement in workflow["content_contract"]["requirements"]
     }
     assert task["checks"]["baseline"] == ["BASELINE"]
     assert task["checks"]["test_implementation"] == ["TEST_RED"]
@@ -272,7 +272,7 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
 
 
 def test_canonical_guidance_distinguishes_initial_and_planned_checks():
-    catalogue = (ROOT / "docs/configuration/process-catalogue.md").read_text()
+    catalogue = (ROOT / "docs/configuration/workflow-catalogue.md").read_text()
     batch = (ROOT / "docs/workflows/batch-work.md").read_text()
     root_rules = (ROOT / "AGENTS.md").read_text()
     development_skill = (ROOT / ".agents/skills/poise-development/SKILL.md").read_text()

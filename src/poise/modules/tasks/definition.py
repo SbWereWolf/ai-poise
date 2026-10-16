@@ -1,7 +1,7 @@
 """One pure creation contract for standalone and sprint-published tasks."""
 from copy import deepcopy
 from dataclasses import replace
-from .contracts import stages_from_process, candidate_content_policy_from_metadata, evidence_plan_from_metadata
+from .contracts import stages_from_workflow, candidate_content_policy_from_metadata, evidence_plan_from_metadata
 from .domain import Task, TaskStageContracts
 from ..verification.domain import (
     CheckRegistry,
@@ -20,13 +20,13 @@ def path_identifier(value):
     return value
 
 
-def registry_inspection_stages(process):
+def registry_inspection_stages(workflow):
     mutable_stages = {
-        stage['id'] for stage in process['stages']
+        stage['id'] for stage in workflow['stages']
         if 'test_registry' in stage['sections']
     }
     return tuple(
-        stage['id'] for stage in process['stages']
+        stage['id'] for stage in workflow['stages']
         if (
             stage['handler'] == 'inspect'
             and stage['transitions']['changes_requested'] in mutable_stages
@@ -34,12 +34,12 @@ def registry_inspection_stages(process):
     )
 
 
-def has_executable_obligations_field(process):
-    """Whether this exact process schema requires the Task classification field."""
-    return bool(registry_inspection_stages(process))
+def has_executable_obligations_field(workflow):
+    """Whether this exact workflow schema requires the Task classification field."""
+    return bool(registry_inspection_stages(workflow))
 
 
-def creation_fields(process):
+def creation_fields(workflow):
     fields = {
         'id',
         'sprint_id',
@@ -56,13 +56,13 @@ def creation_fields(process):
         'stage_contracts',
         'decomposition',
     }
-    if has_executable_obligations_field(process):
+    if has_executable_obligations_field(workflow):
         fields.add('executable_obligations')
     return frozenset(fields)
 
 
-def executable_obligations(contract, process):
-    if not has_executable_obligations_field(process):
+def executable_obligations(contract, workflow):
+    if not has_executable_obligations_field(workflow):
         return ()
     return declared_executable_obligations(
         contract['executable_obligations'],
@@ -78,8 +78,8 @@ def obligation_catalog(contract):
     )
 
 
-def stored_executable_obligations(contract, process, registry_state):
-    if not registry_inspection_stages(process):
+def stored_executable_obligations(contract, workflow, registry_state):
+    if not registry_inspection_stages(workflow):
         return ()
     catalog = obligation_catalog(contract)
     if not isinstance(registry_state, dict) or 'executable_obligations' not in registry_state:
@@ -93,39 +93,39 @@ def stored_executable_obligations(contract, process, registry_state):
     )
 
 
-def validate_creation(contract, process, automatic_checks, decomposition_policy, *, current_registry=None):
+def validate_creation(contract, workflow, automatic_checks, decomposition_policy, *, current_registry=None):
     if isinstance(contract,dict) and 'method_inputs' not in contract:
         method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
         raise DomainError(
             f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
         )
     extra = {'planning'} if 'planning' in contract else set()
-    exact_keys(contract, creation_fields(process) | extra, 'task')
+    exact_keys(contract, creation_fields(workflow) | extra, 'task')
     if extra:
         from .planning import validate_planning
         validate_planning(contract['planning'])
     path_identifier(contract['id'])
     if contract['sprint_id'] is not None:path_identifier(contract['sprint_id'])
-    GoalTypeDefinition.parse(process)
-    if process['goal_type']!=contract['goal_type']:
-        raise DomainError('Контракт задачи не соответствует process snapshot')
+    GoalTypeDefinition.parse(workflow)
+    if workflow['goal_type']!=contract['goal_type']:
+        raise DomainError('Контракт задачи не соответствует workflow snapshot')
     if not isinstance(contract['goal'],str) or not contract['goal'].strip():
         raise DomainError('Цель задачи обязательна')
     for field in ('requirements','definition_of_done'):
         v=contract[field]
         if not isinstance(v,list) or not v or any(not isinstance(s,str) or not s.strip() for s in v) or len(v)!=len(set(v)):
             raise DomainError(f'{field}: требуются непустые уникальные строки')
-    stages=tuple(s['id'] for s in process['stages'])
+    stages=tuple(s['id'] for s in workflow['stages'])
     from .decomposition import FocusedDecomposition
     FocusedDecomposition.require_valid(contract['decomposition'], stages, decomposition_policy)
-    route = RouteDefinition.from_process(process)
+    route = RouteDefinition.from_workflow(workflow)
     registry=current_registry if current_registry is not None else CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
-        executable_obligations(contract, process),
-        registry_inspection_stages(process),
+        executable_obligations(contract, workflow),
+        registry_inspection_stages(workflow),
         obligation_catalog(contract),
     )
     from .creation_preflight import CreationPreflight
-    preflight = CreationPreflight.parse(contract,process)
+    preflight = CreationPreflight.parse(contract,workflow)
     registry.validate_route(route.with_stage_scopes(contract['stage_contracts']))
     for entry in automatic_checks:
         for stage in stages:
@@ -141,7 +141,7 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy,
             or type(r['minimum']) is not int or type(r['maximum']) is not int
             or not 0<=r['minimum']<=r['maximum']):
             raise DomainError('Некорректное требование артефактов')
-    metadata={'contract':deepcopy(contract),'process':deepcopy(process)}
+    metadata={'contract':deepcopy(contract),'workflow':deepcopy(workflow)}
     planned = build_task(metadata,None,current_registry=current_registry)  # Pure constructors, no I/O.
     preflight.validate_immutable_artifact_writes(
         planned.route,
@@ -152,15 +152,15 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy,
 
 
 def build_task(metadata, actor, *, current_registry=None):
-    stages=stages_from_process(metadata['process'])
-    policy=candidate_content_policy_from_metadata(metadata,{'goal':metadata['process']['content_contract'],
+    stages=stages_from_workflow(metadata['workflow'])
+    policy=candidate_content_policy_from_metadata(metadata,{'goal':metadata['workflow']['content_contract'],
                                                             'task':metadata['contract']['content_contract']})
-    route = RouteDefinition.from_process(metadata['process'])
+    route = RouteDefinition.from_workflow(metadata['workflow'])
     registry=current_registry if current_registry is not None else CheckRegistry.from_task(
         metadata['contract']['methods'], metadata['contract']['checks'], tuple(s.stage_id for s in stages)
     ).with_executable_obligations(
-        executable_obligations(metadata['contract'], metadata['process']),
-        registry_inspection_stages(metadata['process']),
+        executable_obligations(metadata['contract'], metadata['workflow']),
+        registry_inspection_stages(metadata['workflow']),
         obligation_catalog(metadata['contract']),
     )
     policy = replace(policy, method_ids=registry.method_ids)

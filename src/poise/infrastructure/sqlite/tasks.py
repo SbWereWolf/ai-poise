@@ -12,7 +12,7 @@ from ...modules.tasks.domain import (
     TaskState,
     TaskStatus,
 )
-from ...modules.tasks.contracts import stages_from_process, stored_content_policy_from_metadata, evidence_plan_from_metadata
+from ...modules.tasks.contracts import stages_from_workflow, stored_content_policy_from_metadata, evidence_plan_from_metadata
 from ...modules.content.domain import ContentState, SectionValue
 from ...modules.verification.domain import CheckRegistry
 from ...modules.content_requirements.domain import ContentSnapshot, TraceValue
@@ -62,67 +62,6 @@ class SqliteTaskRepository:
     """The only writer of Task aggregate, submitted content and domain events."""
     def __init__(self, connection):
         self.db = connection
-
-    def migrated_start_context(self, task_id: str) -> dict | None:
-        """Correlate the unchanged candidate with one completed original intent.
-
-        Read in the caller's snapshot/UoW. Historical completion is not a claim,
-        an execution reservation, or permission to ignore pending outcomes.
-        """
-        from ..stage_criteria_history import identity
-
-        row = self.db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
-        if row is None:
-            return None
-        metadata = json.loads(row['metadata'])
-        book = StageCriteriaBook.from_dict(metadata['stage_criteria']).data
-        receipts = {value['source']['migration_receipt'] for value in book['stages'].values()
-                    if value['source']['kind'] == 'historical'}
-        if len(receipts) != 1:
-            return None
-        receipt = receipts.pop()
-        records = [json.loads(value[0]) for value in self.db.execute(
-            'SELECT data FROM journal WHERE event=? ORDER BY seq', ('task_stage_criteria_migration',))]
-        intents = [value for value in records
-                   if value['phase'] == 'intent' and value['receipt'] == receipt]
-        if len(intents) != 1:
-            return None
-        intent = intents[0]
-        if receipt != identity({'request_digest': intent['request_digest'],
-                                'source_database': intent['baseline']}):
-            return None
-        completions = [value for value in records if value['phase'] == 'completed'
-                       and value['request_id'] == intent['request_id']
-                       and value['request_digest'] == intent['request_digest']]
-        if len(completions) != 1:
-            return None
-        result = completions[0]['result']
-        if (result['status'] != 'migrated' or result['receipt'] != receipt
-                or result['request_id'] != intent['request_id']
-                or result['resources'] != [value['summary'] for value in intent['resources']]):
-            return None
-        matches = [value for value in intent['resources']
-                   if value['mapping']['kind'] == 'executable_task'
-                   and value['mapping']['task_id'] == task_id]
-        if len(matches) != 1:
-            return None
-        item = matches[0]
-        source, summary, candidate = item['source'], item['summary'], item['candidate']
-        original = json.loads(source['metadata'])
-        if (source['id'] != task_id or source['status'] != 'available'
-                or source['version'] != item['mapping']['expected_version']
-                or summary != {'kind': 'executable_task', 'task_id': task_id,
-                    'version': source['version'],
-                    'old_digest': identity({'process': original['process'], 'contract': original['contract']}),
-                    'new_digest': identity({'process': candidate['process'], 'contract': candidate['contract']})}
-                or metadata != candidate):
-            return None
-        for stage in original['contract']['stage_contracts']:
-            expected = {'kind': 'historical', 'original_digest': identity(stage),
-                        'migration_receipt': receipt}
-            if book['stages'][stage['stage_id']]['source'] != expected:
-                return None
-        return {'request_id': intent['request_id'], 'receipt': receipt, 'resource': summary}
 
     def pending_artifact_consumers(self, source_id):
         rows = self.db.execute("SELECT t.id,w.data FROM tasks t JOIN task_workflows w ON w.task_id=t.id WHERE t.id!=? AND t.status NOT IN ('completed','cancelled') AND json_extract(w.data,'$.duplicate_reuse') IS NOT NULL", (source_id,))
@@ -288,10 +227,10 @@ class SqliteTaskRepository:
             if not isinstance(previous.get('contract'), dict):
                 raise PoiseError('Restarted Task has no frozen registry contract context')
             metadata['contract'] = deepcopy(previous['contract'])
-            context_key = 'registry_process' if 'newborn' in previous else 'process'
+            context_key = 'registry_workflow' if 'newborn' in previous else 'workflow'
             if not isinstance(previous.get(context_key), dict):
-                raise PoiseError('Restarted Task has no frozen registry process context')
-            metadata['registry_process'] = deepcopy(previous[context_key])
+                raise PoiseError('Restarted Task has no frozen registry workflow context')
+            metadata['registry_workflow'] = deepcopy(previous[context_key])
         return metadata
 
     def is_newborn(self, task_id):
@@ -586,7 +525,7 @@ class SqliteTaskRepository:
 
     def newborn_creation(self, task_id: str):
         newborn = self.load_newborn(task_id)
-        if newborn.process is None:
+        if newborn.workflow is None:
             raise PoiseError('Newborn Task has no selected goal_type')
         return newborn, {
             'id':task_id,
@@ -634,7 +573,7 @@ class SqliteTaskRepository:
             "config_hash": metadata["config_hash"],
             "contract": deepcopy(metadata.get("contract")),
             "creation_request": deepcopy(metadata.get("creation_request")),
-            "process": deepcopy(metadata.get("process")),
+            "workflow": deepcopy(metadata.get("workflow")),
             "requirements_agreement": deepcopy(
                 metadata.get("requirements_agreement")
             ),
@@ -914,7 +853,7 @@ class SqliteTaskRepository:
             if "stage_contracts" not in metadata["contract"]
             else TaskStageContracts.parse(
                 metadata["contract"]["stage_contracts"],
-                RouteDefinition.from_process(metadata["process"]),
+                RouteDefinition.from_workflow(metadata["workflow"]),
                 policy,
             )
         )
@@ -925,8 +864,8 @@ class SqliteTaskRepository:
         proof_row = self.db.execute("SELECT data FROM task_proofs WHERE task_id=?",(task_id,)).fetchone()
         if proof_row is None: raise PoiseError("Нет обязательного evidence state")
         proof = json.loads(proof_row[0])
-        return Task(state, stages_from_process(metadata["process"]), policy, snapshot, registry,
-                    RouteDefinition.from_process(metadata["process"]),
+        return Task(state, stages_from_workflow(metadata["workflow"]), policy, snapshot, registry,
+                    RouteDefinition.from_workflow(metadata["workflow"]),
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts,
                     None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]),
@@ -1025,10 +964,10 @@ class SqliteTaskRepository:
             'SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid', (task_id,)
         )]
         return CheckRegistry.from_items(
-            items, tuple(stage['id'] for stage in metadata['process']['stages'])
+            items, tuple(stage['id'] for stage in metadata['workflow']['stages'])
         ).with_executable_obligations(
-            stored_executable_obligations(metadata['contract'], metadata['process'], workflow['registry']),
-            registry_inspection_stages(metadata['process']),
+            stored_executable_obligations(metadata['contract'], metadata['workflow'], workflow['registry']),
+            registry_inspection_stages(metadata['workflow']),
             obligation_catalog(metadata['contract']),
         ).restore_state(workflow['registry'])
 
@@ -1053,13 +992,13 @@ class SqliteTaskRepository:
         if row is None:
             raise PoiseError(f'Task not found: {task_id}')
         metadata = json.loads(row[0])
-        if not isinstance(metadata.get('registry_process'), dict):
-            raise PoiseError('Restarted Task has no frozen registry process context')
+        if not isinstance(metadata.get('registry_workflow'), dict):
+            raise PoiseError('Restarted Task has no frozen registry workflow context')
         workflow = self.db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()
         if workflow is None:
             raise PoiseError('Restarted Task has no current verification registry')
         return self.load_check_registry(
-            task_id, {**metadata, 'process': metadata['registry_process']}, json.loads(workflow[0]),
+            task_id, {**metadata, 'workflow': metadata['registry_workflow']}, json.loads(workflow[0]),
         )
 
     def start_candidates(self) -> list[dict]:

@@ -1,0 +1,35 @@
+{
+  "untyped": {
+    "sprint_id": null,
+    "goal": "Сохранить исходную постановку до выбора процесса.",
+    "config_hash": "historical-config",
+    "newborn": {
+      "draft": {
+        "goal": "Сохранить исходную постановку до выбора процесса.",
+        "requirements": ["Уже известное требование постановщика."],
+        "definition_of_done": []
+      },
+      "ready": false
+    }
+  },
+  "typed_partial": {
+    "sprint_id": null,
+    "goal": "Сохранить черновик с выбранным процессом.",
+    "config_hash": "historical-config",
+    "newborn": {
+      "draft": {
+        "goal": "Сохранить черновик с выбранным процессом.",
+        "goal_type": "development",
+        "requirements": ["Известное требование без подготовки будущих этапов."],
+        "definition_of_done": []
+      },
+      "ready": false
+    }
+  },
+  "expected_stages": [
+    {"stage_id": "tests", "purpose": "design", "criteria_authority": {"propose": ["implementation"], "decide": []}},
+    {"stage_id": "test_review", "purpose": "observation", "criteria_authority": {"propose": [], "decide": ["implementation"]}},
+    {"stage_id": "implementation", "purpose": "execution", "criteria_authority": {"propose": [], "decide": []}},
+    {"stage_id": "code_review", "purpose": "observation", "criteria_authority": {"propose": [], "decide": []}}
+  ]
+}

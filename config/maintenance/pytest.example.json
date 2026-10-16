@@ -3,7 +3,7 @@
   "parameters": {
     "python": {
       "type": "string",
-      "default": "/srv/poise/.venv/bin/python"
+      "default": "${PYTHON_EXECUTABLE}"
     },
     "pytest_version": {
       "type": "string",

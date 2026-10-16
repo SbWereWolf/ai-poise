@@ -13,7 +13,7 @@ def setup_case(project):
     blueprint={
         'schema':'project-blueprint-1', 'version':'1',
         'config':config,
-        'process_sources':{'development':{'path':'config/processes/development.json','digest':digest(project['process'])}},
+        'workflow_sources':{'development':{'path':'config/workflows/development.json','digest':digest(project['workflow'])}},
         'questions':[
             {'id':'project','path':['project'],'type':'text','prompt':'Project ID'},
             {'id':'repository','path':['git','repository'],'type':'text','prompt':'Repository'},
@@ -32,7 +32,7 @@ def setup_case(project):
     write_json(root/'state/project-registry.json',{
         'schema':'configured-project-registry-1','projects':{}})
     request={'schema':'project-setup-1','request_id':'setup-1','destination':'configured/pilot',
-        'template':{'id':'selected','version':'1','digest':digest(blueprint)},
+        'template':{'id':'selected'},
         'edits':[{'path':['project'],'value':'pilot'},
                  {'path':['git','repository'],'value':str(project['app'])},
                  {'path':['git','push_required'],'value':False}],
@@ -45,17 +45,17 @@ def bootstrap_fixture_resources(settings_path, config_path):
     from poise.common import load_config
     from poise.composition import project_config_tools, project_tools
     settings_path, config_path = Path(settings_path), Path(config_path)
-    root, config, processes = load_config(config_path)
+    root, config, workflows = load_config(config_path)
     assert 'runtime_resources' not in config
     registry = project_tools(settings_path).list()
     assert any(item['project'] == config['project'] and item['config_path'] == str(config_path)
                for item in registry['projects'])
-    before_processes = {goal: (root / relative).read_bytes()
-                        for goal, relative in config['processes'].items()}
+    before_workflows = {goal: (root / relative).read_bytes()
+                        for goal, relative in config['workflows'].items()}
     result = project_config_tools(settings_path).apply({
         'schema': 'project-runtime-resources-bootstrap-1',
         'request_id': 'fixture-runtime-resources', 'config_path': str(config_path),
-        'expected_revision': digest({'config': config, 'processes': processes}),
+        'expected_revision': digest({'config': config, 'workflows': workflows}),
         'runtime_resources': {'project_setup': str(settings_path), 'hooks': []},
         'receipt_path': 'operations/fixture-runtime-resources.json',
     })
@@ -64,6 +64,56 @@ def bootstrap_fixture_resources(settings_path, config_path):
     assert current == {**config, 'runtime_resources': {
         'project_setup': str(settings_path), 'hooks': [],
     }}
-    assert all((root / config['processes'][goal]).read_bytes() == content
-               for goal, content in before_processes.items())
+    assert all((root / config['workflows'][goal]).read_bytes() == content
+               for goal, content in before_workflows.items())
     return current
+
+
+def fill_markers(value, replacements):
+    """Explicit fixture input filling, not a production template renderer."""
+    if isinstance(value, dict):
+        return {key: fill_markers(item, replacements) for key, item in value.items()}
+    if isinstance(value, list):
+        return [fill_markers(item, replacements) for item in value]
+    if isinstance(value, str):
+        for key, replacement in replacements.items():
+            value = value.replace('${' + key + '}', str(replacement))
+    return value
+
+
+def shipped_setup(tools):
+    """Mount the shipped config tree at an explicit test-owned setup root."""
+    import shutil
+    source = Path(__file__).resolve().parents[2]
+    shutil.copytree(source / 'config', tools / 'config')
+    settings = json.loads((tools / 'config/project-setup.example.json').read_text())
+    settings.update(root=str(tools), registry='config/project-registry.json', lock='setup.lock')
+    for entry in settings['templates'].values():
+        entry['path'] = entry['path'].removeprefix('app/')
+        path = tools / entry['path']
+        blueprint = json.loads(path.read_text())
+        for item in blueprint['workflow_sources'].values():
+            item['path'] = item['path'].removeprefix('app/')
+        write_json(path, blueprint)
+    write_json(tools / 'config/project-registry.json', {'schema': 'configured-project-registry-1', 'projects': {}})
+    return write_json(tools / 'config/project-setup.json', settings)
+
+
+def shipped_edits(blueprint, *, tools, project, repository, data, trees, base='main'):
+    config = fill_markers(blueprint['config'], {
+        'PROJECT_ID': project, 'POISE_SOURCE_ROOT': tools,
+        'PROJECT_CONFIG_ROOT': tools / 'projects' / project / 'config',
+        'PROJECT_DATA_ROOT': data, 'REPOSITORY_ROOT': repository,
+        'COMMIT_AUTHOR_NAME': 'Fixture', 'COMMIT_AUTHOR_EMAIL': 'fixture@example.invalid',
+    })
+    config['paths']['worktrees'] = str(trees)
+    config['git'].update(base_ref=base, push_required=False)
+    config['runtime_resources'] = {'project_setup': str(tools / 'config/project-setup.json'), 'hooks': []}
+    edits = []
+    for question in blueprint['questions']:
+        value = config
+        for key in question['path']:
+            value = value[key]
+        edits.append({'path': question['path'], 'value': value})
+    edits.append({'path': ['runtime_resources', 'hooks'], 'value': []})
+    return edits

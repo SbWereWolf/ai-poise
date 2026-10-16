@@ -45,3 +45,11 @@ dist/
 /apps/requirements/config/requirements.json
 /apps/sequencing/config/sequencing.json
 /apps/stride-uat/config/uat.json
+
+# Operator-owned working maintenance settings; commit populated examples only.
+/config/bootstrap.json
+/config/environment-maintenance.json
+/operator/profile/
+
+# Working catalogue editor settings; retain its sanitized example.
+/config/catalogue/editor.json

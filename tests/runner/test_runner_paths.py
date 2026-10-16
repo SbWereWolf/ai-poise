@@ -7,21 +7,21 @@ import pytest
 from conftest import write_json, fill, git
 from conftest import Poise
 from poise.common import PoiseError
-from .helpers import process, inspect, finding, resolution, decision
+from .helpers import workflow, inspect, finding, resolution, decision
 
 
 def setup_project(project, goal):
     cfg=project["cfg"]; cfg["schema"]="ddd-accounting-12"
     cfg["automatic_checks"]=[]
-    cfg["processes"]={goal:f"config/processes/{goal}.json"}
-    proc=process(goal)
+    cfg["workflows"]={goal:f"config/workflows/{goal}.json"}
+    proc=workflow(goal)
     for s in proc["stages"]:
         # This scenario tests feedback, not separation of independent actors.
         s["role"] = "executor"
         if not s["read_only"]: s["allowed_paths"]=["src/**"] if goal=="development" else ["docs/**"]
     # Deliberately scramble physical order. Entry and edges remain explicit.
     proc["stages"]=[proc["stages"][2],proc["stages"][1],proc["stages"][0],proc["stages"][3]]
-    write_json(project["root"]/f"config/processes/{goal}.json",proc)
+    write_json(project["root"]/f"config/workflows/{goal}.json",proc)
     write_json(project["config_path"],cfg)
     contract=project["task"];contract["goal_type"]=goal
     probe = ("from src.double import double; assert double(2)==4; print('CHECK_OK')" if goal=="development"

@@ -242,7 +242,7 @@ class WorkResources:
 
     def packet(self,task):
         if task is None:return None
-        stage=task['process']['stages'][task['stage_index']]['id']
+        stage=task['workflow']['stages'][task['stage_index']]['id']
         with self.runtime.store.transaction() as db:
             return SqliteWorkPacketRepository(db).current(
                 task['id'],stage,task['iteration'],

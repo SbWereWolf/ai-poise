@@ -133,6 +133,12 @@ limits honestly.
 
 ## Start and finish work
 
+Use the session launcher supplied in the current native hook context, including
+after fork, resume, clear and compaction. Its delivery does not set AI_POISE_WORK
+and does not prove Task readiness. A subject-runtime warning does not invalidate
+the delivered entry; ordinary work still validates its full contract. Follow
+[session entry delivery](docs/configuration/runtime-hooks.md#доставка-launcher-при-старте).
+
 Work from this AI poise repository and explicitly select the configured project. Target codebases have their own
 applicable `AGENTS.md` files; read those before working on them. Use the [AI poise skill](.agents/skills/poise/SKILL.md)
 for task work and the [development skill](.agents/skills/poise-development/SKILL.md) when changing AI poise itself. The
@@ -692,6 +698,16 @@ Before recording Tasks or relocating installation state, read
 Use the selected operator installation; do not cancel a Task to repair its contract
 or delete a hook registry to compensate for an unsupported relocation.
 
+Keep ordinary project work running during isolated copy preparation and rehearsal.
+For live cutover, exclude only affected writers and reconcile all later source and
+destination effects by provenance while preserving newer and complementary work.
+Verify readers, writers and late effects before reopening; apply updates after
+switching and retire old storage only after separate acceptance. Preserve native
+ownership/DEAD gates and terminal members of continuing Sprints. Follow
+[availability and latest-write preservation](docs/configuration/wsl-local-delivery.md#работа-во-время-подготовки-переноса).
+Use public owners or an explicitly authorized audited manual route; rehearsal
+does not prove native lifecycle completion.
+
 
 ## Harness failure and manual bypass
 
@@ -731,3 +747,12 @@ restore validates readiness, while authorized work checks the current stage on c
 Preserve both full proof configuration sets and system commit IDs as provenance, without rollback.
 Authenticated historical omissions never excuse missing current material. Follow [recovery](docs/governance/development-rules.md#переносимое-состояние-задачи)
 and [proof configurations](docs/workflows/evidence.md#конфигурационные-наборы-и-повторные-проверки).
+
+For native entry project selection, preserve the invoking binding and select the
+exact project explicitly. Follow the [selection contract](docs/configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher)
+and [workflow skill](.agents/skills/poise/SKILL.md).
+
+Installation-wide setup locks must not serialize runtime work, project creation,
+configuration publication or state relocation. Keep short SQLite transactions and
+resource-owned write boundaries; operators perform configuration and relocation
+sequentially. See [relocation admission and order](docs/configuration/project-setup.md#допуск-и-порядок-переноса).

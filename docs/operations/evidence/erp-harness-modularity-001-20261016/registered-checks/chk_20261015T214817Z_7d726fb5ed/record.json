@@ -1,0 +1,92 @@
+{
+  "artifacts": {
+    "evidence_bytes": 0,
+    "evidence_files": 0,
+    "evidence_manifest_path": null,
+    "evidence_manifest_sha256": null,
+    "evidence_root": null,
+    "evidence_status": "not_declared",
+    "ledger_path": "ai-assistant/checks/data/ledger.sqlite3",
+    "log_bytes": 364,
+    "log_path": ".runtime/checks/chk_20261015T214817Z_7d726fb5ed/result/command.log",
+    "log_sha256": null,
+    "progress_path": null,
+    "record_path": ".runtime/checks/chk_20261015T214817Z_7d726fb5ed/result/record.json"
+  },
+  "calibration": {
+    "automatic": true,
+    "command": null,
+    "observed_progress_gap_seconds": null,
+    "observed_success_seconds": 0.903,
+    "previous_observed_max_progress_gap_seconds": 0.0,
+    "previous_observed_max_success_seconds": 0.803,
+    "recommended_execution_timeout_seconds": 1,
+    "recommended_stall_timeout_seconds": null,
+    "required": false,
+    "status": "recorded"
+  },
+  "check_id": "chk_20261015T214817Z_7d726fb5ed",
+  "dependencies": {
+    "missing_environment": [],
+    "missing_executables": [],
+    "missing_files": []
+  },
+  "duration_ms": 903,
+  "evidence_scope": null,
+  "exit_code": 0,
+  "finished_at": "2026-10-15T21:48:19Z",
+  "parser": {
+    "confirmed": true,
+    "counts": {},
+    "failures": [],
+    "name": "generic"
+  },
+  "profile": {
+    "argv": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/tests/checks/test-packages.py"
+    ],
+    "command_id": "test-package-contracts",
+    "cwd": ".",
+    "evidence_id": null,
+    "parser": "generic",
+    "runtime_class": "posix-host",
+    "workload_class": "default"
+  },
+  "progress": {
+    "age_seconds": null,
+    "anomaly_count": 0,
+    "event_count": 0,
+    "last_event_at": null,
+    "last_output_at": "2026-10-15T21:48:18Z",
+    "last_value": null,
+    "max_gap_seconds": 0.0,
+    "observability": "unavailable",
+    "output_age_seconds": 0.108,
+    "output_bytes": 364
+  },
+  "runtime": {
+    "pid": 3062821,
+    "platform": "linux",
+    "platform_release": "6.18.40.1-microsoft-standard-WSL2",
+    "python": "3.12.3"
+  },
+  "schema_version": 1,
+  "started_at": "2026-10-15T21:48:18Z",
+  "status": "passed",
+  "summary": "test package contracts passed: 15",
+  "termination": null,
+  "timeout": {
+    "configured_seconds": 1,
+    "effective_seconds": 30,
+    "evidence_check_id": "chk_20261015T214749Z_251d624c02",
+    "override_reason": "Terminal one-second timeout snapshot shows useful progress: test-packages.py already spawned run_test_package.py --describe for the named host-contract integration package, child state R. No loop/deadlock signal; source fixtures unchanged. One diagnostic run allows ordinary Python subprocess startup and complete contract assertions.",
+    "override_seconds": 30
+  },
+  "verified_success": true,
+  "workspace": {
+    "head": "0bc51569923afa98382f93a8b69a2470b56ca1f6",
+    "status_sha256": "fd48290836317fd3ff4b40a3005ec6ff3e4ec0b0f951a4b549231fe93251333e"
+  }
+}

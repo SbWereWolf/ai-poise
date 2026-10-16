@@ -1,0 +1,48 @@
+{
+  "requirements": ["double(n) возвращает n*2"],
+  "snapshot": {
+    "requirements": {
+      "FIXTURE-APPLICATION": {
+        "id": "FIXTURE-APPLICATION", "level": "application", "status": "current",
+        "text": "Fixture Tasks declare their agreed Requirements context."
+      },
+      "FIXTURE-SYSTEM": {
+        "id": "FIXTURE-SYSTEM", "level": "system", "status": "current",
+        "text": "The fixture preserves an explicit Requirements chain."
+      }
+    },
+    "links": [{"system": "FIXTURE-SYSTEM", "application": "FIXTURE-APPLICATION"}],
+    "task_requirements": [{
+      "text": "double(n) возвращает n*2", "applications": ["FIXTURE-APPLICATION"]
+    }]
+  },
+  "approval": {
+    "accepted": true,
+    "chains": [{
+      "task_text": "double(n) возвращает n*2",
+      "applications": [{
+        "id": "FIXTURE-APPLICATION", "level": "application", "status": "current",
+        "text": "Fixture Tasks declare their agreed Requirements context."
+      }],
+      "systems": [{
+        "id": "FIXTURE-SYSTEM", "level": "system", "status": "current",
+        "text": "The fixture preserves an explicit Requirements chain."
+      }]
+    }]
+  },
+  "invalid_approvals": [
+    {"id": "false", "value": false},
+    {"id": "zero", "value": 0},
+    {"id": "blank", "value": ""},
+    {"id": "string", "value": "accepted"},
+    {"id": "array", "value": []},
+    {"id": "empty", "value": {}},
+    {"id": "missing-chains", "remove": "chains"},
+    {"id": "missing-accepted", "remove": "accepted"},
+    {"id": "extra-key", "patch": {"actor": "user"}},
+    {"id": "wrong-type", "patch": {"accepted": 1}},
+    {"id": "declined", "patch": {"accepted": false}},
+    {"id": "mismatched-chains", "patch": {"chains": []}},
+    {"id": "wrong-chains-type", "patch": {"chains": {}}}
+  ]
+}

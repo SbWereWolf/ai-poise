@@ -66,10 +66,10 @@ class FocusedDecomposition:
         expected = ()
         try:
             if not isinstance(stages, (list, tuple)) or not stages:
-                raise DomainError("process stages: requires a non-empty list of stage IDs")
-            expected = _unique_strings(list(stages), "process stages")
+                raise DomainError("workflow stages: requires a non-empty list of stage IDs")
+            expected = _unique_strings(list(stages), "workflow stages")
         except DomainError as exc:
-            issues.append(_issue("process.stages", "process.stages", str(exc)))
+            issues.append(_issue("workflow.stages", "workflow.stages", str(exc)))
         if not isinstance(declaration, dict):
             issues.append(_issue("decomposition.fields", "decomposition", "decomposition: ожидается объект"))
             return cls("", (), None), issues

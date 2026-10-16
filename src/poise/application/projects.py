@@ -9,11 +9,15 @@ def validate_request(request):
     if request['schema']!='project-setup-1':raise DomainError('Unsupported project request schema; no migration')
     for key in ('request_id','destination'):
         if not isinstance(request[key],str) or not request[key].strip():raise DomainError(f'Explicit {key} required')
-    exact_keys(request['template'],{'id','version','digest'},'project template selection')
+    exact_keys(request['template'],{'id'},'project template selection')
     if any(not isinstance(v,str) or not v for v in request['template'].values()):
         raise DomainError('Template selection must be explicit')
     if type(request['probe_repository']) is not bool:raise DomainError('Explicit probe_repository required')
     if not isinstance(request['edits'],list):raise DomainError('Expected edit batch')
+    from ..modules.projects.domain import path_key
+    for edit in request['edits']:
+        exact_keys(edit, {'path', 'value'}, 'project edit')
+        path_key(edit['path'])
 
 
 class ProjectCommands:

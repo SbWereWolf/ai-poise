@@ -1,0 +1,329 @@
+{
+  "errors": [],
+  "edges": [
+    {
+      "source": ".agents/skills/poise/SKILL.md",
+      "line": 216,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "recovery-publication-owner-001--исторические-процессы-блокируют-чтение",
+      "context": "[open",
+      "kind": "markdown"
+    },
+    {
+      "source": "AGENTS.md",
+      "line": 103,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "Turn every accepted agreement into product documentation. Maintain the [known-bugs",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/README.md",
+      "line": 83,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "",
+      "context": "- [Известные баги и ограничения](operations/known-bugs.md) — актуальные неисправленные замечания;",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/architecture/cache-evidence-completeness-design.md",
+      "line": 119,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "rv2-02--прерванная-запись-индекса-кэша",
+      "context": "[реестре известных багов](../operations/known-bugs.md#rv2-02--прерванная-запись-индекса-кэша)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/configuration/test-package-cache.md",
+      "line": 103,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "rv2-02--прерванная-запись-индекса-кэша",
+      "context": "неполный JSON. Это [известное ограничение RV2-02](../operations/known-bugs.md#rv2-02--прерванная-запись-индекса-кэша),",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/governance/development-rules.md",
+      "line": 560,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "22. Подтверждённые неисправленные замечания и принятые ограничения поддерживаются в [реестре известных",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/governance/development-rules.md",
+      "line": 961,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "в [известных багах harness](../operations/known-bugs.md#ведение-реестра). Неизвестная",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/README.md",
+      "line": 12,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "",
+      "context": "- [known-bugs.md](known-bugs.md)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/ddd-baseline-analysis.md",
+      "line": 525,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "[Реестр известных отказов](known-bugs.md#ведение-реестра) содержит только оставшиеся",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/README.md",
+      "line": 8,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "- [ERP-HARNESS-MODULARITY-001: прерванная проверка и устаревшие передачи](erp-harness-modularity-001-20261016/README.md).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 33,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/archive-manifest.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/archive-manifest.json",
+      "fragment": "",
+      "context": "[Манифест](archive-manifest.json) содержит исходные пути и SHA-256 файлов.",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 34,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/preimage.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/preimage.json",
+      "fragment": "",
+      "context": "[Исходное состояние](preimage.json) сохраняет точные строки задачи,",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 35,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/original-execution.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/original-execution.json",
+      "fragment": "",
+      "context": "исполнения и передач, а также события. [Исходный JSON исполнения](original-execution.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 48,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-plan.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-plan.json",
+      "fragment": "",
+      "context": "[Точный план](operator-plan.json) и [операторский скрипт](operator-recovery.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 48,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-recovery.py",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-recovery.py",
+      "fragment": "",
+      "context": "[Точный план](operator-plan.json) и [операторский скрипт](operator-recovery.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 78,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-applied.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-applied.json",
+      "fragment": "",
+      "context": "Применение подтверждено [операторским результатом](operator-applied.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 79,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-precommit.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-precommit.json",
+      "fragment": "",
+      "context": "и [контролем перед фиксацией](operator-precommit.json). Записано операторское",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 93,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "",
+      "context": "существующий реестр [известных багов](../../known-bugs.md), сохранив его",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 104,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "fragment": "",
+      "context": "[Уточнённый второй план](recurrence-dc0fc214/operator-plan-v2.json), исходный JSON,",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-merge-residuals-001-retrospective-20261016/README.md",
+      "line": 35,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "[ERP-HARNESS-MODULARITY-001](../erp-harness-modularity-001-20261016/README.md)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 20,
+      "target": "docs/governance/development-rules.md",
+      "target_file": "docs/governance/development-rules.md",
+      "fragment": "сбой-harness-и-ручной-обход",
+      "context": "[порядку восстановления](../governance/development-rules.md#сбой-harness-и-ручной-обход).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 25,
+      "target": "docs/workflows/sprints.md",
+      "target_file": "docs/workflows/sprints.md",
+      "fragment": "замкнутость-зависимостей-и-локальные-дубли",
+      "context": "[правила связности и локальных",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 45,
+      "target": "docs/operations/evidence/erp-merge-residuals-001-retrospective-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-merge-residuals-001-retrospective-20261016/README.md",
+      "fragment": "",
+      "context": "первичный снимок не восстановлен. [Сохранившаяся native-история и ограничения",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 89,
+      "target": "docs/task-workflow-snapshot-migration.md",
+      "target_file": "docs/task-workflow-snapshot-migration.md",
+      "fragment": "выбор-владельца-публикации",
+      "context": "[выбор действующего владельца](../task-workflow-snapshot-migration.md#выбор-владельца-публикации)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 90,
+      "target": "docs/task-workflow-snapshot-migration.md",
+      "target_file": "docs/task-workflow-snapshot-migration.md",
+      "fragment": "публикация-атомарность-и-восстановление",
+      "context": "и [проверку источника и",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 102,
+      "target": "docs/task-workflow-snapshot-migration.md",
+      "target_file": "docs/task-workflow-snapshot-migration.md",
+      "fragment": "постановки-без-договоров-этапов",
+      "context": "через [явный вид ресурса](../task-workflow-snapshot-migration.md#постановки-без-договоров-этапов).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 107,
+      "target": "docs/configuration/project-setup.md",
+      "target_file": "docs/configuration/project-setup.md",
+      "fragment": "подтверждение-проверки-git",
+      "context": "[две формы результата проверки](../configuration/project-setup.md#подтверждение-проверки-git)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 169,
+      "target": "src/poise/infrastructure/test_package_cache.py",
+      "target_file": "src/poise/infrastructure/test_package_cache.py",
+      "fragment": "",
+      "context": "В [test_package_cache.py](../../src/poise/infrastructure/test_package_cache.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 179,
+      "target": "docs/configuration/test-package-cache.md",
+      "target_file": "docs/configuration/test-package-cache.md",
+      "fragment": "монопольная-запись-через-владение",
+      "context": "[текущий контракт кэша](../configuration/test-package-cache.md#монопольная-запись-через-владение).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 188,
+      "target": "src/poise/infrastructure/project_config.py",
+      "target_file": "src/poise/infrastructure/project_config.py",
+      "fragment": "",
+      "context": "В [project_config.py](../../src/poise/infrastructure/project_config.py) изменение процесса",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 204,
+      "target": "src/poise/infrastructure/session_establishment.py",
+      "target_file": "src/poise/infrastructure/session_establishment.py",
+      "fragment": "",
+      "context": "[session_establishment.py](../../src/poise/infrastructure/session_establishment.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 225,
+      "target": "docs/workflows/sprints.md",
+      "target_file": "docs/workflows/sprints.md",
+      "fragment": "замкнутость-зависимостей-и-локальные-дубли",
+      "context": "описана в [Sprint workflow](../workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 318,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "точный план сохранены в [долговременном журнале инцидента](evidence/erp-harness-modularity-001-20261016/README.md).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 326,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "fragment": "",
+      "context": "блокировки. [Второй снимок и уточнённый план](evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/workflows/pilot-task-preflight.md",
+      "line": 44,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "[Реестр известных багов](../operations/known-bugs.md#ведение-реестра) допускает малую очевидную",
+      "kind": "markdown"
+    }
+  ],
+  "skipped": [],
+  "scanned_documents": 2214,
+  "changed_paths": [
+    "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+    "docs/operations/known-bugs.md"
+  ],
+  "read_only": true,
+  "network_access": false,
+  "status": "valid"
+}

@@ -134,7 +134,7 @@ class AccountingQueries:
             counted={q['finding_id'] for q in quality if q['task_id']==tid}
             delivered=[r for r in reports if r['task_id']==tid]
             task_rows.append({'task':tid,'sprint':t['sprint_id'],'goal_type':t['contract']['goal_type'],'outcome':t['status'],
-                'planned_content_stages_count':sum(s['handler']!='publish' for s in t['process']['stages']),
+                'planned_content_stages_count':sum(s['handler']!='publish' for s in t['workflow']['stages']),
                 'delivered_stages_count':len({r['stage'] for r in delivered}),'delivered_iterations_count':len(delivered),
                 'quality_findings_count':len(counted),'resolved_quality_findings_count':len(counted&fixed),
                 'unclassified_inspection_records':len(fs)-len(counted),'proposal_count':len(res),

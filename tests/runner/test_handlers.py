@@ -63,10 +63,10 @@ def test_repeated_finding_id_is_not_silently_overwritten():
 
 # These fixtures describe result ownership through explicit corrective edges.
 # Physical node order and node labels deliberately carry no semantic ordering.
-def scope_process(names=("prepare", "screen", "build", "examine")):
-    from .helpers import process, stage
+def scope_workflow(names=("prepare", "screen", "build", "examine")):
+    from .helpers import workflow, stage
     prepare, screen, build, examine = names
-    cfg = process()
+    cfg = workflow()
     cfg["route"] = {"entry": prepare}
     cfg["stages"] = [
         stage(examine, "inspect", {"clear": None, "changes_requested": build},
@@ -91,7 +91,7 @@ def scope_book(early=False, pending=False, names=("prepare", "screen", "build", 
 
 def scoped_review(book, names=("prepare", "screen", "build", "examine")):
     from dataclasses import replace
-    initial = task(scope_process(names))
+    initial = task(scope_workflow(names))
     return replace(verify(initial, {}).accept("S", True).task, feedback=book)
 
 
@@ -125,7 +125,7 @@ def test_scope_new_early_finding_keeps_foreign_finding_and_requests_own_rework()
 
 def test_scope_producer_proposes_only_own_fix_in_mixed_book():
     from dataclasses import replace
-    before = replace(task(scope_process()), feedback=scope_book(early=True))
+    before = replace(task(scope_workflow()), feedback=scope_book(early=True))
     after = verify(before, {"resolutions": [resolution("EARLY-R", "EARLY")]})
     assert after.feedback.findings == before.feedback.findings
     assert tuple((r.id, r.finding_id, r.stage, r.iteration) for r in after.feedback.resolutions) == (
@@ -171,7 +171,7 @@ def test_scope_early_inspector_cannot_accept_foreign_pending():
 
 def test_scope_foreign_pending_does_not_block_own_proposal():
     from dataclasses import replace
-    before = replace(task(scope_process()), feedback=scope_book(early=True, pending=True))
+    before = replace(task(scope_workflow()), feedback=scope_book(early=True, pending=True))
     after = verify(before, {"resolutions": [resolution("EARLY-R", "EARLY")]})
     assert tuple(r.id for r in after.feedback.pending_resolutions) == ("LATE-R", "EARLY-R")
     assert after.feedback.findings == before.feedback.findings
@@ -184,7 +184,7 @@ def test_scope_foreign_pending_does_not_block_own_proposal():
 ])
 def test_scope_rejects_foreign_duplicate_id_and_duplicate_coverage_proposals(work):
     from dataclasses import replace
-    before = replace(task(scope_process()), feedback=scope_book(early=True, pending=True))
+    before = replace(task(scope_workflow()), feedback=scope_book(early=True, pending=True))
     with pytest.raises(DomainError):
         submit(before, work)
     assert before.state.version == 0
@@ -267,7 +267,7 @@ def test_scope_report_correction_proposes_own_finding_without_closing_foreign():
 
 def test_scope_pending_rework_error_identifies_actual_foreign_inspector():
     from dataclasses import replace
-    before = replace(verify(task(scope_process()), {}), feedback=scope_book(pending=True))
+    before = replace(verify(task(scope_workflow()), {}), feedback=scope_book(pending=True))
     with pytest.raises(DomainError, match="LATE-R.*examine"):
         before.rework("S", "Review retained pending obligation", "prepare")
     assert before.stage.stage_id == "prepare"
@@ -276,7 +276,7 @@ def test_scope_pending_rework_error_identifies_actual_foreign_inspector():
 
 
 def test_scope_ambiguous_corrective_owner_is_explicit_error():
-    cfg = scope_process()
+    cfg = scope_workflow()
     # Two unrelated result inspectors must not silently claim one correction.
     next(s for s in cfg["stages"] if s["id"] == "screen")["transitions"]["changes_requested"] = "build"
     with pytest.raises(DomainError, match="(?i)scope|ownership|ambig|област|влад|неоднознач"):
@@ -284,12 +284,12 @@ def test_scope_ambiguous_corrective_owner_is_explicit_error():
         verify(before, {})
 
 
-def scope_process_with_corrective_plan(names=("prepare", "screen", "build", "examine",
+def scope_workflow_with_corrective_plan(names=("prepare", "screen", "build", "examine",
                                               "draft_fix", "inspect_fix_plan", "fix", "inspect_fix")):
     """Separate plan approval precedes correction of the original result."""
     from .helpers import stage
     prepare, screen, build, examine, draft, plan_review, fix, fix_review = names
-    cfg = scope_process(names[:4])
+    cfg = scope_workflow(names[:4])
     next(n for n in cfg["stages"] if n["id"] == examine)["transitions"]["changes_requested"] = draft
     cfg["stages"] = [
         stage(fix_review, "inspect", {"clear": None, "changes_requested": draft},
@@ -309,7 +309,7 @@ def scope_process_with_corrective_plan(names=("prepare", "screen", "build", "exa
 ])
 def test_scope_corrective_plan_review_is_distinct_from_result_reinspection(names):
     from poise.modules.workflow.domain import RouteDefinition
-    route = RouteDefinition.from_process(scope_process_with_corrective_plan(names))
+    route = RouteDefinition.from_workflow(scope_workflow_with_corrective_plan(names))
     assert route.inspection_scope(names[1]) == (names[1],)
     assert set(route.inspection_scope(names[3])) == {names[3], names[7]}
     assert set(route.inspection_scope(names[6])) == {names[3], names[7]}
@@ -325,7 +325,7 @@ def test_scope_corrective_plan_accepts_only_plan_fix_and_preserves_code_obligati
     from poise.modules.inspection.domain import FeedbackBook, Finding
     from poise.modules.workflow.domain import RouteDefinition
     from poise.modules.workflow.handlers import evaluate_stage
-    route = RouteDefinition.from_process(scope_process_with_corrective_plan(names))
+    route = RouteDefinition.from_workflow(scope_workflow_with_corrective_plan(names))
     book = FeedbackBook((Finding("CODE", "code", "Broken bytes", "Actual counterexample", names[3], 1),
                          Finding("PLAN", "plan", "Missing tests", "Actual missing test", names[5], 2)), (), ())
     before = book.to_dict()
@@ -348,6 +348,6 @@ def test_scope_corrective_plan_accepts_only_plan_fix_and_preserves_code_obligati
 def test_scope_public_restart_with_corrective_plan_keeps_late_findings(project, monkeypatch):
     from ddd.test_task_domain import test_scope_public_restart_replay_preserves_feedback_and_unblocks_earlier_inspection
     from runner import test_handlers
-    fixture = scope_process_with_corrective_plan()
+    fixture = scope_workflow_with_corrective_plan()
     monkeypatch.setattr(test_handlers, "scope_process", lambda: fixture)
     test_scope_public_restart_replay_preserves_feedback_and_unblocks_earlier_inspection(project)

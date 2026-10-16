@@ -1,0 +1,9 @@
+[
+  {
+    "nodeid": "sample::call",
+    "phase": "call",
+    "outcome": "passed",
+    "exception": null,
+    "code": null
+  }
+]

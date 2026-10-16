@@ -17,7 +17,7 @@ def new_task(task_id, stages, actor):
     cfg={"route":{"entry":ids[0] if ids else "absent"},
          "stages":[{"id":sid,"handler":"produce", "role": "executor","transitions":{"complete":ids[i+1] if i+1<len(ids) else None},
                     "rework_targets":[sid],"read_only":False,"allowed_paths":[]} for i,sid in enumerate(ids)]}
-    route = RouteDefinition.from_process(cfg)
+    route = RouteDefinition.from_workflow(cfg)
     contracts = TaskStageContracts.parse([
         {"stage_id": stage_id, "allowed_paths": [],
          "entry_requirements": [], "exit_requirements": []}
@@ -97,7 +97,7 @@ def test_unverified_task_cannot_be_accepted():
     with pytest.raises(DomainError): task().accept("S1", True)
 
 
-def test_full_process_completes_only_after_final_user_decision():
+def test_full_workflow_completes_only_after_final_user_decision():
     t = verified().accept("S1", True).task
     t = t.submit("S1", {"verdict":"accepted"}, (), "", {"sections":[],"routes":[],"requirements":[]}, {}, [], {}, {"phase":"prepare","arguments":[],"decisions":[]}).task
     t = t.mark_verified("S1", t.state.submission_digest, ()).task
@@ -148,8 +148,8 @@ def test_malformed_route_fails_before_work():
 
 def scope_final_review(publish=False):
     from runner.helpers import task as routed_task, verify as routed_verify, inspect as packet, stage
-    from runner.test_handlers import scope_process
-    cfg = scope_process()
+    from runner.test_handlers import scope_workflow
+    cfg = scope_workflow()
     if publish:
         next(s for s in cfg["stages"] if s["id"] == "examine")["transitions"]["clear"] = "release"
         cfg["stages"].append(stage("release", "publish", {"complete": None}, True, [], ["build"]))
@@ -210,22 +210,22 @@ def test_scope_public_restart_replay_preserves_feedback_and_unblocks_earlier_ins
     from batch.helpers import request, result as public_result, verify as public_verify, bootstrap
     from runtime_services.test_task_restart import restart, immutable_audit_rows
     from runner.test_runner_paths import setup_project, edit
-    from runner.test_handlers import scope_process
+    from runner.test_handlers import scope_workflow
     from runner.helpers import inspect as packet, finding
 
     setup_project(project, "development")
-    process = scope_process()
-    process["goal_type"] = "development"
-    for node in process["stages"]:
+    workflow = scope_workflow()
+    workflow["goal_type"] = "development"
+    for node in workflow["stages"]:
         node["role"] = "executor"  # Identity separation has its own existing tests.
-    write_json(project["root"] / "config/processes/development.json", process)
+    write_json(project["root"] / "config/workflows/development.json", workflow)
     contract = deepcopy(project["task"])
-    ids = [s["id"] for s in process["stages"]]
+    ids = [s["id"] for s in workflow["stages"]]
     contract["checks"] = {sid: ["TARGETED"] for sid in ids}
     contract["methods"][0]["verification_plan"]["green_stages"] = ids
     contract["evidence_plan"] = {sid: {"subject_methods": {}, "arguments": [], "review_arguments": []} for sid in ids}
     contract["stage_contracts"] = [{"stage_id": s["id"], "allowed_paths": s["allowed_paths"],
-                                  "entry_requirements": [], "exit_requirements": []} for s in process["stages"]]
+                                  "entry_requirements": [], "exit_requirements": []} for s in workflow["stages"]]
     contract["decomposition"]["phases"] = [{"stage": sid, "skills": ["workflow"], "areas": []} for sid in ids]
     write_json(project["task_path"], contract)
     runtime = WorkPoise(project["config_path"], "S1")

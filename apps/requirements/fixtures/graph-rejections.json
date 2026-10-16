@@ -1,0 +1,817 @@
+{
+  "cases": [
+    {
+      "id": "stale_store",
+      "method": "apply",
+      "input": {
+        "request_id": "stale-store",
+        "expected_revision": 6,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "revision"
+      ],
+      "existing_guard": true
+    },
+    {
+      "id": "invalid_store_revision_type",
+      "method": "apply",
+      "input": {
+        "request_id": "bool-store",
+        "expected_revision": true,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "revision"
+      ],
+      "existing_guard": true
+    },
+    {
+      "id": "stale_statement",
+      "method": "apply",
+      "input": {
+        "request_id": "stale-statement",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 1,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "statement",
+        "revision"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "invalid_statement_revision_type",
+      "method": "apply",
+      "input": {
+        "request_id": "bool-statement",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": true,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "revision",
+        "integer"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "duplicate_applications",
+      "method": "apply",
+      "input": {
+        "request_id": "duplicate-app",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-A"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "applications",
+        "unique"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "duplicate_keys",
+      "method": "apply",
+      "input": {
+        "request_id": "duplicate-key",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                },
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "key",
+        "unique"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "invalid_task_status",
+      "method": "apply",
+      "input": {
+        "request_id": "invalid-status",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "unexpected",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "status"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "empty_current_task_text",
+      "method": "apply",
+      "input": {
+        "request_id": "empty-text",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": " ",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "text",
+        "nonempty"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "unknown_application_atomic",
+      "method": "apply",
+      "input": {
+        "request_id": "atomic-missing",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "kind": "put_requirement",
+            "requirement": {
+              "id": "SYS-TRANSIENT",
+              "level": "system",
+              "status": "current",
+              "text": "Эта запись не должна остаться при отказе."
+            }
+          },
+          {
+            "kind": "revise_task",
+            "task_id": "000007",
+            "expected_statement_revision": 2,
+            "statement": {
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-MISSING"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      },
+      "message_tokens": [
+        "APP-MISSING"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "unknown_task_mixed",
+      "method": "query",
+      "input": [
+        {
+          "id": "ok",
+          "kind": "registry"
+        },
+        {
+          "id": "missing",
+          "kind": "task_chain",
+          "task_id": "000999",
+          "key": "R1",
+          "statement_revision": 2
+        }
+      ],
+      "message_tokens": [
+        "000999"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "unknown_key_mixed",
+      "method": "query",
+      "input": [
+        {
+          "id": "ok",
+          "kind": "registry"
+        },
+        {
+          "id": "missing",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "MISSING",
+          "statement_revision": 2
+        }
+      ],
+      "message_tokens": [
+        "MISSING"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "unknown_statement_mixed",
+      "method": "query",
+      "input": [
+        {
+          "id": "ok",
+          "kind": "registry"
+        },
+        {
+          "id": "missing",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "R1",
+          "statement_revision": 99
+        }
+      ],
+      "message_tokens": [
+        "statement",
+        "99"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "missing_graph_field",
+      "method": "query",
+      "input": [
+        {
+          "id": "q",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "statement_revision": 2
+        }
+      ],
+      "message_tokens": [
+        "key",
+        "required"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "invalid_graph_revision_type",
+      "method": "query",
+      "input": [
+        {
+          "id": "q",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "R1",
+          "statement_revision": false
+        }
+      ],
+      "message_tokens": [
+        "revision",
+        "integer"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "duplicate_query_ids",
+      "method": "query",
+      "input": [
+        {
+          "id": "same",
+          "kind": "registry"
+        },
+        {
+          "id": "same",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "R1",
+          "statement_revision": 2
+        }
+      ],
+      "message_tokens": [
+        "unique"
+      ],
+      "existing_guard": true
+    },
+    {
+      "id": "search_nonpositive",
+      "method": "query",
+      "input": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {},
+          "limit": 0,
+          "after_id": null
+        }
+      ],
+      "message_tokens": [
+        "limit"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "search_over_bound",
+      "method": "query",
+      "input": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {},
+          "limit": 65,
+          "after_id": null
+        }
+      ],
+      "message_tokens": [
+        "limit"
+      ],
+      "existing_guard": false
+    },
+    {
+      "id": "invalid_search_continuation",
+      "method": "query",
+      "input": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {},
+          "limit": 1,
+          "after_id": 42
+        }
+      ],
+      "message_tokens": [
+        "after_id"
+      ],
+      "existing_guard": false
+    }
+  ]
+}

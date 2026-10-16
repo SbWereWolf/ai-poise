@@ -1,0 +1,832 @@
+{
+  "tables": {
+    "requirements_meta": {
+      "columns": [
+        "revision",
+        "schema_version"
+      ],
+      "rows": [
+        [
+          7,
+          1
+        ]
+      ]
+    },
+    "requirements": {
+      "columns": [
+        "id",
+        "level",
+        "current_revision"
+      ],
+      "rows": [
+        [
+          "SYS-A",
+          "system",
+          1
+        ],
+        [
+          "SYS-B",
+          "system",
+          1
+        ],
+        [
+          "SYS-ORPHAN",
+          "system",
+          1
+        ],
+        [
+          "SYS-ONLY-PLACE",
+          "system",
+          1
+        ],
+        [
+          "SYS-F",
+          "system",
+          1
+        ],
+        [
+          "SYS-O",
+          "system",
+          1
+        ],
+        [
+          "SYS-P",
+          "system",
+          1
+        ],
+        [
+          "APP-A",
+          "application",
+          1
+        ],
+        [
+          "APP-B",
+          "application",
+          1
+        ],
+        [
+          "APP-ORPHAN",
+          "application",
+          1
+        ],
+        [
+          "APP-ONLY-PLACE",
+          "application",
+          1
+        ],
+        [
+          "APP-F",
+          "application",
+          1
+        ],
+        [
+          "APP-O",
+          "application",
+          1
+        ],
+        [
+          "APP-P",
+          "application",
+          1
+        ]
+      ]
+    },
+    "requirement_revisions": {
+      "columns": [
+        "id",
+        "revision",
+        "status",
+        "text",
+        "owner_revision",
+        "origin"
+      ],
+      "rows": [
+        [
+          "SYS-A",
+          1,
+          "current",
+          "Сохранять требования.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "SYS-B",
+          1,
+          "current",
+          "Сохранять несколько оснований.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "SYS-ORPHAN",
+          1,
+          "current",
+          "Назначить ответственность.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "SYS-ONLY-PLACE",
+          1,
+          "current",
+          "Проверять осмысленное распределение.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "SYS-F",
+          1,
+          "future",
+          "Спланировать развитие.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "SYS-O",
+          1,
+          "obsolete",
+          "Устаревшая цель.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "SYS-P",
+          1,
+          "future",
+          "",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-A",
+          1,
+          "current",
+          "Читать граф.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-B",
+          1,
+          "current",
+          "Изменять граф.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-ORPHAN",
+          1,
+          "current",
+          "Проверять пробелы.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-ONLY-PLACE",
+          1,
+          "current",
+          "Иметь содержательное требование задачи.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-F",
+          1,
+          "future",
+          "Готовить будущее.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-O",
+          1,
+          "obsolete",
+          "Устаревшее поведение.",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-P",
+          1,
+          "future",
+          "",
+          1,
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ]
+      ]
+    },
+    "application_purposes": {
+      "columns": [
+        "application_id",
+        "purpose",
+        "current_revision"
+      ],
+      "rows": [
+        [
+          "APP-A",
+          "behavioral",
+          1
+        ],
+        [
+          "APP-B",
+          "behavioral",
+          1
+        ],
+        [
+          "APP-ORPHAN",
+          "behavioral",
+          1
+        ],
+        [
+          "APP-ONLY-PLACE",
+          "behavioral",
+          1
+        ],
+        [
+          "APP-F",
+          "behavioral",
+          1
+        ],
+        [
+          "APP-O",
+          "behavioral",
+          1
+        ],
+        [
+          "APP-P",
+          "behavioral",
+          1
+        ]
+      ]
+    },
+    "application_purpose_revisions": {
+      "columns": [
+        "application_id",
+        "revision",
+        "rationale",
+        "origin"
+      ],
+      "rows": [
+        [
+          "APP-A",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-B",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-ORPHAN",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-ONLY-PLACE",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-F",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-O",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "APP-P",
+          1,
+          "",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ]
+      ]
+    },
+    "system_application_versions": {
+      "columns": [
+        "system_id",
+        "application_id",
+        "valid_from",
+        "valid_to"
+      ],
+      "rows": [
+        [
+          "SYS-A",
+          "APP-A",
+          1,
+          null
+        ],
+        [
+          "SYS-A",
+          "APP-B",
+          1,
+          null
+        ],
+        [
+          "SYS-B",
+          "APP-A",
+          1,
+          null
+        ],
+        [
+          "SYS-A",
+          "APP-ORPHAN",
+          1,
+          null
+        ],
+        [
+          "SYS-A",
+          "APP-ONLY-PLACE",
+          1,
+          null
+        ],
+        [
+          "SYS-ONLY-PLACE",
+          "APP-P",
+          1,
+          null
+        ],
+        [
+          "SYS-F",
+          "APP-F",
+          1,
+          null
+        ],
+        [
+          "SYS-O",
+          "APP-O",
+          1,
+          null
+        ]
+      ]
+    },
+    "task_identities": {
+      "columns": [
+        "task_id",
+        "origin",
+        "current_statement_revision"
+      ],
+      "rows": [
+        [
+          "000007",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}",
+          2
+        ],
+        [
+          "000008",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}",
+          1
+        ]
+      ]
+    },
+    "task_creation_requests": {
+      "columns": [
+        "creation_request_id",
+        "intent",
+        "task_id",
+        "response"
+      ],
+      "rows": []
+    },
+    "task_statements": {
+      "columns": [
+        "task_id",
+        "statement_revision",
+        "goal",
+        "definition_of_done",
+        "origin"
+      ],
+      "rows": [
+        [
+          "000007",
+          1,
+          "Сохранить сквозную трассировку.",
+          "[\"Связи и ревизии читаются.\"]",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "000007",
+          2,
+          "Сохранить сквозную трассировку.",
+          "[\"Связи и ревизии читаются.\"]",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ],
+        [
+          "000008",
+          1,
+          "Использовать общее требование.",
+          "[\"Общий parent сохранён.\"]",
+          "{\"operation_id\":\"fixture-source\",\"request_id\":\"fixture-source\",\"type\":\"explicit\"}"
+        ]
+      ]
+    },
+    "task_requirement_keys": {
+      "columns": [
+        "task_id",
+        "key"
+      ],
+      "rows": [
+        [
+          "000007",
+          "R1"
+        ],
+        [
+          "000007",
+          "R2"
+        ],
+        [
+          "000007",
+          "RF"
+        ],
+        [
+          "000007",
+          "RP"
+        ],
+        [
+          "000007",
+          "RO"
+        ],
+        [
+          "000008",
+          "R1"
+        ]
+      ]
+    },
+    "task_requirement_versions": {
+      "columns": [
+        "task_id",
+        "statement_revision",
+        "key",
+        "position",
+        "status",
+        "text"
+      ],
+      "rows": [
+        [
+          "000007",
+          1,
+          "R1",
+          0,
+          "current",
+          "Сохранить первую связь."
+        ],
+        [
+          "000007",
+          1,
+          "R2",
+          1,
+          "current",
+          "Сохранить обе связи."
+        ],
+        [
+          "000007",
+          2,
+          "R1",
+          0,
+          "current",
+          "Сохранить первую связь."
+        ],
+        [
+          "000007",
+          2,
+          "R2",
+          1,
+          "current",
+          "Сохранить обе связи."
+        ],
+        [
+          "000007",
+          2,
+          "RF",
+          2,
+          "future",
+          "Запланировать развитие."
+        ],
+        [
+          "000007",
+          2,
+          "RP",
+          3,
+          "future",
+          ""
+        ],
+        [
+          "000007",
+          2,
+          "RO",
+          4,
+          "obsolete",
+          "Устаревшее требование."
+        ],
+        [
+          "000008",
+          1,
+          "R1",
+          0,
+          "current",
+          "Использовать общее основание."
+        ]
+      ]
+    },
+    "application_task_links": {
+      "columns": [
+        "task_id",
+        "statement_revision",
+        "key",
+        "application_id"
+      ],
+      "rows": [
+        [
+          "000007",
+          1,
+          "R1",
+          "APP-A"
+        ],
+        [
+          "000007",
+          1,
+          "R2",
+          "APP-A"
+        ],
+        [
+          "000007",
+          1,
+          "R2",
+          "APP-B"
+        ],
+        [
+          "000007",
+          2,
+          "R1",
+          "APP-A"
+        ],
+        [
+          "000007",
+          2,
+          "R2",
+          "APP-A"
+        ],
+        [
+          "000007",
+          2,
+          "R2",
+          "APP-B"
+        ],
+        [
+          "000007",
+          2,
+          "RF",
+          "APP-F"
+        ],
+        [
+          "000007",
+          2,
+          "RP",
+          "APP-ONLY-PLACE"
+        ],
+        [
+          "000007",
+          2,
+          "RO",
+          "APP-O"
+        ],
+        [
+          "000008",
+          1,
+          "R1",
+          "APP-A"
+        ]
+      ]
+    },
+    "task_snapshots": {
+      "columns": [
+        "task_id",
+        "snapshot_revision",
+        "statement_revision",
+        "registry_revision",
+        "payload"
+      ],
+      "rows": [
+        [
+          "000007",
+          1,
+          1,
+          1,
+          "{\"links\":{\"application_task\":[{\"application\":\"APP-A\",\"key\":\"R1\",\"task_id\":\"000007\"},{\"application\":\"APP-A\",\"key\":\"R2\",\"task_id\":\"000007\"},{\"application\":\"APP-B\",\"key\":\"R2\",\"task_id\":\"000007\"}],\"system_application\":[{\"application\":\"APP-A\",\"system\":\"SYS-A\"},{\"application\":\"APP-B\",\"system\":\"SYS-A\"},{\"application\":\"APP-A\",\"system\":\"SYS-B\"}]},\"registry_revision\":1,\"requirements\":{\"APP-A\":{\"id\":\"APP-A\",\"level\":\"application\",\"status\":\"current\",\"text\":\"Читать граф.\"},\"APP-B\":{\"id\":\"APP-B\",\"level\":\"application\",\"status\":\"current\",\"text\":\"Изменять граф.\"},\"SYS-A\":{\"id\":\"SYS-A\",\"level\":\"system\",\"status\":\"current\",\"text\":\"Сохранять требования.\"},\"SYS-B\":{\"id\":\"SYS-B\",\"level\":\"system\",\"status\":\"current\",\"text\":\"Сохранять несколько оснований.\"}},\"snapshot_revision\":1,\"statement\":{\"definition_of_done\":[\"Связи и ревизии читаются.\"],\"goal\":\"Сохранить сквозную трассировку.\",\"statement_revision\":1,\"task_id\":\"000007\",\"task_requirements\":[{\"applications\":[\"APP-A\"],\"key\":\"R1\",\"status\":\"current\",\"text\":\"Сохранить первую связь.\"},{\"applications\":[\"APP-A\",\"APP-B\"],\"key\":\"R2\",\"status\":\"current\",\"text\":\"Сохранить обе связи.\"}]},\"statement_revision\":1,\"task_id\":\"000007\"}"
+        ]
+      ]
+    },
+    "requirement_outcomes": {
+      "columns": [
+        "outcome_id",
+        "task_id",
+        "snapshot_revision",
+        "kind",
+        "keys"
+      ],
+      "rows": []
+    },
+    "requirement_requests": {
+      "columns": [
+        "protocol_namespace",
+        "request_id",
+        "intent",
+        "response"
+      ],
+      "rows": []
+    }
+  },
+  "snapshot": {
+    "task_id": "000007",
+    "snapshot_revision": 1,
+    "statement_revision": 1,
+    "registry_revision": 1,
+    "statement": {
+      "task_id": "000007",
+      "statement_revision": 1,
+      "goal": "Сохранить сквозную трассировку.",
+      "task_requirements": [
+        {
+          "key": "R1",
+          "status": "current",
+          "text": "Сохранить первую связь.",
+          "applications": [
+            "APP-A"
+          ]
+        },
+        {
+          "key": "R2",
+          "status": "current",
+          "text": "Сохранить обе связи.",
+          "applications": [
+            "APP-A",
+            "APP-B"
+          ]
+        }
+      ],
+      "definition_of_done": [
+        "Связи и ревизии читаются."
+      ]
+    },
+    "requirements": {
+      "APP-A": {
+        "id": "APP-A",
+        "level": "application",
+        "status": "current",
+        "text": "Читать граф."
+      },
+      "APP-B": {
+        "id": "APP-B",
+        "level": "application",
+        "status": "current",
+        "text": "Изменять граф."
+      },
+      "SYS-A": {
+        "id": "SYS-A",
+        "level": "system",
+        "status": "current",
+        "text": "Сохранять требования."
+      },
+      "SYS-B": {
+        "id": "SYS-B",
+        "level": "system",
+        "status": "current",
+        "text": "Сохранять несколько оснований."
+      }
+    },
+    "links": {
+      "system_application": [
+        {
+          "system": "SYS-A",
+          "application": "APP-A"
+        },
+        {
+          "system": "SYS-A",
+          "application": "APP-B"
+        },
+        {
+          "system": "SYS-B",
+          "application": "APP-A"
+        }
+      ],
+      "application_task": [
+        {
+          "application": "APP-A",
+          "task_id": "000007",
+          "key": "R1"
+        },
+        {
+          "application": "APP-A",
+          "task_id": "000007",
+          "key": "R2"
+        },
+        {
+          "application": "APP-B",
+          "task_id": "000007",
+          "key": "R2"
+        }
+      ]
+    }
+  },
+  "statements": {
+    "original": {
+      "goal": "Сохранить сквозную трассировку.",
+      "task_requirements": [
+        {
+          "key": "R1",
+          "status": "current",
+          "text": "Сохранить первую связь.",
+          "applications": [
+            "APP-A"
+          ]
+        },
+        {
+          "key": "R2",
+          "status": "current",
+          "text": "Сохранить обе связи.",
+          "applications": [
+            "APP-A",
+            "APP-B"
+          ]
+        }
+      ],
+      "definition_of_done": [
+        "Связи и ревизии читаются."
+      ]
+    },
+    "current": {
+      "goal": "Сохранить сквозную трассировку.",
+      "task_requirements": [
+        {
+          "key": "R1",
+          "status": "current",
+          "text": "Сохранить первую связь.",
+          "applications": [
+            "APP-A"
+          ]
+        },
+        {
+          "key": "R2",
+          "status": "current",
+          "text": "Сохранить обе связи.",
+          "applications": [
+            "APP-A",
+            "APP-B"
+          ]
+        },
+        {
+          "key": "RF",
+          "status": "future",
+          "text": "Запланировать развитие.",
+          "applications": [
+            "APP-F"
+          ]
+        },
+        {
+          "key": "RP",
+          "status": "future",
+          "text": "",
+          "applications": [
+            "APP-ONLY-PLACE"
+          ]
+        },
+        {
+          "key": "RO",
+          "status": "obsolete",
+          "text": "Устаревшее требование.",
+          "applications": [
+            "APP-O"
+          ]
+        }
+      ],
+      "definition_of_done": [
+        "Связи и ревизии читаются."
+      ]
+    },
+    "other": {
+      "goal": "Использовать общее требование.",
+      "task_requirements": [
+        {
+          "key": "R1",
+          "status": "current",
+          "text": "Использовать общее основание.",
+          "applications": [
+            "APP-A"
+          ]
+        }
+      ],
+      "definition_of_done": [
+        "Общий parent сохранён."
+      ]
+    }
+  }
+}

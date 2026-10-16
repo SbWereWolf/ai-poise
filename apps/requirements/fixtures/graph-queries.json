@@ -1,0 +1,983 @@
+{
+  "cases": [
+    {
+      "id": "task_first_parent",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "R1",
+          "statement_revision": 2
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task": {
+                "task_id": "000007",
+                "statement_revision": 2,
+                "key": "R1",
+                "status": "current",
+                "text": "Сохранить первую связь.",
+                "applications": [
+                  "APP-A"
+                ]
+              },
+              "applications": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "task_multiple_parents",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "R2",
+          "statement_revision": 2
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task": {
+                "task_id": "000007",
+                "statement_revision": 2,
+                "key": "R2",
+                "status": "current",
+                "text": "Сохранить обе связи.",
+                "applications": [
+                  "APP-A",
+                  "APP-B"
+                ]
+              },
+              "applications": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                },
+                {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Изменять граф."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "application_multiple_tasks",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "application_tasks",
+          "application_id": "APP-A"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "application": {
+                "id": "APP-A",
+                "level": "application",
+                "status": "current",
+                "text": "Читать граф."
+              },
+              "tasks": [
+                {
+                  "task_id": "000007",
+                  "statement_revision": 2,
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A"
+                  ]
+                },
+                {
+                  "task_id": "000007",
+                  "statement_revision": 2,
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "task_id": "000008",
+                  "statement_revision": 1,
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Использовать общее основание.",
+                  "applications": [
+                    "APP-A"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "application_second_side",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "application_tasks",
+          "application_id": "APP-B"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "application": {
+                "id": "APP-B",
+                "level": "application",
+                "status": "current",
+                "text": "Изменять граф."
+              },
+              "tasks": [
+                {
+                  "task_id": "000007",
+                  "statement_revision": 2,
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "future_task_node",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "RF",
+          "statement_revision": 2
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task": {
+                "task_id": "000007",
+                "statement_revision": 2,
+                "key": "RF",
+                "status": "future",
+                "text": "Запланировать развитие.",
+                "applications": [
+                  "APP-F"
+                ]
+              },
+              "applications": [
+                {
+                  "id": "APP-F",
+                  "level": "application",
+                  "status": "future",
+                  "text": "Готовить будущее."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "obsolete_task_node",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "RO",
+          "statement_revision": 2
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task": {
+                "task_id": "000007",
+                "statement_revision": 2,
+                "key": "RO",
+                "status": "obsolete",
+                "text": "Устаревшее требование.",
+                "applications": [
+                  "APP-O"
+                ]
+              },
+              "applications": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "coverage_current",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "coverage",
+          "mode": "current"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "application_without_system": [],
+              "system_without_application": [
+                "SYS-ONLY-PLACE",
+                "SYS-ORPHAN"
+              ],
+              "application_without_task": [
+                "APP-ONLY-PLACE",
+                "APP-ORPHAN"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "coverage_analysis",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "coverage",
+          "mode": "analysis"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "application_without_system": [],
+              "system_without_application": [
+                "SYS-ONLY-PLACE",
+                "SYS-ORPHAN"
+              ],
+              "application_without_task": [
+                "APP-ONLY-PLACE",
+                "APP-ORPHAN"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "typed_gaps",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "gaps"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": [
+              {
+                "kind": "system_without_application",
+                "requirement_id": "SYS-ONLY-PLACE",
+                "text": "Проверять осмысленное распределение."
+              },
+              {
+                "kind": "system_without_application",
+                "requirement_id": "SYS-ORPHAN",
+                "text": "Назначить ответственность."
+              },
+              {
+                "kind": "application_without_task",
+                "requirement_id": "APP-ONLY-PLACE",
+                "text": "Иметь содержательное требование задачи."
+              },
+              {
+                "kind": "application_without_task",
+                "requirement_id": "APP-ORPHAN",
+                "text": "Проверять пробелы."
+              },
+              {
+                "kind": "projected_placeholder",
+                "level": "application",
+                "requirement_id": "APP-P",
+                "text": ""
+              },
+              {
+                "kind": "projected_placeholder",
+                "level": "system",
+                "requirement_id": "SYS-P",
+                "text": ""
+              },
+              {
+                "kind": "projected_placeholder",
+                "level": "task",
+                "task_id": "000007",
+                "key": "RP",
+                "statement_revision": 2,
+                "text": ""
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "current_task",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "get_task",
+          "task_id": "000007"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task_id": "000007",
+              "statement_revision": 2,
+              "snapshot_revision": 1,
+              "goal": "Сохранить сквозную трассировку.",
+              "task_requirements": [
+                {
+                  "key": "R1",
+                  "status": "current",
+                  "text": "Сохранить первую связь.",
+                  "applications": [
+                    "APP-A"
+                  ]
+                },
+                {
+                  "key": "R2",
+                  "status": "current",
+                  "text": "Сохранить обе связи.",
+                  "applications": [
+                    "APP-A",
+                    "APP-B"
+                  ]
+                },
+                {
+                  "key": "RF",
+                  "status": "future",
+                  "text": "Запланировать развитие.",
+                  "applications": [
+                    "APP-F"
+                  ]
+                },
+                {
+                  "key": "RP",
+                  "status": "future",
+                  "text": "",
+                  "applications": [
+                    "APP-ONLY-PLACE"
+                  ]
+                },
+                {
+                  "key": "RO",
+                  "status": "obsolete",
+                  "text": "Устаревшее требование.",
+                  "applications": [
+                    "APP-O"
+                  ]
+                }
+              ],
+              "definition_of_done": [
+                "Связи и ревизии читаются."
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "task_history",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "task_history",
+          "task_id": "000007"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task_id": "000007",
+              "items": [
+                {
+                  "statement_revision": 1,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 2,
+                  "goal": "Сохранить сквозную трассировку."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "requirement_history",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "history_requirement",
+          "requirement_id": "SYS-A"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "requirement_id": "SYS-A",
+              "items": [
+                {
+                  "revision": 1,
+                  "status": "current",
+                  "text": "Сохранять требования.",
+                  "owner_revision": 1,
+                  "origin": {
+                    "type": "explicit",
+                    "request_id": "fixture-source",
+                    "operation_id": "fixture-source"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "old_snapshot",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "snapshot",
+          "task_id": "000007",
+          "snapshot_revision": 1
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "task_id": "000007",
+              "snapshot_revision": 1,
+              "statement_revision": 1,
+              "registry_revision": 1,
+              "statement": {
+                "task_id": "000007",
+                "statement_revision": 1,
+                "goal": "Сохранить сквозную трассировку.",
+                "task_requirements": [
+                  {
+                    "key": "R1",
+                    "status": "current",
+                    "text": "Сохранить первую связь.",
+                    "applications": [
+                      "APP-A"
+                    ]
+                  },
+                  {
+                    "key": "R2",
+                    "status": "current",
+                    "text": "Сохранить обе связи.",
+                    "applications": [
+                      "APP-A",
+                      "APP-B"
+                    ]
+                  }
+                ],
+                "definition_of_done": [
+                  "Связи и ревизии читаются."
+                ]
+              },
+              "requirements": {
+                "APP-A": {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                },
+                "APP-B": {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Изменять граф."
+                },
+                "SYS-A": {
+                  "id": "SYS-A",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять требования."
+                },
+                "SYS-B": {
+                  "id": "SYS-B",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять несколько оснований."
+                }
+              },
+              "links": {
+                "system_application": [
+                  {
+                    "system": "SYS-A",
+                    "application": "APP-A"
+                  },
+                  {
+                    "system": "SYS-A",
+                    "application": "APP-B"
+                  },
+                  {
+                    "system": "SYS-B",
+                    "application": "APP-A"
+                  }
+                ],
+                "application_task": [
+                  {
+                    "application": "APP-A",
+                    "task_id": "000007",
+                    "key": "R1"
+                  },
+                  {
+                    "application": "APP-A",
+                    "task_id": "000007",
+                    "key": "R2"
+                  },
+                  {
+                    "application": "APP-B",
+                    "task_id": "000007",
+                    "key": "R2"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_first",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {
+            "level": "application",
+            "status": "current",
+            "text_contains": ""
+          },
+          "limit": 2,
+          "after_id": null
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "rows": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                },
+                {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Изменять граф."
+                }
+              ],
+              "next": "APP-B"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_next",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {
+            "level": "application",
+            "status": "current",
+            "text_contains": ""
+          },
+          "limit": 2,
+          "after_id": "APP-B"
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "rows": [
+                {
+                  "id": "APP-ONLY-PLACE",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Иметь содержательное требование задачи."
+                },
+                {
+                  "id": "APP-ORPHAN",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Проверять пробелы."
+                }
+              ],
+              "next": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mixed_typed_graph",
+      "queries": [
+        {
+          "id": "typed",
+          "kind": "entities",
+          "table": "requirements",
+          "filter": {
+            "id": {
+              "eq": "SYS-A"
+            }
+          },
+          "page": {
+            "limit": 1,
+            "after": null
+          }
+        },
+        {
+          "id": "graph",
+          "kind": "task_chain",
+          "task_id": "000007",
+          "key": "R2",
+          "statement_revision": 2
+        },
+        {
+          "id": "snapshot",
+          "kind": "snapshot",
+          "task_id": "000007",
+          "snapshot_revision": 1
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "typed",
+            "value": {
+              "rows": [
+                {
+                  "id": "SYS-A",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять требования."
+                }
+              ],
+              "next": null
+            }
+          },
+          {
+            "id": "graph",
+            "value": {
+              "task": {
+                "task_id": "000007",
+                "statement_revision": 2,
+                "key": "R2",
+                "status": "current",
+                "text": "Сохранить обе связи.",
+                "applications": [
+                  "APP-A",
+                  "APP-B"
+                ]
+              },
+              "applications": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                },
+                {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Изменять граф."
+                }
+              ]
+            }
+          },
+          {
+            "id": "snapshot",
+            "value": {
+              "task_id": "000007",
+              "snapshot_revision": 1,
+              "statement_revision": 1,
+              "registry_revision": 1,
+              "statement": {
+                "task_id": "000007",
+                "statement_revision": 1,
+                "goal": "Сохранить сквозную трассировку.",
+                "task_requirements": [
+                  {
+                    "key": "R1",
+                    "status": "current",
+                    "text": "Сохранить первую связь.",
+                    "applications": [
+                      "APP-A"
+                    ]
+                  },
+                  {
+                    "key": "R2",
+                    "status": "current",
+                    "text": "Сохранить обе связи.",
+                    "applications": [
+                      "APP-A",
+                      "APP-B"
+                    ]
+                  }
+                ],
+                "definition_of_done": [
+                  "Связи и ревизии читаются."
+                ]
+              },
+              "requirements": {
+                "APP-A": {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                },
+                "APP-B": {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Изменять граф."
+                },
+                "SYS-A": {
+                  "id": "SYS-A",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять требования."
+                },
+                "SYS-B": {
+                  "id": "SYS-B",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять несколько оснований."
+                }
+              },
+              "links": {
+                "system_application": [
+                  {
+                    "system": "SYS-A",
+                    "application": "APP-A"
+                  },
+                  {
+                    "system": "SYS-A",
+                    "application": "APP-B"
+                  },
+                  {
+                    "system": "SYS-B",
+                    "application": "APP-A"
+                  }
+                ],
+                "application_task": [
+                  {
+                    "application": "APP-A",
+                    "task_id": "000007",
+                    "key": "R1"
+                  },
+                  {
+                    "application": "APP-A",
+                    "task_id": "000007",
+                    "key": "R2"
+                  },
+                  {
+                    "application": "APP-B",
+                    "task_id": "000007",
+                    "key": "R2"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "control": {
+    "id": "existing_two_level",
+    "queries": [
+      {
+        "id": "system",
+        "kind": "chain",
+        "requirement_id": "SYS-A"
+      },
+      {
+        "id": "app",
+        "kind": "chain",
+        "requirement_id": "APP-A"
+      }
+    ],
+    "response": {
+      "revision": 7,
+      "results": [
+        {
+          "id": "system",
+          "value": {
+            "system": {
+              "id": "SYS-A",
+              "level": "system",
+              "status": "current",
+              "text": "Сохранять требования."
+            },
+            "applications": [
+              {
+                "id": "APP-A",
+                "level": "application",
+                "status": "current",
+                "text": "Читать граф."
+              },
+              {
+                "id": "APP-B",
+                "level": "application",
+                "status": "current",
+                "text": "Изменять граф."
+              },
+              {
+                "id": "APP-ONLY-PLACE",
+                "level": "application",
+                "status": "current",
+                "text": "Иметь содержательное требование задачи."
+              },
+              {
+                "id": "APP-ORPHAN",
+                "level": "application",
+                "status": "current",
+                "text": "Проверять пробелы."
+              }
+            ]
+          }
+        },
+        {
+          "id": "app",
+          "value": {
+            "application": {
+              "id": "APP-A",
+              "level": "application",
+              "status": "current",
+              "text": "Читать граф."
+            },
+            "systems": [
+              {
+                "id": "SYS-A",
+                "level": "system",
+                "status": "current",
+                "text": "Сохранять требования."
+              },
+              {
+                "id": "SYS-B",
+                "level": "system",
+                "status": "current",
+                "text": "Сохранять несколько оснований."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "empty_registry": {
+    "revision": 0,
+    "results": [
+      {
+        "id": "q",
+        "value": {
+          "requirements": {},
+          "links": []
+        }
+      }
+    ]
+  },
+  "empty_registry_queries": [
+    {
+      "id": "q",
+      "kind": "registry"
+    }
+  ]
+}

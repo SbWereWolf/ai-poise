@@ -35,6 +35,7 @@ def arrange_shared_environment(case):
         'COMPOSER_BIN': require_input('P003_COMPOSER_EXECUTABLE'),
         'PHP_BIN': require_input('P003_PHP_EXECUTABLE'),
         'NODE_BIN': require_input('P003_NODE_EXECUTABLE'),
+        'ERP_DRAFT_SLAB_COUNT_LIMIT': '13',
     }
     lines = example.read_text().splitlines()
     found = set()
@@ -43,9 +44,13 @@ def arrange_shared_environment(case):
         if key in replacements:
             lines[index] = key + '=' + json.dumps(replacements[key], ensure_ascii=False)
             found.add(key)
-    assert set(CONTRACT['application_databases']) | set(CONTRACT['queue_databases']) <= found
+    assert (set(CONTRACT['application_databases']) | set(CONTRACT['queue_databases'])
+            | {'ERP_DRAFT_SLAB_COUNT_LIMIT'}) <= found
     destination = example.with_name('local-development.env')
     destination.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    execution = repository / CONTRACT['normal_cjm']['execution_configuration']
+    fixture = repository / 'platform-infrastructure/tests/playwright/contracts/fixtures/cjm-configuration/test-execution.json'
+    execution.write_bytes(fixture.read_bytes())
 
 
 def assert_real_dependencies(case):
@@ -211,6 +216,49 @@ def test_published_cjm_is_usable_by_real_loader_and_invalid_input_is_rejected(er
     assert snapshot(root) == invalid_before
 
 
+def normal_cjm_command(case):
+    repository = case['repository']
+    target = next(t for t in targets(case) if t['id'] == 'cjm-settings')
+    return [require_input('P003_NODE_EXECUTABLE'), FIXTURES / 'erp_cjm_consumer.mjs',
+            repository / 'platform-infrastructure/tests/playwright/support/cjm-configuration.mjs',
+            repository, target['relative']]
+
+
+def assert_normal_cjm_consumer(case):
+    repository = case['repository']
+    target = next(t for t in targets(case) if t['id'] == 'cjm-settings')
+    selected_inputs = [target['path'],
+                       repository / 'platform-infrastructure/config/dev/local-development.env',
+                       repository / 'planning-workspace/.env',
+                       repository / CONTRACT['normal_cjm']['execution_configuration'],
+                       case['profile'] / 'documents/cjm-settings.json']
+    before = [path.read_bytes() for path in selected_inputs]
+    loaded = invoke(normal_cjm_command(case))
+    assert loaded.returncode == 0, (loaded.stdout, loaded.stderr)
+    assert json.loads(loaded.stdout) == CONTRACT['normal_cjm']['expected']
+    assert [path.read_bytes() for path in selected_inputs] == before
+
+
+def assert_invalid_normal_cjm_cannot_be_ready(case):
+    source = case['profile'] / 'documents/cjm-settings.json'
+    target = next(t for t in targets(case) if t['id'] == 'cjm-settings')['path']
+    old_source, old_target = source.read_bytes(), target.read_bytes()
+    invalid = read_json(source)
+    invalid['businessFixture']['setupPrice'] = -1
+    try:
+        # Byte agreement is intentional: a digest-only ready check is falsified.
+        write_json(source, invalid)
+        target.write_bytes(source.read_bytes())
+        rejected = invoke(normal_cjm_command(case))
+        assert rejected.returncode != 0 and 'CJM-CONFIG:' in rejected.stderr
+        assert 'setupPrice' in rejected.stderr
+        result, report = bootstrap(case, 'check')
+        assert result.returncode != 0 and report['status'] == 'error', report
+    finally:
+        source.write_bytes(old_source)
+        target.write_bytes(old_target)
+
+
 def test_actual_selected_erp_reaches_readiness_and_preserves_repeated_state(erp_deployed, monkeypatch):
     case = export_erp_source(erp_deployed)
     # Real installation caches are test-owned; HOME itself remains unchanged.
@@ -229,10 +277,12 @@ def test_actual_selected_erp_reaches_readiness_and_preserves_repeated_state(erp_
     for operation in ('infra', 'deps', 'check'):
         result, report = bootstrap(case, operation)
         assert result.returncode == 0 and report['status'] == 'ready', (operation, report)
+        assert_normal_cjm_consumer(case)
         for target in targets(case):
             assert target['path'].read_bytes() == desired[target['id']]
             observe_exact(observations(report)[target['id']], identifier=target['id'],
                           kind=target['kind'], content=desired[target['id']])
+    assert_invalid_normal_cjm_cannot_be_ready(case)
     assert_real_dependencies(case)
     assert_required_artifacts(case)
     assert_databases_and_preserve_rows(case)
@@ -241,5 +291,6 @@ def test_actual_selected_erp_reaches_readiness_and_preserves_repeated_state(erp_
     before = {t['id']: t['path'].read_bytes() for t in targets(case)}
     result, report = bootstrap(case, 'infra')
     assert result.returncode == 0 and report['status'] == 'ready', report
+    assert_normal_cjm_consumer(case)
     assert {t['id']: t['path'].read_bytes() for t in targets(case)} == before
     assert_action(case, 'erp-readiness', 'check', 'satisfied')

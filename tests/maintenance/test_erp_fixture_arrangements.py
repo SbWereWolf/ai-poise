@@ -5,7 +5,10 @@ import sys
 
 import pytest
 pytest.register_assert_rewrite('erp_support')
-from erp_support import FIXTURES, cjm_consumer_inputs, invoke, read_json, snapshot, write_json
+from erp_support import (
+    CONTRACT, FIXTURES, cjm_consumer_inputs, export_erp_source, invoke,
+    read_json, require_input, snapshot, targets, write_json,
+)
 
 pytest_plugins = ['erp_support']
 
@@ -68,3 +71,42 @@ def test_pinned_cjm_fixture_is_valid_and_semantic_refusal_is_not_setup_failure(e
     assert refused.returncode != 0 and 'CJM-CONFIG:' in refused.stderr
     assert 'setupPrice' in refused.stderr and refused.stdout == ''
     assert snapshot(root) == before
+
+
+def test_pinned_normal_cjm_example_is_usable_with_explicit_isolated_inputs(erp_case):
+    case = export_erp_source(erp_case)
+    repository = case['repository']
+    reference = repository / 'platform-infrastructure/tests/playwright'
+    inputs = reference / 'contracts/fixtures/cjm-configuration'
+    shared = repository / 'platform-infrastructure/config/dev/local-development.env'
+    shared.write_bytes((inputs / 'local-development.example.env').read_bytes())
+    planning = repository / 'planning-workspace/.env'
+    planning.write_text((inputs / 'planning-workspace.example.env').read_text().replace(
+        'ERP_DRAFT_SLAB_COUNT_LIMIT=7', 'ERP_DRAFT_SLAB_COUNT_LIMIT=13'))
+    execution = repository / CONTRACT['normal_cjm']['execution_configuration']
+    execution.write_bytes((inputs / 'test-execution.json').read_bytes())
+    for relative in CONTRACT['root_directories']:
+        (repository / relative).mkdir(parents=True, exist_ok=True)
+    target = next(t for t in targets(case) if t['id'] == 'cjm-settings')
+    normal = read_json(reference / 'cjm.local-development.settings.example.json')
+    # Explicit supported fixture selection; no fake browser or hidden fallback.
+    # The product's complete-route case loads its materialized document unchanged.
+    normal['browser']['source'] = 'playwright-managed'
+    normal['browser']['executablePath'] = None
+    write_json(target['path'], normal)
+    command = [require_input('P003_NODE_EXECUTABLE'), FIXTURES / 'erp_cjm_consumer.mjs',
+               reference / 'support/cjm-configuration.mjs', repository, target['relative']]
+    inputs_to_watch = [shared, planning, execution, target['path']]
+    before = [path.read_bytes() for path in inputs_to_watch]
+    result = invoke(command)
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert json.loads(result.stdout) == CONTRACT['normal_cjm']['expected']
+    assert [path.read_bytes() for path in inputs_to_watch] == before
+    invalid = read_json(target['path'])
+    invalid['businessFixture']['setupPrice'] = -1
+    write_json(target['path'], invalid)
+    before = [path.read_bytes() for path in inputs_to_watch]
+    refused = invoke(command)
+    assert refused.returncode != 0 and 'CJM-CONFIG:' in refused.stderr
+    assert 'setupPrice' in refused.stderr and refused.stdout == ''
+    assert [path.read_bytes() for path in inputs_to_watch] == before

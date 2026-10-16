@@ -552,3 +552,32 @@ def test_entry_arguments_cannot_override_the_owned_transport_location(
     assert result.stdout or result.stderr
     assert rows(case['source_db']) == before
     assert not case['selected_db'].exists()
+
+
+@pytest.mark.parametrize('selected_case', [False], indirect=True)
+def test_public_reconfigure_enables_project_selection(selected_case):
+    case = selected_case
+    raw = json.loads(case['hook_settings'].read_text())
+    proposed = deepcopy(raw)
+    proposed['project_launcher'] = {
+        'settings_path': str(case['launch_path']),
+        'context_template': 'Use {launcher} --project EXACT_ID for selected-project work.',
+    }
+    before = rows(case['source_db'])
+    result = case['service'].reconfigure({
+        'request_id': 'enable-selected-project-entry',
+        'expected_settings_digest': digest(raw),
+        'expected_revision': case['service'].revision(),
+        'target_revision': case['service'].revision(),
+        'settings': proposed,
+        'definition': case['service'].definition(
+            case['installed']['definition_path']).data,
+    })
+    assert result['binding_count'] == 1
+    assert json.loads(case['hook_settings'].read_text()) == proposed
+    binding = json.loads(Path(case['binding']['binding_path']).read_text())
+    assert binding['settings_digest'] == digest(proposed)
+    assert binding['external_session'] == 'entry-owner'
+    _, response, _ = full_response(invoke(case, '--project', 'selected-project'))
+    assert response.is_relative_to(case['tools'] / 'selected-data')
+    assert rows(case['source_db']) == before

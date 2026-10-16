@@ -110,7 +110,7 @@ def materialize(case, *, source=None, project="acceptance", state=None):
 @pytest.fixture
 def consumer_python(consumer):
     """Reuse the owning fixture's supply and installed-byte checks."""
-    return consumer
+    return str(consumer)
 
 
 @pytest.fixture

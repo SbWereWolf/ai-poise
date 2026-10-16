@@ -1,0 +1,15 @@
+{
+  "classification": "derived_observation_of_actual_completed_mcp_call",
+  "tool": "mcp__repo_checks__run",
+  "result_kind": "dry_run",
+  "operation": "run",
+  "command_id": "provider-binding-verification",
+  "workload_class": "default",
+  "runtime_class": "posix-host",
+  "repository_root": "/home/sbwerewolf/workdata/erp",
+  "configuration_root": "/home/sbwerewolf/workdata/erp",
+  "cwd": "/home/sbwerewolf/workdata/erp",
+  "warnings": [],
+  "command_execution_claimed": false,
+  "task_worktree_already_removed": true
+}

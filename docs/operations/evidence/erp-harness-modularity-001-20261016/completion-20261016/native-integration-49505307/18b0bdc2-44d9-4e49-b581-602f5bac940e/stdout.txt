@@ -1,0 +1,1 @@
+PASS test_current_artifacts_use_runtime_and_preserve_retained_history

@@ -23,6 +23,7 @@ def test_transient_busy_is_resolved_before_read_body_without_replay(tmp_path, mo
     busy = Event()
     released = Event()
     observed = []
+    body_calls = []
 
     class Connection:
         def __init__(self, connection):
@@ -39,7 +40,7 @@ def test_transient_busy_is_resolved_before_read_body_without_replay(tmp_path, mo
                 return self.connection.execute(sql, *args)
             except sqlite3.OperationalError as error:
                 if error.sqlite_errorcode == sqlite3.SQLITE_BUSY:
-                    observed.append(sql)
+                    observed.append({'body_entered': bool(body_calls)})
                     busy.set()
                     assert released.wait(5), 'Test-owned writer did not release its boundary'
                 raise
@@ -55,7 +56,6 @@ def test_transient_busy_is_resolved_before_read_body_without_replay(tmp_path, mo
     monkeypatch.setattr(sqlite3, 'connect', connect)
     thread = Thread(target=release)
     thread.start()
-    body_calls = []
     try:
         try:
             with database.read_transaction() as db:
@@ -68,6 +68,8 @@ def test_transient_busy_is_resolved_before_read_body_without_replay(tmp_path, mo
         writer.close()
     assert not thread.is_alive()
     assert busy.is_set() and observed
+    assert all(not observation['body_entered'] for observation in observed), \
+        'READ_BODY_ENTERED_BEFORE_ADMISSION'
     assert body_calls == ['entered']
 
 

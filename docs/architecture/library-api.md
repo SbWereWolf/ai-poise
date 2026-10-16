@@ -32,44 +32,66 @@ interfaces обслуживает CLI. [Wire-контракт и
 ## Самостоятельное хранилище Requirements
 
 `poise.infrastructure.requirements_registry.RequirementsStore.standalone(database,
-lock,lock_seconds,poll_seconds,backend)` явно создаёт store с переданным backend
-самостоятельного формата. Настройка состояния и соединений принадлежит самому
-владельцу. Существующий constructor `RequirementsStore(...)` сохраняет прежнюю
-композицию другого потребителя; выбор новой фабрики выполняет вызывающая сторона.
+lock,lock_seconds,poll_seconds,backend,*,registry_type)` создаёт store самостоятельного
+формата с явно выбранными backend и моделью. Фабрика приложения Requirements передаёт
+`registry_type=RequirementsGraph`. Существующий constructor `RequirementsStore(...)`
+сохраняет прежнюю двухуровневую композицию другого потребителя.
+
+Выбранная модель объявляет `query_kinds` — свои специализированные виды запросов —
+и `restore(**rows)`. Результат восстановления предоставляет `query(query,max_items)`,
+`apply(operations,max_items)` и `to_dict()`. Аргументы `restore` возвращает backend;
+модель владеет предметными решениями. Общий store сохраняет транзакцию, общую ревизию,
+CAS, запросы типизированных страниц, сравнение намерений и сохранённый ответ.
+Дополнительные виды проходят общую проверку размера/корреляции, затем точную проверку
+полей своей моделью. Прежние типизированные виды сохраняют свой строгий validator.
 
 Backend приложения реализует пять методов:
 
 | Метод | Вход и результат |
 | --- | --- |
 | `initialize(connection)` | Подготовить новую схему или прочитать обязательную metadata своего формата. Вернуть `None`. |
-| `registry_rows(connection)` | Вернуть dict с `requirements`: list объектов `id/level/status/text` и `links`: list объектов `system/application`. |
+| `registry_rows(connection)` | Вернуть именованные входы выбранной модели. Для RequirementsGraph: `requirements`, `links`, `task_identities`, `task_requirement_versions`, `application_task_links`, `revisions`. |
 | `prepare_queries(connection)` | Подготовить TEMP-представления `requirements(id,level,status,text)` и `requirement_links(system_id,application_id)` для общего SQL-владельца. Вернуть `None`. |
-| `previous_request(connection,namespace,request_id)` | Вернуть `None` либо dict с декодированными JSON objects `intent` и `response`. Описанный отказ при нечитаемых необходимых данных — `PoiseError`. |
-| `persist_apply(connection,before,after,revision,request_id,intent,response)` | Сохранить итоговые обычные структуры реестра, новую общую ревизию и точный запрос/ответ. Вернуть `None`. |
+| `previous_request(connection,namespace,request_id)` | Вернуть `None` либо dict с декодированными JSON objects `intent` и `response`. Ошибка необходимых сохранённых данных описывается как `PoiseError`. |
+| `persist_apply(connection,before,after,revision,request_id,intent,response)` | Сохранить итоговые значения, следующую общую ревизию и точный запрос/ответ. Вернуть `None`. |
+
+`requirements` содержит records `id/level/status/text`; `links` — пары
+`system/application`. Входы Task содержат известные IDs/текущие указатели,
+упорядоченные версии keys/status/text и их Application IDs. `revisions` —
+отсоединённый порт сохранённых значений: `has_statement`, `statement`, `task_history`,
+`requirement_history`, `latest_snapshot_revision`, `snapshot`. Адаптер `SavedRevisions`
+владеет чтением выбранного JSON и переводом его ошибок в `PoiseError`; домен
+работает со значениями без SQL, файловой системы и конкретного backend.
+
+`apply` формирует отдельное предполагаемое состояние. Для backend `before/after`
+содержат `requirements`, `links` и новые полные `statements` с `task_id` и
+`statement_revision`. Backend дописывает версии/ключи/связи и текущий указатель,
+закрывает снятые периоды и сохраняет ответ в переданной транзакции. Это обычные
+входы сохранения; отдельного mutable журнала модели нет. Публичный запрос
+`registry` сохраняет свой прежний ответ `requirements/links`; Task читается
+специализированными запросами.
 
 Соединение передано во временное пользование: транзакцию открывает и завершает
-общий store, backend выполняет SQL в ней. Backend не импортирует доменные
-классы. `RequirementsRegistry`, проверка пакетов, последовательные доменные
-операции, запросы страниц, сравнение намерений и обработка повторов остаются
-у общего владельца. Когда TEMP-представление совпадает с именем таблицы,
-SQL backend указывает исходные таблицы через `main`.
+общий store, backend выполняет SQL в ней. Фабрика компонует модель и adapter;
+SQL не принимает предметные решения о применимости. Когда TEMP-представление
+совпадает с именем таблицы, backend указывает исходные таблицы через `main`.
 
-Метаданные backend содержат единственную `requirements_meta.revision`, которую
-читают общие методы. При `apply` новое пространство повторов — `registry.apply`;
-намерение сравнивается как структура с сохранением порядка списков. Новая
-композиция не вычисляет digest намерения. Backend сохраняет общую ревизию,
-изменения и ответ в одной caller-транзакции. SQLite/filesystem ошибки новой
-композиции выходят как `PoiseError` после завершения rollback.
+Backend содержит единственную `requirements_meta.revision`, которую читают общие
+методы. Пространство повторов `apply` — `registry.apply`. Полное намерение сравнивается
+по каноническому JSON с сохранением типов и порядка списков; порядок ключей object
+свободен. Композиция хранит намерение и ответ без digest. SQLite/filesystem ошибки
+выходят как `PoiseError` после rollback. JSON выбранной истории декодируется для
+этой операции; startup-проверки подмены или контрольных сумм отсутствуют.
 
 Самостоятельная композиция использует `revision`, `registry`, `read`, `query`,
-`apply`, `read_bootstrap`. `RequirementsCommands` предоставляет её shell операции
-`apply/query/import_bootstrap`. Наследуемые старые `command` и `migrate` относятся
-к другому формату и не включены в этот список поддерживаемых методов.
+`apply`, `read_bootstrap`. `RequirementsCommands` предоставляет shell операции
+`apply/query/import_bootstrap`. `command` и `migrate` принадлежат другому формату.
 
-Приложение [Requirements](../../apps/requirements/docs/storage-req.md) владеет
-своей схемой и backend. Примеры запуска относятся к текущему checkout. Потребитель
-общего пакета выбирает и обновляет его версию отдельно; наличие метода в этом
-срезе исходников не является сведением о публикации пакета.
+[Requirements](../../apps/requirements/docs/storage-req.md) владеет собственной
+схемой и backend; [graph-профиль](../../apps/requirements/docs/graph-req.md) описывает
+реализованные команды. Примеры относятся к текущему checkout. Потребитель общего
+пакета выбирает и обновляет версию отдельно; исходники не подтверждают публикацию
+пакета.
 
 ## Остальные доменные библиотеки
 

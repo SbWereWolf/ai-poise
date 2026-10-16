@@ -1,0 +1,301 @@
+# Работа с графом требований
+
+Обновлено: **2026-10-16**.
+
+Это реализованный профиль самостоятельного Requirements: System → Application →
+Task с отношениями M:N на обоих переходах. Запуск, Python 3.13 и все параметры
+конфигурации описаны в [инструкции CLI](shell-req.md). Формат данных и транзакции —
+в [описании хранилища](storage-req.md). Сохраните выбранный ниже JSON-пакет в
+`$requirements_work/request.json` и передайте его той же настроенной установке:
+
+```sh
+"$requirements_python" -B "$requirements_checkout/apps/requirements/bin/requirements" \
+  --config "$requirements_work/config/requirements.json" \
+  < "$requirements_work/request.json"
+```
+
+Используйте внешний пакет `operation/input`. В `query.input.queries` передавайте
+непустой список с уникальными непустыми строками `id`; ответ сохраняет их порядок
+и идентификаторы. Все элементы одного ответа относятся к одной общей `revision`.
+Пакет возвращает полный результат либо описанный отказ. `batch.max_items` задаёт
+предел элементов пакета и предел страницы поиска. Для `revise_task` этот же предел
+действует на списки требований и Application IDs. `batch.max_input_bytes`
+ограничивает весь входной пакет. Все пакеты примеров ниже используют
+`batch.max_items:64`.
+
+## Чтение и направления связей
+
+| Намерение | `kind` и дополнительные поля запроса |
+| --- | --- |
+| System → Applications или Application → Systems | `chain`, `requirement_id` |
+| Application → требования текущих постановок Task | `application_tasks`, `application_id` |
+| Требование выбранной постановки Task → Applications | `task_chain`, `task_id`, `key`, `statement_revision` |
+| Полная текущая постановка | `get_task`, `task_id` |
+| Порядок постановок Task и их goals | `task_history`, `task_id` |
+| Полные редакции System/Application | `history_requirement`, `requirement_id` |
+| Сохранённый полный снимок | `snapshot`, `task_id`, `snapshot_revision` |
+| Поиск System/Application | `search_requirements`, `filter`, `limit`, `after_id` |
+| Полнота распределения ответственности | `coverage`, необязательный `mode` |
+| Пробелы и типизированные placeholders | `gaps` |
+
+`task_chain` возвращает `task` с `task_id`, `statement_revision`, `key`, `status`,
+`text`, `applications` и список связанных Application records. Для каждого такого
+Application используйте `chain`, чтобы прочитать его System-основания. Обратный
+`application_tasks` возвращает Application record и подходящие Task records,
+упорядоченные по `task_id/key`. Он выбирает текущую постановку каждой Task;
+`task_chain` позволяет явно выбрать сохранённую редакцию. В текущих списках
+родителей и обратных детей учитываются записи со статусом, отличным от `obsolete`.
+
+`get_task` содержит `task_id`, `statement_revision`, `goal`, упорядоченные
+`task_requirements`, `definition_of_done` и `snapshot_revision`. Последнее поле —
+номер последнего сохранённого снимка этой Task либо `null`. Снимок может относиться
+к более ранней постановке: для чтения его значений укажите собственную точную
+`snapshot_revision`.
+
+`task_history.items` содержит `statement_revision/goal` в порядке редакций.
+`history_requirement.items` содержит `revision/status/text/owner_revision/origin`.
+Снимок возвращается целиком как сохранённый JSON object; текущее изменение графа
+сохраняет прежнее содержимое снимка.
+
+## Применимость, пробелы и поиск
+
+`coverage(mode="current")` учитывает содержательные текущие требования.
+`coverage(mode="analysis")`, а также `coverage` без `mode`, учитывает содержательные
+текущие и будущие требования. Статусы — `current`, `future`, `obsolete`.
+Текст требования содержателен, когда после удаления пробелов остаются символы;
+для явно будущего placeholder используйте `status:"future", text:""`.
+
+Ответ `coverage` содержит три упорядоченных списка IDs:
+`application_without_system`, `system_without_application`,
+`application_without_task`. Будущее содержательное требование Task может покрыть
+текущий Application в анализе и оставить его пробелом текущего режима. Пустые
+placeholders остаются пробелами, а структурная связь описывает основание требования,
+не факт его выполнения. `gaps` возвращает перечисленные пробелы и отдельные записи
+`projected_placeholder` с уровнем `system`, `application` или `task`.
+
+В `filter` поиска используйте выбранные поля `level` (`system/application`),
+`status` и `text_contains`. Поиск подстроки чувствителен к регистру и поддерживает
+Unicode. Пустой фильтр выбирает все записи. Задавайте целый `limit` от 1 до
+`batch.max_items`; для первой страницы — `after_id:null`, для следующей —
+возвращённый `next`. Результат содержит `rows` и `next`, равный последнему ID
+страницы при наличии продолжения, иначе `null`. Порядок — по точному ID.
+Каждый следующий пакет читает актуальную ревизию хранилища.
+
+## Новое пустое хранилище
+
+Первый запрос подготавливает самостоятельную схему. На новом хранилище следующий
+пакет возвращает `status:"read_only"`, `revision:0`, три пустых списка в каждом
+coverage, пустые gaps и поиск `rows:[], next:null`:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"current","kind":"coverage","mode":"current"},
+      {"id":"analysis","kind":"coverage","mode":"analysis"},
+      {"id":"gaps","kind":"gaps"},
+      {"id":"search","kind":"search_requirements","filter":{"level":"application","text_contains":"граф"},"limit":64,"after_id":null}
+    ]
+  }
+}
+```
+
+Для этого примера выберите `batch.max_items:64`. Используйте
+[пример начального заполнения System/Application](shell-req.md#создание-и-повторное-открытие)
+для добавления собственных требований через `apply`.
+
+## Подготовленная известная Task
+
+Запросы Task принимают её существующий точный ID. Получите текущую постановку
+через `get_task` и общую ревизию из ответа. Для изменения передайте актуальную
+`expected_revision`, актуальную `expected_statement_revision`, полный следующий
+statement и тот же `goal`. Сохраняйте ключи неизменённых требований; список
+`applications` задаёт уникальные известные Application IDs. `definition_of_done`
+содержит строки с содержательным текстом.
+
+Следующие примеры используют подготовленную демонстрационную модель
+[graph-state.json](../fixtures/graph-state.json): общая ревизия 7,
+Task `000007` с постановкой 2 и снимком 1, Task `000008` с постановкой 1.
+В ней уже существуют `SYS-A`, `SYS-B`, `APP-A`, `APP-B` и остальные записи fixture.
+Это исходные данные проверки примеров. Новая установка начинает с пустой модели;
+выдача Task ID и публикация новых снимков принадлежат отдельным операциям,
+которые развиваются отдельно от этого профиля чтения и изменения известной Task.
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"task","kind":"get_task","task_id":"000008"},
+      {"id":"parents","kind":"task_chain","task_id":"000007","key":"R2","statement_revision":2},
+      {"id":"children","kind":"application_tasks","application_id":"APP-A"},
+      {"id":"history","kind":"history_requirement","requirement_id":"SYS-A"},
+      {"id":"statements","kind":"task_history","task_id":"000008"},
+      {"id":"snapshot","kind":"snapshot","task_id":"000007","snapshot_revision":1},
+      {"id":"search","kind":"search_requirements","filter":{"level":"application","status":"current","text_contains":"граф"},"limit":1,"after_id":null}
+    ]
+  }
+}
+```
+
+Ответ имеет ревизию 7. `parents` содержит `APP-A/APP-B`; `children` —
+`000007/R1`, `000007/R2`, `000008/R1`. Поиск возвращает `APP-A`, `next:"APP-A"`.
+
+### Добавление второго основания
+
+`revise_task` создаёт следующую полную постановку. Прежние ключи, тексты, связи
+и порядок доступны через выбранную редакцию; ключ, снятый из новой постановки,
+остаётся в её истории. Для нового изменения используйте новый `request_id`.
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "doc-add-parent",
+    "expected_revision": 7,
+    "operations": [
+      {
+        "kind": "revise_task",
+        "task_id": "000008",
+        "expected_statement_revision": 1,
+        "statement": {
+          "goal": "Использовать общее требование.",
+          "task_requirements": [
+            {"key":"R1","status":"current","text":"Использовать общее основание.","applications":["APP-A","APP-B"]}
+          ],
+          "definition_of_done": ["Оба основания сохранены."]
+        }
+      }
+    ]
+  }
+}
+```
+
+Результат — `status:"applied", revision:8, replayed:false`; постановка Task
+получает номер 2. Точный повтор исходного пакета возвращает его сохранённую
+ревизию 8 с `replayed:true`. Порядок ключей JSON object при сравнении намерения
+свободен; порядок списков и типы значений сохраняются.
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"parents","kind":"task_chain","task_id":"000008","key":"R1","statement_revision":2},
+      {"id":"children","kind":"application_tasks","application_id":"APP-B"},
+      {"id":"history","kind":"task_history","task_id":"000008"},
+      {"id":"snapshot","kind":"snapshot","task_id":"000007","snapshot_revision":1}
+    ]
+  }
+}
+```
+
+Теперь `parents` содержит `APP-A/APP-B`, обратное чтение — `000007/R2` и
+`000008/R1`, история Task — редакции 1 и 2. Старый снимок `000007/1` сохраняется.
+
+### Завершение периода верхней связи
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "doc-unlink",
+    "expected_revision": 8,
+    "operations": [{"kind":"unlink","system":"SYS-B","application":"APP-A"}]
+  }
+}
+```
+
+Ревизия становится 9; период выбранной связи закрывается. Текущий `APP-A`
+имеет System-основание `SYS-A`; сохранённый снимок продолжает описывать прежний граф.
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"application","kind":"chain","requirement_id":"APP-A"},
+      {"id":"parents","kind":"task_chain","task_id":"000007","key":"R2","statement_revision":2},
+      {"id":"snapshot","kind":"snapshot","task_id":"000007","snapshot_revision":1}
+    ]
+  }
+}
+```
+
+### Явное нижнее обнаружение
+
+Создайте новые System/Application records через `put_requirement`, свяжите их
+операцией `link` и включите новый Application в ту же известную Task через
+`revise_task`. Порядок операций задаёт доступность создаваемых оснований.
+Весь пакет сохраняется одной транзакцией и получает одну общую ревизию.
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "doc-discovery",
+    "expected_revision": 9,
+    "operations": [
+      {"kind":"put_requirement","requirement":{"id":"SYS-DOC","level":"system","status":"current","text":"Сохранять структуру требований."}},
+      {"kind":"put_requirement","requirement":{"id":"APP-DOC","level":"application","status":"current","text":"Просматривать основания задачи."}},
+      {"kind":"link","system":"SYS-DOC","application":"APP-DOC"},
+      {
+        "kind": "revise_task",
+        "task_id": "000008",
+        "expected_statement_revision": 2,
+        "statement": {
+          "goal": "Использовать общее требование.",
+          "task_requirements": [
+            {"key":"R1","status":"current","text":"Использовать общее основание.","applications":["APP-A","APP-B","APP-DOC"]}
+          ],
+          "definition_of_done": ["Три основания сохранены."]
+        }
+      }
+    ]
+  }
+}
+```
+
+Результат имеет ревизию 10. Task сохраняет ID и goal; её постановка получает
+номер 3. Чтение подтверждает обе стороны нового пути и сохранённую историю:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"task","kind":"get_task","task_id":"000008"},
+      {"id":"parents","kind":"task_chain","task_id":"000008","key":"R1","statement_revision":3},
+      {"id":"application","kind":"chain","requirement_id":"APP-DOC"},
+      {"id":"history","kind":"task_history","task_id":"000008"},
+      {"id":"requirement-history","kind":"history_requirement","requirement_id":"APP-DOC"}
+    ]
+  }
+}
+```
+
+## Границы и результаты операций
+
+Изменение System/Application через `put_requirement` сохраняет следующую локальную
+редакцию record; для снятия с применения задайте `status:"obsolete"`. Верхние связи
+изменяются `link/unlink`, основания требований Task — полной следующей постановкой.
+История и значения снимков читаются отдельно от текущей применимости.
+
+Текущий профиль предоставляет `apply/query/import_bootstrap`. В нём реализованы
+описанные чтения и изменения известной Task. Выдача нового ID, публикация snapshot,
+purpose-aware готовность, outcomes и satisfaction относятся к последующим
+возможностям [целевого контракта](contract-req.md).
+
+Описанный отказ CLI возвращает exit 2 и JSON object с `status:"rejected"` и
+содержательным `reason`. Публичный Python API использует `PoiseError` для описанных
+отказов выбранной операции. Задавайте строковые виды запросов, известные IDs,
+уникальные keys/Application sets и действующие целые номера ревизий. Изменения
+сохраняются атомарно. Чтение сохранённого JSON выполняется для выбранного значения;
+его нечитаемость описывается как ошибка этой операции, а остальные читаемые данные
+остаются доступны. Восстановление данных выполняет оператор отдельным инструментом.
+
+Рабочая конфигурация и состояние принадлежат выбранной установке. Приложение
+хранит полное намерение и значения; при запуске используются необходимая metadata
+схемы и данные текущей операции. Контрольные суммы и проверки подмены файлов
+условием запуска и чтения этого профиля не являются.

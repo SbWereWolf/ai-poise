@@ -7,8 +7,9 @@ Requirements после разделения монолита. Контракт 
 но не утверждает, что описанные target-операции уже реализованы в текущем `poise`.
 Текущий CLI и конфигурация уже реализованы: фактический пакет `operation/input`
 и три доступные операции описаны в [инструкции запуска](shell-req.md), а собственный
-формат хранения — в [описании хранилища](storage-req.md). Остальные операции и
-расширенный envelope ниже остаются проектом будущего интерфейса.
+формат хранения — в [описании хранилища](storage-req.md). Реализованные чтения и
+изменения трёхуровневого графа определяет [текущий профиль](graph-req.md).
+Остальные операции и расширенный envelope ниже остаются проектом будущего интерфейса.
 
 ## 1. Граница владельца
 
@@ -323,7 +324,7 @@ Application↔TaskRequirement links принадлежат statement revision и
 }
 ```
 
-`creation_request_id` имеет собственную immutable digest/replay semantics внутри
+`creation_request_id` связывает полное неизменяемое намерение и исходный ответ внутри
 Requirements. При первом применении allocator выдаёт `task_id`; при exact replay
 возвращает тот же ID и не расходует новый. Изменённый intent с тем же
 `creation_request_id` отклоняется `request_reuse_conflict`.
@@ -446,7 +447,7 @@ Result item:
 }
 ```
 
-Import проверяет schema, identity, revision continuity и digest-equivalence всех уже
+Import проверяет schema, identity, revision continuity и равенство содержимого всех уже
 существующих записей до записи. Любой конфликт отклоняет весь batch. Он не импортирует
 Sequencing/Execution state и не пишет в их stores.
 
@@ -643,7 +644,9 @@ placeholder не выводятся.
 `export_slice(task_id=0042)` returns only `stride-requirements-slice/v1` statement,
 snapshot and outcome history owned by Requirements. В slice нет Sprint membership,
 claim, Workspace, process graph или evidence. `import_slice` с изменённым уже
-существующим snapshot digest отклоняет весь batch и не выполняет foreign writes.
+существующим содержимым той же snapshot identity отклоняет весь batch и сохраняет
+данные прежних владельцев. Это конфликт значений выбранной операции, а не
+проверка подлинности файла или условие запуска.
 
 ## 9. Concurrency, security и observability
 

@@ -25,11 +25,11 @@ class CatalogueCommands:
             goal=item['goal_type']
             if not isinstance(goal,str) or goal in goals:raise DomainError('Distinct explicit goal types required')
             goals.add(goal)
-            selection=self.repository.process_selection(goal)
+            selection=self.repository.workflow_selection(goal)
             if item['template']!=selection and item['mode']=='create':
-                raise DomainError('Select the exact registered independent process template')
-            source=(self.repository.process_template(selection) if item['mode']=='create'
-                    else self.repository.configured_process(goal))
+                raise DomainError('Select the exact registered independent workflow template')
+            source=(self.repository.workflow_template(selection) if item['mode']=='create'
+                    else self.repository.configured_workflow(goal))
             GoalTypeDefinition.build_configuration(goal,source,item['changes'])
             prepared.append(request)
         # Each file has its own durable receipt. The batch is NOT a filesystem transaction.
@@ -37,7 +37,7 @@ class CatalogueCommands:
         for request in prepared:results.append(self.editor.apply_batch(request))
         return {'status':'installed','results':results,'count':len(results)}
 
-    def materialize_draft(self, goal_type, task_id, sprint_id, processes, revision_policy):
+    def materialize_draft(self, goal_type, task_id, sprint_id, workflows, revision_policy):
         """Goal selection is declarative; template revisions are resolved by the owner."""
         from ..modules.tasks.planning import validate_planning
         selection = self.repository.task_selection(goal_type)
@@ -55,18 +55,18 @@ class CatalogueCommands:
             'schema': 'task-planning-1', 'template': selection,
             'restart_revision_policy': deepcopy(revision_policy),
         })
-        process = (deepcopy(processes[goal_type]) if goal_type in processes
-                   else self.repository.process_template(self.repository.process_selection(goal_type)))
-        return draft, GoalTypeDefinition.from_configuration(process).data
+        workflow = (deepcopy(workflows[goal_type]) if goal_type in workflows
+                   else self.repository.workflow_template(self.repository.workflow_selection(goal_type)))
+        return draft, GoalTypeDefinition.from_configuration(workflow).data
 
-    def tasks(self,items,processes,automatic_checks,decomposition_policy):
+    def tasks(self,items,workflows,automatic_checks,decomposition_policy):
         self._batch(items);tasks=[];ids=set()
         for item in items:
             exact_keys(item,{'template','parameters'},'catalogue task item')
             blueprint=self.repository.task_blueprint(item['template'])
-            if blueprint.goal_type not in processes:raise DomainError('Goal is not in the selected project')
+            if blueprint.goal_type not in workflows:raise DomainError('Goal is not in the selected project')
             contract=blueprint.instantiate(
-                item['parameters'],GoalTypeDefinition.from_configuration(processes[blueprint.goal_type]).data,automatic_checks,
+                item['parameters'],GoalTypeDefinition.from_configuration(workflows[blueprint.goal_type]).data,automatic_checks,
                 decomposition_policy,
             )
             if contract['id'] in ids:raise DomainError('Duplicate task identity in batch')

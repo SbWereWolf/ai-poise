@@ -52,7 +52,7 @@ JetBrains MCP не заменяет владельцев workflow и данны�
 - утверждения поддержки языка только по факту открытия файла;
 - обхода approval, trust, sandbox, stage `allowed_paths` или пользовательской авторизации.
 
-Read-only semantic вызовы допустимы для диагностики и исследования. Мутирующие `rename_refactoring`, `reformat_file` и dynamically dispatched команды применяются только в текущей рабочей папке, выбранной по process policy, и разрешённом stage scope. Dedicated worktree не является обязательным, когда process не требует его. Перед вызовом агент фиксирует точную цель; после вызова инспектирует полный diff и выполняет применимые узкие project checks. Универсальный executor не расширяет полномочия и используется только когда выбранная операция явно read-only либо отдельно разрешена текущим stage contract.
+Read-only semantic вызовы допустимы для диагностики и исследования. Мутирующие `rename_refactoring`, `reformat_file` и dynamically dispatched команды применяются только в текущей рабочей папке, выбранной по workflow policy, и разрешённом stage scope. Dedicated worktree не является обязательным, когда workflow не требует его. Перед вызовом агент фиксирует точную цель; после вызова инспектирует полный diff и выполняет применимые узкие project checks. Универсальный executor не расширяет полномочия и используется только когда выбранная операция явно read-only либо отдельно разрешена текущим stage contract.
 
 ## Fallback на ast-index
 

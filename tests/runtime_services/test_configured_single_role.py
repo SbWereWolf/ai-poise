@@ -13,9 +13,9 @@ from .test_stage_progression import configure_progression, advance, bootstrap, h
 
 def _through_implementation(project, *, role='executor', review_role='executor'):
     stages = configure_progression(project)
-    for stage in project['process']['stages']:
+    for stage in project['workflow']['stages']:
         stage['role'] = review_role if stage['id'] == 'code_review' else role
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     tools = WorkTools(WorkPoise(project['config_path'], 'session-A'))
     first = bootstrap(tools, project['task'])
     assert first['workflow']['role'] == role
@@ -78,10 +78,10 @@ def test_different_roles_keep_same_actor_rejection_at_public_acquisition(project
     assert verify(other, payload)['status'] == 'verified'
 
 
-def test_task_role_snapshot_survives_external_process_edits(project):
+def test_task_role_snapshot_survives_external_workflow_edits(project):
     tools = _through_implementation(project)
-    project['process']['stages'][-1]['role'] = 'reviewer'
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    project['workflow']['stages'][-1]['role'] = 'reviewer'
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     reloaded = WorkTools(WorkPoise(project['config_path'], 'session-A'))
     review = advance(reloaded)
     assert review['stage'] == 'code_review'
@@ -90,8 +90,8 @@ def test_task_role_snapshot_survives_external_process_edits(project):
 
 def test_same_session_inspects_red_tests_before_implementation_and_green_code(project):
     """The same inspect handler checks RED and GREEN; its role remains process data."""
-    process = deepcopy(project['process'])
-    for position, stage in enumerate(process['stages']):
+    workflow = deepcopy(project['workflow'])
+    for position, stage in enumerate(workflow['stages']):
         stage['role'] = 'executor'
         if stage['id'] in ('test_review', 'code_review'):
             following = 'implementation' if stage['id'] == 'test_review' else None
@@ -99,7 +99,7 @@ def test_same_session_inspects_red_tests_before_implementation_and_green_code(pr
             stage.update(handler='inspect', transitions={
                 'clear': following, 'changes_requested': producer,
             })
-    write_json(project['root'] / 'config/processes/development.json', process)
+    write_json(project['root'] / 'config/workflows/development.json', workflow)
     task = deepcopy(project['task'])
     task['checks'] = {
         'tests': ['RED'], 'test_review': ['RED'],

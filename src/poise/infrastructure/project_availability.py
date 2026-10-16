@@ -75,8 +75,7 @@ class ReadOnlyProjectAvailability:
             if execution.exists(tid):
                 current, _ = execution.load(tid)
                 try:
-                    require_start_execution(current, metadata.get('restart_history', []),
-                                            tasks.migrated_start_context(tid))
+                    require_start_execution(current)
                 except DomainError:
                     continue
             task = tasks.load(tid)

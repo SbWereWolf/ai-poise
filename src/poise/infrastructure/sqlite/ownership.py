@@ -80,9 +80,9 @@ def upgrade_legacy_ownership(db, *, clear_terminal=True):
 
 
 class SqliteOwnershipRepository:
-    def __init__(self, connection, processes):
+    def __init__(self, connection, workflows):
         self.db = connection
-        self.processes = processes
+        self.workflows = workflows
 
     def snapshot(self, actor):
         tasks = [row[0] for row in self.db.execute(
@@ -113,10 +113,10 @@ class SqliteOwnershipRepository:
         metadata = json.loads(row['metadata'])
         if row['status'] == 'newborn' and not metadata.get('restart_history'):
             return False
-        process = metadata["process"]
-        value = process.get("worktree_required")
+        workflow = metadata["workflow"]
+        value = workflow.get("worktree_required")
         if type(value) is not bool:
-            raise PoiseError("Stored process requires exact worktree_required bool")
+            raise PoiseError("Stored workflow requires exact worktree_required bool")
         return value
 
     def bind_worktree(self, actor, task_id):

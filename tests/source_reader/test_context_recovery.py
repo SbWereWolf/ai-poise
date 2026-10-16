@@ -54,8 +54,8 @@ def test_compaction_rereads_unchanged_bytes_despite_old_ack(project, tmp_path):
 
 
 def test_active_task_metadata_preserves_exact_owner_state_without_worktree(project):
-    project['process']['worktree_required'] = False
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    project['workflow']['worktree_required'] = False
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     h = WorkPoise(project['config_path'], 'R'); reader(h)
     h.bootstrap(project['task']); before = deepcopy(h.current_task())
     out = WorkTools(h).invoke(packet(cwd=project['app']))
@@ -90,6 +90,7 @@ def test_native_compact_resets_reader_and_preserves_source_provenance(project, t
     from hook_transport.helpers import settings, install, event
     project['cfg']['source_reader'] = {'policy': str(ROOT / 'config/development/source-reader.json'),
                                      'receipt_file': 'reader.json'}
+    write_json(project['config_path'], project['cfg'])
     s = HookService(settings(project, tmp_path)); installed = install(s)
     e = event(); e['cwd'] = str(project['app'])
     s.event(installed['definition_path'], e)

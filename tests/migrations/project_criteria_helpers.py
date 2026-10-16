@@ -40,14 +40,14 @@ def historical_project_owned(project):
     config["runtime_resources"] = {"project_setup": str(settings), "hooks": []}
     bundle = root / create["destination"]
     project["config_path"] = bundle / "project.json"
-    config["processes"] = {}
+    config["workflows"] = {}
     documents = {}
     sources = {}
     for goal in ("development", "design"):
         document = deepcopy(source)
         document["goal_type"] = goal
         relative = f"config/project-processes/{goal}.json"
-        config["processes"][goal] = relative
+        config["workflows"][goal] = relative
         write_json(bundle / relative, document)
         documents[goal] = document
         source_path = f"config/historical-sources/{goal}.json"
@@ -56,7 +56,7 @@ def historical_project_owned(project):
     write_json(project["config_path"], config)
     project["cfg"] = config
     blueprint["config"] = deepcopy(config)
-    blueprint["process_sources"] = sources
+    blueprint["workflow_sources"] = sources
     blueprint_path = write_json(root / "config/project-blueprint.json", blueprint)
     setup_settings = json.loads(settings.read_text())
     setup_settings["lock"] = "project-setup.lock"
@@ -67,18 +67,19 @@ def historical_project_owned(project):
     create["edits"][0]["value"] = config["project"]
     create["probe_repository"] = False
     initial_documents = deepcopy(documents)
-    initial_revision = identity({"config": config, "processes": documents})
+    initial_revision = identity({"config": config, "workflows": documents})
     initial_bytes = {
         relative: (bundle / relative).read_bytes()
-        for relative in ("project.json", *config["processes"].values())
+        for relative in ("project.json", *config["workflows"].values())
     }
     receipt_path = bundle / "setup-receipt.json"
     write_json(receipt_path, {
         "schema": "project-receipt-1", "request_id": create["request_id"],
-        "request_digest": identity(create), "template": create["template"],
+        "request_digest": identity(create),
+        "template": {**create["template"], "version": setup_settings["templates"]["selected"]["version"]},
         "files": {key: hashlib.sha256(value).hexdigest() for key, value in initial_bytes.items()},
         "result": {"status": "created", "project": config["project"], "revision": initial_revision,
-                   "config_path": str(project["config_path"]), "process_count": 2,
+                   "config_path": str(project["config_path"]), "workflow_count": 2,
                    "readiness": {"repository": "not_checked", "remote": "not_checked"}, "replayed": False},
     })
     registry = write_json(root / "state/project-registry.json", {
@@ -90,15 +91,15 @@ def historical_project_owned(project):
     update = {
         "schema": "project-config-update-1", "request_id": "historical-project-update",
         "config_path": str(project["config_path"]), "expected_revision": initial_revision,
-        "manifest_edits": [], "process_updates": [{"goal_type": "development",
+        "manifest_edits": [], "workflow_updates": [{"goal_type": "development",
             "expected_revision": identity(documents["development"]),
             "changes": [{"op": "patch_stage", "id": "tests", "set": {"instruction": instruction}}]}],
         "state_relocation": None, "probe_repository": False,
         "receipt_path": "operations/historical-project-update.json",
     }
     documents["development"]["stages"][0]["instruction"] = instruction
-    write_json(bundle / config["processes"]["development"], documents["development"])
-    revision = identity({"config": config, "processes": documents})
+    write_json(bundle / config["workflows"]["development"], documents["development"])
+    revision = identity({"config": config, "workflows": documents})
     history_receipt = root / update["receipt_path"]
     write_json(history_receipt, {
         "schema": "project-config-receipt-1", "request_id": update["request_id"],
@@ -116,7 +117,7 @@ def historical_project_owned(project):
         ).fetchone()[0]
     packet["mapping"][0]["stages"] = deepcopy(stages)
     packet["mapping"].insert(1, {
-        "kind": "process_definition", "goal_type": "design",
+        "kind": "workflow_definition", "goal_type": "design",
         "expected_revision": identity(documents["design"]), "stages": deepcopy(stages),
     })
     for mapped in packet["mapping"][2:]:
@@ -138,7 +139,7 @@ def historical_project_owned(project):
     case = {"project": project, "database": database, "packet": packet,
             "settings": settings, "config": project["config_path"], "bundle": bundle,
             "setup_receipt": receipt_path, "source_revision": revision,
-            "process_paths": [bundle / config["processes"][goal] for goal in ("development", "design")],
+            "workflow_paths": [bundle / config["workflows"][goal] for goal in ("development", "design")],
             "catalogue_target": catalogue_target, "unrelated": unrelated,
             "mapping_stages": stages, "history_receipt": history_receipt,
             "owner_inputs": [settings, registry, blueprint_path, root / "criteria-catalogue.json",
@@ -172,31 +173,31 @@ def assert_fixture_consistent(case):
             parent = parent[key]
         parent[edit["path"][-1]] = edit["value"]
     assert configured == config
-    for goal, source in blueprint["process_sources"].items():
+    for goal, source in blueprint["workflow_sources"].items():
         document = json.loads((settings.root / source["path"]).read_text())
         assert source["digest"] == identity(document)
         assert document == case["initial_documents"][goal]
     setup = json.loads(case["setup_receipt"].read_text())
     assert setup["request_id"] == create["request_id"]
     assert setup["request_digest"] == identity(create)
-    assert setup["template"] == create["template"]
+    assert setup["template"] == {**create["template"], "version": "1"}
     assert setup["files"] == {key: hashlib.sha256(value).hexdigest() for key, value in case["initial_bytes"].items()}
-    assert setup["result"]["revision"] == identity({"config": config, "processes": case["initial_documents"]})
+    assert setup["result"]["revision"] == identity({"config": config, "workflows": case["initial_documents"]})
     update = case["update_request"]
     history = json.loads(case["history_receipt"].read_text())
     assert history["request_id"] == update["request_id"]
     assert history["request_digest"] == identity(update)
     assert history["result"]["prior_revision"] == update["expected_revision"] == setup["result"]["revision"]
     expected = deepcopy(case["initial_documents"])
-    expected["development"]["stages"][0]["instruction"] = update["process_updates"][0]["changes"][0]["set"]["instruction"]
-    actual = {goal: json.loads((bundle / path).read_text()) for goal, path in config["processes"].items()}
+    expected["development"]["stages"][0]["instruction"] = update["workflow_updates"][0]["changes"][0]["set"]["instruction"]
+    actual = {goal: json.loads((bundle / path).read_text()) for goal, path in config["workflows"].items()}
     assert actual == expected
-    assert history["result"]["revision"] == case["source_revision"] == identity({"config": config, "processes": actual})
+    assert history["result"]["revision"] == case["source_revision"] == identity({"config": config, "workflows": actual})
     assert all("purpose" not in stage and "criteria_authority" not in stage for doc in actual.values() for stage in doc["stages"])
 
 
 def run_migration(case, *, fresh=False, patch=None, select_project_owner=True):
-    arguments = ["task-process-migrate", "--config", str(case["config"])]
+    arguments = ["task-workflow-migrate", "--config", str(case["config"])]
     if select_project_owner:
         arguments.extend(["--project-settings", str(case["settings"])])
     raw = json.dumps(case["packet"], ensure_ascii=False)
@@ -249,7 +250,7 @@ def observe(case):
         "task": snapshot(case["database"]),
         "owner_inputs": {str(path): path.read_bytes() if path.exists() else None for path in case["owner_inputs"]},
         "publication": publication_files(case),
-        "source": {str(path): path.read_bytes() for path in case["process_paths"]},
+        "source": {str(path): path.read_bytes() for path in case["workflow_paths"]},
         "config": case["config"].read_bytes(),
         "setup_receipt": case["setup_receipt"].read_bytes() if case["setup_receipt"].exists() else None,
         "catalogue": publication_rows(case["project"]),

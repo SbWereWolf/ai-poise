@@ -66,8 +66,8 @@ def test_domain_wrong_type():
 
 
 def creation_fixture():
-    process = json.loads((ROOT / "config/catalogue/process-templates/development.json").read_text())
-    stages = [stage["id"] for stage in process["stages"]]
+    workflow = json.loads((ROOT / "config/catalogue/workflow-templates/development.json").read_text())
+    stages = [stage["id"] for stage in workflow["stages"]]
     task = {
         "sprint_id": None,
         "goal_type": "development",
@@ -89,7 +89,7 @@ def creation_fixture():
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
-        } for stage in process["stages"]],
+        } for stage in workflow["stages"]],
         "decomposition": {
             "kind": "ordinary",
             "phases": [
@@ -99,15 +99,15 @@ def creation_fixture():
             "integration": None,
         },
     }
-    return {"request_id": "schema-diagnostic-creation", "task": task}, process
+    return {"request_id": "schema-diagnostic-creation", "task": task}, workflow
 
 
 def test_automatic_missing_obligations():
-    intent, process = creation_fixture()
+    intent, workflow = creation_fixture()
     del intent["task"]["executable_obligations"]
     before = deepcopy(intent)
     message = rejected(
-        lambda: validate_creation_intent(intent, process, [], decomposition_policy()),
+        lambda: validate_creation_intent(intent, workflow, [], decomposition_policy()),
         DomainError,
     )
     check_delta(message, ["executable_obligations"], [], "task")
@@ -135,15 +135,15 @@ def test_valid_shapes_preserve_input():
 
 
 def test_valid_automatic_and_explicit_creation():
-    intent, process = creation_fixture()
+    intent, workflow = creation_fixture()
     before = deepcopy(intent)
-    metadata = validate_creation_intent(intent, process, [], decomposition_policy())
+    metadata = validate_creation_intent(intent, workflow, [], decomposition_policy())
     assert metadata["contract"]["id"] == intent["request_id"]
     contract, receipt = materialize_contract(intent, "0099")
     assert contract["id"] == "0099"
     assert receipt["request_id"] == intent["request_id"]
     assert validate_creation_intent(
-        contract, process, [], decomposition_policy()
+        contract, workflow, [], decomposition_policy()
     )["contract"] == contract
     assert intent == before
     assert "id" not in intent["task"]
@@ -151,12 +151,12 @@ def test_valid_automatic_and_explicit_creation():
 
 def test_automatic_caller_id_still_forbidden():
     for identity in (None, "0099"):
-        intent, process = creation_fixture()
+        intent, workflow = creation_fixture()
         intent["task"]["id"] = identity
         before = deepcopy(intent)
         message = rejected(
             lambda: validate_creation_intent(
-                intent, process, [], decomposition_policy()
+                intent, workflow, [], decomposition_policy()
             ),
             DomainError,
         )

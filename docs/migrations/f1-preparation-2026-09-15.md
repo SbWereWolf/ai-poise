@@ -27,7 +27,7 @@ C002 (conditional duplicate) -> C025 -> C027.4
 |---|---|---|
 | `ERP-MIG-F1-11-C002` | **reuse/no-change** | F2 уже реализовала C002 (`d301978`): scoped development rules, точный раздел path semantics и AGENTS-ссылки. Повторная реализация запрещена. |
 | `ERP-MIG-F1-04-C026-2` | **implement narrow gap** | IDE-first policy есть, но в текущем source нет владельца операции, который принимает конкретный checkout path и диагностирует identity/freshness AST index. Не создавать второй IDE owner и не встраивать собственный indexer. |
-| `ERP-MIG-F1-08-C025` | **audit first; likely reuse + narrow gap-fill** | Runner/capability owners после F2 уже дают exact argv/cwd, process ownership, timeout и availability observations. Сначала доказать конкретный AI-poise gap; generic runtime policy для чужих проектов запрещена. |
+| `ERP-MIG-F1-08-C025` | **audit first; likely reuse + narrow gap-fill** | Runner/capability owners после F2 уже дают exact argv/cwd, workflow ownership, timeout и availability observations. Сначала доказать конкретный AI-poise gap; generic runtime policy для чужих проектов запрещена. |
 | `ERP-MIG-F1-02-C027-4` | **implement** | Markdown formatter fallback в текущем репозитории отсутствует. Нужен только explicit-file check/fix fallback AI-poise, IDE остаётся preferred path. |
 | `ERP-MIG-F1-12-C003` | **implement** | Skill Catalog существует, но selection-condition metadata, потребляемой одним router, нет. ERP profiles не переносить. |
 | `ERP-MIG-F1-13-C004` | **implement** | Единого routing owner для `rules + shipped skills + registered checks` из explicit task/change facts в текущей линии нет. |

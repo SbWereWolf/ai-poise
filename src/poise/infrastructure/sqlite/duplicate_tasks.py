@@ -31,13 +31,13 @@ def read_duplicate_family(db, task_id):
         metadata = json.loads(row['metadata'])
         if row['id'] == parent_id and metadata.get('duplicate_parent_id') is not None:
             raise PoiseError('Incomplete duplicate family: noncanonical parent')
-        process = metadata.get('process')
-        stages = process.get('stages', []) if isinstance(process, dict) else []
+        workflow = metadata.get('workflow')
+        stages = workflow.get('stages', []) if isinstance(workflow, dict) else []
         index = row['stage_index']
         stage = stages[index]['id'] if 0 <= index < len(stages) else None
         members.append({
             'task_id': row['id'], 'sprint_id': metadata.get('sprint_id'),
-            'stage_id': stage, 'process': process, 'status': row['status'],
+            'stage_id': stage, 'workflow': workflow, 'status': row['status'],
             'iteration': row['iteration'], 'session_id': row['claimed_by'],
             'version': row['version'],
             'result_commit': row['result_commit'] if row['status'] == 'completed' else None,

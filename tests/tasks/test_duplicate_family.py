@@ -19,7 +19,7 @@ def db():
 
 
 def add(db, tid, parent=None, stage=0, owner=None, status='active'):
-    metadata={'process':ROUTE,'sprint_id':f'S-{tid}'}
+    metadata={'workflow':ROUTE,'sprint_id':f'S-{tid}'}
     if parent is not None: metadata['duplicate_parent_id']=parent
     db.execute('INSERT INTO tasks VALUES(?,?,?,?,?,?,NULL,?)',
                (tid,status,stage,1,owner,7,json.dumps(metadata)))
@@ -122,11 +122,11 @@ def test_reader_outside_uow_leaves_connection_without_transaction(db):
 
 
 def test_only_negative_termination_never_permits_start(db):
-    process={'route':{'entry':'check'},'stages':[{'id':'check','handler':'check', "role": "executor",
+    workflow={'route':{'entry':'check'},'stages':[{'id':'check','handler':'check', "role": "executor",
         'transitions':{'satisfied':'check','not_satisfied':None,'inconclusive':'check'},
         'rework_targets':['check'],'read_only':True,'allowed_paths':[]}]}
     add(db,'P');add(db,'D','P')
-    db.execute("UPDATE tasks SET metadata=json_set(metadata,'$.process',json(?)) WHERE id='D'",(json.dumps(process),))
+    db.execute("UPDATE tasks SET metadata=json_set(metadata,'$.process',json(?)) WHERE id='D'",(json.dumps(workflow),))
     decision=gate(db,'P','one',True)
     assert decision['allowed'] is False
     assert decision['reason']=='invalid_duplicate_distance'
@@ -143,6 +143,6 @@ def test_newborn_has_no_executable_distance_and_does_not_block_ready_family(db):
 def test_distances_use_route_edges_not_stage_order(db):
     from copy import deepcopy
     from poise.modules.tasks.duplicates import positive_terminal_distances
-    reversed_process=deepcopy(ROUTE)
-    reversed_process['stages'].reverse()
-    assert positive_terminal_distances(reversed_process)==positive_terminal_distances(ROUTE)
+    reversed_workflow=deepcopy(ROUTE)
+    reversed_workflow['stages'].reverse()
+    assert positive_terminal_distances(reversed_workflow)==positive_terminal_distances(ROUTE)

@@ -92,7 +92,7 @@ def _assert_only_recovery_delta(before, after):
         "event": "pending_checks_recovered",
         "iteration": before["task"]["iteration"],
         "reason": None,
-        "stage": before["task"]["process"]["stages"][before["task"]["stage_index"]]["id"],
+        "stage": before["task"]["workflow"]["stages"][before["task"]["stage_index"]]["id"],
         "submission": submission,
     }
     assert after["evidence"] == before["evidence"]

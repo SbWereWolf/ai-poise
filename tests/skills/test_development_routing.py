@@ -258,8 +258,8 @@ def test_without_worktree_uses_existing_configured_checkout(configured,project):
         source=copy_path/name;target=project['app']/name
         shutil.copytree(source,target) if source.is_dir() else shutil.copyfile(source,target)
     git(project['app'],'add','.');git(project['app'],'commit','-m','routing fixture')
-    project['process']['worktree_required']=False
-    write_json(project['root']/'config/processes/development.json',project['process'])
+    project['workflow']['worktree_required']=False
+    write_json(project['root']/'config/workflows/development.json',project['workflow'])
     policy=json.loads(Path(paths['policy']).read_text());policy['known_paths'].append('tests/**');write(Path(paths['policy']),policy)
     project['cfg']['development_routing']=paths;write_json(project['config_path'],project['cfg'])
     runtime=WorkPoise(project['config_path'],'NO-WORKTREE')
@@ -398,10 +398,10 @@ def test_c029_gate_blocks_before_submit_and_can_retry_same_stage(configured, pro
         source, target = copy_path / name, project['app'] / name
         shutil.copytree(source, target) if source.is_dir() else shutil.copyfile(source, target)
     git(project['app'], 'add', '.'); git(project['app'], 'commit', '-m', 'AI-poise test identity')
-    project['process']['worktree_required'] = dedicated
-    project['process']['stages'][0]['allowed_paths'] = ['src/**', 'tests/**']
+    project['workflow']['worktree_required'] = dedicated
+    project['workflow']['stages'][0]['allowed_paths'] = ['src/**', 'tests/**']
     project['task']['stage_contracts'][0]['allowed_paths'] = ['src/**', 'tests/**']
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     project['cfg']['development_routing'] = paths
     write_json(project['config_path'], project['cfg'])
     runtime = WorkPoise(project['config_path'], 'BOUNDARY')

@@ -1,0 +1,1434 @@
+{
+  "schema": "environment-maintenance/catalog/v2",
+  "parameters": {
+    "python": {
+      "type": "string",
+      "default": "python3"
+    },
+    "module_path": {
+      "type": "string",
+      "default": ""
+    },
+    "profile_root": {
+      "type": "string",
+      "default": ""
+    },
+    "state_root": {
+      "type": "string",
+      "default": ""
+    },
+    "repository": {
+      "type": "string",
+      "default": ""
+    },
+    "project_id": {
+      "type": "string",
+      "default": ""
+    },
+    "base_ref": {
+      "type": "string",
+      "default": "main"
+    },
+    "author_name": {
+      "type": "string",
+      "default": ""
+    },
+    "author_email": {
+      "type": "string",
+      "default": ""
+    },
+    "git": {
+      "type": "string",
+      "default": "git"
+    },
+    "directory_mode": {
+      "type": "string",
+      "default": "0750"
+    },
+    "python_minimum": {
+      "type": "string",
+      "default": "3.13"
+    },
+    "python_maximum": {
+      "type": "string",
+      "default": "3.14"
+    },
+    "template_id": {
+      "type": "string",
+      "default": "linux-reference"
+    },
+    "remote": {
+      "type": "string",
+      "default": "disabled"
+    }
+  },
+  "inherit_env": [
+    "PATH",
+    "HOME",
+    "LANG"
+  ],
+  "requirements": [
+    {
+      "id": "python-runtime",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.python_runtime",
+          "--minimum",
+          "${python_minimum}",
+          "--maximum",
+          "${python_maximum}",
+          "--requirement-id",
+          "python-runtime",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.python_runtime",
+          "--minimum",
+          "${python_minimum}",
+          "--maximum",
+          "${python_maximum}",
+          "--requirement-id",
+          "python-runtime",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.python_runtime",
+          "--minimum",
+          "${python_minimum}",
+          "--maximum",
+          "${python_maximum}",
+          "--requirement-id",
+          "python-runtime",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "git-executable",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.git_executable",
+          "--git",
+          "${git}",
+          "--requirement-id",
+          "git-executable",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.git_executable",
+          "--git",
+          "${git}",
+          "--requirement-id",
+          "git-executable",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.git_executable",
+          "--git",
+          "${git}",
+          "--requirement-id",
+          "git-executable",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "target-repository",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.repository",
+          "--repository",
+          "${repository}",
+          "--base-ref",
+          "${base_ref}",
+          "--git",
+          "${git}",
+          "--requirement-id",
+          "target-repository",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.repository",
+          "--repository",
+          "${repository}",
+          "--base-ref",
+          "${base_ref}",
+          "--git",
+          "${git}",
+          "--requirement-id",
+          "target-repository",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.repository",
+          "--repository",
+          "${repository}",
+          "--base-ref",
+          "${base_ref}",
+          "--git",
+          "${git}",
+          "--requirement-id",
+          "target-repository",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "state-root",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "state-root",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "state-root",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "state-root",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "runtime-directory",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/runtime",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "runtime-directory",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/runtime",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "runtime-directory",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/runtime",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "runtime-directory",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "task-directory",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/standalone",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "task-directory",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/standalone",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "task-directory",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/standalone",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "task-directory",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "sprint-directory",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/sprints",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "sprint-directory",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/sprints",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "sprint-directory",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/sprints",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "sprint-directory",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "worktree-directory",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/worktrees",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "worktree-directory",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/worktrees",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "worktree-directory",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/worktrees",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "worktree-directory",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "requirements-directory",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/database",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "requirements-directory",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/database",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "requirements-directory",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/database",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "requirements-directory",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "telemetry-directory",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/telemetry",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "telemetry-directory",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/telemetry",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "telemetry-directory",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.directory",
+          "--path",
+          "${state_root}/telemetry",
+          "--permissions",
+          "${directory_mode}",
+          "--requirement-id",
+          "telemetry-directory",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "poise-project-config",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.project_config",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--settings",
+          "${profile_root}/setup.json",
+          "--edits",
+          "${profile_root}/project-edits.json",
+          "--destination",
+          "project",
+          "--template",
+          "${template_id}",
+          "--requirement-id",
+          "poise-project-config",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.project_config",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--settings",
+          "${profile_root}/setup.json",
+          "--edits",
+          "${profile_root}/project-edits.json",
+          "--destination",
+          "project",
+          "--template",
+          "${template_id}",
+          "--requirement-id",
+          "poise-project-config",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.project_config",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--settings",
+          "${profile_root}/setup.json",
+          "--edits",
+          "${profile_root}/project-edits.json",
+          "--destination",
+          "project",
+          "--template",
+          "${template_id}",
+          "--requirement-id",
+          "poise-project-config",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "poise-task-database",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.task_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-task-database",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.task_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-task-database",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.task_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-task-database",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "poise-requirements-database",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.requirements_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-requirements-database",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.requirements_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-requirements-database",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.requirements_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-requirements-database",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    },
+    {
+      "id": "poise-telemetry-database",
+      "check": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.telemetry_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-telemetry-database",
+          "--action",
+          "check",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "install": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.telemetry_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-telemetry-database",
+          "--action",
+          "install",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      },
+      "repair": {
+        "argv": [
+          "${python}",
+          "-B",
+          "-m",
+          "poise_environment.repairs.telemetry_database",
+          "--config",
+          "${profile_root}/project/project.json",
+          "--state-root",
+          "${state_root}",
+          "--requirement-id",
+          "poise-telemetry-database",
+          "--action",
+          "repair",
+          "--schema",
+          "poise/maintenance-action/v2",
+          "--recommendations",
+          "${profile_root}/recommendations.json"
+        ],
+        "cwd": "${profile_root}",
+        "env": {
+          "PYTHONPATH": "${module_path}",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "LANG": "C.UTF-8"
+        },
+        "output": {
+          "schema": "poise/maintenance-action/v2"
+        },
+        "max_output_bytes": 65536,
+        "execution_bound_seconds": 60
+      }
+    }
+  ]
+}

@@ -68,10 +68,10 @@ def start(project, marker=None, method=None):
     cfg = deepcopy(project['cfg'])
     cfg['automatic_checks'] = []
     write_json(project['config_path'], cfg)
-    process = deepcopy(project['process'])
+    workflow = deepcopy(project['workflow'])
     stage = json.loads((FIXTURES / 'retention_stage.json').read_text())
-    process.update(route={'entry': 'implementation'}, stages=[stage])
-    write_json(project['root'] / 'config/processes/development.json', process)
+    workflow.update(route={'entry': 'implementation'}, stages=[stage])
+    write_json(project['root'] / 'config/workflows/development.json', workflow)
     task = deepcopy(project['task'])
     task['methods'] = [] if marker is None else [consumer(marker) if method is None else method]
     task['method_inputs'] = [{

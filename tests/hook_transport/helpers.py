@@ -62,17 +62,23 @@ def settings(project,tmp_path):
         'cwd_roots':[str(tmp_path)],'file_mode':384,'executable_mode':448,
         'lock_seconds':3.0,'lock_poll_seconds':0.01,
         'max_input_bytes':1048576,'output_chars':5000,'max_probes':30,
+        'capability_summary':{
+            'file':'capabilities.json',
+            'header_template':'Infrastructure ready={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}',
+            'item_template':'{id}: {status}; required={required}; reason={reason}; remediation={remediation}'},
         'probe_files':{'stdout':'stdout.txt','stderr':'stderr.txt','receipt':'receipt.json'},
         'exit_codes':{'success':0,'incomplete':1,'rejected':2}})
     if managed:
         from poise.common import digest, load_config
         from poise.composition import project_config_tools
         from projects.test_update import update_request
-        _, current, processes = load_config(project['config_path'])
+        _, current, workflows = load_config(project['config_path'])
         resources = deepcopy(current['runtime_resources'])
         resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
-        revision = digest({'config': current, 'processes': processes})
-        identity = 'fixture-hook-resources-' + digest([revision, resources])
+        revision = digest({'config': current, 'workflows': workflows})
+        selected_options = {key: candidate[key] for key in ('source_reader', 'telemetry_delivery')
+                            if key in candidate}
+        identity = 'fixture-hook-resources-' + digest([revision, resources, selected_options])
         packet = update_request(project['config_path'], revision, request_id=identity,
                                 manifest_edits=[
                                     {'path': ['batch', 'message_source'],
@@ -80,6 +86,9 @@ def settings(project,tmp_path):
                                     {'path': ['accounting', 'time_mode'], 'value': 'reported'},
                                     {'path': ['runtime_resources'], 'value': resources},
                                 ])
+        # Only these explicit fixture selections belong to this bounded correction.
+        for option, value in selected_options.items():
+            packet['manifest_edits'].append({'path': [option], 'value': value})
         packet['receipt_path'] = 'operations/' + identity + '.json'
         result = project_config_tools(selected).apply(packet)
         assert result['status'] == 'updated'

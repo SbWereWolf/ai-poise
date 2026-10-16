@@ -1,5 +1,5 @@
 """One bounded reader, using explicit file and receipt storage ports."""
-from ..modules.source_reader.domain import parse_read, text
+from ..modules.source_reader.domain import CONTEXT_RESET_REASONS, parse_read, text
 from ..modules.foundation.errors import PoiseError
 
 
@@ -16,7 +16,7 @@ class SourceReader:
             return self._context(state)
 
     def reset(self, reason, event_id):
-        if reason not in ('startup', 'resume', 'compact', 'clear', 'manual'):
+        if reason not in CONTEXT_RESET_REASONS:
             raise PoiseError('Unsupported context reset reason')
         text(event_id, 'event_id')
         with self.receipts.transaction() as state:

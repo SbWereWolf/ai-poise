@@ -1,0 +1,45 @@
+{
+  "schema": "poise-skill-catalog-1",
+  "skills": [
+    {
+      "id": "core",
+      "path": ".agents/skills/core/SKILL.md",
+      "purpose": "Test instruction core",
+      "class": "common",
+      "level": null,
+      "responsibility": null
+    },
+    {
+      "id": "billing",
+      "path": ".agents/skills/billing/SKILL.md",
+      "purpose": "Test instruction billing",
+      "class": "common",
+      "level": null,
+      "responsibility": null
+    },
+    {
+      "id": "writing",
+      "path": ".agents/skills/writing/SKILL.md",
+      "purpose": "Test instruction writing",
+      "class": "common",
+      "level": null,
+      "responsibility": null
+    },
+    {
+      "id": "audit",
+      "path": ".agents/skills/audit/SKILL.md",
+      "purpose": "Test instruction audit",
+      "class": "common",
+      "level": null,
+      "responsibility": null
+    },
+    {
+      "id": "unused",
+      "path": ".agents/skills/unused/SKILL.md",
+      "purpose": "Test instruction unused",
+      "class": "common",
+      "level": null,
+      "responsibility": null
+    }
+  ]
+}

@@ -20,7 +20,7 @@ def root_request(config_path, revision, root):
         "config_path": str(config_path),
         "expected_revision": revision,
         "manifest_edits": [{"path": ["paths", "worktrees"], "value": str(root)}],
-        "process_updates": [], "state_relocation": None,
+        "workflow_updates": [], "state_relocation": None,
         "probe_repository": True,
         "receipt_path": "operations/repository-worktrees.json",
         "reason": "Place Task worktrees inside their repository.",
@@ -34,11 +34,11 @@ def test_explicit_repository_root_preserves_same_task_on_workspace_upgrade(proje
     assert initial["worktree"] is None
     current = tools.runtime.task_queries.record(task["id"])
     born = restart(tools, task["id"], current["version"])
-    process = deepcopy(project["process"])
-    process["worktree_required"] = True
+    workflow = deepcopy(project["workflow"])
+    workflow["worktree_required"] = True
     edited = tools.invoke(request("task", {
         "action": "edit", "request_id": "require-worktree", "task_id": task["id"],
-        "expected_revision": born["revision"], "patch": {"process": process}, "remove": [],
+        "expected_revision": born["revision"], "patch": {"workflow": workflow}, "remove": [],
     }))
     tools.invoke(request("task", {
         "action": "ready", "request_id": "ready-worktree", "task_id": task["id"],
@@ -48,7 +48,7 @@ def test_explicit_repository_root_preserves_same_task_on_workspace_upgrade(proje
     assert resumed["task"] == task["id"]
     assert Path(resumed["worktree"]).is_dir()
     after = tools.runtime.task_queries.record(task["id"])
-    assert after["process"]["worktree_required"] is True
+    assert after["workflow"]["worktree_required"] is True
     assert len(after["restart_history"]) == 1
     assert after["base"] == current["base"]
     assert after["pending"] is None
@@ -59,12 +59,12 @@ def test_restart_cannot_drop_allocated_worktree(project):
     initial = _start(tools, task)
     current = tools.runtime.task_queries.record(task["id"])
     born = restart(tools, task["id"], current["version"])
-    process = deepcopy(project["process"])
-    process["worktree_required"] = False
+    workflow = deepcopy(project["workflow"])
+    workflow["worktree_required"] = False
     with pytest.raises(PoiseError, match="allocated workspace"):
         tools.invoke(request("task", {
             "action": "edit", "request_id": "drop-worktree", "task_id": task["id"],
-            "expected_revision": born["revision"], "patch": {"process": process}, "remove": [],
+            "expected_revision": born["revision"], "patch": {"workflow": workflow}, "remove": [],
         }))
     assert Path(initial["worktree"]).is_dir()
 

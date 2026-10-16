@@ -78,7 +78,7 @@ SessionEstablisher. `actor` и чужой caller binding в пакет не до
 отклоняются до освобождения владения.
 
 Операцию исполняет существующий ownership owner в одной Unit of Work. Он проверяет
-собственный claim, актуальную версию и владельца зависимого worktree по process
+собственный claim, актуальную версию и владельца зависимого worktree по workflow
 snapshot, вызывает обычное освобождение Task и записывает receipt в существующий
 journal. Чужой владелец требуемого зависимого worktree вызывает отказ; перехват
 не выполняется. Собственная привязка к worktree этой Task снимается, независимая
@@ -239,12 +239,12 @@ cleanup и receipt фиксируются одной транзакцией; о�
 продолжения; возвращаться за отдельным решением пользователя после каждого этапа не требуется.
 Сводка опубликованного Sprint также направляет к продолжению порученной работы по выбранной
 доступной задаче через `advance`, сохраняя действующие ограничения и владение одной Task.
-Инструкции reference processes, process templates и примеров не требуют отчёта и остановки
+Инструкции reference workflows, workflow templates и примеров не требуют отчёта и остановки
 после каждого этапа. Агент повторяет сохранённый progression request после выполнения работы
 и проверки очередного этапа, пока поручение разрешает продолжение. Явное ограничение пользователя
 одним этапом сохраняет силу; при реальном препятствии работа останавливается с доказательствами.
 Изменение reference-файлов не переписывает рабочую конфигурацию проекта или замороженный
-process snapshot существующей Task.
+workflow snapshot существующей Task.
 
 После каждого перехода
 `progression_work_required` останавливает вызов на реальной работе нового этапа. Перед сменой
@@ -378,7 +378,7 @@ ID/task/stage/hash агент повторно не передаёт. Прежн
 
 Окончательный `accept`, завершающий `bootstrap` с `decision: "continue"` и `cancel`
 освобождают зависимый worktree в той же транзакции, что и claim Task. Зависимость
-определяется сохранённым `process.worktree_required`, не флагом вызывающего агента.
+определяется сохранённым `workflow.worktree_required`, не флагом вызывающего агента.
 При независимом worktree его привязка сохраняется. Ошибка последующей записи
 execution откатывает весь переход, включая освобождение обоих claims.
 
@@ -414,8 +414,8 @@ snapshot уже возвращён адресным `bootstrap`.
 
 Публичный `task/create` принимает дополнительные `goal_type` и `patch`. При явно
 подключённом `task_planning` harness материализует starter из каталога; planner
-редактирует Task draft и локальный process до `ready`. `task/edit` поддерживает
-`process` и `process_changes`; исходный template больше не является whitelist.
+редактирует Task draft и локальный workflow до `ready`. `task/edit` поддерживает
+`workflow` и `process_changes`; исходный template больше не является whitelist.
 `planning` фиксирует происхождение и поля пересмотра по умолчанию при restart;
 независимый проверяющий может согласовать иной точный набор Task-полей.
 Полный [исполнимый контракт, примеры и границы](task-planning.md) описывают фиксацию
@@ -511,7 +511,7 @@ intent этот список относится уже к материализо
 ### Декомпозиция и фокус Task
 
 Каждая фаза процесса явно объявляет skills и areas в `decomposition`; набор фаз должен точно
-совпадать с этапами выбранного process snapshot. Классы skills — meta, general и narrow —
+совпадать с этапами выбранного workflow snapshot. Классы skills — meta, general и narrow —
 задаёт `task_decomposition` выбранного проекта. `meta` и `general` сами по себе не создают
 границу ответственности, а `narrow` связывается с одной project-specific responsibility.
 
@@ -598,12 +598,12 @@ intent и никогда не выбирает номер сам.
 }
 ```
 
-При смене `goal_type` допустимые и обязательные поля определяет целевой process snapshot.
+При смене `goal_type` допустимые и обязательные поля определяет целевой workflow snapshot.
 Поле, запрещённое целевым типом, вызывающая сторона удаляет в том же запросе; без явного
 `remove` edit отклоняется и draft не меняется. Неизвестные и повторные имена, отсутствующее
 поле, пересечение `patch`/`remove`, удаление `id` или `sprint_id` и удаление поля, обязательного
 для целевого типа, отклоняются до сохранения. Успех одной транзакцией сохраняет прежние Task
-identity, Sprint membership и history, выбирает целевой process, увеличивает revision и
+identity, Sprint membership и history, выбирает целевой workflow, увеличивает revision и
 оставляет обычные ownership/optimistic guards. Точный replay возвращает исходный результат;
 другой список `remove` с тем же `request_id` считается другим intent и отклоняется.
 
@@ -858,7 +858,7 @@ Git-ошибка не подменяется `FileNotFoundError` от повто
 автоматически. Неизвестные ссылки отклоняются. Пустой список является явной пустой
 классификацией только в схеме, где это поле существует.
 
-Наличие поля определяет закреплённый process schema, а не имя goal type и не содержимое
+Наличие поля определяет закреплённый workflow schema, а не имя goal type и не содержимое
 requirements/DoD. Для процесса без inspection-маршрута, владеющего `test_registry`, явное
 представление пустой классификации в creation contract — отсутствие поля:
 `executable_obligations: []` там является неизвестным полем и отклоняется. Task не выводит
@@ -935,11 +935,11 @@ Creation contract описывает исходное создание Task. П�
 полей `methods`, `checks`, `executable_obligations`. Наличие поля в исходном draft само
 по себе не является новым намерением заменить реестр. Явные правки учитываются с
 последнего restart исполнявшейся Task, включая последующие правки этого newborn draft.
-После сборки валидируются новый process/route, расписание, content policy,
+После сборки валидируются новый workflow/route, расписание, content policy,
 stage contracts и EvidencePlan. Исходные `method_inputs` сохраняют свой явный creation
 контракт: runtime не придумывает входы для позднее зарегистрированных методов.
 
-Изменение только process сохраняет совместимый актуальный реестр целиком, включая
+Изменение только workflow сохраняет совместимый актуальный реестр целиком, включая
 удалённые ранее методы в исторических слоях без их возвращения в current. Явное
 объявление того же расписания также не создаёт новую revision, history или request.
 Отсутствующая либо повреждённая сохранённая revision отклоняется; корректный пустой
@@ -968,7 +968,7 @@ current. Неизменённые записи, их классификация 
 `executable_obligations` требует соответствующего разрешения, но не операции над методом.
 Task owner сам формирует classification-only mutation из разрешённых правок draft;
 вызывающая сторона использует публичные `task.restart`, `task.edit`, `task.ready`,
-а не передаёт `method_additions` в `ready`. При переходе к process schema без этого поля
+а не передаёт `method_additions` в `ready`. При переходе к workflow schema без этого поля
 его явно удаляют из draft; публичная проекция реестра содержит пустой список.
 Неизменённая классификация без операций над методами при `ready` не создаёт registry
 mutation, новую revision, snapshot или request. Это отличается от нового пустого
@@ -1131,7 +1131,7 @@ lifecycle и execution state.
 [неизменность путей, rework и граф
 этапов](../governance/development-rules.md#неизменность-путей-rework-и-граф-этапов).
 
-Успех сохраняет Task ID, worktree, branch, task/process contracts, прежние submissions, историю и
+Успех сохраняет Task ID, worktree, branch, task/workflow contracts, прежние submissions, историю и
 failed receipts.
 Создаётся новый visit целевого этапа с его iteration, записываются feedback и событие
 `user_failed_check_rework`, а
@@ -2094,8 +2094,8 @@ Task/Sprint roots и этого относительного пути, вклю�
 переиспользуется. Только после публикации всей коллекции одна SQLite-транзакция меняет
 выбранные `artifacts.path` и добавляет `artifacts.recovered` в журнал с прежними записями,
 основанием, разрешением и receipt. ID, digest, связи Task/Sprint, Task version, статус,
-process, submission, evidence, work packet и исторические handoff не переписываются.
-Не требуется active process: можно восстановить сохранённые материалы newborn.
+workflow, submission, evidence, work packet и исторические handoff не переписываются.
+Не требуется active workflow: можно восстановить сохранённые материалы newborn.
 
 Ответ `artifacts_recovered` содержит исходные и новые пути и `task_version`. Точный повтор
 `request_id` и всего input возвращает первоначальный receipt; другой input под тем же ID
@@ -2266,7 +2266,7 @@ API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет сущ
 
 Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и
 view `current`, `plan`
-либо `history` показывает текущий граф, сохранённый process/plan snapshot, revision layers.
+либо `history` показывает текущий граф, сохранённый workflow/plan snapshot, revision layers.
 Типизированного поля
 `replacements` и публичного action `replace_task` нет. Исторические связи замен читаются из revision
 layers и аудита

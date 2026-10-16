@@ -1,0 +1,16 @@
+{
+  "kind": "agent-usage-input-error",
+  "cause": "Executor appended report and documentation_result as two unsupported result envelope fields instead of appending their sections values.",
+  "is_poise_code_defect": false,
+  "new_check_attempt_created": false,
+  "new_unknown_run_created": false,
+  "validation_boundary": "application/work.py WorkTools._verify validates the payload through runtime.validate_stage_result and TaskCommands.validate_submission before factory.materialize or runtime.verify; TaskCommands rejects the result key set before unit_of_work.",
+  "accepted_correction": {"execution_version": 123, "task_version": 161, "journal_seq": 15077, "unknown_outcomes_preserved": true},
+  "independent_readback": {"reviewer_thread": "01a138ea-a400-7273-82da-527a190135b1", "after_rejected_call": true, "full_task_execution_handoffs_postimage_sha256": "83a3049fde49542f5a4ba2cf1b90aefed3ce84933ab1905efc610bb4b9ff2954", "encoding": "sorted compact JSON plus final newline", "equals_operator_applied_v2_after": true},
+  "shared_window": "Ended by coordinator after this terminal refusal; no retry under that grant.",
+  "corrected_packet": "corrected-input.json",
+  "corrected_packet_sha256": "7ee2d42a06ac57674778caf38e8cc336d15c818890efa7f937134b85100dc2ad",
+  "offline_proof": "offline-proof.json",
+  "offline_proof_sha256": "408f6216b1c0133b3b2be1ca7d63a72f6f8693367176f9926f29a480527e2c5c",
+  "native_acceptance": false
+}

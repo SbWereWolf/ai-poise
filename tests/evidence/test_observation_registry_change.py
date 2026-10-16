@@ -292,8 +292,8 @@ def test_observe_subject_replacement_preserves_classification_and_coverage(proje
     from runner.helpers import stage
 
     setup(project, logical=False)
-    process_path = project["root"] / "config/processes/verification_demo.json"
-    process = json.loads(process_path.read_text(encoding="utf-8"))
+    workflow_path = project["root"] / "config/workflows/verification_demo.json"
+    workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
     registry_stage = stage(
         "registry",
         "produce",
@@ -304,14 +304,14 @@ def test_observe_subject_replacement_preserves_classification_and_coverage(proje
     )
     registry_stage["sections"]["test_registry"] = "Define the current registry."
     registry_stage["required_sections"].append("test_registry")
-    process["route"]["entry"] = "registry"
-    process["stages"].insert(0, registry_stage)
+    workflow["route"]["entry"] = "registry"
+    workflow["stages"].insert(0, registry_stage)
     project["task"]["decomposition"]["phases"].insert(0, {
         "stage": "registry", "skills": ["task-domain"], "areas": []})
     project["task"]["stage_contracts"].insert(0, {
         "stage_id": "registry", "allowed_paths": ["tests/**"],
         "entry_requirements": [], "exit_requirements": []})
-    write_json(process_path, process)
+    write_json(workflow_path, workflow)
     project["task"]["checks"] = {
         "registry": [],
         **project["task"]["checks"],

@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/poise-op/app/src/poise/infrastructure/locking.py", line 21, in exclusive_lock
+    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/poise-op/app/docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-recovery-v2.py", line 266, in <module>
+    apply(args.approved_plan_sha, rollback=args.mode == "rollback")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sbwerewolf/workdata/poise-op/app/docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-recovery-v2.py", line 210, in apply
+    stack.enter_context(ProjectRuntimeFence(CONFIG, STATE).locked())
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sbwerewolf/workdata/poise-op/.python/cpython-3.13.15-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "/home/sbwerewolf/workdata/poise-op/.python/cpython-3.13.15-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/home/sbwerewolf/workdata/poise-op/app/src/poise/infrastructure/project_resources.py", line 76, in locked
+    with exclusive_lock(self.settings.lock, self.settings.raw['lock_seconds'],
+         ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        self.settings.raw['lock_poll_seconds']):
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sbwerewolf/workdata/poise-op/.python/cpython-3.13.15-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/home/sbwerewolf/workdata/poise-op/app/src/poise/infrastructure/locking.py", line 26, in exclusive_lock
+    raise LockUnavailable("Истёк лимит ожидания внешнего lock")
+poise.modules.foundation.errors.LockUnavailable: Истёк лимит ожидания внешнего lock

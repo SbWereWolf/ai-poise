@@ -16,8 +16,8 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
             stage('audit','inspect',{'clear':None,'changes_requested':'measure'},True,[],['audit','measure'])]
     proc={'goal_type':'verification_demo','worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'measure'},
           'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':stages}
-    write_json(project['root']/'config/processes/verification_demo.json',proc)
-    cfg=project['cfg']; cfg['processes']={'verification_demo':'config/processes/verification_demo.json'}
+    write_json(project['root']/'config/workflows/verification_demo.json',proc)
+    cfg=project['cfg']; cfg['workflows']={'verification_demo':'config/workflows/verification_demo.json'}
     cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
     counter=project['root']/'calls.txt'

@@ -3,6 +3,7 @@ import json
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded
+from ...modules.hook_transport.domain import MissingHookBinding
 from .transaction import write_transaction
 
 
@@ -60,10 +61,20 @@ class HookRegistry:
             if row is None:raise PoiseError('Unknown hook session binding')
             return json.loads(row[0]),None if row[1] is None else json.loads(row[1])
 
+    def session_workspace(self, session):
+        with self.transaction() as db:
+            row = db.execute('SELECT data FROM hook_events WHERE binding=? AND event=? ORDER BY id DESC LIMIT 1',
+                             (session, 'SessionStart')).fetchone()
+        metadata = None if row is None else json.loads(row[0])
+        if not isinstance(metadata, dict) or not isinstance(metadata.get('workspace'), str) or not metadata['workspace']:
+            raise PoiseError('Session workspace is unavailable; deliver a genuine native SessionStart before refresh')
+        return metadata['workspace']
+
     def find(self,external,agent):
         with self.transaction() as db:
             matches=[json.loads(r[0]) for r in db.execute('SELECT data FROM bindings')]
-        matches=[r for r in matches if r['external_session']==external and r['agent_id']==agent]
+        matches=[r for r in matches if r['external_session']==external and (agent is None or r['agent_id']==agent)]
+        if not matches:raise MissingHookBinding('No unique hook binding for this external identity')
         if len(matches)!=1:raise PoiseError('No unique hook binding for this external identity')
         return matches[0]
 

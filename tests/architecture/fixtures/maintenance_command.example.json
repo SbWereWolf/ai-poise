@@ -1,0 +1,27 @@
+{
+  "parameters": {
+    "python": "REPLACED_BY_TEST",
+    "script": "REPLACED_BY_TEST",
+    "tool_config": "REPLACED_BY_TEST"
+  },
+  "commands": {
+    "infra": ["${python}", "-I", "-B", "${script}", "run", "--tool-config", "${tool_config}", "--catalog-dir", "${catalog_dir}"],
+    "deps": ["${python}", "-I", "-B", "${script}", "run", "--tool-config", "${tool_config}", "--catalog-dir", "${catalog_dir}"],
+    "check": ["${python}", "-I", "-B", "${script}", "check", "--tool-config", "${tool_config}", "--catalog-dir", "${catalog_dir}"],
+    "repair": ["${python}", "-I", "-B", "${script}", "repair", "--tool-config", "${tool_config}", "--catalog-dir", "${catalog_dir}"],
+    "verify": ["${python}", "-I", "-B", "${script}", "verify", "--tool-config", "${tool_config}", "--catalog-dir", "${catalog_dir}"]
+  },
+  "handler": {
+    "callable": "apps.bootstrap.environment_result:handle",
+    "options": {
+      "schema": "environment-maintenance/result/v2",
+      "status_exit_codes": {"ready": 0, "action_required": 2, "unavailable": 3, "failed": 4},
+      "success_statuses": ["ready"],
+      "repairable_statuses": ["action_required"],
+      "repair_operations": ["infra", "deps"],
+      "repair_command": "repair",
+      "verification_command": "verify",
+      "failure_exit_code": 4
+    }
+  }
+}

@@ -56,8 +56,8 @@ schema=1 и Task schema=13 сохраняются. Это **общий меха�
 
 Initialization использует ту же границу: две конкурирующие инициализации не создают
 частичную schema, вторая видит завершённую schema1. Неизвестная непустая база и чужая
-версия отклоняются без автоматической миграции. TaskRequirementsSnapshotStore остаётся
-изолированным тестовым adapter; его нельзя направлять на versioned Task DB. Read методы
+версия отклоняются без автоматической миграции. Тестовый адаптер `TaskRequirementsSnapshotStore` расположен в
+`tests/requirements_registry/snapshot_store.py`; его нельзя направлять на versioned Task DB. Read методы
 RequirementsStore на этом срезе также сохраняют существующий serialized transaction
 контракт; предлагаемое разделение read snapshots из A02 сюда не внедряется скрыто.
 

@@ -1,13 +1,13 @@
 """Pure historical migration of newborns without future stage contracts.
 
 Full-contract transformation remains frozen in stage_criteria_history. A draft
-gets only existing process annotations; absence never creates future work data.
+gets only existing workflow annotations; absence never creates future work data.
 Persistence and publication remain with the existing migration coordinator.
 """
 from copy import deepcopy
 import json
 
-from .stage_criteria_history import identity, process_candidate
+from .stage_criteria_history import identity, workflow_candidate
 
 
 def draft_candidate(row, mapping):
@@ -28,21 +28,21 @@ def draft_candidate(row, mapping):
     if not isinstance(draft, dict) or 'stage_contracts' in draft:
         raise ValueError('Historical newborn draft requires absent stage contracts')
     candidate = deepcopy(metadata)
-    if 'process' not in metadata:
+    if 'workflow' not in metadata:
         if 'goal_type' in draft:
-            raise ValueError('Historical newborn draft selected type has no process')
+            raise ValueError('Historical newborn draft selected type has no workflow')
         if mapping['stages']:
             raise ValueError('Untyped newborn draft requires empty stage mapping')
     else:
-        process = metadata['process']
-        if not isinstance(process, dict):
-            raise ValueError('Invalid historical newborn draft process')
+        workflow = metadata['workflow']
+        if not isinstance(workflow, dict):
+            raise ValueError('Invalid historical newborn draft workflow')
         selected_type = draft.get('goal_type')
         if (not isinstance(selected_type, str) or not selected_type.strip()
-                or process.get('goal_type') != selected_type):
+                or workflow.get('goal_type') != selected_type):
             raise ValueError('Historical newborn draft selected type mismatch')
         try:
-            candidate['process'] = process_candidate(process, mapping['stages'])
+            candidate['workflow'] = workflow_candidate(workflow, mapping['stages'])
         except (ValueError, TypeError, KeyError) as exc:
             raise ValueError(f'Invalid historical newborn draft stage mapping: {exc}') from exc
     summary = {'kind': 'newborn_draft', 'task_id': row['id'], 'revision': row['version'],

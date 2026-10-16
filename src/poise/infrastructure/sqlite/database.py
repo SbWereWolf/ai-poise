@@ -5,7 +5,7 @@ from pathlib import Path
 from ...modules.foundation.errors import PoiseError
 from .transaction import write_transaction
 
-# Storage format identity, not a project/process policy or a fallback.
+# Storage format identity, not a project/workflow policy or a fallback.
 SCHEMA_VERSION = 13
 SCHEMA = (
     "CREATE TABLE accounting_accounts(task_id TEXT PRIMARY KEY REFERENCES tasks(id), project TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)",

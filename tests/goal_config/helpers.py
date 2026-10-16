@@ -1,11 +1,11 @@
 import copy
 import json
 from pathlib import Path
-from tests.runner.helpers import process
+from tests.runner.helpers import workflow
 
 
 def template():
-    return process("writing")
+    return workflow("writing")
 
 
 def additions():
@@ -32,7 +32,7 @@ def settings(root, definitions=None):
          "lock_seconds":2.0, "lock_poll_seconds":0.01, "max_changes":2000,
          "max_input_bytes":1000000, "output_chars":2000,
          "exit_codes":{"success":0,"rejected":2,"pending":3},
-         "processes": {"writing":"config/processes/writing.json", "other":"config/processes/other.json"} if definitions is None else definitions,
+         "workflows": {"writing":"config/workflows/writing.json", "other":"config/workflows/other.json"} if definitions is None else definitions,
          "templates":{"writing-v1":{"path":"templates/writing.json", "version":"1", "digest":digest(body)}}}
     path=root/"goal-editor.json"; path.write_text(json.dumps(cfg), encoding="utf-8")
-    return path, {"id":"writing-v1","version":"1","digest":digest(body)}
+    return path, {"id":"writing-v1"}

@@ -21,7 +21,7 @@ def _feature():
 
 def _contracts(project, *, scope=None):
     values = []
-    for index, stage in enumerate(project["process"]["stages"]):
+    for index, stage in enumerate(project["workflow"]["stages"]):
         values.append({
             "stage_id": stage["id"],
             "allowed_paths": list(stage["allowed_paths"] if scope is None or index else scope),
@@ -33,9 +33,9 @@ def _contracts(project, *, scope=None):
 
 def _configure(project, *, scope=None, inspection=False):
     if inspection:
-        process = deepcopy(project["process"])
-        inspect = deepcopy(process["stages"][1])
-        revise = deepcopy(process["stages"][2])
+        workflow = deepcopy(project["workflow"])
+        inspect = deepcopy(workflow["stages"][1])
+        revise = deepcopy(workflow["stages"][2])
         inspect["handler"] = "inspect"
         inspect["role"] = "reviewer"
         revise["role"] = "executor"
@@ -43,24 +43,24 @@ def _configure(project, *, scope=None, inspection=False):
         inspect["rework_targets"] = [revise["id"]]
         revise["transitions"] = {"complete": inspect["id"]}
         revise["rework_targets"] = [revise["id"]]
-        process["stages"] = [inspect, revise]
-        process["route"]["entry"] = inspect["id"]
-        project["process"] = process
+        workflow["stages"] = [inspect, revise]
+        workflow["route"]["entry"] = inspect["id"]
+        project["workflow"] = workflow
         project["cfg"]["automatic_checks"] = []
         write_json(project["config_path"], project["cfg"])
-        write_json(project["root"] / "config/processes/development.json", process)
+        write_json(project["root"] / "config/workflows/development.json", workflow)
     task = deepcopy(project["task"])
     if inspection:
         task["methods"] = []
         task["method_inputs"] = []
-        task["checks"] = {stage["id"]: [] for stage in project["process"]["stages"]}
+        task["checks"] = {stage["id"]: [] for stage in project["workflow"]["stages"]}
         task["evidence_plan"] = {
             stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-            for stage in project["process"]["stages"]
+            for stage in project["workflow"]["stages"]
         }
     task["decomposition"]["phases"] = [
         {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     ]
     task["stage_contracts"] = _contracts(project, scope=scope)
     return task
@@ -319,7 +319,7 @@ def test_reviewer_can_repair_released_inspection_gate_without_bootstrap(project)
 def test_public_entry_gate_failure_returns_projection_without_claim(project):
     _feature()
     task = _configure(project)
-    first = project["process"]["stages"][0]["id"]
+    first = project["workflow"]["stages"][0]["id"]
     task["content_contract"]["requirements"] = [{
         "id": "required-input",
         "kind": "artifact",
@@ -344,7 +344,7 @@ def test_public_entry_gate_failure_returns_projection_without_claim(project):
 
 def test_public_entry_gate_evaluates_only_task_contract_refs(project):
     task = _configure(project)
-    first = project["process"]["stages"][0]["id"]
+    first = project["workflow"]["stages"][0]["id"]
     task["content_contract"]["requirements"] = [
         {
             "id": "selected-empty",
@@ -386,11 +386,11 @@ def test_public_scope_contract_controls_verify_paths(project):
     project["task"]["methods"] = []
     project["task"]["method_inputs"] = []
     project["task"]["checks"] = {
-        stage["id"]: [] for stage in project["process"]["stages"]
+        stage["id"]: [] for stage in project["workflow"]["stages"]
     }
     project["task"]["evidence_plan"] = {
         stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     }
     tools, context = _boot(project, scope=["tests/exact/**", "docs/task/**"])
     Path = __import__("pathlib").Path

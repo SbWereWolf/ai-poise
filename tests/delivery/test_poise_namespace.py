@@ -212,7 +212,7 @@ def test_historical_allowlist_is_exact_used_and_non_executable():
     seen = set()
     for rule in rules:
         relative = rule["path"]
-        approved = APPROVED_HISTORICAL_PATTERNS if rule["classification"] == "historical" \
+        approved = APPROVED_HISTORICAL_PATTERNS if rule["classification"] == "historical"\
             else APPROVED_MIGRATION_PATTERNS
         assert relative in approved
         assert relative not in PROTECTED_FILES

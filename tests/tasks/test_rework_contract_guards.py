@@ -27,11 +27,11 @@ from tasks.test_newborn_lifecycle import create, edit, task_action
 
 
 def _resolved_scope_case(project):
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("writer", allowed_paths=("docs/**",), target="green"),
         _stage("green", allowed_paths=(), target=None),
     ])
-    task = _task(project, process, method_inputs=[])
+    task = _task(project, workflow, method_inputs=[])
     task["methods"] = [_inline_method(
         "RESOLVED_SCOPE_GREEN",
         responsibility="Verify the resolved documentation write scope.",
@@ -41,7 +41,7 @@ def _resolved_scope_case(project):
     task["method_inputs"] = [_inline_inputs("RESOLVED_SCOPE_GREEN")]
     task["checks"] = {"writer": [], "green": ["RESOLVED_SCOPE_GREEN"]}
     task["stage_contracts"][0]["allowed_paths"] = ["src/**"]
-    return process, task
+    return workflow, task
 
 
 def test_creation_rejects_change_surface_outside_resolved_stage_contract(project):
@@ -60,13 +60,13 @@ def test_creation_rejects_change_surface_outside_resolved_stage_contract(project
 
 
 def test_creation_rejects_future_output_outside_resolved_stage_contract(project):
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("producer", allowed_paths=("tests/**",), target="green"),
         _stage("green", allowed_paths=(), target=None),
     ])
     task = _task(
         project,
-        process,
+        workflow,
         method_inputs=_inputs(future=((MISSING_TEST, "producer"),)),
     )
     task["methods"][0]["verification_plan"]["green_stages"] = ["green"]
@@ -86,13 +86,13 @@ def test_creation_rejects_future_output_outside_resolved_stage_contract(project)
 
 
 def test_newborn_ready_rejects_frozen_future_output_then_accepts_planned_scope_revision(project):
-    process = _configure(project, [
+    workflow = _configure(project, [
         _stage("producer", allowed_paths=("tests/**",), target="green"),
         _stage("green", allowed_paths=(), target=None),
     ])
     task = _task(
         project,
-        process,
+        workflow,
         method_inputs=_inputs(future=((MISSING_TEST, "producer"),)),
     )
     task["methods"][0]["verification_plan"]["green_stages"] = ["green"]
@@ -151,10 +151,10 @@ def test_direct_creation_accepts_output_owned_only_by_declared_rework_route(proj
     entry["rework_targets"] = ["repair"]
     repair = _stage("repair", allowed_paths=("tests/**",), target="green")
     green = _stage("green", allowed_paths=(), target=None)
-    process = _configure(project, [entry, repair, green])
+    workflow = _configure(project, [entry, repair, green])
     task = _task(
         project,
-        process,
+        workflow,
         method_inputs=_inputs(future=((MISSING_TEST, "repair"),)),
     )
     task["methods"][0]["verification_plan"]["green_stages"] = ["repair"]

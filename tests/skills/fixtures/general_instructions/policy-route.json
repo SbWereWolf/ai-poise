@@ -1,0 +1,17 @@
+{
+  "checkout": "$CHECKOUT",
+  "stage": "implementation",
+  "handler": "produce",
+  "scope_paths": [
+    "$PATH"
+  ],
+  "changed_paths": [],
+  "facts": [],
+  "required_methods": [],
+  "registered_methods": [],
+  "result_contract": {
+    "sections": [
+      "report"
+    ]
+  }
+}

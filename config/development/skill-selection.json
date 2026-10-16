@@ -303,6 +303,25 @@
       "skills": [
         "grilling"
       ]
+    },
+    {
+      "id": "requirements-registry",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/modules/requirements_registry/**",
+          "src/poise/application/requirements_registry.py",
+          "src/poise/infrastructure/requirements_registry.py",
+          "src/poise/interfaces/requirements_registry.py",
+          "tests/requirements_registry/**",
+          "docs/workflows/requirements-registry.md"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "requirements-db"
+      ]
     }
   ],
   "excluded": [

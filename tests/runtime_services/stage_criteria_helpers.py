@@ -10,7 +10,7 @@ from conftest import WorkPoise, write_json
 from poise.application.work import WorkTools
 
 
-FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria/process.json"
+FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria/workflow.json"
 
 
 def criteria(requirement="Return twice the input."):
@@ -22,38 +22,38 @@ def criteria(requirement="Return twice the input."):
 def boot(project, *, initial_execution=False, custom_design=False, custom_decision=False,
          empty_grants=False, second_execution=False, output_gate=False, input_gate=False,
          inspection_decision=False, empty_decide_grant=False, with_proof=False):
-    process = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    workflow = json.loads(FIXTURE.read_text(encoding="utf-8"))
     if initial_execution:
-        build = deepcopy(process["stages"][2])
+        build = deepcopy(workflow["stages"][2])
         build["transitions"] = {"complete": None}
         build["rework_targets"] = ["build"]
-        process["stages"] = [build]
-        process["route"]["entry"] = "build"
+        workflow["stages"] = [build]
+        workflow["route"]["entry"] = "build"
     if custom_design:
-        process["stages"][0]["purpose"] = "other"
+        workflow["stages"][0]["purpose"] = "other"
     if custom_decision:
-        process["stages"][1]["purpose"] = "other"
+        workflow["stages"][1]["purpose"] = "other"
     if inspection_decision:
-        observation = process["stages"][1]
+        observation = workflow["stages"][1]
         observation.update(handler="inspect", role="arbiter", read_only=True, allowed_paths=[])
         observation["transitions"] = {"clear": "build", "changes_requested": "sketch"}
         observation["rework_targets"] = ["sketch"]
     if second_execution:
-        another = deepcopy(process["stages"][2])
+        another = deepcopy(workflow["stages"][2])
         another["id"] = "build_next"
         another["rework_targets"] = ["build_next", "sketch"]
-        process["stages"][2]["transitions"]["complete"] = "build_next"
-        process["stages"].insert(3, another)
-        for stage in process["stages"]:
+        workflow["stages"][2]["transitions"]["complete"] = "build_next"
+        workflow["stages"].insert(3, another)
+        for stage in workflow["stages"]:
             for grant in ("propose", "decide"):
                 if stage["criteria_authority"][grant]:
                     stage["criteria_authority"][grant].append("build_next")
     if empty_grants:
-        process["stages"][0]["criteria_authority"] = {"propose": [], "decide": []}
+        workflow["stages"][0]["criteria_authority"] = {"propose": [], "decide": []}
     if empty_decide_grant:
-        process["stages"][1]["criteria_authority"] = {"propose": [], "decide": []}
+        workflow["stages"][1]["criteria_authority"] = {"propose": [], "decide": []}
     task = deepcopy(project["task"])
-    stages = process["stages"]
+    stages = workflow["stages"]
     task["methods"] = []
     task["method_inputs"] = []
     task["checks"] = {s["id"]: [] for s in stages}
@@ -108,7 +108,7 @@ def boot(project, *, initial_execution=False, custom_design=False, custom_decisi
         })
         next(item for item in task["stage_contracts"] if item["stage_id"] == "build")["entry_requirements"] = ["build-input"]
     project["cfg"]["automatic_checks"] = []
-    write_json(project["root"] / "config/processes/development.json", process)
+    write_json(project["root"] / "config/workflows/development.json", workflow)
     write_json(project["config_path"], project["cfg"])
     tools = WorkTools(WorkPoise(project["config_path"], "artisan-session"))
     context = tools.invoke(request("bootstrap", {

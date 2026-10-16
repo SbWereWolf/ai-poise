@@ -1,0 +1,16 @@
+[
+  "python-runtime",
+  "git-executable",
+  "target-repository",
+  "state-root",
+  "runtime-directory",
+  "task-directory",
+  "sprint-directory",
+  "worktree-directory",
+  "requirements-directory",
+  "telemetry-directory",
+  "poise-project-config",
+  "poise-task-database",
+  "poise-requirements-database",
+  "poise-telemetry-database"
+]

@@ -572,13 +572,13 @@ class Task:
         }
 
     @staticmethod
-    def prepare_restarted_registry(current: CheckRegistry, contract: dict, process: dict,
+    def prepare_restarted_registry(current: CheckRegistry, contract: dict, workflow: dict,
                                    edited_fields: frozenset[str], request_id: str,
                                    allowed_changes: list[str] | None):
         """Prepare the authoritative candidate before validating restarted creation."""
         from copy import deepcopy
         from .definition import executable_obligations, registry_inspection_stages, obligation_catalog
-        stages = tuple(stage['id'] for stage in process['stages'])
+        stages = tuple(stage['id'] for stage in workflow['stages'])
         methods = (deepcopy(contract['methods']) if 'methods' in edited_fields else
                    [entry.to_dict()['method'] for entry in current.entries])
         checks = (deepcopy(contract['checks']) if 'checks' in edited_fields else
@@ -623,7 +623,7 @@ class Task:
                 if method_id not in current.method_ids:
                     operations.append({'kind': 'add', 'method_id': method_id, 'registration': entry})
                     changed_fields.add('methods')
-        obligations = (executable_obligations(contract, process)
+        obligations = (executable_obligations(contract, workflow)
                        if 'executable_obligations' in edited_fields else current.executable_obligations)
         if obligations != current.executable_obligations:
             changed_fields.add('executable_obligations')
@@ -631,7 +631,7 @@ class Task:
             raise DomainError(f'Task restart authorization forbids registry changes: '
                               f'{sorted(changed_fields - set(allowed_changes))}')
         registry = replace(current, stages=stages,
-                           inspection_stages=registry_inspection_stages(process),
+                           inspection_stages=registry_inspection_stages(workflow),
                            obligation_catalog=obligation_catalog(contract))
         change = None
         if operations or obligations != current.executable_obligations:

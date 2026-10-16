@@ -1,0 +1,5 @@
+{
+  "file": "capabilities.json",
+  "header_template": "Infrastructure ready={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}",
+  "item_template": "{id}: {status}; required={required}; reason={reason}; remediation={remediation}"
+}

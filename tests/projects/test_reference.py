@@ -3,32 +3,29 @@ from pathlib import Path
 from poise.composition import project_tools
 from poise.common import load_config
 from poise.interfaces.projects import interactive
-from .helpers import setup_case
+from .helpers import setup_case, shipped_setup, shipped_edits
 
 ROOT=Path(__file__).resolve().parents[2]
 
 
-def test_installed_reference_template_builds_all_thirteen_processes(project):
+def test_installed_reference_template_builds_all_thirteen_workflows(project):
     root=project['root']
-    shutil.copytree(ROOT/'config',root/'catalogue-config')
-    # This copy is the explicitly mounted Poise configuration, not the target application.
-    shutil.rmtree(root/'config');(root/'catalogue-config').rename(root/'config')
-    settings=root/'config/project-setup.example.json';cfg=json.loads(settings.read_text())
-    (root/'config/project-registry.json').write_text(json.dumps({'schema':'configured-project-registry-1','projects':{}}))
-    selection=cfg['templates']['linux-reference']
-    blueprint=json.loads((root/selection['path']).read_text())
-    values={'project':'real-probe','repository':str(project['app']),'base':'main','remote':'backup',
-            'author_name':'Fixture','author_email':'fixture@example.invalid','push':False,'state':'state',
-            'environment':['PATH','HOME'],'worktrees':str(project['app']/'task-worktrees')}
-    request={'schema':'project-setup-1','request_id':'reference','destination':'configured/reference',
-             'template':{'id':'linux-reference','version':selection['version'],'digest':selection['digest']},
-             'edits':[{'path':q['path'],'value':values[q['id']]} for q in blueprint['questions']],
+    settings=shipped_setup(root / 'shipped')
+    tools=settings.parent.parent
+    cfg=json.loads(settings.read_text())
+    blueprint=json.loads((tools/cfg['templates']['linux-reference']['path']).read_text())
+    data=root.parent/'reference-data'
+    request={'schema':'project-setup-1','request_id':'reference','destination':'projects/real-probe/config',
+             'template':{'id':'linux-reference'},
+             'edits':shipped_edits(blueprint,tools=tools,project='real-probe',repository=project['app'],
+                                   data=data,trees=project['app']/'task-worktrees'),
              'probe_repository':True}
     result=project_tools(settings).apply(request)
-    _,_,processes=load_config(Path(result['config_path']))
-    assert len(processes)==13
-    assert set(processes)==set(blueprint['config']['processes'])
-    assert not (Path(result['config_path']).parent/'state').exists()
+    _,_,workflows=load_config(Path(result['config_path']))
+    assert len(workflows)==13
+    assert set(workflows)==set(blueprint['config']['workflows'])
+    assert (data/'workflows/development.json').is_file()
+    assert not (data/'tasks/tasks.sqlite').exists()
 
 
 def test_wizard_eof_is_abort_not_silent_publication(project):

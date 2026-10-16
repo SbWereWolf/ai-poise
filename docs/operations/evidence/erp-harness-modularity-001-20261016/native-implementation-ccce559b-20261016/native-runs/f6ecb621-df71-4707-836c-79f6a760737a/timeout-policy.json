@@ -1,0 +1,29 @@
+{
+  "history_evidence_ids": [
+    "70b2b31c-c01c-4f55-9603-9b6b46e587b8",
+    "8fc0b22c-f323-44a0-9a3b-930c402de581"
+  ],
+  "profile": {
+    "command": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/tests/checks/check-cache.py"
+    ],
+    "runtime": {
+      "executable": "/usr/bin/bash",
+      "platform": "linux"
+    },
+    "workload": "MODULARITY-REGRESSION-CHECK-CACHE"
+  },
+  "selection": {
+    "basis": "verified_success_history",
+    "diagnostic_evidence_run_id": null,
+    "diagnostic_override_reason": null,
+    "history_count": 2,
+    "history_multiplier": 1.1,
+    "longest_verified_success_seconds": 14.621000760002062,
+    "poll_seconds": 0.1,
+    "progress_gap_seconds": 360.0,
+    "seconds": 360.0
+  }
+}

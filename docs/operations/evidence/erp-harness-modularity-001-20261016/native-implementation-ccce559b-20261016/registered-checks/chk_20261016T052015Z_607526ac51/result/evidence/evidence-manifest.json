@@ -1,0 +1,27 @@
+{
+  "artifacts_retained": true,
+  "check_id": "chk_20261016T052015Z_607526ac51",
+  "evidence_id": "provider-binding-report",
+  "files": [
+    {
+      "bytes": 6307,
+      "path": "provider-binding-report.json",
+      "sha256": "cec41a08d5a2871226874bdacecab3741304819954258479e6763608163333f1"
+    }
+  ],
+  "generated_at": "2026-10-16T05:20:30Z",
+  "max_files": 1,
+  "max_total_bytes": 1048576,
+  "missing_required": [],
+  "optional_globs": [],
+  "required_globs": [
+    "provider-binding-report.json"
+  ],
+  "retention_class": "task",
+  "root": ".runtime/checks/chk_20261016T052015Z_607526ac51/result/evidence",
+  "schema_version": 1,
+  "status": "complete",
+  "total_bytes": 6307,
+  "total_files": 1,
+  "violations": []
+}

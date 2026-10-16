@@ -43,7 +43,7 @@ contract](../../../docs/workflows/stage-criteria.md) for future-stage proposals,
 decisions, execution binding and restart history. A criteria proposal is not a
 general edit of the frozen Task contract. Never infer authority from a role name.
 
-Use the selected paired process' [stage
+Use the selected paired workflow' [stage
 descriptions](../../../docs/workflows/paired-task-stages.md#шесть-пар-разработки):
 inspect and plan, design checks, implement tests, design code, implement code, then
 design and update documentation. Every substantive executor result has independent
@@ -55,7 +55,7 @@ current Task graph; existing frozen snapshots need their own authorized migratio
 
 1. Establish the authorized outcome, DoD and current stage. For any duplicate Task, the same library
    method resolves its
-   original parent, lists all children and batch-reads the whole family's stages, processes,
+   original parent, lists all children and batch-reads the whole family's stages, workflows,
    statuses and session owners
    in one consistent DB view. Only parent resolution differs by role. Consume the harness-supplied
    [family distance and
@@ -116,7 +116,7 @@ current Task graph; existing frozen snapshots need their own authorized migratio
    files or changed-path registries; Git owns the diff.
 3. Use the current result template and owning APIs for Task content, trace, verification methods,
    observations, feedback
-   and artifacts. Do not edit SQLite, managed process files, Task history or copied state directly.
+   and artifacts. Do not edit SQLite, managed workflow files, Task history or copied state directly.
    A saved section or
    structural receipt is not substantive success.
 4. For behavior changes, follow the current test-first route and inspect the tests before

@@ -9,10 +9,10 @@ from .test_runner_paths import result
 
 def test_test_remediation_reuses_handlers_with_red_contract(project):
     root=Path(__file__).resolve().parents[2]
-    proc=json.loads((root/'config/processes/development.json').read_text())
+    proc=json.loads((root/'config/workflows/development.json').read_text())
     for stage in proc['stages']:
         stage['role'] = 'executor'  # Explicit single-actor remediation scenario.
-    write_json(project['root']/'config/processes/development.json',proc)
+    write_json(project['root']/'config/workflows/development.json',proc)
     cfg=project['cfg'];cfg['schema']='ddd-accounting-12';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
     task=project['task']

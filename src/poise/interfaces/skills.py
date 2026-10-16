@@ -1,4 +1,4 @@
-"""Read-only skill metadata commands; no session, Task DB or lifecycle calls."""
+"""Read-only metadata and project instructions; no Task lifecycle calls."""
 import json
 
 from ..common import exact_keys, digest
@@ -6,13 +6,31 @@ from ..application.skill_catalog import project_policy, validate_tasks
 from ..infrastructure.goal_config import strict_json
 from ..infrastructure.skill_catalog import load_skill_catalog
 from ..modules.foundation.errors import PoiseError
+from ..modules.skills.instructions import InstructionInputError
+from ..application.project_instructions import ProjectInstructions
+from ..infrastructure.project_instructions import FileInstructionSource
 
 
 def execute(catalog_path, root, stream, output):
     try:
         request = strict_json(stream.read().decode("utf-8"))
-        if not isinstance(request, dict):
-            raise PoiseError("skills request must be an object")
+    except (PoiseError, UnicodeError, RecursionError):
+        result = InstructionInputError('invalid_request', 'request', 'provide:request').response()
+        output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
+        return 2
+    if not isinstance(request, dict):
+        result = InstructionInputError('invalid_request', 'request', 'provide:request').response()
+        output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
+        return 2
+    if isinstance(request, dict) and request.get('operation') == 'prepare':
+        try:
+            result = ProjectInstructions(FileInstructionSource(catalog_path, root)).prepare(request)
+            code = 0 if result['status'] == 'ready' else 1
+        except InstructionInputError as exc:
+            result, code = exc.response(), 2
+        output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
+        return code
+    try:
         catalog = load_skill_catalog(catalog_path, root)
         operation = request.get("operation")
         if operation == "list":

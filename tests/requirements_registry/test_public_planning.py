@@ -31,17 +31,20 @@ def test_public_batch_plans_full_text_and_current_coverage(project):
     assert data['revision'] == 1
 
 
-def test_real_task_publication_preserves_context_and_rejects_missing_agreement(project):
+def test_real_task_publication_preserves_context_without_inventing_agreement(project):
     runtime = WorkPoise(project['config_path'], 'requirements-owner')
     body = deepcopy(project['task'])
     del body['requirements_agreement']
-    with pytest.raises(Exception, match='agreement'):
-        runtime.bootstrap(body)
+    runtime.bootstrap(body)
     with runtime.store.unit_of_work() as uow:
-        assert not uow.tasks.exists(body['id'])
-    runtime.bootstrap(deepcopy(project['task']))
+        row = uow.tasks.db.execute(
+            'SELECT json_type(metadata, ?),json_extract(metadata, ?) FROM tasks WHERE id=?',
+            ('$.requirements_agreement', '$.requirements_agreement', 'T1'),
+        ).fetchone()
+    assert tuple(row) == ('null', None)
     snapshot = runtime.task_commands.requirements_snapshot(body['id'])
-    assert snapshot == project['task']['requirements_snapshot']
+    expected = json.loads((Path(__file__).parent / 'fixtures/initial_ready_contract.json').read_text())
+    assert snapshot == expected['snapshot']
     runtime.requirements_commands.apply({
         'request_id': 'update-live', 'expected_revision': 1, 'operations': [
             {'kind': 'put_requirement', 'requirement': {
@@ -112,7 +115,7 @@ def test_sprint_publication_persists_each_agreed_snapshot_atomically(project):
         assert runtime.task_commands.requirements_snapshot(task_id) == snapshot
 
 
-def test_sprint_missing_agreement_rejects_entire_publication(project):
+def test_sprint_publication_preserves_a_missing_optional_agreement(project):
     from poise.application.work import WorkTools
     from sprints.helpers import setup, task, draft, publish
     setup(project)
@@ -121,19 +124,22 @@ def test_sprint_missing_agreement_rejects_entire_publication(project):
     runtime = WorkPoise(project['config_path'], 'sprint-planner')
     tools = WorkTools(runtime)
     planned = draft(tools, [a, b])
+    publish(tools, planned['revision'])
     with runtime.store.unit_of_work() as unit:
-        before = {name: unit.tasks.load_newborn(name) for name in ('A', 'B')}
-    with pytest.raises(Exception, match='agreement'):
-        publish(tools, planned['revision'])
-    with runtime.store.unit_of_work() as unit:
-        assert {name: unit.tasks.load_newborn(name) for name in ('A', 'B')} == before
-    assert runtime.task_queries.summary() == []
+        rows = unit.tasks.db.execute(
+            'SELECT id,json_type(metadata, ?),json_extract(metadata, ?) FROM tasks ORDER BY id',
+            ('$.requirements_agreement', '$.requirements_agreement.accepted'),
+        ).fetchall()
+    assert [tuple(row) for row in rows] == [('A', 'object', 1), ('B', 'null', None)]
+    assert runtime.task_commands.requirements_snapshot('B')['task_requirements'] == [
+        {'text': 'R-B', 'applications': ['FIXTURE-APPLICATION']}
+    ]
 
 
 def test_all_shipped_project_templates_publish_requirements_paths():
     from poise.common import digest
     root = Path(__file__).resolve().parents[2]
-    settings = json.loads((root / 'config/project-setup.json').read_text())
+    settings = json.loads((root / 'config/project-setup.example.json').read_text())
     for path in sorted((root / 'config/project-templates').glob('*.json')):
         entry = settings['templates'][path.stem]
         assert root / entry['path'] == path
@@ -144,10 +150,12 @@ def test_all_shipped_project_templates_publish_requirements_paths():
         assert entry['digest'] == digest(blueprint)
 
 
-def test_shipped_poise_configuration_keeps_requirements_outside_served_code():
-    from poise.common import load_config
+def test_shipped_project_example_declares_external_requirements_paths():
     root = Path(__file__).resolve().parents[2]
-    _, config, _ = load_config(root / 'config/projects/ai-poise/project.json')
+    config = json.loads((root / 'config/projects/ai-poise/project.example.json').read_text())
+    assert config['paths']['requirements_database'] == '/ABSOLUTE/PATH/TO/STATE/requirements.sqlite'
+    assert config['paths']['requirements_lock'] == '/ABSOLUTE/PATH/TO/STATE/requirements.lock'
+    assert config['git']['repository'] == '/ABSOLUTE/PATH/TO/AI_POISE'
     for key in ('requirements_database', 'requirements_lock'):
         path = Path(config['paths'][key])
         assert path.is_absolute()

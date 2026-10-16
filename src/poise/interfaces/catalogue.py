@@ -27,9 +27,9 @@ def execute(path,stream,output):
         elif request['action']=='tasks':
             if not isinstance(request['project_config'],str) or not Path(request['project_config']).is_absolute():
                 raise PoiseError('Select an absolute project config for task creation validation')
-            _,project,processes=load_config(Path(request['project_config']))
+            _,project,workflows=load_config(Path(request['project_config']))
             result=tools.tasks(
-                request['items'], processes, project['automatic_checks'],
+                request['items'], workflows, project['automatic_checks'],
                 project['task_decomposition'],
             )
         else:raise PoiseError('Unknown catalogue action')

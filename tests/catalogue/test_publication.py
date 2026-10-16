@@ -22,17 +22,17 @@ def verify(h,ctx,work,sections):
 
 
 def setup(project):
-    stage=deepcopy(project['process']['stages'][0]);stage.update(id='draft',handler='produce', role="executor",
+    stage=deepcopy(project['workflow']['stages'][0]);stage.update(id='draft',handler='produce', role="executor",
         sections={'planned_tasks':'Write the reviewed contracts.'},required_sections=['planned_tasks'],
         read_only=True,allowed_paths=[],transitions={'complete':'review'},rework_targets=['draft'])
     review=deepcopy(stage);review.update(id='review',handler='inspect', role="reviewer",sections={'report':'Review.'},
         required_sections=['report'],transitions={'clear':'publish','changes_requested':'draft'},rework_targets=['draft','review'])
     publish=deepcopy(stage);publish.update(id='publish',handler='publish', role="executor",sections={},required_sections=[],
         transitions={'complete':None},rework_targets=['draft'])
-    p=deepcopy(project['process']);p.update(goal_type='planning',stages=[stage,review,publish],
+    p=deepcopy(project['workflow']);p.update(goal_type='planning',stages=[stage,review,publish],
         route={'entry':'draft'})
-    write_json(project['root']/'config/processes/planning.json',p)
-    cfg=deepcopy(project['cfg']);cfg['processes']['planning']='config/processes/planning.json';cfg['automatic_checks']=[]
+    write_json(project['root']/'config/workflows/planning.json',p)
+    cfg=deepcopy(project['cfg']);cfg['workflows']['planning']='config/workflows/planning.json';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
     task=deepcopy(project['task']);task.update(id='PLAN',goal_type='planning',methods=[],method_inputs=[],
         checks={s['id']:[] for s in p['stages']},evidence_plan={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']},
@@ -86,7 +86,7 @@ def test_publish_reviewed_task_batch_and_bootstrap_child(project):
     assert call(h,'verify',{'result':None,'artifacts':[]})['replayed']
     call(h,'accept',{})
     boot=start(h,{'id':'CHILD'})
-    assert boot['stage']==project['process']['route']['entry']
+    assert boot['stage']==project['workflow']['route']['entry']
     assert boot['task']=='CHILD'
 
 

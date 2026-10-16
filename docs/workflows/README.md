@@ -27,7 +27,7 @@
 - [source-reader.md](source-reader.md)
 - [sprints.md](sprints.md)
 - [Критерии этапов](stage-criteria.md)
-- [Пример процесса с типами этапов](stage-criteria-process.example.json)
+- [Пример процесса с типами этапов](stage-criteria-workflow.example.json)
 - [task-planning.md](task-planning.md)
 - [task-stage-skills-draft.md](task-stage-skills-draft.md)
 - [terminal-materials.md](terminal-materials.md)

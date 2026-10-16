@@ -1,0 +1,151 @@
+{
+  "collected": 29,
+  "failed": [
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_configuration_controls_permission_to_repair",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_configuration_replaces_external_command_without_source_edit",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_configuration_swaps_handlers_through_same_interface",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_configured_command_receives_ordered_parameters_and_tool_settings",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_handler_receives_full_streams_and_real_exit",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_missing_executable_reports_available_diagnostics",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_missing_handler_is_explicit_before_process",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_missing_required_placeholder_is_explicit_before_process",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_new_invocation_has_independent_single_repair",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_product_handler_retains_complete_large_output",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_public_operations_use_selected_templates[check-check]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_public_operations_use_selected_templates[deps-run]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_public_operations_use_selected_templates[infra-run]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_read_only_operation_does_not_request_repair[check-arguments0]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_read_only_operation_does_not_request_repair[infra-arguments1]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_recognized_failure_runs_one_repair_and_verification",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_second_error_returns_both_diagnostics_without_second_repair[repair-failure-expected_codes0]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_second_error_returns_both_diagnostics_without_second_repair[verify-failure-expected_codes1]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_signaled_process_retains_partial_diagnostics",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[contradictory]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[empty]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[failed]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[foreign-schema]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[malformed]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[unavailable]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_commands.py::test_unrepairable_or_unknown_result_reaches_agent_without_mutation[unknown]",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_configuration.py::test_external_tool_config_has_a_versioned_example",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_configuration.py::test_populated_command_example_exposes_selected_tool_and_handler",
+      "phase": "call"
+    },
+    {
+      "cause": false,
+      "nodeid": "tests/architecture/test_bootstrap_configuration.py::test_working_configs_are_ignored_and_only_examples_are_versioned",
+      "phase": "call"
+    }
+  ],
+  "passed": 0
+}

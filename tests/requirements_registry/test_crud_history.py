@@ -6,7 +6,7 @@ import json
 import sqlite3
 
 from conftest import write_json
-from poise.infrastructure.requirements_registry import TaskRequirementsSnapshotStore
+from requirements_registry.snapshot_store import TaskRequirementsSnapshotStore
 from requirements_registry.crud_support import (
     arrange, invoke, literal, snapshot,
 )

@@ -1,0 +1,8 @@
+[
+  {
+    "stage": "initial",
+    "stdout": "b'{\"schema\":\"environment-maintenance/result/v2\",\"status\":\"action_required\"}\\n'",
+    "stderr": "b'external diagnostic: run\\n'",
+    "exit_code": 2
+  }
+]

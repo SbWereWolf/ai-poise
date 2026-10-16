@@ -126,7 +126,7 @@ def task_tools(
     }]
     task["checks"] = {
         stage["id"]: [selected["id"]] if stage["id"] == "tests" else []
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     }
     write_json(project["task_path"], task)
     tools = WorkTools(Poise(project["config_path"], actor, DeterministicClock()))

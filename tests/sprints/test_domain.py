@@ -83,6 +83,46 @@ def test_published_plan_is_not_silently_rewritten():
     with pytest.raises(PoiseError):s.revise(value)
 
 
+def test_preparing_member_blocks_its_branch_without_hiding_ready_work():
+    value, p = plan([{'id': i, 'sprint_id': 'S'} for i in 'ABC'])
+    value = value.apply([{'kind': 'dependencies', 'items': [
+        {'predecessor': 'A', 'successor': 'B', 'kind': 'completion'},
+    ]}], p)
+    sprint = Sprint.draft(value, p).publish()
+
+    result = sprint.overview({'A': 'newborn', 'B': 'available', 'C': 'available'}, ())
+
+    assert result['status'] == 'active'
+    assert result['eligible'] == ['C']
+    assert result['active'] == []
+    assert result['blocked'] == [
+        {'task': 'A', 'reasons': [{'reason': 'task_not_ready'}]},
+        {'task': 'B', 'reasons': [
+            {'predecessor': 'A', 'reason': 'predecessor_incomplete'},
+        ]},
+    ]
+
+
+@pytest.mark.parametrize('peer', ['newborn', 'available', 'active', 'verified',
+                                  'accepted', 'completed', 'cancelled'])
+def test_preparing_member_is_never_executable_with_any_supported_peer(peer):
+    value, p = plan([{'id': i, 'sprint_id': 'S'} for i in 'AB'])
+    result = Sprint.draft(value, p).publish().overview({'A': 'newborn', 'B': peer}, ())
+
+    assert 'A' not in result['eligible']
+    assert 'A' not in result['active']
+    assert result['blocked'][0] == {'task': 'A', 'reasons': [{'reason': 'task_not_ready'}]}
+    assert result['status'] != 'completed'
+    if peer in ('newborn', 'completed', 'cancelled'):
+        assert result['status'] == 'blocked'
+
+
+def test_preparing_member_does_not_mask_an_unknown_peer_state():
+    value, p = plan([{'id': i, 'sprint_id': 'S'} for i in 'AB'])
+    with pytest.raises(PoiseError, match='Unknown task state'):
+        Sprint.draft(value, p).publish().overview({'A': 'newborn', 'B': 'invalid'}, ())
+
+
 def test_section_minimum_uses_sectionbook():
     value,p=plan([{'id':'A','sprint_id':'S'}]);value=value.apply([{'kind':'sections','values':{'plan':'  Заполнить план.  '}}],p)
     assert value.content_errors(p)

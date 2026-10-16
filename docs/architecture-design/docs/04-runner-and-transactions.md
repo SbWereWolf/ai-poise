@@ -17,7 +17,7 @@ Runner координирует текущий этап, но не станов�
 | Контракт | Содержимое | Кто формирует |
 |---|---|---|
 | `WorkBinding` | Project, session, task/sprint/ad-hoc scope, cycle, iteration, phase | sessions + bootstrap; агент не переписывает IDs каждый раз |
-| `StageContract` | Inputs/output schema, handler, разрешённые изменения, exact method refs, limits, переходы, report | Независимый process snapshot + captured execution config |
+| `StageContract` | Inputs/output schema, handler, разрешённые изменения, exact method refs, limits, переходы, report | Независимый workflow snapshot + captured execution config |
 | `StageSubmission` | Содержательные результаты разрешённой фазы, список artifact paths, commit message где нужен | Агент через один result file |
 | `CandidateTaskView` | Текущее состояние с применённым submission и происхождением каждого нового слоя | Task/content |
 | `SubjectSnapshot` | Пин проверяемого объекта, деревьев codebases и явно значимых execution facts | Workspace/Execution adapters |
@@ -154,7 +154,7 @@ Read-only inspection не запрещает сохранить новый от�
   → BootstrapWork
      short_uow:
        Task.accept_iteration(decision)
-       RoutePolicy.next_transition(task facts, explicit process)
+       RoutePolicy.next_transition(task facts, explicit workflow)
        Task.begin_iteration(transition, entry snapshot, authority)
        Session.bind_cycle(...)
        save
@@ -233,7 +233,7 @@ stage-entry/current subject
 
 ## 12. Handoff и discard
 
-Handoff использует Task API для фиксации process position и WIP, WorkspacePort для verified/WIP commit, ArtifactRegistry для сохранных refs и TransferPort для доставки там, где она требуется. Session освобождает текущую formal work только после выполнения договорённых условий сохранности. Внешний транспорт неизвестного исхода остаётся явным pending state; не считается успешным автоматически.
+Handoff использует Task API для фиксации workflow position и WIP, WorkspacePort для verified/WIP commit, ArtifactRegistry для сохранных refs и TransferPort для доставки там, где она требуется. Session освобождает текущую formal work только после выполнения договорённых условий сохранности. Внешний транспорт неизвестного исхода остаётся явным pending state; не считается успешным автоматически.
 
 Discard определяет собственный delta текущей попытки относительно durable checkpoint, восстанавливает только его и освобождает binding. Уже записанные содержательные результаты прошлого verify, решения пользователя и чужие изменения не удаляются. Технический journal фиксирует действие; task не получает фиктивный «новый результат», которого агент отказался добиваться.
 

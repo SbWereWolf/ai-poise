@@ -11,9 +11,9 @@ from .tasks import (create_planned_in_uow, creation_batch_reservations, creation
 
 
 class PlanningPublications:
-    def __init__(self,uow,project,processes,automatic_checks,sprint_policy,task_id_policy,
+    def __init__(self,uow,project,workflows,automatic_checks,sprint_policy,task_id_policy,
                  decomposition_policy,execution_hash,max_items,prepare_creation,creation_base):
-        self.uow,self.project,self.processes=uow,project,deepcopy(processes)
+        self.uow,self.project,self.workflows=uow,project,deepcopy(workflows)
         self.automatic_checks=deepcopy(automatic_checks)
         self.decomposition_policy=deepcopy(decomposition_policy)
         self.policy=SprintPolicy.parse(sprint_policy)
@@ -74,9 +74,9 @@ class PlanningPublications:
         for intent in snapshot['contracts']:
             body_contract=intent.get('task') if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
             goal=body_contract.get('goal_type') if isinstance(body_contract,dict) else None
-            if goal not in self.processes:raise DomainError('Unknown child goal type')
+            if goal not in self.workflows:raise DomainError('Unknown child goal type')
             candidate=self.prepare_creation(
-                intent,self.processes[goal],self.automatic_checks,base,
+                intent,self.workflows[goal],self.automatic_checks,base,
                 self.decomposition_policy,
             )
             alias=creation_intent_alias(intent)
@@ -129,13 +129,13 @@ class PlanningPublications:
             for intent,prepared in zip(contracts,preflight['prepared'],strict=True):
                 body_contract=intent.get('task') if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
                 goal=body_contract.get('goal_type') if isinstance(body_contract,dict) else None
-                if goal not in self.processes:raise DomainError('Unknown child goal type')
+                if goal not in self.workflows:raise DomainError('Unknown child goal type')
                 if prepared.source_intent!=intent:
                     raise DomainError('Reviewed child intent changed after creation preflight')
                 # Requirements preparation retains the original envelope for
                 # provenance and returns a normalized structural creation intent.
                 validate_creation_intent(
-                    prepared.intent, self.processes[goal], self.automatic_checks,
+                    prepared.intent, self.workflows[goal], self.automatic_checks,
                     self.decomposition_policy,
                 )
                 alias=creation_intent_alias(intent)
@@ -164,7 +164,7 @@ class PlanningPublications:
                     plan=SprintPlan(rewrite_task_plan(sprint.plan.data,contracts_by_alias)),
                 )
                 record={'project':self.project,'actor':actor,'aggregate':sprint.to_dict(),
-                        'processes':deepcopy(self.processes),'automatic_checks':deepcopy(self.automatic_checks),
+                        'workflows':deepcopy(self.workflows),'automatic_checks':deepcopy(self.automatic_checks),
                         'task_decomposition':deepcopy(self.decomposition_policy),
                         'execution_hash':self.execution_hash}
                 u.sprints.save(record,None);u.sprints.publish_members(record)

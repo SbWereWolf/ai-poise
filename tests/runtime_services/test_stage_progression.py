@@ -14,11 +14,11 @@ from poise.modules.workflow.domain import HandlerKind
 
 
 def configure_progression(project, *, gated=False):
-    process = deepcopy(project["process"])
+    workflow = deepcopy(project["workflow"])
     stages = [
-        deepcopy(process["stages"][0]),
-        deepcopy(process["stages"][2]),
-        deepcopy(process["stages"][3]),
+        deepcopy(workflow["stages"][0]),
+        deepcopy(workflow["stages"][2]),
+        deepcopy(workflow["stages"][3]),
     ]
     stages[0].update(
         handler="produce", role="executor",
@@ -35,10 +35,10 @@ def configure_progression(project, *, gated=False):
         transitions={"clear": None, "changes_requested": stages[1]["id"]},
         rework_targets=[stages[2]["id"]],
     )
-    process["stages"] = stages
-    process["route"]["entry"] = stages[0]["id"]
-    project["process"] = process
-    write_json(project["root"] / "config/processes/development.json", process)
+    workflow["stages"] = stages
+    workflow["route"]["entry"] = stages[0]["id"]
+    project["workflow"] = workflow
+    write_json(project["root"] / "config/workflows/development.json", workflow)
     task = deepcopy(project["task"])
     stage_ids = {stage["id"] for stage in stages}
     task["decomposition"]["phases"] = [
@@ -437,11 +437,11 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
         read_only=True,
         allowed_paths=[],
     )
-    project["process"]["stages"][-1]["transitions"]["clear"] = "publication"
-    project["process"]["stages"].append(publication)
+    project["workflow"]["stages"][-1]["transitions"]["clear"] = "publication"
+    project["workflow"]["stages"].append(publication)
     write_json(
-        project["root"] / "config/processes/development.json",
-        project["process"],
+        project["root"] / "config/workflows/development.json",
+        project["workflow"],
     )
     project["cfg"]["automatic_checks"][0]["by_stage"]["publication"] = []
     write_json(project["config_path"], project["cfg"])
@@ -594,14 +594,14 @@ def test_legacy_self_review_rejects_before_verification_workspace(project, monke
 
 
 def test_completed_review_returns_to_original_executor_without_false_self_review(project):
-    process = deepcopy(project["process"])
+    workflow = deepcopy(project["workflow"])
     for name, following, rework in [
         ("test_review", "implementation", "tests"),
         ("code_review", None, "implementation"),
     ]:
-        stage = next(item for item in process["stages"] if item["id"] == name)
+        stage = next(item for item in workflow["stages"] if item["id"] == name)
         stage.update(handler="inspect", role="reviewer", transitions={"clear": following, "changes_requested": rework})
-    write_json(project["root"] / "config/processes/development.json", process)
+    write_json(project["root"] / "config/workflows/development.json", workflow)
     executor = WorkTools(Poise(project["config_path"], "executor"))
     first = bootstrap(executor, project["task"])
     add_test(first["worktree"])

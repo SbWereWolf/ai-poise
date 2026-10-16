@@ -1,14 +1,14 @@
 import copy
 import pytest
 from poise.modules.foundation.errors import DomainError
-from .helpers import process, stage, task, verify, inspect, finding, resolution, decision, submit
+from .helpers import workflow, stage, task, verify, inspect, finding, resolution, decision, submit
 
 def route(cfg):
     from poise.modules.workflow.domain import RouteDefinition
-    return RouteDefinition.from_process(cfg)
+    return RouteDefinition.from_workflow(cfg)
 
 def test_graph_is_not_list_order():
-    cfg=process(); cfg["stages"]=[cfg["stages"][2],cfg["stages"][0],cfg["stages"][3],cfg["stages"][1]]
+    cfg=workflow(); cfg["stages"]=[cfg["stages"][2],cfg["stages"][0],cfg["stages"][3],cfg["stages"][1]]
     t=task(cfg); assert t.stage.stage_id=="draft"
     t=verify(t,{}).accept("S",True).task
     assert t.stage.stage_id=="audit"
@@ -17,7 +17,7 @@ def test_graph_is_not_list_order():
 
 @pytest.mark.parametrize("damage",["missing-route","missing-handler","unknown-handler","unknown-target","wrong-outcome","no-terminal","unreachable","write-inspection","unknown-route-field","bad-rework"])
 def test_invalid_graph_rejected(damage):
-    cfg=process()
+    cfg=workflow()
     if damage=="missing-route": del cfg["route"]
     elif damage=="missing-handler": del cfg["stages"][0]["handler"]
     elif damage=="unknown-handler": cfg["stages"][0]["handler"]="not_supported"
@@ -71,12 +71,12 @@ def test_route_terminal_not_last_list_position():
 
 
 def test_every_inspection_rework_outcome_has_a_real_target():
-    cfg=process();cfg["stages"][1]["transitions"]["changes_requested"]=None
+    cfg=workflow();cfg["stages"][1]["transitions"]["changes_requested"]=None
     with pytest.raises(DomainError): route(cfg)
 
 
 def test_valid_cycle_with_positive_terminal_path_is_accepted():
-    cfg = process()
+    cfg = workflow()
     cfg["stages"][2]["transitions"]["complete"] = "follow_up"
     cfg["stages"][3]["transitions"] = {
         "clear": None,
@@ -117,7 +117,7 @@ def test_check_route_with_only_negative_terminal_is_rejected():
     accepted = []
 
     for case, stages in cases.items():
-        cfg = process()
+        cfg = workflow()
         cfg["route"] = {"entry": "check"}
         cfg["stages"] = stages
         try:
@@ -132,7 +132,7 @@ def test_check_route_with_only_negative_terminal_is_rejected():
 
 
 def test_check_route_with_positive_terminal_and_rework_cycle_is_accepted():
-    cfg = process()
+    cfg = workflow()
     cfg["route"] = {"entry": "check"}
     cfg["stages"] = [stage(
         "check", "check",
@@ -155,7 +155,7 @@ def test_check_route_with_mixed_positive_and_negative_terminals_is_accepted(
         "inconclusive": "check",
     }
     transitions[negative_terminal] = None
-    cfg = process()
+    cfg = workflow()
     cfg["route"] = {"entry": "check"}
     cfg["stages"] = [stage(
         "check", "check", transitions,
@@ -169,7 +169,7 @@ def test_check_route_with_mixed_positive_and_negative_terminals_is_accepted(
 
 
 def test_stage_reachable_only_through_rework_target_is_accepted():
-    cfg = process()
+    cfg = workflow()
     cfg["route"] = {"entry": "draft"}
     cfg["stages"] = [
         stage(
@@ -189,7 +189,7 @@ def test_stage_reachable_only_through_rework_target_is_accepted():
 
 
 def test_stage_without_normal_or_rework_inbound_is_rejected():
-    cfg = process()
+    cfg = workflow()
     cfg["route"] = {"entry": "draft"}
     cfg["stages"] = [
         stage(

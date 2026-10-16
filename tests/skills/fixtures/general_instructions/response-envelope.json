@@ -1,0 +1,14 @@
+{
+  "schema": "poise-project-instructions-1",
+  "status": "ready",
+  "project": "$PROJECT",
+  "checkout": "$CHECKOUT",
+  "instruction_root": "$CHECKOUT",
+  "policy_sha256": "$HASH",
+  "paths": [
+    "src/billing/invoice.py"
+  ],
+  "materials": [],
+  "diagnostics": [],
+  "delta": null
+}

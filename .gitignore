@@ -36,3 +36,11 @@ dist/
 # Installation-specific Stride bootstrap and settings; retain sanitized examples.
 /config/stride.env
 /config/stride-launcher.json
+
+# Operator-owned working maintenance settings; commit populated examples only.
+/config/bootstrap.json
+/config/environment-maintenance.json
+/operator/profile/
+
+# Working catalogue editor settings; retain its sanitized example.
+/config/catalogue/editor.json

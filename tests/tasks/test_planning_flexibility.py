@@ -14,9 +14,9 @@ from runtime_services.test_task_restart import restart
 
 
 POLICY = {
-    'reviewer': ['goal', 'stage_contracts', 'process', 'requirements',
+    'reviewer': ['goal', 'stage_contracts', 'workflow', 'requirements',
                  'requirements_snapshot', 'requirements_agreement'],
-    'user': ['goal', 'goal_type', 'stage_contracts', 'process', 'requirements',
+    'user': ['goal', 'goal_type', 'stage_contracts', 'workflow', 'requirements',
              'requirements_snapshot', 'requirements_agreement', 'planning',
              'methods', 'method_inputs', 'checks', 'definition_of_done',
              'artifact_requirements', 'content_contract', 'evidence_plan',
@@ -40,31 +40,31 @@ def ready(c, task_id, revision, request_id='ready-flex'):
                        request_id=request_id)
 
 
-def test_local_process_can_be_reshaped_and_survives_reselection(project):
+def test_local_workflow_can_be_reshaped_and_survives_reselection(project):
     c = client(project)
     create(c, 'FLEX')
-    changed = edit(c, 'FLEX', 0, {**full_draft(project), 'process_changes': [
+    changed = edit(c, 'FLEX', 0, {**full_draft(project), 'workflow_changes': [
         {'op': 'patch_stage', 'id': 'implementation', 'set': {'allowed_paths': ['examples/**']}}
     ]}, 'reshape')
-    process = changed['process']
-    assert process['stages'][2]['allowed_paths'] == ['examples/**']
-    original = json.loads((project['config_path'].parent/'config/processes/development.json').read_text())
+    workflow = changed['workflow']
+    assert workflow['stages'][2]['allowed_paths'] == ['examples/**']
+    original = json.loads((project['config_path'].parent/'config/workflows/development.json').read_text())
     assert original['stages'][2]['allowed_paths'] == ['src/**']
     same = edit(c, 'FLEX', changed['revision'], {'goal_type': 'development'}, 'same-type')
-    assert same['process'] == process
-    assert c.runtime.task_queries.record('FLEX')['process'] == process
+    assert same['workflow'] == workflow
+    assert c.runtime.task_queries.record('FLEX')['workflow'] == workflow
 
 
-def test_explicit_process_needs_no_global_goal_registration(project):
+def test_explicit_workflow_needs_no_global_goal_registration(project):
     c = client(project)
     create(c, 'LOCAL')
-    process = deepcopy(project['process'])
-    process['goal_type'] = 'one_off_analysis'
+    workflow = deepcopy(project['workflow'])
+    workflow['goal_type'] = 'one_off_analysis'
     draft = full_draft(project, 'LOCAL')
     draft['goal_type'] = 'one_off_analysis'
-    out = edit(c, 'LOCAL', 0, {**draft, 'process': process}, 'custom-process')
+    out = edit(c, 'LOCAL', 0, {**draft, 'workflow': workflow}, 'custom-process')
     assert ready(c, 'LOCAL', out['revision'])['status'] == 'available'
-    assert c.runtime.task_queries.record('LOCAL')['process']['goal_type'] == 'one_off_analysis'
+    assert c.runtime.task_queries.record('LOCAL')['workflow']['goal_type'] == 'one_off_analysis'
 
 
 def test_incomplete_flexible_draft_may_remove_fields_but_not_be_ready(project):
@@ -95,7 +95,7 @@ def test_invalid_local_graph_does_not_change_draft(project):
     out = edit(c, 'FLEX', 0, full_draft(project), 'complete')
     before = c.runtime.task_queries.record('FLEX')
     with pytest.raises(PoiseError):
-        edit(c, 'FLEX', out['revision'], {'process_changes': [
+        edit(c, 'FLEX', out['revision'], {'workflow_changes': [
             {'op': 'remove_stage', 'id': 'implementation'}]}, 'bad-graph')
     assert c.runtime.task_queries.record('FLEX') == before
 
@@ -213,9 +213,9 @@ def test_future_output_uses_task_scope_not_template_scope(project):
     draft = full_draft(project)
     # The test fixture's only future source is tests/test_double.py produced at tests.
     draft['stage_contracts'][0]['allowed_paths'] = ['tests/**']
-    process = deepcopy(project['process'])
-    process['stages'][0]['allowed_paths'] = ['other-tests/**']
-    out = edit(c, 'FLEX', 0, {**draft, 'process': process}, 'scope')
+    workflow = deepcopy(project['workflow'])
+    workflow['stages'][0]['allowed_paths'] = ['other-tests/**']
+    out = edit(c, 'FLEX', 0, {**draft, 'workflow': workflow}, 'scope')
     assert ready(c, 'FLEX', out['revision'])['status'] == 'available'
 
 
@@ -236,10 +236,10 @@ def planning_catalogue(project):
         'lock_seconds': 2.0, 'lock_poll_seconds': 0.01, 'max_changes': 1000,
         'max_input_bytes': 1048576, 'output_chars': 8192,
         'exit_codes': {'success': 0, 'rejected': 2, 'pending': 3},
-        'processes': {'development': 'config/processes/development.json'}, 'templates': {},
+        'workflows': {'development': 'config/workflows/development.json'}, 'templates': {},
     })
     settings = write_json(root/'catalogue.json', {
-        'schema': 'process-catalogue-1', 'editor': 'editor.json', 'max_items': 1000,
+        'schema': 'workflow-catalogue-1', 'editor': 'editor.json', 'max_items': 1000,
         'task_templates': {'dev-test': {'path': 'templates/development.json', 'version': '1',
                                      'digest': digest, 'goal_type': 'development'}},
     })
@@ -259,10 +259,12 @@ def test_goal_type_materializes_editable_task_in_one_public_request(project):
     assert out['draft']['goal'] == 'Actual maintenance, not template prose'
     assert out['draft']['planning']['template']['id'] == 'dev-test'
     assert out['draft']['planning']['restart_revision_policy'] == POLICY
-    assert out['process']['stages'][0]['id'] == 'tests'
+    assert out['workflow']['stages'][0]['id'] == 'tests'
     assert out['draft']['definition_of_done'] == project['task']['definition_of_done']
     template.unlink()  # The already materialized task must not consult this source again.
-    assert task_action(c, **packet) == out
+    repeated = task_action(c, **packet)
+    assert repeated['replayed'] is True
+    assert {key: value for key, value in repeated.items() if key != 'replayed'} == out
     out = edit(c, 'STARTER', out['revision'], {'goal_type': 'development'}, 'reselect')
     assert ready(c, 'STARTER', out['revision'])['status'] == 'available'
     restarted_runtime = WorkPoise(project['config_path'], 'executor')
@@ -282,7 +284,7 @@ def test_materialization_cannot_replace_the_requested_identity(project):
 
 @pytest.mark.parametrize('patch', [
     {'goal_type': []}, {'goal_type': None}, {'goal_type': ''},
-    {'goal_type': True}, {'process': None}, {'process_changes': None},
+    {'goal_type': True}, {'workflow': None}, {'workflow_changes': None},
 ])
 def test_invalid_explicit_planning_input_is_an_atomic_domain_error(project, patch):
     c = client(project)
@@ -373,23 +375,41 @@ def test_allocated_workspace_is_preserved_not_silently_replaced(project):
         'role': 'user', 'decision': 'Revise the task while preserving its existing work.'})
     before = c.runtime.task_queries.record('FLEX')
     with pytest.raises(PoiseError, match='workspace'):
-        edit(c, 'FLEX', out['revision'], {'process_changes': [
+        edit(c, 'FLEX', out['revision'], {'workflow_changes': [
             {'op': 'set_worktree_required', 'value': False}]}, 'replace-workspace')
     assert c.runtime.task_queries.record('FLEX') == before
     assert wip.read_text() == 'Preserve this uncommitted work.\n'
 
 
 def test_registered_goal_materializes_without_global_project_route(project):
+    import shutil
+
+    repository = Path(__file__).resolve().parents[2]
+    fixture = project['root'] / 'catalogue-fixture'
+    (fixture / 'sources').mkdir(parents=True)
+    shutil.copyfile(repository / 'config/catalogue/workflows/test_development.json', fixture / 'sources/workflow.json')
+    shutil.copyfile(repository / 'config/catalogue/task-templates/test_development.json', fixture / 'sources/task.json')
+    editor = json.loads((repository / 'config/catalogue/editor.example.json').read_text())
+    editor.update(root=str(fixture), database='database/editor.sqlite', lock='lock/editor.lock',
+                  responses='responses', workflows={'test_development': 'published/test_development.json'},
+                  templates={'test_development-v1': {'path': 'sources/workflow.json'}})
+    write_json(fixture / 'editor.json', editor)
+    catalogue = write_json(fixture / 'catalogue.json', {
+        'schema': 'workflow-catalogue-1', 'editor': 'editor.json', 'max_items': 10,
+        'task_templates': {'test_development-v1': {
+            'path': 'sources/task.json', 'goal_type': 'test_development',
+        }},
+    })
     project['cfg']['task_planning'] = {
-        'catalogue': str(Path(__file__).resolve().parents[2] / 'config/catalogue/settings.example.json'),
+        'catalogue': str(catalogue),
         'restart_revision_policy': deepcopy(POLICY)}
     c = client(project)
     out = task_action(c, action='create', task_id='TEST-WORK', sprint_id=None,
         request_id='test-starter', goal_type='test_development', patch={})
     assert out['draft']['goal_type'] == 'test_development'
     assert out['draft']['planning']['template']['id'] == 'test_development-v1'
-    assert out['process']['goal_type'] == 'test_development'
-    assert 'test_development' not in c.runtime.processes
+    assert out['workflow']['goal_type'] == 'test_development'
+    assert 'test_development' not in c.runtime.workflows
     assert out['status'] == 'newborn'
 
 

@@ -98,16 +98,16 @@ def direct_caller(project, environ):
 
 
 def establish_poise(config_path, caller, inventory, clock, preferred_session=None,
-                    legacy_process_requirements=None, liveness=None):
+                    legacy_workflow_requirements=None, liveness=None):
     config_path = Path(config_path).resolve()
-    root,cfg,_ = load_config(config_path,legacy_process_requirements)
+    root,cfg,_ = load_config(config_path,legacy_workflow_requirements)
     state = configured_root(root,cfg['paths']['state'])
     database = Database(descendant(state,cfg['paths']['database']),descendant(state,cfg['paths']['lock']),
                         cfg['limits']['lock_seconds'],cfg['limits']['lock_poll_seconds'])
     registry = RuntimeRegistry(database)
     session = SessionEstablisher(registry).establish(caller,inventory,preferred_session)
     return EstablishedPoise(
-        Poise(config_path,session.session_id,clock,legacy_process_requirements,liveness),
+        Poise(config_path,session.session_id,clock,legacy_workflow_requirements,liveness),
         registry,
         session,
     )

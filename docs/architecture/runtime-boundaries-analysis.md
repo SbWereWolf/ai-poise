@@ -22,7 +22,7 @@
 |---|---|---|
 | WorkResources | store и локальный runtime alias для artifacts/results | Ресурсы work-пакета; не новый Task writer. |
 | RuntimeAccounting | cfg, session, store; PayloadMeasurer(runtime) | AccountingCommands и раздельные authoritative/optional repositories. |
-| SprintWork | UoW, process/config, prepare_creation, creation base; cleanup/current_task/paths | SprintCommands владеет членством/графом; адаптер связывает физические пути и cleanup. |
+| SprintWork | UoW, workflow/config, prepare_creation, creation base; cleanup/current_task/paths | SprintCommands владеет членством/графом; адаптер связывает физические пути и cleanup. |
 | RuntimePlanActions | private _git/_tree/_stage/_roots/_invocations/_verification_workspace, cfg, session, store | PlanCommands владеет сохранённой операцией; Git effects не атомарны с SQL. |
 | LocalHandoff | current_task/_task, roots/tree/git, plan_actions, artifact validation, runner.submit, ownership | HandoffCommands сохраняет план и освобождение; адаптер сохраняет bundle/WIP до release. |
 | RuntimeTransfers | cfg/session и store/repository snapshot через runtime | TransferCommands и SqliteTransferRepository; перенос не даёт право менять роль. |

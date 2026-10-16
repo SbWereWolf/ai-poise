@@ -44,7 +44,7 @@ class CriteriaAuthority:
         return {"propose": list(self.propose), "decide": list(self.decide)}
 
 
-# Protocol vocabulary of the implemented handler families, not process policy.
+# Protocol vocabulary of the implemented handler families, not workflow policy.
 OUTCOMES = {
     HandlerKind.APPLY_PLAN: frozenset({"complete"}),
     HandlerKind.PUBLISH: frozenset({"complete"}),
@@ -177,12 +177,12 @@ class RouteDefinition:
             )
 
     @classmethod
-    def from_process(cls, process: dict) -> RouteDefinition:
+    def from_workflow(cls, workflow: dict) -> RouteDefinition:
         try:
-            cfg = process["route"]
+            cfg = workflow["route"]
             exact(cfg, {"entry"}, "route")
             nodes = []
-            for stage in process["stages"]:
+            for stage in workflow["stages"]:
                 kind = HandlerKind(stage["handler"])
                 transitions = stage["transitions"]
                 if not isinstance(transitions, dict) or any(t is not None and not isinstance(t, str) for t in transitions.values()):
@@ -238,7 +238,7 @@ class RouteDefinition:
         visited = set()
         while stage_id is not None:
             if stage_id in visited:
-                raise DomainError("Inspection scope is ambiguous: positive route cycles without an inspector; correct the process graph")
+                raise DomainError("Inspection scope is ambiguous: positive route cycles without an inspector; correct the workflow graph")
             visited.add(stage_id)
             node = self.node(stage_id)
             if node.handler == HandlerKind.INSPECT:
@@ -254,7 +254,7 @@ class RouteDefinition:
             corrective = inspector.target("changes_requested")
             following = self.next_inspection(corrective)
             if following is None:
-                raise DomainError(f"Inspection scope for {sid} has no corrective inspector; correct the process graph")
+                raise DomainError(f"Inspection scope for {sid} has no corrective inspector; correct the workflow graph")
             # A corrective pipeline may approve a plan before repairing the
             # original result. Cross those approvals only within this explicit
             # corrective branch; intermediate inspectors keep their own scopes.
@@ -262,7 +262,7 @@ class RouteDefinition:
             while (following is not None and following != sid
                    and inspector.target("clear") != inspectors[following].target("clear")):
                 if following in visited:
-                    raise DomainError(f"Inspection scope is ambiguous for {sid}: corrective inspections cycle; correct the process graph")
+                    raise DomainError(f"Inspection scope is ambiguous for {sid}: corrective inspections cycle; correct the workflow graph")
                 visited.add(following)
                 following = self.next_inspection(inspectors[following].target("clear"))
             if following is None:

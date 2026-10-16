@@ -1,4 +1,4 @@
-"""Locked, idempotent migration of configured processes and stored task snapshots."""
+"""Locked, idempotent migration of configured workflows and stored task snapshots."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ import sqlite3
 
 from ..common import configured_root, descendant, load_config, read_json
 from ..modules.foundation.errors import PoiseError
-from ..modules.workflow.migration import migrate_process_route
+from ..modules.workflow.migration import migrate_workflow_route
 from .goal_config import atomic_write
 from .locking import exclusive_lock
 
@@ -29,22 +29,22 @@ class FileRouteCountLimitMigration:
             database = descendant(state, config["paths"]["database"])
             wait = config["limits"]["lock_seconds"]
             poll = config["limits"]["lock_poll_seconds"]
-            process_paths = {
+            workflow_paths = {
                 goal: descendant(root, relative)
-                for goal, relative in config["processes"].items()
+                for goal, relative in config["workflows"].items()
             }
         except (KeyError, TypeError, AttributeError) as exc:
             raise PoiseError(f"Incomplete project manifest for route migration: {exc}") from exc
 
         with exclusive_lock(lock, wait, poll):
-            processes = {}
-            changed_processes = 0
-            for goal, path in process_paths.items():
-                candidate, changed = migrate_process_route(read_json(path))
+            workflows = {}
+            changed_workflows = 0
+            for goal, path in workflow_paths.items():
+                candidate, changed = migrate_workflow_route(read_json(path))
                 if candidate["goal_type"] != goal:
-                    raise PoiseError(f"Ambiguous configured process {goal}")
-                processes[path] = candidate
-                changed_processes += int(changed)
+                    raise PoiseError(f"Ambiguous configured workflow {goal}")
+                workflows[path] = candidate
+                changed_workflows += int(changed)
 
             connection = None
             task_updates = []
@@ -56,16 +56,16 @@ class FileRouteCountLimitMigration:
                     connection.execute("BEGIN IMMEDIATE")
                     for task_id, raw in connection.execute("SELECT id,metadata FROM tasks ORDER BY id"):
                         metadata = json.loads(raw)
-                        process, changed = migrate_process_route(metadata["process"])
+                        workflow, changed = migrate_workflow_route(metadata["workflow"])
                         if changed:
-                            candidate = {**metadata, "process": process}
+                            candidate = {**metadata, "workflow": workflow}
                             task_updates.append((json.dumps(candidate, ensure_ascii=False,
                                 sort_keys=True, separators=(",", ":")), task_id))
 
-                for path, process in processes.items():
+                for path, workflow in workflows.items():
                     current = read_json(path)
-                    if current != process:
-                        atomic_write(path, encoded(process), path.stat().st_mode & 0o777)
+                    if current != workflow:
+                        atomic_write(path, encoded(workflow), path.stat().st_mode & 0o777)
 
                 load_config(self.config_path)
                 if connection is not None:
@@ -81,6 +81,6 @@ class FileRouteCountLimitMigration:
 
         return {
             "status": "migrated",
-            "processes": changed_processes,
+            "workflows": changed_workflows,
             "task_snapshots": len(task_updates),
         }

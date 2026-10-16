@@ -50,8 +50,8 @@ def test_bad_semantic_payload_has_no_artifact_side_effect(project):
 
 def test_count_gate_created_artifacts_are_inputs_same_verify(project):
     configure(project)
-    project['process']['stages'][0]['artifact_requirements']=[{'scope':'task','pattern':'artifacts/*.md','minimum':2,'maximum':2}]
-    write_json(project['root']/'config/processes/development.json',project['process'])
+    project['workflow']['stages'][0]['artifact_requirements']=[{'scope':'task','pattern':'artifacts/*.md','minimum':2,'maximum':2}]
+    write_json(project['root']/'config/workflows/development.json',project['workflow'])
     tools=WorkTools(Poise(project['config_path'],'S'))
     b=bootstrap(tools,project);add_test(b['worktree'])
     v=verify(tools,result(b),[text_artifact(path='a.md'),text_artifact(path='b.md')])
@@ -249,15 +249,15 @@ def test_bad_message_time_and_unknown_reason_rejected_without_work(project):
 def test_mixed_evidence_continuation_direct_batch_no_rerun(project):
     from evidence.test_paths import setup,arg
     configure(project);unused,counter=setup(project)
-    process=json.loads((project['root']/'config/processes/verification_demo.json').read_text())
+    workflow=json.loads((project['root']/'config/workflows/verification_demo.json').read_text())
     # The observation process is measure/audit, not the development route.
     project['task']['decomposition']['phases']=[
         {'stage':stage['id'],'skills':['task-domain'],'areas':[]}
-        for stage in process['stages']]
+        for stage in workflow['stages']]
     project['task']['stage_contracts']=[
         {'stage_id':stage['id'],'allowed_paths':list(stage['allowed_paths']),
          'entry_requirements':[],'exit_requirements':[]}
-        for stage in process['stages']]
+        for stage in workflow['stages']]
     tools=WorkTools(Poise(project['config_path'],'DIRECT-MIXED'))
     b=bootstrap(tools,project,[message()]);p=result(b)
     first=verify(tools,p,messages=[message()]);assert first['status']=='awaiting_continuation'
@@ -281,7 +281,7 @@ def test_batch_show_no_repeat_task_id_and_bad_query_rejected(project):
     with pytest.raises(PoiseError):tools.invoke(request('show',{'queries':[q]}))
 
 
-def test_content_query_in_batch_retains_current_process_position(project):
+def test_content_query_in_batch_retains_current_workflow_position(project):
     tools=tools_for(project);b=bootstrap(tools,project)
     response=tools.invoke(request('show',{'queries':[{'id':'content','kind':'content'}]}))
     content=response['results'][0]['value']

@@ -1,126 +1,63 @@
 {
   "schema": "project-blueprint-1",
-  "version": "7",
+  "version": "8",
   "config": {
-    "schema": "ddd-accounting-12",
-    "project": "REPLACE_WITH_PROJECT_ID",
-    "paths": {
-      "state": "",
-      "database": "tasks/tasks.sqlite",
-      "lock": "tasks/tasks.lock",
-      "runtime": "runtime",
-      "standalone_tasks": "standalone",
-      "sprints": "sprints",
-      "worktrees": "",
-      "git_index": "snapshot.index",
-      "runs": "runs",
-      "stdout": "stdout.txt",
-      "stderr": "stderr.txt",
-      "response": "response.json",
-      "requirements_database": "requirements/requirements.sqlite",
-      "requirements_lock": "requirements/requirements.lock"
-    },
-    "limits": {
-      "lock_seconds": 2.0,
-      "lock_poll_seconds": 0.01,
-      "git_seconds": 15.0,
-      "verify_attempts": 5,
-      "output_chars": 2200,
-      "preview_chars": 300
-    },
-    "git": {
-      "repository": "REPLACE_WITH_ABSOLUTE_APPLICATION_REPOSITORY",
-      "base_ref": "main",
-      "remote": "REPLACE_WITH_CONFIGURED_REMOTE_NAME",
-      "branch_template": "tasks/{task_id}",
-      "commit_pattern": "(?s).+",
-      "author_name": "REPLACE_WITH_COMMIT_AUTHOR_NAME",
-      "author_email": "REPLACE_WITH_COMMIT_AUTHOR_EMAIL",
-      "push_required": true
-    },
-    "processes": {
-      "analysis": "config/processes/analysis.json",
-      "design": "config/processes/design.json",
-      "development": "config/processes/development.json",
-      "documentation": "config/processes/documentation.json",
-      "environment_diagnostics": "config/processes/environment_diagnostics.json",
-      "environment_remediation": "config/processes/environment_remediation.json",
-      "integration": "config/processes/integration.json",
-      "profiling": "config/processes/profiling.json",
-      "review": "config/processes/review.json",
-      "sprint_planning": "config/processes/sprint_planning.json",
-      "task_planning": "config/processes/task_planning.json",
-      "test_development": "config/processes/test_development.json",
-      "verification": "config/processes/verification.json"
-    },
-    "environment_names": [
-      "PATH",
-      "HOME"
-    ],
-    "automatic_checks": [],
-    "task_decomposition": {
-      "skills": [
-        {
-          "id": "workflow",
-          "class": "meta",
-          "responsibility": null
-        },
-        {
-          "id": "general",
-          "class": "general",
-          "responsibility": null
-        },
-        {
-          "id": "backend",
-          "class": "narrow",
-          "responsibility": "backend"
-        },
-        {
-          "id": "frontend",
-          "class": "narrow",
-          "responsibility": "frontend"
-        }
+    "accounting": {
+      "causes": [
+        "initial",
+        "internal_qa",
+        "delivered_rework",
+        "requirement_change",
+        "poise_incident"
       ],
-      "areas": [
-        {
-          "path": "src/**",
-          "responsibility": "application"
-        },
-        {
-          "path": "tests/**",
-          "responsibility": "application"
-        },
-        {
-          "path": "docs/**",
-          "responsibility": "documentation"
-        }
-      ]
+      "max_blob_bytes": 1048576,
+      "max_events": 1000,
+      "max_files": 1000,
+      "path_categories": {
+        "code": [
+          "src/**"
+        ],
+        "documentation": [
+          "docs/**",
+          "*.md"
+        ],
+        "fixtures": [
+          "fixtures/**"
+        ],
+        "tests": [
+          "tests/**"
+        ]
+      },
+      "sources": {
+        "codex": "observed",
+        "test": "reported"
+      },
+      "storage": {
+        "database": "telemetry/events.sqlite",
+        "lock": "telemetry/events.lock"
+      },
+      "time_mode": "tool_cycle",
+      "timezone": "UTC",
+      "tokenizer": {
+        "command": null,
+        "identity": "not-configured",
+        "kind": "unavailable"
+      },
+      "week_start": 0
     },
+    "automatic_checks": [],
     "batch": {
-      "max_input_bytes": 1048576,
-      "max_items": 1000,
-      "max_artifact_bytes": 262144,
-      "file_mode": 384,
-      "artifact_lock": "artifact.lock",
       "artifact_directories": {
         "runtime": "generated",
-        "task": "artifacts",
-        "sprint": "artifacts"
+        "sprint": "artifacts",
+        "task": "artifacts"
       },
-      "templates": {
-        "note": {
-          "version": "1",
-          "text": "# ${title}\n\n${body}\n",
-          "parameters": [
-            "title",
-            "body"
-          ]
-        }
-      },
-      "message_source": {
-        "id": "chat-visible",
-        "mode": "agent_reported"
-      },
+      "artifact_lock": "artifact.lock",
+      "file_mode": 384,
+      "initial_read_lines": 50,
+      "max_artifact_bytes": 262144,
+      "max_input_bytes": 1048576,
+      "max_items": 1000,
       "message_reasons": [
         "initial",
         "continue",
@@ -130,231 +67,309 @@
         "authorization",
         "cancel"
       ],
-      "initial_read_lines": 50
-    },
-    "sprint": {
-      "max_tasks": 1000,
-      "max_dependencies": 3000,
-      "acceptable_terminal_states": [
-        "completed",
-        "cancelled"
-      ],
-      "templates": {
-        "basic": {
-          "version": "1",
-          "goal": "",
-          "requirements": [],
-          "definition_of_done": [],
-          "sections": {
-            "plan": "Заполнить план."
-          },
-          "tasks": [],
-          "dependencies": []
-        }
+      "message_source": {
+        "id": "codex-hook-main",
+        "mode": "runtime_event"
       },
-      "section_rules": [
-        {
-          "name": "plan",
-          "template": "Заполнить план.",
-          "normalization": "strip",
-          "required": true
+      "templates": {
+        "note": {
+          "parameters": [
+            "title",
+            "body"
+          ],
+          "text": "# ${title}\n\n${body}\n",
+          "version": "1"
         }
-      ]
+      }
     },
+    "environment_names": [
+      "PATH",
+      "HOME"
+    ],
+    "git": {
+      "author_email": "${COMMIT_AUTHOR_EMAIL}",
+      "author_name": "${COMMIT_AUTHOR_NAME}",
+      "base_ref": "master",
+      "branch_template": "tasks/{task_id}",
+      "commit_pattern": "(?s).+",
+      "push_required": false,
+      "remote": "origin",
+      "repository": "${REPOSITORY_ROOT}"
+    },
+    "limits": {
+      "git_seconds": 15.0,
+      "lock_poll_seconds": 0.01,
+      "lock_seconds": 2.0,
+      "output_chars": 2200,
+      "preview_chars": 300,
+      "verify_attempts": 5
+    },
+    "paths": {
+      "database": "tasks/tasks.sqlite",
+      "git_index": "snapshot.index",
+      "lock": "tasks/tasks.lock",
+      "requirements_database": "${PROJECT_DATA_ROOT}/requirements/requirements.sqlite",
+      "requirements_lock": "${PROJECT_DATA_ROOT}/requirements/requirements.lock",
+      "response": "response.json",
+      "runs": "runs",
+      "runtime": ".runtime",
+      "sprints": "sprint",
+      "standalone_tasks": "standalone",
+      "state": "${PROJECT_DATA_ROOT}",
+      "stderr": "stderr.txt",
+      "stdout": "stdout.txt",
+      "worktrees": "worktrees"
+    },
+    "project": "${PROJECT_ID}",
     "runtime_services": {
       "check_runner": {
-        "initial_seconds": 120,
+        "diagnostic_override_max_seconds": 900,
         "history_multiplier": 1.1,
-        "progress_gap_seconds": 120,
+        "initial_seconds": 120,
         "poll_seconds": 0.1,
-        "diagnostic_override_max_seconds": 900
+        "progress_gap_seconds": 120
       },
       "output": {
+        "chunk_bytes": 65536,
+        "directory": "views",
+        "file_mode": 384,
+        "job": "job.json",
         "known": [
           {
-            "id": "unittest",
             "argv_tokens": [
               "-m",
               "unittest"
             ],
-            "parser": "lines",
-            "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*",
-            "primary_chars": 512,
             "extended_bytes": 4096,
-            "selected_bytes": 4096,
             "files": {
               "extended": "extended.txt",
               "full": "full.txt",
               "selected": "selected.txt"
-            }
+            },
+            "id": "unittest",
+            "parser": "lines",
+            "primary_chars": 512,
+            "selected_bytes": 4096,
+            "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*"
           }
         ],
+        "manifest": "views.json",
         "unknown": {
-          "id": "unknown",
           "argv_tokens": [],
-          "parser": "tail",
-          "selection_pattern": null,
-          "primary_chars": 512,
           "extended_bytes": 4096,
-          "selected_bytes": 4096,
           "files": {
             "extended": "extended.txt",
             "full": "full.txt",
             "selected": null
-          }
+          },
+          "id": "unknown",
+          "parser": "tail",
+          "primary_chars": 512,
+          "selected_bytes": 4096,
+          "selection_pattern": null
         },
-        "directory": "views",
-        "manifest": "views.json",
-        "job": "job.json",
-        "worker_stdout": "worker-out.txt",
         "worker_stderr": "worker-err.txt",
-        "chunk_bytes": 65536,
-        "worker_timeout_seconds": 15,
-        "file_mode": 384
-      },
-      "handoff": {
-        "directory": "handoffs",
-        "receipt": "handoff.json",
-        "bundle": "source.bundle",
-        "preserved_directory": "preserved",
-        "file_mode": 384
-      },
-      "transfer": {
-        "directory": "transfers",
-        "archive": "work.tar.gz",
-        "manifest": "manifest.json",
-        "database": "snapshot.sqlite",
-        "files_directory": "files",
-        "max_tasks": 1000,
-        "max_files": 10000,
-        "max_file_bytes": 33554432,
-        "max_total_bytes": 134217728,
-        "chunk_bytes": 65536,
-        "file_mode": 384,
-        "recovery": {
-          "format": "poise-recovery-1",
-          "tool_argv": [
-            "/example/bin/node",
-            "/example/workspace-recover/bin/workspace-recover.mjs"
-          ],
-          "mapping": {
-            "version": "task-materials-1",
-            "materials": []
+        "worker_stdout": "worker-out.txt",
+        "worker_timeout_seconds": 15
+      }
+    },
+    "schema": "ddd-accounting-12",
+    "sprint": {
+      "acceptable_terminal_states": [
+        "completed",
+        "cancelled"
+      ],
+      "max_dependencies": 3000,
+      "max_tasks": 1000,
+      "section_rules": [
+        {
+          "name": "plan",
+          "normalization": "strip",
+          "required": true,
+          "template": "Заполнить план."
+        }
+      ],
+      "templates": {
+        "basic": {
+          "definition_of_done": [],
+          "dependencies": [],
+          "goal": "",
+          "requirements": [],
+          "sections": {
+            "plan": "Заполнить план."
           },
-          "systems": {
-            "poise": {
-              "repository": "/example/poise",
-              "configs": [
-                "/example/poise/project.json"
-              ]
-            },
-            "project": {
-              "repository": "/example/project",
-              "configs": [
-                "/example/project/project.json"
-              ]
-            }
-          },
-          "repositories": {
-            "task": "/example/project"
-          },
-          "paths": {
-            "staging": "prepared",
-            "create_session": "create-session",
-            "restore_session": "restore-session"
-          },
-          "placement_decisions": [],
-          "create_flow": {
-            "schema": "workspace-recover/flow/v3",
-            "workspace": "${variables.workspace}",
-            "steps": [
-              {
-                "id": "archive",
-                "op": "archive",
-                "from": "${variables.staging}",
-                "to": "${variables.package}",
-                "onError": "stop"
-              }
-            ]
-          },
-          "restore_flow": {
-            "schema": "workspace-recover/flow/v3",
-            "workspace": "${variables.workspace}",
-            "steps": [
-              {
-                "id": "extract",
-                "op": "extract",
-                "from": "${variables.package}",
-                "to": "${variables.staging}",
-                "existingTarget": "merge",
-                "onError": "stop"
-              },
-              {
-                "id": "place",
-                "op": "command",
-                "argv": "${variables.place_argv}",
-                "onError": "stop"
-              },
-              {
-                "id": "components",
-                "op": "command",
-                "argv": "${variables.components_argv}",
-                "onError": "stop"
-              },
-              {
-                "id": "validate",
-                "op": "verification",
-                "argv": "${variables.validate_argv}",
-                "onError": "stop"
-              }
-            ]
-          },
-          "component_steps": []
+          "tasks": [],
+          "version": "1"
         }
       }
     },
-    "accounting": {
-      "timezone": "UTC",
-      "week_start": 0,
-      "storage": {
-        "database": "telemetry/events.sqlite",
-        "lock": "telemetry/events.lock"
-      },
-      "max_events": 1000,
-      "max_files": 1000,
-      "max_blob_bytes": 1048576,
-      "time_mode": "tool_cycle",
-      "causes": [
-        "initial",
-        "internal_qa",
-        "delivered_rework",
-        "requirement_change",
-        "poise_incident"
+    "task_decomposition": {
+      "areas": [
+        {
+          "path": "src/**",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "tests/**",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "config/**",
+          "responsibility": "project-configuration"
+        },
+        {
+          "path": "docs/**",
+          "responsibility": "documentation"
+        },
+        {
+          "path": ".agents/**",
+          "responsibility": "agent-instructions"
+        },
+        {
+          "path": "AGENTS.md",
+          "responsibility": "agent-instructions"
+        },
+        {
+          "path": ".gitignore",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "README.md",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "fixtures/**",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "pyproject.toml",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "requirements*.txt",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "stride.sh",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "uv.lock",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "bootstrap",
+          "responsibility": "ai-poise"
+        },
+        {
+          "path": "apps/bootstrap/**",
+          "responsibility": "ai-poise"
+        }
       ],
-      "sources": {
-        "test": "reported",
-        "codex": "observed"
+      "skills": [
+        {
+          "class": "meta",
+          "id": "poise-workflow",
+          "responsibility": null
+        },
+        {
+          "class": "general",
+          "id": "poise-development",
+          "responsibility": null
+        },
+        {
+          "class": "general",
+          "id": "ast-index",
+          "responsibility": null
+        },
+        {
+          "class": "narrow",
+          "id": "task-domain",
+          "responsibility": "tasks"
+        },
+        {
+          "class": "narrow",
+          "id": "sprint-domain",
+          "responsibility": "sprints"
+        },
+        {
+          "class": "narrow",
+          "id": "verification-domain",
+          "responsibility": "verification"
+        },
+        {
+          "class": "narrow",
+          "id": "project-config-domain",
+          "responsibility": "project-configuration"
+        }
+      ]
+    },
+    "task_ids": {
+      "namespace": {
+        "maximum": 9999,
+        "minimum": 1
       },
-      "path_categories": {
-        "code": [
-          "src/**"
+      "progression": {
+        "first": 1,
+        "step": 1
+      },
+      "width": 4
+    },
+    "task_planning": {
+      "catalogue": "${POISE_SOURCE_ROOT}/config/catalogue/settings.json",
+      "restart_revision_policy": {
+        "reviewer": [
+          "goal",
+          "requirements",
+          "requirements_snapshot",
+          "requirements_agreement",
+          "stage_contracts",
+          "workflow"
         ],
-        "tests": [
-          "tests/**"
-        ],
-        "fixtures": [
-          "fixtures/**"
-        ],
-        "documentation": [
-          "docs/**",
-          "*.md"
+        "user": [
+          "goal",
+          "goal_type",
+          "requirements",
+          "requirements_snapshot",
+          "requirements_agreement",
+          "definition_of_done",
+          "methods",
+          "method_inputs",
+          "checks",
+          "artifact_requirements",
+          "content_contract",
+          "evidence_plan",
+          "executable_obligations",
+          "stage_contracts",
+          "decomposition",
+          "workflow",
+          "planning"
         ]
-      },
-      "tokenizer": {
-        "kind": "unavailable",
-        "identity": "not-configured",
-        "command": null
       }
+    },
+    "runtime_resources": {
+      "project_setup": "${POISE_SOURCE_ROOT}/config/project-setup.json",
+      "hooks": [
+        {
+          "installation_id": "poise-main",
+          "settings_path": "${PROJECT_CONFIG_ROOT}/hooks-data-settings.json"
+        }
+      ]
+    },
+    "workflows": {
+      "analysis": "${PROJECT_DATA_ROOT}/workflows/analysis.json",
+      "design": "${PROJECT_DATA_ROOT}/workflows/design.json",
+      "development": "${PROJECT_DATA_ROOT}/workflows/development.json",
+      "documentation": "${PROJECT_DATA_ROOT}/workflows/documentation.json",
+      "environment_diagnostics": "${PROJECT_DATA_ROOT}/workflows/environment_diagnostics.json",
+      "environment_remediation": "${PROJECT_DATA_ROOT}/workflows/environment_remediation.json",
+      "integration": "${PROJECT_DATA_ROOT}/workflows/integration.json",
+      "profiling": "${PROJECT_DATA_ROOT}/workflows/profiling.json",
+      "review": "${PROJECT_DATA_ROOT}/workflows/review.json",
+      "sprint_planning": "${PROJECT_DATA_ROOT}/workflows/sprint_planning.json",
+      "task_planning": "${PROJECT_DATA_ROOT}/workflows/task_planning.json",
+      "test_development": "${PROJECT_DATA_ROOT}/workflows/test_development.json",
+      "verification": "${PROJECT_DATA_ROOT}/workflows/verification.json"
     }
   },
   "questions": [
@@ -444,61 +459,201 @@
         "worktrees"
       ],
       "type": "text",
-      "prompt": "Explicit absolute Task worktree directory inside the selected code repository"
+      "prompt": "Explicit Task worktree path, relative to project data root or absolute"
+    },
+    {
+      "id": "path_paths_requirements_database",
+      "path": [
+        "paths",
+        "requirements_database"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for paths.requirements_database; replace root markers before publication"
+    },
+    {
+      "id": "path_paths_requirements_lock",
+      "path": [
+        "paths",
+        "requirements_lock"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for paths.requirements_lock; replace root markers before publication"
+    },
+    {
+      "id": "path_task_planning_catalogue",
+      "path": [
+        "task_planning",
+        "catalogue"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for task_planning.catalogue; replace root markers before publication"
+    },
+    {
+      "id": "path_runtime_resources_project_setup",
+      "path": [
+        "runtime_resources",
+        "project_setup"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for runtime_resources.project_setup; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_analysis",
+      "path": [
+        "workflows",
+        "analysis"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.analysis; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_design",
+      "path": [
+        "workflows",
+        "design"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.design; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_development",
+      "path": [
+        "workflows",
+        "development"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.development; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_documentation",
+      "path": [
+        "workflows",
+        "documentation"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.documentation; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_environment_diagnostics",
+      "path": [
+        "workflows",
+        "environment_diagnostics"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.environment_diagnostics; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_environment_remediation",
+      "path": [
+        "workflows",
+        "environment_remediation"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.environment_remediation; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_integration",
+      "path": [
+        "workflows",
+        "integration"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.integration; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_profiling",
+      "path": [
+        "workflows",
+        "profiling"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.profiling; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_review",
+      "path": [
+        "workflows",
+        "review"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.review; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_sprint_planning",
+      "path": [
+        "workflows",
+        "sprint_planning"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.sprint_planning; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_task_planning",
+      "path": [
+        "workflows",
+        "task_planning"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.task_planning; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_test_development",
+      "path": [
+        "workflows",
+        "test_development"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.test_development; replace root markers before publication"
+    },
+    {
+      "id": "path_workflows_verification",
+      "path": [
+        "workflows",
+        "verification"
+      ],
+      "type": "text",
+      "prompt": "Explicit value for workflows.verification; replace root markers before publication"
     }
   ],
-  "process_sources": {
+  "workflow_sources": {
     "analysis": {
-      "path": "config/catalogue/processes/analysis.json",
-      "digest": "8ec458b3faa6ee6606e66da53b66cc5d2a85408538f348313b2ba41bdef7592d"
+      "path": "app/config/catalogue/workflows/analysis.json"
     },
     "design": {
-      "path": "config/catalogue/processes/design.json",
-      "digest": "215833a9e090cef8b64c8d22e240e24df01eb65f51534eec9b92a4956fdf721f"
+      "path": "app/config/catalogue/workflows/design.json"
     },
     "development": {
-      "path": "config/catalogue/processes/development.json",
-      "digest": "215ab230942c69d4cae4856ebbc2ded1e332ad6be7be68b135e18150acfd9709"
+      "path": "app/config/catalogue/workflows/development.json"
     },
     "documentation": {
-      "path": "config/catalogue/processes/documentation.json",
-      "digest": "af22db74c31d4ccfeec8ff787565d1a1ea46808b006d2828c6f1448c2eb92c4a"
+      "path": "app/config/catalogue/workflows/documentation.json"
     },
     "environment_diagnostics": {
-      "path": "config/catalogue/processes/environment_diagnostics.json",
-      "digest": "d4ddb9c1ed88742085e3b349967509b3d13d4884a8ac2e28179766de8a5c370a"
+      "path": "app/config/catalogue/workflows/environment_diagnostics.json"
     },
     "environment_remediation": {
-      "path": "config/catalogue/processes/environment_remediation.json",
-      "digest": "d5bdb2324ca5248284e1a224b6a2ec362a453d922e5a9b21b5d9f336c6cdcbd3"
+      "path": "app/config/catalogue/workflows/environment_remediation.json"
     },
     "integration": {
-      "path": "config/catalogue/processes/integration.json",
-      "digest": "f30424b3d0b217aa9fc82c8c177fb93984456a3821edc0a875046a3c77cb66ef"
+      "path": "app/config/catalogue/workflows/integration.json"
     },
     "profiling": {
-      "path": "config/catalogue/processes/profiling.json",
-      "digest": "d43ccad3b750b333a762adafac7dd6c990aeb243889b0634b077356230731be1"
+      "path": "app/config/catalogue/workflows/profiling.json"
     },
     "review": {
-      "path": "config/catalogue/processes/review.json",
-      "digest": "779ba7ec7e0d830fd830cd61ac371a46f92b32fd6ebb204efb29b60a9b16d13d"
+      "path": "app/config/catalogue/workflows/review.json"
     },
     "sprint_planning": {
-      "path": "config/catalogue/processes/sprint_planning.json",
-      "digest": "9f3dfba3c367e75aa0e3c95bc9163b219208ced5a038fd6248f737663ff1e884"
+      "path": "app/config/catalogue/workflows/sprint_planning.json"
     },
     "task_planning": {
-      "path": "config/catalogue/processes/task_planning.json",
-      "digest": "7678f69cbab8b219e366e71dd288fd802535081164d89fbb8d218c0cfa244219"
+      "path": "app/config/catalogue/workflows/task_planning.json"
     },
     "test_development": {
-      "path": "config/catalogue/processes/test_development.json",
-      "digest": "80cb825755941dd66e1c622498e80559dd83e31e6ef5a72ec2fd4e5ed944696e"
+      "path": "app/config/catalogue/workflows/test_development.json"
     },
     "verification": {
-      "path": "config/catalogue/processes/verification.json",
-      "digest": "6a2caef44396c71b5ee259ee23dc25fd1fdbc6335634b4f76ea1a06be7b475ba"
+      "path": "app/config/catalogue/workflows/verification.json"
     }
   }
 }

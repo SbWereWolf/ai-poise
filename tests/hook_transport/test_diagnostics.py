@@ -7,6 +7,7 @@ import sqlite3
 from types import SimpleNamespace
 
 import pytest
+from conftest import write_json
 from poise.common import load_config, configured_root
 from poise.infrastructure.hook_transport import HookService
 from poise.interfaces.hook_transport import execute
@@ -17,6 +18,7 @@ def setup(project, tmp_path, reader=True):
     if reader:
         policy = Path(__file__).parents[2] / 'config/development/source-reader.json'
         project['cfg']['source_reader'] = {'receipt_file': 'reader.json', 'policy': str(policy)}
+        write_json(project['config_path'], project['cfg'])
     s = HookService(settings(project, tmp_path))
     installed = install(s)
     return s, installed
@@ -72,6 +74,7 @@ def test_start_has_correlated_reader_effect_without_state_mutation(project, tmp_
     dbpath, reader = state_paths(s)
     watched = [dbpath, reader, s.settings.database, s.settings.hooks_file]
     before = [p.read_bytes() for p in watched]
+    observation_files = {p: p.read_bytes() for p in s.settings.observations.rglob('*') if p.is_file()}
     code, result = call(s, request(installed, event_id=eid))
     assert code == 0
     assert result['status'] == 'diagnosed'
@@ -79,7 +82,14 @@ def test_start_has_correlated_reader_effect_without_state_mutation(project, tmp_
     assert result['effect']['owner'] == 'SourceReader'
     assert result['effect']['context'] == {'generation': 2, 'reason': 'startup', 'event_id': f'hook-event:{eid}'}
     assert [p.read_bytes() for p in watched] == before
-    assert not s.settings.observations.exists()  # no implicit probes
+    after = {p: p.read_bytes() for p in s.settings.observations.rglob('*') if p.is_file()}
+    assert observation_files.keys() <= after.keys()
+    assert {p: after[p] for p in observation_files} == observation_files
+    created = after.keys() - observation_files.keys()
+    assert len(created) == 1, 'Only the single declared transport response may be created'
+    response_path, = created
+    assert response_path.name == s.settings.raw['response_file']
+    assert json.loads(after[response_path]) == result
 
 
 def test_old_start_does_not_confirm_current_generation(project, tmp_path):

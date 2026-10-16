@@ -37,13 +37,13 @@ def validate_request(request, max_changes):
     workspace = isinstance(request, dict) and request.get('schema') == 'project-worktree-root-1'
     exact_keys(request, {
         "schema", "request_id", "config_path", "expected_revision", "manifest_edits",
-        "process_updates", "state_relocation", "probe_repository", "receipt_path",
+        "workflow_updates", "state_relocation", "probe_repository", "receipt_path",
     } | ({'reason', 'authorization'} if workspace else set()), "project config update")
     if request["schema"] not in ("project-config-update-1", "project-worktree-root-1"):
         raise DomainError("Unsupported project config update schema; no migration")
     for key in ("request_id", "config_path", "expected_revision", "receipt_path"):
         nonempty(request[key], key)
-    for key in ("manifest_edits", "process_updates"):
+    for key in ("manifest_edits", "workflow_updates"):
         if not isinstance(request[key], list) or len(request[key]) > max_changes:
             raise DomainError(f"{key}: explicit bounded list required")
     if request["state_relocation"] is not None and not isinstance(request["state_relocation"], dict):
@@ -59,7 +59,7 @@ def validate_request(request, max_changes):
         edits = request['manifest_edits']
         if (len(edits) != 1 or not isinstance(edits[0], dict)
                 or edits[0].get('path') != ['paths', 'worktrees']
-                or request['process_updates'] or request['state_relocation'] is not None):
+                or request['workflow_updates'] or request['state_relocation'] is not None):
             raise DomainError('Workspace-root correction changes only paths.worktrees')
 
 

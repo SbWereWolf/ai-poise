@@ -5,23 +5,23 @@ import pytest
 
 from batch.helpers import request
 from conftest import WorkPoise, git, write_json
-from ownership.test_atomic_ownership import _configure_process, _fingerprint, _task
+from ownership.test_atomic_ownership import _configure_workflow, _fingerprint, _task
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from tasks.test_planning_flexibility import POLICY
 
 
 def _prepare(project, *, worktree_required=False):
-    _configure_process(project, worktree_required)
+    _configure_workflow(project, worktree_required)
     project['cfg']['automatic_checks'] = []
     write_json(project['config_path'], project['cfg'])
     task = _task(project, 'TREE-PROOF')
     task['methods'] = []
     task['method_inputs'] = []
-    task['checks'] = {stage['id']: [] for stage in project['process']['stages']}
+    task['checks'] = {stage['id']: [] for stage in project['workflow']['stages']}
     task['evidence_plan'] = {
         stage['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []}
-        for stage in project['process']['stages']
+        for stage in project['workflow']['stages']
     }
     return WorkTools(WorkPoise(project['config_path'], 'tree-proof-owner')), task
 
@@ -64,7 +64,7 @@ def test_ready_standalone_uses_the_same_tree_reservation(project):
         'action': 'create', 'request_id': 'tree-proof-create', 'task_id': task['id'],
         'sprint_id': None,
     }))
-    patch.update(goal_type=task['goal_type'], process=deepcopy(project['process']),
+    patch.update(goal_type=task['goal_type'], workflow=deepcopy(project['workflow']),
                  planning={'schema': 'task-planning-1', 'template': None,
                            'restart_revision_policy': deepcopy(POLICY)})
     edited = tools.invoke(request('task', {

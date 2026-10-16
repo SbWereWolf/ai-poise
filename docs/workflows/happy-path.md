@@ -4,7 +4,7 @@
 
 ## Пользовательский цикл
 
-`bootstrap` выбирает/возобновляет задачу, при необходимости по process snapshot создаёт изолированный worktree, возвращает цель, требования, DoD, root AGENTS целевой codebase, разрешённый следующий этап, roots артефактов и один result file. Агент читает AGENTS приложения и работает его нативными инструментами.
+`bootstrap` выбирает/возобновляет задачу, при необходимости по workflow snapshot создаёт изолированный worktree, возвращает цель, требования, DoD, root AGENTS целевой codebase, разрешённый следующий этап, roots артефактов и один result file. Агент читает AGENTS приложения и работает его нативными инструментами.
 
 Агент заполняет только содержательный результат, сообщение коммита и пути своих артефактов. Он не записывает Git status, timestamps, hashes или test exit codes. `verify` использует кандидатный результат, механически проверяет его, сам запускает точные tests, сохраняет evidence, создаёт commit при Git-изменениях и выполняет только явно настроенную и разрешённую публикацию, очищает runtime и возвращает доклад. Статус verified сам по себе не начинает следующий этап.
 
@@ -14,7 +14,7 @@
 
 Обновлено: 2026-09-13. По [правилу владения](../governance/development-rules.md#владение-task-и-worktree)
 сессия независимо владеет не более чем одной Task и одним worktree. `bootstrap` создаёт
-или возобновляет зависимый worktree только если process snapshot требует
+или возобновляет зависимый worktree только если workflow snapshot требует
 `worktree_required=true`; Task с `false` работает без ветки и Git delta. Это не разрешает
 менять код в main.
 
@@ -32,7 +32,7 @@ cwd и launch roots остаются прежними. Проверки и со�
 
 ## Данные
 
-SQLite: task contract, process snapshot, session binding, stage/iteration, submissions с текстовыми sections, execution evidence, id/path артефактов и внутренние digests, append-only operational journal. Долгие команды запускаются вне внешнего DB-lock.
+SQLite: task contract, workflow snapshot, session binding, stage/iteration, submissions с текстовыми sections, execution evidence, id/path артефактов и внутренние digests, append-only operational journal. Долгие команды запускаются вне внешнего DB-lock.
 
 Filesystem под state root: runtime/session; tasks/task-id; sprints/sprint-id; worktrees/task-id. Только первые три являются допустимыми roots для agent artifacts. Code/test deliverables внутри worktree учитываются через Git, а не artifact_paths.
 

@@ -9,7 +9,7 @@ REVISION_FIELDS = frozenset({
     'goal_type', 'goal', 'requirements', 'requirements_snapshot',
     'requirements_agreement', 'definition_of_done', 'methods', 'method_inputs',
     'checks', 'artifact_requirements', 'content_contract', 'evidence_plan',
-    'executable_obligations', 'stage_contracts', 'decomposition', 'process', 'planning',
+    'executable_obligations', 'stage_contracts', 'decomposition', 'workflow', 'planning',
 })
 
 
@@ -20,10 +20,12 @@ def validate_planning(value):
         raise DomainError('Task planning requires schema, template and restart_revision_policy')
     template = value['template']
     if template is not None and (
-        not isinstance(template, dict) or set(template) != {'id', 'version', 'digest'}
-        or any(not isinstance(v, str) or not v.strip() for v in template.values())
+        not isinstance(template, dict) or 'id' not in template
+        or set(template) - {'id', 'version', 'digest'}
+        or not isinstance(template['id'], str) or not template['id'].strip()
+        or any(not isinstance(template[key], str) for key in ('version', 'digest') if key in template)
     ):
-        raise DomainError('Task template provenance requires id, version and digest')
+        raise DomainError('Task starter requires id; optional version/digest are historical audit text')
     policy = value['restart_revision_policy']
     if not isinstance(policy, dict) or set(policy) != {'reviewer', 'user'}:
         raise DomainError('Task restart revision policy requires explicit reviewer/user fields')
@@ -35,7 +37,7 @@ def validate_planning(value):
     return deepcopy(value)
 
 
-def revision_authority(contract, process, actor, authorization):
+def revision_authority(contract, workflow, actor, authorization):
     """Save the exact restart grant against the frozen contract."""
     planning = contract.get('planning')
     if planning is None:
@@ -63,12 +65,12 @@ def revision_authority(contract, process, actor, authorization):
     return {
         'actor': actor, 'authorization': deepcopy(authorization),
         'allowed_changes': deepcopy(fields),
-        'before_contract': deepcopy(contract), 'before_process': deepcopy(process),
-        'before_digest': fingerprint({'contract': contract, 'process': process}),
+        'before_contract': deepcopy(contract), 'before_workflow': deepcopy(workflow),
+        'before_digest': fingerprint({'contract': contract, 'workflow': workflow}),
     }
 
 
-def revision_changes(contract, process, authority):
+def revision_changes(contract, workflow, authority):
     before = authority['before_contract']
     changed = {
         field for field in set(before) | set(contract)
@@ -77,16 +79,16 @@ def revision_changes(contract, process, authority):
             or before.get(field) != contract.get(field)
         )
     }
-    if process != authority['before_process']:
-        changed.add('process')
+    if workflow != authority['before_workflow']:
+        changed.add('workflow')
     return sorted(changed)
 
 
-def require_revision(draft, process, history):
+def require_revision(draft, workflow, history):
     if not history or 'planning_revision' not in history[-1]:
         return None
     authority = history[-1]['planning_revision']
-    changed = revision_changes(draft, process, authority)
+    changed = revision_changes(draft, workflow, authority)
     denied = set(changed) - set(authority['allowed_changes'])
     if denied:
         source = ('reviewer authorization' if 'revision_fields' in authority['authorization']
@@ -94,5 +96,5 @@ def require_revision(draft, process, history):
         raise DomainError(f'Task restart {source} forbids changes: {sorted(denied)}')
     return {
         'changed_fields': changed,
-        'contract_digest': fingerprint({'contract': draft, 'process': process}),
+        'contract_digest': fingerprint({'contract': draft, 'workflow': workflow}),
     }

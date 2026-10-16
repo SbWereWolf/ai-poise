@@ -157,7 +157,7 @@ def test_setup_relative_final_only_ignore_accepts_absent_pair(project):
     assert code == 0, reply
     assert reply['status'] == 'created'
     assert json.loads(config.read_text())['paths']['state'] == 'state'
-    assert (config.parent / 'config/processes/development.json').is_file()
+    assert (config.parent / 'config/workflows/development.json').is_file()
     assert_empty_registry(config, db, lock)
     assert not list(config.parent.parent.glob('.project-setup-*'))
 
@@ -187,7 +187,7 @@ def test_setup_existing_internal_pair_outside_absent_destination(project, coordi
 
 
 @pytest.mark.parametrize('members', ['absent', 'existing', 'mixed'])
-def test_update_absolute_internal_pair_preserves_staged_process(project, tmp_path, members):
+def test_update_absolute_internal_pair_preserves_staged_workflow(project, tmp_path, members):
     settings, packet, config = case(project)
     # Initial public setup serves a separate explicit repository path; storage
     # is external to that path. The real public update changes the served
@@ -204,19 +204,19 @@ def test_update_absolute_internal_pair_preserves_staged_process(project, tmp_pat
     edit(packet, 'requirements_lock', lock)
     code, created = invoke(setup_execute, settings, packet)
     assert code == 0, created
-    process_path = config.parent / 'config/processes/development.json'
-    prior = json.loads(process_path.read_text())
+    workflow_path = config.parent / 'config/workflows/development.json'
+    prior = json.loads(workflow_path.read_text())
     import hashlib
     revision = hashlib.sha256(json.dumps(prior, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     request = update_request(config, created['revision'], manifest_edits=[
         {'path': ['git', 'repository'], 'value': str(project['app'])},
-    ], process_updates=[{'goal_type': 'development', 'expected_revision': revision,
+    ], workflow_updates=[{'goal_type': 'development', 'expected_revision': revision,
                          'changes': [{'op': 'patch_stage', 'id': 'tests', 'set': {'instruction': 'Candidate process text survives validation.'}}]}])
     before = pair_bytes(db, lock)
     code, reply = invoke(update_execute, settings, request)
     assert code == 0, reply
     assert reply['status'] == 'updated'
-    assert json.loads(process_path.read_text())['stages'][0]['instruction'] == 'Candidate process text survives validation.'
+    assert json.loads(workflow_path.read_text())['stages'][0]['instruction'] == 'Candidate process text survives validation.'
     assert pair_bytes(db, lock) == before
     if members == 'absent':
         assert_empty_registry(config, db, lock)
@@ -363,24 +363,24 @@ def test_ignored_internal_physical_alias_is_rejected_as_identity(project):
     assert pair_bytes(db, lock) == before
 
 
-def test_invalid_update_process_cannot_publish_candidate(project):
+def test_invalid_update_workflow_cannot_publish_candidate(project):
     settings, packet, config = case(project)
     edit(packet, 'requirements_database', project['root'] / 'external.sqlite')
     edit(packet, 'requirements_lock', project['root'] / 'external.lock')
     code, created = invoke(setup_execute, settings, packet)
     assert code == 0, created
-    process = config.parent / 'config/processes/development.json'
-    before = config.read_bytes(), process.read_bytes()
+    workflow = config.parent / 'config/workflows/development.json'
+    before = config.read_bytes(), workflow.read_bytes()
     import hashlib
-    raw = json.loads(process.read_text())
+    raw = json.loads(workflow.read_text())
     revision = hashlib.sha256(json.dumps(raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
-    request = update_request(config, created['revision'], process_updates=[{
+    request = update_request(config, created['revision'], workflow_updates=[{
         'goal_type': 'development', 'expected_revision': revision,
         'changes': [{'op': 'patch_stage', 'id': 'tests', 'set': {'instruction': ''}}],
     }])
     code, reply = invoke(update_execute, settings, request)
     assert code == 2 and reply['status'] == 'rejected', reply
-    assert (config.read_bytes(), process.read_bytes()) == before
+    assert (config.read_bytes(), workflow.read_bytes()) == before
     assert not (project['app'] / 'operations/project-update-1.json').exists()
 
 
@@ -406,15 +406,15 @@ def test_update_accepts_git_policy_and_preserves_storage_pair(project, member, i
     edit(packet, 'requirements_lock', lock)
     code, created = invoke(setup_execute, settings, packet)
     assert code == 0, created  # Actual external source config; no fixture failure.
-    process = config.parent / 'config/processes/development.json'
+    workflow = config.parent / 'config/workflows/development.json'
     registry = project['app'] / 'state/project-registry.json'
-    before = config.read_bytes(), process.read_bytes(), registry.read_bytes(), pair_bytes(db, lock)
+    before = config.read_bytes(), workflow.read_bytes(), registry.read_bytes(), pair_bytes(db, lock)
     import hashlib
-    raw = json.loads(process.read_text())
+    raw = json.loads(workflow.read_text())
     revision = hashlib.sha256(json.dumps(raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     request = update_request(config, created['revision'], manifest_edits=[
         {'path': ['git', 'repository'], 'value': str(project['app'])},
-    ], process_updates=[{
+    ], workflow_updates=[{
         'goal_type': 'development', 'expected_revision': revision,
         'changes': [{'op': 'patch_stage', 'id': 'tests', 'set': {'instruction': 'Valid unpublished candidate instruction.'}}],
     }])
@@ -425,7 +425,7 @@ def test_update_accepts_git_policy_and_preserves_storage_pair(project, member, i
     assert code == 0 and reply['status'] == 'updated', reply
     assert pair_bytes(db, lock) == before[3]
     assert json.loads(config.read_text())['git']['repository'] == str(project['app'])
-    assert json.loads(process.read_text())['stages'][0]['instruction'] == 'Valid unpublished candidate instruction.'
+    assert json.loads(workflow.read_text())['stages'][0]['instruction'] == 'Valid unpublished candidate instruction.'
     assert registry.read_bytes() == before[2]
     assert receipt.is_file()
     assert not pending.exists()

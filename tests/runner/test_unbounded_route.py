@@ -5,7 +5,7 @@ import pytest
 from poise.modules.foundation.errors import DomainError
 from poise.modules.workflow.domain import RouteDefinition, RouteProgress
 
-from .helpers import process, task
+from .helpers import workflow, task
 
 
 def without_count_limits(value):
@@ -15,7 +15,7 @@ def without_count_limits(value):
 
 
 def test_route_accepts_only_entry_and_keeps_audit_counters_without_limits():
-    route = RouteDefinition.from_process(without_count_limits(process()))
+    route = RouteDefinition.from_workflow(without_count_limits(workflow()))
     progress = RouteProgress.initial(route)
 
     progress = route.enter(progress, "audit")
@@ -29,14 +29,14 @@ def test_route_accepts_only_entry_and_keeps_audit_counters_without_limits():
 
 
 def test_legacy_count_limit_fields_are_rejected_by_the_runtime_contract():
-    legacy = process()
+    legacy = workflow()
     legacy["route"].update(max_transitions=12, max_stage_visits=4)
     with pytest.raises(DomainError, match="точный набор полей"):
-        RouteDefinition.from_process(legacy)
+        RouteDefinition.from_workflow(legacy)
 
 
 def test_workflow_context_exposes_history_without_count_limits():
-    context = task(without_count_limits(process())).workflow_context()
+    context = task(without_count_limits(workflow())).workflow_context()
 
     assert context["transitions"] == 0
     assert context["visits"]["draft"] == 1

@@ -11,7 +11,7 @@ def available(project, runtime, identifier):
     body = task(project, identifier)
     body['sprint_id'] = None
     runtime.task_commands.create(
-        body, runtime.session, runtime.processes['development'], [],
+        body, runtime.session, runtime.workflows['development'], [],
         {'config_hash': runtime.config_hash}, None, runtime.cfg.get('task_ids'),
         runtime._creation_base(), runtime.cfg['task_decomposition'],
     )

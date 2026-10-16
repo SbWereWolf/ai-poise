@@ -1,0 +1,96 @@
+{
+  "artifacts": {
+    "evidence_bytes": 0,
+    "evidence_files": 0,
+    "evidence_manifest_path": null,
+    "evidence_manifest_sha256": null,
+    "evidence_root": null,
+    "evidence_status": "not_declared",
+    "ledger_path": "ai-assistant/checks/data/ledger.sqlite3",
+    "log_bytes": 99,
+    "log_path": ".runtime/checks/chk_20261016T075248Z_125f1dab29/result/command.log",
+    "log_sha256": null,
+    "progress_path": null,
+    "record_path": ".runtime/checks/chk_20261016T075248Z_125f1dab29/result/record.json"
+  },
+  "calibration": {
+    "automatic": true,
+    "command": null,
+    "observed_progress_gap_seconds": null,
+    "observed_success_seconds": 1.212,
+    "previous_observed_max_progress_gap_seconds": 0.0,
+    "previous_observed_max_success_seconds": 4.322,
+    "recommended_execution_timeout_seconds": 5,
+    "recommended_stall_timeout_seconds": null,
+    "required": false,
+    "status": "current"
+  },
+  "check_id": "chk_20261016T075248Z_125f1dab29",
+  "dependencies": {
+    "missing_environment": [],
+    "missing_executables": [],
+    "missing_files": []
+  },
+  "duration_ms": 1212,
+  "evidence_scope": null,
+  "exit_code": 0,
+  "finished_at": "2026-10-16T07:52:49Z",
+  "parser": {
+    "confirmed": true,
+    "counts": {},
+    "failures": [],
+    "name": "generic"
+  },
+  "profile": {
+    "argv": [
+      "env",
+      "REPO_CHECK_SCOPE_PATHS_JSON=[\"ai-assistant/README.md\",\"docs/tools/system-dev-tooling/registered-command-runner.md\",\"docs/tools/system-dev-tooling/repository-checks-mcp.md\",\"docs/tools/system-dev-tooling/testing/README.md\",\"docs/agents/command-runtime-limits.md\"]",
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/checks/repository-documentation-contracts.py",
+      "--repository-root",
+      "."
+    ],
+    "command_id": "repository-documentation-verification",
+    "cwd": ".",
+    "evidence_id": null,
+    "parser": "generic",
+    "runtime_class": "posix-host",
+    "workload_class": "harness-runtime-docs"
+  },
+  "progress": {
+    "age_seconds": null,
+    "anomaly_count": 0,
+    "event_count": 0,
+    "last_event_at": null,
+    "last_output_at": "2026-10-16T07:52:49Z",
+    "last_value": null,
+    "max_gap_seconds": 0.0,
+    "observability": "unavailable",
+    "output_age_seconds": 0.038,
+    "output_bytes": 99
+  },
+  "runtime": {
+    "pid": 645819,
+    "platform": "linux",
+    "platform_release": "6.18.40.1-microsoft-standard-WSL2",
+    "python": "3.12.3"
+  },
+  "schema_version": 1,
+  "started_at": "2026-10-16T07:52:48Z",
+  "status": "passed",
+  "summary": "{\"status\":\"passed\",\"markdown_files\":5,\"scoped_markdown_targets\":5,\"findings\":[],\"finding_count\":0}",
+  "termination": null,
+  "timeout": {
+    "configured_seconds": 5,
+    "effective_seconds": 5,
+    "evidence_check_id": null,
+    "override_reason": null,
+    "override_seconds": null
+  },
+  "verified_success": true,
+  "workspace": {
+    "head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

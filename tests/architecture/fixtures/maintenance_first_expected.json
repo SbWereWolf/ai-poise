@@ -1,0 +1,9 @@
+{
+  "status": "first-handler",
+  "exit_code": 7,
+  "stdout": "unrecognized external reply\n",
+  "stderr": "external failure details\n",
+  "process_exit": 9,
+  "marker": "configured-plugin",
+  "operation": "infra"
+}

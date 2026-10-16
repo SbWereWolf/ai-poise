@@ -1,0 +1,994 @@
+{
+  "tasks": {
+    "T1": {
+      "before": {
+        "goal": "Distinct current goal T1",
+        "process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "own-T1-0",
+              "instruction": "Keep literal process text for T1 stage 0."
+            },
+            {
+              "id": "own-T1-1",
+              "instruction": "Keep literal process text for T1 stage 1."
+            },
+            {
+              "id": "own-T1-2",
+              "instruction": "Keep literal process text for T1 stage 2."
+            }
+          ]
+        },
+        "registry_process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "registry-T1"
+            }
+          ]
+        },
+        "contract": {
+          "requirements": [
+            "Keep current data."
+          ],
+          "planning": {
+            "restart_revision_policy": {
+              "reviewer": [
+                "process",
+                "requirements"
+              ],
+              "user": [
+                "process"
+              ]
+            },
+            "unrelated": {
+              "task": "T1"
+            }
+          }
+        },
+        "restart_history": [
+          {
+            "planning_revision": {
+              "before_process": {
+                "goal_type": "development",
+                "stages": [
+                  {
+                    "id": "earlier-stage"
+                  }
+                ]
+              },
+              "before_contract": {
+                "planning": {
+                  "restart_revision_policy": {
+                    "reviewer": [
+                      "process"
+                    ],
+                    "user": [
+                      "process"
+                    ]
+                  },
+                  "unrelated": {
+                    "task": "T1"
+                  }
+                }
+              },
+              "allowed_changes": [
+                "process",
+                "requirements"
+              ],
+              "authorization": {
+                "role": "reviewer",
+                "decision": "Keep own graph.",
+                "revision_fields": [
+                  "process"
+                ]
+              },
+              "before_digest": "historical-value-is-not-a-gate"
+            },
+            "authorization": {
+              "role": "reviewer",
+              "revision_fields": [
+                "process"
+              ]
+            },
+            "resolved_revision": {
+              "changed_fields": [
+                "process"
+              ]
+            },
+            "manual_recovery": {
+              "original_metadata": {
+                "process": {
+                  "stages": [
+                    {
+                      "id": "opaque-old-history"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "stage_criteria": {
+          "own-stage": {
+            "revision": 4
+          }
+        },
+        "requirements_snapshot": {
+          "requirements": {
+            "SYS-1": "Keep requirements."
+          }
+        },
+        "sprint_id": "S1",
+        "newborn": {
+          "draft": {
+            "planning": {
+              "restart_revision_policy": {
+                "reviewer": [
+                  "process"
+                ],
+                "user": [
+                  "process"
+                ]
+              },
+              "unrelated": {
+                "task": "T1"
+              }
+            }
+          }
+        },
+        "unrelated": {
+          "process": "Keep this opaque key.",
+          "task": "T1"
+        }
+      },
+      "after": {
+        "goal": "Distinct current goal T1",
+        "contract": {
+          "requirements": [
+            "Keep current data."
+          ],
+          "planning": {
+            "restart_revision_policy": {
+              "reviewer": [
+                "workflow",
+                "requirements"
+              ],
+              "user": [
+                "workflow"
+              ]
+            },
+            "unrelated": {
+              "task": "T1"
+            }
+          }
+        },
+        "restart_history": [
+          {
+            "planning_revision": {
+              "before_contract": {
+                "planning": {
+                  "restart_revision_policy": {
+                    "reviewer": [
+                      "workflow"
+                    ],
+                    "user": [
+                      "workflow"
+                    ]
+                  },
+                  "unrelated": {
+                    "task": "T1"
+                  }
+                }
+              },
+              "allowed_changes": [
+                "workflow",
+                "requirements"
+              ],
+              "authorization": {
+                "role": "reviewer",
+                "decision": "Keep own graph.",
+                "revision_fields": [
+                  "workflow"
+                ]
+              },
+              "before_digest": "historical-value-is-not-a-gate",
+              "before_workflow": {
+                "goal_type": "development",
+                "stages": [
+                  {
+                    "id": "earlier-stage"
+                  }
+                ]
+              }
+            },
+            "authorization": {
+              "role": "reviewer",
+              "revision_fields": [
+                "workflow"
+              ]
+            },
+            "resolved_revision": {
+              "changed_fields": [
+                "workflow"
+              ]
+            },
+            "manual_recovery": {
+              "original_metadata": {
+                "process": {
+                  "stages": [
+                    {
+                      "id": "opaque-old-history"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "stage_criteria": {
+          "own-stage": {
+            "revision": 4
+          }
+        },
+        "requirements_snapshot": {
+          "requirements": {
+            "SYS-1": "Keep requirements."
+          }
+        },
+        "sprint_id": "S1",
+        "newborn": {
+          "draft": {
+            "planning": {
+              "restart_revision_policy": {
+                "reviewer": [
+                  "workflow"
+                ],
+                "user": [
+                  "workflow"
+                ]
+              },
+              "unrelated": {
+                "task": "T1"
+              }
+            }
+          }
+        },
+        "unrelated": {
+          "process": "Keep this opaque key.",
+          "task": "T1"
+        },
+        "workflow": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "own-T1-0",
+              "instruction": "Keep literal process text for T1 stage 0."
+            },
+            {
+              "id": "own-T1-1",
+              "instruction": "Keep literal process text for T1 stage 1."
+            },
+            {
+              "id": "own-T1-2",
+              "instruction": "Keep literal process text for T1 stage 2."
+            }
+          ]
+        },
+        "registry_workflow": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "registry-T1"
+            }
+          ]
+        }
+      },
+      "columns": {
+        "status": "active",
+        "stage_index": 2,
+        "iteration": 1,
+        "claimed_by": "existing-owner-T1",
+        "version": 11
+      }
+    },
+    "T2": {
+      "before": {
+        "goal": "Distinct current goal T2",
+        "process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "own-T2-0",
+              "instruction": "Keep literal process text for T2 stage 0."
+            },
+            {
+              "id": "own-T2-1",
+              "instruction": "Keep literal process text for T2 stage 1."
+            },
+            {
+              "id": "own-T2-2",
+              "instruction": "Keep literal process text for T2 stage 2."
+            }
+          ]
+        },
+        "registry_process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "registry-T2"
+            }
+          ]
+        },
+        "contract": {
+          "requirements": [
+            "Keep current data."
+          ],
+          "planning": {
+            "restart_revision_policy": {
+              "reviewer": [
+                "process",
+                "requirements"
+              ],
+              "user": [
+                "process"
+              ]
+            },
+            "unrelated": {
+              "task": "T2"
+            }
+          }
+        },
+        "restart_history": [
+          {
+            "planning_revision": {
+              "before_process": {
+                "goal_type": "development",
+                "stages": [
+                  {
+                    "id": "earlier-stage"
+                  }
+                ]
+              },
+              "before_contract": {
+                "planning": {
+                  "restart_revision_policy": {
+                    "reviewer": [
+                      "process"
+                    ],
+                    "user": [
+                      "process"
+                    ]
+                  },
+                  "unrelated": {
+                    "task": "T2"
+                  }
+                }
+              },
+              "allowed_changes": [
+                "process",
+                "requirements"
+              ],
+              "authorization": {
+                "role": "reviewer",
+                "decision": "Keep own graph.",
+                "revision_fields": [
+                  "process"
+                ]
+              },
+              "before_digest": "historical-value-is-not-a-gate"
+            },
+            "authorization": {
+              "role": "reviewer",
+              "revision_fields": [
+                "process"
+              ]
+            },
+            "resolved_revision": {
+              "changed_fields": [
+                "process"
+              ]
+            },
+            "manual_recovery": {
+              "original_metadata": {
+                "process": {
+                  "stages": [
+                    {
+                      "id": "opaque-old-history"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "stage_criteria": {
+          "own-stage": {
+            "revision": 4
+          }
+        },
+        "requirements_snapshot": {
+          "requirements": {
+            "SYS-1": "Keep requirements."
+          }
+        },
+        "sprint_id": "S1",
+        "newborn": {
+          "draft": {
+            "planning": {
+              "restart_revision_policy": {
+                "reviewer": [
+                  "process"
+                ],
+                "user": [
+                  "process"
+                ]
+              },
+              "unrelated": {
+                "task": "T2"
+              }
+            }
+          }
+        },
+        "unrelated": {
+          "process": "Keep this opaque key.",
+          "task": "T2"
+        }
+      },
+      "after": {
+        "goal": "Distinct current goal T2",
+        "contract": {
+          "requirements": [
+            "Keep current data."
+          ],
+          "planning": {
+            "restart_revision_policy": {
+              "reviewer": [
+                "workflow",
+                "requirements"
+              ],
+              "user": [
+                "workflow"
+              ]
+            },
+            "unrelated": {
+              "task": "T2"
+            }
+          }
+        },
+        "restart_history": [
+          {
+            "planning_revision": {
+              "before_contract": {
+                "planning": {
+                  "restart_revision_policy": {
+                    "reviewer": [
+                      "workflow"
+                    ],
+                    "user": [
+                      "workflow"
+                    ]
+                  },
+                  "unrelated": {
+                    "task": "T2"
+                  }
+                }
+              },
+              "allowed_changes": [
+                "workflow",
+                "requirements"
+              ],
+              "authorization": {
+                "role": "reviewer",
+                "decision": "Keep own graph.",
+                "revision_fields": [
+                  "workflow"
+                ]
+              },
+              "before_digest": "historical-value-is-not-a-gate",
+              "before_workflow": {
+                "goal_type": "development",
+                "stages": [
+                  {
+                    "id": "earlier-stage"
+                  }
+                ]
+              }
+            },
+            "authorization": {
+              "role": "reviewer",
+              "revision_fields": [
+                "workflow"
+              ]
+            },
+            "resolved_revision": {
+              "changed_fields": [
+                "workflow"
+              ]
+            },
+            "manual_recovery": {
+              "original_metadata": {
+                "process": {
+                  "stages": [
+                    {
+                      "id": "opaque-old-history"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "stage_criteria": {
+          "own-stage": {
+            "revision": 4
+          }
+        },
+        "requirements_snapshot": {
+          "requirements": {
+            "SYS-1": "Keep requirements."
+          }
+        },
+        "sprint_id": "S1",
+        "newborn": {
+          "draft": {
+            "planning": {
+              "restart_revision_policy": {
+                "reviewer": [
+                  "workflow"
+                ],
+                "user": [
+                  "workflow"
+                ]
+              },
+              "unrelated": {
+                "task": "T2"
+              }
+            }
+          }
+        },
+        "unrelated": {
+          "process": "Keep this opaque key.",
+          "task": "T2"
+        },
+        "workflow": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "own-T2-0",
+              "instruction": "Keep literal process text for T2 stage 0."
+            },
+            {
+              "id": "own-T2-1",
+              "instruction": "Keep literal process text for T2 stage 1."
+            },
+            {
+              "id": "own-T2-2",
+              "instruction": "Keep literal process text for T2 stage 2."
+            }
+          ]
+        },
+        "registry_workflow": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "registry-T2"
+            }
+          ]
+        }
+      },
+      "columns": {
+        "status": "active",
+        "stage_index": 2,
+        "iteration": 2,
+        "claimed_by": "existing-owner-T2",
+        "version": 12
+      }
+    },
+    "T3": {
+      "before": {
+        "goal": "Distinct current goal T3",
+        "process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "own-T3-0",
+              "instruction": "Keep literal process text for T3 stage 0."
+            },
+            {
+              "id": "own-T3-1",
+              "instruction": "Keep literal process text for T3 stage 1."
+            },
+            {
+              "id": "own-T3-2",
+              "instruction": "Keep literal process text for T3 stage 2."
+            }
+          ]
+        },
+        "registry_process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "registry-T3"
+            }
+          ]
+        },
+        "contract": {
+          "requirements": [
+            "Keep current data."
+          ],
+          "planning": {
+            "restart_revision_policy": {
+              "reviewer": [
+                "process",
+                "requirements"
+              ],
+              "user": [
+                "process"
+              ]
+            },
+            "unrelated": {
+              "task": "T3"
+            }
+          }
+        },
+        "restart_history": [
+          {
+            "planning_revision": {
+              "before_process": {
+                "goal_type": "development",
+                "stages": [
+                  {
+                    "id": "earlier-stage"
+                  }
+                ]
+              },
+              "before_contract": {
+                "planning": {
+                  "restart_revision_policy": {
+                    "reviewer": [
+                      "process"
+                    ],
+                    "user": [
+                      "process"
+                    ]
+                  },
+                  "unrelated": {
+                    "task": "T3"
+                  }
+                }
+              },
+              "allowed_changes": [
+                "process",
+                "requirements"
+              ],
+              "authorization": {
+                "role": "reviewer",
+                "decision": "Keep own graph.",
+                "revision_fields": [
+                  "process"
+                ]
+              },
+              "before_digest": "historical-value-is-not-a-gate"
+            },
+            "authorization": {
+              "role": "reviewer",
+              "revision_fields": [
+                "process"
+              ]
+            },
+            "resolved_revision": {
+              "changed_fields": [
+                "process"
+              ]
+            },
+            "manual_recovery": {
+              "original_metadata": {
+                "process": {
+                  "stages": [
+                    {
+                      "id": "opaque-old-history"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "stage_criteria": {
+          "own-stage": {
+            "revision": 4
+          }
+        },
+        "requirements_snapshot": {
+          "requirements": {
+            "SYS-1": "Keep requirements."
+          }
+        },
+        "sprint_id": "S1",
+        "newborn": {
+          "draft": {
+            "planning": {
+              "restart_revision_policy": {
+                "reviewer": [
+                  "process"
+                ],
+                "user": [
+                  "process"
+                ]
+              },
+              "unrelated": {
+                "task": "T3"
+              }
+            }
+          }
+        },
+        "unrelated": {
+          "process": "Keep this opaque key.",
+          "task": "T3"
+        }
+      },
+      "after": {
+        "goal": "Distinct current goal T3",
+        "contract": {
+          "requirements": [
+            "Keep current data."
+          ],
+          "planning": {
+            "restart_revision_policy": {
+              "reviewer": [
+                "workflow",
+                "requirements"
+              ],
+              "user": [
+                "workflow"
+              ]
+            },
+            "unrelated": {
+              "task": "T3"
+            }
+          }
+        },
+        "restart_history": [
+          {
+            "planning_revision": {
+              "before_contract": {
+                "planning": {
+                  "restart_revision_policy": {
+                    "reviewer": [
+                      "workflow"
+                    ],
+                    "user": [
+                      "workflow"
+                    ]
+                  },
+                  "unrelated": {
+                    "task": "T3"
+                  }
+                }
+              },
+              "allowed_changes": [
+                "workflow",
+                "requirements"
+              ],
+              "authorization": {
+                "role": "reviewer",
+                "decision": "Keep own graph.",
+                "revision_fields": [
+                  "workflow"
+                ]
+              },
+              "before_digest": "historical-value-is-not-a-gate",
+              "before_workflow": {
+                "goal_type": "development",
+                "stages": [
+                  {
+                    "id": "earlier-stage"
+                  }
+                ]
+              }
+            },
+            "authorization": {
+              "role": "reviewer",
+              "revision_fields": [
+                "workflow"
+              ]
+            },
+            "resolved_revision": {
+              "changed_fields": [
+                "workflow"
+              ]
+            },
+            "manual_recovery": {
+              "original_metadata": {
+                "process": {
+                  "stages": [
+                    {
+                      "id": "opaque-old-history"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "stage_criteria": {
+          "own-stage": {
+            "revision": 4
+          }
+        },
+        "requirements_snapshot": {
+          "requirements": {
+            "SYS-1": "Keep requirements."
+          }
+        },
+        "sprint_id": "S1",
+        "newborn": {
+          "draft": {
+            "planning": {
+              "restart_revision_policy": {
+                "reviewer": [
+                  "workflow"
+                ],
+                "user": [
+                  "workflow"
+                ]
+              },
+              "unrelated": {
+                "task": "T3"
+              }
+            }
+          }
+        },
+        "unrelated": {
+          "process": "Keep this opaque key.",
+          "task": "T3"
+        },
+        "workflow": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "own-T3-0",
+              "instruction": "Keep literal process text for T3 stage 0."
+            },
+            {
+              "id": "own-T3-1",
+              "instruction": "Keep literal process text for T3 stage 1."
+            },
+            {
+              "id": "own-T3-2",
+              "instruction": "Keep literal process text for T3 stage 2."
+            }
+          ]
+        },
+        "registry_workflow": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "registry-T3"
+            }
+          ]
+        }
+      },
+      "columns": {
+        "status": "completed",
+        "stage_index": 2,
+        "iteration": 3,
+        "claimed_by": "existing-owner-T3",
+        "version": 13
+      }
+    }
+  },
+  "sprint": {
+    "before": {
+      "project": "fixture-project",
+      "actor": "fixture-actor",
+      "processes": {
+        "development": {
+          "stages": [
+            {
+              "id": "sprint-own-stage"
+            }
+          ]
+        }
+      },
+      "aggregate": {
+        "revision": 7,
+        "state": "published",
+        "plan": {
+          "id": "S1",
+          "goal": "Keep the current connected Sprint.",
+          "requirements": [
+            "Preserve current relations."
+          ],
+          "definition_of_done": [
+            "All current data remains."
+          ],
+          "tasks": [
+            "T1",
+            "T2",
+            "T3"
+          ],
+          "dependencies": [
+            {
+              "predecessor": "T1",
+              "successor": "T2",
+              "kind": "completion"
+            },
+            {
+              "predecessor": "T2",
+              "successor": "T3",
+              "kind": "result"
+            }
+          ],
+          "unrelated": {
+            "process": "Keep opaque Sprint plan data."
+          }
+        }
+      },
+      "unrelated": {
+        "keep": true
+      }
+    },
+    "after": {
+      "project": "fixture-project",
+      "actor": "fixture-actor",
+      "aggregate": {
+        "revision": 7,
+        "state": "published",
+        "plan": {
+          "id": "S1",
+          "goal": "Keep the current connected Sprint.",
+          "requirements": [
+            "Preserve current relations."
+          ],
+          "definition_of_done": [
+            "All current data remains."
+          ],
+          "tasks": [
+            "T1",
+            "T2",
+            "T3"
+          ],
+          "dependencies": [
+            {
+              "predecessor": "T1",
+              "successor": "T2",
+              "kind": "completion"
+            },
+            {
+              "predecessor": "T2",
+              "successor": "T3",
+              "kind": "result"
+            }
+          ],
+          "unrelated": {
+            "process": "Keep opaque Sprint plan data."
+          }
+        }
+      },
+      "unrelated": {
+        "keep": true
+      },
+      "workflows": {
+        "development": {
+          "stages": [
+            {
+              "id": "sprint-own-stage"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "history": {
+    "process": {
+      "stages": [
+        {
+          "id": "historical-stage"
+        }
+      ]
+    }
+  }
+}

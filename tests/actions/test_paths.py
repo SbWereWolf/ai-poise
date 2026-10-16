@@ -275,9 +275,9 @@ def test_unresolved_markers_are_not_committed(project):
 def test_only_accepted_inspection_can_lead_to_publish(project):
     from poise.modules.goal_config.domain import GoalTypeDefinition
     h,ctx,_,_=setup(project)
-    process=deepcopy(h.current_task()['process'])
-    process['stages'][0]['transitions']['complete']='publish'
-    with pytest.raises(PoiseError):GoalTypeDefinition.parse(process)
+    workflow=deepcopy(h.current_task()['workflow'])
+    workflow['stages'][0]['transitions']['complete']='publish'
+    with pytest.raises(PoiseError):GoalTypeDefinition.parse(workflow)
 
 
 def test_action_receipt_transaction_rolls_back_on_event_error(project):

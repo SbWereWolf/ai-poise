@@ -1,29 +1,29 @@
 {
-  "max_tasks": 1000,
-  "max_dependencies": 3000,
   "acceptable_terminal_states": [
     "completed",
     "cancelled"
   ],
+  "max_dependencies": 3000,
+  "max_tasks": 1000,
+  "section_rules": [
+    {
+      "name": "plan",
+      "normalization": "strip",
+      "required": true,
+      "template": "Заполнить план."
+    }
+  ],
   "templates": {
     "basic": {
-      "version": "1",
+      "definition_of_done": [],
+      "dependencies": [],
       "goal": "",
       "requirements": [],
-      "definition_of_done": [],
       "sections": {
         "plan": "Заполнить план."
       },
       "tasks": [],
-      "dependencies": []
+      "version": "1"
     }
-  },
-  "section_rules": [
-    {
-      "name": "plan",
-      "template": "Заполнить план.",
-      "normalization": "strip",
-      "required": true
-    }
-  ]
+  }
 }

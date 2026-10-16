@@ -1,8 +1,0 @@
-{
-  "schema": "ai-poise/bootstrap-component/v1",
-  "distribution": "environment-maintenance",
-  "version": "0.2.1",
-  "accepted_commit": "482b11417f8e74d9bcc1d885767bb16837f3284a",
-  "wheel_sha256": "01932116ea61f7da6f6f613ce910bd978a5b46fb91ab1d14b74b9c6ad78e3ba7",
-  "delivery_manifest_sha256": "e8a8a9d398c022a00267737f9847c842418b5da6892e4bdebc1215accab1341b"
-}

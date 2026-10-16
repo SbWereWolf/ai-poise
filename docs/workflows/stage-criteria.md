@@ -2,7 +2,7 @@
 
 Обновлено: **2026-10-11**. Описание реализованного протокола, а не подтверждение
 включения его в конкретной установке. Старые процессы и сохранённые задачи требуют
-[явной миграции](../task-process-snapshot-migration.md#миграция-типов-и-критериев-этапов).
+[явной миграции](../task-workflow-snapshot-migration.md#миграция-типов-и-критериев-этапов).
 
 ## Оглавление
 
@@ -39,7 +39,7 @@
 
 ## Новые проекты и старые снимки
 
-Поставляемые `config/catalogue/processes` явно задают `purpose` каждого этапа
+Поставляемые `config/catalogue/workflows` явно задают `purpose` каждого этапа
 и `criteria_authority` с пустыми `propose`/`decide`. Назначение выбирается по
 содержанию работы, а не автоматически по handler или роли. Например, написание
 детального проекта — `execution`, проверка альтернативных выводов — `observation`,
@@ -48,8 +48,8 @@
 Пустые списки не дают планировщику или проверяющему скрытого права менять критерии
 следующих этапов. Планировщик может явно настроить task-owned starter до его
 замораживания; применяются действующие правила Task, а не автоматический grant
-по имени этапа. Обновление blueprint и его process-source digest относится только
-к будущему созданию проекта. Существующие process snapshots, маршруты и Task
+по имени этапа. Обновление blueprint и его workflow-source digest относится только
+к будущему созданию проекта. Существующие workflow snapshots, маршруты и Task
 не переписываются: их миграция — отдельная авторизованная операция.
 
 Порядок выбора совместимой поставки и создания конфигурации описан в
@@ -240,25 +240,25 @@ WIP, результаты и историю; его авторизация оп�
 
 ## Пример и проверка
 
-[Полный process](stage-criteria-process.example.json) — отдельный учебный JSON,
+[Полный workflow](stage-criteria-workflow.example.json) — отдельный учебный JSON,
 не рабочая конфигурация установки. Он показывает четыре назначения и произвольную
 роль `author`; для независимого процесса задают действительные разные роли и actors.
 Task-контракт, Requirements snapshot и текущий `result_template` получают отдельно.
 Пример не является полной командой создания Task или разрешением на её запуск.
 
-Из проверяемого checkout с выбранным Python можно проверить process без записи:
+Из проверяемого checkout с выбранным Python можно проверить workflow без записи:
 
 ```bash
 PYTHONPATH=src python -B - <<'PY'
 import json
 from pathlib import Path
 from poise.modules.goal_config.domain import GoalTypeDefinition
-document = json.loads(Path('docs/workflows/stage-criteria-process.example.json').read_text())
+document = json.loads(Path('docs/workflows/stage-criteria-workflow.example.json').read_text())
 GoalTypeDefinition.from_configuration(document)
-print('process example: valid')
+print('workflow example: valid')
 PY
 ```
 
-Эта проверка подтверждает форму process, не выполнение workflow, миграцию или приёмку.
+Эта проверка подтверждает форму workflow, не выполнение workflow, миграцию или приёмку.
 Локальные ссылки и входящие anchors проверяет
 [существующий checker](documentation-checks.md#проверка-ссылок-и-точных-заголовков).

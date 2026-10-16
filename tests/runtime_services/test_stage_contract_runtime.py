@@ -22,9 +22,9 @@ def _feature():
     assert not missing, f"runtime StageContract API is missing: {missing}"
 
 
-def _contracts(process, *, first_entry=(), first_scope=None):
+def _contracts(workflow, *, first_entry=(), first_scope=None):
     values = []
-    for index, stage in enumerate(process["stages"]):
+    for index, stage in enumerate(workflow["stages"]):
         values.append({
             "stage_id": stage["id"],
             "allowed_paths": list(stage["allowed_paths"] if index or first_scope is None else first_scope),
@@ -36,39 +36,39 @@ def _contracts(process, *, first_entry=(), first_scope=None):
 
 def _configure(project, *, contracts=True, entry_required=False, exit_required=False,
                first_scope=None, inspection=False, review_gate=False):
-    process = deepcopy(project["process"])
+    workflow = deepcopy(project["workflow"])
     task = deepcopy(project["task"])
     if inspection:
-        inspect = deepcopy(process["stages"][1])
-        revise = deepcopy(process["stages"][2])
+        inspect = deepcopy(workflow["stages"][1])
+        revise = deepcopy(workflow["stages"][2])
         inspect["handler"] = "inspect"
         inspect["transitions"] = {"clear": None, "changes_requested": revise["id"]}
         inspect["rework_targets"] = [revise["id"]]
         revise["transitions"] = {"complete": inspect["id"]}
         revise["rework_targets"] = [revise["id"]]
-        process["stages"] = [inspect, revise]
-        process["route"]["entry"] = inspect["id"]
-        selected_stages = {stage["id"] for stage in process["stages"]}
+        workflow["stages"] = [inspect, revise]
+        workflow["route"]["entry"] = inspect["id"]
+        selected_stages = {stage["id"] for stage in workflow["stages"]}
         task["decomposition"]["phases"] = [
             phase for phase in task["decomposition"]["phases"]
             if phase["stage"] in selected_stages
         ]
         task["methods"] = []
         task["method_inputs"] = []
-        task["checks"] = {stage["id"]: [] for stage in process["stages"]}
+        task["checks"] = {stage["id"]: [] for stage in workflow["stages"]}
         task["evidence_plan"] = {
             stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-            for stage in process["stages"]
+            for stage in workflow["stages"]
         }
         project["cfg"]["automatic_checks"] = []
         write_json(project["config_path"], project["cfg"])
     if exit_required:
         task["methods"] = []
         task["method_inputs"] = []
-        task["checks"] = {stage["id"]: [] for stage in process["stages"]}
+        task["checks"] = {stage["id"]: [] for stage in workflow["stages"]}
         task["evidence_plan"] = {
             stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-            for stage in process["stages"]
+            for stage in workflow["stages"]
         }
         project["cfg"]["automatic_checks"] = []
         write_json(project["config_path"], project["cfg"])
@@ -77,7 +77,7 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
         requirements.append({
                 "id": "entry-input",
                 "kind": "artifact",
-                "stages": [process["stages"][0]["id"]],
+                "stages": [workflow["stages"][0]["id"]],
                 "phase": "pre",
                 "scope": "task",
                 "pattern": "inputs/ready.txt",
@@ -89,16 +89,16 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
         requirements.append({
             "id": "stage-output",
             "kind": "artifact",
-            "stages": [process["stages"][0]["id"]],
+            "stages": [workflow["stages"][0]["id"]],
             "phase": "post",
             "scope": "task",
             "pattern": "outputs/result.txt",
             "minimum": 1,
             "maximum": 1,
-            "source": {"kind": "stage_output", "producer_stage": process["stages"][0]["id"]},
+            "source": {"kind": "stage_output", "producer_stage": workflow["stages"][0]["id"]},
         })
     if review_gate:
-        revision_stage = process["stages"][1]["id"]
+        revision_stage = workflow["stages"][1]["id"]
         requirements.extend([
             {
                 "id": requirement_id,
@@ -116,7 +116,7 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
     task["content_contract"] = {"sections": [], "routes": [], "requirements": requirements}
     if contracts:
         task["stage_contracts"] = _contracts(
-            process,
+            workflow,
             first_entry=("entry-input",) if entry_required else (),
             first_scope=first_scope,
         )
@@ -124,8 +124,8 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
             task["stage_contracts"][0]["exit_requirements"] = ["stage-output"]
         if review_gate:
             task["stage_contracts"][1]["entry_requirements"] = ["review-gate-a"]
-    write_json(project["root"] / "config/processes/development.json", process)
-    return process, task
+    write_json(project["root"] / "config/workflows/development.json", workflow)
+    return workflow, task
 
 
 def _bootstrap(project, session="executor", **options):
@@ -466,8 +466,8 @@ def test_initialization_rejects_future_output_outside_candidate_scope_atomically
 
 
 def test_reviewer_revision_rejects_future_output_outside_candidate_scope_atomically(project):
-    process, task = _configure(project, inspection=True)
-    producer = process["stages"][1]["id"]
+    workflow, task = _configure(project, inspection=True)
+    producer = workflow["stages"][1]["id"]
     output = "tests/review-output"
     covered_surface = "tests/other/covered.py"
     task["stage_contracts"][1]["allowed_paths"] = [output, "tests/other/**"]
@@ -605,7 +605,7 @@ def test_legacy_missing_contract_blocks_start_until_initialize(project):
     runtime = Poise(project["config_path"], "executor")
     # Start admission needs an available Task, not an already bootstrapped run.
     runtime.task_commands.create(
-        task, runtime.session, runtime.processes["development"], [],
+        task, runtime.session, runtime.workflows["development"], [],
         {"config_hash": runtime.config_hash}, None, runtime.cfg.get("task_ids"),
         runtime._creation_base(), runtime.cfg["task_decomposition"],
     )
@@ -673,7 +673,7 @@ def test_task_specific_scope_narrows_and_expands_template_enforcement(project):
 
 
 def test_inspection_fixture_rejects_mismatched_phases_before_creation(project):
-    process, task = _configure(project, inspection=True)
+    workflow, task = _configure(project, inspection=True)
     # Deliberately retain a phase outside the actual two-stage route.
     task["decomposition"]["phases"] = deepcopy(project["task"]["decomposition"]["phases"])
     tools = WorkTools(Poise(project["config_path"], "executor"))

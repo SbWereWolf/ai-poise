@@ -1,0 +1,619 @@
+{
+  "schema": "poise-maintenance-profile-1",
+  "catalog": "config/maintenance/environment-maintenance.example.json",
+  "settings": "config/project-setup.example.json",
+  "recommendations": "config/maintenance/recommendations.example.json",
+  "templates": {
+    "linux-reference": "config/project-templates/linux-reference.json"
+  },
+  "asset_directories": [
+    {
+      "source": "config/catalogue",
+      "destination": "config/catalogue",
+      "patterns": [
+        "settings.example.json",
+        "editor.example.json",
+        "task-templates/*.json",
+        "workflow-templates/*.json",
+        "workflows/*.json"
+      ]
+    }
+  ],
+  "workflow_source_prefix": "app/",
+  "outputs": {
+    "catalog": "catalog.json",
+    "settings": "setup.json",
+    "registry": "configured-projects.json",
+    "edits": "project-edits.json",
+    "recommendations": "recommendations.json"
+  },
+  "settings_overrides": {
+    "root": ".",
+    "registry": "configured-projects.json",
+    "lock": "setup.lock"
+  },
+  "preserve_paths": [
+    "project",
+    "configured-projects.json",
+    "editor-state",
+    "config/catalogue/editor.json",
+    "config/catalogue/settings.json",
+    "setup.lock"
+  ],
+  "project_edits": [
+    {
+      "path": [
+        "project"
+      ],
+      "value": "${project_id}"
+    },
+    {
+      "path": [
+        "git",
+        "repository"
+      ],
+      "value": "${repository}"
+    },
+    {
+      "path": [
+        "git",
+        "base_ref"
+      ],
+      "value": "${base_ref}"
+    },
+    {
+      "path": [
+        "git",
+        "remote"
+      ],
+      "value": "${remote}"
+    },
+    {
+      "path": [
+        "git",
+        "author_name"
+      ],
+      "value": "${author_name}"
+    },
+    {
+      "path": [
+        "git",
+        "author_email"
+      ],
+      "value": "${author_email}"
+    },
+    {
+      "path": [
+        "git",
+        "push_required"
+      ],
+      "value": false
+    },
+    {
+      "path": [
+        "paths",
+        "state"
+      ],
+      "value": "${state_root}"
+    },
+    {
+      "path": [
+        "environment_names"
+      ],
+      "value": [
+        "PATH",
+        "HOME",
+        "LANG"
+      ]
+    },
+    {
+      "path": [
+        "paths",
+        "worktrees"
+      ],
+      "value": "worktrees"
+    },
+    {
+      "path": [
+        "paths",
+        "requirements_database"
+      ],
+      "value": "database/requirements.sqlite"
+    },
+    {
+      "path": [
+        "paths",
+        "requirements_lock"
+      ],
+      "value": "database/requirements.lock"
+    },
+    {
+      "path": [
+        "task_planning",
+        "catalogue"
+      ],
+      "value": "${profile_root}/config/catalogue/settings.json"
+    },
+    {
+      "path": [
+        "runtime_resources",
+        "project_setup"
+      ],
+      "value": "${profile_root}/setup.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "analysis"
+      ],
+      "value": "workflows/analysis.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "design"
+      ],
+      "value": "workflows/design.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "development"
+      ],
+      "value": "workflows/development.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "documentation"
+      ],
+      "value": "workflows/documentation.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "environment_diagnostics"
+      ],
+      "value": "workflows/environment_diagnostics.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "environment_remediation"
+      ],
+      "value": "workflows/environment_remediation.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "integration"
+      ],
+      "value": "workflows/integration.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "profiling"
+      ],
+      "value": "workflows/profiling.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "review"
+      ],
+      "value": "workflows/review.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "sprint_planning"
+      ],
+      "value": "workflows/sprint_planning.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "task_planning"
+      ],
+      "value": "workflows/task_planning.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "test_development"
+      ],
+      "value": "workflows/test_development.json"
+    },
+    {
+      "path": [
+        "workflows",
+        "verification"
+      ],
+      "value": "workflows/verification.json"
+    },
+    {
+      "path": [
+        "paths",
+        "database"
+      ],
+      "value": "state.sqlite"
+    },
+    {
+      "path": [
+        "paths",
+        "lock"
+      ],
+      "value": "state.lock"
+    },
+    {
+      "path": [
+        "paths",
+        "runtime"
+      ],
+      "value": "runtime"
+    },
+    {
+      "path": [
+        "paths",
+        "sprints"
+      ],
+      "value": "sprints"
+    },
+    {
+      "path": [
+        "runtime_resources",
+        "hooks"
+      ],
+      "value": [
+        {
+          "installation_id": "poise-main",
+          "settings_path": "${profile_root}/project/hooks-data-settings.json"
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "source": "config/catalogue/settings.example.json",
+      "destination": "config/catalogue/settings.json",
+      "edits": [
+        {
+          "path": [
+            "editor"
+          ],
+          "value": "editor.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "development-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/development.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "test_development-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/test_development.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "verification-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/verification.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "review-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/review.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "design-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/design.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "analysis-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/analysis.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "profiling-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/profiling.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "environment_diagnostics-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/environment_diagnostics.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "environment_remediation-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/environment_remediation.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "documentation-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/documentation.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "task_planning-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/task_planning.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "sprint_planning-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/sprint_planning.json"
+        },
+        {
+          "path": [
+            "task_templates",
+            "integration-v1",
+            "path"
+          ],
+          "value": "config/catalogue/task-templates/integration.json"
+        }
+      ]
+    },
+    {
+      "source": "config/catalogue/editor.example.json",
+      "destination": "config/catalogue/editor.json",
+      "edits": [
+        {
+          "path": [
+            "root"
+          ],
+          "value": "${profile_root}"
+        },
+        {
+          "path": [
+            "database"
+          ],
+          "value": "editor-state/database/catalogue.sqlite"
+        },
+        {
+          "path": [
+            "lock"
+          ],
+          "value": "editor-state/lock/catalogue.lock"
+        },
+        {
+          "path": [
+            "responses"
+          ],
+          "value": "editor-state/responses"
+        },
+        {
+          "path": [
+            "workflows",
+            "development"
+          ],
+          "value": "project/workflows/development.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "test_development"
+          ],
+          "value": "project/workflows/test_development.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "verification"
+          ],
+          "value": "project/workflows/verification.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "review"
+          ],
+          "value": "project/workflows/review.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "design"
+          ],
+          "value": "project/workflows/design.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "analysis"
+          ],
+          "value": "project/workflows/analysis.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "profiling"
+          ],
+          "value": "project/workflows/profiling.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "environment_diagnostics"
+          ],
+          "value": "project/workflows/environment_diagnostics.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "environment_remediation"
+          ],
+          "value": "project/workflows/environment_remediation.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "documentation"
+          ],
+          "value": "project/workflows/documentation.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "task_planning"
+          ],
+          "value": "project/workflows/task_planning.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "sprint_planning"
+          ],
+          "value": "project/workflows/sprint_planning.json"
+        },
+        {
+          "path": [
+            "workflows",
+            "integration"
+          ],
+          "value": "project/workflows/integration.json"
+        },
+        {
+          "path": [
+            "templates",
+            "development-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/development.json"
+        },
+        {
+          "path": [
+            "templates",
+            "test_development-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/test_development.json"
+        },
+        {
+          "path": [
+            "templates",
+            "verification-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/verification.json"
+        },
+        {
+          "path": [
+            "templates",
+            "review-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/review.json"
+        },
+        {
+          "path": [
+            "templates",
+            "design-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/design.json"
+        },
+        {
+          "path": [
+            "templates",
+            "analysis-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/analysis.json"
+        },
+        {
+          "path": [
+            "templates",
+            "profiling-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/profiling.json"
+        },
+        {
+          "path": [
+            "templates",
+            "environment_diagnostics-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/environment_diagnostics.json"
+        },
+        {
+          "path": [
+            "templates",
+            "environment_remediation-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/environment_remediation.json"
+        },
+        {
+          "path": [
+            "templates",
+            "documentation-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/documentation.json"
+        },
+        {
+          "path": [
+            "templates",
+            "task_planning-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/task_planning.json"
+        },
+        {
+          "path": [
+            "templates",
+            "sprint_planning-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/sprint_planning.json"
+        },
+        {
+          "path": [
+            "templates",
+            "integration-v1",
+            "path"
+          ],
+          "value": "config/catalogue/workflow-templates/integration.json"
+        }
+      ]
+    }
+  ]
+}

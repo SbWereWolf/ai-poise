@@ -1,0 +1,757 @@
+{
+  "status": "read_only",
+  "results": [
+    {
+      "id": "recovery",
+      "value": {
+        "tasks": [
+          {
+            "id": "ERP-MERGE-RESIDUALS-001",
+            "status": "completed",
+            "version": 121,
+            "claimed_by": null,
+            "stage_index": 12,
+            "iteration": 1,
+            "current_submission_id": 1110
+          }
+        ],
+        "worktree_bindings": [],
+        "executions": [
+          {
+            "task_id": "ERP-MERGE-RESIDUALS-001",
+            "version": 76,
+            "data": {
+              "attempts": 1,
+              "base": "6e88fd4632f37b0672b36958d5d7710551d80d8d",
+              "branch": "poise/ERP-MERGE-RESIDUALS-001",
+              "entry_tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03",
+              "last_report": {
+                "action": null,
+                "artifacts": [
+                  {
+                    "id": "f11b8dcb-2afc-5db9-ba64-139cbe6b1224",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/EXECUTOR-NATIVE-RESULT-20261015.md"
+                  },
+                  {
+                    "id": "60c95a25-2a08-54bd-b30d-2b52e304ecc0",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/IMPLEMENTATION-EVIDENCE-20261015.md"
+                  },
+                  {
+                    "id": "2fe4ea8a-a0be-575d-9d2a-5d98925ff86c",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/review-remediation/MERGE-DOC-001/DOC-IMPACT.md"
+                  },
+                  {
+                    "id": "d25800c5-0f48-5545-be06-7428517b240b",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/INDEPENDENT-REVIEW-20261014.md"
+                  },
+                  {
+                    "id": "daa66ec8-d0ff-519d-898e-2f7a9bfa3acc",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/recovery-20261015/TEST-EXECUTION-INCIDENT.md"
+                  },
+                  {
+                    "id": "13369da4-ed6e-5b04-bd23-d4595aef7785",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/remediation/MERGE-LIMIT-WIRE-001/LIMIT-WIRE-PROOF.json"
+                  },
+                  {
+                    "id": "f8ed5cf9-a478-530e-b20c-9526d0135fb5",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/remediation/MERGE-LIMIT-WIRE-001/verify-packet.json"
+                  },
+                  {
+                    "id": "f08e4eed-e9ce-5e7f-ad9c-0eb9ff4a9c2c",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/recovery-20261015/documentation-verify-packet.json"
+                  },
+                  {
+                    "id": "0661c881-40f5-5d3c-aeff-02dfd593b3fa",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/recovery-20261015/original-test-verify-packet.json"
+                  },
+                  {
+                    "id": "076ea6e2-f054-56ba-b84a-4e91790d2017",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/target-contract.log"
+                  },
+                  {
+                    "id": "19fce10e-874d-5312-931d-1897e5bb7597",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/07ff6f702a5149e5a6dbef26c1b41f8901461bc3f33c978a789812c6dd90b93d/handoff.tar.gz"
+                  },
+                  {
+                    "id": "1a585ac7-9810-5179-abad-b3f306d8d4fe",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/component.log"
+                  },
+                  {
+                    "id": "2776af8d-f53a-5e94-86a1-afaf0ef5698d",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/400ca3f97b5756d0fee9d9d7d53fdd00347d90bf2bf9e188daea4478fcbbdc63/source.bundle"
+                  },
+                  {
+                    "id": "2b2b44af-7d4f-56e8-b84e-da5e8944e2e0",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/calculation-service/2.xml"
+                  },
+                  {
+                    "id": "3217f91c-e3c2-53b0-82ca-ed942ab8bd66",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/MANUAL-FAST-PLAN-20261014.md"
+                  },
+                  {
+                    "id": "3d84f90d-8f7c-54d7-9357-67d3cd1c6163",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/limit.log"
+                  },
+                  {
+                    "id": "3ff2ef24-67c1-5362-b1b6-868287304e4d",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/20170c32f2ac7a0f95e961c3a28357eb5819204fe4ca30ab2edb6d8d6aecafbd/handoff.tar.gz"
+                  },
+                  {
+                    "id": "407b8214-90e1-5677-b702-58b64e6e60fb",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/6fc440c47bc5950c730f000a3b8143cbf7563bd46614f57faa1d4683fc49e2c2/handoff.tar.gz"
+                  },
+                  {
+                    "id": "44c45b57-b08d-57b9-813d-c240b8145beb",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/native-smoke.log"
+                  },
+                  {
+                    "id": "472b57ef-4351-5cb8-8e8e-45edc2496dba",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/fast-failed.log"
+                  },
+                  {
+                    "id": "4d3d03e9-27ae-5df1-8979-d2a8cc6ad2e1",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/recovery-20261015/reviewer-restart.json"
+                  },
+                  {
+                    "id": "4eb71182-3c22-5c26-8154-4fa3efe6ec22",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/MANUAL-BASELINE-RECOVERY-20261014.md"
+                  },
+                  {
+                    "id": "4ed8746c-e582-5d43-ae98-f0370fdfba8b",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/5e8157f137a45f49398e703be017a7000b13b0d617d8cfb80fc6ae07004ac8ee/handoff.tar.gz"
+                  },
+                  {
+                    "id": "5121fdbd-5223-575d-bc30-68e19d3bfe2f",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/MANUAL-EXECUTOR-RESULT-20261014.md"
+                  },
+                  {
+                    "id": "568e4154-0331-5025-a8e6-2f7ec8d5aaf1",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/system-admin-component.json"
+                  },
+                  {
+                    "id": "577252ad-8bba-5792-b357-45ccc71c1d2e",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/erp-calendar-optimizer/1.xml"
+                  },
+                  {
+                    "id": "5a0f2c2a-fa78-504b-ae16-167a0ffcaa87",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/system-admin/1.xml"
+                  },
+                  {
+                    "id": "5ccdd242-8feb-597e-99d3-f01b8d6e6a24",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/arch.log"
+                  },
+                  {
+                    "id": "6db5dca3-80fa-56c3-80fb-a58aebf6b292",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/calculation-service/1.xml"
+                  },
+                  {
+                    "id": "6dcd8935-5692-50a9-8f1a-0fa1a9dd7574",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/planning-workspace/2.xml"
+                  },
+                  {
+                    "id": "71913c13-f400-55c6-8486-0f05aed897f1",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/MANUAL-RECOVERY-FOLLOWTHROUGH-20261014.md"
+                  },
+                  {
+                    "id": "791815ec-3337-5d95-b231-3cdac839870c",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/22548fbfb62f5d447ebd0844b1c7ae795f4f24ee417562600502099b673d8fe1/source.bundle"
+                  },
+                  {
+                    "id": "7968c53b-230b-5154-9e8f-e3332a623a6e",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/system-admin-component.log"
+                  },
+                  {
+                    "id": "799e64c8-1755-5b65-afec-568d375bbd5d",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/4b3deacf1539cc415c8897940e87d854abfdb21042075e672f18f8706f924a6e/handoff.json"
+                  },
+                  {
+                    "id": "848bcef9-6d8d-5556-829b-5c13ec481ba0",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/NATIVE-RECONCILIATION-20261015.md"
+                  },
+                  {
+                    "id": "878bdeac-11d2-5e4a-9a70-f92049a4245d",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/20170c32f2ac7a0f95e961c3a28357eb5819204fe4ca30ab2edb6d8d6aecafbd/receipt.json"
+                  },
+                  {
+                    "id": "8d1b3f48-12f1-553d-85ab-645556de58f3",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/4c0e111468a5739d584927568422f99bfec0cc3046ea1aeaafaf5243f736dd7e/handoff.tar.gz"
+                  },
+                  {
+                    "id": "910ef1a7-9c93-5b79-81b4-5f93f0f7cff2",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast.log"
+                  },
+                  {
+                    "id": "919bedf8-a444-5c27-8371-c2a13be97972",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/63cdf3699d858b8abc83b2c711e5d5c6c044d2683fc0fa94f8b8e3d68950fa98/handoff.json"
+                  },
+                  {
+                    "id": "a0839240-14df-50b4-a0a8-5ae78694f693",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast.json"
+                  },
+                  {
+                    "id": "aa2ea489-a92b-50a2-9568-7983b07c52d1",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/static-initial-failed.log"
+                  },
+                  {
+                    "id": "ac6ad00e-801d-5544-933e-705d7ec65949",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/EXECUTOR-PLAN-20261014.md"
+                  },
+                  {
+                    "id": "aee206c6-61ed-5240-a63f-0a1345edf6f5",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/format.log"
+                  },
+                  {
+                    "id": "b0ad5187-6f09-522f-bf2b-fe2607dc8736",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/component.json"
+                  },
+                  {
+                    "id": "b12169ad-5680-5c85-80f2-83a5e415a780",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/DOC-IMPACT.md"
+                  },
+                  {
+                    "id": "b2378116-d694-5eef-8221-1c2e25a99e87",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/planning-workspace/1.xml"
+                  },
+                  {
+                    "id": "b5fc1cd0-d69b-5d0e-b56c-8eb7f884bc9a",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/22548fbfb62f5d447ebd0844b1c7ae795f4f24ee417562600502099b673d8fe1/handoff.json"
+                  },
+                  {
+                    "id": "b96b08fb-f03f-5283-94e3-56b7b087394d",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/b9d61b509b292982a50dc2d9e55d39b2f132ff609d17eac22c3962e4cbf0d8d9/handoff.tar.gz"
+                  },
+                  {
+                    "id": "babc124f-b985-5824-809c-5bbd79871610",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/erp-calendar-optimizer/2.xml"
+                  },
+                  {
+                    "id": "c1a2f484-7f4a-5fa8-a40d-8ae911a29463",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/478743194ee626a4a0053b001e55f60e7000e68df2540473a2dec497f36cab5f/source.bundle"
+                  },
+                  {
+                    "id": "c4d606a9-071b-5d27-abff-92a8540fba1b",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/07ff6f702a5149e5a6dbef26c1b41f8901461bc3f33c978a789812c6dd90b93d/receipt.json"
+                  },
+                  {
+                    "id": "c52e5ed8-501e-5aaf-976a-75c160f20feb",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/133f259eac890fd3b130adb27280b15eefd5f53808db2174eb432f8b7ce35332/handoff.json"
+                  },
+                  {
+                    "id": "c5c05d2b-1591-5942-87dc-7d783ef1406b",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/133f259eac890fd3b130adb27280b15eefd5f53808db2174eb432f8b7ce35332/source.bundle"
+                  },
+                  {
+                    "id": "c9f9a4fb-fbf8-57fc-ab91-26b0a0a6bd43",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/b9d61b509b292982a50dc2d9e55d39b2f132ff609d17eac22c3962e4cbf0d8d9/receipt.json"
+                  },
+                  {
+                    "id": "d2c87fbd-e224-55c5-b150-daeb59a49619",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/4b3deacf1539cc415c8897940e87d854abfdb21042075e672f18f8706f924a6e/source.bundle"
+                  },
+                  {
+                    "id": "d6cc8660-1129-5943-9f8b-68dc07d5719b",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/limit-record.json"
+                  },
+                  {
+                    "id": "d6f84a5c-6ef2-527c-8279-354a474caa01",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/6fc440c47bc5950c730f000a3b8143cbf7563bd46614f57faa1d4683fc49e2c2/receipt.json"
+                  },
+                  {
+                    "id": "d8f38e4f-c6b9-5e7f-b845-83e6fe170b91",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/400ca3f97b5756d0fee9d9d7d53fdd00347d90bf2bf9e188daea4478fcbbdc63/handoff.json"
+                  },
+                  {
+                    "id": "db2c9ee0-297b-572a-b8e2-5c2e47368809",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/478743194ee626a4a0053b001e55f60e7000e68df2540473a2dec497f36cab5f/handoff.json"
+                  },
+                  {
+                    "id": "dbf19cf6-238a-599a-ab67-bed00ef29e4f",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/beb403173f58d115c49dfd020ba13a44be5d66a7b9a08d24f07269315448840a/source.bundle"
+                  },
+                  {
+                    "id": "de7810e0-4688-5160-be68-ed1a918bca19",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/manual-fast/planning-workspace-core/1.xml"
+                  },
+                  {
+                    "id": "e535dceb-8564-5310-a0c0-cdbabd83c992",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/static-host.log"
+                  },
+                  {
+                    "id": "ea62f8f2-2951-56fd-a899-02de85b781b8",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/beb403173f58d115c49dfd020ba13a44be5d66a7b9a08d24f07269315448840a/handoff.json"
+                  },
+                  {
+                    "id": "eaa30939-8098-53ca-b28e-19fb93c08bab",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/5e8157f137a45f49398e703be017a7000b13b0d617d8cfb80fc6ae07004ac8ee/receipt.json"
+                  },
+                  {
+                    "id": "eaa6a368-b387-5907-bdba-bea3989fabcb",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/4c0e111468a5739d584927568422f99bfec0cc3046ea1aeaafaf5243f736dd7e/receipt.json"
+                  },
+                  {
+                    "id": "f8d7c3ad-0abb-5767-9edd-37dabd93c02a",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/handoffs/5f011ff2cd774fe4f5a4513dcf2808e923f5700373c9bb1977ec27cc6a9b5b23/handoff.json"
+                  },
+                  {
+                    "id": "fb4e8f6b-a83d-5f2d-abd0-6a1118b34000",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/fast-failed.json"
+                  },
+                  {
+                    "id": "fc28e822-dce2-5fda-ac83-5354f6a7b757",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/recovery-20261015/implementation-verify-packet.json"
+                  },
+                  {
+                    "id": "fc9daa2d-2a01-56c9-9803-e56c334c954e",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/EXECUTOR-FINAL-20261014.md"
+                  },
+                  {
+                    "id": "fca33413-f579-5c3e-ae90-526091ddaea2",
+                    "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/checks-20261014/independent/classes.log"
+                  }
+                ],
+                "attempt": 1,
+                "checks": [],
+                "commit": "37af933579c6faaa8e6f0adfb8368ada769f4c78",
+                "evidence": {
+                  "arguments": [
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "Fresh baseline classification proved; independently reviewed two-file repair proceeds under documented manual harness continuation. Native status remains active/unverified.",
+                        "facts": [
+                          "Actual Poise child clean atHEAD6e88fd46/tree1dbacd24; own normal configuration and installed locked dependencies prepared.",
+                          "Fresh full target class2tests/18assertions/1failure: successor201expected/422actual stale target inputs, migrationpassed.",
+                          "Fresh analyse and format:check passed,0of490files require changes.",
+                          "Existing independent test-owned builder and canonical testing documentation supply the current target anchors."
+                        ],
+                        "id": "ARG-BASELINE",
+                        "inference": "Only fixture-target composition still fails in the actual allocated checkout; projection/static and formatting are already corrected. Reuse the existing independent builder without changing production behavior or business oracles.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-BASELINE",
+                      "iteration": 1,
+                      "revision": "47dfa4026011095e32937a961c7589c212366ba202de5bedb00d6b23cc56dbf8",
+                      "stage": "baseline",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "The bounded two-file solution plan satisfies R1–R4 and retains D1–D4 evidence and review obligations.",
+                        "facts": [
+                          "Only two test fixture consumers changed in6e88fd4→37af933; current source hashes equal frozen independent review.",
+                          "Existing canonical fixture builder and documented soft-warning contract already supply exact intended anchors.",
+                          "Actual component327tests5367assertions and reviewer30tests338assertions passed; historical failed/unconfirmedFAST evidence retained.",
+                          "Genuine distinct-reviewer restart retained unchanged requirements and native route."
+                        ],
+                        "id": "ARG-SOLUTION_PLANNING",
+                        "inference": "Reuse the canonical independent test owner and preserve exact business oracles; adopt existing implementation transparently through native stages rather than create duplicate changes.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-SOLUTION_PLANNING",
+                      "iteration": 1,
+                      "revision": "a3f6e2d64cee532a982eaea4204c62617eba4ff8c06fbf091251ac33cb99fc10",
+                      "stage": "solution_planning",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "Verification plan covers R1–R4/D1–D4 and preserves downstream genuine native independent review.",
+                        "facts": [
+                          "Exact complete packages, class invocations, runtime and literal business predicates specified.",
+                          "Actual immutable successful records and failed/unconfirmedFAST receipts distinguished.",
+                          "Genuine designated reviewer accepted compositeD4proof; restart preserved requirements and original6e→37af boundary."
+                        ],
+                        "id": "ARG-VERIFICATION_PLANNING",
+                        "inference": "Exact external executions disprove stale input composition and preserve negative/boundary behavior; truthful statuses and actualfingerprintcachehits prevent fabricated green.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-VERIFICATION_PLANNING",
+                      "iteration": 1,
+                      "revision": "70c5065a476d93679891933897cba6fa6d37edb3e4f017c97706befbecae5136",
+                      "stage": "verification_planning",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "Corrected exactregisteredtest invocation isready for nativeverification; no nativeGREEN or stageacceptance isclaimed beforeactualterminalresult.",
+                        "facts": [
+                          "Original genuine attempt finalizedchecks_failed627fad7c: originalSOFT/TARGETstartup127, LIMITpassed0; original3runIDs retained.",
+                          "Publicreadback6f5ee5c6 proves pendingnull/attempts1, so newcorrectedowner submission isadmissible.",
+                          "Actualcanonicalwrapperinterface and both --plan inputs verified configuredownchild PHP8.4/Node22.16 and exactwholeclasses; no testexecutionclaimedbyplan.",
+                          "Publicregistryrevision1 requiresonlytwoargvpathcorrections; allcoverage/expectations/produceronlyscheduling andLIMITproof remainunchanged.",
+                          "Frozen37afsource and original6e→37af delta unchanged; independentlyreviewedliteralbusinessoracles/history retained."
+                        ],
+                        "id": "ARG-TEST_IMPLEMENTATION",
+                        "inference": "Startupcommanderrors require narrow publicregistry corrections, not production/testassertion changes. Genuine historicalfailedreceipts and successfulLIMITproof remain distinct; nativecorrectedmethods must now supply realcurrentGREEN.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-TEST_IMPLEMENTATION",
+                      "iteration": 1,
+                      "revision": "25d0fdde9aa5e078ea0457b1abbe1b95deb489d7be3286474bed4b1448888a39",
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "Finding-scoped resolution isready for native producer verification and subsequent independent acceptance byoriginalfindingID.",
+                        "facts": [
+                          "Genuineopenfinding MERGE-LIMIT-WIRE-001 independently disproved oldcomplete-variant selector while existingoverflowGREEN remainsvalid.",
+                          "Actualpublicregistry revision2 and returnedtest_remediation template grant test_registry/resolution ownership.",
+                          "Oneexplicitversionedselector passedfourindependentvalidprojections andsixmalformedcases; actualsamefixtures/selector integratedintoLIMIT.",
+                          "Allstatus/workload/logSHA/16-117checks, SOFT/TARGET, originalsourceboundary and historicalreceipts preserved; onlyassignedproducerproofscheduleextended."
+                        ],
+                        "id": "ARG-TEST_REMEDIATION",
+                        "inference": "Contract dispatch fixes the demonstrated completevariant failure withoutfallback or altering businessoracles; sharedliteraltests plus actualregisteredLIMIT proof can disprove recurrence.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-TEST_REMEDIATION",
+                      "iteration": 1,
+                      "revision": "62e23ba08bfcce350267e40824c943950e1e6ce4170d7f94589322f9c0483e7f",
+                      "stage": "test_remediation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "The unchanged implementation satisfies R1–R4 and D1–D4 under the recorded evidence and lawful D4 acceptance. It is ready for genuine independent native implementation inspection; final completion and integration are not yet asserted.",
+                        "facts": [
+                          "The original 6e88fd4..37af933 source delta remains exactly two test files, 17 insertions and 123 deletions; current source is clean and diff-check passes.",
+                          "Native SOFT/TARGET and LIMIT passed; the genuine independent owner closed MERGE-LIMIT-WIRE-001 after 19 selector cases.",
+                          "Current registered whole-component and System Admin lookups returned actual successful cache hits bound to this same Task HEAD/tree and original immutable records.",
+                          "Post-edit static/style/architecture proof remains valid; failed and unconfirmed FAST statuses are preserved alongside the explicit designated-reviewer acceptance of composite D4 proof."
+                        ],
+                        "id": "ARG-IMPLEMENTATION",
+                        "inference": "The bounded stale-fixture repair is implemented without production or contract changes. Current source-bound executable proof and independent inspection establish its behavior; the explicit D4 owner decision covers the diagnosed collector limitation without relabelling it.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-IMPLEMENTATION",
+                      "iteration": 1,
+                      "revision": "892e059568d30bdbf228053c7a340640559372af8b81d6ddaf5a749b46c169ca",
+                      "stage": "implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "body": {
+                        "assumptions": [],
+                        "conclusion": "The required documentation is complete and truthful. Native terminal completion and actual integration/cleanup must follow the returned public route; they are not preclaimed.",
+                        "facts": [
+                          "Native implementation inspection accepted all requirements/DoD, outcome clear, with no open findings and unchanged source37af933/treeb4c4.",
+                          "The tracked canonical testing section explicitly documents the existing independent builder and incomplete-data save behavior; its relevant text was read during this stage.",
+                          "The current corrected DOC-IMPACT hash remains exactly the independently accepted b5a9f2a3...; the superseded incorrect pointer is not used.",
+                          "Task reports preserve all failed/unconfirmed outcomes and actual recovery/independent acceptance; delivery agreement3eb3055d declares local master and the exact accepted commit."
+                        ],
+                        "id": "ARG-DOCUMENTATION",
+                        "inference": "Existing product documentation remains correct because only stale test-owned inputs changed. The current Task documentation accurately records accepted results, limitations, authority and the still-pending actual delivery steps.",
+                        "kind": "logical",
+                        "observation_ids": [],
+                        "verdict": "proved"
+                      },
+                      "id": "ARG-DOCUMENTATION",
+                      "iteration": 1,
+                      "revision": "0b8ec4f64a1e9f92214bb7a71e5d794d49b0f4e0f434a067cd770f3d1e43ac21",
+                      "stage": "documentation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    }
+                  ],
+                  "assessment": {
+                    "execution_key": "79100fa31969e7d3badfca32389b261f0ab62b8b46bbdbd632c4fbd1df80b841",
+                    "missing": [],
+                    "needs_continuation": false,
+                    "outcome": "complete",
+                    "ready": true,
+                    "submission_digest": "d1e0531130f832cfd680454cc6c6d1d775774575446c1a7407cb90a58054039e",
+                    "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                  },
+                  "decisions": [
+                    {
+                      "argument_id": "ARG-BASELINE",
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "Accepted as evidence of the real historical prewrite6e allocation/classification and preserved current retained subject; it is not a newly executed RED at37af.",
+                      "revision": "47dfa4026011095e32937a961c7589c212366ba202de5bedb00d6b23cc56dbf8",
+                      "stage": "planning_inspection",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "argument_id": "ARG-SOLUTION_PLANNING",
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "Accepted: exact two-consumer reuse of the independent fixture owner preserves all literal/boundary oracles and production scope, with original review boundary and genuine downstream roles.",
+                      "revision": "a3f6e2d64cee532a982eaea4204c62617eba4ff8c06fbf091251ac33cb99fc10",
+                      "stage": "planning_inspection",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "argument_id": "ARG-VERIFICATION_PLANNING",
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "Accepted with recorded concrete owner/scheduling clarification: actual registry0 is acknowledged, real executable R1/R2 bindings must be registered in test_implementation, broad methods producer-only, and historical external/composite evidence never relabelled as fresh native green.",
+                      "revision": "70c5065a476d93679891933897cba6fa6d37edb3e4f017c97706befbecae5136",
+                      "stage": "planning_inspection",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "argument_id": "ARG-TEST_IMPLEMENTATION",
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "Accepted as truthful evidence of corrected canonical wrapper commands, original startup127 preservation and genuine current producer GREEN. This narrow factual acceptance does not establish complete-variant proof coverage; MERGE-LIMIT-WIRE-001 remains open and requires the declared test-remediation route.",
+                      "revision": "25d0fdde9aa5e078ea0457b1abbe1b95deb489d7be3286474bed4b1448888a39",
+                      "stage": "test_inspection",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "argument_id": "ARG-TEST_REMEDIATION",
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "Exact current registry/proof equality, independent19-case selector execution, authenticated producer LIMIT exit0 and material/log/cache provenance independently substantiate the scoped complete/overflow remediation. Original finding can close without altering old results or product source.",
+                      "revision": "62e23ba08bfcce350267e40824c943950e1e6ce4170d7f94589322f9c0483e7f",
+                      "stage": "test_remediation_inspection",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "argument_id": "ARG-IMPLEMENTATION",
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "The full original source delta and literal oracles match the independently tested frozen subject. Canonical current cache fingerprints match the recorded genuine successful lookup keys; native producer results and independent finding closure are authentic. R1–R4/D1–D4 are satisfied with the explicit preserved composite D4 owner decision, without relabelling failed/unconfirmed FAST or claiming final integration.",
+                      "revision": "892e059568d30bdbf228053c7a340640559372af8b81d6ddaf5a749b46c169ca",
+                      "stage": "implementation_inspection",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    }
+                  ],
+                  "observations": [
+                    {
+                      "actual_exit_code": 127,
+                      "id": "9e53e486-8648-4b60-a221-df2b4e5d5667",
+                      "iteration": 1,
+                      "method": "MERGE-SOFT-GREEN-001",
+                      "obligations": [
+                        "MERGE-SOFT-GREEN-001"
+                      ],
+                      "passed": false,
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "actual_exit_code": 127,
+                      "id": "ccb32139-ca22-4732-b9fa-8f52e40e454b",
+                      "iteration": 1,
+                      "method": "MERGE-TARGET-GREEN-001",
+                      "obligations": [
+                        "MERGE-TARGET-GREEN-001"
+                      ],
+                      "passed": false,
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "actual_exit_code": 0,
+                      "id": "6013709e-88d0-4d19-9e6c-1169d8613bd4",
+                      "iteration": 1,
+                      "method": "MERGE-LIMIT-GREEN-001",
+                      "obligations": [
+                        "MERGE-LIMIT-GREEN-001"
+                      ],
+                      "passed": true,
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "actual_exit_code": 0,
+                      "id": "44a54711-4783-4e29-9c49-a46d42deb4d3",
+                      "iteration": 1,
+                      "method": "MERGE-SOFT-GREEN-001",
+                      "obligations": [
+                        "MERGE-SOFT-GREEN-001"
+                      ],
+                      "passed": true,
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "actual_exit_code": 0,
+                      "id": "b42d8d2c-608a-4094-903c-6a317233f01b",
+                      "iteration": 1,
+                      "method": "MERGE-TARGET-GREEN-001",
+                      "obligations": [
+                        "MERGE-TARGET-GREEN-001"
+                      ],
+                      "passed": true,
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "actual_exit_code": 0,
+                      "id": "4c2668d7-1bdc-4181-8cf6-d89afeeb978d",
+                      "iteration": 1,
+                      "method": "MERGE-LIMIT-GREEN-001",
+                      "obligations": [
+                        "MERGE-LIMIT-GREEN-001"
+                      ],
+                      "passed": true,
+                      "stage": "test_implementation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    },
+                    {
+                      "actual_exit_code": 0,
+                      "id": "c8063970-995a-4726-96fe-c5681f0099cf",
+                      "iteration": 1,
+                      "method": "MERGE-LIMIT-GREEN-001",
+                      "obligations": [
+                        "MERGE-LIMIT-GREEN-001"
+                      ],
+                      "passed": true,
+                      "stage": "test_remediation",
+                      "tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+                    }
+                  ],
+                  "plan": {
+                    "arguments": [
+                      {
+                        "id": "ARG-DOCUMENTATION",
+                        "kind": "logical",
+                        "observation_methods": [],
+                        "phase": "prepare"
+                      }
+                    ],
+                    "review_arguments": [],
+                    "subject_methods": {}
+                  }
+                },
+                "feedback": {
+                  "decisions": [
+                    {
+                      "decision": "accepted",
+                      "iteration": 1,
+                      "reason": "The actual registered LIMIT proof now handles both supported complete and overflow variants, with explicit version/variant/path errors. Independent19/19 literal selector cases pass; authenticated native c8063970 proves the actual shared selector/4+6 cases and true registered cache/logSHA/literal16/117 chain. SOFT/TARGET, required assertions, role scheduling, source and all history are preserved. Close original MERGE-LIMIT-WIRE-001; no synthetic no-op or product acceptance is implied.",
+                      "resolution_id": "RES-MERGE-LIMIT-WIRE-001-1",
+                      "stage": "test_remediation_inspection"
+                    }
+                  ],
+                  "findings": [
+                    {
+                      "description": "Current native verification registry revision2, MERGE-LIMIT-GREEN-001 method.argv[2], unconditionally selects jq-er .recovery_path. The canonical registered-result contract returns artifacts.record_path for a complete successful result and recovery_path for versioned overflow. A sufficiently large configured output budget therefore makes genuine complete success fail before its record/log proof is checked. This violates the planned configuration-independent limit proof (R2/D2, TR-002). Correct only the record-path dispatch through the returned native test-registry remediation owner; explicitly handle supported complete/overflow variants and reject malformed/unsupported variants. Preserve all status/exit/workload/logSHA/literal16/117 assertions, producer-only scheduling, source and original receipt/registry history.",
+                      "evidence": "Actual registry snapshot runs/f8611e2a-e8de-401e-b971-5e443c63659a/response.json contains revision2 and the unconditional recovery_path selector. Canonical checkout37af: ai-assistant/checks/check_runner_lib.py3139–3180,3220–3256 and schemas/check-result.schema.json8–37,350–376 define the two branches. Independent jq1.7 literal path-projection reproduction: complete with artifacts.record_path=.runtime/checks/contract-complete/result/record.json -> null/exit1; overflow with recovery_path=.runtime/checks/contract-overflow/result/record.json -> exact path/exit0. No whole-schema/application execution is claimed for these unit fixtures. Actual producer77c82fc2 three exit0 receipts, including genuine LIMIT overflow/cache-hit, remain valid and are not relabelled. Executor accepted this prospective defect but made no unowned verified-stage mutation.",
+                      "id": "MERGE-LIMIT-WIRE-001",
+                      "iteration": 1,
+                      "stage": "test_inspection",
+                      "subject": "[P2] MERGE-LIMIT-GREEN-001 rejects the supported complete result variant"
+                    }
+                  ],
+                  "open_findings": [],
+                  "pending_resolutions": [],
+                  "resolutions": [
+                    {
+                      "description": "Explicitly dispatch both canonical result union variants, validate supported/matchingversions and requirednonemptypath, retain allactualrecord/log/literal proof checks; execute shared independentselectorfixtures and correctedLIMIT only in assignedproducerremediation.",
+                      "evidence": "Independentliteral selector-unit fixture run passed4positivebranches and6malformedcases, exactinputs/selector retained in /home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-MERGE-RESIDUALS-001/artifacts/remediation/MERGE-LIMIT-WIRE-001/LIMIT-WIRE-PROOF.json. ExactnewLIMITdefinition and unchangedpriorchecks are publicregistrychange expectedrev2 in this submission. Nativeverify must record actualcurrentmethodoutcome beforeinspection; oldrev2/nativeGREEN and rev1/127 receipts preserved. No full-schema validation/newLIMITtestprocess/nativefindingclosureclaimed.",
+                      "finding_id": "MERGE-LIMIT-WIRE-001",
+                      "id": "RES-MERGE-LIMIT-WIRE-001-1",
+                      "iteration": 1,
+                      "stage": "test_remediation"
+                    }
+                  ]
+                },
+                "handler": "produce",
+                "iteration": 1,
+                "next_stage": null,
+                "next_work": "продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя",
+                "replayed": false,
+                "stage": "documentation",
+                "stage_outcome": "complete",
+                "status": "completed",
+                "task": "ERP-MERGE-RESIDUALS-001",
+                "verification_commit": "37af933579c6faaa8e6f0adfb8368ada769f4c78",
+                "verified_tree": "b4c4d2dda8e36401bbb666f284d526c4d3fc2f03"
+              },
+              "pending": null,
+              "publication": null,
+              "worktree": "/home/sbwerewolf/workdata/erp/worktrees/ERP-MERGE-RESIDUALS-001"
+            }
+          }
+        ],
+        "revoked": [],
+        "expected_snapshot": "72943df4904690333faaaa90fe9ed500e9e7bfc064d5231be4cd984d323807f5",
+        "observed_liveness": {},
+        "recovery_template": {
+          "operation": "recover_ownership",
+          "input": {
+            "mode": "after_crash",
+            "request_id": "crash-72943df4904690333faaaa90fe9ed500e9e7bfc064d5231be4cd984d323807f5",
+            "task_ids": [
+              "ERP-MERGE-RESIDUALS-001"
+            ],
+            "expected_snapshot": "72943df4904690333faaaa90fe9ed500e9e7bfc064d5231be4cd984d323807f5",
+            "reason": "",
+            "writers_stopped": false,
+            "authorization": {
+              "role": "user",
+              "decision": ""
+            }
+          },
+          "messages": []
+        }
+      }
+    },
+    {
+      "id": "delivery",
+      "value": {
+        "task": "ERP-MERGE-RESIDUALS-001",
+        "status": "delivery_blocked",
+        "replayed": false,
+        "agreement_id": "merge-local-master-delivery-20261015-1",
+        "outputs": [],
+        "retired_artifacts": [],
+        "reason": "handoff_pending",
+        "recovery": {
+          "operation": "delivery",
+          "action": "settle",
+          "task_id": "ERP-MERGE-RESIDUALS-001",
+          "reason": "handoff_pending"
+        }
+      }
+    }
+  ],
+  "interaction": {
+    "user_messages_count": 337,
+    "observed_messages_count": 337,
+    "coverage": "partial",
+    "source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
+    },
+    "reason_counts": {
+      "initial": 0,
+      "continue": 0,
+      "feedback": 0,
+      "requirement_change": 0,
+      "clarification": 0,
+      "authorization": 0,
+      "cancel": 0
+    },
+    "unclassified_messages": 337,
+    "task": null,
+    "goal_type": null,
+    "outcome": null,
+    "planned_content_stages_count": null,
+    "delivered_stages_count": 0,
+    "delivered_iterations_count": 0,
+    "delivery_observation": "tool_result_returned"
+  },
+  "capability_checks": null,
+  "hook_session": "01a138ea-a400-7273-82da-527a190135b1"
+}

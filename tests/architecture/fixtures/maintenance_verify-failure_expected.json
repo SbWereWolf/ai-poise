@@ -1,0 +1,20 @@
+[
+  {
+    "stage": "initial",
+    "stdout": "{\"schema\":\"environment-maintenance/result/v2\",\"status\":\"action_required\"}\n",
+    "stderr": "external diagnostic: run\n",
+    "exit_code": 2
+  },
+  {
+    "stage": "repair",
+    "stdout": "{\"schema\":\"environment-maintenance/result/v2\",\"status\":\"ready\"}\n",
+    "stderr": "external diagnostic: repair\n",
+    "exit_code": 0
+  },
+  {
+    "stage": "verification",
+    "stdout": "{\"schema\":\"environment-maintenance/result/v2\",\"status\":\"action_required\"}\n",
+    "stderr": "external diagnostic: verify\n",
+    "exit_code": 2
+  }
+]

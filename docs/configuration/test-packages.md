@@ -2,6 +2,32 @@
 
 `config/testing/test-packages.json` описывает только тестовые пакеты **самой кодовой базы AI poise**. Это не схема, которую Poise навязывает репозиториям, разрабатываемым с его помощью.
 
+## Миграция контрактов и отменённые черновики
+
+Пакет `contract-migration` выполняет три модуля:
+`tests/migrations/test_project_stage_criteria_drafts.py`,
+`tests/migrations/test_project_stage_criteria_migration.py` и
+`tests/migrations/test_stage_criteria_migration.py`. Он проверяет сохранение
+черновиков, полный состав миграции, конфликт версий, атомарность,
+восстановление после частичной публикации и повторное выполнение.
+
+Пакет `cancelled-draft-delivery` выполняет
+`tests/terminal_materials/test_cancelled_draft_agreement.py`,
+`tests/terminal_materials/test_delivery.py` и
+`tests/terminal_materials/test_invalid_contracts.py`. Он проверяет
+согласование материалов отменённого черновика, владение, версии,
+некорректные контракты и сохранение истории.
+
+Оба пакета используют общего владельца запуска и существующий кеш этой
+исходной копии. В отпечаток входят Python-исходники Poise и
+`poise_environment`, запускатель, `pyproject.toml`, точные тестовые модули,
+используемые вспомогательные модули, `__init__.py` импортируемых тестовых
+пакетов и примеры конфигурации. Для миграции
+учтены фикстуры `fixtures/stage-criteria/**`, для вывода материалов —
+`tests/terminal_materials/fixtures/**`. Эти пакеты не требуют смены
+рабочего backend проекта. Внешний потребитель задаёт исходную копию,
+подготовленный Python и тайм-аут явно; состав тестов остаётся здесь.
+
 ## Путь проверяемой копии
 
 Операция перечисления получает конкретный filesystem path checkout AI poise. Этот путь используется только для разрешения объявленных `source`, `tests` и `fixtures`. Расположение каталога пакетов и обычное разрешение исполняемого кода/configuration Poise от него не меняются.

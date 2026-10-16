@@ -2,7 +2,7 @@
 
 Обновлено: **2026-09-24**.
 
-Семантика и границы: [process-catalogue](process-catalogue.md).
+Семантика и границы: [workflow-catalogue](workflow-catalogue.md).
 
 Колонка «Роль» — каноническая карта ownership для действующего каталога. Каждый этап имеет
 ровно одну явно сохранённую `role`; в этих пресетах это `executor` или `reviewer`.

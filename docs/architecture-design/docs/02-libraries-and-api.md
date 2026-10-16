@@ -24,7 +24,7 @@ src/harness/
   modules/
     foundation/
     content/
-    processes/
+    workflows/
     verification/
     tasks/
     sprints/
@@ -74,10 +74,10 @@ BootstrapWork / VerifyStage / ApplyUserDecision / Handoff ...
 
 | Команда библиотеки | Основной вход от агента/пользователя | Доменные библиотеки | Единый результат |
 |---|---|---|---|
-| `BootstrapWork` | Project и scope при первом выборе; смысл следующей инструкции | sessions, tasks/sprints, processes | Контекст, текущая работа/eligible set, result template, roots и необходимые capabilities |
-| `VerifyStage` | Содержимое одного предусмотренного result file; ID уже в binding | tasks, verification, artifacts, processes + execution ports | Сохранённый результат, checks, доклад или конкретная работа той же стадии |
+| `BootstrapWork` | Project и scope при первом выборе; смысл следующей инструкции | sessions, tasks/sprints, workflows | Контекст, текущая работа/eligible set, result template, roots и необходимые capabilities |
+| `VerifyStage` | Содержимое одного предусмотренного result file; ID уже в binding | tasks, verification, artifacts, workflows + execution ports | Сохранённый результат, checks, доклад или конкретная работа той же стадии |
 | `ContinueStage` | Предусмотренный продолжением payload | те же | Продолжение той же операции без повторения уже выполненных внешних шагов |
-| `ApplyUserDecision` | Принять, продолжить, rework, отменить, waive, временное исключение | tasks/sprints, processes, sessions | Записанное решение и новый актуальный контекст; может быть частью bootstrap |
+| `ApplyUserDecision` | Принять, продолжить, rework, отменить, waive, временное исключение | tasks/sprints, workflows, sessions | Записанное решение и новый актуальный контекст; может быть частью bootstrap |
 | `PublishTaskPlan` | Подготовленный draft, решение о публикации | tasks, sprints при членстве | Валидная опубликованная Task |
 | `PublishSprintPlan` | Полный draft спринта и задач, решение | sprints, tasks | Атомарно видимый sprint и его tasks |
 | `ReviseSprintPlan` | Пакет membership/dependency/section изменений | sprints + tasks при изменении контрактов | Пересчитанные готовность и blockers |
@@ -110,7 +110,7 @@ BootstrapWork / VerifyStage / ApplyUserDecision / Handoff ...
 
 Эти функции не означают десяток обязательных инструментальных вызовов. `submit_stage_result` вызывает соответствующие внутренние методы **одним ChangeSet и UoW**. Частичные публичные методы нужны для действительно отдельного действия, но не обходят ограничения стадий.
 
-У них нет универсального `extra_fields` или «обновить любой JSON». Новое поле результата определяется в process schema и обрабатывается библиотекой, которая владеет его смыслом. Структурно корректная, но недопустимая для текущей фазы запись отклоняется.
+У них нет универсального `extra_fields` или «обновить любой JSON». Новое поле результата определяется в workflow schema и обрабатывается библиотекой, которая владеет его смыслом. Структурно корректная, но недопустимая для текущей фазы запись отклоняется.
 
 ## 5. Sprint API
 

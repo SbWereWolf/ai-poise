@@ -88,18 +88,82 @@ poise-project-data/demo/
 | Файл под Git | Для чего | Что заполнить |
 |---|---|---|
 | [project-registry.example.json](../../config/project-registry.example.json) | Начальный реестр | Пустой `projects`; генератор регистрирует опубликованный manifest. |
-| [project-setup.example.json](../../config/project-setup.example.json) | Настройки генератора | `root`, registry, внешний setup lock и точные выбранные template ID/version/digest. |
+| [project-setup.example.json](../../config/project-setup.example.json) | Настройки генератора | `root`, registry, внешний setup lock и явные пути шаблонов и выбор template ID. |
 | [linux-reference.json](../../config/project-templates/linux-reference.json), [wsl-poise.json](../../config/project-templates/wsl-poise.json) | Полные blueprint нового проекта | Все вопросы, включая абсолютные корни данных и worktrees; не править blueprint ради одной установки. |
 | [project.example.json](../../config/project.example.json) | Обезличенный полный manifest и справочный образец значений | Project ID, репозиторий, наблюдённая ветка, автор, политика публикации и корни. Для создания использовать генератор. |
 | [hook-settings.example.json](../../config/hook-settings.example.json) | Отдельные настройки Hook Registry | Общий файловый `root`, выбранные Python/source root, project config, native hooks, definitions и проектный hook state. |
 | [stride.example.env](../../config/stride.example.env), [stride-launcher.example.json](../../config/stride-launcher.example.json) | Запуск выбранного проекта | Явный интерпретатор установленного пакета, registry settings, ID проекта и независимые tool/data roots. |
 
-Рабочие копии примеров остаются вне Git. Выбранные версия и digest blueprint
-должны совпадать с фактическим файлом; `process_sources` фиксирует реальные
-поставляемые процессы. Обновление примеров не обновляет уже заполненные настройки
+Рабочие копии примеров остаются вне Git. `workflow_sources.*.path` выбирает
+текущие исходники графов; версия и хэш шаблона для создания не требуются. Обновление примеров не обновляет уже заполненные настройки
 оператора и не обновляет установленный пакет. Для другой версии инструмента
 совместимость проверяют отдельно; сведения о [выборе версии](stride-launcher.md#установка-и-выбор-версии)
 не заменяются импортом checkout.
+
+### Образцы размещения на основе poise-op
+
+`project.example.json` — обезличенная структурная копия действующего конфига
+poise-op. Компонентные примеры accounting, batch, runtime и sprint повторяют
+соответствующие разделы этого конфига; примеры catalogue, hooks, setup и launcher —
+выбранные настройки их владельцев. Это стартовый профиль poise-op, включая его
+политику навыков, а не универсальная политика для другого приложения.
+
+Верхнерегистровые `${...}` — **текстовые заполнители**. Замените их явными
+значениями до чтения конфига приложением. Общей автоматической интерполяции этих
+заполнителей в Poise нет. Каждый корень выбирается отдельно; совпадение значений
+двух корней в исходной установке не связывает соответствующие настройки.
+
+| Заполнитель | Значение при заполнении |
+|---|---|
+| `${POISE_SOURCE_ROOT}` | Абсолютный каталог исходников Poise. |
+| `${PROJECT_CONFIG_ROOT}` | Абсолютный каталог конфига выбранного проекта. |
+| `${PROJECT_DATA_ROOT}` | Абсолютный каталог данных выбранного проекта. |
+| `${REPOSITORY_ROOT}` | Абсолютный целевой репозиторий приложения. |
+| `${SETUP_ROOT}` | Явный корень разрешения путей настроек setup. |
+| `${LAUNCHER_ROOT}` | Явное значение `poise_root` запускателя. |
+| `${FILESYSTEM_ROOT}` | Явный общий предок для относительных путей hooks/editor. |
+| `${PROJECT_DATA_PARENT_ROOT}` | Явное значение `data_root` запускателя. |
+| `${PYTHON_EXECUTABLE}` | Полный путь выбранного исполняемого Python. |
+| `${PYTHON_PACKAGE_ROOT}` | Полный путь исходников пакета для hooks. |
+| `${PROJECT_ID}` | Идентификатор проекта. |
+| `${COMMIT_AUTHOR_NAME}`, `${COMMIT_AUTHOR_EMAIL}` | Явные данные автора коммитов. |
+
+Например, `paths.state` заполнен `${PROJECT_DATA_ROOT}`, а
+`paths.requirements_database` — `${PROJECT_DATA_ROOT}/requirements/requirements.sqlite`.
+Проектные графы выбираются как `${PROJECT_DATA_ROOT}/workflows/<тип>.json`.
+Относительные значения `tasks/tasks.sqlite`, `.runtime`, `standalone`, `sprint`
+и `worktrees` сохранены из poise-op и разрешаются своим существующим владельцем.
+
+В примерах hooks и catalogue/editor сохранены относительные хвосты путей
+действующей установки, включая `poise-op/app` и `poise-project-data/poise-op`.
+Это конкретный образец размещения, а не обязательные имена папок. При другом
+размещении заполните и эти относительные значения относительно указанного
+`${FILESYSTEM_ROOT}`. Три пути редактора — database, lock, responses — независимы;
+образец размещает их в отдельных подпапках `workflow-editor/`.
+
+Собственные переменные владельцев `${python}`, `${source_root}`,
+`${workspace_parent}`, `${workspace}`, `${catalog_dir}` и `{task_id}` сохраняются.
+Их сохранение не доказывает автоматической подстановки: настройки hooks читаются
+как явные значения, поэтому заполните их перед использованием. У bootstrap
+переменные в командах принадлежат его существующему контракту. Полные пути Python
+задаются отдельно от корней Poise; получение родителя каталога не требуется.
+
+Действующие [linux-reference.json](../../config/project-templates/linux-reference.json)
+и [wsl-poise.json](../../config/project-templates/wsl-poise.json) предлагают тот же
+полный профиль размещения. Редактирование шаблона или источника графа
+применяется при следующем создании без перерегистрации версии или хэша.
+
+Текущий `ProjectBlueprint.build` принимает явные правки полей и не раскрывает
+корневые заполнители. Все заполнители передаются разрешёнными значениями через
+`edits`. Вопросы обоих шаблонов охватывают все скалярные пути. Единственное
+поле со списком объектов — `runtime_resources.hooks` — задаётся отдельно одной
+правкой всего списка: `{"path":["runtime_resources","hooks"],"value":[...]}`.
+Текущие типы вопросов не поддерживают список объектов, поэтому один опрос без
+этой правки не завершает заполнение. Полный batch с этой правкой проверен на
+совпадение с действующим профилем poise-op. Публикация обоих шаблонов проверена
+через `project-setup-1`: все 13 workflow создаются по выбранным путям в данных
+проекта. Абсолютные пути используются как указаны; относительные вычисляются
+от каталога конечного manifest, независимо от текущего рабочего каталога.
 
 ### Значения manifest и hook settings
 
@@ -107,9 +171,9 @@ poise-project-data/demo/
 |---|---|
 | `paths.state` | Явный абсолютный `D`, например `/srv/poise-project-data/demo`. |
 | `paths.database`, `paths.lock` | `tasks/tasks.sqlite`, `tasks/tasks.lock` относительно `D`. |
-| `paths.requirements_database`, `paths.requirements_lock` | `requirements/requirements.sqlite`, `requirements/requirements.lock` относительно `D`; явные абсолютные пути также поддержаны. |
+| `paths.requirements_database`, `paths.requirements_lock` | `${PROJECT_DATA_ROOT}/requirements/requirements.sqlite`, `${PROJECT_DATA_ROOT}/requirements/requirements.lock`; после заполнения — явные абсолютные пути. |
 | `accounting.storage.database`, `accounting.storage.lock` | `telemetry/events.sqlite`, `telemetry/events.lock` относительно `D`. |
-| `paths.worktrees` | Явный абсолютный каталог внутри обслуживаемого репозитория; относительный путь разрешился бы от `D`. |
+| `paths.worktrees` | `worktrees` относительно `D` в образце poise-op. |
 | Hook `root` | Явный общий файловый предок tools, данных и native hooks; образец использует `/srv`. Это не `paths.state`. |
 | Hook `state` | `poise-project-data/demo/codex-hook` относительно hook `root`. |
 | Hook `database` | `sessions-runtime.sqlite` относительно hook `state`. |
@@ -121,16 +185,17 @@ poise-project-data/demo/
 в [настройке проекта](project-setup.md); launcher — в [контракте Stride](stride-launcher.md).
 Секреты и действующие идентичности сеансов в примеры не записывают.
 
-Процессы новых проектов содержат явные назначения этапов и пустые полномочия
-на изменение критериев. Это дополнение поставляемых snapshot для текущей схемы,
-а не миграция существующих Task или рабочих process files. Полный договор —
+Шаблоны проектов предлагают графы и настройки, выбранные профилем poise-op.
+Изменение шаблона не мигрирует уже существующие Task. Договор назначения этапов —
 [новые проекты и старые снимки](../workflows/stage-criteria.md#новые-проекты-и-старые-снимки).
 
-Для обоих blueprint обязательные ответы передаются через `edits`: `project`,
-`git.repository`, `git.base_ref`, `git.remote`, `git.author_name`, `git.author_email`,
-`git.push_required`, `paths.state`, `paths.worktrees`, `environment_names`.
-Типы и prompts находятся в `questions`; остальные значения берутся из полного
-выбранного blueprint. Готовый операторский пакет передают без выбора скрытого root:
+Оба blueprint объявляют 27 обязательных вопросов в `questions`. Ответы передаются
+через явные `edits`; кроме исходных параметров проекта они охватывают все
+скалярные пути с заполнителями. Дополнительно передаётся целиком список
+`runtime_resources.hooks`, для которого текущий опрос не поддерживает тип значения.
+После заполнения пакет публикует полный конфиг и внешние workflow
+по выбранной рекомендуемой схеме.
+Команда существующего владельца принимает явно подготовленный операторский пакет:
 
 ```bash
 /srv/poise/app/tools/.venv/bin/python -I -B -m poise project \
@@ -149,10 +214,10 @@ poise-project-data/demo/
 1. Выбрать существующий primary checkout и прочитать его ветку по
    [инструкции выбора](project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
    Задать отдельные абсолютные `D` и worktrees. Подготовить рабочий registry и
-   generator settings из примеров, сверив все template pins с выбранной поставкой.
+   generator settings из примеров, указав реальные пути шаблонов и источников графов.
 2. Передать полный `project-setup-1` через
    [публичный пакет](project-setup.md#пакетный-путь-для-агента), заполнив все вопросы.
-   Публикация создаёт manifest, process snapshots, receipt и запись registry;
+   Публикация создаёт manifest, workflow snapshots и запись registry;
    она не создаёт Task DB, Requirements DB, worktree, native binding или архив.
 3. Прочитать manifest и разрешённые пути. Выполнить
    [проектную проверку](project-setup.md#проверка-согласованности-проекта)
@@ -359,3 +424,6 @@ Requirements Store или зарегистрированное Git worktree. Е�
 сначала результат доставлен и интегрирован, нужные потребители закрыты, затем
 удаляются принадлежащие задаче дерево, ветка и временные материалы. Постоянные
 результаты, общие ещё нужные материалы, рабочие данные и чужие ресурсы сохраняются.
+
+Пример `goal-editor.example.json` выбирает тот же общий профиль редактора, что
+и `catalogue/editor.example.json`; он не создаёт отдельного владельца или БД.

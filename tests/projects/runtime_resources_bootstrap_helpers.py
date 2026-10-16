@@ -35,7 +35,7 @@ def bootstrap_python(tmp_path_factory):
     proof = subprocess.run([str(python), '-I', '-B', '-c',
                             "import importlib.metadata; print(importlib.metadata.version('ai-poise'))"],
                            check=True, capture_output=True, text=True)
-    assert proof.stdout == '1.0.2\n' and proof.stderr == ''
+    assert proof.stdout == '1.1.1\n' and proof.stderr == ''
     (root / 'wheel.sha256.txt').write_text(hashlib.sha256(wheel.read_bytes()).hexdigest() + '\n')
     return python
 
@@ -56,7 +56,7 @@ def arrange_bootstrap(project, tmp_path, *, native_hooks=False):
         state = root / state
     state.mkdir(parents=True, exist_ok=True)
     (state / 'operator.bin').write_bytes(b'\x00\xffexisting operator work\x80\n')
-    editor, selection = editor_settings(root, {'writing': 'config/processes/writing.json'})
+    editor, selection = editor_settings(root, {'writing': 'config/workflows/writing.json'})
     head = goal_config_tools(editor).apply_batch(
         editor_request('create', 'writing', None, [], selection=selection))
     assert head['status'] == 'applied'

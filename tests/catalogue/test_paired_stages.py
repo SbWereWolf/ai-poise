@@ -19,15 +19,15 @@ PAIRED = (
 )
 
 
-def process(goal):
+def workflow(goal):
     return json.loads(
-        (ROOT / "config/catalogue/process-templates" / f"{goal}.json").read_text()
+        (ROOT / "config/catalogue/workflow-templates" / f"{goal}.json").read_text()
     )
 
 
 @pytest.mark.parametrize("goal", PAIRED)
 def test_every_executor_result_has_an_independent_immediate_inspection(goal):
-    data = GoalTypeDefinition.parse(process(goal)).data
+    data = GoalTypeDefinition.parse(workflow(goal)).data
     stages = {stage["id"]: stage for stage in data["stages"]}
     for stage in stages.values():
         if stage["role"] != "executor" or stage["handler"] not in (
@@ -44,7 +44,7 @@ def test_every_executor_result_has_an_independent_immediate_inspection(goal):
 
 
 def test_development_has_the_six_explicit_design_and_delivery_pairs():
-    stages = {stage["id"]: stage for stage in process("development")["stages"]}
+    stages = {stage["id"]: stage for stage in workflow("development")["stages"]}
     expected = {
         "solution_planning": "solution_planning_inspection",
         "verification_planning": "verification_planning_inspection",
@@ -67,7 +67,7 @@ def test_development_has_the_six_explicit_design_and_delivery_pairs():
 
 @pytest.mark.parametrize("goal", PAIRED)
 def test_paired_instructions_explain_boundaries_and_inspection(goal):
-    for stage in process(goal)["stages"]:
+    for stage in workflow(goal)["stages"]:
         if stage["handler"] in ("produce", "observe", "revise", "apply_plan", "inspect"):
             assert "Inputs:" in stage["instruction"]
             assert "Output:" in stage["instruction"]

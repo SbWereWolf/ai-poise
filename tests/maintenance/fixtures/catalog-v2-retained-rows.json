@@ -1,0 +1,19 @@
+{
+  "task": {
+    "id": "operator-task",
+    "status": "newborn",
+    "metadata": "{\"project\":\"acceptance\",\"goal\":\"Сохранённая операторская задача\"}"
+  },
+  "requirement": {
+    "id": "operator-requirement",
+    "level": "system",
+    "status": "proposed",
+    "text": "Сохранённое требование оператора"
+  },
+  "telemetry": {
+    "id": "operator-event",
+    "project": "acceptance",
+    "data": "{\"source\":\"operator\",\"message\":\"Сохранённое наблюдение\"}",
+    "received_at": "2026-10-16T00:00:00Z"
+  }
+}

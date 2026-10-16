@@ -1,0 +1,23 @@
+[
+  {
+    "id": "poise-task-database",
+    "path": "state.sqlite",
+    "selector": "database",
+    "version": 13,
+    "table": "tasks"
+  },
+  {
+    "id": "poise-requirements-database",
+    "path": "database/requirements.sqlite",
+    "selector": "requirements_database",
+    "version": 2,
+    "table": "requirements"
+  },
+  {
+    "id": "poise-telemetry-database",
+    "path": "telemetry/events.sqlite",
+    "selector": "accounting",
+    "version": 13,
+    "table": "interaction_events"
+  }
+]

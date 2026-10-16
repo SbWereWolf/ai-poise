@@ -114,7 +114,12 @@
         "execution",
         "analysis",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "execution",
@@ -141,7 +146,12 @@
         "planning",
         "analysis",
         "self_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "analysis",
@@ -172,7 +182,12 @@
         "planning",
         "execution",
         "self_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "self_inspection",
@@ -198,7 +213,12 @@
         "planning",
         "execution",
         "analysis"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

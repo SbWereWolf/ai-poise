@@ -1,103 +1,202 @@
-"""Materialize declarative deployment assets without creating application state."""
+"""Publish an explicitly configured maintenance profile, never serviced state."""
 import argparse
 import json
 import os
 from pathlib import Path
+import shutil
+from string import Template
 import sys
 import tempfile
 
-from environment_maintenance.catalogue import load_catalogue, read_json
-from environment_maintenance.parameters import resolve
-from environment_maintenance.repair import RepairRouter
-from environment_maintenance.shared.filesystem import lexical_path
-from poise.common import digest
+from poise.common import PoiseError
+from poise.modules.projects.domain import ProjectBlueprint
+
+
+def read_json(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def render(value, parameters):
+    """Walk declared data; string.Template owns substitution syntax."""
+    if isinstance(value, str):
+        return Template(value).substitute(parameters)
+    if isinstance(value, list):
+        return [render(item, parameters) for item in value]
+    if isinstance(value, dict):
+        return {key: render(item, parameters) for key, item in
+                value.items()}
+    return value
+
+
+def load_inputs(args, source):
+    selected = Path(
+        args.profile_spec) if args.profile_spec else source / "config/maintenance/profile.example.json"
+    specification = read_json(selected)
+    if specification["schema"] != "poise-maintenance-profile-1":
+        raise ValueError("Unsupported profile specification")
+    catalog = read_json(source / specification["catalog"])
+    if catalog["schema"] != "environment-maintenance/catalog/v2":
+        raise ValueError("Selected example must declare catalog/v2")
+    settings = read_json(source / specification["settings"])
+    template_path = specification["templates"][args.template]
+    blueprint = read_json(source / template_path)
+    recommendations = read_json(
+        source / specification["recommendations"])
+    return specification, catalog, settings, template_path, blueprint, recommendations
+
+
+def bind_parameters(args, catalog, output):
+    values = {name: declaration["default"]
+              for name, declaration in catalog["parameters"].items()
+              if "default" in declaration}
+    selected = {"python": sys.executable,
+                "module_path": args.module_path,
+                "profile_root": str(output),
+                "state_root": str(Path(args.state).absolute()),
+                "repository": str(Path(args.repository).absolute()),
+                "project_id": args.project, "base_ref": args.base_ref,
+                "author_name": args.author_name,
+                "author_email": args.author_email,
+                "template_id": args.template}
+    for name, value in selected.items():
+        if name not in catalog["parameters"]:
+            raise ValueError(
+                f"Profile catalog lacks parameter: {name}")
+        catalog["parameters"][name]["default"] = value
+        values[name] = value
+    return values
+
+
+def prepare_documents(specification, source, values):
+    documents = []
+    for projection in specification["documents"]:
+        document = read_json(source / projection["source"])
+        for edit in projection["edits"]:
+            parent = document
+            for part in edit["path"][:-1]:
+                parent = parent[part]
+            parent[edit["path"][-1]] = render(edit["value"], values)
+        documents.append((projection["destination"], document))
+    return documents
+
+
+def copy_assets(specification, source, stage):
+    for asset in specification["asset_directories"]:
+        origin = source / asset["source"]
+        for pattern in asset["patterns"]:
+            matches = list(origin.glob(pattern))
+            if not matches:
+                raise ValueError(f"Required asset pattern is empty: {pattern}")
+            for selected in matches:
+                destination = stage / asset["destination"] / selected.relative_to(origin)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(selected, destination)
+
+
+def prepare_profile(stage, source, output, args, inputs):
+    spec, catalog, settings, template_path, blueprint, advice = inputs
+    values = bind_parameters(args, catalog, output)
+    outputs = render(spec["outputs"], values)
+    if outputs["catalog"] != "catalog.json":
+        raise ValueError("The selected consumer reads catalog.json")
+    edits = render(spec["project_edits"], values)
+    projected_documents = prepare_documents(spec, source, values)
+    ProjectBlueprint.parse(blueprint).build(edits,
+                                            settings["max_edits"])
+    stage.mkdir(mode=settings["directory_mode"])
+
+    def write(relative, document):
+        path = stage / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(document, ensure_ascii=False,
+                                   indent=settings[
+                                       "json_indent"]) + "\n",
+                        encoding="utf-8")
+        path.chmod(settings["file_mode"])
+
+    copy_assets(spec, source, stage)
+    prefix = spec["workflow_source_prefix"]
+    for reference in blueprint["workflow_sources"].values():
+        if not reference["path"].startswith(prefix):
+            raise ValueError(
+                "Workflow source does not match the explicit profile source mapping")
+        relative = reference["path"][len(prefix):]
+        document = read_json(source / relative)
+        reference["path"] = relative
+        write(relative, document)
+    write(template_path, blueprint)
+    settings.update(render(spec["settings_overrides"], values))
+    settings["templates"] = {args.template: {"path": template_path}}
+    for destination, document in projected_documents:
+        write(destination, document)
+    for relative in spec["preserve_paths"]:
+        existing, destination = output / relative, stage / relative
+        if existing.is_dir():
+            shutil.copytree(existing, destination)
+        elif existing.is_file():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(existing, destination)
+    write(outputs["settings"], settings)
+    if not (stage / outputs["registry"]).exists():
+        write(outputs["registry"],
+              {"schema": "configured-project-registry-1",
+               "projects": {}})
+    write(outputs["catalog"], catalog)
+    write(outputs["edits"], edits)
+    write(outputs["recommendations"], advice)
+    return catalog
+
+
+def publish_profile(stage, output, previous):
+    replaced = output.exists()
+    if replaced:
+        os.replace(output, previous)
+    try:
+        os.replace(stage, output)
+    except OSError:
+        if replaced:
+            os.replace(previous, output)
+        raise
+    return replaced
 
 
 def generate(args):
-    source = lexical_path(args.source)
-    output = lexical_path(args.output)
-    if output.exists():
-        raise ValueError('Profile destination already exists; configuration is never replaced')
+    source, output = Path(args.source).absolute(), Path(
+        args.output).absolute()
     if not output.parent.is_dir():
-        raise ValueError('Profile parent directory must exist')
-    settings = read_json(source / 'config/project-setup.json')
-    selection = settings['templates'][args.template]
-    blueprint = read_json(source / selection['path'])
-    if digest(blueprint) != selection['digest']:
-        raise ValueError('Source project template digest mismatch')
-    state = str(lexical_path(args.state))
-    repository = str(lexical_path(args.repository))
-    catalog = load_catalogue(source / 'config/maintenance/requirements.json').data
-    repairs_path = source / 'config/maintenance/repairs.json'
-    repairs = read_json(repairs_path)
-    # Only initial parameter values are materialized here. The requirement
-    # inventory, commands and recommendation routing belong to versioned JSON.
-    values = {
-        'python': sys.executable, 'module_path': args.module_path,
-        'profile_root': str(output), 'state_root': state,
-        'repository': repository, 'project_id': args.project,
-        'base_ref': args.base_ref, 'author_name': args.author_name,
-        'author_email': args.author_email, 'template_id': args.template,
-    }
-    for name, value in values.items():
-        if name not in catalog['parameters']:
-            raise ValueError(f'Profile catalog lacks parameter: {name}')
-        catalog['parameters'][name]['default'] = value
-    parameters, _ = resolve(catalog['parameters'])
-    router = RepairRouter(repairs_path, parameters)
-    for requirement in catalog['requirements']:
-        for mode in ('check', 'apply', 'recommendation'):
-            action = requirement[mode]
-            if isinstance(action, dict) and 'repair' in action:
-                router.require(action['repair'])
-    with tempfile.TemporaryDirectory(prefix='.profile-', dir=output.parent) as tmp:
-        stage = Path(tmp) / 'profile'
-        stage.mkdir(mode=0o750)
-        def write(path, value):
-            destination = stage / path
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
-            destination.chmod(0o600)
-        write(selection['path'], blueprint)
-        for reference in blueprint['workflow_sources'].values():
-            document = read_json(source / reference['path'])
-            if digest(document) != reference['digest']:
-                raise ValueError('Workflow template digest mismatch')
-            write(reference['path'], document)
-        settings.update(root='.', templates={args.template: selection},
-                        registry='configured-projects.json', lock='setup.lock')
-        write('setup.json', settings)
-        write('configured-projects.json',
-              {'schema': 'configured-project-registry-1', 'projects': {}})
-        write('requirements.json', catalog)
-        write('repairs.json', repairs)
-        write('values.example.json', {
-            'state_root': state, 'repository': repository,
-            'project_id': args.project,
-        })
-        if output.exists():
-            raise ValueError('Profile destination appeared during creation')
-        os.rename(stage, output)
-    return {'status': 'created', 'profile': str(output),
-            'requirements': len(catalog['requirements']), 'state_created': False}
+        raise ValueError("Profile parent directory must exist")
+    inputs = load_inputs(args, source)
+    with tempfile.TemporaryDirectory(prefix=".profile-",
+                                     dir=output.parent) as raw:
+        working = Path(raw)
+        catalog = prepare_profile(working / "profile", source, output,
+                                  args, inputs)
+        replaced = publish_profile(working / "profile", output,
+                                   working / "previous")
+    return {"status": "replaced" if replaced else "created",
+            "profile": str(output),
+            "requirements": len(catalog["requirements"]),
+            "state_created": False}
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description='Создать профиль обслуживания Poise из конфигов поставки')
-    for name in ('source', 'output', 'state', 'repository', 'project',
-                 'base-ref', 'author-name', 'author-email'):
-        parser.add_argument('--' + name, required=True)
-    parser.add_argument('--template', default='linux-reference')
-    parser.add_argument('--module-path', default='')
+        description="Развернуть профиль обслуживания Poise")
+    for name in ("source", "output", "state", "repository", "project",
+                 "base-ref", "author-name", "author-email"):
+        parser.add_argument("--" + name, required=True)
+    parser.add_argument("--template", default="linux-reference")
+    parser.add_argument("--module-path", default="")
+    parser.add_argument("--profile-spec")
     args = parser.parse_args(argv)
     try:
         print(json.dumps(generate(args), ensure_ascii=False))
         return 0
-    except (OSError, ValueError, KeyError) as exc:
-        print(json.dumps({'status': 'invalid', 'error': str(exc)}, ensure_ascii=False))
+    except (OSError, ValueError, KeyError, PoiseError) as error:
+        print(json.dumps({"status": "invalid", "error": str(error)},
+                         ensure_ascii=False))
         return 2
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

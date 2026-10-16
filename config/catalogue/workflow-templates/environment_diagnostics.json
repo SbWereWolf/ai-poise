@@ -228,7 +228,12 @@
         "root_cause_analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "reproduction",
@@ -256,7 +261,12 @@
         "root_cause_analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "hypothesis_planning",
@@ -288,7 +298,12 @@
         "root_cause_analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "experiments",
@@ -316,7 +331,12 @@
         "root_cause_analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "root_cause_analysis",
@@ -350,7 +370,12 @@
         "experiments",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "confirmation",
@@ -380,7 +405,12 @@
         "experiments",
         "root_cause_analysis",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "self_inspection",
@@ -411,7 +441,12 @@
         "root_cause_analysis",
         "confirmation",
         "framing"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

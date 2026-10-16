@@ -220,7 +220,12 @@
         "analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "baseline_measurement",
@@ -248,7 +253,12 @@
         "analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "experiment_planning",
@@ -280,7 +290,12 @@
         "analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "measurement",
@@ -308,7 +323,12 @@
         "analysis",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "analysis",
@@ -348,7 +368,12 @@
         "measurement",
         "confirmation",
         "self_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "confirmation",
@@ -378,7 +403,12 @@
         "measurement",
         "analysis",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "self_inspection",
@@ -409,7 +439,12 @@
         "confirmation",
         "framing",
         "baseline_measurement"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

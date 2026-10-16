@@ -212,7 +212,12 @@
         "inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "framing_inspection",
@@ -235,7 +240,12 @@
       },
       "rework_targets": [
         "framing"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "integration_planning",
@@ -267,7 +277,12 @@
         "inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "integration_planning_inspection",
@@ -290,7 +305,12 @@
       },
       "rework_targets": [
         "integration_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "integration",
@@ -323,7 +343,12 @@
         "inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "integration_inspection",
@@ -346,7 +371,12 @@
       },
       "rework_targets": [
         "integration"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "verification",
@@ -376,7 +406,12 @@
         "inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "inspection",
@@ -405,7 +440,12 @@
         "integration",
         "verification",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "remediation_planning",
@@ -429,7 +469,12 @@
       },
       "rework_targets": [
         "remediation_planning"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "remediation_planning_inspection",
@@ -452,7 +497,12 @@
       },
       "rework_targets": [
         "remediation_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "remediation",
@@ -487,7 +537,12 @@
         "verification",
         "inspection",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "remediation_inspection",
@@ -516,7 +571,12 @@
         "integration",
         "verification",
         "inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "publication",
@@ -540,7 +600,12 @@
         "inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "other",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

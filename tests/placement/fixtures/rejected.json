@@ -1,0 +1,9 @@
+{
+  "schema": "poise-placement-result-1",
+  "status": "rejected",
+  "error": {
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  }
+}

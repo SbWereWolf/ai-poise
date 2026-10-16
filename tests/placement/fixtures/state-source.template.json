@@ -1,0 +1,37 @@
+{
+  "schema": "poise-placement-state-1",
+  "project": "@PROJECT@",
+  "checkout": "@CHECKOUT@",
+  "caller_key": "@CALLER_KEY@",
+  "baseline": {
+    "entries": [
+      ".git",
+      "AGENTS.md",
+      "docs",
+      "src"
+    ]
+  },
+  "authorizations": [],
+  "reservations": [
+    {
+      "key": "source-report",
+      "purpose": "source",
+      "recipient": "product",
+      "lifetime": "versioned",
+      "name": "report.py",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "category": "product-versioned",
+      "rule": "source",
+      "path": "src/report.py",
+      "absolute_path": "@CHECKOUT@/src/report.py",
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    }
+  ]
+}

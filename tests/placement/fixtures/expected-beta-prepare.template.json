@@ -1,0 +1,36 @@
+{
+  "schema": "poise-placement-result-1",
+  "status": "ready",
+  "project": "@PROJECT@",
+  "checkout": "@CHECKOUT@",
+  "policy_sha256": "@POLICY_SHA256@",
+  "state": {
+    "path": "@STATE_PATH@",
+    "before_sha256": null,
+    "after_sha256": "@AFTER_SHA256@",
+    "observed_sha256": "@AFTER_SHA256@",
+    "effect": "committed",
+    "confirmation": "confirmed"
+  },
+  "items": [
+    {
+      "key": "source-report",
+      "status": "allowed",
+      "category": "beta-product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/beta/report.py",
+      "absolute_path": "@CHECKOUT@/src/beta/report.py",
+      "reserved": true,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    }
+  ],
+  "diagnostics": []
+}

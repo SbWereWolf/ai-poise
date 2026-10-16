@@ -1,0 +1,724 @@
+{
+  "fixture-contract": "Independent preimplementation literals. Only controlled @TOKEN@ substitutions; full expected canonical bytes via stdlib fixed encoding. Prior input bytes independently seeded in fixture namespace, never copied from product output. State schemas/request keys unchanged; no past-attempt discriminator. These are subscenarios of the existing20nodes, not new nodes or RED events.",
+  "visible-identical": {
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_after": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state_effect": "unchanged",
+    "expected_confirmation": "confirmed",
+    "replace_calls": 0
+  },
+  "valid-extra": {
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "extra-source",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "extra.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "versioning": "versioned",
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/extra.py",
+          "absolute_path": "@CHECKOUT@/src/extra.py",
+          "authorization_refs": [
+            "configured-product"
+          ]
+        }
+      ]
+    },
+    "expected_after": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "extra-source",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "extra.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "versioning": "versioned",
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/extra.py",
+          "absolute_path": "@CHECKOUT@/src/extra.py",
+          "authorization_refs": [
+            "configured-product"
+          ]
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state_effect": "committed",
+    "expected_confirmation": "confirmed",
+    "already_present_before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "extra-source",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "extra.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "versioning": "versioned",
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/extra.py",
+          "absolute_path": "@CHECKOUT@/src/extra.py",
+          "authorization_refs": [
+            "configured-product"
+          ]
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "already_present_expected_after": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "extra-source",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "extra.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "versioning": "versioned",
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/extra.py",
+          "absolute_path": "@CHECKOUT@/src/extra.py",
+          "authorization_refs": [
+            "configured-product"
+          ]
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "already_present_effect": "unchanged",
+    "already_present_replace_calls": 0,
+    "preserved_record": {
+      "key": "extra-source",
+      "purpose": "source",
+      "recipient": "product",
+      "lifetime": "versioned",
+      "name": "extra.py",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "versioning": "versioned",
+      "category": "product-versioned",
+      "rule": "source",
+      "path": "src/extra.py",
+      "absolute_path": "@CHECKOUT@/src/extra.py",
+      "authorization_refs": [
+        "configured-product"
+      ]
+    }
+  },
+  "metadata-refresh": {
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "policy": {
+      "schema": "poise-placement-policy-1",
+      "version": "alpha-refresh",
+      "roots": [
+        {
+          "id": "product",
+          "owner": "product",
+          "path": "@CHECKOUT@",
+          "versioning": "versioned",
+          "authority": "configured-product"
+        },
+        {
+          "id": "local",
+          "owner": "product",
+          "path": "@PRODUCT_DATA@",
+          "versioning": "ignored",
+          "authority": "agreed-product-local"
+        },
+        {
+          "id": "work",
+          "owner": "harness",
+          "path": "@WORK_ROOT@",
+          "versioning": "ignored",
+          "authority": "configured-harness-work"
+        },
+        {
+          "id": "handoff",
+          "owner": "harness",
+          "path": "@HANDOFF_ROOT@",
+          "versioning": "ignored",
+          "authority": "agreed-recipient-outbox"
+        },
+        {
+          "id": "task",
+          "owner": "task",
+          "path": null,
+          "versioning": "ignored",
+          "authority": "current-task-owner"
+        },
+        {
+          "id": "sprint",
+          "owner": "sprint",
+          "path": null,
+          "versioning": "ignored",
+          "authority": "current-sprint-owner"
+        }
+      ],
+      "rules": [
+        {
+          "id": "source-refresh",
+          "priority": 10,
+          "category": "audited-product-versioned",
+          "when": {
+            "purposes": [
+              "source"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "versioned"
+            ]
+          },
+          "root": "product",
+          "directory": "src",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "docs",
+          "priority": 10,
+          "category": "product-versioned",
+          "when": {
+            "purposes": [
+              "documentation"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "versioned"
+            ]
+          },
+          "root": "product",
+          "directory": "docs",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "config",
+          "priority": 10,
+          "category": "product-local",
+          "when": {
+            "purposes": [
+              "installation-config"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "installation"
+            ]
+          },
+          "root": "local",
+          "directory": "config",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "data",
+          "priority": 10,
+          "category": "product-local",
+          "when": {
+            "purposes": [
+              "installation-data"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "installation"
+            ]
+          },
+          "root": "local",
+          "directory": "data",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "backup",
+          "priority": 10,
+          "category": "product-local",
+          "when": {
+            "purposes": [
+              "backup"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "handoff"
+            ]
+          },
+          "root": "local",
+          "directory": "backups",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "dependency",
+          "priority": 10,
+          "category": "product-local",
+          "when": {
+            "purposes": [
+              "generated-dependency"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "installation"
+            ]
+          },
+          "root": "local",
+          "directory": "dependencies",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "index",
+          "priority": 10,
+          "category": "product-local",
+          "when": {
+            "purposes": [
+              "code-index"
+            ],
+            "recipients": [
+              "product"
+            ],
+            "lifetimes": [
+              "installation"
+            ]
+          },
+          "root": "local",
+          "directory": "index",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "working",
+          "priority": 10,
+          "category": "agent-transient",
+          "when": {
+            "purposes": [
+              "agent-work"
+            ],
+            "recipients": [
+              "agent"
+            ],
+            "lifetimes": [
+              "session"
+            ]
+          },
+          "root": "work",
+          "directory": "verify",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "handoff",
+          "priority": 10,
+          "category": "recipient-handoff",
+          "when": {
+            "purposes": [
+              "handoff"
+            ],
+            "recipients": [
+              "reviewer"
+            ],
+            "lifetimes": [
+              "handoff"
+            ]
+          },
+          "root": "handoff",
+          "directory": "reports",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "task",
+          "priority": 10,
+          "category": "task-material",
+          "when": {
+            "purposes": [
+              "task-material"
+            ],
+            "recipients": [
+              "reviewer"
+            ],
+            "lifetimes": [
+              "task"
+            ]
+          },
+          "root": "task",
+          "directory": "artifacts",
+          "paths": [
+            "**"
+          ]
+        },
+        {
+          "id": "sprint",
+          "priority": 10,
+          "category": "sprint-material",
+          "when": {
+            "purposes": [
+              "sprint-material"
+            ],
+            "recipients": [
+              "team"
+            ],
+            "lifetimes": [
+              "sprint"
+            ]
+          },
+          "root": "sprint",
+          "directory": "artifacts",
+          "paths": [
+            "**"
+          ]
+        }
+      ],
+      "owner_provider": null,
+      "state": {
+        "directory": "@HARNESS_DATA@/placement",
+        "filename": "placement.json",
+        "lock": "placement.lock"
+      }
+    },
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_after": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "audited-product-versioned",
+          "rule": "source-refresh",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state_effect": "committed",
+    "expected_confirmation": "confirmed",
+    "replace_calls": 1
+  }
+}

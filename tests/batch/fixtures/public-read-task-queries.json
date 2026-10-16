@@ -1,0 +1,11 @@
+{
+  "operation": "show",
+  "input": {"queries": [
+    {"id": "current", "kind": "task"},
+    {"id": "delivery", "kind": "task_delivery", "task_id": "T1"},
+    {"id": "content", "kind": "content"},
+    {"id": "criteria", "kind": "stage_criteria", "stage_id": "tests"},
+    {"id": "messages", "kind": "messages"}
+  ]},
+  "messages": []
+}

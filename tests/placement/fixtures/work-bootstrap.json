@@ -1,0 +1,10 @@
+{
+  "operation": "bootstrap",
+  "input": {
+    "task": null,
+    "decision": null,
+    "feedback": null,
+    "rework_stage": null
+  },
+  "messages": []
+}

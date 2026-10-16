@@ -6,7 +6,6 @@ from pathlib import Path
 from ..common import PoiseError, file_digest
 from ..artifacts import inspect_paths
 from ..modules.evidence.materials import receipt_materials
-from .diagnostic_io import readonly_database
 from .sqlite.artifacts import SqliteArtifactRepository
 from .sqlite.tasks import SqliteExecutionRepository
 
@@ -52,8 +51,9 @@ def bind_receipt_materials(db, task_id, receipt, roots, owners, actor):
 
 
 class SavedMaterialReader:
-    def __init__(self, database):
+    def __init__(self, database, *, read_transaction):
         self.database = database
+        self.read_transaction = read_transaction
 
     def _context(self, db, receipt):
         bindings = db.execute("SELECT task_id,data FROM journal WHERE event='artifact.materials_bound' "
@@ -83,7 +83,7 @@ class SavedMaterialReader:
         return bindings
 
     def resolve(self, receipt, selector, expected):
-        with readonly_database(self.database) as db:
+        with self.read_transaction() as db:
             record = self._context(db, receipt).get(selector)
         if record is None or record['digest'] != expected:
             raise PoiseError('Saved material selector/digest is not authorized: ' + selector)
@@ -109,7 +109,7 @@ class SavedMaterialReader:
 
     def reference(self, task_id, path, checksum):
         """Resolve an exact logical reference in this Task's canonical receipts."""
-        with readonly_database(self.database) as db:
+        with self.read_transaction() as db:
             receipts = saved_receipts(db, task_id)
         for receipt in receipts:
             for selector, spec in receipt_materials(receipt).items():
@@ -117,7 +117,7 @@ class SavedMaterialReader:
                     return self.resolve(receipt, selector, checksum)
         # Newly prepared files have no receipt yet. Only an exact existing
         # task-owned registration can authorize the otherwise current path.
-        with readonly_database(self.database) as db:
+        with self.read_transaction() as db:
             records = SqliteArtifactRepository(db).records(task_id)
         matches = [r for r in records if r['scope'] == 'task' and r['owner'] == task_id
                    and r['path'] == str(path) and r['digest'] == checksum]

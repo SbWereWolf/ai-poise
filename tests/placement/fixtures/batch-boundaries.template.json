@@ -1,0 +1,150 @@
+{
+  "max_items": 2,
+  "boundary_request": {
+    "operation": "prepare",
+    "items": [
+      {
+        "key": "boundary-a",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "boundary-a.py",
+        "path": null
+      },
+      {
+        "key": "boundary-b",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "boundary-b.py",
+        "path": null
+      }
+    ],
+    "authorizations": []
+  },
+  "overflow_request": {
+    "operation": "prepare",
+    "items": [
+      {
+        "key": "boundary-a",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "boundary-a.py",
+        "path": null
+      },
+      {
+        "key": "boundary-b",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "boundary-b.py",
+        "path": null
+      },
+      {
+        "key": "overflow-c",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "overflow-c.py",
+        "path": null
+      }
+    ],
+    "authorizations": []
+  },
+  "expected_rows": [
+    {
+      "key": "boundary-a",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/boundary-a.py",
+      "absolute_path": "@CHECKOUT@/src/boundary-a.py",
+      "reserved": true,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    {
+      "key": "boundary-b",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/boundary-b.py",
+      "absolute_path": "@CHECKOUT@/src/boundary-b.py",
+      "reserved": true,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    }
+  ],
+  "expected_state": {
+    "schema": "poise-placement-state-1",
+    "project": "@PROJECT@",
+    "checkout": "@CHECKOUT@",
+    "caller_key": "@CALLER_KEY@",
+    "baseline": {
+      "entries": [
+        ".git",
+        "AGENTS.md",
+        "docs",
+        "src"
+      ]
+    },
+    "authorizations": [],
+    "reservations": [
+      {
+        "key": "boundary-a",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "boundary-a.py",
+        "root": "product",
+        "owner": {
+          "kind": "product",
+          "id": "@PROJECT@"
+        },
+        "category": "product-versioned",
+        "rule": "source",
+        "path": "src/boundary-a.py",
+        "absolute_path": "@CHECKOUT@/src/boundary-a.py",
+        "authorization_refs": [
+          "configured-product"
+        ],
+        "versioning": "versioned"
+      },
+      {
+        "key": "boundary-b",
+        "purpose": "source",
+        "recipient": "product",
+        "lifetime": "versioned",
+        "name": "boundary-b.py",
+        "root": "product",
+        "owner": {
+          "kind": "product",
+          "id": "@PROJECT@"
+        },
+        "category": "product-versioned",
+        "rule": "source",
+        "path": "src/boundary-b.py",
+        "absolute_path": "@CHECKOUT@/src/boundary-b.py",
+        "authorization_refs": [
+          "configured-product"
+        ],
+        "versioning": "versioned"
+      }
+    ]
+  }
+}

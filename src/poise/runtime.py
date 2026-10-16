@@ -70,7 +70,7 @@ class Poise:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
     def __init__(self, config_path: Path | str, session: str, clock,
                  legacy_workflow_requirements: dict[str, bool] | None = None,
-                 liveness=None):
+                 liveness=None, *, read_only=False):
         self.config_path = Path(config_path).resolve()
         self.root, self.cfg, self.workflows = load_config(
             self.config_path, legacy_workflow_requirements
@@ -107,7 +107,7 @@ class Poise:
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
                            limits['lock_seconds'], limits['lock_poll_seconds'], self.workflows,
-                           self.project_fence)
+                           self.project_fence,read_only=read_only,read_wait=limits['sqlite_read_seconds'])
         from .infrastructure.repository_tree import GitRepositoryTree
         repository_tree = GitRepositoryTree(
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
@@ -124,6 +124,8 @@ class Poise:
             limits['lock_seconds'],
             limits['lock_poll_seconds'],
             self.project_fence,
+            read_only=read_only,
+            read_wait=limits['sqlite_read_seconds'],
         )
         self.requirements_commands = RequirementsCommands(
             self.requirements_store,
@@ -149,7 +151,8 @@ class Poise:
         self.runner = StageRunner(self.task_commands)
         self.evidence_commands = EvidenceCommands(self.store.unit_of_work)
         from .infrastructure.saved_materials import SavedMaterialReader
-        self.saved_materials = SavedMaterialReader(self.store.path)
+        self.saved_materials = SavedMaterialReader(self.store.path,
+                                                  read_transaction=self.store.database.read_transaction)
         from .infrastructure.sqlite.interactions import InteractionStore
         from .infrastructure.work import WorkResources
         self.interactions=InteractionStore(self.store.database,self.cfg['project'],self.cfg['batch'])
@@ -250,6 +253,7 @@ class Poise:
 
 
     def _result_event(self,event,payload):
+        if self.store.database.read_only:return
         current=self.current_task()
         self.store.event(self.session,None if current is None else current['id'],event,payload)
 

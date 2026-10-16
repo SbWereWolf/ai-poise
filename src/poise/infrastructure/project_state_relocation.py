@@ -351,7 +351,10 @@ class FileProjectStateRelocation:
     def confirm_consumers(self):
         from .sqlite.task_delivery import SqliteTaskDeliveryRepository
         self._admit_database(self.destination)
-        reader = SavedMaterialReader(self._database(self.destination))
+        from .diagnostic_io import readonly_transaction
+        database = self._database(self.destination)
+        reader = SavedMaterialReader(database, read_transaction=lambda: readonly_transaction(
+            database, self.candidate['limits']['sqlite_read_seconds'], self.candidate['limits']['lock_poll_seconds']))
         with readonly_database(self._database(self.destination)) as db:
             for task in self.tasks:
                 delivery = SqliteTaskDeliveryRepository(db).read(task['id'])

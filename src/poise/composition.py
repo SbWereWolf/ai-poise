@@ -1,9 +1,43 @@
-from .application.tasks import TaskCommands
-
-
 def task_tools(store, repository_tree, requirements_gate):
     """Explicit composition for the extracted Task slice; no service locator."""
+    from .application.tasks import TaskCommands
     return TaskCommands(store.unit_of_work, repository_tree, requirements_gate), store.queries
+
+
+def placement_tools(bound, policy_path, environ):
+    import hashlib
+    from pathlib import Path
+    from .common import PoiseError, configured_root
+    from .modules.placement.contracts import PlacementInputError
+    from .modules.placement.policy import PlacementPolicy
+    from .application.placement import PlacementCommands
+    from .infrastructure.goal_config import strict_json
+    from .infrastructure.session_establishment import direct_caller
+    from .infrastructure.placement import FilePlacementWorkspace
+    from .infrastructure.placement_owners import PoiseCurrentPlacementOwners
+    try:
+        raw = Path(policy_path).read_bytes()
+    except OSError as exc:
+        raise PlacementInputError('unreadable_policy', 'policy', 'restore:policy') from exc
+    try:
+        policy = PlacementPolicy.from_configuration(strict_json(raw.decode('utf-8')))
+    except (PoiseError, UnicodeError, RecursionError, TypeError, ValueError) as exc:
+        raise PlacementInputError('invalid_policy', 'policy', 'correct:policy') from exc
+    for root in policy.roots.values():
+        if root['path'] is not None:
+            root['path'] = str(Path(root['path']).resolve())
+    state = configured_root(bound.root, bound.config['paths']['state'])
+    if not Path(policy.state['directory']).resolve().is_relative_to(state):
+        raise PlacementInputError('invalid_policy', 'policy', 'correct:policy')
+    try:
+        caller = direct_caller(bound.config['project'], environ)
+    except (PoiseError, OSError, ValueError) as exc:
+        raise PlacementInputError('invalid_caller', 'caller', 'provide:caller') from exc
+    workspace = FilePlacementWorkspace(bound, policy, caller.key)
+    owners = PoiseCurrentPlacementOwners(bound, caller.key) if policy.owner_provider is not None else None
+    return PlacementCommands(bound.config['project'], str(bound.checkout), caller.key,
+                             policy, hashlib.sha256(raw).hexdigest(), workspace, owners,
+                             lambda content: strict_json(content.decode('utf-8')))
 
 
 def requirements_storage(config_path):
@@ -19,13 +53,16 @@ def requirements_storage(config_path):
     ), config
 
 
-def requirements_tools(config_path):
+def requirements_tools(config_path, *, read_only=False):
     from .application.requirements_registry import RequirementsCommands
     from .infrastructure.requirements_registry import RequirementsStore
     storage, config = requirements_storage(config_path)
     from .infrastructure.project_resources import ProjectRuntimeFence
     fence = ProjectRuntimeFence(config_path)
-    return RequirementsCommands(RequirementsStore(*storage, project_fence=fence), config['batch']['max_items']), config
+    return RequirementsCommands(RequirementsStore(*storage, project_fence=fence,
+                                                 read_only=read_only,
+                                                 read_wait=config['limits']['sqlite_read_seconds']),
+                                config['batch']['max_items']), config
 
 
 def migrate_requirements(config_path):

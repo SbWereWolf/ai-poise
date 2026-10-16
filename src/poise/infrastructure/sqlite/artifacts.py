@@ -1,6 +1,7 @@
 """Registered artifact references and audited path recovery; no lifecycle writes."""
 from datetime import datetime, timezone
 import json
+from contextlib import nullcontext
 from ...common import PoiseError, encoded
 
 
@@ -211,7 +212,7 @@ class SqliteArtifactRepository:
         task_versions = {row['id']: row['version'] for row in original['tasks']}
         allowed_artifacts, task_links, sprint_links = set(), set(), set()
         records = {row['id']: row for row in current['artifacts']}
-        reader = SavedMaterialReader(database)
+        reader = SavedMaterialReader(database, read_transaction=lambda: nullcontext(self.db))
         for row in appended:
             task_id = row['task_id']
             if task_id not in task_versions or row['event'] not in (

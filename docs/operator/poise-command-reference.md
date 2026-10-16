@@ -34,6 +34,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `result-view` | Обязательные `--response PATH --view brief\|expanded\|full --output-chars INT`. | Представление уже сохранённого полного ответа с явным бюджетом. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
+| `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
 | `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
 
 Обычная работа использует launcher, выданный нативным hook для этой сессии:
@@ -56,9 +57,22 @@ checkout, policy, paths, previous. Первые три пути абсолютн
 набор конкретных относительных файлов, previous=null при первом запросе.
 --catalog и --root выбирают metadata и корень инструкций независимо от checkout.
 Полная форма, заполнение обезличенного примера, BODY/готовность/диагностика/refresh:
-[подготовка инструкций по файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
+[подготовка инструкций по
+файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
 Это отдельный режим того же dispatcher; вызов не требует Task и не подключает
 автоматическое получение инструкций к native hooks.
+
+Для placement задайте абсолютные `checkout`, `placement_policy` и путь
+`placement_packet` к JSON с operation/items/authorizations:
+
+```bash
+"${poise[@]}" placement --config "$project_json" --checkout "$checkout" \
+  --policy "$placement_policy" < "$placement_packet"
+```
+
+Нужен настоящий native caller либо разрешённый persistent binding. Task не
+обязательна. Полные prerequisites, policy options, response/exit и recovery:
+[размещение результатов](../configuration/result-placement.md#подготовка-проекта-и-вызов).
 
 Владельцы: [API работы](../workflows/batch-work.md),
 [представления сохранённого

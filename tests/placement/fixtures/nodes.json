@@ -1,0 +1,22 @@
+[
+  "tests/placement/test_placement.py::test_taskless_prepare_and_consumer_contract",
+  "tests/placement/test_placement.py::test_two_project_policies_and_storage_isolation",
+  "tests/placement/test_placement.py::test_product_versioned_and_local_resource_categories",
+  "tests/placement/test_placement.py::test_harness_handoff_and_declared_tool_outputs",
+  "tests/placement/test_placement.py::test_known_locations_reuse_authority",
+  "tests/placement/test_placement.py::test_unknown_root_before_creation_and_explicit_agreement",
+  "tests/placement/test_placement.py::test_optional_owner_disabled_missing_and_valid_task_sprint",
+  "tests/placement/test_placement.py::test_forged_or_foreign_owner_context_is_diagnosed",
+  "tests/placement/test_placement.py::test_rule_priority_deduplication_and_order",
+  "tests/placement/test_placement.py::test_malformed_missing_and_ambiguous_input_diagnostics",
+  "tests/placement/test_placement.py::test_atomic_batch_repeat_and_conflicting_declarations",
+  "tests/placement/test_placement.py::test_current_policy_and_new_root_recheck",
+  "tests/placement/test_placement.py::test_placement_does_not_publish_product_or_change_task_lifecycle",
+  "tests/placement/test_placement.py::test_lock_failure_preserves_state",
+  "tests/placement/test_placement.py::test_policy_and_state_read_failures_preserve_truth",
+  "tests/placement/test_placement.py::test_atomic_replace_failure_observes_before_state",
+  "tests/placement/test_placement.py::test_directory_fsync_failure_observes_after_and_retries_without_replace",
+  "tests/placement/test_placement.py::test_postfailure_read_uncertainty_has_verifiable_next_action",
+  "tests/placement/test_placement.py::test_caller_binding_and_checkout_namespace_isolation",
+  "tests/placement/test_placement.py::test_configuration_extensions_and_explicit_required_fields"
+]

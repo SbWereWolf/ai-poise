@@ -459,6 +459,7 @@ Keep this English projection and its Russian source consistent in the same chang
   authorized without another confirmation, including the necessary baseline and result commits. Include only the task-owned or explicitly
   approved files; unrelated commits still require explicit authorization. Follow AI poise's public lifecycle tools when
   available.
+- Under a standing user instruction, integrate ready Tasks immediately after independent acceptance and required gates, without asking again per Task. Preserve its scope until changed or revoked. Check the integration candidate before fast-forward, then confirm target identity; rerun tests only for a changed candidate or invalid proof. Follow [immediate integration](docs/governance/development-rules.md#интеграция-завершённого-результата).
 - Finish accepted work only through the public result-integration lifecycle running from the current AI poise
   installation source. Keep the accepted commit immutable; advance the existing task branch in its existing task
   worktree while updating from the current configured target branch, merging, resolving conflicts, and rerunning every
@@ -756,3 +757,9 @@ Installation-wide setup locks must not serialize runtime work, project creation,
 configuration publication or state relocation. Keep short SQLite transactions and
 resource-owned write boundaries; operators perform configuration and relocation
 sequentially. See [relocation admission and order](docs/configuration/project-setup.md#допуск-и-порядок-переноса).
+
+Pure operational observations use existing-store read owners and admit a snapshot before
+one body execution with an explicit read wait independent of writer admission.
+Caller/message admission retains its write owner; detached failures
+must terminate within the worker. Follow the [development skill](.agents/skills/poise-development/SKILL.md#development-method),
+which links to the observation instruction and canonical operator contract.

@@ -1,0 +1,16 @@
+{
+  "schema": "poise-placement-state-1",
+  "project": "@PROJECT@",
+  "checkout": "@CHECKOUT@",
+  "caller_key": "@CALLER_KEY@",
+  "baseline": {
+    "entries": [
+      ".git",
+      "AGENTS.md",
+      "docs",
+      "src"
+    ]
+  },
+  "authorizations": [],
+  "reservations": []
+}

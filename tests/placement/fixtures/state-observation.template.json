@@ -1,0 +1,8 @@
+{
+  "path": "@STATE_PATH@",
+  "before_sha256": null,
+  "after_sha256": null,
+  "observed_sha256": null,
+  "effect": "none",
+  "confirmation": "not_applicable"
+}

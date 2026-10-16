@@ -735,7 +735,7 @@ class HookService:
         from ..modules.projects.launch import text
         from ..modules.hook_transport.domain import MissingHookBinding
         from .clock import SystemClock
-        from ..modules.work.domain import parse_request
+        from ..modules.work.domain import parse_request, is_observation
         from .result_views import preflight_work_result
         text(project_id,'project_id')
         options=self.settings.raw.get('project_launcher')
@@ -767,20 +767,25 @@ class HookService:
             self.runtime=target.runtime
             return result
         caller=CallerIdentity.native(cfg['project'],record['external_session'])
-        h=establish_poise(config_path,caller,[],SystemClock()).runtime
+        req=parse_request(packet,cfg['batch'])
+        observation=is_observation(req)
+        h=establish_poise(config_path,caller,[],SystemClock(),read_only=observation).runtime
         self.runtime=h
-        h.store.ensure_session(h.session)
-        req=parse_request(packet,h.cfg['batch'])
+        if not observation:h.store.ensure_session(h.session)
         preflight_work_result(h,req)
         return WorkTools(h).invoke(req)
 
     def work(self,binding_path,packet,project_id=None):
         from .clock import SystemClock
+        from ..modules.work.domain import parse_request, is_observation
         record,message=self._owned_record(binding_path)
         if project_id is not None:
             selected=self._selected_work(project_id,record,packet)
             if selected is not None:return selected
         caller=CallerIdentity.native(record['project'],record['external_session'])
+        _,cfg,_=load_config(self.settings.project_config)
+        req=parse_request(packet,cfg['batch'])
+        if req['messages']:raise PoiseError('Hooked work derives messages from UserPromptSubmit; do not supply a second source')
         h=establish_poise(
             self.settings.project_config,
             caller,
@@ -789,11 +794,9 @@ class HookService:
             record['session_id'],
             None,
             self.registry.liveness,
+            read_only=is_observation(req),
         ).runtime
         self.runtime=h
-        from ..modules.work.domain import parse_request
-        req=parse_request(packet,h.cfg['batch'])
-        if req['messages']:raise PoiseError('Hooked work derives messages from UserPromptSubmit; do not supply a second source')
         req=deepcopy(req);req['messages']=[] if message is None else [message]
         d=self.definition(record['definition_path']).data
         if h.cfg['batch']['message_source']!={'id':d['message_source'],'mode':'runtime_event'}:

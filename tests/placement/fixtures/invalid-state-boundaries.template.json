@@ -1,0 +1,87 @@
+[
+  {
+    "id": "missing-schema",
+    "operation": "remove",
+    "path": [
+      "schema"
+    ]
+  },
+  {
+    "id": "missing-project",
+    "operation": "remove",
+    "path": [
+      "project"
+    ]
+  },
+  {
+    "id": "missing-checkout",
+    "operation": "remove",
+    "path": [
+      "checkout"
+    ]
+  },
+  {
+    "id": "missing-caller_key",
+    "operation": "remove",
+    "path": [
+      "caller_key"
+    ]
+  },
+  {
+    "id": "missing-baseline",
+    "operation": "remove",
+    "path": [
+      "baseline"
+    ]
+  },
+  {
+    "id": "missing-authorizations",
+    "operation": "remove",
+    "path": [
+      "authorizations"
+    ]
+  },
+  {
+    "id": "missing-reservations",
+    "operation": "remove",
+    "path": [
+      "reservations"
+    ]
+  },
+  {
+    "id": "unknown-top-field",
+    "operation": "set",
+    "path": [
+      "extra"
+    ],
+    "value": "unknown"
+  },
+  {
+    "id": "unknown-baseline-field",
+    "operation": "set",
+    "path": [
+      "baseline",
+      "extra"
+    ],
+    "value": true
+  },
+  {
+    "id": "unknown-reservation-field",
+    "operation": "set",
+    "path": [
+      "reservations",
+      0,
+      "extra"
+    ],
+    "value": true
+  },
+  {
+    "id": "missing-reservation-name",
+    "operation": "remove",
+    "path": [
+      "reservations",
+      0,
+      "name"
+    ]
+  }
+]

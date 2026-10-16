@@ -21,7 +21,7 @@ def RequirementsStore(database, lock, lock_seconds, poll_seconds):
 def _decoded(value, expected, where):
     try:
         result = json.loads(value)
-    except (json.JSONDecodeError, TypeError) as exc:
+    except (json.JSONDecodeError, TypeError, UnicodeError) as exc:
         raise PoiseError(f'{where}: unreadable saved JSON') from exc
     if not isinstance(result, expected):
         raise PoiseError(f'{where}: invalid saved value')

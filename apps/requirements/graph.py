@@ -254,7 +254,7 @@ class RequirementsGraph:
         return {'rows': page, 'next': page[-1]['id'] if len(rows) > limit else None}
 
     def query(self, query, max_items):
-        kind = query.get('kind')
+        kind = _identifier(query.get('kind'), 'query kind')
         fields = {
             'task_chain': {'task_id', 'key', 'statement_revision'},
             'application_tasks': {'application_id'}, 'get_task': {'task_id'},

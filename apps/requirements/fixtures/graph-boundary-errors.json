@@ -1,0 +1,50 @@
+{
+  "mixed_prefix": [
+    {
+      "id": "typed",
+      "kind": "entities",
+      "table": "requirements",
+      "filter": {},
+      "page": {
+        "limit": 1,
+        "after": null
+      }
+    }
+  ],
+  "selected_json": [
+    {
+      "id": "snapshot",
+      "sql": "UPDATE task_snapshots SET payload=? WHERE task_id=? AND snapshot_revision=?",
+      "parameters": ["000007", 1],
+      "bytes_hex": "ff",
+      "query": {
+        "id": "q",
+        "kind": "snapshot",
+        "task_id": "000007",
+        "snapshot_revision": 1
+      }
+    },
+    {
+      "id": "statement",
+      "sql": "UPDATE task_statements SET definition_of_done=? WHERE task_id=? AND statement_revision=?",
+      "parameters": ["000007", 2],
+      "bytes_hex": "ff",
+      "query": {
+        "id": "q",
+        "kind": "get_task",
+        "task_id": "000007"
+      }
+    },
+    {
+      "id": "requirement",
+      "sql": "UPDATE requirement_revisions SET origin=? WHERE id=? AND revision=?",
+      "parameters": ["SYS-A", 1],
+      "bytes_hex": "ff",
+      "query": {
+        "id": "q",
+        "kind": "history_requirement",
+        "requirement_id": "SYS-A"
+      }
+    }
+  ]
+}

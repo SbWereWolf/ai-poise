@@ -1,6 +1,5 @@
 """Pure impact of AI-poise package declarations; no command or filesystem owner."""
-from fnmatch import fnmatchcase
-from functools import lru_cache
+from ..foundation.paths import matches_component_path
 
 
 def matches_member(path: str, pattern: str) -> bool:
@@ -9,17 +8,7 @@ def matches_member(path: str, pattern: str) -> bool:
     Unlike fnmatch on an entire path, a single * cannot cross a directory.
     Deleted inputs are matched without enumerating the current filesystem.
     """
-    parts, patterns = tuple(path.split('/')), tuple(pattern.split('/'))
-
-    @lru_cache(maxsize=None)
-    def match(i: int, j: int) -> bool:
-        if j == len(patterns):
-            return i == len(parts)
-        if patterns[j] == '**':
-            return match(i, j + 1) or (i < len(parts) and match(i + 1, j))
-        return i < len(parts) and fnmatchcase(parts[i], patterns[j]) and match(i + 1, j + 1)
-
-    return match(0, 0)
+    return matches_component_path(path, pattern)
 
 
 def select_package_impact(packages: list[dict], changed_paths: list[str]) -> dict:

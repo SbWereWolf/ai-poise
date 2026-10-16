@@ -6,13 +6,14 @@ import json
 import os
 from pathlib import Path
 import uuid
+from typing import TYPE_CHECKING
 
-from ..application.session_establishment import SessionEstablisher
 from ..common import PoiseError, configured_root, descendant, load_config
 from ..modules.session_establishment.domain import CallerIdentity, EstablishedSession
-from ..runtime import Poise
-from .sqlite.database import Database
-from .sqlite.runtime_adapter import RuntimeRegistry
+
+if TYPE_CHECKING:
+    from ..runtime import Poise
+    from .sqlite.runtime_adapter import RuntimeRegistry
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,10 @@ def direct_caller(project, environ):
 
 def establish_poise(config_path, caller, inventory, clock, preferred_session=None,
                     legacy_workflow_requirements=None, liveness=None):
+    from ..application.session_establishment import SessionEstablisher
+    from ..runtime import Poise
+    from .sqlite.database import Database
+    from .sqlite.runtime_adapter import RuntimeRegistry
     config_path = Path(config_path).resolve()
     root,cfg,_ = load_config(config_path,legacy_workflow_requirements)
     state = configured_root(root,cfg['paths']['state'])

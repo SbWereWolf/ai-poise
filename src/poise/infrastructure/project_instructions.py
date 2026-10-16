@@ -1,13 +1,12 @@
 """Explicit project reads and exact instruction bytes; no mutable runtime setup."""
 import hashlib
-import os
 from pathlib import Path
 
-from ..common import PoiseError, descendant, load_config
+from ..common import PoiseError, descendant
 from ..modules.skills.catalog import SkillCatalog
 from ..modules.skills.instructions import InstructionInputError
 from .goal_config import strict_json
-from .git_transport import run_git_receipt
+from .project_binding import ProjectBindingFailure, read_project_checkout
 
 
 class FileInstructionSource:
@@ -17,33 +16,13 @@ class FileInstructionSource:
 
     def project_context(self, config_path, checkout):
         try:
-            _, cfg, _ = load_config(Path(config_path))
-        except (PoiseError, OSError, ValueError, TypeError, KeyError, RecursionError) as exc:
-            raise InstructionInputError('invalid_project', 'project_config', 'provide:project_config') from exc
-        environment = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
-        environment['GIT_OPTIONAL_LOCKS'] = '0'
-
-        def git(root, *arguments):
-            result = run_git_receipt(root, list(arguments), cfg['limits']['git_seconds'], environment)
-            if result['actual_exit_code'] != 0:
-                raise PoiseError(result['stderr'])
-            return result['stdout'].removesuffix('\n')
-
-        try:
-            repository, target = Path(cfg['git']['repository']).resolve(), Path(checkout).resolve()
-            if Path(git(repository, 'rev-parse', '--show-toplevel')).resolve() != repository:
-                raise PoiseError('Configured repository is not a checkout root')
-            if Path(git(target, 'rev-parse', '--show-toplevel')).resolve() != target:
-                raise PoiseError('Requested checkout is not its Git root')
-            common_args = ('rev-parse', '--path-format=absolute', '--git-common-dir')
-            if git(repository, *common_args) != git(target, *common_args):
-                raise PoiseError('Requested checkout belongs to another repository')
-            if f'worktree {target}\n' not in git(repository, 'worktree', 'list', '--porcelain') + '\n':
-                raise PoiseError('Requested checkout is not registered')
-            return {'project': cfg['project'], 'checkout': str(target),
+            bound = read_project_checkout(config_path, checkout)
+            return {'project': bound.config['project'], 'checkout': str(bound.checkout),
                     'instruction_root': str(self.instruction_root)}
-        except (PoiseError, OSError, ValueError) as exc:
-            raise InstructionInputError('project_binding', 'checkout', 'select:checkout') from exc
+        except ProjectBindingFailure as exc:
+            if exc.code == 'invalid_project':
+                raise InstructionInputError('invalid_project', 'project_config', 'provide:project_config') from exc
+            raise InstructionInputError(exc.code, 'checkout', 'select:checkout') from exc
 
     def catalogue_metadata(self):
         try:

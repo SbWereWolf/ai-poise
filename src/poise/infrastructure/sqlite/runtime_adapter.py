@@ -7,12 +7,18 @@ from ...common import encoded,PoiseError
 class RuntimeRegistry:
     def __init__(self,database):self.database=database
 
+    @staticmethod
+    def session_for_identity(connection, identity_key):
+        row = connection.execute(
+            'SELECT session_id FROM runtime_bindings WHERE identity_key=?', (identity_key,)).fetchone()
+        return None if row is None else row[0]
+
     def existing(self,identity_key,inventory):
         with self.database.transaction() as db:
-            row=db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',(identity_key,)).fetchone()
-            if row is None:return None
+            session = self.session_for_identity(db, identity_key)
+            if session is None:return None
             db.execute('UPDATE runtime_bindings SET inventory=? WHERE identity_key=?',(encoded(inventory),identity_key))
-            return row[0]
+            return session
 
     def reserve(self,identity_key,session,inventory):
         with self.database.transaction() as db:

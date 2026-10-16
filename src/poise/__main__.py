@@ -51,6 +51,9 @@ def parser():
     skills=sub.add_parser('skills',help='Read skill metadata or validate decomposition without a Task session')
     skills.add_argument('--catalog',type=Path,required=True)
     skills.add_argument('--root',type=Path,required=True)
+    placement=sub.add_parser('placement',help='Determine and check declared result locations by project policy')
+    for name in ('config', 'checkout', 'policy'):
+        placement.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     creation=sub.add_parser('runtime-setup',help='Create explicit hook settings and install with one packet')
     creation.add_argument('--settings',type=Path,required=True)
     creation.add_argument('--max-input-bytes',type=int,required=True)
@@ -126,6 +129,9 @@ def main():
     if args.command=='skills':
         from .interfaces.skills import execute
         return execute(args.catalog,args.root,sys.stdin.buffer,sys.stdout)
+    if args.command=='placement':
+        from .interfaces.placement import execute
+        return execute(args.config,args.checkout,args.policy,sys.stdin.buffer,sys.stdout)
     if args.command=='runtime-setup':
         from .interfaces.hook_transport import setup
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)

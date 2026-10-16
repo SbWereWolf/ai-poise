@@ -1,0 +1,719 @@
+{
+  "action": null,
+  "artifacts": [
+    {
+      "id": "00099e68-6c9d-5bf3-b2f1-285b33a64e88",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/fe2084c0de1e432c37b7177b37e4eeeadaf45248ccdf9f885acb05a302e1cf69/source.bundle"
+    },
+    {
+      "id": "00e86bf0-3cea-5f9f-87b0-c18372464ad9",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/RUNNER-SETUP-REFUSAL-1.log"
+    },
+    {
+      "id": "107ed750-ce9f-5660-a058-ec9402c11bce",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/COORDINATOR-ROOT-DRIFT-AFTER.json"
+    },
+    {
+      "id": "11751cc3-418e-575d-bba3-84a9500029f0",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/099d5c4a4fe65a4576c5fee18437cec8773ce0e00b63517b962459ea47baee21/handoff.json"
+    },
+    {
+      "id": "1241e88a-1f77-5c34-8682-f79055e321aa",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/099d5c4a4fe65a4576c5fee18437cec8773ce0e00b63517b962459ea47baee21/source.bundle"
+    },
+    {
+      "id": "162afacd-6508-5639-b6cf-07092106054c",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/02e4b1cc9839ddc19c11a70f39dc2da13a1ae99eac83cf56240a53db619d37b9/source.bundle"
+    },
+    {
+      "id": "18ac66de-33e2-5b69-a7ce-6edf1d465124",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/16018c7b4f727260adf8632693d53db70ae738acf6214cd5188e5c0b85c131ff/source.bundle"
+    },
+    {
+      "id": "191e0097-5723-596f-9258-2e60c62e37e4",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/6e15ec673d924335d56937cd6a0bba00facfa87581b48523edb8060a941271f3/handoff.json"
+    },
+    {
+      "id": "1bbe4c7f-5612-5ee6-be86-637834e8b51d",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/d0e183107fd49157d42edbabf1f9843497091cdd93f95e969a97c61f43b2bec2/handoff.json"
+    },
+    {
+      "id": "1d8d2a4d-3b6b-543b-8198-306c2a31259e",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/d0e183107fd49157d42edbabf1f9843497091cdd93f95e969a97c61f43b2bec2/source.bundle"
+    },
+    {
+      "id": "20108124-257f-5b28-9324-5f3a6354cc17",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/UNKNOWN-ATTEMPT-INDEPENDENT-FINDINGS-20261015.json"
+    },
+    {
+      "id": "2392afd7-2684-5889-a791-f24fa5065ee7",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/SOURCE-CHECKSUMS.sha256"
+    },
+    {
+      "id": "28490e21-d671-5913-9396-83ee91c2c947",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/34584e04aa20f9725f51cfac10c2f230cf3cc6dd61f7e7658995a42148322926/receipt.json"
+    },
+    {
+      "id": "37ab6e47-6be4-5018-b14a-836cc0a34dca",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/RESTART-PROPOSAL-20261014.json"
+    },
+    {
+      "id": "3b951c5d-fa29-53f6-8375-bc9702de788c",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/62cd8fcf2047e776f4e7350a8d586ee39733c5e5fb19a88e130195f26edb7a9b/source.bundle"
+    },
+    {
+      "id": "3bb8ea62-c599-5e77-b387-76a7c06d16cf",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/SOURCE-REVIEW-POVODYR-20261015.md"
+    },
+    {
+      "id": "3ce8b4e7-b1af-5393-b5e1-07480722ca76",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/CACHE-CONTRACTS-21.log"
+    },
+    {
+      "id": "3d282b8a-90c9-54c0-ac94-3ce058809ecf",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/db3c455b0263608f38606bb0413f9c53a512ea357cc3aa57692968945390ff7a/handoff.json"
+    },
+    {
+      "id": "3de39b12-05c6-5a4b-aa8d-36902f041d34",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/candidate/SELECTOR-CONTRACTS.log"
+    },
+    {
+      "id": "4014a173-986b-57ed-9334-afc860dd7b6d",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/1afe3b486ad91cb645f503c8c67c7588b97f712dbc3c726f82e61703085848a5/handoff.json"
+    },
+    {
+      "id": "40d902e5-8ac0-5a2e-b7fb-d4a5a06f6a9d",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/DURABLE-RECOVERY.json"
+    },
+    {
+      "id": "42fc8c72-a002-50af-8925-6d54156c9ae1",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/candidate/DOC-IMPACT.md"
+    },
+    {
+      "id": "48ff7265-2831-51f3-a830-cb7613633c84",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/DISPOSITION-DOCS-PROPOSAL-20261014-R2.json"
+    },
+    {
+      "id": "4baee754-d9a3-5fc4-b618-dd322b0e92de",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/1afe3b486ad91cb645f503c8c67c7588b97f712dbc3c726f82e61703085848a5/source.bundle"
+    },
+    {
+      "id": "4da51f6e-c2dc-5963-a183-a872cb5cf0af",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/c45b61644ba3932814245a63e0d0e391c9b689a14f22e73895933deb018cb7c9/source.bundle"
+    },
+    {
+      "id": "51ac85e0-29cd-5fb3-b56f-d6ed71f22549",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/reviews/TESTS-REPLAY-INDEPENDENT-CONTRACTS-20261014.log"
+    },
+    {
+      "id": "54159791-bf74-57a9-a755-3198d3824cb7",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/f364ab78624cc40ada397f0023596fdec982634b7f482960ed19c9f60834f12e/source.bundle"
+    },
+    {
+      "id": "55756ee4-bf69-572b-9d1f-d4dae2fba606",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/0e9bc69cc8c680ffffbf00bf81652348fa2c47896afb0354365c8dd02e1fc3ee/handoff.json"
+    },
+    {
+      "id": "55a78c57-80b7-584c-9364-08c8674695ff",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/candidate/TRACEABILITY.md"
+    },
+    {
+      "id": "5c03d5c3-3b54-5e3c-b77a-2cdaec7ddebd",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/SOURCE-CONFIG-FINDING-20261015.json"
+    },
+    {
+      "id": "5dff26c7-cd0d-5f5c-a6e0-7f2a25f50054",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/707a81294d273e664fccf79d3dfaa0b6c51b96bedd27f03c5bcda4e70ca9d87f/source.bundle"
+    },
+    {
+      "id": "643c536a-d912-597b-ac8a-0b77176bbe0e",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/4d07f312723d4f9c3861916a4a7fb505841fa34f47df382ac9dcfe85c28765dd/source.bundle"
+    },
+    {
+      "id": "69cc0701-7c81-5bf0-9e10-2f6713717199",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/REVIEWER-SESSION-BEFORE.json"
+    },
+    {
+      "id": "69ed20fa-63bf-5432-9782-d4bb1529bab6",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/19331bad2eecb9bddaf32f79eb3d8ab15cabeb6ea1ca59088d4fdda30793b9b2/handoff.json"
+    },
+    {
+      "id": "7022bd94-4f60-513f-a364-f95169683a72",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/RUNNER-CONTRACTS-20.log"
+    },
+    {
+      "id": "70d17667-a37c-5831-9edf-c637e9b70a39",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/34584e04aa20f9725f51cfac10c2f230cf3cc6dd61f7e7658995a42148322926/handoff.tar.gz"
+    },
+    {
+      "id": "76cee96a-8229-5cee-b5ba-35ac6cdf3666",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/d6989c2f14d9e3db36777c455171041c7731a9f0b5fbe7ffe820b00831bd3b20/handoff.json"
+    },
+    {
+      "id": "7e586672-2bad-531c-a8a2-f8121ed1d833",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/REPAIR-ENTRY-LOCK-INCIDENTS-20261015.json"
+    },
+    {
+      "id": "7f2b49b2-2976-57b6-98d1-a70a6c2a2c0d",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/CHECKPOINT-CONTRACTS.log"
+    },
+    {
+      "id": "80cd0084-ddd1-5df5-9219-5210c330af68",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/fe2084c0de1e432c37b7177b37e4eeeadaf45248ccdf9f885acb05a302e1cf69/handoff.json"
+    },
+    {
+      "id": "867ece24-8b29-5179-bb76-7cf8a0326011",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/4d07f312723d4f9c3861916a4a7fb505841fa34f47df382ac9dcfe85c28765dd/handoff.json"
+    },
+    {
+      "id": "889acf75-c681-51d4-8501-0adb39f4026d",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/68a9e211f5ad443e59e09398d1365ecff0133ddb4061eb54122e7a9e4bced5eb/handoff.json"
+    },
+    {
+      "id": "8a862805-d1ca-5647-9c20-bb54e6ef214e",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/db3c455b0263608f38606bb0413f9c53a512ea357cc3aa57692968945390ff7a/source.bundle"
+    },
+    {
+      "id": "95511dd8-e39f-5e0f-9775-5e028bec906c",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/RUNNER-FIXTURE-REFUSAL-3.log"
+    },
+    {
+      "id": "959dcb75-6b54-5112-9b80-d7401d50ecf3",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/reviews/TESTS-REVIEW-INDEPENDENT-RED-20261014.log"
+    },
+    {
+      "id": "9750eba4-55ab-577a-beff-3ad8166cffb6",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/REVIEWER-SESSION-RELOCATION-PROOF.json"
+    },
+    {
+      "id": "97a6786b-7f19-50f7-8c42-0736daa292fe",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/EXECUTOR-SESSION-RELOCATION-PROOF.json"
+    },
+    {
+      "id": "9e76e370-1fc0-53ce-a8ec-b47758d13e7a",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/MCP-CONTRACTS.log"
+    },
+    {
+      "id": "9ee4912e-d081-59bf-8160-1e10bc9428a5",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/UNKNOWN-ATTEMPT-INITIAL-PROPOSAL-20261015.json"
+    },
+    {
+      "id": "a085658a-3423-5cfb-8f46-1b8403bb27b4",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/d6989c2f14d9e3db36777c455171041c7731a9f0b5fbe7ffe820b00831bd3b20/source.bundle"
+    },
+    {
+      "id": "a10a3a91-b9ee-5217-af8c-f2bd14cfab64",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/EVIDENCE-CONTRACTS-9.log"
+    },
+    {
+      "id": "a262dc0c-1501-5214-a2ba-c037497ae175",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/REVIEWER-RESERVATIONS-BEFORE.jsonl"
+    },
+    {
+      "id": "a53f80c0-7399-5cf8-bf9c-ca47cb5eeb57",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/c956ba79a85f72e2d49ad04c2e4c6b2d755853f8592f550b9d3a4e6d8b230eb0/handoff.json"
+    },
+    {
+      "id": "a75dcf4a-3b31-5fc9-96df-73f70c0c27b3",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/c45b61644ba3932814245a63e0d0e391c9b689a14f22e73895933deb018cb7c9/handoff.json"
+    },
+    {
+      "id": "a8db988f-cb36-5b5b-8bf0-765edcfdf806",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/NATIVE-DOC-PROOF-PROPOSAL-20261014-R2.json"
+    },
+    {
+      "id": "a9410cdb-8830-5c86-9f72-f9dab45105b1",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/19331bad2eecb9bddaf32f79eb3d8ab15cabeb6ea1ca59088d4fdda30793b9b2/source.bundle"
+    },
+    {
+      "id": "aa93d4e6-ac5b-5a7e-860b-c26bfcaa7402",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/6e15ec673d924335d56937cd6a0bba00facfa87581b48523edb8060a941271f3/source.bundle"
+    },
+    {
+      "id": "abba899e-46dc-5fae-a2b5-c403a03d8be2",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/candidate/SOURCE-CHECKSUMS.sha256"
+    },
+    {
+      "id": "ad18b216-0e2a-5e9b-b63c-95eb76e5d5e5",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/candidate/INVENTORY-CONTRACTS.log"
+    },
+    {
+      "id": "ae3261bf-78b8-5f03-be8f-5c3a781117d9",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/TRACEABILITY.md"
+    },
+    {
+      "id": "af8518e8-c43d-509d-8e3d-193bb39b359b",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/RUNTIME-RELOCATION-SETUP.json"
+    },
+    {
+      "id": "b146b53e-160b-5466-bb01-6d8b64fbfb54",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/9df480ddd80e1ab1ef38bd6cc1e2a9d0e428c12c45eb24c5e6b36628af139f99/handoff.json"
+    },
+    {
+      "id": "b2ca65d1-e8ce-5651-8f9e-80d91adee907",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/SOURCE-REMEDIATION-REVIEW.md"
+    },
+    {
+      "id": "b33d4fb7-7148-5a80-b5c4-470d5f8db3c2",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/16018c7b4f727260adf8632693d53db70ae738acf6214cd5188e5c0b85c131ff/handoff.json"
+    },
+    {
+      "id": "b3f370a9-6d58-5ac9-bd0a-4bf9023853ac",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/DOC-IMPACT.md"
+    },
+    {
+      "id": "b52eed7f-2a07-5a8f-aeaf-f55827763a95",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/DISPOSITION-DOCS-PROPOSAL-20261014-R3.json"
+    },
+    {
+      "id": "bbe363de-d98f-52c6-a032-8a9d76c3b894",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/NATIVE-DOC-PROOF-PROPOSAL-20261014.json"
+    },
+    {
+      "id": "c176b777-6d5c-5495-acd5-765a861615e6",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/ADOPTION-CONTRACTS.log"
+    },
+    {
+      "id": "c2346733-a0ea-51b4-b567-6d9a1fc57885",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/707a81294d273e664fccf79d3dfaa0b6c51b96bedd27f03c5bcda4e70ca9d87f/handoff.json"
+    },
+    {
+      "id": "c44d865b-6bbd-5c3e-8878-4079b0ff467d",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/RESTART-ROOT-DRIFT-20261014.json"
+    },
+    {
+      "id": "c7cd05c6-586e-5068-81f0-50c3fadb21c6",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/0e9bc69cc8c680ffffbf00bf81652348fa2c47896afb0354365c8dd02e1fc3ee/source.bundle"
+    },
+    {
+      "id": "c7ec9b1b-1645-50d8-9df6-3db165e5a239",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/PRODUCER-SELF-REVIEW.json"
+    },
+    {
+      "id": "c817a18a-62e3-55d5-87b1-b6faa8ea5060",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/0c3d1538ca2e3081f7e11ff424fd28f636fab3702013140e3581fbc019abb6a1/handoff.json"
+    },
+    {
+      "id": "c8b6b3d4-e0e6-544c-a796-2986fd8fffa1",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/EXTRACTION-SELF-REVIEW.json"
+    },
+    {
+      "id": "cf9eea23-8ee1-5926-a09b-1331dcf6d0b0",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/62cd8fcf2047e776f4e7350a8d586ee39733c5e5fb19a88e130195f26edb7a9b/handoff.json"
+    },
+    {
+      "id": "d38b57fa-3907-5527-85a7-ee0bd02377f7",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/02e4b1cc9839ddc19c11a70f39dc2da13a1ae99eac83cf56240a53db619d37b9/handoff.json"
+    },
+    {
+      "id": "d455c263-e6e7-5e17-95ab-b07a9185aee9",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/DISPOSITION-DOCS-PROPOSAL-20261014.json"
+    },
+    {
+      "id": "db0d768d-6cf6-5d0f-85b0-5e304ebf9916",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/f364ab78624cc40ada397f0023596fdec982634b7f482960ed19c9f60834f12e/handoff.json"
+    },
+    {
+      "id": "df52bb93-e826-512e-b6b2-9ab1a5b5963e",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/254e7e69c27ed38777da0dccdcd0a9e6dc12e64647e07794a20092480eb1868b/source.bundle"
+    },
+    {
+      "id": "e12628d8-98ec-561d-8905-308245482cb2",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/TRACEABILITY.md"
+    },
+    {
+      "id": "e526ed32-9475-505d-8ecb-7d67226999cb",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/68a9e211f5ad443e59e09398d1365ecff0133ddb4061eb54122e7a9e4bced5eb/source.bundle"
+    },
+    {
+      "id": "e7d11987-6eef-5a01-876e-3dfcb78e9749",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/DOC-IMPACT.md"
+    },
+    {
+      "id": "eb9144bf-2df7-5f4e-a5db-5a2b3e16dfa6",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/0c3d1538ca2e3081f7e11ff424fd28f636fab3702013140e3581fbc019abb6a1/source.bundle"
+    },
+    {
+      "id": "edbf5610-11b9-576b-bdc2-02a7a7b7d49b",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/recovery/REVIEWER-SESSION-RELOCATION.py"
+    },
+    {
+      "id": "ee1f7550-217c-55a1-b7a5-1057848867f9",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/CHECKPOINT-SOURCE.sha256"
+    },
+    {
+      "id": "f6aeff96-fdaa-52dd-86dd-e79a1ebe5261",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/254e7e69c27ed38777da0dccdcd0a9e6dc12e64647e07794a20092480eb1868b/handoff.json"
+    },
+    {
+      "id": "ff462859-c4ae-5317-9a5b-879f31e9e086",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/handoffs/9df480ddd80e1ab1ef38bd6cc1e2a9d0e428c12c45eb24c5e6b36628af139f99/source.bundle"
+    },
+    {
+      "id": "ffa36c19-2c47-570e-b32f-8dc8b675ff11",
+      "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/continuation/RUNNER-SETUP-REFUSAL-2.log"
+    }
+  ],
+  "attempt": 1,
+  "checks": [
+    {
+      "actual_exit_code": 0,
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "-c",
+        "import runpy; runpy.run_path(\"ai-assistant/tests/checks/harness-modularity.py\", run_name=\"__main__\")"
+      ],
+      "attempt_id": "c49b392b-f39f-43d1-ae66-24fe406b1a00",
+      "cancellation_reason": null,
+      "cancelled": false,
+      "capture_complete": true,
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+      "configurations_after": {
+        "systems": {}
+      },
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "duration_seconds": 3.589711759000238,
+      "execution_key": "cc29b0507300edce99a5e9c90e00508e7f4020a0a4e7d8dc5f31d4884fc82c1e",
+      "expectation_digest": "a2f27eb9661d09378b248e77996686614be5d4e9bfb222b6a452ee28044267e7",
+      "expected_exit_code": 0,
+      "guard": true,
+      "id": "52f225b8-0b7e-48df-983b-46ac473ed249",
+      "interpretable": true,
+      "iteration": 1,
+      "method": "MODULARITY-CONTRACTS",
+      "obligations": [
+        "MODULARITY-CONTRACTS"
+      ],
+      "observed_commit_after": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+      "outputs": [],
+      "passed": true,
+      "presentation": {
+        "directory": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/52f225b8-0b7e-48df-983b-46ac473ed249/views",
+        "manifest": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/52f225b8-0b7e-48df-983b-46ac473ed249/views/views.json",
+        "primary": "onsumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.305s\n\nOK\n\n"
+      },
+      "preview": "onsumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.305s\n\nOK\n\n",
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "source_provenance": {
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ],
+        "kind": "repository"
+      },
+      "source_unchanged": true,
+      "stage": "review",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/52f225b8-0b7e-48df-983b-46ac473ed249/stderr.txt",
+      "stderr_digest": "4e1fda350c24ab861abf1eb09f50f1e83e650f760f570b27e19bddba57905da6",
+      "stderr_preview": "ves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.305s\n\nOK\n",
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/52f225b8-0b7e-48df-983b-46ac473ed249/stdout.txt",
+      "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_preview": "",
+      "submission_digest": "4c8a14182638bc59914401e154ca930989f7a8ac41789d1c66b94b1863b406a5",
+      "systems": {},
+      "termination": {
+        "capture_complete": true,
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "schema": "run-termination-1"
+      },
+      "timed_out": false,
+      "timeout_maintenance": {
+        "digest": "18f714427e3c545506bd33c846e7d728258313e16c6446cccd0783c08c2eea2f",
+        "path": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/52f225b8-0b7e-48df-983b-46ac473ed249/timeout-policy.json"
+      },
+      "timeout_profile": {
+        "command": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "-c",
+          "import runpy; runpy.run_path(\"ai-assistant/tests/checks/harness-modularity.py\", run_name=\"__main__\")"
+        ],
+        "runtime": {
+          "executable": "/usr/bin/bash",
+          "platform": "linux"
+        },
+        "workload": "MODULARITY-CONTRACTS"
+      },
+      "timeout_reason": null,
+      "timeout_selection": {
+        "basis": "verified_success_history",
+        "diagnostic_evidence_run_id": null,
+        "diagnostic_override_reason": null,
+        "history_count": 4,
+        "history_multiplier": 1.1,
+        "longest_verified_success_seconds": 4.2299808759999,
+        "poll_seconds": 0.1,
+        "progress_gap_seconds": 360.0,
+        "seconds": 360.0
+      },
+      "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+    }
+  ],
+  "commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "evidence": {
+    "arguments": [],
+    "assessment": {
+      "execution_key": "cc29b0507300edce99a5e9c90e00508e7f4020a0a4e7d8dc5f31d4884fc82c1e",
+      "missing": [],
+      "needs_continuation": false,
+      "outcome": "clear",
+      "ready": true,
+      "submission_digest": "4c8a14182638bc59914401e154ca930989f7a8ac41789d1c66b94b1863b406a5",
+      "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+    },
+    "decisions": [],
+    "observations": [
+      {
+        "actual_exit_code": 0,
+        "id": "a98d3934-91e7-421b-96c3-9f029e2f4f0c",
+        "iteration": 1,
+        "method": "MODULARITY-CONTRACTS",
+        "obligations": [
+          "MODULARITY-CONTRACTS"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "8e625735-7dcc-4f05-8cf9-61a4a059bb61",
+        "iteration": 1,
+        "method": "MODULARITY-REGRESSION-RUN-CHECK",
+        "obligations": [
+          "MODULARITY-REGRESSION-RUN-CHECK"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "f6ecb621-df71-4707-836c-79f6a760737a",
+        "iteration": 1,
+        "method": "MODULARITY-REGRESSION-CHECK-CACHE",
+        "obligations": [
+          "MODULARITY-REGRESSION-CHECK-CACHE"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "d6416d0f-97c5-4430-9672-d2d102238dbb",
+        "iteration": 1,
+        "method": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST",
+        "obligations": [
+          "MODULARITY-REGRESSION-EVIDENCE-MANIFEST"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "16ac835f-c4d6-41bf-b96c-9b2e21373bcd",
+        "iteration": 1,
+        "method": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION",
+        "obligations": [
+          "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "b17db886-b1b0-4140-823e-cdc98adec402",
+        "iteration": 1,
+        "method": "MODULARITY-MCP-CONSUMER",
+        "obligations": [
+          "MODULARITY-MCP-CONSUMER"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "f74d4a5c-a0d6-4046-89e5-c29e7245258e",
+        "iteration": 1,
+        "method": "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION",
+        "obligations": [
+          "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "d1e37e81-6b04-4195-9f88-a56676077bee",
+        "iteration": 1,
+        "method": "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS",
+        "obligations": [
+          "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "bf2a2036-6953-4b39-bb57-6179d53e8d0e",
+        "iteration": 1,
+        "method": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION",
+        "obligations": [
+          "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "e01dc369-7494-4c98-aeb7-972c4ad87236",
+        "iteration": 1,
+        "method": "MODULARITY-DOCUMENTATION-EXACT-SCOPE",
+        "obligations": [
+          "MODULARITY-DOCUMENTATION-EXACT-SCOPE"
+        ],
+        "passed": true,
+        "stage": "implement",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      },
+      {
+        "actual_exit_code": 0,
+        "id": "52f225b8-0b7e-48df-983b-46ac473ed249",
+        "iteration": 1,
+        "method": "MODULARITY-CONTRACTS",
+        "obligations": [
+          "MODULARITY-CONTRACTS"
+        ],
+        "passed": true,
+        "stage": "review",
+        "tree": "c2b4dabc97df090336282ae24568fff620bd2366"
+      }
+    ],
+    "plan": {
+      "arguments": [],
+      "review_arguments": [],
+      "subject_methods": {}
+    }
+  },
+  "feedback": {
+    "decisions": [
+      {
+        "decision": "accepted",
+        "iteration": 2,
+        "reason": "The actual frozen documentation_plan now requires Russian prose in the human-facing README, with exactly the approved phrase replacement and no unrelated documentary change. Seven matching native chunk hashes independently prove unchanged solution/verification plans; the producer self-review is present, source HEAD/tree is unchanged and clean, and all original closure conditions are satisfied. No new defect was found.",
+        "resolution_id": "MOD-PLAN-DOC-001-R1",
+        "stage": "plan_review"
+      },
+      {
+        "decision": "accepted",
+        "iteration": 2,
+        "reason": "The actual current registry revision1 exactly matches the independently approved v3 protected projection: all nine registrations, six unchanged executable obligations, preserved original narrow method/argv/exit/four-stage schedule, explicit executable_test/covers, and eight jointly mandatory final-gate definitions restricted to implement/remediate. Exact owned change_surface paths satisfy the declared route without widening source ownership. Public request digest/history and genuine tests2 terminal result prove the applied repair; original RED and source/fixture identities remain unchanged. The registry omission is corrected without fake GREEN, obligation removal, source edits or broad inspector reruns.",
+        "resolution_id": "MOD-TEST-REG-001-R1",
+        "stage": "tests_review"
+      }
+    ],
+    "findings": [
+      {
+        "description": "The frozen documentation_plan explicitly says to update English ai-assistant/README.md for ownership/API claims. This file is the existing Russian human-facing repository-tooling index, outside the designated English agent-policy/task-artifact paths. Following that instruction would contradict the root requirement to write human-facing project documentation in Russian. Correct the documentation_plan to require Russian prose in this README; retain English only for the appropriate agent-facing files and preserve identifiers/commands in their native syntax. No unrelated documentation rewrite is needed.",
+        "evidence": "Public show receipt runs/991b90e5-c1c2-48cb-8068-2f774d44fabc/response.json:51-71 identifies documentation_plan, stage plan, submission 1025, and its exact English-README instruction. Independently read ai-assistant/README.md:1-42: Russian title and human-facing tool/package index. Root AGENTS.md language rules require Russian human-facing project documentation and English AGENTS.md/.agents/**/.codex/**/task artifacts. Closure requires a corrected submitted documentation_plan and independent review of that correction; no product source/test change is required.",
+        "id": "MOD-PLAN-DOC-001",
+        "iteration": 1,
+        "stage": "plan_review",
+        "subject": "[P2] Keep the human-facing ai-assistant README documentation in Russian"
+      },
+      {
+        "description": "The actual native current registry contains only MODULARITY-CONTRACTS in the legacy {method, stages} shape. Its future GREEN schedule exists, but evidence_kind is absent and covers is absent. The saved executable_obligations list contains requirements[0..3], definition_of_done[1] and definition_of_done[2]. Installed 1.0.3 therefore rejects the inspection exit with 'Для выхода из inspection требуется текущий GREEN executable-test'. This is an actionable test-registry configuration omission; the independently reviewed 22-method source, nine fixtures and intended RED remain valid. Correct only the current projection through the public test_registry owner stage. Preserve the existing method identity/semantics and future GREEN schedule when compatible, add truthful evidence_kind=executable_test and explicit coverage, and register any additional already-planned real gate methods necessary to cover the full obligation set. Do not label the contract suite as covering final gates it cannot prove, remove obligations merely to pass the guard, change expected exits or declare RED observations GREEN.",
+        "evidence": "Public show receipt runs/2e977b8a-f2a9-4ff0-b2d2-25ece93992a7/response.json: registry revision 0, six executable_obligations, one legacy current method with no evidence_kind/covers; tests_review remains active version56/current_submission1037/pendingnull. Installed modules/verification/domain.py:658-671 validates current executable_test definitions with expected_exit_code0, nonempty future green_stages and collective covers; it does not require the present RED suite to become GREEN. Task domain mark_verified applies this guard even to findings; inspection_registry_blocker/rework explicitly permits a public return from active inspection to the declared test_registry owner. Closure: public protected registry mutation on tests with actual supported metadata and honest complete obligation coverage, renewed native tests result, released handoff and independent reinspection of the same finding ID. Preserve frozen source a4f85e27/tree763517add and source/fixture hashes unless a separately justified test defect is discovered. Original preliminary source approval is not a claim that the uninspected legacy registry met the exit contract.",
+        "id": "MOD-TEST-REG-001",
+        "iteration": 1,
+        "stage": "tests_review",
+        "subject": "[P2] Register explicit executable-test coverage before leaving tests_review"
+      }
+    ],
+    "open_findings": [],
+    "pending_resolutions": [],
+    "resolutions": [
+      {
+        "description": "Require Russian prose, rather than English prose, for the human-facing ai-assistant README in documentation_plan. Preserve identifiers, ownership/API scope, solution and verification plans.",
+        "evidence": "The submitted documentation_plan contains the exact instruction Update Russian ai-assistant/README.md and no English-README instruction. Compare submission1025 with this result; solution_plan and verification_plan are byte-for-byte identical. Source Git status is clean at e068e3dc. Povodyr approved this exact repair in its final plan_review feedback before writing; independent acceptance is pending.",
+        "finding_id": "MOD-PLAN-DOC-001",
+        "id": "MOD-PLAN-DOC-001-R1",
+        "iteration": 2,
+        "stage": "plan"
+      },
+      {
+        "description": "Replace the legacy contract registration with current executable-test coverage and add the complete existing consumer suites and registered fast/provider/package gates, preserving the original contract method, future GREEN schedule and six executable obligations.",
+        "evidence": "Exact protected mutation SHA2563e7c9dae321630c866e474d6f33e16abc5369bfc1b59fe879413da61eb0992ef; installed Poise1.0.3 registration parser validates all nine entries. Independent pre-application approval must be verified before this packet is submitted. Source/test/fixture commit a4f85e2712159d2afe8cb637924cd0f925a14576 unchanged; author and independent RED retained. Native public result and subsequent registry readback establish the actual revision/effect; separate tests_review owns acceptance. Exact v3 repair plan independently approved in reviewer chat01a138ea-a400-7273-82da-527a190135b1 before submission. Public no-effect readback7bc178e0-4424-450d-8ea1-231652a29f07 confirms revision0 precondition; actual installed validate_route and inspection guard pass in memory. Separate tests_review retains acceptance authority.",
+        "finding_id": "MOD-TEST-REG-001",
+        "id": "MOD-TEST-REG-001-R1",
+        "iteration": 2,
+        "stage": "tests"
+      }
+    ]
+  },
+  "handler": "inspect",
+  "iteration": 1,
+  "next_stage": null,
+  "next_work": "продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя",
+  "replayed": false,
+  "stage": "review",
+  "stage_outcome": "clear",
+  "status": "completed",
+  "task": "ERP-HARNESS-MODULARITY-001",
+  "verification_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "verified_tree": "c2b4dabc97df090336282ae24568fff620bd2366",
+  "interaction": {
+    "user_messages_count": 3,
+    "observed_messages_count": 3,
+    "coverage": "partial",
+    "source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
+    },
+    "reason_counts": {
+      "initial": 0,
+      "continue": 0,
+      "feedback": 0,
+      "requirement_change": 0,
+      "clarification": 0,
+      "authorization": 0,
+      "cancel": 0
+    },
+    "unclassified_messages": 3,
+    "task": "ERP-HARNESS-MODULARITY-001",
+    "goal_type": "development",
+    "outcome": "completed",
+    "planned_content_stages_count": 10,
+    "delivered_stages_count": 6,
+    "delivered_iterations_count": 10,
+    "delivery_observation": "tool_result_returned"
+  },
+  "notice": "Служебные материалы задачи удалены. Служебные журналы уничтожены",
+  "historical_receipts": [
+    {
+      "task": "ERP-HARNESS-MODULARITY-001",
+      "checks": [
+        {
+          "id": "52f225b8-0b7e-48df-983b-46ac473ed249",
+          "method": "MODULARITY-CONTRACTS",
+          "actual_exit_code": 0,
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

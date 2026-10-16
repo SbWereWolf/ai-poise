@@ -707,3 +707,8 @@ and [proof configurations](docs/workflows/evidence.md#конфигурацион
 For native entry project selection, preserve the invoking binding and select the
 exact project explicitly. Follow the [selection contract](docs/configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher)
 and [workflow skill](.agents/skills/poise/SKILL.md).
+
+Installation-wide setup locks must not serialize runtime work, project creation,
+configuration publication or state relocation. Keep short SQLite transactions and
+resource-owned write boundaries; operators perform configuration and relocation
+sequentially. See [relocation admission and order](docs/configuration/project-setup.md#допуск-и-порядок-переноса).

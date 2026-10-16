@@ -425,7 +425,7 @@ def test_final_task_transaction_rolls_back_and_recovers_published_project(projec
 
 
 @pytest.mark.parametrize("recovering", [False, True])
-def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, monkeypatch, recovering):
+def test_task_migration_does_not_acquire_shared_project_lock(project, monkeypatch, recovering):
     case = historical_project_owned(project)
     if recovering:
         interrupt_first_workflow(case, monkeypatch)
@@ -440,7 +440,8 @@ def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, 
         assert probe.returncode == 0, probe.stderr
         observed = json.loads(probe.stdout)
         assert_success(case, observed["code"], observed["result"], observed["stderr"])
-        assert observed["events"].index(str(project_lock)) < observed["events"].index(str(task_lock))
+        assert str(project_lock) not in observed["events"]
+        assert str(task_lock) in observed["events"]
         return
     events, held = [], set()
 
@@ -448,8 +449,7 @@ def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, 
     def tracked(path, seconds, poll):
         selected = Path(path).resolve()
         assert selected not in held, "Recursive acquisition of a held migration lock."
-        if selected == task_lock:
-            assert project_lock in held, "Task lock acquired before project publication lock."
+        assert selected != project_lock, "Migration acquired the shared project lock."
         with actual(path, seconds, poll):
             held.add(selected)
             events.append(selected)
@@ -463,11 +463,12 @@ def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, 
             scoped.setattr(module, "exclusive_lock", tracked)
         code, result, err = run_migration(case, patch=scoped)
     assert_success(case, code, result, err)
-    assert events.index(project_lock) < events.index(task_lock)
+    assert project_lock not in events
+    assert task_lock in events
     assert held == set()
 
 
-def test_contended_project_lock_has_no_effects(project):
+def test_obsolete_project_lock_does_not_block_migration(project):
     case = historical_project_owned(project)
     from poise.infrastructure.locking import exclusive_lock
     settings = json.loads(case["settings"].read_text())
@@ -475,10 +476,9 @@ def test_contended_project_lock_has_no_effects(project):
     before = observe(case)
     with exclusive_lock(project_lock, settings["lock_seconds"], settings["lock_poll_seconds"]):
         code, result, stderr = run_migration(case, fresh=True)
-    assert code == 2
-    assert result.get("status") == "rejected", stderr
-    assert "lock" in result["reason"].lower()
-    assert observe(case) == before
+    assert_success(case, code, result, stderr)
+    assert_preserved(before, observe(case))
+    assert_literals(case)
 
 
 def test_historical_fixture_layout_and_source_identities(project):

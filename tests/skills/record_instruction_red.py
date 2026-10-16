@@ -59,6 +59,9 @@ class Reporter:
 
 def run(nodes, output_root, group):
     """Return the real pytest exit with its exact streams in runner-owned files."""
+    # A script entry puts tests/skills on sys.path, unlike `python -m pytest`.
+    # Bind test imports to this checkout; Poise stays bound by PYTHONPATH=src.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     output_root.mkdir(parents=True, exist_ok=True)
     with (output_root / (group + '.pytest.stdout.txt')).open('w', encoding='utf-8', newline='') as stdout, \
          (output_root / (group + '.pytest.stderr.txt')).open('w', encoding='utf-8', newline='') as stderr, \

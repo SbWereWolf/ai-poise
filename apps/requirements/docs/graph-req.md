@@ -280,6 +280,159 @@ Task `000007` с постановкой 2 и снимком 1, Task `000008` с 
 }
 ```
 
+## Обслуживание и новый системный смысл
+
+Для обслуживания используйте Application-основание с осмысленным описанием
+исправления, связанное с действующим System-требованием о реальной возможности.
+Свяжите требование известной Task с этим основанием через `revise_task`.
+Если работа выявила новую возможность системы, явно добавьте отдельные System
+и Application требования и их связь; прежнее основание обслуживания сохраните.
+
+Перед изменением прочитайте текущую постановку через `get_task`, её основания
+через `chain` и общую ревизию из ответа `query`. В полной следующей постановке
+сохраните действующие goal, DoD и остальные требования, добавляя нужную запись.
+
+В примерах ниже исходный реестр имеет общую `revision:1` и содержит только
+действующее System-требование `SYS-EXPORT` с текстом «Пользователь получает отчёт
+с сохранёнными значениями.». Известная Task `000041` имеет `statement_revision:1`,
+goal «Восстановить отчёт.», пустые `task_requirements` и `definition_of_done`.
+Это явно подготовленный вход, аналогичный [известной Task](#подготовленная-известная-task),
+а не инструкция создания новой Task в пустом приложении. Самостоятельный профиль
+работает с такими известными данными; выдача ID и публикация развиваются отдельно.
+В своей установке используйте прочитанные IDs, ревизии и полное содержимое постановки.
+
+### Основание обслуживания
+
+Передайте следующий пакет настроенному CLI:
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "maintenance",
+    "expected_revision": 1,
+    "operations": [
+      {
+        "kind": "put_requirement",
+        "requirement": {
+          "id": "APP-EXPORT-MAINTENANCE",
+          "level": "application",
+          "status": "current",
+          "text": "Основание обслуживания: восстановить сохранённые значения отчёта."
+        }
+      },
+      {"kind":"link","system":"SYS-EXPORT","application":"APP-EXPORT-MAINTENANCE"},
+      {
+        "kind": "revise_task",
+        "task_id": "000041",
+        "expected_statement_revision": 1,
+        "statement": {
+          "goal": "Восстановить отчёт.",
+          "definition_of_done": [],
+          "task_requirements": [
+            {
+              "key": "repair",
+              "status": "current",
+              "text": "Восстановить значения отчёта.",
+              "applications": ["APP-EXPORT-MAINTENANCE"]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+Ответ содержит `status:"applied", revision:2, replayed:false`; текущая постановка
+Task получает `statement_revision:2`. Реестр сохраняет одно исходное System-требование.
+Назначение основания объясняется его текстом, а системная цепочка описывает
+существующую возможность. Специальная структурированная классификация auxiliary
+остаётся [целевым проектом](req-model.md#4-auxiliary--назначение-основания-не-четвёртый-уровень).
+
+### Добавление нового системного смысла
+
+Продолжите после предыдущего пакета. Явно создайте новую пару требований и добавьте
+требование `period` в следующую постановку, сохранив прежнее `repair`:
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "new-meaning",
+    "expected_revision": 2,
+    "operations": [
+      {
+        "kind": "put_requirement",
+        "requirement": {
+          "id": "SYS-EXPORT-FILTER",
+          "level": "system",
+          "status": "current",
+          "text": "Пользователь выбирает период отчёта."
+        }
+      },
+      {
+        "kind": "put_requirement",
+        "requirement": {
+          "id": "APP-EXPORT-FILTER",
+          "level": "application",
+          "status": "current",
+          "text": "Приложение формирует отчёт за выбранный период."
+        }
+      },
+      {"kind":"link","system":"SYS-EXPORT-FILTER","application":"APP-EXPORT-FILTER"},
+      {
+        "kind": "revise_task",
+        "task_id": "000041",
+        "expected_statement_revision": 2,
+        "statement": {
+          "goal": "Восстановить отчёт.",
+          "definition_of_done": [],
+          "task_requirements": [
+            {
+              "key": "repair",
+              "status": "current",
+              "text": "Восстановить значения отчёта.",
+              "applications": ["APP-EXPORT-MAINTENANCE"]
+            },
+            {
+              "key": "period",
+              "status": "current",
+              "text": "Добавить выбор периода отчёта.",
+              "applications": ["APP-EXPORT-FILTER"]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+Ответ содержит `status:"applied", revision:3, replayed:false`; постановка Task
+получает `statement_revision:3`. У прежнего `APP-EXPORT-MAINTENANCE` сохраняются
+identity, текст, локальная ревизия `1`, связь с `SYS-EXPORT` и ссылка требования
+`repair`. Новая пара имеет собственные IDs и отдельную связь с требованием `period`.
+Прочитайте сохранённый результат новым запуском CLI:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"task","kind":"get_task","task_id":"000041"},
+      {"id":"maintenance","kind":"chain","requirement_id":"APP-EXPORT-MAINTENANCE"},
+      {"id":"new-meaning","kind":"chain","requirement_id":"APP-EXPORT-FILTER"},
+      {"id":"maintenance-history","kind":"history_requirement","requirement_id":"APP-EXPORT-MAINTENANCE"}
+    ]
+  }
+}
+```
+
+Два этих сценария проверяются через самостоятельный CLI и реальную базу в
+`apps/requirements/tests/test_maintenance.py`. Существующее основание и новая
+возможность остаются отдельными требованиями с сохранёнными связями.
+
 ## Границы и результаты операций
 
 Изменение System/Application через `put_requirement` сохраняет следующую локальную

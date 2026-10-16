@@ -8,6 +8,7 @@ import shutil
 from ..common import PoiseError, configured_root, configured_storage_path, descendant, digest, file_digest
 from ..modules.artifact_factory.domain import ArtifactRecoveryIntent
 from ..modules.tasks.domain import is_terminal_task_status
+from ..modules.result_integration.domain import IntegrationPublicationTarget
 from .diagnostic_io import readonly_database
 from .goal_config import read_document
 from .locking import exclusive_lock
@@ -15,6 +16,7 @@ from .project_resources import require_project_association, observe_hook_associa
 from .projects import ProjectSettings
 from .saved_materials import SavedMaterialReader, bind_receipt_materials, saved_receipts
 from .sqlite.artifacts import SqliteArtifactRepository
+from .sqlite.integration_scopes import SqliteIntegrationScopeRepository
 from .sqlite.transaction import write_transaction
 from .task_paths import task_root, sprint_root
 from .project_state_seal import file_snapshot, validate_source, validate_destination
@@ -113,6 +115,10 @@ class FileProjectStateRelocation:
                 sessions=SqliteArtifactRepository(db).recovery_sessions(sequence)
             SqliteAccounting.normalize_relocation(before,actual,self.live['project'],sessions)
         if path == self._database(self.destination):
+            SqliteIntegrationScopeRepository.normalize_relocation(
+                before, actual, str(descendant(self.source, self.live['paths']['runtime'])),
+                str(descendant(self.destination, self.live['paths']['runtime'])),
+                self.request['request_id'], self._integration_target())
             with readonly_database(path) as db:
                 SqliteArtifactRepository(db).normalize_relocation(
                     before, actual, path, self.request['request_id'])
@@ -155,6 +161,12 @@ class FileProjectStateRelocation:
 
     def _database(self, root):
         return descendant(root, self.live['paths']['database'])
+
+    def _integration_target(self):
+        git = self.live['git']
+        return IntegrationPublicationTarget(
+            str(Path(git['repository']).resolve()),
+            IntegrationPublicationTarget.target_ref_for(git['base_ref']))
 
     def _telemetry_database(self, root):
         return configured_storage_path(root,self.live['accounting']['storage']['database'])
@@ -260,6 +272,10 @@ class FileProjectStateRelocation:
         # Existing explicit binding events are carried with the store. Historical
         # receipts are hydrated only here, under the admitted relocation intent.
         with self._transaction() as db:
+            SqliteIntegrationScopeRepository(db).relocate(
+                str(descendant(self.source, self.live['paths']['runtime'])),
+                str(descendant(self.destination, self.live['paths']['runtime'])),
+                self.request['request_id'], self._integration_target())
             registry = SqliteArtifactRepository(db)
             for task in self.tasks:
                 task_id = task['id']

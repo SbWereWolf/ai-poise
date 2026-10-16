@@ -211,7 +211,7 @@ def reconfigure(settings_path, packet):
     if 'repository_scope' not in proposed.raw:
         raise PoiseError('Shared session entry requires explicit repository_scope and hooks_lock')
     definition = HookDefinition.parse(packet['definition'])
-    allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root'}
+    allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher'}
     unchanged = lambda value: {key: item for key, item in value.items() if key not in allowed}
     if unchanged(service.settings.raw) != unchanged(proposed.raw):
         raise PoiseError('Hook reconfiguration cannot change project, stores or other transport settings')

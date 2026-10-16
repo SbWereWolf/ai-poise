@@ -19,7 +19,7 @@ def stage(name,handler,edges,readonly,paths,role):
             'required_sections':[] if handler=='publish' else ['report'],'artifact_requirements':[]}
 
 
-def process(kind):
+def workflow(kind):
     integration=kind=='integration'
     end='publish' if integration else None
     stages=[stage('apply','apply_plan',{'complete':'inspect'},False,['src/**','docs/**'],'executor'),
@@ -56,10 +56,10 @@ def submission(ctx,work):
 def run(directory,scenario):
     home=create(directory);app=directory/'application';cfg=json.loads((home/'project.json').read_text())
     kind='integration' if scenario=='integration_conflict' else 'environment_remediation'
-    definition=process(kind)
+    definition=workflow(kind)
     for stage in definition['stages']: stage['role']='executor'
-    save(home/'config/processes/actions.json',definition)
-    cfg['processes']={kind:'config/processes/actions.json'};cfg['automatic_checks']=[];save(home/'project.json',cfg)
+    save(home/'config/workflows/actions.json',definition)
+    cfg['workflows']={kind:'config/workflows/actions.json'};cfg['automatic_checks']=[];save(home/'project.json',cfg)
     base=git(app,'rev-parse','HEAD');sources=[]
     if kind=='integration':
         for name,text in [('left','def double(n):\n    return n * 2\n'),('right','def double(n):\n    return n + n\n')]:

@@ -10,7 +10,7 @@ def load(name):
 
 
 def test_all_profiles_accept_only_artifact_paths():
-    for profile in load('process-matrices.json')['profiles']:
+    for profile in load('workflow-matrices.json')['profiles']:
         assert 'artifact_declarations' not in profile['sections']
         for stage in profile['stages']:
             if stage['kind']!='mechanical_gate': assert 'artifact_paths' in stage['pre_submit']

@@ -37,7 +37,7 @@ def run(directory, recovery_node, recovery_tool):
     subprocess.run(['git','clone','--branch','main',remote,str(repository)],check=True,capture_output=True)
     subprocess.run(['git','-C',str(repository),'remote','rename','origin',config['git']['remote']],check=True,capture_output=True)
     target_home=target/'poise';target_home.mkdir()
-    for rel in config['processes'].values():
+    for rel in config['workflows'].values():
         path=target_home/rel;path.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/rel,path)
     target_config=deepcopy(config);target_config['git']['repository']=str(repository)
     target_recovery = target_config['runtime_services']['transfer']['recovery']

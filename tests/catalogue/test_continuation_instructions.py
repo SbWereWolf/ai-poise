@@ -7,9 +7,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKS = sorted(
-    [*ROOT.glob("config/catalogue/processes/*.json"),
-     *ROOT.glob("config/catalogue/process-templates/*.json"),
-     *ROOT.glob("config/examples/ai-poise-processes/*.example.json")]
+    [*ROOT.glob("config/catalogue/workflows/*.json"),
+     *ROOT.glob("config/catalogue/workflow-templates/*.json"),
+     *ROOT.glob("config/examples/ai-poise-workflows/*.example.json")]
 )
 
 

@@ -21,5 +21,5 @@ class GoalConfigRepository(Protocol):
     def edit(self, goal_type: str, *, recover: bool = True) -> ContextManager[ConfigEdit]: ...
 
 
-class ProcessTemplates(Protocol):
+class WorkflowTemplates(Protocol):
     def resolve(self, selection: dict) -> dict: ...

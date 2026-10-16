@@ -21,7 +21,7 @@ rule](../../../docs/workflows/paired-task-stages.md#цель-и-требован
 
 The authorized result, existing code and interfaces, environment facts, known
 requirements, constraints and uncertainties, and the explicitly selected project's
-process, routing and supported public Task schema.
+workflow, routing and supported public Task schema.
 
 ## Procedure
 
@@ -52,7 +52,7 @@ process, routing and supported public Task schema.
    recommendations separately, with enough context to understand the question,
    choice, rationale, scope and consequences without running a checker. Additional
    verification of that record uses only reading code, documentation and tests; it does
-   not replace the process-owned behavioral checks or prove that tests passed.
+   not replace the workflow-owned behavioral checks or prove that tests passed.
 3. Do not predict future class names, test names or commands as readiness gates.
    Supply the complete initial checks object explicitly; an empty object is valid
    for a development Task. Concrete test and code design belong to execution.
@@ -60,7 +60,7 @@ process, routing and supported public Task schema.
    [stage criteria contract](../../../docs/workflows/stage-criteria.md), separately
    from stage roles and handlers. Supply initial stage criteria from known facts.
    Declare actual stage roles, inputs/outputs, skills and sufficient write boundaries
-   using the selected project's decomposition contract. A paired process requires
+   using the selected project's decomposition contract. A paired workflow requires
    independent review after each substantive executor result, not role impersonation.
 5. Use only public create/edit/ready and contract APIs. Preserve identity, ownership,
    history and source facts. Do not change the meaning of an accepted goal.

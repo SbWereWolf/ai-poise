@@ -26,14 +26,14 @@ def continue_execution(*, config_path: Path, session: str, task_id: str,
     record = h.task_queries.record(task_id)
     if record is None or record['contract']['goal_type'] != 'verification':
         raise ValueError('The example requires the previously planned verification task')
-    if record['process']['stages'][record['stage_index']]['id'] != 'planning':
+    if record['workflow']['stages'][record['stage_index']]['id'] != 'planning':
         raise ValueError('This example only advances planning to execution; no further stage is accepted')
     client = WorkTools(h)
 
     def call(operation, inputs):
         return client.invoke({'operation': operation, 'input': inputs, 'messages': []})
 
-    # Resolve a restored task with its saved process position, never reconstruct
+    # Resolve a restored task with its saved workflow position, never reconstruct
     # it from a status string or patch a database row.
     context = call('bootstrap', {'task': {'id': task_id}, 'decision': None,
                                  'feedback': None, 'rework_stage': None})
@@ -42,7 +42,7 @@ def continue_execution(*, config_path: Path, session: str, task_id: str,
     context = call('bootstrap', {'task': None, 'decision': user_decision,
                                  'feedback': None, 'rework_stage': None})
     if context['stage'] != 'execution':
-        raise ValueError('Selected process did not open the expected execution stage')
+        raise ValueError('Selected workflow did not open the expected execution stage')
     tree = Path(context['worktree'])
     git_timeout = h.cfg['limits']['git_seconds']
 

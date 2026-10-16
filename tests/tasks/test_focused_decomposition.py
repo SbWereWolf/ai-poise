@@ -574,7 +574,7 @@ def test_automatic_task_creation_rejects_unfocused_plan(project, catalog_backed)
     contract = deepcopy(project["task"])
     contract["id"] = "FOCUSED-AUTO"
     contract["decomposition"] = _peer_decomposition(
-        [stage["id"] for stage in project["process"]["stages"]]
+        [stage["id"] for stage in project["workflow"]["stages"]]
     )
     before = _lifecycle_state(client, project)
     with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
@@ -594,7 +594,7 @@ def test_automatic_task_creation_rejects_unfocused_plan(project, catalog_backed)
     valid = deepcopy(project["task"])
     valid["id"] = "FOCUSED-VALID"
     valid["decomposition"] = _valid_decomposition(
-        [stage["id"] for stage in project["process"]["stages"]]
+        [stage["id"] for stage in project["workflow"]["stages"]]
     )
     started = client.invoke(
         request(
@@ -636,7 +636,7 @@ def test_newborn_ready_rejects_unfocused_plan(project, catalog_backed):
     contract.pop("id")
     contract.pop("sprint_id")
     contract["decomposition"] = _peer_decomposition(
-        [stage["id"] for stage in project["process"]["stages"]]
+        [stage["id"] for stage in project["workflow"]["stages"]]
     )
     edited = client.invoke(
         request(
@@ -681,7 +681,7 @@ def test_newborn_ready_rejects_unfocused_plan(project, catalog_backed):
     valid_contract.pop("id")
     valid_contract.pop("sprint_id")
     valid_contract["decomposition"] = _valid_decomposition(
-        [stage["id"] for stage in project["process"]["stages"]]
+        [stage["id"] for stage in project["workflow"]["stages"]]
     )
     valid_edited = client.invoke(
         request(

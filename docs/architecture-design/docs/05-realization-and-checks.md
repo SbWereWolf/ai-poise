@@ -11,7 +11,7 @@
 | Существующее место | Что уже даёт | Целевое место | Что не надо делать |
 |---|---|---|---|
 | `runtime.py: Harness.bootstrap` | Привязка текущей работы, создание контекста | `BootstrapWork` + sessions/tasks + ContextAssembler | Не писать второй bootstrap для sprint с копией всего тела |
-| `runtime.py: Harness._stage` | Этап из конфигурации | processes + общий runner | Не ветвиться по goal_type |
+| `runtime.py: Harness._stage` | Этап из конфигурации | workflows + общий runner | Не ветвиться по goal_type |
 | `runtime.py: Harness.verify` | Кандидатный payload, команды, evidence, finalization | `VerifyStage`, TaskCommands, verification, FinalizationCoordinator | Не переносить весь большой метод в `BaseHandler` |
 | `runtime.py: _tree/_changed` | Наблюдение Git без регистрации файлов моделью | SQLite-independent WorkspacePort/Git adapter | Не заставлять агента сообщать изменённые файлы |
 | `runtime.py: _select_checks` | Объединение явно определённых методов | verification + execution policy | Не добавлять автоматическое угадывание команд по проекту |

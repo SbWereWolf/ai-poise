@@ -14,10 +14,10 @@ def run(directory: Path, scenario: str):
     home = create(directory)
     observer = scenario == 'observe_feedback'
     goal = 'observation_demo' if observer else 'verification_demo'
-    process = json.loads((SOURCE / f'config/processes/{goal}.json').read_text())
-    save(home / f'config/processes/{goal}.json', process)
+    workflow = json.loads((SOURCE / f'config/workflows/{goal}.json').read_text())
+    save(home / f'config/workflows/{goal}.json', workflow)
     cfg = json.loads((home / 'project.json').read_text())
-    cfg['processes'] = {goal: f'config/processes/{goal}.json'}
+    cfg['workflows'] = {goal: f'config/workflows/{goal}.json'}
     cfg['automatic_checks'] = []
     save(home / 'project.json', cfg)
     logical = scenario == 'logical'
@@ -28,17 +28,17 @@ def run(directory: Path, scenario: str):
     task = json.loads((home / 'task.json').read_text())
     task.update(goal_type=goal, goal='Получить воспроизводимое наблюдение/аргумент и осмотреть его.', requirements=['Результат относится к выбранному состоянию и воспроизводим.'], definition_of_done=['Аргумент, когда требуется, осмотрен; отрицательный предметный результат не скрыт.'], methods=[] if logical else [method], method_inputs=[] if logical else [{'method_id':'MEASURE','repository_inputs':[],'future_outputs':[],'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}], checks={'measure': [] if logical else ['MEASURE'], 'audit': []}, artifact_requirements=[], evidence_plan={'measure': {'subject_methods': {} if logical else {'MEASURE': {'exit_codes': [0, 1], 'stdout_contains': ['VALUE=3'], 'stderr_contains': []}}, 'arguments': [{'id': 'A', 'kind': 'logical', 'phase': 'prepare' if logical else 'continue', 'observation_methods': [] if logical else ['MEASURE']}] if argument_required else [], 'review_arguments': []}, 'audit': {'subject_methods': {}, 'arguments': [], 'review_arguments': ['A'] if argument_required else []}})
     # The generic demo starts with a doubling task. This scenario owns a
-    # different contract: rebuild all process-dependent fields and obtain
+    # different contract: rebuild all workflow-dependent fields and obtain
     # matching evidence requirements through the existing registry owner.
     task['stage_contracts'] = [
         {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
          'entry_requirements': [], 'exit_requirements': []}
-        for stage in process['stages']
+        for stage in workflow['stages']
     ]
     task['decomposition'] = {
         'kind': 'ordinary', 'integration': None,
         'phases': [{'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
-                   for stage in process['stages']],
+                   for stage in workflow['stages']],
     }
     from poise.composition import requirements_tools
     requirements, _ = requirements_tools(home / 'project.json')

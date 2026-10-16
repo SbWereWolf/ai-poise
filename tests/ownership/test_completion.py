@@ -11,13 +11,13 @@ from poise.application.work import WorkTools
 @pytest.mark.parametrize('worktree_required', [False, True], ids=['task_only', 'worktree'])
 @pytest.mark.parametrize('operation', ['accept', 'continue'])
 def test_terminal_completion_preserves_result_and_measures_sections(project, operation, worktree_required):
-    process = deepcopy(project['process'])
-    stage = process['stages'][0]
+    workflow = deepcopy(project['workflow'])
+    stage = workflow['stages'][0]
     stage['transitions'] = {'complete': None}
-    process['stages'] = [stage]
-    process['worktree_required'] = worktree_required
-    process['benefit']['sections'] = ['report']
-    write_json(project['root'] / 'config/processes/development.json', process)
+    workflow['stages'] = [stage]
+    workflow['worktree_required'] = worktree_required
+    workflow['benefit']['sections'] = ['report']
+    write_json(project['root'] / 'config/workflows/development.json', workflow)
     cfg = deepcopy(project['cfg'])
     cfg['automatic_checks'] = []
     write_json(project['config_path'], cfg)
@@ -124,7 +124,7 @@ def test_cancellation_preserves_an_independent_worktree_binding(project):
     tools, worktree, commit = prepare_completed_task(project, source_change, accept=False)
     with tools.runtime.store.transaction() as db:
         metadata = json.loads(db.execute("SELECT metadata FROM tasks WHERE id='T1'").fetchone()[0])
-        metadata['process']['worktree_required'] = False
+        metadata['workflow']['worktree_required'] = False
         db.execute("UPDATE tasks SET metadata=? WHERE id='T1'", (json.dumps(metadata),))
     assert tools.invoke(request('cancel', {'reason': 'Cancel this test Task.'}))['status'] == 'cancelled'
     with tools.runtime.store.transaction() as db:

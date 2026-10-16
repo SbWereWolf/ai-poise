@@ -50,12 +50,17 @@ def test_setup_cli_has_explicit_bootstrap_limit(project,tmp_path):
     result=subprocess.run([sys.executable,'-m','poise','runtime-setup','--settings',str(path),
         '--max-input-bytes',str(1048576)],input=json.dumps(packet),text=True,capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr
-    assert json.loads(result.stdout)['capability_checks']['ready']
+    response = json.loads(result.stdout)
+    if 'response_path' in response:
+        response = json.loads(Path(response['response_path']).read_text(encoding='utf-8'))
+    assert response['capability_checks']['ready']
 
 
-def test_checked_in_codex_hooks_disable_installation_bytecode_writes():
-    root=Path(__file__).resolve().parents[2]
-    document=json.loads((root/'.codex/hooks.json').read_text(encoding='utf-8'))
+def test_installed_codex_hooks_disable_installation_bytecode_writes(project, tmp_path):
+    from poise.infrastructure.hook_transport import setup_runtime
+    path, packet = prepared(project, tmp_path)
+    installed = setup_runtime(path, packet)
+    document = json.loads(Path(installed['hooks_path']).read_text(encoding='utf-8'))
     commands=[hook['command'] for groups in document['hooks'].values()
               for group in groups for hook in group['hooks']]
     assert commands

@@ -84,7 +84,7 @@ def missing_repository_input_intent(project, request_id, *, sprint_id=None):
     }]
     intent["task"]["checks"] = {
         stage["id"]: (["CHECK"] if stage["id"] == "tests" else [])
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     }
     return intent
 
@@ -414,8 +414,8 @@ def test_worktree_recovery_rejects_and_preserves_conflicting_state(project, monk
     assert [row["id"] for row in runtime.task_queries.summary()] == ["0001"]
 
 
-def _planning_process(project):
-    stage = deepcopy(project["process"]["stages"][0])
+def _planning_workflow(project):
+    stage = deepcopy(project["workflow"]["stages"][0])
     stage.update(
         id="draft",
         handler="produce", role="executor",
@@ -444,7 +444,7 @@ def _planning_process(project):
         transitions={"complete": None},
         rework_targets=["draft"],
     )
-    process = deepcopy(project["process"])
+    process = deepcopy(project["workflow"])
     process.update(
         goal_type="planning",
         stages=[stage, review, publish],
@@ -454,10 +454,10 @@ def _planning_process(project):
 
 
 def _planning_context(project):
-    process = _planning_process(project)
-    write_json(project["root"] / "config/processes/planning.json", process)
+    process = _planning_workflow(project)
+    write_json(project["root"] / "config/workflows/planning.json", process)
     cfg = deepcopy(project["cfg"])
-    cfg["processes"]["planning"] = "config/processes/planning.json"
+    cfg["workflows"]["planning"] = "config/workflows/planning.json"
     cfg["automatic_checks"] = []
     write_json(project["config_path"], cfg)
     parent = task_contract(project, "PLAN")
@@ -775,7 +775,7 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
     }]
     seed["checks"] = {
         stage["id"]: (["CHECK"] if stage["id"] == "tests" else [])
-        for stage in project["process"]["stages"]
+        for stage in project["workflow"]["stages"]
     }
     explicit = bootstrap(WorkTools(runtime), seed)
     source = runtime.task_queries.record("LEGACY")
@@ -792,7 +792,7 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
             historical,
             {
                 "contract": historical_contract,
-                "process": deepcopy(source["process"]),
+                "workflow": deepcopy(source["workflow"]),
                 "sprint_id": None,
                 "goal": historical_contract["goal"],
                 "config_hash": source["config_hash"],

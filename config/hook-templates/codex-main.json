@@ -6,7 +6,7 @@
   "events": [
     {
       "event": "SessionStart",
-      "matcher": "startup|resume|compact|clear",
+      "matcher": "",
       "timeout_seconds": 15,
       "async": false,
       "context_limit": 2000,

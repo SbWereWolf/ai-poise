@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/run-check.py", line 594, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/run-check.py", line 588, in main
+    test()
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/run-check.py", line 188, in test_large_success_is_bounded_and_durable
+    assert record["artifacts"]["log_sha256"] == hashlib.sha256(log.read_bytes()).hexdigest()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

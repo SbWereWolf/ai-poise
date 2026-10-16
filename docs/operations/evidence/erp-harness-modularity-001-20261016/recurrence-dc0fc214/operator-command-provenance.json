@@ -1,0 +1,8 @@
+{
+  "thread_id": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+  "command_id": "exec-889da969-8c4c-4b80-8203-de6bd7dbd930",
+  "command": "/bin/bash -lc 'set -e\n test \"$CODEX_SESSION_ID\" = 01a138d3-c841-7c01-a4c2-ca6aaccfffc5\n test \"$CODEX_THREAD_ID\" = 01a138d3-c841-7c01-a4c2-ca6aaccfffc5\n test ! -e docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-precommit.json\n test ! -e docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-applied-v2.json\n env PYTHONPATH=/home/sbwerewolf/workdata/poise-op/app/src /home/sbwerewolf/workdata/poise-op/projects/erp/runtime/poise-1.0.3/bin/python -B docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-recovery-v2.py apply --approved-plan-sha 153a688964c83815f2296cbf43674e811ec6fb178e9afa99ad853d9ab7261c78'",
+  "cwd": "/home/sbwerewolf/workdata/poise-op/app",
+  "exitCode": 1,
+  "truncated": false
+}

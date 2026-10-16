@@ -104,7 +104,7 @@ class RuntimeTaskDelivery:
                 'target_commit':target,'integration_request_id':record['duplicate_reuse']['candidate']['request_id']}},internal=True)
 
     def preparing_consumer(self, task_id):
-        return self.h.transfer_tools.port.repo.preparing_consumers(task_id)
+        return self.h.transfer_repository.preparing_consumers(task_id)
 
     def consumer_blocker(self, record):
         pending = record.get('pending')
@@ -117,7 +117,7 @@ class RuntimeTaskDelivery:
                 return 'handoff_pending'
             if uow.tasks.pending_artifact_consumers(record['id']):
                 return 'artifact_consumer_pending'
-        if self.h.transfer_tools.port.repo.pending_consumers(record['id']):
+        if self.h.transfer_repository.pending_consumers(record['id']):
             return 'transfer_pending'
         return None
 

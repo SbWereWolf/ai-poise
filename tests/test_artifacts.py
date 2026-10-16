@@ -56,9 +56,9 @@ def test_foreign_task_path_rejected(project):
 
 
 def test_configured_file_count_is_checked(project):
-    project['process']['stages'][0]['artifact_requirements'] = [
+    project['workflow']['stages'][0]['artifact_requirements'] = [
         {'scope': 'task', 'pattern': '*.json', 'minimum': 2, 'maximum': 2}]
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     h, b = begin(project)
     a = Path(b['task_root']) / 'a.json'; a.write_text('{}')
     fill(b, artifacts=[str(a), str(a)])

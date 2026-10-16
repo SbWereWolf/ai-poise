@@ -15,20 +15,20 @@ def policy():
 
 
 def setup(project):
-    p=deepcopy(project['process'])
+    p=deepcopy(project['workflow'])
     stage=p['stages'][0]
     stage.update(id='work',instruction='Создать результат и подтвердить его.',
                  purpose='execution',criteria_authority={'propose': [], 'decide': []},
                  read_only=False,allowed_paths=['src/**','docs/**'],
                  transitions={'complete':None},rework_targets=['work'])
     p['stages']=[stage];p['route']['entry']='work'
-    project['process']=p
-    write_json(project['root']/'config/processes/development.json',p)
+    project['workflow']=p
+    write_json(project['root']/'config/workflows/development.json',p)
     docs=deepcopy(p);docs['goal_type']='documentation';docs['stages'][0]['allowed_paths']=['docs/**']
-    write_json(project['root']/'config/processes/documentation.json',docs)
+    write_json(project['root']/'config/workflows/documentation.json',docs)
     cfg=project['cfg'];cfg['schema']='ddd-accounting-12';cfg['sprint']=policy()
     cfg['automatic_checks']=[]
-    cfg['processes']['documentation']='config/processes/documentation.json'
+    cfg['workflows']['documentation']='config/workflows/documentation.json'
     write_json(project['config_path'],cfg)
     return project
 
@@ -51,11 +51,11 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
         'entry_requirements':[],
         'exit_requirements':[],
         'criteria':{'requirements':[], 'definition_of_ready':[], 'definition_of_done':[]},
-    } for stage in project['process']['stages']]
+    } for stage in project['workflow']['stages']]
     t['decomposition'] = {
         'kind': 'ordinary',
         'phases': [{'stage': item['id'], 'skills': ['task-domain'], 'areas': []}
-                   for item in project['process']['stages']],
+                   for item in project['workflow']['stages']],
         'integration': None,
     }
     return bind_task_requirements(t, project['requirements_registry'])

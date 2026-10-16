@@ -9,16 +9,16 @@ import json
 from pathlib import Path
 import sqlite3
 
-from ..common import configured_root, descendant, load_process_migration_config
+from ..common import configured_root, descendant, load_workflow_migration_config
 from ..modules.foundation.errors import PoiseError
 from ..modules.goal_config.domain import GoalTypeDefinition
 from ..modules.tasks.stage_criteria import StageCriteriaBook
 from .catalogue import FileCatalogue
 from .goal_config import FileGoalConfigRepository
 from .locking import exclusive_lock
-from .stage_criteria_history import canonical, identity, process_candidate, task_candidate
+from .stage_criteria_history import canonical, identity, workflow_candidate, task_candidate
 from .stage_criteria_drafts import draft_candidate
-from .task_process_migration import _database_snapshot, _read_only_uri
+from .task_workflow_migration import _database_snapshot, _read_only_uri
 
 
 EVENT = 'task_stage_criteria_migration'
@@ -60,7 +60,7 @@ def _saved(db, request):
 
 def _record(db, adapter, request, value):
     db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
-               (adapter._audit_utc(), 'task-process-migrate', None, EVENT,
+               (adapter._audit_utc(), 'task-workflow-migrate', None, EVENT,
                 canonical({'request_id': request.request_id, 'request_digest': request.digest, **value})))
 
 
@@ -71,9 +71,9 @@ def _owner(root, config, goal):
     if not path.is_absolute():
         path = root / path
     catalogue = FileCatalogue(path)
-    target = descendant(root, config['processes'][goal])
+    target = descendant(root, config['workflows'][goal])
     if catalogue.editor.target(goal) != target:
-        raise PoiseError('Configured process and registered publication target differ')
+        raise PoiseError('Configured workflow and registered publication target differ')
     return FileGoalConfigRepository(catalogue.editor)
 
 
@@ -92,12 +92,12 @@ def _configuration_binding(root, config, project_owner=None):
     return {'root': str(root), 'manifest_digest': identity(config), 'resources': resources,
             'catalogue_path': str(catalogue.path), 'catalogue_digest': identity(catalogue.raw),
             'publications': {goal: _owner(root, config, goal).migration_binding(goal)
-                             for goal in config['processes']}}
+                             for goal in config['workflows']}}
 
 
 def _require_configuration(adapter, intent):
     """Reread actual files; a cached manifest cannot observe another writer."""
-    root, config, _ = load_process_migration_config(adapter.config_path)
+    root, config, _ = load_workflow_migration_config(adapter.config_path)
     owner = adapter.project_publication
     observed = _configuration_binding(root, config, owner)
     if owner is not None and observed.get('project') != intent['configuration_binding'].get('project'):
@@ -108,15 +108,15 @@ def _require_configuration(adapter, intent):
         owner.require_stage_criteria_source(intent['project_publication'])
 
 
-def _prepare(db, root, config, processes, request, backup_snapshot, project_owner=None):
+def _prepare(db, root, config, workflows, request, backup_snapshot, project_owner=None):
     tasks, events, submissions = _records(db)
     selected = [row for row in tasks if row['status'] not in ('completed', 'cancelled')]
-    wanted = {('process', key) for key in processes}
+    wanted = {('workflow', key) for key in workflows}
     wanted.update(('task', row['id']) for row in selected)
-    actual = {('process', item['goal_type']) if item['kind'] == 'process_definition'
+    actual = {('workflow', item['goal_type']) if item['kind'] == 'workflow_definition'
               else ('task', item['task_id']) for item in request.mapping}
     if wanted != actual:
-        raise PoiseError('Mapping does not match the complete process and nonterminal Task inventory')
+        raise PoiseError('Mapping does not match the complete workflow and nonterminal Task inventory')
     baseline = _snapshot(db)
     if baseline != backup_snapshot:
         raise PoiseError('Task DB differs from the named backup')
@@ -124,13 +124,13 @@ def _prepare(db, root, config, processes, request, backup_snapshot, project_owne
     publication = project_owner.stage_criteria_snapshot(root / project_owner.settings.raw['manifest']) if project_owner else None
     prepared = []
     for mapping in request.mapping:
-        if mapping['kind'] == 'process_definition':
+        if mapping['kind'] == 'workflow_definition':
             goal = mapping['goal_type']
-            source = processes[goal]
+            source = workflows[goal]
             old = identity(source)
             if publication is not None:
                 if mapping['expected_revision'] != old:
-                    raise PoiseError('Process source revision mismatch')
+                    raise PoiseError('Workflow source revision mismatch')
                 observed = {'bytes': publication['bytes'][goal]}
                 binding = publication['binding']
             else:
@@ -138,16 +138,20 @@ def _prepare(db, root, config, processes, request, backup_snapshot, project_owne
                 observed = owner.snapshot_for_migration(goal)
                 if (observed['pending'] or observed['head'] != old
                         or observed['document'] != source or mapping['expected_revision'] != old):
-                    raise PoiseError('Historical process must match the exact managed editor head')
+                    raise PoiseError('Historical workflow must match the exact managed editor head')
                 binding = owner.migration_binding(goal)
             try:
-                candidate = process_candidate(source, mapping['stages'])
+                if request.schema == 'task-stage-criteria-process-migration-1':
+                    from .process_stage_criteria import process_workflow_candidate
+                    candidate = process_workflow_candidate(source, mapping['stages'])
+                else:
+                    candidate = workflow_candidate(source, mapping['stages'])
             except ValueError as exc:
                 if project_owner is not None:
                     raise PoiseError(str(exc)) from exc
                 raise
             GoalTypeDefinition.from_configuration(candidate)
-            summary = {'kind': 'process_definition', 'goal_type': goal,
+            summary = {'kind': 'workflow_definition', 'goal_type': goal,
                        'old_digest': old, 'new_digest': identity(candidate),
                        'old_revision': old, 'new_revision': identity(candidate)}
             prepared.append({'mapping': mapping, 'source': source, 'candidate': candidate,
@@ -159,13 +163,20 @@ def _prepare(db, root, config, processes, request, backup_snapshot, project_owne
             if len(matches) != 1:
                 raise PoiseError('Migration Task source is missing')
             row = matches[0]
-            if mapping['kind'] == 'newborn_draft':
+            if request.schema == 'task-stage-criteria-process-migration-1':
+                from .process_stage_criteria import process_candidate
+                candidate, summary = process_candidate(row, mapping, events, submissions, receipt)
+                if 'workflow' in candidate:
+                    GoalTypeDefinition.from_configuration(candidate['workflow'])
+                if mapping['kind'] != 'newborn_draft':
+                    StageCriteriaBook.from_dict(candidate['stage_criteria'])
+            elif mapping['kind'] == 'newborn_draft':
                 candidate, summary = draft_candidate(row, mapping)
-                if 'process' in candidate:
-                    GoalTypeDefinition.from_configuration(candidate['process'])
+                if 'workflow' in candidate:
+                    GoalTypeDefinition.from_configuration(candidate['workflow'])
             else:
                 candidate, summary = task_candidate(row, mapping, events, submissions, receipt)
-                GoalTypeDefinition.from_configuration(candidate['process'])
+                GoalTypeDefinition.from_configuration(candidate['workflow'])
                 StageCriteriaBook.from_dict(candidate['stage_criteria'])
             prepared.append({'mapping': mapping, 'source': row,
                              'candidate': candidate, 'summary': summary})
@@ -177,18 +188,18 @@ def _prepare(db, root, config, processes, request, backup_snapshot, project_owne
         source = project_owner.stage_criteria_source(
             root / project_owner.settings.raw['manifest'], publication['revision'])
         candidate = {item['mapping']['goal_type']: item['candidate'] for item in prepared
-                     if item['mapping']['kind'] == 'process_definition'}
+                     if item['mapping']['kind'] == 'workflow_definition'}
         child = identity({'migration': request.digest, 'owner': publication['binding'],
                           'source': source, 'candidate': candidate})
         intent['project_publication'] = {
             'config_path': str(root / project_owner.settings.raw['manifest']),
             'binding': publication['binding'], 'config': config,
             'source': source,
-            'processes': processes, 'candidate': candidate, 'revision': publication['revision'],
+            'workflows': workflows, 'candidate': candidate, 'revision': publication['revision'],
             'request': {'schema': 'project-config-update-1', 'request_id': child,
                         'config_path': str(root / project_owner.settings.raw['manifest']),
                         'expected_revision': publication['revision'], 'manifest_edits': [],
-                        'process_updates': [], 'state_relocation': None, 'probe_repository': False,
+                        'workflow_updates': [], 'state_relocation': None, 'probe_repository': False,
                         'receipt_path': f'operations/stage-criteria-{child}.json'}}
     return intent
 
@@ -203,7 +214,7 @@ def _publication_request(request, item):
     return value, digest
 
 
-def _require_process(root, config, request, item, *, completed):
+def _require_workflow(root, config, request, item, *, completed):
     goal = item['mapping']['goal_type']
     owner = _owner(root, config, goal)
     observed = owner.snapshot_for_migration(goal)
@@ -213,7 +224,7 @@ def _require_process(root, config, request, item, *, completed):
         # Exact editor replay also checks receipt/path/candidate/head/pending identity.
         if (observed['document'] != item['candidate'] or observed['head'] != expected
                 or observed['pending']):
-            raise PoiseError('Published migration process drifted')
+            raise PoiseError('Published migration workflow drifted')
         receipt = owner.completed_migration(goal, packet, digest,
                                             item['summary']['old_revision'], item['candidate'])
         if receipt is None:
@@ -222,7 +233,7 @@ def _require_process(root, config, request, item, *, completed):
     if (identity(observed['document']) != expected or observed['head'] != expected
             or identity(list(observed['bytes'])) != item['source_bytes_digest']
             or observed['pending']):
-        raise PoiseError('Historical migration process drifted')
+        raise PoiseError('Historical migration workflow drifted')
     return owner
 
 
@@ -234,7 +245,7 @@ def _completed_resources(request, intent, known):
     """
     result = []
     for item in intent['resources']:
-        if item['mapping']['kind'] != 'process_definition':
+        if item['mapping']['kind'] != 'workflow_definition':
             continue
         if item['summary'] in known:
             result.append(item['summary'])
@@ -259,12 +270,12 @@ def _continue(db, adapter, root, config, request, intent, saved):
         _require_configuration(adapter, intent)
         if _snapshot(db) != intent['baseline']:
             raise PoiseError('Migration source inventory changed after preparation')
-        processes = [item for item in intent['resources'] if item['mapping']['kind'] == 'process_definition']
-        for item in processes:
+        workflows = [item for item in intent['resources'] if item['mapping']['kind'] == 'workflow_definition']
+        for item in workflows:
             _require_configuration(adapter, intent)
             done = item['summary'] in known
             if done:
-                _require_process(root, config, request, item, completed=True)
+                _require_workflow(root, config, request, item, completed=True)
                 continue
             goal = item['mapping']['goal_type']
             owner = _owner(root, config, goal)
@@ -273,11 +284,11 @@ def _continue(db, adapter, root, config, request, intent, saved):
             # after file replacement but before our publication observation.
             owner.publish_migration(goal, packet, digest,
                                     item['summary']['old_revision'], item['candidate'])
-            _require_process(root, config, request, item, completed=True)
+            _require_workflow(root, config, request, item, completed=True)
             known.append(item['summary'])
             _record(db, adapter, request, {'phase': 'published', 'resource': item['summary']})
         _require_configuration(adapter, intent)
-        return _finish_tasks(db, adapter, root, config, request, intent, processes)
+        return _finish_tasks(db, adapter, root, config, request, intent, workflows)
     except (PoiseError, OSError, sqlite3.Error, ValueError, TypeError, KeyError) as exc:
         return {'status': 'recovery_required', 'request_id': request.request_id,
                 'receipt': intent['receipt'], 'resources': _completed_resources(request, intent, known),
@@ -285,22 +296,22 @@ def _continue(db, adapter, root, config, request, intent, saved):
 
 
 def _untyped_draft(item):
-    return item['mapping']['kind'] == 'newborn_draft' and 'process' not in item['candidate']
+    return item['mapping']['kind'] == 'newborn_draft' and 'workflow' not in item['candidate']
 
 
-def _finish_tasks(db, adapter, root, config, request, intent, processes):
+def _finish_tasks(db, adapter, root, config, request, intent, workflows):
     db.execute('BEGIN IMMEDIATE')
     try:
         _require_configuration(adapter, intent)
         if _snapshot(db) != intent['baseline']:
             raise PoiseError('Task DB drifted before the migration transaction')
-        for item in processes:
+        for item in workflows:
             if adapter.project_publication is None:
-                _require_process(root, config, request, item, completed=True)
+                _require_workflow(root, config, request, item, completed=True)
             elif adapter.project_publication.completed_stage_criteria(intent['project_publication']) is None:
                 raise PoiseError('Migration publication is not completed')
         for item in intent['resources']:
-            if item['mapping']['kind'] == 'process_definition':
+            if item['mapping']['kind'] == 'workflow_definition':
                 continue
             source = item['source']
             current = db.execute(
@@ -314,7 +325,7 @@ def _finish_tasks(db, adapter, root, config, request, intent, processes):
                        (canonical(item['candidate']), source['id']))
             adapter.after_update(source['id'])
         for item in intent['resources']:
-            if item['mapping']['kind'] != 'process_definition':
+            if item['mapping']['kind'] != 'workflow_definition':
                 raw = db.execute('SELECT metadata FROM tasks WHERE id=?',
                                  (item['source']['id'],)).fetchone()[0]
                 expected = item['source']['metadata'] if _untyped_draft(item) else item['candidate']
@@ -336,7 +347,7 @@ def _finish_tasks(db, adapter, root, config, request, intent, processes):
 def _continue_project(db, adapter, root, config, request, intent, saved):
     owner = adapter.project_publication
     publication = intent['project_publication']
-    processes = [item for item in intent['resources'] if item['mapping']['kind'] == 'process_definition']
+    workflows = [item for item in intent['resources'] if item['mapping']['kind'] == 'workflow_definition']
     known = [item['resource'] for item in saved if item['phase'] == 'published']
     try:
         _require_configuration(adapter, intent)
@@ -345,16 +356,16 @@ def _continue_project(db, adapter, root, config, request, intent, saved):
         owner.publish_stage_criteria(publication)
         if owner.completed_stage_criteria(publication) is None:
             raise PoiseError('Migration publication is not completed')
-        for item in processes:
+        for item in workflows:
             if item['summary'] not in known:
                 known.append(item['summary'])
                 _record(db, adapter, request, {'phase': 'published', 'resource': item['summary']})
-        return _finish_tasks(db, adapter, root, config, request, intent, processes)
+        return _finish_tasks(db, adapter, root, config, request, intent, workflows)
     except (PoiseError, OSError, sqlite3.Error, ValueError, TypeError, KeyError) as exc:
         observed = list(known)
         try:
             if owner.completed_stage_criteria(publication) is not None:
-                observed = [item['summary'] for item in processes]
+                observed = [item['summary'] for item in workflows]
         except (PoiseError, OSError, sqlite3.Error, ValueError, TypeError, KeyError):
             pass
         return {'status': 'recovery_required', 'request_id': request.request_id,
@@ -363,7 +374,7 @@ def _continue_project(db, adapter, root, config, request, intent, saved):
 
 def migrate_stage_criteria(adapter, request):
     try:
-        root, config, processes = load_process_migration_config(adapter.config_path)
+        root, config, workflows = load_workflow_migration_config(adapter.config_path)
         state = configured_root(root, config['paths']['state'])
         database = descendant(state, config['paths']['database'])
         lock = descendant(state, config['paths']['lock'])
@@ -404,7 +415,7 @@ def migrate_stage_criteria(adapter, request):
                     if adapter.project_publication is not None:
                         _require_configuration(adapter, intent)
                 else:
-                    intent = _prepare(db, root, config, processes, request, backup_snapshot, adapter.project_publication)
+                    intent = _prepare(db, root, config, workflows, request, backup_snapshot, adapter.project_publication)
                     adapter.after_preflight()
                     _require_configuration(adapter, intent)
                     # No intent/publication is durable before this drift check.
@@ -414,8 +425,8 @@ def migrate_stage_criteria(adapter, request):
                         if _snapshot(db) != intent['baseline']:
                             raise PoiseError('Task DB differs after migration preflight')
                         for item in intent['resources']:
-                            if item['mapping']['kind'] == 'process_definition' and adapter.project_publication is None:
-                                _require_process(root, config, request, item, completed=False)
+                            if item['mapping']['kind'] == 'workflow_definition' and adapter.project_publication is None:
+                                _require_workflow(root, config, request, item, completed=False)
                         _record(db, adapter, request, intent)
                         db.execute('COMMIT')
                     except BaseException:

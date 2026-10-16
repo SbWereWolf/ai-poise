@@ -15,7 +15,7 @@ from poise.infrastructure.sqlite.tasks import SqliteExecutionRepository
 from poise.modules.evidence.domain import completed_receipts
 from runtime_services.test_durable_check_attempts import candidate, fail_once
 from runtime_services.test_failed_check_rework import _scenario
-from runtime_services.test_task_restart import process_contract, restart
+from runtime_services.test_task_restart import workflow_contract, restart
 from runtime_services.test_uncertain_check_transfer import _handoff, _pending
 
 
@@ -243,7 +243,7 @@ def test_termination_run_topology_is_not_permission(project, monkeypatch, damage
 def test_proved_transfer_archives_mixed_negative_missing_and_unstarted(project, monkeypatch):
     project['task']['planning'] = {
         'schema': 'task-planning-1', 'template': None,
-        'restart_revision_policy': {'reviewer': ['process'], 'user': ['process']},
+        'restart_revision_policy': {'reviewer': ['workflow'], 'user': ['workflow']},
     }
     project['cfg']['runtime_services']['check_runner'].update(
         initial_seconds=2, progress_gap_seconds=0.1, poll_seconds=0.02)
@@ -349,12 +349,12 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
 
     configure(project)
     source = Path(__file__).parent / 'fixtures' / 'eight_recovery_stages.json'
-    process = json.loads(source.read_text())
-    write_json(project['config_path'].parent / 'config/processes/development.json', process)
+    workflow = json.loads(source.read_text())
+    write_json(project['config_path'].parent / 'config/workflows/development.json', workflow)
     project['cfg']['automatic_checks'] = []
     write_json(project['config_path'], project['cfg'])
     task = deepcopy(project['task'])
-    task.update(process_contract('development', process))
+    task.update(workflow_contract('development', workflow))
     task['planning'] = deepcopy(CONTRACT['planning'])
     executor = WorkTools(WorkPoise(project['config_path'], 'history-executor'))
     initial = executor.invoke(request('bootstrap', {
@@ -392,8 +392,8 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
         authorization={'role': 'reviewer', 'decision':
                        'Preserve historical finding and repeat all eight obligations.'})
     assert newborn['status'] == 'newborn'
-    assert newborn['process'] == process
-    assert len(newborn['process']['stages']) == 8
+    assert newborn['workflow'] == workflow
+    assert len(newborn['workflow']['stages']) == 8
     ready = reviewer.invoke(request('task', {'action': 'ready',
         'request_id': 'ready-eight-obligations', 'task_id': 'T1',
         'expected_revision': newborn['revision']}))
@@ -408,7 +408,7 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
     assert [finding['id'] for finding in feedback_before['open_findings']] == ['F-HISTORY']
     assert fresh['workflow']['evidence']['assessment'] is None
     after = executor.runtime.task_queries.record('T1')
-    assert after['process'] == before['process']
+    assert after['workflow'] == before['workflow']
     assert after['requirements_snapshot'] == before['requirements_snapshot']
     assert after['requirements_agreement'] == before['requirements_agreement']
     with executor.runtime.store.transaction() as database:

@@ -1,0 +1,38 @@
+{
+  "operation": "verify",
+  "input": {
+    "result": {
+      "artifact_paths": [
+        "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/DOC-IMPACT.md",
+        "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/TRACEABILITY.md",
+        "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/SOURCE-CHECKSUMS.sha256",
+        "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/DURABLE-RECOVERY.json",
+        "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/PRODUCER-SELF-REVIEW.json",
+        "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/final-20261016/SOURCE-REMEDIATION-REVIEW.md"
+      ],
+      "commit_message": "fix: reject missing required harness profile fields",
+      "content_additions": {
+        "requirements": [],
+        "routes": [],
+        "sections": []
+      },
+      "evidence_work": {
+        "arguments": [],
+        "decisions": [],
+        "phase": "prepare"
+      },
+      "method_additions": [],
+      "stage_work": {},
+      "trace": {},
+      "sections": {
+        "result": "Canonical pure profile owner, explicit frozen CheckConfiguration and shared RegisteredCheckService deliver independently reusable capabilities with thin CLI/MCP transports. MOD-SOURCE-CONFIG-001 fixed by removing mandatory-field defaults/null-cache acceptance through existing validators. All original tests/fixtures preserved;30 literal required paths with/without extensions and real loader counterexample added. Four-file correction independently accepted at exact hashes in SOURCE-REMEDIATION-REVIEW. No new package, schema relaxation, alias, auto-repair or version switching.",
+        "report": "SR-TEST-MOD-SOURCE-CONFIG-001 and SR-REMEDIATION-MOD-SOURCE-CONFIG-001 complete; genuine24-test RED19→GREEN24, independent37GREEN, complete20runner/21cache/9evidence/14fingerprint/adoption/MCP/provider/package/fast passed. Artifact maps and exact38-source checksums published through actual owner. Original a4-through-final independent review boundary retained. Audited operator correction is separate from code behavior: durable raw preimages and old4receipts preserved, old unknown run remainsUNKNOWN, journal15043 truthfully supersedes active reference and two stale handoffs; foreign-state hashes/integrity/FK unchanged. Public bootstrap genuinely resumed Task160. Fresh native ten-method execution and later native independent acceptance are required, not predeclared. No push.",
+        "documentation_result": "documentation.status=co-delivered: all five Russian ERP canonical documents listed in final-20261016/DOC-IMPACT.md; strict mandatory-field behavior explicitly documented and executed. Exact-five registered proof passed with both counters5; generator --check and diff-check pass. Durable Poise known-bugs/incident evidence outside deletable Task materials is separately authorized and pending its own documentation commit; original raw histories are immutable. Final native results and integration will be appended as actual subsequent evidence, never fabricated."
+      },
+      "report": "\nAudited recurrence continuation: independently approved script d0579e814ea3b545192360965e5e9582c6fcaa9b2f1f8581af627fb5abc0cefb and plan153a688964c83815f2296cbf43674e811ec6fb178e9afa99ad853d9ab7261c78 applied with exact CAS execution122 to123, Task161 unchanged, all handoffs/history/foreign rows preserved; real operator journal15077, integrityOK/FKempty. Original second attemptdc0fc214/run306b7b7e remainsUNKNOWN. Durable records reside in Poise docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214; source documentation commits ba19a5c0, db3969ac and f84c7ed0 retain prior evidence and failed pre-fence apply distinctly. One owner-coordinated window was explicitly granted by PROJECT-LAUNCHER-REGISTRY after actual P002 executor and Consultant terminal/HOLD acknowledgments. This submission requests ONE new genuine native verification; no future receipt or native acceptance is predeclared.",
+      "documentation_result": "\nThe current recurrence applied record operator-applied-v2.json is genuine operator evidence, not a native receipt. Its archival commit will follow terminal verification; native Task acceptance and target integration remain separate."
+    },
+    "artifacts": []
+  },
+  "messages": []
+}

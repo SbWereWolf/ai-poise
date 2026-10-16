@@ -116,11 +116,11 @@ def test_publish_rejects_conflicting_existing_dependency_projection(sprint):
 
 def test_invalid_trace_schedule_prevents_all_sprint_member_publication(project):
     setup(project)
-    work=project['process']['stages'][0]
+    work=project['workflow']['stages'][0]
     later=deepcopy(work);later.update(id='later',transitions={'complete':None},rework_targets=['later'])
     work['transitions']={'complete':'later'}
-    project['process']['stages']=[work,later]
-    write_json(project['root']/'config/processes/development.json',project['process'])
+    project['workflow']['stages']=[work,later]
+    write_json(project['root']/'config/workflows/development.json',project['workflow'])
     h=Poise(project['config_path'],'planner');w=WorkTools(h)
 
     valid=task(project,'A')
@@ -160,7 +160,7 @@ def test_bootstrap_by_sprint_id_returns_ready_set_without_claim(sprint):
     assert bootstrap(w)['eligible']==['A']
 
 
-def test_start_by_id_runs_pinned_process_and_blocks_successor(sprint):
+def test_start_by_id_runs_pinned_workflow_and_blocks_successor(sprint):
     p,h,w=sprint;r=draft(w,[task(p,'A'),task(p,'B')],[{'predecessor':'A','successor':'B','kind':'completion'}]);publish(w,r['revision'])
     with pytest.raises(PoiseError):bootstrap(w,'B')
     ctx=bootstrap(w,'A');assert ctx['task']=='A' and Path(ctx['worktree']).exists()
@@ -289,11 +289,11 @@ def test_dependency_batch_update_only_for_unstarted_successor(sprint):
     with pytest.raises(PoiseError):w.invoke(request('sprint',edit))
 
 
-def test_published_task_uses_process_snapshot_after_file_edit(sprint):
+def test_published_task_uses_workflow_snapshot_after_file_edit(sprint):
     from conftest import write_json
     p,h,w=sprint;r=draft(w,[task(p)]);publish(w,r['revision'])
-    changed=deepcopy(p['process']);changed['stages'][0]['instruction']='Новые правила другой редакции'
-    write_json(p['root']/'config/processes/development.json',changed)
+    changed=deepcopy(p['workflow']);changed['stages'][0]['instruction']='Новые правила другой редакции'
+    write_json(p['root']/'config/workflows/development.json',changed)
     new=WorkTools(Poise(p['config_path'],'worker'))
     assert bootstrap(new,'A')['instruction']!=changed['stages'][0]['instruction']
 

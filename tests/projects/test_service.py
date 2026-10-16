@@ -14,14 +14,14 @@ def test_setup_creates_independent_runtime_config_without_task_or_git_mutation(p
     settings,_,req=setup_case(project)
     before=git(project['app'],'status','--porcelain')
     result=project_tools(settings).apply(req)
-    root,cfg,processes=load_config(Path(result['config_path']))
+    root,cfg,workflows=load_config(Path(result['config_path']))
     assert result['status']=='created' and result['readiness']['repository']=='verified'
-    assert cfg['project']=='pilot' and set(processes)=={'development'}
+    assert cfg['project']=='pilot' and set(workflows)=={'development'}
     assert not (root/cfg['paths']['state']).exists()
     assert git(project['app'],'status','--porcelain')==before
     source=project['root']/req['template']['id'] # actual copy, not symlink
-    assert (root/cfg['processes']['development']).is_file()
-    assert not (root/cfg['processes']['development']).is_symlink()
+    assert (root/cfg['workflows']['development']).is_file()
+    assert not (root/cfg['workflows']['development']).is_symlink()
     # This scenario intentionally creates a second project. Supply its own
     # association after the setup-only assertions, before ordinary runtime use.
     from .helpers import bootstrap_fixture_resources
@@ -61,12 +61,11 @@ def test_conflicting_request_does_not_replace_existing_project(project):
     assert Path(r['config_path']).read_bytes()==before
 
 
-@pytest.mark.parametrize('failure',['schema','process','revision','repository','branch','escape','symlink','missing_policy'])
+@pytest.mark.parametrize('failure',['schema','workflow','repository','branch','escape','symlink','missing_policy'])
 def test_failed_preflight_publishes_no_project(project,failure):
     settings,raw,req=setup_case(project)
     if failure=='schema':req['schema']='old-format'
-    if failure=='process':write_json(project['root']/'config/processes/development.json',{'goal_type':'bad'})
-    if failure=='revision':req['template']['digest']='0'*64
+    if failure=='workflow':write_json(project['root']/'config/workflows/development.json',{'goal_type':'bad'})
     if failure=='repository':req['edits'][1]['value']=str(project['root']/'missing')
     if failure=='branch':req['edits'].append({'path':['git','base_ref'],'value':'absent'})
     if failure=='escape':req['destination']='../outside'
@@ -108,12 +107,11 @@ def test_failure_before_atomic_publication_leaves_no_partial_project(project,mon
     assert tool.apply(req)['status']=='created'
 
 
-def test_process_and_manifest_destination_collision_is_rejected(project):
+def test_workflow_and_manifest_destination_collision_is_rejected(project):
     settings,raw,req=setup_case(project)
-    raw['config']['processes']['development']='project.json'
+    raw['config']['workflows']['development']='project.json'
     write_json(project['root']/'config/project-blueprint.json',raw)
     cfg=json.loads(settings.read_text());cfg['templates']['selected']['digest']=digest(raw);write_json(settings,cfg)
-    req['template']['digest']=digest(raw)
     with pytest.raises(PoiseError):project_tools(settings).apply(req)
     assert not (project['root']/'configured/pilot').exists()
 

@@ -78,16 +78,16 @@ def work_packet_rows(runtime, task_id):
         )]
 
 
-def process_contract(goal_type, process):
-    requirements = process["content_contract"]["requirements"]
+def workflow_contract(goal_type, workflow):
+    requirements = workflow["content_contract"]["requirements"]
     return {
         "goal_type": goal_type,
         "methods": [],
         "method_inputs": [],
-        "checks": {stage["id"]: [] for stage in process["stages"]},
+        "checks": {stage["id"]: [] for stage in workflow["stages"]},
         "decomposition": {"kind": "ordinary", "phases": [
             {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
-            for stage in process["stages"]], "integration": None},
+            for stage in workflow["stages"]], "integration": None},
         "evidence_plan": {
             stage["id"]: {
                 "subject_methods": {},
@@ -99,7 +99,7 @@ def process_contract(goal_type, process):
                 }] if stage["handler"] == "check" else []),
                 "review_arguments": [],
             }
-            for stage in process["stages"]
+            for stage in workflow["stages"]
         },
         "stage_contracts": [
             {
@@ -114,7 +114,7 @@ def process_contract(goal_type, process):
                     if stage["id"] in item["stages"] and item["phase"] == "post"
                 ],
             }
-            for stage in process["stages"]
+            for stage in workflow["stages"]
         ],
     }
 
@@ -126,13 +126,13 @@ def complete_stage_result(context, report):
     return payload
 
 
-def select_restarted_process(tools, newborn, goal_type, process, request_suffix):
+def select_restarted_workflow(tools, newborn, goal_type, workflow, request_suffix):
     edited = tools.invoke(request("task", {
         "action": "edit",
         "request_id": f"select-{request_suffix}-{goal_type}",
         "task_id": newborn["task"],
         "expected_revision": newborn["revision"],
-        "patch": process_contract(goal_type, process),
+        "patch": workflow_contract(goal_type, workflow),
         "remove": [],
     }))
     return tools.invoke(request("task", {
@@ -239,32 +239,32 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
 def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(project):
     configure(project)
     repository_root = Path(__file__).parents[2]
-    process_root = project["config_path"].parent / "config" / "processes"
-    processes = {}
+    workflow_root = project["config_path"].parent / "config" / "workflows"
+    workflows = {}
     for goal_type in ("integration", "development"):
-        processes[goal_type] = json.loads(
-            (repository_root / "config" / "catalogue" / "processes" /
+        workflows[goal_type] = json.loads(
+            (repository_root / "config" / "catalogue" / "workflows" /
              f"{goal_type}.json").read_text(encoding="utf-8")
         )
-    development_entry = deepcopy(processes["development"]["stages"][0])
+    development_entry = deepcopy(workflows["development"]["stages"][0])
     development_entry["transitions"] = {"complete": None}
     development_entry["rework_targets"] = [development_entry["id"]]
-    processes["development"]["stages"] = [development_entry]
-    processes["development"]["content_contract"] = {
+    workflows["development"]["stages"] = [development_entry]
+    workflows["development"]["content_contract"] = {
         "sections": [],
         "routes": [],
         "requirements": [],
     }
     for goal_type in ("integration", "development"):
-        write_json(process_root / f"{goal_type}.json", processes[goal_type])
-    project["cfg"]["processes"] = {
-        goal_type: f"config/processes/{goal_type}.json"
+        write_json(workflow_root / f"{goal_type}.json", workflows[goal_type])
+    project["cfg"]["workflows"] = {
+        goal_type: f"config/workflows/{goal_type}.json"
         for goal_type in ("integration", "development")
     }
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
     integration_task = deepcopy(project["task"])
-    integration_task.update(process_contract("integration", processes["integration"]))
+    integration_task.update(workflow_contract("integration", workflows["integration"]))
     owner = WorkTools(Poise(project["config_path"], "packet-owner"))
     context = owner.invoke(request("bootstrap", {
         "task": integration_task,
@@ -293,11 +293,11 @@ def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(pr
         current["version"],
         request_id="restart-integration-to-development",
     )
-    assert select_restarted_process(
+    assert select_restarted_workflow(
         owner,
         newborn,
         "development",
-        processes["development"],
+        workflows["development"],
         "integration-to-development",
     )["status"] == "available"
 
@@ -328,11 +328,11 @@ def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(pr
         current["version"],
         request_id="restart-development-to-integration",
     )
-    assert select_restarted_process(
+    assert select_restarted_workflow(
         developer,
         newborn,
         "integration",
-        processes["integration"],
+        workflows["integration"],
         "development-to-integration",
     )["status"] == "available"
 
@@ -610,7 +610,7 @@ def test_restart_contract_rejects_terminal_work(status, project):
         NewbornTask.restart(
             terminal,
             metadata["contract"],
-            metadata["process"],
+            metadata["workflow"],
             metadata["sprint_id"],
             "executor",
             "The execution contract is broken.",
@@ -623,8 +623,8 @@ def test_restart_contract_rejects_terminal_work(status, project):
 
 def test_failed_next_stage_entry_is_reported_as_broken(project):
     configure(project)
-    process = deepcopy(project["process"])
-    second = process["stages"][1]
+    workflow = deepcopy(project["workflow"])
+    second = workflow["stages"][1]
     requirement = {
         "id": "unreachable-next-input",
         "kind": "artifact",
@@ -673,7 +673,7 @@ def test_broken_result_is_reported_as_business_incomplete_by_cli(project):
     requirement = {
         "id": "missing-input",
         "kind": "artifact",
-        "stages": [project["process"]["stages"][0]["id"]],
+        "stages": [project["workflow"]["stages"][0]["id"]],
         "phase": "pre",
         "scope": "task",
         "pattern": "inputs/missing.txt",

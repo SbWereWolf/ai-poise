@@ -23,7 +23,8 @@ class TaskRequirementsGate:
         registry = self._registry_loader()
         snapshot, plan = self._validate_snapshot(body, registry, "live registry")
         agreement = deepcopy(body.get("requirements_agreement"))
-        self._validate_agreement(agreement, plan)
+        if agreement is not None:
+            self._validate_agreement(agreement, plan)
         prepared, context = self._prepared(candidate, body, snapshot, agreement)
         context["registry"] = registry.to_dict()
         return prepared, context
@@ -48,7 +49,8 @@ class TaskRequirementsGate:
             "persisted Task",
         )
         agreement = deepcopy(body.get("requirements_agreement"))
-        self._validate_agreement(agreement, plan)
+        if agreement is not None:
+            self._validate_agreement(agreement, plan)
         return self._prepared(candidate, body, snapshot, agreement)
 
     @staticmethod
@@ -64,7 +66,7 @@ class TaskRequirementsGate:
     @staticmethod
     def _prepared(candidate, body, snapshot, agreement):
         del body["requirements_snapshot"]
-        del body["requirements_agreement"]
+        body.pop("requirements_agreement", None)
         return candidate, {"snapshot": snapshot, "agreement": agreement}
 
     @staticmethod

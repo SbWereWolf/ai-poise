@@ -7,7 +7,7 @@ from poise.modules.verification.domain import CheckRegistry
 
 EMPTY = {"sections": [], "routes": [], "requirements": []}
 
-def process(goal="writing"):
+def workflow(goal="writing"):
     return {"goal_type":goal, "worktree_required":True, "benefit":{"git_categories":["code","documentation"],"sections":[]}, "route":{"entry":"draft"},
       "content_contract":copy.deepcopy(EMPTY), "stages":[
        stage("draft","produce",{"complete":"audit"},False,["docs/**","src/**"],["draft"]),
@@ -24,12 +24,12 @@ def stage(name,handler,transitions,readonly,paths,rework,role="executor"):
 
 def task(cfg=None):
     from poise.modules.workflow.domain import RouteDefinition
-    cfg=process() if cfg is None else cfg
+    cfg=workflow() if cfg is None else cfg
     stages=tuple(StageSpec(s["id"],(SectionRule("report","Заполнить.","strip",True),)) for s in cfg["stages"])
     ids=tuple(s.stage_id for s in stages)
     policy=ContentPolicy.from_layers(EMPTY,EMPTY,ids,(),(),("report",))
     registry=CheckRegistry.from_task([],{i:[] for i in ids},ids)
-    route = RouteDefinition.from_process(cfg)
+    route = RouteDefinition.from_workflow(cfg)
     contracts = TaskStageContracts.parse([
         {"stage_id": stage["id"], "allowed_paths": list(stage["allowed_paths"]),
          "entry_requirements": [], "exit_requirements": []}

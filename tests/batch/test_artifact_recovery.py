@@ -226,7 +226,7 @@ def test_public_recovery_preserves_sprint_and_task_scope(project):
     assert {r[0] for r in linked} == {r['id'] for r in records if r['scope'] == 'sprint'}
 
 
-def test_recovery_does_not_require_active_process_snapshot(legacy):
+def test_recovery_does_not_require_active_workflow_snapshot(legacy):
     import json
     h = legacy['runtime']
     with h.store.transaction() as db:

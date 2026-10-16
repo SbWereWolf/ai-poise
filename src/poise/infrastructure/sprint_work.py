@@ -10,7 +10,7 @@ class SprintWork:
     def __init__(self,runtime):
         self.h=runtime
         self.commands=SprintCommands(runtime.store.unit_of_work,runtime.cfg['project'],runtime.session,
-            runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.processes,
+            runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.workflows,
             runtime.cfg['automatic_checks'],runtime.cfg['task_decomposition'],
             runtime.config_hash,
             runtime.task_commands.prepare_creation,runtime._creation_base,
@@ -87,7 +87,7 @@ class SprintWork:
         h.task_commands.duplicate_preflight(task_id,h.session,
             force_duplicate_start=force_duplicate_start)
         base=h._creation_base()
-        execution=h._execution_reservation(task_id,base,record['process']['worktree_required'])
+        execution=h._execution_reservation(task_id,base,record['workflow']['worktree_required'])
         h.task_commands.start(task_id,h.session,execution,force_duplicate_start=force_duplicate_start,
             restart_entry_tree=lambda retained: h._restart_entry_tree(task_id, retained))
         h._reconcile_task_worktree(h.task_queries.record(task_id))

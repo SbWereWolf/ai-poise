@@ -70,13 +70,13 @@ def setup(project, kind='git_merge', conflict=True):
                        'instruction':f'Выполнить {name}', 'normalization':'strip',
                        'sections':{} if handler=='publish' else {'report':'Заполнить.'},
                        'required_sections':[] if handler=='publish' else ['report'],'artifact_requirements':[]})
-    process={'goal_type':'integration' if kind=='git_merge' else 'environment_remediation','worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},
+    workflow={'goal_type':'integration' if kind=='git_merge' else 'environment_remediation','worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},
              'stages':stages,'route':{'entry':'apply'},
              'content_contract':{'sections':[],'routes':[],'requirements':[]}}
-    cfg=deepcopy(project['cfg']); cfg['processes']={process['goal_type']:'config/processes/action.json'};cfg['automatic_checks']=[]
-    write_json(project['root']/'config/processes/action.json',process)
+    cfg=deepcopy(project['cfg']); cfg['workflows']={workflow['goal_type']:'config/workflows/action.json'};cfg['automatic_checks']=[]
+    write_json(project['root']/'config/workflows/action.json',workflow)
     write_json(project['config_path'],cfg)
-    task=deepcopy(project['task']);task['goal_type']=process['goal_type'];task['id']='INTEGRATE';task['methods']=[];task['method_inputs']=[]
+    task=deepcopy(project['task']);task['goal_type']=workflow['goal_type'];task['id']='INTEGRATE';task['methods']=[];task['method_inputs']=[]
     task['decomposition']={
         **task['decomposition'],
         'phases':[

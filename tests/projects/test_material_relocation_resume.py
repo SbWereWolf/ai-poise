@@ -174,12 +174,12 @@ def test_versioned_relocation_rejects_typed_invalid_input_as_domain_result(
     else:
         move['hook_destinations'] = [{'installation_id': 'broken'}]
         field = 'settings_path'
-    process = invoke(packet)
+    workflow = invoke(packet)
     assert_preserved()
-    assert process.returncode == 2 and process.stderr == '', (
+    assert workflow.returncode == 2 and workflow.stderr == '', (
         'Typed bad request escaped the public structured refusal boundary: '
-        + process.stderr[-300:])
-    result = json.loads(process.stdout)
+        + workflow.stderr[-300:])
+    result = json.loads(workflow.stdout)
     assert result['status'] == 'rejected'
     assert field in result['reason'], 'Refusal must identify the unusable request field'
 

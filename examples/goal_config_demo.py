@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Isolated local demo: generate a process, edit once, and execute it. No network."""
+"""Isolated local demo: generate a workflow, edit once, and execute it. No network."""
 from __future__ import annotations
 import argparse
 import json
@@ -7,8 +7,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from demo import create, save, SOURCE
-from poise.common import digest
+from demo import create, save, git, SOURCE
 from work_client import WorkClient
 from copy import deepcopy
 
@@ -17,16 +16,16 @@ def run(directory: Path):
     # Initial fixture construction, not a user instruction to edit Poise data.
     home=create(directory)
     env = {**{k: v for k, v in os.environ.items() if k not in ('CODEX_SESSION_ID', 'CODEX_THREAD_ID', 'POISE_CALLER_BINDING', 'POISE_SESSION')}, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_CALLER_BINDING': str(home / 'goal-demo-caller.json'), 'LANG': 'C.UTF-8'}
-    source=home/'config/processes/development.json'
-    template=json.loads(source.read_text())
+    source=home/'config/workflows/development.json'
+    template_bytes=source.read_bytes()
     settings={"schema":"goal-config-editor-1","root":".","database":"state/config-editor.sqlite","lock":"state/config-editor.lock",
        "responses":"state/config-responses","file_mode":420,"json_indent":2,"lock_seconds":2.0,"lock_poll_seconds":0.01,
        "max_changes":2000,"max_input_bytes":1000000,"output_chars":2200,"exit_codes":{"success":0,"rejected":2,"pending":3},
-       "processes":{"development":"config/processes/generated.json"},
-       "templates":{"development-v1":{"path":"config/processes/development.json","version":"1","digest":digest(template)}}}
+       "workflows":{"development":"config/workflows/generated.json"},
+       "templates":{"development-v1":{"path":"config/workflows/development.json"}}}
     settings_path=home/'goal-editor.json'; save(settings_path,settings)
-    cfg=json.loads((home/'project.json').read_text());cfg['processes']['development']='config/processes/generated.json';save(home/'project.json',cfg)
-    selection={"id":"development-v1","version":"1","digest":digest(template)}
+    cfg=json.loads((home/'project.json').read_text());cfg['workflows']['development']='config/workflows/generated.json';save(home/'project.json',cfg)
+    selection={"id":"development-v1"}
     def packet(mode,expected,changes,rid,template):
         return {"schema":"goal-config-batch-1","request_id":rid,"mode":mode,"goal_type":"development","expected_revision":expected,"template":template,"changes":changes}
     def call(data):
@@ -42,7 +41,7 @@ def run(directory: Path):
     edit=packet('update',generated['revision'],changes,'demo-update',None)
     updated=call(edit); replay=call(edit)
     assert replay['replayed'] and updated['revision']==replay['revision']
-    assert json.loads(source.read_text())==template
+    assert source.read_bytes()==template_bytes
     task = json.loads((home/'task.json').read_text())
     task['stage_contracts'][0]['exit_requirements'] = ['rollback-required']
     save(home/'task.json', task)
@@ -65,11 +64,19 @@ def run(directory: Path):
         if sid=='implementation': (wt/'src/double.py').write_text('def double(n):\n    return n*2\n')
         if sid=='code_review':
             artifact_specs=[{'scope':'task','path':'result.md','source':{'kind':'text','text':'Verified demo: double(2)=4.\n'}}]
-        result=client.verify(payload, artifact_specs);assert result['status']=='verified';reports.append(result['stage'])
-    assert client.accept()['status']=='completed'
+        result=client.verify(payload, artifact_specs);assert result['status']=='verified';reports.append(result)
+    accepted=client.accept()
+    assert accepted['status']=='completed'
     result={'status':'PASS','created_revision':generated['revision'],'edited_revision':updated['revision'],
-            'replayed_without_duplicate':replay['replayed'],'source_template_unchanged':True,
-            'new_exit_gate_blocks_incomplete_stage':blocked,'stages':reports,'task_status':'completed'}
+            'replayed_without_duplicate':replay['replayed'],
+            'source_template_unchanged':source.read_bytes()==template_bytes,
+            'new_exit_gate_blocks_incomplete_stage':blocked,
+            'stages':[r['stage'] for r in reports], 'task_status':accepted['status'],
+            'red_exit':reports[0]['checks'][0]['actual_exit_code'],
+            'green_exit':reports[2]['checks'][0]['actual_exit_code'],
+            'base_branch_unchanged':git(directory/'application','show','main:src/double.py')=='def double(n):\n    return n+1',
+            'stage_checks':[{'stage':r['stage'],'checks':r['checks']} for r in reports],
+            'calls':client.calls}
     save(directory/'goal-config-report.json',result)
     return result
 

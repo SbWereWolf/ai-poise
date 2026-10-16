@@ -104,7 +104,7 @@ def test_newborn_standalone_edit_and_ready(project):
         "select-newborn-type",
     )
     assert selected["goal_type"] == "development"
-    assert selected["route_entry"] == project["process"]["route"]["entry"]
+    assert selected["route_entry"] == project["workflow"]["route"]["entry"]
     assert selected["status"] == "newborn"
 
     assembled = complete_patch(project, "NEWBORN")
@@ -125,7 +125,7 @@ def test_newborn_standalone_edit_and_ready(project):
     )
     assert ready["status"] == "available"
     assert ready["claimed_by"] is None
-    assert ready["route_entry"] == project["process"]["route"]["entry"]
+    assert ready["route_entry"] == project["workflow"]["route"]["entry"]
 
     record = creator.runtime.task_queries.record("NEWBORN")
     assert record["contract"]["goal"] == "Editable goal"
@@ -200,11 +200,11 @@ def test_newborn_ready_rejects_unreachable_pre_trace_gate(project):
 
 
 def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
-    integration = deepcopy(project["process"])
+    integration = deepcopy(project["workflow"])
     integration["goal_type"] = "integration"
-    integration_path = project["root"] / "config/processes/integration.json"
+    integration_path = project["root"] / "config/workflows/integration.json"
     write_json(integration_path, integration)
-    project["cfg"]["processes"]["integration"] = "config/processes/integration.json"
+    project["cfg"]["workflows"]["integration"] = "config/workflows/integration.json"
 
     setup_sprint(project)
     creator = tools(project, "type-editor")
@@ -247,7 +247,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     assert after_rejected_switch["revision"] == before_switch["revision"]
     assert after_rejected_switch["history"] == before_switch["history"]
     assert after_rejected_switch["newborn"] == before_switch["newborn"]
-    assert after_rejected_switch["process"] == before_switch["process"]
+    assert after_rejected_switch["workflow"] == before_switch["workflow"]
 
     changed = edit(
         creator,
@@ -278,7 +278,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     stable_revision = changed["revision"]
     stable_history = deepcopy(record["history"])
     stable_draft = deepcopy(record["newborn"]["draft"])
-    stable_process = deepcopy(record["process"])
+    stable_workflow = deepcopy(record["workflow"])
 
     with pytest.raises(PoiseError, match="Request|request|digest|different|belongs"):
         edit(
@@ -293,7 +293,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     assert after_digest_conflict["revision"] == stable_revision
     assert after_digest_conflict["history"] == stable_history
     assert after_digest_conflict["newborn"]["draft"] == stable_draft
-    assert after_digest_conflict["process"] == stable_process
+    assert after_digest_conflict["workflow"] == stable_workflow
 
     rejected = [
         (
@@ -346,7 +346,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
         assert current["revision"] == stable_revision
         assert current["history"] == stable_history
         assert current["newborn"]["draft"] == stable_draft
-        assert current["process"] == stable_process
+        assert current["workflow"] == stable_workflow
 
     ready = task_action(
         creator,
@@ -372,7 +372,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     assert final["sprint_id"] == "TYPE-CHANGE-SPRINT"
     assert final["contract"]["goal_type"] == "integration"
     assert "executable_obligations" not in final["contract"]
-    assert final["process"]["goal_type"] == "integration"
+    assert final["workflow"]["goal_type"] == "integration"
 
 
 def test_newborn_ownership_and_switching(project):
@@ -548,7 +548,7 @@ def test_newborn_type_route_and_legacy_materialization(project):
     assert migrated["materialized"] == ["LEGACY-TASK"]
     record = planner.runtime.task_queries.record("LEGACY-TASK")
     assert record["status"] == "newborn"
-    assert record["process"]["route"]["entry"] == project["process"]["route"]["entry"]
+    assert record["workflow"]["route"]["entry"] == project["workflow"]["route"]["entry"]
 
     direct = sprint_task(project, "DIRECT-AVAILABLE")
     direct["sprint_id"] = None

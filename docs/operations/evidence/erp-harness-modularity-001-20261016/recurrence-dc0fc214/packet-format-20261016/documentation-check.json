@@ -1,0 +1,220 @@
+{
+  "errors": [],
+  "edges": [
+    {
+      "source": "docs/operations/evidence/README.md",
+      "line": 8,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "- [ERP-HARNESS-MODULARITY-001: прерванная проверка и устаревшие передачи](erp-harness-modularity-001-20261016/README.md).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 33,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/archive-manifest.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/archive-manifest.json",
+      "fragment": "",
+      "context": "[Манифест](archive-manifest.json) содержит исходные пути и SHA-256 файлов.",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 34,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/preimage.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/preimage.json",
+      "fragment": "",
+      "context": "[Исходное состояние](preimage.json) сохраняет точные строки задачи,",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 35,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/original-execution.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/original-execution.json",
+      "fragment": "",
+      "context": "исполнения и передач, а также события. [Исходный JSON исполнения](original-execution.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 48,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-plan.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-plan.json",
+      "fragment": "",
+      "context": "[Точный план](operator-plan.json) и [операторский скрипт](operator-recovery.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 48,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-recovery.py",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-recovery.py",
+      "fragment": "",
+      "context": "[Точный план](operator-plan.json) и [операторский скрипт](operator-recovery.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 78,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-applied.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-applied.json",
+      "fragment": "",
+      "context": "Применение подтверждено [операторским результатом](operator-applied.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 79,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-precommit.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/operator-precommit.json",
+      "fragment": "",
+      "context": "и [контролем перед фиксацией](operator-precommit.json). Записано операторское",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 93,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "",
+      "context": "существующий реестр [известных багов](../../known-bugs.md), сохранив его",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 104,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "fragment": "",
+      "context": "[Уточнённый второй план](recurrence-dc0fc214/operator-plan-v2.json), исходный JSON,",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 117,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/reviewer-disposition-v2.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/reviewer-disposition-v2.json",
+      "fragment": "",
+      "context": "[Независимое решение](recurrence-dc0fc214/reviewer-disposition-v2.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 119,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-apply-refusal.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-apply-refusal.json",
+      "fragment": "",
+      "context": "Первый вызов применения [отказал на общей блокировке](recurrence-dc0fc214/operator-apply-refusal.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 122,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-applied-v2.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-applied-v2.json",
+      "fragment": "",
+      "context": "[применил коррекцию](recurrence-dc0fc214/operator-applied-v2.json): исполнение",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 124,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-precommit.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-precommit.json",
+      "fragment": "",
+      "context": "[Контроль перед фиксацией](recurrence-dc0fc214/operator-precommit.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 137,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/malformed-input.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/malformed-input.json",
+      "fragment": "",
+      "context": "Сохранены [неверный вход](recurrence-dc0fc214/packet-format-20261016/malformed-input.json),",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 138,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/rejection-response.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/rejection-response.json",
+      "fragment": "",
+      "context": "[подлинный отказ](recurrence-dc0fc214/packet-format-20261016/rejection-response.json),",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 139,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/terminal-output.log",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/terminal-output.log",
+      "fragment": "",
+      "context": "[полный вывод команды](recurrence-dc0fc214/packet-format-20261016/terminal-output.log)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 140,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/classification.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/classification.json",
+      "fragment": "",
+      "context": "и [классификация с независимым осмотром состояния](recurrence-dc0fc214/packet-format-20261016/classification.json).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 141,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/corrected-input.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/corrected-input.json",
+      "fragment": "",
+      "context": "Неверный вход не переписан. [Исправленный пакет](recurrence-dc0fc214/packet-format-20261016/corrected-input.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 143,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/offline-proof.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/offline-proof.json",
+      "fragment": "",
+      "context": "раздела, остальные поля сохранены. [Офлайн-проверка](recurrence-dc0fc214/packet-format-20261016/offline-proof.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "line": 144,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/reviewer-disposition.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/packet-format-20261016/reviewer-disposition.json",
+      "fragment": "",
+      "context": "и [независимое одобрение](recurrence-dc0fc214/packet-format-20261016/reviewer-disposition.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/evidence/erp-merge-residuals-001-retrospective-20261016/README.md",
+      "line": 35,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "[ERP-HARNESS-MODULARITY-001](../erp-harness-modularity-001-20261016/README.md)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 352,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "точный план сохранены в [долговременном журнале инцидента](evidence/erp-harness-modularity-001-20261016/README.md).",
+      "kind": "markdown"
+    }
+  ],
+  "skipped": [],
+  "scanned_documents": 2214,
+  "changed_paths": [
+    "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md"
+  ],
+  "read_only": true,
+  "network_access": false,
+  "status": "valid"
+}

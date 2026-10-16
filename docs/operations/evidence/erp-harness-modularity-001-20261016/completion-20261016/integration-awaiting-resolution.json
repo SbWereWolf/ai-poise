@@ -1,0 +1,96 @@
+{
+  "status": "awaiting_resolution",
+  "task": "ERP-HARNESS-MODULARITY-001",
+  "request_id": "ERP-HARNESS-MODULARITY-001-integrate-20261016",
+  "source_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "accepted_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "task_branch": "poise/ERP-HARNESS-MODULARITY-001",
+  "task_worktree": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+  "temporary_backup_directory": "/home/sbwerewolf/workdata/poise-project-data/erp/runtime/result-integration/ERP-HARNESS-MODULARITY-001/d81872a49c82",
+  "temporary_backups": [],
+  "phase": "awaiting_resolution",
+  "last_included_target": "16c5b906615e57a5b5f89b495c42b79f51eab87e",
+  "integration_head": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "target_before": "16c5b906615e57a5b5f89b495c42b79f51eab87e",
+  "target_after": null,
+  "conflicts": [
+    "ai-assistant/checks/check_runner_lib.py",
+    "ai-assistant/checks/command-profiles.toml",
+    "ai-assistant/checks/registered_command_adoption_lib.py",
+    "ai-assistant/checks/run_check.py",
+    "ai-assistant/checks/tooling-verification.json",
+    "ai-assistant/mcp/repo-checks-server.py",
+    "ai-assistant/tests/checks/artifact-evidence-inventory.py",
+    "ai-assistant/tests/checks/check-runner.py",
+    "ai-assistant/tests/checks/tooling-verification-config.py"
+  ],
+  "resolutions": [],
+  "checks": [],
+  "publication": null,
+  "cleanup": {
+    "task_worktree": "pending",
+    "task_branch": "pending",
+    "temporary_backups": "pending"
+  },
+  "failure": null,
+  "history": [
+    {
+      "status": "prepared",
+      "phase": "prepared"
+    },
+    {
+      "status": "running",
+      "phase": "updating",
+      "event": "target_update_started"
+    },
+    {
+      "status": "awaiting_resolution",
+      "phase": "awaiting_resolution",
+      "event": "conflicts_observed",
+      "details": {
+        "receipt": {
+          "argv": [
+            "git",
+            "-C",
+            "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "merge",
+            "--no-ff",
+            "--no-commit",
+            "--no-edit",
+            "16c5b906615e57a5b5f89b495c42b79f51eab87e"
+          ],
+          "actual_exit_code": 1,
+          "stdout": "Auto-merging ai-assistant/checks/artifact-evidence-dispositions.json\nAuto-merging ai-assistant/checks/check_runner_lib.py\nCONFLICT (content): Merge conflict in ai-assistant/checks/check_runner_lib.py\nAuto-merging ai-assistant/checks/command-profiles.toml\nCONFLICT (content): Merge conflict in ai-assistant/checks/command-profiles.toml\nAuto-merging ai-assistant/checks/registered_command_adoption_lib.py\nCONFLICT (content): Merge conflict in ai-assistant/checks/registered_command_adoption_lib.py\nAuto-merging ai-assistant/checks/run_check.py\nCONFLICT (content): Merge conflict in ai-assistant/checks/run_check.py\nAuto-merging ai-assistant/checks/tooling-verification.json\nCONFLICT (content): Merge conflict in ai-assistant/checks/tooling-verification.json\nAuto-merging ai-assistant/mcp/repo-checks-server.py\nCONFLICT (content): Merge conflict in ai-assistant/mcp/repo-checks-server.py\nAuto-merging ai-assistant/tests/checks/artifact-evidence-inventory.py\nCONFLICT (content): Merge conflict in ai-assistant/tests/checks/artifact-evidence-inventory.py\nAuto-merging ai-assistant/tests/checks/check-runner.py\nCONFLICT (content): Merge conflict in ai-assistant/tests/checks/check-runner.py\nAuto-merging ai-assistant/tests/checks/evidence-manifest.py\nAuto-merging ai-assistant/tests/checks/provider-binding.py\nAuto-merging ai-assistant/tests/checks/tooling-verification-config.py\nCONFLICT (content): Merge conflict in ai-assistant/tests/checks/tooling-verification-config.py\nAuto-merging ai-assistant/tests/mcp/repo-checks-server.py\nAuto-merging docs/tools/system-dev-tooling/registered-command-runner.md\nAuto-merging docs/tools/system-dev-tooling/repository-checks-mcp.md\nAutomatic merge failed; fix conflicts and then commit the result.\n",
+          "stderr": ""
+        }
+      }
+    }
+  ],
+  "replayed": false,
+  "interaction": {
+    "user_messages_count": 3,
+    "observed_messages_count": 3,
+    "coverage": "partial",
+    "source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
+    },
+    "reason_counts": {
+      "initial": 0,
+      "continue": 0,
+      "feedback": 0,
+      "requirement_change": 0,
+      "clarification": 0,
+      "authorization": 0,
+      "cancel": 0
+    },
+    "unclassified_messages": 3,
+    "task": "ERP-HARNESS-MODULARITY-001",
+    "goal_type": "development",
+    "outcome": "completed",
+    "planned_content_stages_count": 10,
+    "delivered_stages_count": 6,
+    "delivered_iterations_count": 10,
+    "delivery_observation": "tool_result_returned"
+  }
+}

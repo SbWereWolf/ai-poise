@@ -391,7 +391,7 @@ class StageCriteriaBook:
         for item in contracts.items:
             current = data["stages"][item.stage_id]
             if current["purpose"] != route.node(item.stage_id).purpose.value:
-                raise DomainError("Stage purpose change requires explicit process migration")
+                raise DomainError("Stage purpose change requires explicit workflow migration")
             revised = {"criteria": item.criteria.to_dict(),
                        "entry_requirements": list(item.entry_requirements),
                        "exit_requirements": list(item.exit_requirements)}

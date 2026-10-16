@@ -254,9 +254,9 @@ def _task_and_sprint_ids(database: Path) -> tuple[tuple[str, ...], tuple[str, ..
         tables = {row[0] for row in connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         )}
-        tasks = tuple(row[0] for row in connection.execute("SELECT id FROM tasks ORDER BY id")) \
+        tasks = tuple(row[0] for row in connection.execute("SELECT id FROM tasks ORDER BY id"))\
             if "tasks" in tables else ()
-        sprints = tuple(row[0] for row in connection.execute("SELECT id FROM sprints ORDER BY id")) \
+        sprints = tuple(row[0] for row in connection.execute("SELECT id FROM sprints ORDER BY id"))\
             if "sprints" in tables else ()
         return tasks, sprints
     finally:

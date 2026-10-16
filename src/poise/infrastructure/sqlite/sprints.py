@@ -99,12 +99,12 @@ class SqliteSprintRepository:
                     '_execution_branch':None if exe is None else exe['branch'],
                     'ready':newborn['ready'],
                     '_newborn_draft':draft,
-                    '_newborn_process':meta.get('process'),
+                    '_newborn_workflow':meta.get('workflow'),
                 }
                 continue
             report=None if exe is None else exe['last_report']
             result[r['id']]={'status':r['status'],'version':r['version'],'goal':meta['goal'],'goal_type':meta['contract']['goal_type'],
-                'stage':meta['process']['stages'][r['stage_index']]['id'],'iteration':r['iteration'],
+                'stage':meta['workflow']['stages'][r['stage_index']]['id'],'iteration':r['iteration'],
                 'claimed_by':r['claimed_by'],'handoff_available':bool(r['handoff_available']),'result_commit':None if report is None else report['commit'],
                 'worktree':None if exe is None else exe['worktree'],
                 'pending':None if exe is None else exe['pending'],

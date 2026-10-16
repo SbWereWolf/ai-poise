@@ -158,8 +158,8 @@ def project(tmp_path, monkeypatch):
         })
     for i, stage in enumerate(stages):
         stage.update(handler="produce", role="executor", transitions={"complete":stages[i+1]["id"] if i+1<len(stages) else None}, rework_targets=[stage["id"]])
-    process = {'route':{"entry":"tests"}, 'goal_type': 'development', 'worktree_required': True, 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
-    write_json(poise_root / 'config/processes/development.json', process)
+    workflow = {'route':{"entry":"tests"}, 'goal_type': 'development', 'worktree_required': True, 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
+    write_json(poise_root / 'config/workflows/development.json', workflow)
     cfg = {
         'schema': 'ddd-accounting-12',
         'project': 'demo',
@@ -187,7 +187,7 @@ def project(tmp_path, monkeypatch):
             'author_name': 'Agent fixture', 'author_email': 'agent@example.invalid',
             'push_required': False,
         },
-        'processes': {'development': 'config/processes/development.json'},
+        'workflows': {'development': 'config/workflows/development.json'},
         'environment_names': ['PATH', 'HOME', 'LANG'],
         'automatic_checks': [
             {'paths': ['src/**', 'tests/**'], 'by_stage': {
@@ -231,7 +231,7 @@ def project(tmp_path, monkeypatch):
     from projects.helpers import setup_case, bootstrap_fixture_resources
     from poise.composition import project_tools
     setup, _, creation = setup_case({
-        'root': poise_root, 'cfg': cfg, 'process': process, 'app': app,
+        'root': poise_root, 'cfg': cfg, 'workflow': workflow, 'app': app,
     })
     creation['destination'] = 'configured/common'
     creation['edits'][0]['value'] = cfg['project']
@@ -333,7 +333,7 @@ def project(tmp_path, monkeypatch):
         'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []},
     } for stage in stages]
     task_path = write_json(poise_root / 'task.json', task)
-    return {'root': poise_root, 'config_path': cfg_path, 'cfg': cfg, 'process': process,
+    return {'root': poise_root, 'config_path': cfg_path, 'cfg': cfg, 'workflow': workflow,
             'task_path': task_path, 'task': task, 'app': app, 'remote': remote,
             'requirements_registry': requirements_registry}
 

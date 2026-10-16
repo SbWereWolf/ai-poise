@@ -123,7 +123,7 @@ def test_failed_migration_never_changes_source_or_publishes_candidate(retired,ca
     assert dest.read_bytes() == b'foreign file' if case == 'existing' else not dest.exists()
 
 
-def test_current_sprint_has_no_replacement_process_projection(project):
+def test_current_sprint_has_no_replacement_workflow_projection(project):
     setup(project); tools = WorkTools(WorkPoise(project['config_path'],'planner'))
     d = draft(tools,[task(project,'A')]); publish(tools,d['revision'])
     assert 'replacements' not in tools.runtime.sprint_tools.query('S','current')

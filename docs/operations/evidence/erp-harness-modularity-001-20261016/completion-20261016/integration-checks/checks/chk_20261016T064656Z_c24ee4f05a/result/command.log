@@ -1,0 +1,44 @@
+[verify] running: /usr/bin/python3 ai-assistant/agent/literal-boundary-policy.py --root /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001
+Literal-boundary policy passed.
+[verify] Markdown formatting: repository-documentation-verification owns task-scoped Markdown validation
+[verify] agent-tooling suites run sequentially; product application suites are outside this lifecycle
+[verify] tooling-fast-agent-contracts: cache hit; configured source inputs and fixtures unchanged, skipping
+[verify] tooling-fast-check-runtime: cache miss; running sequentially
+[verify] tooling-fast-check-runtime: completed with exit code 0
+[command-output] label=tooling-fast-check-runtime
+[command-output] status=passed exit_code=0
+[command-output] classification=bounded bytes=26714 lines=204 sha256=1cb0b5b5c8a8f83fe38933f89ede31348d1c1bf9f4f3865ebaabe024f76aa897
+[command-output] full_log=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/verify/runs/tooling-fast-check-runtime.494876.log
+[command-output] excerpt=success-tail
+L0175 test_rcmcp06_missing_registry_is_not_created (__main__.MCPBindingContracts.test_rcmcp06_missing_registry_is_not_created) ... ok
+L0176 test_rcmcp06_omitted_selectors_use_real_catalogue_and_exact_owned_row (__main__.MCPBindingContracts.test_rcmcp06_omitted_selectors_use_real_catalogue_and_exact_owned_row) ... ok
+L0177 test_rcmcp06_unknown_binding_member_is_ignored_on_valid_owned_run (__main__.MCPBindingContracts.test_rcmcp06_unknown_binding_member_is_ignored_on_valid_owned_run) ... ok
+L0178 test_rcmcp07_selected_config_is_distinct_from_execution_subject (__main__.MCPBindingContracts.test_rcmcp07_selected_config_is_distinct_from_execution_subject) ... ok
+L0179 test_rcmcp08_real_spawn_failure_completes_exact_owned_reservation (__main__.MCPBindingContracts.test_rcmcp08_real_spawn_failure_completes_exact_owned_reservation) ... ok
+L0180 test_rcowner_valid_primary_admission_and_posttool_preserve_foreign_rows (__main__.MCPBindingContracts.test_rcowner_valid_primary_admission_and_posttool_preserve_foreign_rows) ... ok
+L0181 test_rcowner_wrong_missing_runtime_creates_no_directory_or_database (__main__.MCPBindingContracts.test_rcowner_wrong_missing_runtime_creates_no_directory_or_database) ... ok
+L0182 test_rcowner_wrong_posttool_preserves_colliding_foreign_lease_and_primary_lease (__main__.MCPBindingContracts.test_rcowner_wrong_posttool_preserves_colliding_foreign_lease_and_primary_lease) ... ok
+L0183 test_rcowner_wrong_runtime_preserves_expired_foreign_active_and_completed (__main__.MCPBindingContracts.test_rcowner_wrong_runtime_preserves_expired_foreign_active_and_completed) ... ok
+L0184 test_real_hook_broken_stdout_abandons_unpublished_claim (__main__.MCPBindingContracts.test_real_hook_broken_stdout_abandons_unpublished_claim) ... ok
+L0185 test_real_hook_healthy_publication_preserves_owned_and_foreign_state (__main__.MCPBindingContracts.test_real_hook_healthy_publication_preserves_owned_and_foreign_state) ... ok
+L0186 test_required_telemetry_failure_rolls_back_new_claim_without_completion (__main__.MCPBindingContracts.test_required_telemetry_failure_rolls_back_new_claim_without_completion) ... ok
+L0187 test_terminal_runner_closes_its_actual_child_output_pipe (__main__.MCPBindingContracts.test_terminal_runner_closes_its_actual_child_output_pipe) ... ok
+L0188 test_unknown_ambiguous_cli_prefix_warns_and_runs (__main__.MCPBindingContracts.test_unknown_ambiguous_cli_prefix_warns_and_runs) ... ok
+L0189 test_unknown_unique_cli_prefix_does_not_enable_fresh (__main__.MCPBindingContracts.test_unknown_unique_cli_prefix_does_not_enable_fresh) ... ok
+L0190 test_verbose_describe_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_verbose_describe_preview_preserves_empty_ledger) ... ok
+L0191 test_verbose_describe_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_verbose_describe_preview_preserves_missing_ledger) ... ok
+L0192 test_verbose_list_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_verbose_list_preview_preserves_empty_ledger) ... ok
+L0193 test_verbose_list_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_verbose_list_preview_preserves_missing_ledger) ... ok
+L0194 
+L0195 ----------------------------------------------------------------------
+L0196 Ran 115 tests in 80.730s
+L0197 
+L0198 OK
+L0199 [verify] running: bash ai-assistant/tests/agent/verify-cache.sh
+L0200 agent verify cache tests passed
+L0201 [verify] running: bash ai-assistant/tests/agent/verify-command-selection.sh
+L0202 agent verify command selection tests passed
+L0203 [verify] running: bash ai-assistant/tests/agent/verify-suite-metadata.sh
+L0204 agent verify suite metadata test passed
+[verify] tooling-fast checks passed; suite cache updated
+[verify] tooling-fast verification passed

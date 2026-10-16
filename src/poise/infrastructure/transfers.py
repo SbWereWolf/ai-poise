@@ -27,7 +27,7 @@ def _sprint_id(row):
 
 def execution_policy(cfg):
     value = deepcopy(cfg)
-    del value['paths']; del value['git']['repository']; del value['processes']
+    del value['paths']; del value['git']['repository']; del value['workflows']
     del value['runtime_services']['transfer']
     return digest(value)
 

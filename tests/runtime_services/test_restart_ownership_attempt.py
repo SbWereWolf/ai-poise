@@ -15,7 +15,7 @@ from runtime_services.test_task_restart import restart
 def uncertain(project, monkeypatch):
     project['task']['planning'] = {
         'schema': 'task-planning-1', 'template': None,
-        'restart_revision_policy': {'reviewer': ['process'], 'user': ['process']},
+        'restart_revision_policy': {'reviewer': ['workflow'], 'user': ['workflow']},
     }
     producer, payload, calls = candidate(project, monkeypatch)
     fail_once(monkeypatch, producer.runtime.evidence_commands, 'record_receipt')

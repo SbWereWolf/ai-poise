@@ -1,0 +1,13 @@
+{
+  "kind": "derived-summary-of-received-coordinator-grant-and-release",
+  "coordinator_thread": "01a127c1-e6e1-72f3-9c23-a09a575d62bf",
+  "participating_owner_threads": ["01a13fdf-efc3-7412-be34-d6bd52fe190e", "01a12ab7-ba29-72a3-957c-795ad1c17679"],
+  "scope": "Identified P002 maintenance/profile and Consultant coupled global-fence operations; not a guarantee of global quiescence",
+  "grant": "Both actual owners relayed explicit terminal/HOLD confirmations; one bounded correction and ordinary verification permitted",
+  "correction_result": "Actual committed execution123 and operator journal15077; original UNKNOWN outcomes preserved",
+  "ordinary_request_result": "Rejected malformed stage result before native check reservation",
+  "release": "Coordinator explicitly released both participants and informed Architect ERP HARNESS after the terminal refusal",
+  "grant_remains_active": false,
+  "raw_transport_byte_record": false,
+  "native_acceptance": false
+}

@@ -91,7 +91,7 @@ class HookObservationPort:
             return {'status': 'changed'}
         if json_file(binding_path, self.settings.raw['max_input_bytes']) != saved:
             return {'status': 'changed'}
-        expected_script = ('#!/bin/sh\nexec ' + self.settings.command('hook-work', '--binding', str(binding_path)) + '\n').encode()
+        expected_script = self.settings.launcher_bytes(binding_path)
         if (regular_bytes(launcher, self.settings.raw['max_input_bytes']) != expected_script
                 or launcher.stat().st_mode & 0o777 != self.settings.raw['executable_mode']):
             return {'status': 'changed'}

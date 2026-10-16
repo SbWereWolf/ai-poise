@@ -1,0 +1,37 @@
+{
+  "history_evidence_ids": [
+    "26bd1d24-891b-467f-a206-c3c6609de459"
+  ],
+  "profile": {
+    "command": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/checks/run_check.py",
+      "--command-id",
+      "harness-runner-contracts",
+      "--workload-class",
+      "default",
+      "--runtime-class",
+      "posix-host",
+      "--fallback-reason",
+      "mcp-project-untrusted",
+      "--json"
+    ],
+    "runtime": {
+      "executable": "/usr/bin/bash",
+      "platform": "linux"
+    },
+    "workload": "MODULARITY-REGRESSION-RUN-CHECK"
+  },
+  "selection": {
+    "basis": "verified_success_history",
+    "diagnostic_evidence_run_id": null,
+    "diagnostic_override_reason": null,
+    "history_count": 1,
+    "history_multiplier": 1.1,
+    "longest_verified_success_seconds": 70.9888401000062,
+    "poll_seconds": 0.1,
+    "progress_gap_seconds": 360.0,
+    "seconds": 360.0
+  }
+}

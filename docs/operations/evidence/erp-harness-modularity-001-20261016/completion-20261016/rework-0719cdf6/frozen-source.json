@@ -1,0 +1,23 @@
+{
+  "commit": "0719cdf67fe789f54798f82775aae6597c316ade",
+  "tree": "4f2f1a03175f6cdda5b31f826932a6a8358f1e50",
+  "parent": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+  "files": [
+    {
+      "path": "ai-assistant/tests/checks/check-cache.py",
+      "sha256": "245eff0b6bd30b39e2f25d74f9e8bb0dce07f85984cd6b818c12a15ed933b573"
+    },
+    {
+      "path": "ai-assistant/tests/checks/registered-command-adoption.py",
+      "sha256": "a48c3d83d41cd69447d5fe68c0f1f6f1d2e83099550e8ff81df3b91c8b1913dd"
+    },
+    {
+      "path": "ai-assistant/tests/checks/run-check.py",
+      "sha256": "576600dbd0e0e2d93fa62fa1c2717bb2818a19fb1aec4960825db03cc5e7fca7"
+    },
+    {
+      "path": "docs/agents/check-cache.md",
+      "sha256": "180d606681781c1a3c251f146efdff5738473f2e22c06e120614e97c4e29f2da"
+    }
+  ]
+}

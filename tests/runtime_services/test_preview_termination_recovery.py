@@ -20,7 +20,7 @@ def test_preview_read_failure_preserves_stopped_run_for_transfer_and_archive(
 ):
     project['task']['planning'] = {
         'schema': 'task-planning-1', 'template': None,
-        'restart_revision_policy': {'reviewer': ['process'], 'user': ['process']},
+        'restart_revision_policy': {'reviewer': ['workflow'], 'user': ['workflow']},
     }
     tools, payload, calls = candidate(project, monkeypatch)
     preview = execution.preview

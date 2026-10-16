@@ -1,0 +1,23 @@
+{
+  "classification": "auxiliary_read_failure",
+  "purpose": "Find one existing repair draft for repeated evidence-retention ordering errors before registering another draft.",
+  "requested_operation": "show",
+  "query": {
+    "id": "retention-repair-discovery",
+    "kind": "work_overview",
+    "sprint_statuses": null,
+    "standalone_task_statuses": null
+  },
+  "observed_terminal_exit_code": 1,
+  "observed_exception": "KeyError: workflow",
+  "observed_owner_chain": [
+    "WorkTools._show",
+    "sprint_tools.overviews",
+    "SprintCommands._describe",
+    "sqlite.sprints.facts"
+  ],
+  "known_cause": "The public overview attempted meta['workflow']['stages'] for existing Sprint member metadata without workflow.",
+  "mutating_operation_requested": false,
+  "repair_draft_registration_claimed": false,
+  "subject_task_continuation": "Continue independently reviewed integration through its existing public owner; do not repair unrelated Sprint metadata or fabricate overview results."
+}

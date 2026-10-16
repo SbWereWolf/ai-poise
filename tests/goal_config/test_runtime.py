@@ -10,8 +10,8 @@ from tests.goal_config.helpers import request, settings
 
 def test_existing_task_keeps_snapshot_and_new_task_gets_new_pack(project):
     old=Poise(project['config_path'],'old-session').bootstrap(project['task_path'])
-    path,_=settings(project['root'],{'development':'config/processes/development.json'})
-    before=project['process']; changed_instruction='New explicit instruction for NEW tasks only.'
+    path,_=settings(project['root'],{'development':'config/workflows/development.json'})
+    before=project['workflow']; changed_instruction='New explicit instruction for NEW tasks only.'
     goal_config_tools(path).apply_batch(request('update','development',digest(before),[
       {'op':'patch_stage','id':'tests','set':{'instruction':changed_instruction}}]))
     restored=Poise(project['config_path'],'old-session').bootstrap()
@@ -26,8 +26,8 @@ def test_existing_task_keeps_snapshot_and_new_task_gets_new_pack(project):
 
 
 def test_generated_changed_pack_runs_with_new_required_section(project):
-    path,_=settings(project['root'],{'development':'config/processes/development.json'})
-    goal_config_tools(path).apply_batch(request('update','development',digest(project['process']),[
+    path,_=settings(project['root'],{'development':'config/workflows/development.json'})
+    goal_config_tools(path).apply_batch(request('update','development',digest(project['workflow']),[
       {'op':'put_requirement','value':{'id':'new-required','kind':'section','stages':['tests'],'phase':'post','section':'rollback','states':['populated']}},
       {'op':'put_section','value':{'id':'rollback','template':'Describe rollback.','normalization':'strip','write_stages':['tests']}}
     ]))

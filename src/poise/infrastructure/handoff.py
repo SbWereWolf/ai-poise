@@ -23,7 +23,13 @@ from .goal_config import atomic_write
 class LocalHandoff:
     def __init__(self,poise):
         self.h=poise;self.commands=HandoffCommands(poise.store.unit_of_work)
-        self.config=poise.cfg['runtime_services']['handoff']
+
+    @property
+    def config(self):
+        """Filesystem settings belong to an explicitly requested file operation."""
+        if 'handoff' not in self.h.cfg['runtime_services']:
+            raise PoiseError('Файловая передача задачи не настроена')
+        return self.h.cfg['runtime_services']['handoff']
 
     def preserve(self,args, *, portable=False):
         h=self.h
@@ -189,7 +195,8 @@ class LocalHandoff:
         h=self.h;record=self.commands.latest(data['id'])
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
-        delivery = h.transfer_tools.port.repo.delivery_for_task(data['id'])
+        with h.store.unit_of_work() as uow:
+            delivery = uow.transfers.delivery_for_task(data['id'])
         if delivery is not None and not delivery['verification_opened']:
             manifest = delivery['manifest']
             spec = manifest['workspaces'][data['id']]

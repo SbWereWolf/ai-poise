@@ -11,7 +11,7 @@ from poise.application.work import WorkTools
 from poise.infrastructure.sqlite.ownership import SqliteOwnershipRepository
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.ownership.domain import Liveness
-from ownership.test_atomic_ownership import _bootstrap, _configure_process, _fingerprint
+from ownership.test_atomic_ownership import _bootstrap, _configure_workflow, _fingerprint
 from tasks.test_newborn_lifecycle import create, edit
 
 
@@ -153,7 +153,7 @@ def test_release_and_audit_failure_roll_back_together(project, monkeypatch):
 
 
 def test_active_recovery_preserves_worktree_files_execution_and_evidence(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     old, context = _bootstrap(project, 'lost-worker', 'ACTIVE')
     worktree = Path(context['worktree']); (worktree/'local-wip.txt').write_text('keep me')
     fingerprint = _fingerprint(worktree)
@@ -174,10 +174,10 @@ def test_active_recovery_preserves_worktree_files_execution_and_evidence(project
 
 
 def test_recover_one_task_preserves_old_owners_independent_worktree(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     tree_tools, _ = _bootstrap(project, 'tree-seed', 'TREE')
     tree_tools.runtime.ownership.release_task('TREE')
-    _configure_process(project, False)
+    _configure_workflow(project, False)
     old, _ = _bootstrap(project, 'lost-worker', 'TASK')
     old.runtime.ownership.acquire_worktree('TREE')
     tools = operator(project); p = intent(tools, ['TASK'])
@@ -218,7 +218,7 @@ def test_inspection_materializes_safe_recovery_packet_without_fabricating_author
 
 
 def test_pending_check_survives_reset_and_execution_drift_invalidates_snapshot(project):
-    _configure_process(project, True)
+    _configure_workflow(project, True)
     old, context = _bootstrap(project, 'lost-worker', 'ACTIVE')
     tools = operator(project); stale = intent(tools, ['ACTIVE'])
     # Inject an unknown-outcome fixture through its execution repository. Recovery

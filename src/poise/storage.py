@@ -12,14 +12,14 @@ from .infrastructure.sqlite.artifacts import SqliteArtifactRepository
 
 class Store:
     """Composition/receipt facade of the original slice; no Task lifecycle writes."""
-    def __init__(self, database: Path, lock: Path, wait: float, poll: float, processes: dict, project_fence=None):
+    def __init__(self, database: Path, lock: Path, wait: float, poll: float, workflows: dict, project_fence=None):
         self.database=Database(database,lock,wait,poll,project_fence)
         self.path=database
-        self.processes=processes
+        self.workflows=workflows
         self.queries=TaskQueries(self.database)
 
     def unit_of_work(self):
-        return SqliteUnitOfWork(self.database,self.processes)
+        return SqliteUnitOfWork(self.database,self.workflows)
 
     def transaction(self):
         return self.database.transaction()
@@ -32,6 +32,11 @@ class Store:
     def bind(self, session: str, task_id: str | None) -> None:
         with self.transaction() as db:
             db.execute('INSERT INTO sessions VALUES(?,?) ON CONFLICT(id) DO UPDATE SET task_id=excluded.task_id', (session,task_id))
+
+    def ensure_session(self, session: str) -> None:
+        """Register an idle session without changing an existing worktree claim."""
+        with self.transaction() as db:
+            db.execute('INSERT INTO sessions(id,task_id) VALUES(?,NULL) ON CONFLICT(id) DO NOTHING', (session,))
 
     def current(self, session: str) -> dict | None:
         with self.transaction() as db:

@@ -39,7 +39,7 @@ def assert_preserved(before, after):
         assert row in new["journal"]
     for row in new["journal"]:
         if row not in old["journal"]:
-            assert row[2:5] == ("task-process-migrate", None, "task_stage_criteria_migration")
+            assert row[2:5] == ("task-workflow-migrate", None, "task_stage_criteria_migration")
             recorded = json.loads(row[5])
             assert recorded["request_id"] == "project-owned-stage-criteria"
             assert recorded["phase"] in {"intent", "published", "completed"}
@@ -53,13 +53,13 @@ def assert_preserved(before, after):
         assert current[:7] == prior[:7]
         old_metadata, new_metadata = json.loads(prior[7]), json.loads(current[7])
         for key, value in old_metadata.items():
-            if key not in ("process", "contract", "newborn"):
+            if key not in ("workflow", "contract", "newborn"):
                 assert new_metadata[key] == value
-        process = deepcopy(new_metadata["process"])
-        for stage in process["stages"]:
+        workflow = deepcopy(new_metadata["workflow"])
+        for stage in workflow["stages"]:
             stage.pop("purpose")
             stage.pop("criteria_authority")
-        assert process == old_metadata["process"]
+        assert workflow == old_metadata["workflow"]
         if prior[1] == "newborn":
             container = deepcopy(new_metadata["newborn"])
             contract = container["draft"]
@@ -85,7 +85,7 @@ def assert_preserved(before, after):
 
 
 def assert_literals(case):
-    for path in case["process_paths"]:
+    for path in case["workflow_paths"]:
         stages = json.loads(path.read_text())["stages"]
         assert [{"stage_id": s["id"], "purpose": s["purpose"],
                  "criteria_authority": s["criteria_authority"]} for s in stages] == case["mapping_stages"]
@@ -95,7 +95,7 @@ def assert_literals(case):
         metadata = json.loads(raw)
         assert [{"stage_id": stage["id"], "purpose": stage["purpose"],
                  "criteria_authority": stage["criteria_authority"]}
-                for stage in metadata["process"]["stages"]] == case["mapping_stages"]
+                for stage in metadata["workflow"]["stages"]] == case["mapping_stages"]
         contract = metadata["newborn"]["draft"] if task == "N1" else metadata["contract"]
         assert [(stage["stage_id"], stage["criteria"]) for stage in contract["stage_contracts"]] == [
             (stage["stage_id"], CRITERIA) for stage in case["mapping_stages"]]
@@ -118,7 +118,7 @@ def test_native_project_owner_migrates_preserves_history_and_fresh_replay(projec
     before = observe(case)
     legacy_code, legacy, legacy_stderr = run_migration(case, fresh=True, select_project_owner=False)
     assert legacy_code == 2, legacy_stderr
-    assert legacy == {"status": "rejected", "reason": "Configured process and registered publication target differ"}
+    assert legacy == {"status": "rejected", "reason": "Configured workflow and registered publication target differ"}
     assert observe(case) == before
     code, result, stderr = run_migration(case, fresh=True)
     assert_success(case, code, result, stderr)
@@ -147,7 +147,7 @@ def test_native_project_owner_migrates_preserves_history_and_fresh_replay(projec
     ("foreign_receipt", "Project setup receipt belongs to another configuration"),
     ("foreign_registry", "Project registry binding differs from the selected configuration"),
     ("unknown_revision", "Live project revision is not known"),
-    ("process_drift", "Process source revision mismatch"),
+    ("workflow_drift", "Process source revision mismatch"),
     ("settings_binding", "Project settings do not own the selected configuration"),
     ("missing_resource", "Mapping does not match the complete process and nonterminal Task inventory"),
     ("missing_stage", "Migration must map every historical stage exactly once in order"),
@@ -171,8 +171,8 @@ def test_project_owner_conflict_refuses_before_effects(project, fault, reason):
         value = json.loads(path.read_text())
         value["projects"][project["cfg"]["project"]]["config_path"] = "foreign/project.json"
         path.write_text(json.dumps(value))
-    elif fault == "process_drift":
-        path = case["process_paths"][0]
+    elif fault == "workflow_drift":
+        path = case["workflow_paths"][0]
         value = json.loads(path.read_text())
         value["stages"][0]["instruction"] = "Unrecorded process modification."
         path.write_text(json.dumps(value))
@@ -184,9 +184,9 @@ def test_project_owner_conflict_refuses_before_effects(project, fault, reason):
         path.write_text(json.dumps(value))
     elif fault == "foreign_pending":
         source = json.loads(case["config"].read_text())
-        components = {"config": identity(source), "processes": {
+        components = {"config": identity(source), "workflows": {
             goal: identity(json.loads((case["bundle"] / relative).read_text()))
-            for goal, relative in source["processes"].items()}}
+            for goal, relative in source["workflows"].items()}}
         pending = {"schema": "project-config-pending-1", "request_id": "foreign-publication",
                    "request_digest": identity({"request_id": "foreign-publication"}),
                    "before": components, "after": components}
@@ -212,9 +212,9 @@ def test_project_publication_fault_resumes_original_intent(project, monkeypatch,
     case = historical_project_owned(project)
     if boundary == "after_receipt":
         other_config = {**json.loads(case["config"].read_text()), "project": "unrelated"}
-        components = {"config": identity(other_config), "processes": {
+        components = {"config": identity(other_config), "workflows": {
             json.loads(path.read_text())["goal_type"]: identity(json.loads(path.read_text()))
-            for path in case["process_paths"]}}
+            for path in case["workflow_paths"]}}
         request = {**case["update_request"], "request_id": "unrelated-publication",
                    "config_path": str(case["bundle"].parent / "unrelated/project.json")}
         unrelated = project["root"] / "operations/unrelated-project.json.pending"
@@ -233,7 +233,7 @@ def test_project_publication_fault_resumes_original_intent(project, monkeypatch,
         original(path, content, mode)
         if boundary == "after_receipt" and json.loads(content).get("schema") == "project-config-receipt-1":
             raise OSError("Fixture interruption after durable project receipt.")
-        if path in case["process_paths"]:
+        if path in case["workflow_paths"]:
             written.append(path)
             if boundary == "first_process" and len(written) == 1:
                 raise OSError("Fixture interruption after first process.")
@@ -272,24 +272,24 @@ def assert_durable_receipt_pending(case, before):
     receipt_path, receipt = receipts[0]
     assert receipt["result"]["prior_revision"] == case["source_revision"]
     assert receipt["result"]["config_path"] == str(case["config"])
-    processes = {}
-    for path in case["process_paths"]:
+    workflows = {}
+    for path in case["workflow_paths"]:
         document = json.loads(path.read_text())
-        processes[document["goal_type"]] = document
+        workflows[document["goal_type"]] = document
         assert [{"stage_id": stage["id"], "purpose": stage["purpose"],
                  "criteria_authority": stage["criteria_authority"]}
                 for stage in document["stages"]] == case["mapping_stages"]
     config = json.loads(case["config"].read_text())
-    assert receipt["result"]["revision"] == identity({"config": config, "processes": processes})
+    assert receipt["result"]["revision"] == identity({"config": config, "workflows": workflows})
     pending_path = receipt_path.with_name(receipt_path.name + ".pending")
     pending = json.loads(pending_path.read_text())
     assert pending["schema"] == "project-config-pending-1"
     assert pending["request_id"] == receipt["request_id"]
     assert pending["request_digest"] == receipt["request_digest"]
     assert pending["before"]["config"] == pending["after"]["config"] == identity(config)
-    assert pending["before"]["processes"] == {
+    assert pending["before"]["workflows"] == {
         json.loads(raw)["goal_type"]: identity(json.loads(raw)) for raw in before["source"].values()}
-    assert pending["after"]["processes"] == {goal: identity(doc) for goal, doc in processes.items()}
+    assert pending["after"]["workflows"] == {goal: identity(doc) for goal, doc in workflows.items()}
     assert observe(case)["task"]["tasks"] == before["task"]["tasks"]
     return (receipt_path, receipt_path.read_bytes()), pending_path
 
@@ -322,7 +322,7 @@ def test_completed_receipt_recovery_preserves_changed_pending(project, monkeypat
         pending["request_digest"] = "0" * 64
     else:
         component = "before" if fault == "before_candidate" else "after"
-        pending[component]["processes"]["development"] = "0" * 64
+        pending[component]["workflows"]["development"] = "0" * 64
     pending_path.write_text(json.dumps(pending))
     altered = observe(case)
     code, refusal, stderr = run_migration(case, fresh=True)
@@ -335,13 +335,13 @@ def test_completed_receipt_recovery_preserves_changed_pending(project, monkeypat
     assert pending_path.exists()
 
 
-def interrupt_first_process(case, monkeypatch):
+def interrupt_first_workflow(case, monkeypatch):
     from poise.infrastructure import project_config
     original = project_config.atomic_write
 
     def interrupt(path, content, mode):
         original(path, content, mode)
-        if Path(path) == case["process_paths"][0]:
+        if Path(path) == case["workflow_paths"][0]:
             raise OSError("Fixture interruption after process.")
 
     with monkeypatch.context() as scoped:
@@ -354,7 +354,7 @@ def interrupt_first_process(case, monkeypatch):
 
 
 @pytest.mark.parametrize("fault,status,reason", [
-    ("process_edit", "recovery_required", "Unmanaged process change during recovery"),
+    ("workflow_edit", "recovery_required", "Unmanaged process change during recovery"),
     ("pending_intent", "recovery_required", "Different request uses the pending request receipt"),
     ("pending_candidate", "recovery_required", "Project pending publication candidate changed"),
     ("owner", "rejected", "Migration publication owner changed"),
@@ -362,9 +362,9 @@ def interrupt_first_process(case, monkeypatch):
 ])
 def test_partial_publication_rejects_changed_recovery_inputs(project, monkeypatch, fault, status, reason):
     case = historical_project_owned(project)
-    interrupt_first_process(case, monkeypatch)
-    if fault == "process_edit":
-        path = case["process_paths"][0]
+    interrupt_first_workflow(case, monkeypatch)
+    if fault == "workflow_edit":
+        path = case["workflow_paths"][0]
         value = json.loads(path.read_text())
         value["stages"][0]["instruction"] = "A valid-shaped intervening operator edit."
         path.write_text(json.dumps(value))
@@ -377,7 +377,7 @@ def test_partial_publication_rejects_changed_recovery_inputs(project, monkeypatc
         if fault == "pending_intent":
             pending["request_digest"] = "0" * 64
         else:
-            pending["after"]["processes"]["development"] = "0" * 64
+            pending["after"]["workflows"]["development"] = "0" * 64
         path.write_text(json.dumps(pending))
     elif fault == "owner":
         selected = case["settings"].with_name("other-owner.json")
@@ -399,8 +399,8 @@ def test_partial_publication_rejects_changed_recovery_inputs(project, monkeypatc
 def test_final_task_transaction_rolls_back_and_recovers_published_project(project, monkeypatch):
     case = historical_project_owned(project)
     before = observe(case)
-    from poise.infrastructure import task_process_migration
-    constructor = task_process_migration.SqliteTaskProcessMigration.__init__
+    from poise.infrastructure import task_workflow_migration
+    constructor = task_workflow_migration.SqliteTaskWorkflowMigration.__init__
 
     def initialize(self, *args, **kwargs):
         constructor(self, *args, **kwargs)
@@ -411,7 +411,7 @@ def test_final_task_transaction_rolls_back_and_recovers_published_project(projec
         self.after_update = interrupt
 
     with monkeypatch.context() as scoped:
-        scoped.setattr(task_process_migration.SqliteTaskProcessMigration, "__init__", initialize)
+        scoped.setattr(task_workflow_migration.SqliteTaskWorkflowMigration, "__init__", initialize)
         code, partial, stderr = run_migration(case, patch=scoped)
     assert code == 2, stderr
     assert partial.get("status") == "recovery_required", (partial, stderr)
@@ -425,10 +425,10 @@ def test_final_task_transaction_rolls_back_and_recovers_published_project(projec
 
 
 @pytest.mark.parametrize("recovering", [False, True])
-def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, monkeypatch, recovering):
+def test_task_migration_does_not_acquire_shared_project_lock(project, monkeypatch, recovering):
     case = historical_project_owned(project)
     if recovering:
-        interrupt_first_process(case, monkeypatch)
+        interrupt_first_workflow(case, monkeypatch)
     from poise.infrastructure import locking, project_config, stage_criteria_migration
     actual = locking.exclusive_lock
     settings = json.loads(case["settings"].read_text())
@@ -440,7 +440,8 @@ def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, 
         assert probe.returncode == 0, probe.stderr
         observed = json.loads(probe.stdout)
         assert_success(case, observed["code"], observed["result"], observed["stderr"])
-        assert observed["events"].index(str(project_lock)) < observed["events"].index(str(task_lock))
+        assert str(project_lock) not in observed["events"]
+        assert str(task_lock) in observed["events"]
         return
     events, held = [], set()
 
@@ -448,8 +449,7 @@ def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, 
     def tracked(path, seconds, poll):
         selected = Path(path).resolve()
         assert selected not in held, "Recursive acquisition of a held migration lock."
-        if selected == task_lock:
-            assert project_lock in held, "Task lock acquired before project publication lock."
+        assert selected != project_lock, "Migration acquired the shared project lock."
         with actual(path, seconds, poll):
             held.add(selected)
             events.append(selected)
@@ -463,11 +463,12 @@ def test_project_lock_precedes_task_lock_without_recursive_acquisition(project, 
             scoped.setattr(module, "exclusive_lock", tracked)
         code, result, err = run_migration(case, patch=scoped)
     assert_success(case, code, result, err)
-    assert events.index(project_lock) < events.index(task_lock)
+    assert project_lock not in events
+    assert task_lock in events
     assert held == set()
 
 
-def test_contended_project_lock_has_no_effects(project):
+def test_obsolete_project_lock_does_not_block_migration(project):
     case = historical_project_owned(project)
     from poise.infrastructure.locking import exclusive_lock
     settings = json.loads(case["settings"].read_text())
@@ -475,10 +476,9 @@ def test_contended_project_lock_has_no_effects(project):
     before = observe(case)
     with exclusive_lock(project_lock, settings["lock_seconds"], settings["lock_poll_seconds"]):
         code, result, stderr = run_migration(case, fresh=True)
-    assert code == 2
-    assert result.get("status") == "rejected", stderr
-    assert "lock" in result["reason"].lower()
-    assert observe(case) == before
+    assert_success(case, code, result, stderr)
+    assert_preserved(before, observe(case))
+    assert_literals(case)
 
 
 def test_historical_fixture_layout_and_source_identities(project):
@@ -504,7 +504,7 @@ def test_preservation_oracle_accepts_literal_criteria_and_rejects_loss(project):
     rows = []
     for row in after["task"]["tasks"]:
         metadata = json.loads(row[7])
-        for stage, literal in zip(metadata["process"]["stages"], case["mapping_stages"], strict=True):
+        for stage, literal in zip(metadata["workflow"]["stages"], case["mapping_stages"], strict=True):
             stage["purpose"] = literal["purpose"]
             stage["criteria_authority"] = literal["criteria_authority"]
         contract = metadata["newborn"]["draft"] if row[1] == "newborn" else metadata["contract"]

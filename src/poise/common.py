@@ -115,19 +115,20 @@ def configured_storage_path(state: Path, value: str) -> Path:
 from .modules.verification.domain import validate_method
 
 
-def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
-    return load_config_document(path, read_json(path), legacy_process_requirements)
+def load_config(path: Path, legacy_workflow_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
+    return load_config_document(path, read_json(path), legacy_workflow_requirements)
 
 
-def load_process_migration_config(path: Path) -> tuple[Path, dict, dict]:
-    """Validate the manifest, retaining historical process bytes for explicit migration."""
+def load_workflow_migration_config(path: Path) -> tuple[Path, dict, dict]:
+    """Validate the manifest, retaining historical workflow bytes for explicit migration."""
     return _load_config_document(path, path.resolve().parent, read_json(path), None,
-                                 historical_processes=True)
+                                 historical_workflows=True)
 
 
-def validate_candidate_config(path: Path, final_root: Path) -> tuple[Path, dict, dict]:
+def validate_candidate_config(path: Path, final_root: Path, *, workflow_documents: dict | None = None) -> tuple[Path, dict, dict]:
     """Validate staged bytes at their explicit final configuration coordinates."""
-    return _load_config_document(path, final_root, read_json(path), None)
+    return _load_config_document(path, final_root, read_json(path), None,
+                                 workflow_documents=workflow_documents)
 
 
 def _require_config_path(value, field, *, nonblank):
@@ -137,18 +138,19 @@ def _require_config_path(value, field, *, nonblank):
         raise PoiseError(f'{field}: требуется непустой строковый путь без NUL')
 
 
-def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
+def load_config_document(path: Path, cfg: dict, legacy_workflow_requirements: dict[str, bool] | None = None, *, workflow_documents: dict | None = None) -> tuple[Path, dict, dict]:
     """Validate one observed manifest through the canonical configuration contract."""
-    return _load_config_document(path, path.resolve().parent, cfg, legacy_process_requirements)
+    return _load_config_document(path, path.resolve().parent, cfg, legacy_workflow_requirements,
+                                 workflow_documents=workflow_documents)
 
 
 def _load_config_document(path: Path, final_root: Path, cfg: dict,
-                          legacy_process_requirements: dict[str, bool] | None,
-                          *, historical_processes=False) -> tuple[Path, dict, dict]:
+                          legacy_workflow_requirements: dict[str, bool] | None,
+                          *, historical_workflows=False, workflow_documents=None) -> tuple[Path, dict, dict]:
     root = final_root.resolve()
     material_root = path.resolve().parent
     final_manifest = root / path.name
-    keys = {'schema','project','paths','limits','git','processes','environment_names',
+    keys = {'schema','project','paths','limits','git','workflows','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
     configuration_fields(cfg, keys, 'project config')
@@ -250,12 +252,12 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     homes.append(worktree_root(state, cfg))
     if any(a.is_relative_to(b) or b.is_relative_to(a) for i,a in enumerate(homes) for b in homes[i+1:]):
         raise PoiseError('Корни runtime/task/sprint/worktree не должны пересекаться')
-    if not isinstance(cfg['processes'],dict) or not cfg['processes']:
+    if not isinstance(cfg['workflows'],dict) or not cfg['workflows']:
         raise PoiseError('Нет явно заданных процессов')
-    if legacy_process_requirements is not None:
-        if (set(legacy_process_requirements) != set(cfg['processes'])
-                or any(type(value) is not bool for value in legacy_process_requirements.values())):
-            raise PoiseError('Bound-source migration requires one explicit bool for every process')
+    if legacy_workflow_requirements is not None:
+        if (set(legacy_workflow_requirements) != set(cfg['workflows'])
+                or any(type(value) is not bool for value in legacy_workflow_requirements.values())):
+            raise PoiseError('Bound-source migration requires one explicit bool for every workflow')
     from .modules.accounting.domain import MetricPolicy
     accounting=MetricPolicy.parse(cfg['accounting']).data
     optional=[descendant(state,accounting['storage'][key]) for key in ('database','lock')]
@@ -270,7 +272,7 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
                 aliased=False
             if aliased:
                 raise PoiseError('accounting.storage физически совпадает с другим хранилищем')
-    configuration_fields(cfg['runtime_services'],{'output','handoff','transfer','check_runner'},'runtime_services')
+    configuration_fields(cfg['runtime_services'],{'output','check_runner'},'runtime_services')
     check_runner=cfg['runtime_services']['check_runner']
     configuration_fields(check_runner,{'initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'},'check_runner config')
     for key in ('initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'):
@@ -281,22 +283,8 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
         raise PoiseError('check_runner.history_multiplier must be at least 1')
     if check_runner['diagnostic_override_max_seconds']<check_runner['initial_seconds']:
         raise PoiseError('check_runner diagnostic override maximum must not be below initial timeout')
-    from .modules.transfers.domain import TransferPolicy
-    TransferPolicy.parse(cfg['runtime_services']['transfer'])
-    transfer_root=descendant(state,cfg['runtime_services']['transfer']['directory'])
-    if any(transfer_root.is_relative_to(p) or p.is_relative_to(transfer_root) for p in homes):
-        raise PoiseError('Transfer staging must not overlap runtime/task/sprint/worktree roots')
     from .modules.result_views.domain import OutputPolicy
     OutputPolicy.parse(cfg['runtime_services']['output'])
-    transfer=cfg['runtime_services']['handoff']
-    configuration_fields(transfer,{'directory','receipt','bundle','preserved_directory','file_mode'},'handoff config')
-    for key in ('directory', 'receipt', 'bundle', 'preserved_directory'):
-        _require_config_path(transfer[key], f'runtime_services.handoff.{key}', nonblank=False)
-        descendant(state, transfer[key])
-    if len({transfer['receipt'],transfer['bundle'],transfer['preserved_directory']})!=3:
-        raise PoiseError('Handoff filenames must be distinct')
-    if type(transfer['file_mode']) is not int or not 0<=transfer['file_mode']<=0o777:
-        raise PoiseError('Explicit handoff file_mode required')
     from .modules.sprints.domain import SprintPolicy
     SprintPolicy.parse(cfg['sprint'])
     if 'task_ids' in cfg:
@@ -306,22 +294,21 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     FocusedDecomposition.validate_policy(cfg['task_decomposition'])
     from .modules.work.domain import validate_config
     validate_config(cfg['batch'])
-    processes = {}
-    for kind, rel in cfg['processes'].items():
-        _require_config_path(rel, f'processes.{kind}', nonblank=False)
-        process_path=descendant(root, rel)
-        if state.is_relative_to(process_path) or process_path.is_relative_to(state):
-            raise PoiseError('Mutable state root overlaps a process configuration')
-        process = read_json(descendant(material_root, rel))
-        from .modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS
-        if (legacy_process_requirements is not None
-                and set(process) == PROCESS_FIELDS - {'worktree_required'}):
-            process['worktree_required'] = legacy_process_requirements[kind]
-        effective_process = (process if historical_processes else
-                             GoalTypeDefinition.from_configuration(process).data)
-        if effective_process['goal_type'] != kind:
-            raise PoiseError(f'Неоднозначный process {kind}')
-        processes[kind] = process
+    from .infrastructure.workflow_files import read_workflows
+    for kind, rel in cfg['workflows'].items():
+        _require_config_path(rel, f'workflows.{kind}', nonblank=False)
+    selected_workflows = read_workflows(path, cfg['workflows'], documents=workflow_documents)
+    workflows = {}
+    for kind, workflow in selected_workflows.items():
+        from .modules.goal_config.domain import GoalTypeDefinition, WORKFLOW_FIELDS
+        if (legacy_workflow_requirements is not None
+                and set(workflow) == WORKFLOW_FIELDS - {'worktree_required'}):
+            workflow['worktree_required'] = legacy_workflow_requirements[kind]
+        effective_workflow = (workflow if historical_workflows else
+                             GoalTypeDefinition.from_configuration(workflow).data)
+        if effective_workflow['goal_type'] != kind:
+            raise PoiseError(f'Неоднозначный workflow {kind}')
+        workflows[kind] = workflow
     for entry in cfg['automatic_checks']:
         configuration_fields(entry, {'paths','by_stage'}, 'automatic checks')
-    return root, cfg, processes
+    return root, cfg, workflows

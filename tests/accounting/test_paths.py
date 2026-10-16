@@ -15,7 +15,7 @@ def setup(project, clock=None):
        'content_contract':{'sections':[],'routes':[],'requirements':[]}}
     project['cfg']['schema']='ddd-accounting-12';project['cfg']['accounting']=policy()
     project['cfg']['automatic_checks']=[]
-    write_json(project['root']/'config/processes/development.json',p)
+    write_json(project['root']/'config/workflows/development.json',p)
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     t['stage_contracts']=[{'stage_id':'write','allowed_paths':['src/**','tests/**','docs/**'],

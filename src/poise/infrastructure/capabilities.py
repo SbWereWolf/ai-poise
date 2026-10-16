@@ -6,9 +6,32 @@ from pathlib import Path
 from datetime import datetime,timezone
 from ..common import PoiseError
 from ..execution import run_command
-from ..modules.capabilities.domain import bind_workspace,satisfies
+from ..modules.capabilities.domain import CapabilitySummary,bind_workspace,satisfies
 from .goal_config import atomic_write,strict_json
 from .mcp_probe import StdioProbe
+
+
+class FileCapabilitySummary:
+    """A bounded complete snapshot protected only during its filesystem effects."""
+
+    def __init__(self, path, file_mode, max_input_bytes, fence):
+        self.path, self.file_mode = Path(path), file_mode
+        self.max_input_bytes, self.fence = max_input_bytes, fence
+
+    def load(self):
+        with self.fence.locked():
+            with self.path.open('rb') as stream:
+                raw = stream.read(self.max_input_bytes + 1)
+            if len(raw) > self.max_input_bytes:
+                raise PoiseError('Capability summary exceeds configured input limit')
+            return CapabilitySummary.from_mapping(strict_json(raw.decode('utf-8')))
+
+    def save(self, summary):
+        raw = (json.dumps(summary.to_dict(), ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+        if len(raw) > self.max_input_bytes:
+            raise PoiseError('Capability summary exceeds configured input limit')
+        with self.fence.locked():
+            atomic_write(self.path, raw, self.file_mode)
 
 
 class LocalProbeExecutor:

@@ -281,13 +281,13 @@ def test_public_task_creation_uses_full_diagnostics(project):
     # Registry observations are transport metadata, not definition fields.
     bad.pop("requirements_snapshot")
     bad.pop("requirements_agreement")
-    process = project["process"]
-    stages = [s["id"] for s in process["stages"]]
+    workflow = project["workflow"]
+    stages = [s["id"] for s in workflow["stages"]]
     bad["decomposition"] = {"kind": "ordinary", "phases": [
         {"stage": s, "skills": ["missing"], "areas": ["no-route/**"]} for s in stages
     ], "integration": None}
     with pytest.raises(DomainError) as caught:
-        validate_creation(bad, process, [], inline_policy())
+        validate_creation(bad, workflow, [], inline_policy())
     assert "unknown decomposition skills" in str(caught.value)
     assert "unrouted decomposition areas" in str(caught.value)
 

@@ -1,0 +1,89 @@
+diff --git a/ai-assistant/tests/checks/check-cache.py b/ai-assistant/tests/checks/check-cache.py
+index cc52e695..d7459301 100644
+--- a/ai-assistant/tests/checks/check-cache.py
++++ b/ai-assistant/tests/checks/check-cache.py
+@@ -195,7 +195,6 @@ def test_historical_cache_pointer_supports_bounded_and_overflow_results() -> Non
+         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+         manifest["root"] = f"{old_prefix}/evidence"
+         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+-        record["artifacts"]["evidence_manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+         receipt = historical / "record.json"
+         receipt.write_text(json.dumps(record), encoding="utf-8")
+         before = {p.relative_to(historical).as_posix(): p.read_bytes()
+@@ -209,9 +208,13 @@ def test_historical_cache_pointer_supports_bounded_and_overflow_results() -> Non
+             _, replay = run_registered_command(root, data, replace(current, output=output), configuration=CheckConfiguration.select(root, None))
+             assert replay["cache"]["hit"] is True, replay
+             assert replay["check_id"] == record["check_id"]
+-            assert hashlib.sha256(manifest_path.read_bytes()).hexdigest() == record["artifacts"]["evidence_manifest_sha256"]
+-            for item in manifest["files"]:
+-                assert hashlib.sha256((historical / "evidence" / item["path"]).read_bytes()).hexdigest() == item["sha256"]
++            assert record["artifacts"]["evidence_manifest_sha256"] is None
++            assert manifest["files"] == [
++                {"path": "junit.xml", "bytes": 23},
++                {"path": "report/summary.txt", "bytes": len(record["check_id"].encode("utf-8")) + 1},
++            ]
++            assert (historical / "evidence/junit.xml").read_bytes() == b'<testsuite tests="1"/>\n'
++            assert (historical / "evidence/report/summary.txt").read_text(encoding="utf-8") == record["check_id"] + "\n"
+             if output.success_bytes == 1024:
+                 assert replay["result_kind"] == "overflow"
+                 assert replay["recovery_path"] == f"{old_prefix}/record.json"
+diff --git a/ai-assistant/tests/checks/registered-command-adoption.py b/ai-assistant/tests/checks/registered-command-adoption.py
+index b22c5a42..811668cd 100644
+--- a/ai-assistant/tests/checks/registered-command-adoption.py
++++ b/ai-assistant/tests/checks/registered-command-adoption.py
+@@ -1088,7 +1088,7 @@ def telemetry_contract(telemetry: Path) -> None:
+ 
+ 
+ def configuration_contract() -> None:
+-    hooks = json.loads((ROOT / ".codex" / "hooks.json").read_text(encoding="utf-8"))
++    hooks = json.loads((ROOT / ".codex" / "hooks.example.json").read_text(encoding="utf-8"))
+     pre = hooks["hooks"]["PreToolUse"]
+     assert len(pre) == 1
+     assert pre[0]["matcher"] == "^(Bash|mcp__repo_checks__(run|cancel))$"
+diff --git a/ai-assistant/tests/checks/run-check.py b/ai-assistant/tests/checks/run-check.py
+index fbcef6d9..165448ad 100644
+--- a/ai-assistant/tests/checks/run-check.py
++++ b/ai-assistant/tests/checks/run-check.py
+@@ -3,7 +3,6 @@
+ 
+ from __future__ import annotations
+ 
+-import hashlib
+ import json
+ from pathlib import Path
+ import sys
+@@ -185,7 +184,13 @@ def test_large_success_is_bounded_and_durable() -> None:
+         assert len(canonical_model_visible_json(result)) <= 2048
+         log = root / str(result["artifacts"]["log_path"])
+         assert log.stat().st_size > 50_000
+-        assert record["artifacts"]["log_sha256"] == hashlib.sha256(log.read_bytes()).hexdigest()
++        assert record["artifacts"]["log_sha256"] is None
++        lines = log.read_bytes().splitlines()
++        assert len(lines) == 1201
++        assert lines[0].startswith(b"success-line-0000-")
++        assert lines[1199].startswith(b"success-line-1199-")
++        assert lines[1200] == b"fixture completed successfully"
++        assert record["artifacts"]["log_bytes"] == log.stat().st_size
+         assert result["progress"]["output_bytes"] == log.stat().st_size
+         assert result["progress"]["last_output_at"] is not None
+         assert get_run(data / "ledger.sqlite3", result["check_id"])["status"] == "passed"
+diff --git a/docs/agents/check-cache.md b/docs/agents/check-cache.md
+index 1fc341d5..bb34b0eb 100644
+--- a/docs/agents/check-cache.md
++++ b/docs/agents/check-cache.md
+@@ -133,9 +133,12 @@ Current-run records и полные журналы находятся тольк
+ `.runtime/checks/<check-id>/` до terminal outcome. Затем immutable
+ record, log, progress и evidence переходят к active task либо taskless
+ outbox; retained SQLite metadata не содержит их payload. Cache entry
+-содержит identity успешного terminal check record и его SHA-256; cache
+-hit принимается лишь пока этот source существует, соответствует
+-сохранённому хэшу и по-прежнему обозначает подтверждённый успех.
++содержит identity успешного terminal check record и диагностический
++SHA-256. Cache hit требует актуальных входов, доступного source record
++и подтверждённого успешного результата. Контрольная сумма record, log
++или evidence не является условием допуска; описание файлов и полные
++результаты сохраняются по [контракту
++evidence](../tools/system-dev-tooling/registered-check-evidence.md).
+ 
+ ## Результат runner
+ 

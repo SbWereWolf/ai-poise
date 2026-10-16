@@ -37,9 +37,9 @@ def runtime(project, *, stage="apply"):
     # Only this temporary fixture configuration is reshaped. No tested Task's
     # live route is renamed and no operational project configuration is used.
     call(client, "cancel", {"reason": "Replace fixture with custom-stage Task."})
-    path = project["root"] / "config/processes/action.json"
-    process = json.loads(path.read_text())
-    for node in process["stages"]:
+    path = project["root"] / "config/workflows/action.json"
+    workflow = json.loads(path.read_text())
+    for node in workflow["stages"]:
         if node["id"] == "apply":
             node["id"] = stage
         node["transitions"] = {
@@ -49,8 +49,8 @@ def runtime(project, *, stage="apply"):
         node["rework_targets"] = [
             stage if target == "apply" else target for target in node["rework_targets"]
         ]
-    process["route"]["entry"] = stage
-    write_json(path, process)
+    workflow["route"]["entry"] = stage
+    write_json(path, workflow)
     task = deepcopy(client.task_queries.record(context["task"])["contract"])
     task["id"] = "SCOPED"
     for field in ("checks", "evidence_plan"):

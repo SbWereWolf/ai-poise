@@ -33,7 +33,7 @@ def test_shipped_editor_mutable_paths_are_project_local_and_configured():
 
 def prepare(tmp_path):
     root=tmp_path/'home';root.mkdir()
-    for name in ('process-templates','task-templates'):
+    for name in ('workflow-templates','task-templates'):
         shutil.copytree(ROOT/'config/catalogue'/name,root/'config/catalogue'/name)
     for source, name in (
         ('settings.example.json', 'settings.json'),
@@ -44,7 +44,7 @@ def prepare(tmp_path):
     repo=FileCatalogue(root/'config/catalogue/settings.json')
     tools=CatalogueCommands(repo,goal_config_tools(repo.editor.path),repo.raw['max_items'])
     items=[{'goal_type':g,'request_id':'install-'+g,'mode':'create','expected_revision':None,
-            'template':repo.process_selection(g),'changes':[]} for g in repo.editor.raw['processes']]
+            'template':repo.workflow_selection(g),'changes':[]} for g in repo.editor.raw['workflows']]
     return root,repo,tools,items
 
 
@@ -54,8 +54,8 @@ def test_all_independent_packs_installed_in_one_batch_and_replay_preserved(tmp_p
     assert first['count']==13 and [r['revision'] for r in second['results']]==[r['revision'] for r in first['results']]
     assert all(r['replayed'] for r in second['results'])
     for item in items:
-        assert repo.configured_process(item['goal_type'])['goal_type']==item['goal_type']
-    assert len(list((root/'config/catalogue/processes').glob('*.json')))==13
+        assert repo.configured_workflow(item['goal_type'])['goal_type']==item['goal_type']
+    assert len(list((root/'config/catalogue/workflows').glob('*.json')))==13
 
 
 @pytest.mark.parametrize('invalid',[{'mode':'guess'},{'expected_revision':'not-null'}, {'request_id':'../outside'}])
@@ -63,16 +63,16 @@ def test_invalid_late_request_cannot_publish_earlier_files(tmp_path,invalid):
     root,repo,tools,items=prepare(tmp_path)
     batch=items[:2];batch[1].update(invalid)
     with pytest.raises(PoiseError):tools.install(batch)
-    assert not list((root/'config/catalogue/processes').glob('*.json'))
+    assert not list((root/'config/catalogue/workflows').glob('*.json'))
 
 
 def test_late_invalid_graph_is_checked_before_any_publication(tmp_path):
     root,repo,tools,items=prepare(tmp_path)
     # Removing a referenced stage leaves the final candidate graph invalid.
-    second=items[1];entry=repo.process_template(second['template'])['route']['entry']
+    second=items[1];entry=repo.workflow_template(second['template'])['route']['entry']
     second['changes']=[{'op':'remove_stage','id':entry}]
     with pytest.raises(PoiseError):tools.install(items[:2])
-    assert not list((root/'config/catalogue/processes').glob('*.json'))
+    assert not list((root/'config/catalogue/workflows').glob('*.json'))
 
 
 def test_bound_and_duplicate_goal_are_explicit_errors(tmp_path):
@@ -80,7 +80,7 @@ def test_bound_and_duplicate_goal_are_explicit_errors(tmp_path):
     small=CatalogueCommands(repo,tools.editor,1)
     with pytest.raises(PoiseError):small.install(items[:2])
     with pytest.raises(PoiseError):tools.install([items[0],items[0]])
-    assert not list((root/'config/catalogue/processes').glob('*.json'))
+    assert not list((root/'config/catalogue/workflows').glob('*.json'))
 
 
 def test_task_template_tampering_is_not_accepted_as_declared_revision(tmp_path):

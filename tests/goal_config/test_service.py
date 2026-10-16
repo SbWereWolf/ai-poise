@@ -21,7 +21,7 @@ def test_create_change_repeat_and_old_repeat_do_not_rollback(tmp_path):
     second=api.apply_batch(update)
     assert second["revision"]!=first["revision"]
     assert api.apply_batch(new)["current_revision"]==second["revision"]
-    assert json.loads((tmp_path/"config/processes/writing.json").read_text())["content_contract"]["sections"]
+    assert json.loads((tmp_path/"config/workflows/writing.json").read_text())["content_contract"]["sections"]
 
 
 def test_invalid_batch_does_not_publish_half_the_changes(tmp_path):
@@ -44,9 +44,9 @@ def test_stale_revision_and_reused_request_are_rejected(tmp_path):
 
 def test_existing_valid_config_can_be_edited_and_other_pack_is_unchanged(tmp_path):
     path, selection=settings(tmp_path)
-    target=tmp_path/"config/processes/writing.json"; target.parent.mkdir(parents=True)
+    target=tmp_path/"config/workflows/writing.json"; target.parent.mkdir(parents=True)
     target.write_text(json.dumps(template()))
-    other=tmp_path/"config/processes/other.json"; other.write_text("do not touch")
+    other=tmp_path/"config/workflows/other.json"; other.write_text("do not touch")
     result=goal_config_tools(path).apply_batch(request("update","writing",digest(template()),additions()))
     assert result["changed"] and other.read_text()=="do not touch"
 
@@ -70,7 +70,7 @@ def test_explicit_inputs_no_defaults_no_template_guessing(tmp_path, edit):
     path, selection=settings(tmp_path)
     raw=request("create","writing",None,[],selection=selection); edit(raw)
     with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
-    assert not (tmp_path/"config/processes/writing.json").exists()
+    assert not (tmp_path/"config/workflows/writing.json").exists()
 
 
 def test_missing_setting_and_oversized_batch_are_errors(tmp_path):
@@ -81,16 +81,18 @@ def test_missing_setting_and_oversized_batch_are_errors(tmp_path):
     with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,additions(),selection=selection))
 
 
-def test_full_template_digest_is_checked_at_execution(tmp_path):
+def test_malformed_current_template_is_rejected_before_publication(tmp_path):
     path, selection=settings(tmp_path)
     (tmp_path/"templates/writing.json").write_text("{}")
-    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
+    with pytest.raises(PoiseError, match='goal_type|content_contract|worktree_required|stages'):
+        goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
+    assert not (tmp_path/"config/workflows/writing.json").exists()
 
 
 def test_symlink_cannot_write_outside_config_root(tmp_path):
     path, selection=settings(tmp_path)
     external=tmp_path.parent/(tmp_path.name+"-foreign.json"); external.write_text("untouched")
-    target=tmp_path/"config/processes/writing.json"; target.parent.mkdir(parents=True); target.symlink_to(external)
+    target=tmp_path/"config/workflows/writing.json"; target.parent.mkdir(parents=True); target.symlink_to(external)
     with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
     assert external.read_text()=="untouched"
 
@@ -107,7 +109,7 @@ def test_atomic_file_failure_can_resume_without_duplicate_revision(tmp_path, mon
         m.setattr(infra,"atomic_write",fail)
         with pytest.raises(PoiseError,match="pending|публикац"):
             api.apply_batch(raw)
-    assert not (tmp_path/"config/processes/writing.json").exists()
+    assert not (tmp_path/"config/workflows/writing.json").exists()
     out=goal_config_tools(path).apply_batch(raw)
     assert out["replayed"] and out["revision"]==digest(template())
     with sqlite3.connect(tmp_path/"state/config-editor.sqlite") as db:
@@ -135,7 +137,7 @@ def test_lost_receipt_after_atomic_replace_recovers_known_candidate(tmp_path, mo
     with monkeypatch.context() as m:
         m.setattr(infra,'atomic_write',replace_then_interrupt)
         with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
-    target=tmp_path/'config/processes/writing.json'
+    target=tmp_path/'config/workflows/writing.json'
     before=target.read_bytes()
     result=goal_config_tools(path).apply_batch(raw)
     assert result['replayed'] and target.read_bytes()==before
@@ -170,9 +172,9 @@ def test_pending_publication_cannot_be_redirected_by_new_settings(tmp_path, monk
         def fail(*args): raise OSError('interrupted write')
         m.setattr(infra,'atomic_write',fail)
         with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
-    cfg=json.loads(path.read_text()); cfg['processes']['writing']='config/processes/elsewhere.json';path.write_text(json.dumps(cfg))
+    cfg=json.loads(path.read_text()); cfg['workflows']['writing']='config/workflows/elsewhere.json';path.write_text(json.dumps(cfg))
     with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
-    assert not (tmp_path/'config/processes/elsewhere.json').exists()
+    assert not (tmp_path/'config/workflows/elsewhere.json').exists()
 
 
 @pytest.mark.parametrize('reverse',[False,True])

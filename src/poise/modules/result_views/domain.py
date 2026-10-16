@@ -13,8 +13,27 @@ def _positive(value, where, integral=True):
         raise DomainError(f'{where} requires an explicit finite positive value')
 
 
+def utf8_json_text(value, *, indent=None, separators=None):
+    """Escape unpaired code units as JSON without losing their semantic values."""
+    return json.dumps(value, ensure_ascii=False, indent=indent, separators=separators).encode(
+        'utf-8', errors='backslashreplace').decode('utf-8')
+
+
 def _envelope_text(value):
-    return json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n'
+    return utf8_json_text(value, separators=(',', ':')) + '\n'
+
+
+def native_context_view(result, response_path, budget, notice):
+    """Preserve the native context; optional warning text navigates to full data."""
+    _positive(budget, 'output budget')
+    text = _envelope_text(result)
+    if len(text) <= budget and result.get('systemMessage'):
+        return text
+    view = {**result, 'systemMessage': notice + ' ' + str(response_path)}
+    text = _envelope_text(view)
+    if len(text) > budget:
+        raise DomainError('Configured output budget cannot fit native context and diagnostic address')
+    return text
 
 
 def response_required(result, budget):

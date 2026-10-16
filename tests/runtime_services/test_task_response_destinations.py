@@ -528,7 +528,7 @@ def test_new_sprint_member_address_admitted_before_creation(
         parent = sprint_task(project, 'P')
         parent['sprint_id'] = None
         runtime.task_commands.create(parent, runtime.session,
-            runtime.processes['development'], [], {'config_hash': runtime.config_hash},
+            runtime.workflows['development'], [], {'config_hash': runtime.config_hash},
             None, runtime.cfg.get('task_ids'), runtime._creation_base(),
             runtime.cfg['task_decomposition'])
     args = {'action': action, 'task_id': 'D', 'sprint_id': sprint_id,

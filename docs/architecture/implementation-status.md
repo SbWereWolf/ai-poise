@@ -13,7 +13,7 @@
 запись через `verify.criteria_work`. Начало выполнения закрепляет редакцию
 соответствующего этапа; согласованный restart сохраняет проверяемую историю.
 Контракт, ограничения и примеры описаны в [руководстве](../workflows/stage-criteria.md).
-[Миграция](../task-process-snapshot-migration.md#миграция-типов-и-критериев-этапов)
+[Миграция](../task-workflow-snapshot-migration.md#миграция-типов-и-критериев-этапов)
 сохраняет происхождение исторических данных и разделяет файловые публикации
 от транзакции Task DB. Наличие реализации не означает миграцию или активацию
 рабочих конфигов. Они требуют отдельной авторизации и проверки установки.
@@ -51,9 +51,9 @@ Query/Command](../workflows/requirements-registry.md#пакетный-crud)
 ## Task planning flexibility — согласованный следующий срез
 
 Runtime-часть проектирования реализована: goal type материализует Task-owned draft,
-planner меняет его границы и process, ready фиксирует результат, авторизованный restart
+planner меняет его границы и workflow, ready фиксирует результат, авторизованный restart
 открывает только разрешённые прежней policy изменения. Используются существующие
-Task, catalogue, process validator и транзакции; новая SQLite schema не введена.
+Task, catalogue, workflow validator и транзакции; новая SQLite schema не введена.
 Полный [контракт runtime](../workflows/task-planning.md) отделяет работающие действия
 от оставшихся ограничений. Историческое имя раздела сохранено для входящих ссылок.
 
@@ -78,13 +78,13 @@ reader и ручное исправление БД не используются
 Domain определяет точный набор полей через тот же владеющий creation contract, что и `ready`.
 До мутации отклоняются неизвестные, повторные, отсутствующие, обязательные, immutable и
 одновременно patched/removed поля. Digest включает `remove`; точный replay, identity, Sprint
-membership, append-only history, process snapshot, ownership и revision guards сохраняются.
+membership, append-only history, workflow snapshot, ownership и revision guards сохраняются.
 Путь проверен focused lifecycle 5/5, bounded smoke 6/6 и независимым inspection.
 
 ## Broken Task recovery — task 0079
 
 Публичный Task action `restart` возвращает ту же незавершённую неинтегрированную Task в
-`newborn`. Он сохраняет ID, append-only history, Sprint membership, contract/process snapshot,
+`newborn`. Он сохраняет ID, append-only history, Sprint membership, contract/workflow snapshot,
 worktree, branch, base, entry tree и Git WIP; сбрасывает только состояние текущей попытки.
 Optimistic version, immutable request identity, foreign ownership, terminal status и pending
 external outcome проверяются до фиксации изменений. Участник уже опубликованного Sprint после
@@ -182,12 +182,12 @@ automatic intent. `project-config` изменяет существующие man
 ## BUG-CONFIG-001 — 2026-09-12
 
 Реализованы `ProjectConfigCommands` и bounded CLI `project-config` для изменения действующего
-project manifest/process snapshots. Полный кандидат проходит прежние project/process
-validators; известная общая revision и revision каждого изменяемого process проверяются до
+project manifest/workflow snapshots. Полный кандидат проходит прежние project/workflow
+validators; известная общая revision и revision каждого изменяемого workflow проверяются до
 публикации. Durable receipt обеспечивает idempotent replay, pending receipt — продолжение
 точно известной частичной публикации после interruption.
 
-Process updates не меняют snapshots существующих Task. Manifest update и безопасный перенос
+Workflow updates не меняют snapshots существующих Task. Manifest update и безопасный перенос
 state требуют quiescent проекта и сериализуются с Task creation/claim через state locks.
 Relocation проверяет source/destination, сохраняет всё дерево, поддерживает `retain` и
 `delete_after_publish`, удерживает locks обоих state roots до receipt и не допускает пустой
@@ -221,7 +221,7 @@ integration.
 Реализована публичная операция `advance` с устойчивыми `request_id`, `task_id` и
 `target_stage`. Она сохраняет цель в Task journal, использует обычные route transitions и
 останавливается на работе этапа, entry gate, границе executor/reviewer либо достигнутой цели.
-Точный replay после process loss, correction, restart и handoff продолжает тот же intent;
+Точный replay после workflow loss, correction, restart и handoff продолжает тот же intent;
 изменение цели конфликтует. Переход роли требует public handoff и bootstrap другой сессии.
 Обычные переходы пишут `stage_progressed` без `user_accept*` и сохраняют report как `verified`;
 перед `publish` возвращается `user_acceptance_required` до отдельного решения пользователя.
@@ -241,7 +241,7 @@ authorization, request identity, полный ожидаемый commit и dispo
 
 Состояние persisted в Task execution snapshot и содержит прогресс, blocker и историю. Реально
 проверяются точные worktree/branch identity, commit, зарегистрированные temporary resources и
-digest. Повтор после process loss идемпотентно продолжает недостающие шаги. Dirty worktree не
+digest. Повтор после workflow loss идемпотентно продолжает недостающие шаги. Dirty worktree не
 удаляется: решение фиксируется, а продолжение требует clean same-branch fast-forward checkpoint
 с новым request ID либо возврата к прежнему commit. Существующая terminal Task без cleanup-state
 инициализируется только явной командой, без фоновой миграции.
@@ -267,7 +267,7 @@ directory scan нет. Рабочий `config/project-setup.json` указыва
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00
 
 Реализованы `project`/`project-init`: batch creation, явные templates, back/change/keep/abort,
-публикация цельного проекта, 13 независимых process snapshots, локальные Git readiness checks.
+публикация цельного проекта, 13 независимых workflow snapshots, локальные Git readiness checks.
 Рабочий конфиг загружается обычным runtime; real-source pilot остаётся verified без autoaccept.
 Исторический результат пилота не заменяет текущий запуск тестов. Revision-aware updates
 существующих project manifests поставлены отдельным `project-config`; нового multi-codebase

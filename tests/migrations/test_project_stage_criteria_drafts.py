@@ -56,7 +56,7 @@ def test_mixed_inventory_fresh_read_replay(project):
     source_rows = rows(case)
     result = successful(case)
     assert_drafts_preserved(case, source_rows, result)
-    expected_ids = {("process_definition", "development"), ("process_definition", "design"),
+    expected_ids = {("workflow_definition", "development"), ("workflow_definition", "design"),
                     ("newborn_task", "N1"), ("executable_task", "T1"),
                     ("executable_task", "T2"), ("newborn_draft", "U1"),
                     ("newborn_draft", "P1")}
@@ -81,18 +81,18 @@ def test_mixed_inventory_fresh_read_replay(project):
 
 
 @pytest.mark.parametrize("fault", [
-    "process_null", "process_array", "type_without_process", "contracts_null",
+    "workflow_null", "workflow_array", "type_without_workflow", "contracts_null",
     "contracts_object", "contracts_empty", "contracts_incomplete",
 ])
 def test_malformed_present_draft_rejected(project, fault):
     case = draft_case(project)
-    task_id = "U1" if fault in {"process_null", "process_array", "type_without_process"} else "P1"
+    task_id = "U1" if fault in {"workflow_null", "workflow_array", "type_without_workflow"} else "P1"
     metadata = json.loads(rows(case)[task_id][7])
-    if fault == "process_null":
-        metadata["process"] = None
-    elif fault == "process_array":
-        metadata["process"] = []
-    elif fault == "type_without_process":
+    if fault == "workflow_null":
+        metadata["workflow"] = None
+    elif fault == "workflow_array":
+        metadata["workflow"] = []
+    elif fault == "type_without_workflow":
         metadata["newborn"]["draft"]["goal_type"] = "development"
     else:
         contracts = {"contracts_null": None, "contracts_object": {}, "contracts_empty": [],
@@ -217,13 +217,13 @@ def test_draft_source_drift_after_publication(project, monkeypatch, task_id):
         receipts = project_receipts(case)
         assert len(receipts) == 1
         assert receipts[0][1]["result"]["status"] == "updated"
-        assert all("purpose" in s for p in case["process_paths"] for s in json.loads(p.read_text())["stages"])
+        assert all("purpose" in s for p in case["workflow_paths"] for s in json.loads(p.read_text())["stages"])
         reached.append(receipts[0][0].read_bytes())
         metadata = json.loads(rows(case)[task_id][7])
         if task_id == "U1":
             metadata["goal"] = "Concurrent draft payload after publication."
         else:
-            metadata["process"]["stages"][0]["instruction"] = "Concurrent process change after publication."
+            metadata["workflow"]["stages"][0]["instruction"] = "Concurrent process change after publication."
         replace_metadata(case, task_id, metadata)
         changed_rows.append(rows(case))
         return result
@@ -235,7 +235,7 @@ def test_draft_source_drift_after_publication(project, monkeypatch, task_id):
     assert_contextual_refusal(code, partial, stderr, ["drift"], "recovery_required")
     assert rows(case) == changed_rows[0]
     assert all(rows(case)[key] == row for key, row in original_rows.items() if key != task_id)
-    assert {r["kind"] for r in partial["resources"]} == {"process_definition"}
+    assert {r["kind"] for r in partial["resources"]} == {"workflow_definition"}
     assert not any(json.loads(row[5]).get("phase") == "completed" for row in observe(case)["task"]["journal"])
     after = observe(case)
     code, retry, stderr = run_migration(case, fresh=True)

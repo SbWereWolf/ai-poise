@@ -103,7 +103,7 @@ def test_reconcile_rejects_wrong_managed_or_live_digest_without_mutation(tmp_pat
     ] == first["revision"]
 
 
-def test_malformed_external_process_cannot_be_statused_or_reconciled(tmp_path):
+def test_malformed_external_workflow_cannot_be_statused_or_reconciled(tmp_path):
     _, api, first = _managed_editor(tmp_path)
     target = Path(first["config_path"])
     target.write_text('{"goal_type":"writing"}', encoding="utf-8")

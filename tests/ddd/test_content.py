@@ -49,13 +49,13 @@ def test_invalid_normalization_or_duplicate_rule_has_no_fallback():
         SectionBook((rule(), rule()))
 
 
-def test_missing_normalization_in_process_is_not_defaulted(project):
+def test_missing_normalization_in_workflow_is_not_defaulted(project):
     import json
     from conftest import Poise
     from poise.common import PoiseError
-    path=project["root"]/"config/processes/development.json"
-    process=json.loads(path.read_text())
-    del process["stages"][0]["normalization"]
-    path.write_text(json.dumps(process))
+    path=project["root"]/"config/workflows/development.json"
+    workflow=json.loads(path.read_text())
+    del workflow["stages"][0]["normalization"]
+    path.write_text(json.dumps(workflow))
     with pytest.raises(PoiseError,match="normalization"):
         Poise(project["config_path"],"s")

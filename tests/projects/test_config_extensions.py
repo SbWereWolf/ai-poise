@@ -79,55 +79,55 @@ def test_public_edit_preserves_unknown_options_and_replays_exact_revision(projec
     packet = update_request(path, created['revision'], manifest_edits=[
         {'path': ['git', 'remote'], 'value': 'edited'}])
     result = update_tools(settings).apply(packet)
-    _, observed, processes = load_config(path)
+    _, observed, workflows = load_config(path)
     expected = deepcopy(before)
     expected['git']['remote'] = 'edited'
     assert observed == expected
     from poise.common import digest
-    assert result['revision'] == digest({'config': expected, 'processes': processes})
+    assert result['revision'] == digest({'config': expected, 'workflows': workflows})
     assert update_tools(settings).apply(packet) == {**result, 'replayed': True}
 
 
-def test_public_process_edit_preserves_raw_extensions_and_revision(project):
+def test_public_workflow_edit_preserves_raw_extensions_and_revision(project):
     from poise.common import digest
-    from .test_update import process_change
-    project['process']['future_option'] = {'value': None}
-    project['process']['stages'][0]['future_stage_option'] = [False]
-    write_json(project['root'] / project['cfg']['processes']['development'], project['process'])
+    from .test_update import workflow_change
+    project['workflow']['future_option'] = {'value': None}
+    project['workflow']['stages'][0]['future_stage_option'] = [False]
+    write_json(project['root'] / project['cfg']['workflows']['development'], project['workflow'])
     settings, path, created = installed_project(project)
-    _, config, processes = load_config(path)
-    before = deepcopy(processes['development'])
-    packet = update_request(path, created['revision'], process_updates=[process_change(before)])
+    _, config, workflows = load_config(path)
+    before = deepcopy(workflows['development'])
+    packet = update_request(path, created['revision'], workflow_updates=[workflow_change(before)])
     result = update_tools(settings).apply(packet)
     expected = deepcopy(before)
-    expected['stages'][0]['instruction'] = packet['process_updates'][0]['changes'][0]['set']['instruction']
-    _, after_config, after_processes = load_config(path)
+    expected['stages'][0]['instruction'] = packet['workflow_updates'][0]['changes'][0]['set']['instruction']
+    _, after_config, after_workflows = load_config(path)
     assert after_config == config
-    assert after_processes['development'] == expected
-    assert result['revision'] == digest({'config': config, 'processes': after_processes})
+    assert after_workflows['development'] == expected
+    assert result['revision'] == digest({'config': config, 'workflows': after_workflows})
     assert update_tools(settings).apply(packet)['revision'] == result['revision']
 
 
 @pytest.mark.parametrize('path', [(), ('route',), ('benefit',), ('stages', 0),
                                   ('content_contract',)])
-def test_unknown_process_configuration_options_do_not_relax_task_contract(project, path):
+def test_unknown_workflow_configuration_options_do_not_relax_task_contract(project, path):
     _, config_path, _ = installed_project(project)
     document = load_config(config_path)[1]
-    process_path = config_path.parent / document['processes']['development']
-    raw = json.loads(process_path.read_text())
+    workflow_path = config_path.parent / document['workflows']['development']
+    raw = json.loads(workflow_path.read_text())
     node = raw
     for key in path:
         node = node[key]
     node['future_option'] = None
-    write_json(process_path, raw)
-    before = process_path.read_bytes()
-    _, _, processes = load_config(config_path)
+    write_json(workflow_path, raw)
+    before = workflow_path.read_bytes()
+    _, _, workflows = load_config(config_path)
     from poise.modules.goal_config.domain import GoalTypeDefinition
-    assert processes['development'] == raw
-    assert GoalTypeDefinition.from_configuration(processes['development']).data == project['process']
+    assert workflows['development'] == raw
+    assert GoalTypeDefinition.from_configuration(workflows['development']).data == project['workflow']
     with pytest.raises(PoiseError):
         GoalTypeDefinition.parse(raw)
-    assert process_path.read_bytes() == before
+    assert workflow_path.read_bytes() == before
 
 
 def test_setup_settings_ignore_unknown_options_at_every_fixed_object(project):

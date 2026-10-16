@@ -229,7 +229,7 @@ def test_inspection_exit_requires_nonempty_complete_current_green_executable_cov
 def configure_public_registry_case(project: dict) -> None:
     from conftest import bind_task_requirements, write_json
 
-    stages = project["process"]["stages"]
+    stages = project["workflow"]["stages"]
     stage_ids = (
         "test_implementation",
         "test_inspection",
@@ -265,7 +265,7 @@ def configure_public_registry_case(project: dict) -> None:
         read_only=False,
         allowed_paths=["src/**"],
     )
-    project["process"]["route"]["entry"] = "test_implementation"
+    project["workflow"]["route"]["entry"] = "test_implementation"
     project["task"]["requirements"].append(
         "Canonical documentation describes the registry lifecycle."
     )
@@ -334,8 +334,8 @@ def configure_public_registry_case(project: dict) -> None:
         "implementation": ["GREEN"],
     }
     write_json(
-        project["root"] / "config/processes/development.json",
-        project["process"],
+        project["root"] / "config/workflows/development.json",
+        project["workflow"],
     )
 
 

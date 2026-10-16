@@ -1,6 +1,6 @@
 """Frozen stage-criteria historical transformation. Standard library only.
 
-This module deliberately does not load current Task/process models. Its caller
+This module deliberately does not load current Task/workflow models. Its caller
 supplies observed historical records; publication and storage belong elsewhere.
 """
 from copy import deepcopy
@@ -17,7 +17,7 @@ def identity(value):
     return hashlib.sha256(canonical(value).encode('utf-8')).hexdigest()
 
 
-def process_candidate(source, stages):
+def workflow_candidate(source, stages):
     candidate = deepcopy(source)
     original = source['stages']
     if ([stage['id'] for stage in original] != [stage['stage_id'] for stage in stages]
@@ -76,7 +76,7 @@ def task_candidate(row, mapping, events, submissions, receipt):
     if mapping['kind'] != kind:
         raise ValueError('Historical Task kind mismatch')
     expected = mapping['expected_revision'] if newborn else mapping['expected_version']
-    if row['version'] != expected or identity(metadata['process']) != mapping['expected_process_digest']:
+    if row['version'] != expected or identity(metadata['workflow']) != mapping['expected_workflow_digest']:
         raise ValueError('Historical Task source revision mismatch')
     contract = metadata['newborn']['draft'] if newborn else metadata['contract']
     old_contract = deepcopy(contract)
@@ -85,8 +85,8 @@ def task_candidate(row, mapping, events, submissions, receipt):
     if (not isinstance(originals, list)
             or [stage.get('stage_id') for stage in originals] != stage_ids
             or len(set(stage_ids)) != len(originals)):
-        raise ValueError('Historical stage contracts must exist uniquely in process order')
-    metadata['process'] = process_candidate(metadata['process'], mapping['stages'])
+        raise ValueError('Historical stage contracts must exist uniquely in workflow order')
+    metadata['workflow'] = workflow_candidate(metadata['workflow'], mapping['stages'])
     book = {'stages': {}, 'requests': {}}
     for stage, mapped in zip(contract['stage_contracts'], mapping['stages'], strict=True):
         if set(stage) != {'stage_id', 'allowed_paths', 'entry_requirements', 'exit_requirements'}:
@@ -112,7 +112,7 @@ def task_candidate(row, mapping, events, submissions, receipt):
     metadata['stage_criteria'] = book
     key = 'draft' if newborn else 'contract'
     result = {'kind': kind, 'task_id': row['id'],
-              'old_digest': identity({'process': original['process'], key: old_contract}),
-              'new_digest': identity({'process': metadata['process'], key: contract}),
+              'old_digest': identity({'workflow': original['workflow'], key: old_contract}),
+              'new_digest': identity({'workflow': metadata['workflow'], key: contract}),
               'revision' if newborn else 'version': row['version']}
     return metadata, result

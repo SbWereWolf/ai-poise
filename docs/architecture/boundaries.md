@@ -83,7 +83,7 @@ preflight, liveness и повторную проверку в UoW. SQLite adapte
 освобождение claimant; ownership repository — bindings и receipt той же UoW.
 Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
 
-Process snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork
+Workflow snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork
 и handoff компонуют API владельца, не реализуют отдельные алгоритмы захвата. Native hook
 registry предоставляет подтверждённые события liveness: `SessionEnd` означает DEAD,
 незавершённая наблюдаемая сессия — LIVE, недостающая запись — UNCERTAIN. Runtime без
@@ -101,11 +101,11 @@ Accounting не измеряет несуществующий Git delta, но п
 принятого результата по-прежнему использует текущую установку и существующее дерево Task.
 Атомарность SQL claims не обещает транзакцию, охватывающую Git или внешние команды.
 
-## Task process snapshot migration
+## Task workflow snapshot migration
 
-Явной миграцией сохранённых Task process snapshots владеет Task process persistence
-boundary. Чистый `ProcessSnapshotMigration` проверяет авторизованный набор и строит
-изменения из неизменяемого `goal_type` и настроенных process definitions. Application
+Явной миграцией сохранённых Task workflow snapshots владеет Task workflow persistence
+boundary. Чистый `WorkflowSnapshotMigration` проверяет авторизованный набор и строит
+изменения из неизменяемого `goal_type` и настроенных workflow definitions. Application
 service принимает один декларативный запрос. SQLite adapter сверяет названную публичную
 резервную копию, повторно проверяет состояние под writer lock, записывает весь набор и
 audit event одной транзакцией. CLI только декодирует запрос и представляет результат.
@@ -118,14 +118,14 @@ compatibility read. Одинаковый `request_id` с тем же intent во
 изменённый intent, повреждённый audit или drift отклоняются. Время audit поступает через
 обязательный `Clock`; production composition явно предоставляет `SystemClock`.
 
-Schema `task-process-migration-2` имеет отдельный compile-time scope ровно из Task `0082` и
+Schema `task-workflow-migration-2` имеет отдельный compile-time scope ровно из Task `0082` и
 не меняет авторизованный набор schema 1. Она сохраняет опубликованный контракт первой операции:
-domain добавляет к legacy process только отсутствующий `worktree_required`, а её старый receipt
-остаётся replayable. Корректирующая schema `task-process-migration-3` имеет тот же точный scope,
+domain добавляет к legacy workflow только отсутствующий `worktree_required`, а её старый receipt
+остаётся replayable. Корректирующая schema `task-workflow-migration-3` имеет тот же точный scope,
 сохраняет уже добавленный совпадающий boolean и строит отсутствующий stage contract каждого route
 stage: scope берётся из сохранённого stage, gates — из сохранённых content requirements по phase.
 Storage
-меняет только process и contract snapshots внутри metadata; Task version, lifecycle/result/
+меняет только workflow и contract snapshots внутри metadata; Task version, lifecycle/result/
 content/evidence/ownership/Git поля и released handoff остаются прежними. После commit
 работоспособность доказывается обычным reviewer bootstrap сохранённой verified Task.
 
@@ -163,7 +163,7 @@ metadata/audit. Чистое историческое преобразовани
 финальная SQLite-транзакция имеют отдельные результаты восстановления.
 Без выбора project settings сохраняется редактор каталога. Операторский контракт
 и условия повтора находятся в [руководстве по
-миграции](../task-process-snapshot-migration.md#публикация-атомарность-и-восстановление).
+миграции](../task-workflow-snapshot-migration.md#публикация-атомарность-и-восстановление).
 
 ## Пакетный декларативный вход
 
@@ -183,7 +183,7 @@ DDD-04A/04B; Sprint
 
 Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги AI poise остаются в AI poise;
 generated
-project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация
+project/workflow файлы не редактируются агентом напрямую. Код приложения, тесты и документация
 приложения — через
 нативные инструменты согласно правилам codebase. Полный контракт:
 [declarative-tools](declarative-tools.md).
@@ -197,7 +197,7 @@ Application `GoalConfigCommands` делегирует файл/DB через por
 bounded response и
 не обходит доменную validation. Общий `infrastructure/locking.py` используется двумя хранилищами.
 
-Текущий Task process snapshot не зависит от актуальной копии pack; его project execution config
+Текущий Task workflow snapshot не зависит от актуальной копии pack; его project execution config
 остаётся отдельной
 границей. Версия store изменена явно. Новый editor не наследует чужой goal-type процесс: явный
 template копируется в
@@ -255,13 +255,13 @@ push запрещён.
 
 Восстановлением ошибочной незавершённой Task владеет общий Task lifecycle. Application-команда
 `restart` проверяет optimistic version, ownership и terminal boundary; Task domain строит newborn
-с тем же ID, Sprint membership, process/contract snapshot и append-only restart audit. Task и
+с тем же ID, Sprint membership, workflow/contract snapshot и append-only restart audit. Task и
 execution repositories одной UoW сохраняют смену состояния и сбрасывают только текущие attempts,
 publication, pending и last_report, не изменяя worktree/branch/base/entry tree и Git WIP.
 
 Pending external outcome блокирует restart до выполнения его явного recovery protocol. Replay
 receipt проверяется до мутации; conflicting intent отклоняется. `ready` повторно валидирует
-сохранённый process, а `start` возобновляет прежнее execution/worktree. Public Sprint correction
+сохранённый workflow, а `start` возобновляет прежнее execution/worktree. Public Sprint correction
 action `replace_task` удалён. Типизированная проекция замен Task удалена. Прежние решения читаются
 как
 неизменяемые revision layers и аудит явной миграции, не как текущий процесс.
@@ -407,6 +407,16 @@ owner-relative location и переживает перенос. Runtime sessions
 - `modules/capabilities` и `modules/hook_transport`: pure contracts; нет subprocess, времени и
   filesystem.
 - `application/CapabilityChecks`, `HookCommands`: пакетные сценарии через порты.
+- `CapabilitySummary` задаёт полный завершённый результат сессионной проверки;
+  `SummaryStore` — порт его сохранения. `SessionReadiness` компонует прежний
+  `CapabilityChecks`: обычное чтение возвращает сохранённое, явное обновление наблюдает
+  capabilities и получает UTC через переданный `Clock`. Готовность и requiredness
+  остаются решением существующего владельца проверок.
+- `FileCapabilitySummary` сохраняет полный файл через прежний `atomic_write` и явные
+  режим/лимит; короткие файловые эффекты защищены `ProjectRuntimeFence`. Новые probes
+  выполняются вне длительной общей блокировки native события. `HookRegistry` сохраняет
+  workspace настоящего SessionStart в существующих event metadata для обновления,
+  в том числе после потери файла сводки. Новая схема БД или привязка к Task не вводится.
 - `infrastructure/HookService`: composition с прежним WorkTools/InteractionStore; native hook не
   принимает и не
   завершает Task.
@@ -417,6 +427,9 @@ owner-relative location и переживает перенос. Runtime sessions
 - Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет
   скрыто приёмку AI
   poise этапа.
+
+Настройки, показ и отказы описаны в [сводке готовности
+сессии](../configuration/runtime-hooks.md#сводка-готовности-сессии).
 
 ### session-scoped source resolution
 
@@ -433,7 +446,7 @@ AI poise должна была прочитать текущую конфигу�
 не имеет fallback-маршрута. Параллельные сессии используют одну установленную реализацию,
 собственные bindings и независимые Task ownership; их worktrees не становятся runtime-кодом.
 Все операции используют валидную текущую конфигурацию без общего `config_hash` gate, как
-предусмотрено задачей 0026. Task-owned process, contract и verification snapshots сохраняются;
+предусмотрено задачей 0026. Task-owned workflow, contract и verification snapshots сохраняются;
 хеш остаётся диагностическим provenance. Lifecycle ownership и revision guards не меняются.
 
 Адресный `terminal inspection snapshot` для `completed` и `cancelled` также
@@ -492,7 +505,7 @@ Handler произвольного goal_type не создаётся. Все 98 
 Пакет `resolutions` расширяет обычную работу тем же FeedbackBook; решение осмотра отдельно.
 Publish читает сохранённый план и не принимает незаметно новый draft вместо осмотренного.
 Собственные исходники/templates можно редактировать как разработку продукта; рабочие
-process-files публикуются через инструментарий. Внешние fixtures/сценарии не являются ядром.
+workflow-files публикуются через инструментарий. Внешние fixtures/сценарии не являются ядром.
 
 
 # Project setup boundary — 2026-09-14T00:00:00+05:00
@@ -524,12 +537,12 @@ missing/invalid записи от пригодных и не исправляе�
 Явная историческая миграция вызывает тот же файловый владелец после проверки
 собственного запроса; она не ослабляет обычный вход `ProjectConfigCommands`.
 
-`GoalTypeDefinition` остаётся владельцем process candidate. Project updater координирует
-несколько независимых process snapshots, но не вводит второй редактор их внутренней модели.
-Generic manifest edits не могут менять `project`, `schema`, `processes` или `paths`:
+`GoalTypeDefinition` остаётся владельцем workflow candidate. Project updater координирует
+несколько независимых workflow snapshots, но не вводит второй редактор их внутренней модели.
+Generic manifest edits не могут менять `project`, `schema`, `workflows` или `paths`:
 перемещение state принадлежит отдельному relocation protocol.
 
-Task остаётся владельцем process snapshot и lifecycle. Обновление живого process не меняет
+Task остаётся владельцем workflow snapshot и lifecycle. Обновление живого workflow не меняет
 уже созданную Task. Manifest/state mutation требует quiescence; project setup lock и lock
 исходного state удерживаются от проверки до durable receipt, а при relocation до переключения
 manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
@@ -711,10 +724,39 @@ Cleanup state хранится в существующем Task execution snapsh
 ## Метаданные skills (C005.1)
 
 Обновлено: 2026-09-15. `modules/skills` владеет неизменяемыми дескрипторами навыков.
-Infrastructure проверяет явно выбранный каталог и пути, но не читает тела инструкций.
+В metadata режимах infrastructure проверяет явно выбранный каталог и пути;
+получение тел выбранных инструкций принадлежит отдельному prepare.
 Task/Sprint продолжают владеть готовностью и жизненным циклом; чистый владелец
 FocusedDecomposition потребляет классификацию, а не поддерживает второй inventory.
 Контракт и отображение классов: [каталог skills](../configuration/skill-catalog.md).
+
+Общий file-selection имеет следующих владельцев:
+
+| Владелец | Ответственность |
+|---|---|
+| modules/skills/instructions | Чистые policy, profile matching, scopes/reasons, identity, availability diagnostics и delta. |
+| modules/skills/instruction_ports | InstructionSource: узкий порт наблюдения контекста и материалов. |
+| application/ProjectInstructions | Композиция request → project context → policy/catalogue → paths/previous → selection → observation → result. |
+| infrastructure/FileInstructionSource | Read-only manifest/Git binding, metadata, exact ancestor discovery и UTF-8 byte observation. |
+| interfaces.skills | Единственный operation dispatcher, полное JSON представление и exit code. |
+
+Обратная проверка content/SHA ведёт к одному чтению исходных bytes;
+required/scopes/reasons — к policy и конкретным рабочим путям; delta — к текущим
+наблюдениям и проверенному previous. Domain не читает диск, application не создаёт
+Task/runner, CLI не ведёт второй lifecycle. Общий prepare выбирается перед eager
+legacy loader; специализированный DevelopmentRouting сохраняет stage/facts/checks
+и не заменяется общим file-selection.
+
+ERP donor: commit16c5b906615e57a5b5f89b495c42b79f51eab87e,
+ai-assistant/agent/effective-policy-manifest.py. Повторно использованы
+OrderedValues/ReasonMap, universal/profile selection, ancestor rules и file_delta;
+адаптации ограничены явными file scopes, обязательностью, identity и шестью
+сравниваемыми полями. ERP runtime/Task policy не перенесены.
+Действующий load_config читает полный project manifest; отсутствие Task API/DB
+в этом потоке не означает полного удаления Task plugins.
+Автоматическая nativehook интеграция и доказательство применения инструкций моделью
+не реализованы. Операторский договор:
+[подготовка инструкций по файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
 
 
 ## Проверенное повторное использование семейного результата

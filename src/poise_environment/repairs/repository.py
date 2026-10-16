@@ -1,44 +1,40 @@
-"""Local repository readiness; never initialize, reset, fetch or publish implicitly."""
+"""Observe the selected local repository; no implicit repository mutation."""
 import argparse
-import os
 from pathlib import Path
-from environment_maintenance.process import run
-from environment_maintenance.shared.filesystem import lexical_path
-from environment_maintenance.shared.protocol import serve, result, recommend
-
-TEMPLATES = {
-    'missing': 'Репозиторий {repository} отсутствует или недоступен. Укажите существующий Git-каталог через --set repository; автоматического clone/init нет.',
-    'root': 'Путь {repository} не является корнем рабочего дерева. Укажите точный корень, не вложенный каталог.',
-    'base': 'В локальном репозитории {repository} недоступна базовая ревизия. Укажите существующую base_ref или отдельно подготовьте репозиторий.',
-    'unknown': 'Проверьте путь {repository}, выбранный Git и исходную диагностику. Автоматическое изменение веток, сети и содержимого запрещено.'
-}
+import subprocess
+from ..shared.protocol import Observation, serve
 
 
-def handle(args, request):
-    if request['mode'] == 'recommend':
-        return recommend(request, TEMPLATES, {'repository': args.repository})
-    repository = lexical_path(args.repository)
-    if not repository.is_dir() or not os.access(repository, os.R_OK | os.X_OK):
-        return result('action_required', 'missing')
+def handle(args):
+    repository = Path(args.repository).absolute()
+    if not repository.is_dir():
+        return Observation("unavailable", "missing")
+
     def probe(*arguments):
-        return run({'argv': [args.git, '-C', str(repository), *arguments], 'timeout': 10},
-                   cwd=repository, environ=dict(os.environ))
-    top = probe('rev-parse', '--show-toplevel')
-    if top['status'] != 'passed' or Path(top['stdout'].strip()) != repository:
-        return result('action_required', 'root', diagnostic=top)
-    revision = probe('rev-parse', '--verify', '--end-of-options', args.base_ref + '^{commit}')
-    if revision['status'] != 'passed':
-        return result('action_required', 'base', diagnostic=revision)
-    return result('satisfied', 'ok', base_commit=revision['stdout'].strip())
+        return subprocess.run(
+            [args.git, "-C", str(repository), *arguments],
+            capture_output=True, text=True)
+
+    try:
+        top = probe("rev-parse", "--show-toplevel")
+        if top.returncode or Path(top.stdout.strip()) != repository:
+            return Observation("unavailable", "root", top.stderr)
+        revision = probe("rev-parse", "--verify", "--end-of-options",
+                         args.base_ref + "^{commit}")
+        if revision.returncode:
+            return Observation("unavailable", "base", revision.stderr)
+    except OSError as error:
+        return Observation("unavailable", "missing", str(error))
+    return Observation("satisfied")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Готовность локального репозитория Poise')
-    parser.add_argument('--repository', required=True)
-    parser.add_argument('--base-ref', required=True)
-    parser.add_argument('--git', default='git')
+    parser = argparse.ArgumentParser(
+        description="Локальный репозиторий")
+    for name in ("repository", "base-ref", "git"):
+        parser.add_argument("--" + name, required=True)
     return serve(parser, handle)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

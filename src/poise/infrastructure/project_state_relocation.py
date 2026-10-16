@@ -56,9 +56,8 @@ class FileProjectStateRelocation:
 
     def _admit_hook(self, hook):
         """One native admission rule for initial effects and every pending resume."""
-        # The outer project fence remains held throughout relocation. Keep the
-        # registry read leases local so its owning publication transaction can
-        # acquire the same lock during an interrupted publication's exact retry.
+        # Hook registry leases are local to their owning publication boundary;
+        # relocation does not hold an installation-wide setup lease.
         with ExitStack() as locks:
             self._check_hook(hook, locks)
 

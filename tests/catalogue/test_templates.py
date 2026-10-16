@@ -15,14 +15,14 @@ GOALS = ('development','test_development','verification','review','design','anal
 
 def documents(goal):
     base=ROOT/'config/catalogue'
-    return (json.loads((base/'process-templates'/f'{goal}.json').read_text()),
+    return (json.loads((base/'workflow-templates'/f'{goal}.json').read_text()),
             json.loads((base/'task-templates'/f'{goal}.json').read_text()))
 
 
 @pytest.mark.parametrize('goal',GOALS)
-def test_independent_process_is_valid_and_has_complete_section_contract(goal):
-    process,template=documents(goal)
-    parsed=GoalTypeDefinition.parse(process).data
+def test_independent_workflow_is_valid_and_has_complete_section_contract(goal):
+    workflow,template=documents(goal)
+    parsed=GoalTypeDefinition.parse(workflow).data
     assert parsed['goal_type']==goal
     assert all(s['instruction'] and s['required_sections'] for s in parsed['stages'] if s['handler']!='publish')
     assert all(s['read_only'] for s in parsed['stages'] if s['handler']=='inspect')
@@ -77,7 +77,7 @@ def decomposition_policy():
             'areas':[{'path':'src/**','responsibility':'application'}]}
 
 
-def process():
+def workflow():
     return {'goal_type':'custom','worktree_required':True,'route':{'entry':'draft'},
             'content_contract':{'sections':[],'routes':[],'requirements':[]},
             'benefit':{'git_categories':[],'sections':['note']},'stages':[{
@@ -90,7 +90,7 @@ def process():
 def test_typed_instantiation_preserves_exact_command_and_does_not_mutate_template():
     source=tiny();before=deepcopy(source)
     created=TaskBlueprint.parse(source).instantiate(
-        values(),process(),[],decomposition_policy()
+        values(),workflow(),[],decomposition_policy()
     )
     assert created['id']=='T' and created['sprint_id'] is None
     assert source==before
@@ -103,7 +103,7 @@ def test_typed_instantiation_preserves_exact_command_and_does_not_mutate_templat
 def test_missing_extra_or_wrong_parameter_is_rejected_without_fallback(change):
     p=values();change(p)
     with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(
-        p,process(),[],decomposition_policy()
+        p,workflow(),[],decomposition_policy()
     )
 
 
@@ -115,12 +115,12 @@ def test_unknown_placeholder_is_rejected():
 def test_exact_method_reference_is_validated_by_existing_task_owner():
     raw=tiny();raw['task']['checks']['draft']=['NO_SUCH_METHOD']
     with pytest.raises(PoiseError):TaskBlueprint.parse(raw).instantiate(
-        values(),process(),[],decomposition_policy()
+        values(),workflow(),[],decomposition_policy()
     )
 
 
-def test_mismatched_process_identity_is_not_reclassified():
-    p=process();p['goal_type']='other'
+def test_mismatched_workflow_identity_is_not_reclassified():
+    p=workflow();p['goal_type']='other'
     with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(
         values(),p,[],decomposition_policy()
     )

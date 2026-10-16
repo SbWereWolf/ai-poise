@@ -58,12 +58,12 @@ def bind_resource(case, task_id):
 def draft_case(project, mode="mixed"):
     assert project["cfg"]["project"] == "demo"
     case = historical_project_owned(project)
-    source_process = json.loads((ROOT / "fixtures/stage-criteria/historical-state.json").read_text())["process"]
+    source_workflow = json.loads((ROOT / "fixtures/stage-criteria/historical-state.json").read_text())["process"]
     selected = ["U1"] if mode == "untyped" else ["P1"] if mode == "typed" else ["U1", "P1"]
     for task_id in selected:
         metadata = deepcopy(DATA["untyped" if task_id == "U1" else "typed_partial"])
         if task_id == "P1":
-            metadata["process"] = deepcopy(source_process)
+            metadata["workflow"] = deepcopy(source_workflow)
         raw = json.dumps(metadata, ensure_ascii=False, indent=3) + "\n"
         version = 3 if task_id == "U1" else 5
         with sqlite3.connect(case["database"]) as connection:
@@ -93,18 +93,18 @@ def assert_drafts_preserved(case, before, result):
         if task_id == "U1":
             assert new[7] == old[7], "Untyped metadata TEXT must remain byte-for-byte equal."
         else:
-            process = deepcopy(actual.pop("process"))
-            prior_process = deepcopy(source.pop("process"))
+            workflow = deepcopy(actual.pop("workflow"))
+            prior_workflow = deepcopy(source.pop("workflow"))
             assert actual == source
             assert "stage_contracts" not in actual["newborn"]["draft"]
             assert "stage_criteria" not in actual
             assert [{"stage_id": s["id"], "purpose": s["purpose"],
                      "criteria_authority": s["criteria_authority"]}
-                    for s in process["stages"]] == DATA["expected_stages"]
-            for stage in process["stages"]:
+                    for s in workflow["stages"]] == DATA["expected_stages"]
+            for stage in workflow["stages"]:
                 stage.pop("purpose")
                 stage.pop("criteria_authority")
-            assert process == prior_process
+            assert workflow == prior_workflow
         summary = next(item for item in result["resources"] if item.get("task_id") == task_id)
         assert set(summary) == {"kind", "task_id", "revision", "old_digest", "new_digest"}
         assert summary["kind"] == "newborn_draft"

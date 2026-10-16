@@ -28,8 +28,8 @@ def create_duplicate_in(uow, task_id, source_id, sprint_id, actor, config_hash):
     if task_id == parent_id or uow.tasks.exists(task_id):
         raise DomainError('Duplicate requires a new Task identity')
     context = uow.tasks.restart_context(parent_id)
-    contract, process = context['contract'], context['process']
-    if not isinstance(contract, dict) or not isinstance(process, dict):
+    contract, workflow = context['contract'], context['workflow']
+    if not isinstance(contract, dict) or not isinstance(workflow, dict):
         raise DomainError('Duplicate requires an established parent contract')
     record = uow.sprints.get(sprint_id)
     if record is None:
@@ -40,7 +40,7 @@ def create_duplicate_in(uow, task_id, source_id, sprint_id, actor, config_hash):
         if context[key] is not None:
             draft[key] = deepcopy(context[key])
     newborn = replace(NewbornTask.create(task_id,sprint_id,None),
-                      draft=draft,process=deepcopy(process))
+                      draft=draft,workflow=deepcopy(workflow))
     uow.tasks.create_newborn(newborn, config_hash)
     uow.tasks.link_duplicate(task_id,parent_id,actor)
     uow.sprints.save({**record,'actor':actor,'aggregate':sprint.to_dict()}, sprint.revision-1)

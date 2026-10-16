@@ -1,7 +1,6 @@
 """Read existing runtime authority before allocating mutable project stores."""
 import json
 from contextlib import contextmanager
-from contextvars import ContextVar
 from pathlib import Path
 
 from ..common import PoiseError, digest, load_config, configured_root
@@ -11,25 +10,44 @@ from .goal_config import read_document
 from .projects import FileProjectSetup
 
 
-_held_project_leases = ContextVar('held_project_leases', default=frozenset())
-
-
 class ProjectRuntimeFence:
-    """One external setup fence, rereading authority before every owner effect."""
+    """Runtime association validation; ordinary work never locks the installation."""
     def __init__(self, config_path, expected_state=None, hook_settings=None):
         from .projects import ProjectSettings
         self.config_path = Path(config_path).resolve()
-        root, config, _ = load_config(self.config_path)
+        self.hook_settings = hook_settings
+        root, config, _ = self._configuration()
         if 'runtime_resources' not in config:
             raise PoiseError('Mutable runtime requires explicit runtime_resources association')
         resources = validate_resources(config['runtime_resources'])
         self.settings = ProjectSettings(resources['project_setup'])
         self.state = configured_root(root, config['paths']['state']) if expected_state is None else expected_state
-        self.hook_settings = hook_settings
         self._validate()
 
+    def _configuration(self):
+        if self.hook_settings is None:
+            return load_config(self.config_path)
+        # Binding a native entry uses transport authority, not Task workflows.
+        from ..modules.foundation.validation import configuration_fields, nonempty
+        config = read_document(self.config_path)
+        nonempty(config.get('project'), 'hook project')
+        paths = config.get('paths')
+        if not isinstance(paths, dict) or 'state' not in paths:
+            raise PoiseError('Hook project requires explicit paths.state')
+        batch = configuration_fields(config.get('batch'), {'message_source'}, 'hook project.batch')
+        source = configuration_fields(batch['message_source'], {'id', 'mode'},
+                                      'hook project.batch.message_source')
+        for field in ('id', 'mode'):
+            nonempty(source[field], 'hook project.batch.message_source.' + field)
+        return self.config_path.parent, config, None
+
+    def hook_manifest(self):
+        if self.hook_settings is None:
+            raise PoiseError('Hook manifest requires a selected hook association')
+        return self._configuration()[1]
+
     def _validate(self):
-        root, config, _ = load_config(self.config_path)
+        root, config, _ = self._configuration()
         require_project_association(self.settings, self.config_path, config, config['runtime_resources'])
         if self.hook_settings is None and configured_root(root, config['paths']['state']) != self.state:
             raise PoiseError('Cached runtime configuration state placement changed')
@@ -44,21 +62,9 @@ class ProjectRuntimeFence:
 
     @contextmanager
     def locked(self):
-        from .locking import exclusive_lock
-        key = str(self.settings.lock)
-        held = _held_project_leases.get()
-        if key in held:
-            self._validate()
-            yield
-            return
-        with exclusive_lock(self.settings.lock, self.settings.raw['lock_seconds'],
-                            self.settings.raw['lock_poll_seconds']):
-            self._validate()
-            token = _held_project_leases.set(held | {key})
-            try:
-                yield
-            finally:
-                _held_project_leases.reset(token)
+        """Validate current runtime configuration without a shared writer lease."""
+        self._validate()
+        yield
 
 
 def require_project_association(settings, config_path, config, resources):

@@ -1,0 +1,15 @@
+{
+  "kind": "offline-public-stage-packet-proof",
+  "exact_result_field_set": true,
+  "exact_section_set": true,
+  "protected_result_values_unchanged": true,
+  "other_sections_unchanged": true,
+  "original_report_preserved": true,
+  "original_documentation_preserved": true,
+  "ordinary_operation_unchanged": true,
+  "artifact_requests_unchanged": true,
+  "messages_unchanged": true,
+  "method_additions_unchanged": true,
+  "new_checks_executed_by_this_proof": false,
+  "native_acceptance": false
+}

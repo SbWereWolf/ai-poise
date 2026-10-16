@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -37,7 +38,7 @@ def direct_materialization(case, *, project='erp-acceptance',
 
 @pytest.mark.parametrize('literal', ['$cash', '$$pair'])
 @pytest.mark.parametrize('parameter', [
-    'repository', 'profile_root', 'state_root', 'author_name', 'author_email',
+    'repository', 'profile_root', 'state_root', 'project_id', 'author_name', 'author_email',
 ])
 def test_public_profile_preserves_literal_selected_data(erp_case, parameter, literal):
     case = erp_case
@@ -51,6 +52,9 @@ def test_public_profile_preserves_literal_selected_data(erp_case, parameter, lit
         key = 'profile' if parameter == 'profile_root' else 'state'
         case[key] = case['root'] / (key + ' ' + literal)
         expected = str(case[key])
+    elif parameter == 'project_id':
+        expected = 'erp-' + literal
+        arguments['project'] = expected
     elif parameter == 'author_name':
         expected = 'Author ' + literal
         arguments['author'] = expected
@@ -65,6 +69,10 @@ def test_public_profile_preserves_literal_selected_data(erp_case, parameter, lit
         projected = read_json(case['profile'] / 'project-edits.json')
         assert any(edit['path'] == ['git', 'repository'] and edit['value'] == expected
                    for edit in projected), 'Authored substitution must preserve literal input'
+    if parameter == 'project_id':
+        projected = read_json(case['profile'] / 'project-edits.json')
+        assert any(edit['path'] == ['project'] and edit['value'] == expected
+                   for edit in projected), 'Authored project substitution must preserve literal input'
 
 
 @pytest.mark.parametrize('literal', ['$cash', '$$pair'])
@@ -117,6 +125,16 @@ def selected_process(case, directory, mode):
     return action_argv(case, 'erp-php-runtime', 'check')
 
 
+def owned_process_state(pid):
+    """Independent Linux process observation for the exact fixture-owned PID."""
+    try:
+        record = (Path('/proc') / str(pid) / 'stat').read_text()
+    except (FileNotFoundError, ProcessLookupError):
+        return 'terminated'
+    # Linux proc(5): state follows the parenthesized command, which may contain spaces.
+    return record[record.rfind(')') + 2:].split()[0]
+
+
 def test_terminal_timeout_settles_started_owned_descendant(erp_deployed):
     case = erp_deployed
     directory = case['root'] / 'owned timeout processes'
@@ -127,6 +145,9 @@ def test_terminal_timeout_settles_started_owned_descendant(erp_deployed):
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     try:
         result = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True, timeout=6)
+        child_pid = int((directory / 'child-pid').read_text())
+        terminal_state = owned_process_state(child_pid)
+        terminated_at_return = terminal_state in ('terminated', 'Z', 'X')
         assert (directory / 'started').read_text() == 'owned descendant started', 'Fixture setup must prove startup'
         response = json.loads(result.stdout)
         assert response['state'] == 'unavailable' and response['cause'] == 'process', (result.stdout, result.stderr)
@@ -135,11 +156,25 @@ def test_terminal_timeout_settles_started_owned_descendant(erp_deployed):
         (directory / 'release').touch()
         # Keep this same outer test host alive: its teardown cannot prove settlement.
         time.sleep(0.5)
+        late_effect = (directory / 'effect').exists()
+        assert terminated_at_return, (
+            'Owned descendant remains live after terminal timeout',
+            'late effect observed', late_effect)
         assert not (directory / 'effect').exists(), 'Timed-out owned descendant performed a late effect'
     finally:
         (directory / 'release').touch()
-        unrelated.terminate()
-        unrelated.wait(timeout=3)
+        try:
+            identity = directory / 'child-pid'
+            if identity.exists():
+                child_pid = int(identity.read_text())
+                if owned_process_state(child_pid) not in ('terminated', 'Z', 'X'):
+                    try:
+                        os.kill(child_pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+        finally:
+            unrelated.terminate()
+            unrelated.wait(timeout=3)
 
 
 def test_ordinary_process_success_keeps_real_effect(erp_deployed):

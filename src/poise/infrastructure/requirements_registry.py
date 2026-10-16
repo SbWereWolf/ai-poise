@@ -34,6 +34,8 @@ class RequirementsStore:
 
     def _configure(self, database, lock, lock_seconds, poll_seconds, project_fence=None):
         self._backend = None
+        self._registry_type = RequirementsRegistry
+        self._specialized_query_kinds = ()
         self.project_fence = project_fence
         self.database = Path(database)
         self.lock = Path(lock)
@@ -44,11 +46,13 @@ class RequirementsStore:
         self.poll_seconds = poll_seconds
 
     @classmethod
-    def standalone(cls, database, lock, lock_seconds, poll_seconds, backend):
+    def standalone(cls, database, lock, lock_seconds, poll_seconds, backend, *, registry_type):
         """Compose an explicitly selected persistence backend with this owner."""
         store = cls.__new__(cls)
         store._configure(database, lock, lock_seconds, poll_seconds)
         store._backend = backend
+        store._registry_type = registry_type
+        store._specialized_query_kinds = registry_type.query_kinds
         with store._transaction() as connection:
             backend.initialize(connection)
         return store
@@ -121,7 +125,7 @@ class RequirementsStore:
     def _registry(self, connection):
         if self._backend is not None:
             rows = self._backend.registry_rows(connection)
-            return RequirementsRegistry.restore(rows['requirements'], rows['links'])
+            return self._registry_type.restore(**rows)
         requirements = [
             dict(row)
             for row in connection.execute(
@@ -159,7 +163,9 @@ class RequirementsStore:
             raise DomainError(f"Requirements bootstrap cannot be read: {exc}") from exc
 
     def query(self, queries, max_items):
-        queries = validate_query_batch(queries, max_items)
+        queries = validate_query_batch(
+            queries, max_items, specialized_kinds=self._specialized_query_kinds,
+        )
         context = (None, None)
         try:
             with self._transaction() as connection:
@@ -249,7 +255,7 @@ class RequirementsStore:
                     (request_id,),
                 ).fetchone()
             if previous is not None:
-                matches = (previous['intent'] == request if self._backend is not None
+                matches = (_encoded(previous['intent']) == _encoded(request) if self._backend is not None
                            else previous['digest'] == digest)
                 if not matches:
                     raise DomainError("Requirements request_id was used for another request")

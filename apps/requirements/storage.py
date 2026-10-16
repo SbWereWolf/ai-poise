@@ -4,6 +4,7 @@ from pathlib import Path
 
 from poise.infrastructure.requirements_registry import RequirementsStore as SharedStore
 from poise.modules.foundation.errors import PoiseError
+from .graph import RequirementsGraph
 
 
 def _json(value):
@@ -11,7 +12,64 @@ def _json(value):
 
 
 def RequirementsStore(database, lock, lock_seconds, poll_seconds):
-    return SharedStore.standalone(database, lock, lock_seconds, poll_seconds, StandaloneBackend())
+    return SharedStore.standalone(
+        database, lock, lock_seconds, poll_seconds, StandaloneBackend(),
+        registry_type=RequirementsGraph,
+    )
+
+
+def _decoded(value, expected, where):
+    try:
+        result = json.loads(value)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise PoiseError(f'{where}: unreadable saved JSON') from exc
+    if not isinstance(result, expected):
+        raise PoiseError(f'{where}: invalid saved value')
+    return result
+
+
+class SavedRevisions:
+    """Detached saved rows; decode only the record requested by the graph."""
+
+    def __init__(self, statements, requirements, snapshots):
+        self.statements = {(row['task_id'], row['statement_revision']): row for row in statements}
+        self.requirements = requirements
+        self.snapshots = {(row['task_id'], row['snapshot_revision']): row for row in snapshots}
+
+    def has_statement(self, task_id, revision):
+        return (task_id, revision) in self.statements
+
+    def statement(self, task_id, statement_revision):
+        row = self.statements.get((task_id, statement_revision))
+        if row is None:
+            raise PoiseError(f'unknown Task statement revision: {statement_revision}')
+        return {'goal': row['goal'], 'definition_of_done': _decoded(
+            row['definition_of_done'], list, 'Task definition_of_done',
+        )}
+
+    def task_history(self, task_id):
+        return {'task_id': task_id, 'items': [
+            {'statement_revision': revision, 'goal': row['goal']}
+            for (identifier, revision), row in sorted(self.statements.items()) if identifier == task_id
+        ]}
+
+    def requirement_history(self, requirement_id):
+        return {'requirement_id': requirement_id, 'items': [
+            {'revision': row['revision'], 'status': row['status'], 'text': row['text'],
+             'owner_revision': row['owner_revision'],
+             'origin': _decoded(row['origin'], dict, 'requirement revision origin')}
+            for row in self.requirements if row['id'] == requirement_id
+        ]}
+
+    def latest_snapshot_revision(self, task_id):
+        return max((revision for identifier, revision in self.snapshots if identifier == task_id),
+                   default=None)
+
+    def snapshot(self, task_id, snapshot_revision):
+        row = self.snapshots.get((task_id, snapshot_revision))
+        if row is None:
+            raise PoiseError(f'unknown Task snapshot revision: {snapshot_revision}')
+        return _decoded(row['payload'], dict, 'Task snapshot')
 
 
 class StandaloneBackend:
@@ -43,7 +101,34 @@ class StandaloneBackend:
                  for row in connection.execute(
                      'SELECT system_id,application_id FROM main.system_application_versions '
                      'WHERE valid_to IS NULL ORDER BY system_id,application_id')]
-        return {'requirements': requirements, 'links': links}
+        identities = [dict(row) for row in connection.execute(
+            'SELECT task_id,current_statement_revision FROM main.task_identities ORDER BY task_id'
+        )]
+        versions = [dict(row) for row in connection.execute(
+            'SELECT task_id,statement_revision,key,position,status,text '
+            'FROM main.task_requirement_versions ORDER BY task_id,statement_revision,position'
+        )]
+        task_links = [dict(row) for row in connection.execute(
+            'SELECT task_id,statement_revision,key,application_id FROM main.application_task_links '
+            'ORDER BY task_id,statement_revision,key,application_id'
+        )]
+        statements = [dict(row) for row in connection.execute(
+            'SELECT task_id,statement_revision,goal,definition_of_done '
+            'FROM main.task_statements ORDER BY task_id,statement_revision'
+        )]
+        requirement_revisions = [dict(row) for row in connection.execute(
+            'SELECT id,revision,status,text,owner_revision,origin '
+            'FROM main.requirement_revisions ORDER BY id,revision'
+        )]
+        snapshots = [dict(row) for row in connection.execute(
+            'SELECT task_id,snapshot_revision,payload FROM main.task_snapshots '
+            'ORDER BY task_id,snapshot_revision'
+        )]
+        return {
+            'requirements': requirements, 'links': links, 'task_identities': identities,
+            'task_requirement_versions': versions, 'application_task_links': task_links,
+            'revisions': SavedRevisions(statements, requirement_revisions, snapshots),
+        }
 
     def prepare_queries(self, connection):
         connection.execute(
@@ -98,14 +183,52 @@ class StandaloneBackend:
                 (identifier, local_revision, value['status'], value['text'], revision, origin),
             )
         existing = {(link['system'], link['application']) for link in before['links']}
+        active = {(link['system'], link['application']) for link in after['links']}
+        for system, application in existing - active:
+            connection.execute(
+                'UPDATE main.system_application_versions SET valid_to=? '
+                'WHERE system_id=? AND application_id=? AND valid_to IS NULL',
+                (revision, system, application),
+            )
         for link in after['links']:
             if (link['system'], link['application']) not in existing:
                 connection.execute(
                     'INSERT INTO main.system_application_versions(system_id,application_id,valid_from,valid_to) '
                     'VALUES(?,?,?,NULL)', (link['system'], link['application'], revision),
                 )
+        for statement in after['statements']:
+            self._persist_statement(connection, statement, origin)
         connection.execute('UPDATE main.requirements_meta SET revision=?', (revision,))
         connection.execute(
             'INSERT INTO main.requirement_requests(protocol_namespace,request_id,intent,response) '
             'VALUES(?,?,?,?)', ('registry.apply', request_id, _json(intent), _json(response)),
+        )
+
+    @staticmethod
+    def _persist_statement(connection, statement, origin):
+        task_id = statement['task_id']
+        revision = statement['statement_revision']
+        connection.execute(
+            'INSERT INTO main.task_statements'
+            '(task_id,statement_revision,goal,definition_of_done,origin) VALUES(?,?,?,?,?)',
+            (task_id, revision, statement['goal'], _json(statement['definition_of_done']), origin),
+        )
+        for position, entry in enumerate(statement['task_requirements']):
+            connection.execute(
+                'INSERT INTO main.task_requirement_keys(task_id,key) VALUES(?,?) '
+                'ON CONFLICT(task_id,key) DO NOTHING', (task_id, entry['key']),
+            )
+            connection.execute(
+                'INSERT INTO main.task_requirement_versions'
+                '(task_id,statement_revision,key,position,status,text) VALUES(?,?,?,?,?,?)',
+                (task_id, revision, entry['key'], position, entry['status'], entry['text']),
+            )
+            connection.executemany(
+                'INSERT INTO main.application_task_links'
+                '(task_id,statement_revision,key,application_id) VALUES(?,?,?,?)',
+                [(task_id, revision, entry['key'], application) for application in entry['applications']],
+            )
+        connection.execute(
+            'UPDATE main.task_identities SET current_statement_revision=? WHERE task_id=?',
+            (revision, task_id),
         )

@@ -209,9 +209,11 @@ def _item(item, maximum, context, query):
                 "invalid_item", context)
 
 
-def validate_query_batch(queries, maximum):
+def validate_query_batch(queries, maximum, *, specialized_kinds=()):
     _items(queries, maximum)
     for index, item in enumerate(queries):
+        if item.get('kind') in specialized_kinds:
+            continue
         _item(item, maximum, (index, item["id"]), True)
     return _copy_json(queries)
 

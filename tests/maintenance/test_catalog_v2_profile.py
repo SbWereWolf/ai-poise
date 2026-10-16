@@ -1,11 +1,7 @@
-"""P002 acceptance: public profile -> real v2 consumer -> actual resources.
-
-No fake integration results; reference closure uses its declared read-only owner.
-The controller retains the
-baseline's v1 dependencies for honest initial RED; actions use isolated v2.
-"""
+"""Full Poise profile through the accepted v2 supply and actual resources."""
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -27,6 +23,13 @@ RETAINED = json.loads((FIXTURES / "catalog-v2-retained-rows.json").read_text())
 EXAMPLE = "config/maintenance/environment-maintenance.example.json"
 ENVIRONMENT = dict(os.environ, PYTHONPATH=str(REPO / "src"),
                    PYTHONDONTWRITEBYTECODE="1", LANG="C.UTF-8")
+
+_support_spec = importlib.util.spec_from_file_location(
+    "p2_generic_test_support", FIXTURES / "generic_v2_support.py")
+assert _support_spec is not None and _support_spec.loader is not None
+_support = importlib.util.module_from_spec(_support_spec)
+_support_spec.loader.exec_module(_support)
+consumer = _support.consumer
 
 
 def invoke(argv, *, cwd=REPO, env=None):
@@ -105,13 +108,9 @@ def materialize(case, *, source=None, project="acceptance", state=None):
 
 
 @pytest.fixture
-def consumer_python():
-    selected = os.environ.get("P002_CONSUMER_PYTHON")
-    assert selected and Path(selected).is_file(), "Select isolated v2 test Python"
-    probe = invoke([selected, "-I", "-B", "-c",
-                    "import environment_maintenance.catalogue,sys;print(sys.executable)"])
-    assert probe.returncode == 0, (probe.stdout, probe.stderr)
-    return selected
+def consumer_python(consumer):
+    """Reuse the owning fixture's supply and installed-byte checks."""
+    return consumer
 
 
 @pytest.fixture
@@ -119,8 +118,7 @@ def deployed(installation):
     result = materialize(installation)
     assert result.returncode == 0, (result.stdout, result.stderr)
     manifest = installation["profile"] / "catalog.json"
-    if not manifest.is_file():
-        pytest.skip("Dependent action checks: v2 profile prerequisite absent")
+    assert manifest.is_file(), "Public materializer must publish the required v2 profile"
     return installation
 
 
@@ -278,18 +276,21 @@ def test_bootstrap_dependencies_infrastructure_then_check(deployed, consumer_pyt
     ready(deployed, consumer_python)
 
 
-def test_directory_invalid_mode_is_repaired(deployed, consumer_python):
+@pytest.mark.parametrize("item", DIRECTORIES, ids=lambda item: item["id"])
+def test_directory_invalid_mode_is_repaired(deployed, consumer_python, item):
     ready(deployed, consumer_python)
-    path = deployed["state"] / "runtime"
+    path = deployed["state"] / item["path"]
     assert path.is_dir()
     path.chmod(0o700)
     result, report = consume(deployed, consumer_python, "run")
     assert result.returncode == 0, (result.stdout, result.stderr)
-    row = next(row for row in report["requirements"] if row["id"] == "runtime-directory")
+    row = next(row for row in report["requirements"] if row["id"] == item["id"])
     assert row["initial_state"] == "invalid"
     assert row["mutation"]["response"]["action"] == "repair"
     assert row["state"] == "satisfied"
-    assert path.stat().st_mode & 0o777 == 0o750
+    assert row["initial_check"]["invocation"] == row["final_check"]["invocation"]
+    assert row["final_check"]["response"]["state"] == "satisfied"
+    assert path.stat().st_mode & 0o777 == item["mode"]
 
 
 def test_first_service_creates_real_owner_databases(deployed, consumer_python):
@@ -367,6 +368,49 @@ def test_repeat_and_refused_repeat_preserve_published_profile_and_data(deployed,
     for item in DATABASES:
         with sqlite3.connect(deployed["state"] / item["path"]) as db:
             assert db.execute("PRAGMA user_version").fetchone() == (item["version"],)
+
+
+def test_repeat_materialization_preserves_working_profile_paths(deployed, consumer_python):
+    ready(deployed, consumer_python)
+    arrange_retained_rows(deployed)
+    expected = read_json(FIXTURES / "catalog-v2-retained-profile.json")
+    profile = deployed["profile"]
+    catalogue_settings = profile / "config/catalogue/settings.json"
+    editor_settings = profile / "config/catalogue/editor.json"
+    settings = read_json(catalogue_settings)
+    settings["max_items"] = expected["catalogue_max_items"]
+    write_json(catalogue_settings, settings)
+    editor = read_json(editor_settings)
+    editor["output_chars"] = expected["editor_output_chars"]
+    write_json(editor_settings, editor)
+    editor_state = profile / "editor-state"
+    editor_state.mkdir(exist_ok=True)
+    (editor_state / "operator-note.txt").write_text(
+        expected["editor_note"], encoding="utf-8")
+    project_before = snapshot(profile / "project")
+    registry_before = (profile / "configured-projects.json").read_bytes()
+    editor_before = snapshot(editor_state)
+    settings_before = catalogue_settings.read_bytes()
+    editor_settings_before = editor_settings.read_bytes()
+    data_before = snapshot(deployed["state"])
+
+    selected_catalogue = read_json(deployed["source"] / EXAMPLE)
+    selected_catalogue["parameters"]["directory_mode"]["default"] = expected["directory_mode"]
+    write_json(deployed["source"] / EXAMPLE, selected_catalogue)
+    result = materialize(deployed)
+
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    published = read_json(profile / "catalog.json")
+    assert published["parameters"]["directory_mode"]["default"] == "0700"
+    assert snapshot(profile / "project") == project_before
+    assert (profile / "configured-projects.json").read_bytes() == registry_before
+    assert snapshot(editor_state) == editor_before
+    assert catalogue_settings.read_bytes() == settings_before
+    assert editor_settings.read_bytes() == editor_settings_before
+    assert read_json(catalogue_settings)["max_items"] == 73
+    assert read_json(editor_settings)["output_chars"] == 1800
+    assert snapshot(deployed["state"]) == data_before
+    assert_retained_rows(deployed)
 
 
 def test_malformed_selected_project_configuration_is_preserved(deployed, consumer_python):

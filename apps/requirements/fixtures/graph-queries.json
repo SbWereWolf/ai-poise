@@ -878,6 +878,110 @@
           }
         ]
       }
+    },
+    {
+      "id": "search_unicode_limit_one",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {
+            "level": "application",
+            "status": "current",
+            "text_contains": "граф"
+          },
+          "limit": 1,
+          "after_id": null
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "rows": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                }
+              ],
+              "next": "APP-A"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_unicode_maximum",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {
+            "level": "application",
+            "status": "current",
+            "text_contains": "граф"
+          },
+          "limit": 64,
+          "after_id": null
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "rows": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Читать граф."
+                },
+                {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Изменять граф."
+                }
+              ],
+              "next": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "search_unicode_no_match",
+      "queries": [
+        {
+          "id": "q",
+          "kind": "search_requirements",
+          "filter": {
+            "level": "application",
+            "status": "current",
+            "text_contains": "Несуществующая фраза"
+          },
+          "limit": 64,
+          "after_id": null
+        }
+      ],
+      "response": {
+        "revision": 7,
+        "results": [
+          {
+            "id": "q",
+            "value": {
+              "rows": [],
+              "next": null
+            }
+          }
+        ]
+      }
     }
   ],
   "control": {

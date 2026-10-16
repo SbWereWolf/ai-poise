@@ -79,6 +79,11 @@
           "id": "current",
           "kind": "get_task",
           "task_id": "000007"
+        },
+        {
+          "id": "history",
+          "kind": "task_history",
+          "task_id": "000007"
         }
       ],
       "query_response": {
@@ -167,6 +172,26 @@
               ],
               "definition_of_done": [
                 "Связи и ревизии читаются."
+              ]
+            }
+          },
+          {
+            "id": "history",
+            "value": {
+              "task_id": "000007",
+              "items": [
+                {
+                  "statement_revision": 1,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 2,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 3,
+                  "goal": "Сохранить сквозную трассировку."
+                }
               ]
             }
           }
@@ -371,6 +396,11 @@
           "id": "current",
           "kind": "get_task",
           "task_id": "000007"
+        },
+        {
+          "id": "history",
+          "kind": "task_history",
+          "task_id": "000007"
         }
       ],
       "query_response": {
@@ -482,6 +512,26 @@
                 "Связи и ревизии читаются."
               ]
             }
+          },
+          {
+            "id": "history",
+            "value": {
+              "task_id": "000007",
+              "items": [
+                {
+                  "statement_revision": 1,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 2,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 3,
+                  "goal": "Сохранить сквозную трассировку."
+                }
+              ]
+            }
           }
         ]
       },
@@ -591,6 +641,11 @@
           "id": "current",
           "kind": "get_task",
           "task_id": "000007"
+        },
+        {
+          "id": "history",
+          "kind": "task_history",
+          "task_id": "000007"
         }
       ],
       "query_response": {
@@ -683,6 +738,26 @@
                 "Связи и ревизии читаются."
               ]
             }
+          },
+          {
+            "id": "history",
+            "value": {
+              "task_id": "000007",
+              "items": [
+                {
+                  "statement_revision": 1,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 2,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 3,
+                  "goal": "Сохранить сквозную трассировку."
+                }
+              ]
+            }
           }
         ]
       },
@@ -744,6 +819,11 @@
           "id": "q",
           "kind": "chain",
           "requirement_id": "APP-A"
+        },
+        {
+          "id": "history",
+          "kind": "history_requirement",
+          "requirement_id": "SYS-B"
         }
       ],
       "query_response": {
@@ -764,6 +844,35 @@
                   "level": "system",
                   "status": "current",
                   "text": "Сохранять требования."
+                }
+              ]
+            }
+          },
+          {
+            "id": "history",
+            "value": {
+              "requirement_id": "SYS-B",
+              "items": [
+                {
+                  "revision": 1,
+                  "status": "current",
+                  "text": "Сохранять несколько оснований.",
+                  "owner_revision": 1,
+                  "origin": {
+                    "type": "explicit",
+                    "request_id": "fixture-source",
+                    "operation_id": "fixture-source"
+                  }
+                },
+                {
+                  "revision": 2,
+                  "status": "obsolete",
+                  "text": "Сохранять несколько оснований.",
+                  "owner_revision": 8,
+                  "origin": {
+                    "type": "explicit",
+                    "request_id": "retire_system"
+                  }
                 }
               ]
             }
@@ -819,6 +928,11 @@
           "id": "q",
           "kind": "coverage",
           "mode": "current"
+        },
+        {
+          "id": "history",
+          "kind": "history_requirement",
+          "requirement_id": "APP-B"
         }
       ],
       "query_response": {
@@ -835,6 +949,35 @@
               "application_without_task": [
                 "APP-ONLY-PLACE",
                 "APP-ORPHAN"
+              ]
+            }
+          },
+          {
+            "id": "history",
+            "value": {
+              "requirement_id": "APP-B",
+              "items": [
+                {
+                  "revision": 1,
+                  "status": "current",
+                  "text": "Изменять граф.",
+                  "owner_revision": 1,
+                  "origin": {
+                    "type": "explicit",
+                    "request_id": "fixture-source",
+                    "operation_id": "fixture-source"
+                  }
+                },
+                {
+                  "revision": 2,
+                  "status": "future",
+                  "text": "Изменять граф.",
+                  "owner_revision": 8,
+                  "origin": {
+                    "type": "explicit",
+                    "request_id": "future_application"
+                  }
+                }
               ]
             }
           }
@@ -944,6 +1087,16 @@
           "id": "current",
           "kind": "get_task",
           "task_id": "000007"
+        },
+        {
+          "id": "analysis",
+          "kind": "coverage",
+          "mode": "analysis"
+        },
+        {
+          "id": "history",
+          "kind": "task_history",
+          "task_id": "000007"
         }
       ],
       "query_response": {
@@ -1046,6 +1199,40 @@
               ],
               "definition_of_done": [
                 "Связи и ревизии читаются."
+              ]
+            }
+          },
+          {
+            "id": "analysis",
+            "value": {
+              "application_without_system": [],
+              "system_without_application": [
+                "SYS-ONLY-PLACE",
+                "SYS-ORPHAN"
+              ],
+              "application_without_task": [
+                "APP-ONLY-PLACE",
+                "APP-ORPHAN"
+              ]
+            }
+          },
+          {
+            "id": "history",
+            "value": {
+              "task_id": "000007",
+              "items": [
+                {
+                  "statement_revision": 1,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 2,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 3,
+                  "goal": "Сохранить сквозную трассировку."
+                }
               ]
             }
           }
@@ -1185,6 +1372,11 @@
           "id": "current",
           "kind": "get_task",
           "task_id": "000007"
+        },
+        {
+          "id": "history",
+          "kind": "task_history",
+          "task_id": "000007"
         }
       ],
       "query_response": {
@@ -1292,6 +1484,26 @@
               ],
               "definition_of_done": [
                 "Связи и ревизии читаются."
+              ]
+            }
+          },
+          {
+            "id": "history",
+            "value": {
+              "task_id": "000007",
+              "items": [
+                {
+                  "statement_revision": 1,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 2,
+                  "goal": "Сохранить сквозную трассировку."
+                },
+                {
+                  "statement_revision": 3,
+                  "goal": "Сохранить сквозную трассировку."
+                }
               ]
             }
           }

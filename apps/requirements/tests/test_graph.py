@@ -24,6 +24,7 @@ STATE = json.loads((FIXTURES / 'graph-state.json').read_text())
 QUERIES = json.loads((FIXTURES / 'graph-queries.json').read_text())
 MUTATIONS = json.loads((FIXTURES / 'graph-mutations.json').read_text())
 REJECTIONS = json.loads((FIXTURES / 'graph-rejections.json').read_text())
+FRESH = json.loads((FIXTURES / 'graph-fresh.json').read_text())
 
 
 def quoted(value):
@@ -206,3 +207,11 @@ def test_graph_public_shell_returns_real_task_parents(environment):
     body = json.loads(process.stdout)
     assert body.pop('status') == 'read_only'
     assert body == case['response']
+
+
+def test_fresh_graph_queries(tmp_path):
+    """Ordinary initialized empty store supports all new graph read owners."""
+    fresh = Environment(tmp_path, seed=False)
+    assert fresh.commands.query(FRESH['queries']) == FRESH['response']
+    fresh.reopen()
+    assert fresh.commands.query(FRESH['queries']) == FRESH['response']

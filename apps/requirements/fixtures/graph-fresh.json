@@ -1,0 +1,61 @@
+{
+  "id": "fresh_graph",
+  "queries": [
+    {
+      "id": "current",
+      "kind": "coverage",
+      "mode": "current"
+    },
+    {
+      "id": "analysis",
+      "kind": "coverage",
+      "mode": "analysis"
+    },
+    {
+      "id": "gaps",
+      "kind": "gaps"
+    },
+    {
+      "id": "search",
+      "kind": "search_requirements",
+      "filter": {
+        "level": "application",
+        "text_contains": "граф"
+      },
+      "limit": 64,
+      "after_id": null
+    }
+  ],
+  "response": {
+    "revision": 0,
+    "results": [
+      {
+        "id": "current",
+        "value": {
+          "application_without_system": [],
+          "system_without_application": [],
+          "application_without_task": []
+        }
+      },
+      {
+        "id": "analysis",
+        "value": {
+          "application_without_system": [],
+          "system_without_application": [],
+          "application_without_task": []
+        }
+      },
+      {
+        "id": "gaps",
+        "value": []
+      },
+      {
+        "id": "search",
+        "value": {
+          "rows": [],
+          "next": null
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "operation": "show",
+  "input": {
+    "queries": [
+      {"id": "current", "kind": "task"},
+      {"id": "messages", "kind": "messages"}
+    ]
+  },
+  "messages": []
+}

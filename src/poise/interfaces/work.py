@@ -2,7 +2,7 @@
 import json
 import uuid
 from ..application.work import WorkTools
-from ..common import PoiseError,descendant
+from ..common import PoiseError,configured_root,descendant
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..infrastructure.task_paths import sprint_root
@@ -48,10 +48,23 @@ def write_result(h,result,output):
     root = (task_response_root(h, current) if current is not None else
             (sprint_root(h.state, h.paths, h._identifier(result['sprint']))
              if isinstance(result.get('sprint'), str) else h.runtime))
-    response=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
-    atomic_write(response,(json.dumps(presented,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
     metadata={'details':'full_result','session':h.session}
     metadata.update({key:result[key] for key in ('task','stage','iteration','next_work') if key in result})
     if 'results' in result:metadata['result_count']=len(result['results'])
-    output.write(bounded_envelope(presented,response,h.cfg['limits']['output_chars'],
-                                  metadata,{},command_views, required_fields=required))
+    _write_response(h.cfg,root,presented,output,metadata,command_views,required)
+
+
+def write_rejection(config_root,config,reason,output):
+    """Persist a valid-config packet refusal without establishing a caller/store."""
+    state=configured_root(config_root,config['paths']['state'])
+    root=descendant(state,config['paths']['runtime'])
+    _write_response(config,root,{'status':'rejected','reason':str(reason)},output,
+                    {'details':'full_result'},(),None)
+
+
+def _write_response(config,root,presented,output,metadata,command_views,required):
+    paths=config['paths']
+    response=descendant(root,paths['runs'])/str(uuid.uuid4())/paths['response']
+    atomic_write(response,(json.dumps(presented,ensure_ascii=False,indent=2)+'\n').encode(),config['batch']['file_mode'])
+    output.write(bounded_envelope(presented,response,config['limits']['output_chars'],
+                                  metadata,{},command_views,required_fields=required))

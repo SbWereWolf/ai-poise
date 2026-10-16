@@ -32,7 +32,7 @@ def execute(config_path, stream, output):
                 raise PoiseError("Requirements migrate input must be empty")
             result = migrate_requirements(config_path)
         elif operation in ("apply", "query", "import_bootstrap", "command"):
-            commands, _ = requirements_tools(config_path)
+            commands, _ = requirements_tools(config_path, read_only=operation == "query")
             result = _command(commands, operation, body)
         else:
             raise PoiseError(f"Unknown Requirements operation: {operation}")

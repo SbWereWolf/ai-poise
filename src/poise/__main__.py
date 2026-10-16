@@ -159,12 +159,16 @@ def main():
         print('Не задан POISE_CONFIG: выберите конфигурацию проекта.',file=sys.stderr)
         return 2
     try:
-        from .interfaces.work import execute, read_request
+        from .interfaces.work import execute, read_request, write_rejection
         from .modules.work.domain import is_observation
         from .infrastructure.clock import SystemClock
         config=Path(os.environ['POISE_CONFIG'])
-        _,document,_=load_config(config)
-        request=read_request(document,sys.stdin.buffer)
+        config_root,document,_=load_config(config)
+        try:
+            request=read_request(document,sys.stdin.buffer)
+        except (PoiseError,UnicodeError,RecursionError) as exc:
+            write_rejection(config_root,document,exc,sys.stdout)
+            return 2
         h=establish_direct_poise(config,os.environ,SystemClock(),read_only=is_observation(request)).runtime
         return execute(h,sys.stdin.buffer,sys.stdout,request)
     except (PoiseError,UnicodeError,RecursionError) as exc:

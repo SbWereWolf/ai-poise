@@ -40,6 +40,13 @@ class RequirementsStore:
         self.poll_seconds = poll_seconds
         with self._transaction() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version == 1:
+                raise PoiseError(
+                    'Requirements DB schema 1 requires explicit migration. Send '
+                    '{"operation":"migrate","input":{}} to python -m poise requirements '
+                    '--config <selected-project-config> using the same project manifest; '
+                    'automatic migration is forbidden.'
+                )
             if read_only:
                 if version != self.SCHEMA_VERSION:
                     raise PoiseError(f'read-only: несовместимая Requirements schema {version}; '
@@ -64,13 +71,6 @@ class RequirementsStore:
                     "request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, response TEXT NOT NULL)"
                 )
                 schema_2(connection)
-            elif version == 1:
-                raise PoiseError(
-                    'Requirements DB schema 1 requires explicit migration. Send '
-                    '{"operation":"migrate","input":{}} to python -m poise requirements '
-                    '--config <selected-project-config> using the same project manifest; '
-                    'automatic migration is forbidden.'
-                )
             elif version != self.SCHEMA_VERSION:
                 raise PoiseError("Requirements DB schema is incompatible; migration is not performed")
 

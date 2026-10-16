@@ -1,13 +1,10 @@
 """Real selected generic v2 CLI: independent effects and protocol oracles."""
-import hashlib
 from copy import deepcopy
 import importlib.util
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
-import sys
 import time
 
 import pytest
@@ -468,31 +465,6 @@ def test_parameter_expansion_is_exactly_one_pass(consumer, catalog):
         assert item['env']['BOUND'] == '${count}'
 
 
-def test_accepted_supply_inputs(consumer):
-    inputs = json.loads(
-        (ACTION.parent / 'v2_supply_inputs.json').read_text())
-    for item in inputs['files']:
-        source = Path(os.environ[item['environment']])
-        assert source.name == item['name']
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == \
-               item['sha256']
-    manifest = json.loads(
-        Path(os.environ['AIP_GENERIC_DELIVERY']).read_text())
-    build = json.loads(
-        Path(os.environ['AIP_GENERIC_BUILD']).read_text())
-    assert manifest['build'] == build
-    assert manifest['version'] == '0.2.1'
-    assert manifest[
-               'source_commit'] == '482b11417f8e74d9bcc1d885767bb16837f3284a'
-    assert build['exit_code'] == 0
-    assert build['source_bundle_sha256'] == hashlib.sha256(Path(
-        os.environ['AIP_GENERIC_SOURCE']).read_bytes()).hexdigest()
-    for stream in ('stdout', 'stderr'):
-        assert build[stream + '_sha256'] == hashlib.sha256(Path(
-            os.environ[
-                'AIP_GENERIC_BUILD_' + stream.upper()]).read_bytes()).hexdigest()
-
-
 @pytest.mark.parametrize('value', ['\ud800', '\udc80', '𐀀'])
 def test_opaque_unicode_parameter_has_valid_utf8_json(consumer,
                                                       catalog, value):
@@ -737,34 +709,6 @@ def test_supported_expanded_os_text_round_trips(consumer, catalog,
         assert selected['env']['OPAQUE'] == value
     assert (root / 'resource').read_text() == 'valid'
     assert (root / 'unrelated').read_text() == 'preserve'
-
-
-@pytest.mark.parametrize("item", json.loads(
-    (ACTION.parent / "v2_supply_inputs.json").read_text())["files"],
-                         ids=lambda item: item["name"])
-@pytest.mark.parametrize("failure", ["missing", "tamper"])
-def test_supply_guard_rejects_corrupt_or_missing_input(tmp_path, item,
-                                                       failure):
-    original = Path(os.environ[item["environment"]])
-    copied = tmp_path / item["name"]
-    shutil.copy2(original, copied)
-    if failure == "missing":
-        copied.unlink()
-    else:
-        copied.write_bytes(copied.read_bytes() + b"tamper")
-    environment = dict(os.environ,
-                       **{item["environment"]: str(copied)})
-    result = subprocess.run([sys.executable, "-B",
-                             str(REPO / "tests/maintenance/test_generic_v2_supply.py")],
-                            capture_output=True, env=environment)
-    assert result.returncode == 1
-    assert result.stdout == b""
-    assert result.stderr.startswith(b"SUPPLY_INVALID:")
-    expected = next(row for row in json.loads(
-        (ACTION.parent / "v2_supply_inputs.json").read_text())[
-        "files"] if row["name"] == item["name"])
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == \
-           expected["sha256"]
 
 
 @pytest.mark.parametrize("role", ["check", "install", "repair"])

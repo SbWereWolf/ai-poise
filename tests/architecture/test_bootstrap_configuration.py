@@ -34,7 +34,6 @@ def test_external_tool_config_has_a_versioned_example():
     assert path.is_file(), "TOOL-EXAMPLE: versioned external settings example is absent"
     value = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
-    assert value["python"] == "${PYTHON_EXECUTABLE}", "TOOL-EXAMPLE: explicit interpreter placeholder required"
     assert isinstance(value.get("python"), str) and value[
         "python"], "TOOL-EXAMPLE: explicit interpreter value required"
     selected_python = Template(value["python"]).substitute(

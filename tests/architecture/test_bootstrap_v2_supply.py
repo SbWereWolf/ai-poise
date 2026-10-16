@@ -1,4 +1,4 @@
-"""Actual configured repository Bootstrap with the immutable selected v2 wheel."""
+"""Actual configured repository Bootstrap with the selected v2 wheel."""
 
 import importlib.util
 import json

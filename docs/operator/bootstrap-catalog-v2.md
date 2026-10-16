@@ -42,37 +42,14 @@ Bootstrap
 
 ## Проверенная поставка универсального компонента
 
-Для описанных сценариев проверен независимый пакет
-`environment-maintenance` версии
-`0.2.1`, исходная ревизия `482b11417f8e74d9bcc1d885767bb16837f3284a`.
-Получите комплект из подтверждённой поставки компонента; папку
-комплекта выбирает
-оператор. В неё входят следующие неизменяемые материалы:
+Для описанных сценариев выбран независимый пакет
+`environment-maintenance` версии `0.2.1`. Получите его wheel через
+поставку компонента и явно укажите путь к файлу
+`environment_maintenance-0.2.1-py3-none-any.whl`.
 
-| Файл                                             | SHA-256                                                            |
-|--------------------------------------------------|--------------------------------------------------------------------|
-| `environment_maintenance-0.2.1-py3-none-any.whl` | `01932116ea61f7da6f6f613ce910bd978a5b46fb91ab1d14b74b9c6ad78e3ba7` |
-| `manifest.json`                                  | `e8a8a9d398c022a00267737f9847c842418b5da6892e4bdebc1215accab1341b` |
-| `source.bundle`                                  | `ad742873b12521979c5c6d824a8082c00e11194e3bf42b842d1cd822d406b250` |
-| `build-record.json`                              | `e5d13db9baae94b92e756ac2f4aa82a8d1a62bbf120b772e5731a61af5643213` |
-| `build.stdout`                                   | `66abc3aa34e3d907c9781742f2ae2851095dd33db8f8582d8f24f747373107fd` |
-| `build.stderr`                                   | `8995e8cc62d964b7fedcbe7e25c28a9639531d076bc4981c73e741bf687c51eb` |
-
-До установки вычислите SHA-256 всех шести файлов и сравните с
-таблицей.
-В `manifest.json` и `build-record.json` должны совпасть имя
-wheel,
-исходная ревизия, digest wheel и `source.bundle`; digest обоих потоков
-сборки
-должны совпасть с её файлами. Версия указана в manifest и метаданных
-wheel;
-build-record связывает wheel с исходниками и результатом сборки.
-Непустой
-`build.stderr` сам по себе не означает неуспех: сохранённый exit
-сборки равен 0.
-`source.bundle` и материалы сборки подтверждают происхождение; CLI
-обслуживания
-читает выбранный каталог, а не эти файлы.
+CLI обслуживания использует выбранный каталог. Проверки запускают
+реальный установленный пакет, проверяют его версию, место импорта и
+наблюдаемые результаты команд.
 
 Метаданные внешнего пакета разрешают Python `>=3.11`. Фактически
 совместная
@@ -80,8 +57,7 @@ build-record связывает wheel с исходниками и резуль�
 3.13.15:
 отдельное окружение, установка выбранного wheel без сети и
 зависимостей,
-метаданные версии/путь импорта и совпадение семи установленных модулей
-с wheel.
+метаданные версии, путь импорта и результаты команд.
 Этот результат подтверждает указанную среду; метаданные не являются
 проверкой
 каждой версии Python или другой ОС.
@@ -91,15 +67,11 @@ build-record связывает wheel с исходниками и резуль�
 Пути ниже — значения выбранной установки. Подготовьте отдельное
 окружение
 совместимым интерпретатором; `$tool_python` указывает его Python.
-После сверки
-комплекта установите именно полученный wheel:
+Установите выбранный wheel:
 
 ```bash
 supply_dir=/srv/poise/supply/environment-maintenance/0.2.1
 tool_python=/srv/poise/tool-venv/bin/python
-sha256sum "$supply_dir/environment_maintenance-0.2.1-py3-none-any.whl" \
-  "$supply_dir/manifest.json" "$supply_dir/source.bundle" \
-  "$supply_dir/build-record.json" "$supply_dir/build.stdout" "$supply_dir/build.stderr"
 "$tool_python" -I -B -m pip install --no-index --no-deps \
   "$supply_dir/environment_maintenance-0.2.1-py3-none-any.whl"
 "$tool_python" -I -B -c 'import importlib.metadata as m, environment_maintenance as e; print(m.version("environment-maintenance")); print(e.__file__)'
@@ -107,8 +79,6 @@ sha256sum "$supply_dir/environment_maintenance-0.2.1-py3-none-any.whl" \
 
 Ожидаемая версия — `0.2.1`, путь импорта — внутри выбранного
 окружения.
-При расхождении остановите подготовку и исправьте выбор
-комплекта/интерпретатора.
 Bootstrap использует фактический путь `$tool_python` из рабочего JSON;
 встроенного
 выбора версии или автоматической установки у него нет. Полный
@@ -506,24 +476,24 @@ recheck, диагностическую сохранность, UTF-8/OS-вхо�
 описана в
 [руководстве профиля](maintenance-profile-v2.md#границы-проверенной-поставки).
 
-`tests/maintenance/test_generic_v2_supply.py` проверяет неизменяемый
-комплект.
-Для воспроизведения адресных проверок явно задайте пути к шести его
-файлам:
-`AIP_GENERIC_WHEEL`, `AIP_GENERIC_DELIVERY`,
-`AIP_GENERIC_SOURCE`,
-`AIP_GENERIC_BUILD`, `AIP_GENERIC_BUILD_STDOUT`,
-`AIP_GENERIC_BUILD_STDERR`.
-Все они относятся к одной выбранной поставке. Выполните
-supply-проверку отдельным
-Python-скриптом, consumer/Bootstrap — адресным pytest-набором, smoke —
-через Bash
-с явным тестовым Python. Сохраняйте полный вывод и точный commit
-проверяемой копии;
-изменение commit требует доказательств для новой ревизии. Проверка
-ссылок проверяет
-достижимость документации, а не исполнимость установки или готовность
-оператора.
+Для воспроизведения адресных проверок укажите wheel одной
+выбранной версии. Тестовая подготовка создаёт отдельное окружение,
+устанавливает этот пакет без сети и зависимостей, проверяет версию
+`0.2.1` и импорт из подготовленного окружения.
+
+```bash
+test_python=/srv/poise/test-venv/bin/python
+export AIP_GENERIC_WHEEL=/srv/poise/supply/environment-maintenance/0.2.1/environment_maintenance-0.2.1-py3-none-any.whl
+"$test_python" -B -m pytest -q \
+  tests/maintenance/test_generic_v2_consumer.py \
+  tests/architecture/test_bootstrap_v2_supply.py
+bash tests/smoke.sh "$test_python"
+```
+
+`$test_python` — явно выбранный Python проекта с pytest.
+Consumer/Bootstrap проверяют наблюдаемое поведение; smoke содержит
+шесть поддерживаемых сценариев. Проверка ссылок отдельно проверяет
+достижимость документации.
 
 ## Откат и пределы поставки
 

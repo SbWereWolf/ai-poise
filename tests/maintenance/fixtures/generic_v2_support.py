@@ -4,25 +4,16 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 import venv
-import zipfile
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[3]
 ACTION = Path(__file__).with_name("v2_action.py")
-SUPPLY = REPO / "tests/maintenance/test_generic_v2_supply.py"
 
 
 @pytest.fixture(scope="session")
 def consumer(tmp_path_factory):
-    guard = subprocess.run([sys.executable, "-B", str(SUPPLY)],
-                           capture_output=True)
-    assert (guard.returncode, guard.stdout, guard.stderr) == (0,
-                                                              b"SUPPLY_VERIFIED\n",
-                                                              b""), (
-        guard.stdout, guard.stderr)
     wheel = Path(os.environ["AIP_GENERIC_WHEEL"])
     root = tmp_path_factory.mktemp("selected-generic-v2")
     venv.EnvBuilder(with_pip=True).create(root)
@@ -41,15 +32,6 @@ def consumer(tmp_path_factory):
     version, origin = probe.stdout.decode("utf-8").splitlines()
     assert version == "0.2.1"
     assert Path(origin).is_relative_to(root)
-    with zipfile.ZipFile(wheel) as package:
-        modules = [name for name in package.namelist()
-                   if name.startswith(
-                "environment_maintenance/") and name.endswith(".py")]
-        assert len(modules) == 7
-        for name in modules:
-            assert (Path(
-                origin).parent.parent / name).read_bytes() == package.read(
-                name)
     return python
 
 

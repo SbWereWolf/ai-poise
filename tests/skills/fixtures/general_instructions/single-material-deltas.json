@@ -1,0 +1,70 @@
+{
+  "billing-content": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "key": "skill:billing:instructions:.agents/skills/billing/SKILL.md",
+        "fields": [
+          "content",
+          "sha256"
+        ]
+      }
+    ]
+  },
+  "billing-rules-content": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "key": "rule:src/billing/AGENTS.md:checkout:src/billing/AGENTS.md",
+        "fields": [
+          "content",
+          "sha256"
+        ]
+      }
+    ]
+  },
+  "billing-missing": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "key": "skill:billing:instructions:.agents/skills/billing/SKILL.md",
+        "fields": [
+          "available",
+          "content",
+          "sha256"
+        ]
+      }
+    ]
+  },
+  "audit-missing": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "key": "skill:audit:instructions:.agents/skills/audit/SKILL.md",
+        "fields": [
+          "available",
+          "content",
+          "sha256"
+        ]
+      }
+    ]
+  },
+  "profile-missing": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "key": "profile:billing:checkout:.agents/profiles/billing.md",
+        "fields": [
+          "available",
+          "content",
+          "sha256"
+        ]
+      }
+    ]
+  }
+}

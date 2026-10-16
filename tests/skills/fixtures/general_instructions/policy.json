@@ -1,0 +1,33 @@
+{
+  "schema": "poise-project-instruction-policy-1",
+  "version": "1",
+  "universal_skills": [
+    "core"
+  ],
+  "profiles": [
+    {
+      "name": "billing",
+      "paths": [
+        "src/billing/"
+      ],
+      "baseline": [
+        "billing"
+      ],
+      "recommended_skills": [
+        "audit"
+      ],
+      "profile_file": null
+    },
+    {
+      "name": "writing",
+      "paths": [
+        "docs/"
+      ],
+      "baseline": [
+        "writing"
+      ],
+      "recommended_skills": [],
+      "profile_file": null
+    }
+  ]
+}

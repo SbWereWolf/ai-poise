@@ -1,0 +1,34 @@
+[
+  {
+    "kind": "rule",
+    "id": "AGENTS.md",
+    "root": "checkout",
+    "path": "AGENTS.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "ancestor:src/billing/invoice.py"
+    ],
+    "available": true,
+    "sha256": "6551219a2c650570985150b5d7fb58aa860e7d88c1db169678a07ae145ed5f5e",
+    "content": "# Beta rules\nIndependent project; Unicode: Βήτα.\n"
+  },
+  {
+    "kind": "skill",
+    "id": "writing",
+    "root": "instructions",
+    "path": ".agents/skills/writing/SKILL.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "universal"
+    ],
+    "available": true,
+    "sha256": "6eb466862287cb6e7d7a36d27c0173a738a060eb91b5b5c192e95ce0183ea942",
+    "content": "# Beta core\nFollow beta project policy.\n"
+  }
+]

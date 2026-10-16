@@ -1,0 +1,27 @@
+{
+  "added": [
+    "rule:docs/AGENTS.md:checkout:docs/AGENTS.md",
+    "skill:writing:instructions:.agents/skills/writing/SKILL.md"
+  ],
+  "removed": [
+    "rule:src/AGENTS.md:checkout:src/AGENTS.md",
+    "rule:src/billing/AGENTS.md:checkout:src/billing/AGENTS.md",
+    "skill:audit:instructions:.agents/skills/audit/SKILL.md",
+    "skill:billing:instructions:.agents/skills/billing/SKILL.md"
+  ],
+  "changed": [
+    {
+      "key": "rule:AGENTS.md:checkout:AGENTS.md",
+      "fields": [
+        "reasons",
+        "scopes"
+      ]
+    },
+    {
+      "key": "skill:core:instructions:.agents/skills/core/SKILL.md",
+      "fields": [
+        "scopes"
+      ]
+    }
+  ]
+}

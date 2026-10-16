@@ -1,0 +1,92 @@
+{
+  "missing-policy": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "policy",
+      "action": "provide:policy"
+    }
+  },
+  "null-policy": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "policy",
+      "action": "provide:policy"
+    }
+  },
+  "empty-paths": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_paths",
+      "field": "paths",
+      "action": "provide:paths"
+    }
+  },
+  "unreadable-policy": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "unreadable_policy",
+      "field": "policy",
+      "action": "restore:policy"
+    }
+  },
+  "invalid-policy": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_policy",
+      "field": "policy",
+      "action": "correct:policy"
+    }
+  },
+  "unreadable-manifest": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_project",
+      "field": "project_config",
+      "action": "provide:project_config"
+    }
+  },
+  "foreign-checkout": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "project_binding",
+      "field": "checkout",
+      "action": "select:checkout"
+    }
+  },
+  "foreign-previous": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_previous",
+      "field": "previous",
+      "action": "provide:previous"
+    }
+  },
+  "unknown-field": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "request",
+      "action": "provide:request"
+    }
+  },
+  "invalid-json": {
+    "schema": "poise-project-instructions-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "request",
+      "action": "provide:request"
+    }
+  }
+}

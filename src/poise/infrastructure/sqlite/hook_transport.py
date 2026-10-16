@@ -3,6 +3,7 @@ import json
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded
+from ...modules.hook_transport.domain import MissingHookBinding
 from .transaction import write_transaction
 
 
@@ -72,7 +73,8 @@ class HookRegistry:
     def find(self,external,agent):
         with self.transaction() as db:
             matches=[json.loads(r[0]) for r in db.execute('SELECT data FROM bindings')]
-        matches=[r for r in matches if r['external_session']==external and r['agent_id']==agent]
+        matches=[r for r in matches if r['external_session']==external and (agent is None or r['agent_id']==agent)]
+        if not matches:raise MissingHookBinding('No unique hook binding for this external identity')
         if len(matches)!=1:raise PoiseError('No unique hook binding for this external identity')
         return matches[0]
 

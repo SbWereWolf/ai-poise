@@ -65,3 +65,12 @@ historical version/digest text; preserve those audit strings without source look
 Keep Task/API unknown fields strict, current goal identity, request idempotency
 and optimistic publication checks. Generic workflow create may derive a new goal
 from a different source goal. Do not claim pin removal repairs malformed stages.
+
+## Session launcher project selection
+
+Configure optional `project_launcher.settings_path` and `context_template` through
+the public hook reconfigure owner. Read the exact entry from current native context;
+invoke Bash with one `--project EXACT_ID`. Keep transport owner arguments intact.
+Use the selected project's message contract; a hooked target needs its own genuine
+binding. Scope delivery independently from project selection. Follow the complete
+[operator contract](../../docs/configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher).

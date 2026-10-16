@@ -14,6 +14,10 @@
   "binding_file": "binding.json",
   "observations": "probes",
   "response_file": "response.json",
+  "project_launcher": {
+    "settings_path": "${LAUNCHER_SETTINGS_PATH}",
+    "context_template": "Use {launcher} --project EXACT_ID for an explicitly selected project. Follow that project's message contract. Without a selector use the bound project."
+  },
   "capability_summary": {
     "file": "capabilities.json",
     "header_template": "Infrastructure ready={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}",

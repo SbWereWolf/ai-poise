@@ -7,6 +7,16 @@ from .common import PoiseError,load_config
 from .infrastructure.session_establishment import direct_caller,establish_poise
 
 
+class SingleArgument(argparse.Action):
+    """Reject repeated selection and owner arguments, including equal values."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        if getattr(namespace, self.dest, None) is not None:
+            parser.error(f'{option_string} may be supplied only once')
+        if isinstance(values, str) and not values.strip():
+            parser.error(f'{option_string} requires a nonempty value')
+        setattr(namespace, self.dest, values)
+
+
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
@@ -50,8 +60,9 @@ def parser():
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
-    bound.add_argument('--settings',type=Path,required=True)
-    bound.add_argument('--binding',type=Path,required=True)
+    bound.add_argument('--settings',type=Path,required=True,action=SingleArgument)
+    bound.add_argument('--binding',type=Path,required=True,action=SingleArgument)
+    bound.add_argument('--project',action=SingleArgument,help='Exact selected project ID')
     backup=sub.add_parser('backup',help='Task DB backup list, create, restore and help')
     actions=backup.add_subparsers(dest='backup_action',required=True)
     actions.add_parser('help',help='Show backup commands and the exclusive-operator requirement')

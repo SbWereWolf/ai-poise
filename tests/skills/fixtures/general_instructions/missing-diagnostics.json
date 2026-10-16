@@ -1,0 +1,23 @@
+{
+  "billing": [
+    {
+      "code": "missing_required_material",
+      "key": "skill:billing:instructions:.agents/skills/billing/SKILL.md",
+      "action": "restore:instructions:.agents/skills/billing/SKILL.md"
+    }
+  ],
+  "audit": [
+    {
+      "code": "missing_recommended_material",
+      "key": "skill:audit:instructions:.agents/skills/audit/SKILL.md",
+      "action": "restore:instructions:.agents/skills/audit/SKILL.md"
+    }
+  ],
+  "profile": [
+    {
+      "code": "missing_required_material",
+      "key": "profile:billing:checkout:.agents/profiles/billing.md",
+      "action": "restore:checkout:.agents/profiles/billing.md"
+    }
+  ]
+}

@@ -40,7 +40,7 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `result-view` | Read a saved bounded view without replay. | `"${poise[@]}" result-view --response "$response" --view expanded --output-chars 3000` |
 | `next` | List startable Tasks without claiming. | `"${poise[@]}" next --settings "$settings" --project "$project_id"` |
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
-| `skills` | Read metadata or validate decomposition without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+| `skills` | Read metadata, validate decomposition, or prepare file-scoped instructions without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
 
 ### Project and workflow configuration
 
@@ -802,6 +802,18 @@ recovery](../../../docs/workflows/batch-work.md#восстановление-о�
 (Task 0063
 RD-008).
 
+
+## File-scoped instruction preparation
+
+Use the existing skills operation prepare with explicit project manifest,
+checkout, policy, catalogue, instruction root, concrete paths and previous.
+Read required material bodies and apply them within their scopes; distinguish
+recommendations. Refresh after input or instruction changes with the complete
+previous response, not a clipped view. Ready reports instruction availability,
+not model cognition, tests or Task acceptance. This general operation does not
+automatically replace native bootstrap or the existing AI-poise selector.
+Configuration and exact protocol belong to
+[the canonical operator contract](../../../docs/configuration/development-routing.md#подготовка-инструкций-по-файлам).
 
 ## Inputs for migrated skills
 

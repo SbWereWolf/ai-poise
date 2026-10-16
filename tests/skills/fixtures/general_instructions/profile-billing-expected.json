@@ -1,0 +1,114 @@
+[
+  {
+    "kind": "profile",
+    "id": "billing",
+    "root": "checkout",
+    "path": ".agents/profiles/billing.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "profile:billing"
+    ],
+    "available": true,
+    "sha256": "b363ee93907ada66b1717b680b13355e4822d1cf86ff4823758ac716f854da07",
+    "content": "# Billing profile\nInvoice behavior belongs to this project area.\n"
+  },
+  {
+    "kind": "rule",
+    "id": "AGENTS.md",
+    "root": "checkout",
+    "path": "AGENTS.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "ancestor:src/billing/invoice.py"
+    ],
+    "available": true,
+    "sha256": "96d6e1adbf3e611aaf81c445497891eb786c8b032c35f5b1d95a77ee20cee7a9",
+    "content": "# Project rules\nRead selected instructions before editing. Customer name: Иван.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nPreserve observable contracts and record exact evidence.\nEND-ROOT-UNCLIPPED\n"
+  },
+  {
+    "kind": "rule",
+    "id": "src/AGENTS.md",
+    "root": "checkout",
+    "path": "src/AGENTS.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "ancestor:src/billing/invoice.py"
+    ],
+    "available": true,
+    "sha256": "9bf0513edefdb77f748b1cb50c740f6ba0b208f27437b5ef5f52b53f0068efd1",
+    "content": "# Source rules\nKeep domain decisions at their owner.\n"
+  },
+  {
+    "kind": "rule",
+    "id": "src/billing/AGENTS.md",
+    "root": "checkout",
+    "path": "src/billing/AGENTS.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "ancestor:src/billing/invoice.py"
+    ],
+    "available": true,
+    "sha256": "5d1700267d1a83299050cc5d92f1086ddfd3ea32cb6cb215373f69000f648081",
+    "content": "# Billing rules\nCheck money and currency explicitly.\n"
+  },
+  {
+    "kind": "skill",
+    "id": "audit",
+    "root": "instructions",
+    "path": ".agents/skills/audit/SKILL.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": false,
+    "reasons": [
+      "profile:billing:recommended"
+    ],
+    "available": true,
+    "sha256": "6947e5377256136ea0c873fde4b4f279087c2997e4833e37eb920e9c496bcc5c",
+    "content": "# Audit recommendation\nRead only if relevant to this work.\n"
+  },
+  {
+    "kind": "skill",
+    "id": "billing",
+    "root": "instructions",
+    "path": ".agents/skills/billing/SKILL.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "profile:billing:baseline"
+    ],
+    "available": true,
+    "sha256": "d7286ed4b7910395c86a5d1eb95b3532a8f17937b8f7b0d7e5ac947ab0e19fc2",
+    "content": "# Billing instruction\nTreat invoice amounts as domain values.\n"
+  },
+  {
+    "kind": "skill",
+    "id": "core",
+    "root": "instructions",
+    "path": ".agents/skills/core/SKILL.md",
+    "scopes": [
+      "src/billing/invoice.py"
+    ],
+    "required": true,
+    "reasons": [
+      "universal"
+    ],
+    "available": true,
+    "sha256": "9d75cbe77517e10158d807e329def0bf933e24061ec31089c9ffcfe861382c08",
+    "content": "# Core instruction\r\nUse the selected project only. Unicode: café, Иван, 日本語.\r\nEND-CORE-CRLF\r\n"
+  }
+]

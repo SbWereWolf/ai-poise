@@ -526,6 +526,66 @@ def test_unavailable_external_dependency_is_not_ready(deployed, consumer_python,
     assert snapshot(deployed["root"]) == before
 
 
+def test_unavailable_python_version_preserves_data(deployed, consumer_python):
+    expected = read_json(FIXTURES / "catalog-v2-unavailable.json")
+    selected = os.environ["AIP_P2_UNSUPPORTED_PYTHON"]
+    assert Path(selected).is_absolute() and Path(selected).is_file()
+    version = invoke([selected, "-I", "-B", "-c",
+                      "import sys;print('.'.join(map(str,sys.version_info[:2])))"])
+    assert version.returncode == 0, version.stderr
+    major, minor = map(int, version.stdout.strip().split("."))
+    assert not (3, 13) <= (major, minor) < (3, 14), "Select an incompatible real interpreter"
+    ready(deployed, consumer_python)
+    arrange_retained_rows(deployed)
+    before = snapshot(deployed["root"])
+
+    result = invoke([consumer_python, "-I", "-B", "-m", "environment_maintenance",
+                     "check", "--catalog-dir", deployed["profile"],
+                     "--set", "python=" + selected])
+    report = json.loads(result.stdout)
+    assert report["schema"] == "environment-maintenance/result/v2"
+    assert result.returncode == report["exit_code"] == 3
+    assert report["status"] == "unavailable"
+    row = next(row for row in report["requirements"] if row["id"] == "python-runtime")
+    assert row["state"] == "unavailable"
+    response = row["initial_check"]["response"]
+    assert response["state"] == "unavailable" and response["cause"] == "version"
+    assert response["recommendations"] == expected["python_version_recommendations"]
+    for role in ("check", "install", "repair"):
+        direct, response = action(deployed, selected, "python-runtime", role)
+        assert direct.returncode == (0 if role == "check" else 2)
+        assert response["state" if role == "check" else "outcome"] == "unavailable"
+        assert response["cause"] == "version"
+        assert response["recommendations"] == expected["python_version_recommendations"]
+    assert snapshot(deployed["root"]) == before
+    assert_retained_rows(deployed)
+
+
+@pytest.mark.parametrize("item", DIRECTORIES, ids=lambda item: item["id"])
+def test_unavailable_directory_type_preserves_file(deployed, consumer_python, item):
+    expected = read_json(FIXTURES / "catalog-v2-unavailable.json")
+    selected = deployed["state"] / item["path"]
+    selected.parent.mkdir(parents=True, exist_ok=True)
+    selected.write_text(expected["retained_file"], encoding="utf-8")
+    before = snapshot(deployed["root"])
+    result, report = consume(deployed, consumer_python)
+    assert result.returncode == 3 and report["status"] == "unavailable"
+    row = next(row for row in report["requirements"] if row["id"] == item["id"])
+    assert row["state"] == "unavailable"
+    response = row["initial_check"]["response"]
+    assert response["state"] == "unavailable" and response["cause"] == "type"
+    assert response["recommendations"] == expected["directory_type_recommendations"]
+    for role in ("check", "install", "repair"):
+        direct, response = action(deployed, consumer_python, item["id"], role)
+        assert direct.returncode == (0 if role == "check" else 2)
+        assert response["state" if role == "check" else "outcome"] == "unavailable"
+        assert response["cause"] == "type"
+        assert response["recommendations"] == expected["directory_type_recommendations"]
+        assert selected.is_file()
+        assert selected.read_text(encoding="utf-8") == expected["retained_file"]
+    assert snapshot(deployed["root"]) == before
+
+
 def test_published_profile_catalogue_references_are_consumable(deployed, consumer_python):
     # Explicit integration boundary: declared profile reference -> real owner.
     from poise.infrastructure.catalogue import FileCatalogue

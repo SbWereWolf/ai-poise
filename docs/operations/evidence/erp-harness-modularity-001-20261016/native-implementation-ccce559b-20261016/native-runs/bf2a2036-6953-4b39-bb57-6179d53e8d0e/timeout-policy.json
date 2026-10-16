@@ -1,0 +1,31 @@
+{
+  "history_evidence_ids": [],
+  "profile": {
+    "command": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/checks/run_check.py",
+      "--command-id",
+      "agent-tooling-fast-verification",
+      "--fallback-reason",
+      "mcp-project-untrusted",
+      "--json"
+    ],
+    "runtime": {
+      "executable": "/usr/bin/bash",
+      "platform": "linux"
+    },
+    "workload": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION"
+  },
+  "selection": {
+    "basis": "initial",
+    "diagnostic_evidence_run_id": null,
+    "diagnostic_override_reason": null,
+    "history_count": 0,
+    "history_multiplier": 1.1,
+    "longest_verified_success_seconds": null,
+    "poll_seconds": 0.1,
+    "progress_gap_seconds": 360.0,
+    "seconds": 360.0
+  }
+}

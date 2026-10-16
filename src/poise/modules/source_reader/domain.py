@@ -6,6 +6,8 @@ import math
 from ..foundation.errors import PoiseError
 from ..foundation.validation import configuration_fields
 
+CONTEXT_RESET_REASONS=('startup','resume','compact','clear','fork','manual')
+
 
 def exact(value, fields, label):
     if not isinstance(value, dict) or set(value) != set(fields):

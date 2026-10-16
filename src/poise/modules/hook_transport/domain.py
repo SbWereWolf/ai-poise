@@ -10,6 +10,7 @@ from ..foundation.errors import PoiseError
 
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
+SESSION_START_SOURCES=('startup','resume','clear','compact','fork')
 
 
 @dataclass(frozen=True)
@@ -70,7 +71,7 @@ def parse_native_event(raw,definition):
         raise PoiseError('UserPromptSubmit requires its prompt field; its text is not retained')
     # Optional wire metadata are not process defaults. Ignore prompt and assistant text.
     if kind=='SessionStart':
-        if raw.get('source') not in ('startup','resume','clear','compact'):raise PoiseError('Unsupported SessionStart source')
+        if raw.get('source') not in SESSION_START_SOURCES:raise PoiseError('Unsupported SessionStart source')
     if kind=='SessionEnd' and raw.get('reason')!='other':raise PoiseError('Unsupported SessionEnd reason')
     return {'event':kind,'session_id':raw['session_id'],'cwd':raw['cwd'],
             'turn_id':raw['turn_id'] if kind in ('UserPromptSubmit','Stop') else None}

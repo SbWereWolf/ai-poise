@@ -3,8 +3,20 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ..modules.foundation.errors import PoiseError
+from ..modules.foundation.errors import DomainError, PoiseError
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
+
+
+def initialize_cleanup_in(uow, task_id, pending):
+    if not uow.execution.exists(task_id):
+        uow.execution.create(task_id, {"worktree": None, "branch": None, "base": None, "attempts": 0,
+            "publication": None, "pending": pending, "entry_tree": None, "last_report": None})
+        return
+    execution, version = uow.execution.load(task_id)
+    if execution["pending"] is not None:
+        raise DomainError("External operation outcome must be resolved first")
+    execution["pending"] = pending
+    uow.execution.save(task_id, execution, version)
 
 
 class TaskResourceCleanup:

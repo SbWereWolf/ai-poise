@@ -90,6 +90,7 @@ def test_native_compact_resets_reader_and_preserves_source_provenance(project, t
     from hook_transport.helpers import settings, install, event
     project['cfg']['source_reader'] = {'policy': str(ROOT / 'config/development/source-reader.json'),
                                      'receipt_file': 'reader.json'}
+    write_json(project['config_path'], project['cfg'])
     s = HookService(settings(project, tmp_path)); installed = install(s)
     e = event(); e['cwd'] = str(project['app'])
     s.event(installed['definition_path'], e)

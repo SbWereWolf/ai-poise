@@ -114,6 +114,60 @@ def test_work_overview_empty_lists_and_exact_query_contract(project):
             tools.invoke(request("show", {"queries": [query]}))
 
 
+def test_public_discovery_keeps_restarted_member_and_unrelated_work(project):
+    setup(project)
+    published_sprint(project, 'preparing-sprint', ['A', 'B', 'C'], [
+        {'predecessor': 'A', 'successor': 'B', 'kind': 'completion'},
+    ])
+    published_sprint(project, 'unrelated-sprint', ['other-member'])
+    standalone(project, 'other-task', 'other-task-owner')
+    worker = WorkTools(Poise(project['config_path'], 'preparing-owner'))
+    current = worker.invoke(request('bootstrap', {
+        'task': {'id': 'A'}, 'decision': None, 'feedback': None, 'rework_stage': None,
+    }))
+    restarted = worker.invoke(request('task', {
+        'action': 'restart', 'task_id': 'A', 'request_id': 'prepare-A-again',
+        'expected_version': current['version'],
+        'reason': 'Revise the unfinished Task preparation.',
+        'authorization': 'User authorizes restarting this fixture Task.',
+    }))
+    assert restarted['status'] == 'newborn'
+    observer = WorkTools(Poise(project['config_path'], 'preparing-observer'))
+
+    def persisted_state():
+        with worker.runtime.store.transaction() as db:
+            return {
+                'tasks': [tuple(row) for row in db.execute(
+                    'SELECT id,status,version,claimed_by,metadata FROM tasks ORDER BY id')],
+                'members': [tuple(row) for row in db.execute(
+                    'SELECT sprint_id,task_id FROM sprint_members ORDER BY sprint_id,task_id')],
+                'edges': [tuple(row) for row in db.execute(
+                    'SELECT sprint_id,predecessor,successor,kind FROM sprint_dependencies '
+                    'ORDER BY sprint_id,predecessor,successor')],
+            }
+
+    before = persisted_state()
+    result = overview(observer)
+    assert [item['sprint'] for item in result['sprints']] == ['preparing-sprint', 'unrelated-sprint']
+    assert [item['id'] for item in result['standalone_tasks']] == ['other-task']
+    preparing = sprint_overview(observer, 'preparing-sprint')
+    assert preparing == result['sprints'][0]
+    assert {item['id']: item['status'] for item in preparing['tasks']} == {
+        'A': 'newborn', 'B': 'available', 'C': 'available',
+    }
+    assert preparing['counts']['newborn'] == 1
+    assert preparing['eligible'] == ['C']
+    assert preparing['active'] == []
+    assert preparing['blocked'] == [
+        {'task': 'A', 'reasons': [{'reason': 'task_not_ready'}]},
+        {'task': 'B', 'reasons': [
+            {'predecessor': 'A', 'reason': 'predecessor_incomplete'},
+        ]},
+    ]
+    assert [item['sprint'] for item in overview(observer, ['planned'], [])['sprints']] == ['unrelated-sprint']
+    assert persisted_state() == before
+
+
 def test_work_overview_separates_sprint_members_and_orders_each_list(project):
     setup(project)
     published_sprint(project, "sprint-z", ["member-z"])

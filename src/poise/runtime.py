@@ -524,7 +524,7 @@ class Poise:
             if not Path(original['path']).exists():
                 return 'evidence_missing'
             try:
-                current = self._inspect_artifacts(data, [original['path']], roots, owners)[0]
+                current = self._inspect_artifacts([original['path']], roots, owners, delivery)[0]
             except PoiseError:
                 return 'evidence_changed'
             if any(current[key] != original[key] for key in ('id', 'scope', 'owner', 'path', 'digest')):
@@ -1371,18 +1371,17 @@ class Poise:
                 grouped[key]['observation_rules'].append(data['contract']['evidence_plan'][stage_id]['subject_methods'][method_id])
         return list(grouped.values())
 
-    def _inspect_artifacts(self, data, paths, roots, owners):
+    def _inspect_artifacts(self, paths, roots, owners, delivery):
         from .infrastructure.recovery_artifacts import artifact_placement
-        delivery = self.transfer_repository.delivery_for_task(data['id'])
         return artifact_placement(inspect_paths(paths, roots, owners), delivery)
 
     def _candidate_artifacts(self, data: dict, submitted: list[str], roots: dict[str,Path]):
         owners = {'runtime':self.session, 'task':data['id']}
         if 'sprint' in roots: owners['sprint'] = data['sprint_id']
-        records = self._inspect_artifacts(data, submitted, roots, owners)
+        delivery = self.transfer_repository.delivery_for_task(data['id'])
+        records = self._inspect_artifacts(submitted, roots, owners, delivery)
         previous = self.store.artifact_records(data['id'])
         internal_materials = self.store.internal_material_ids(data['id'])
-        delivery = self.transfer_repository.delivery_for_task(data['id'])
         if delivery is not None:
             omitted = set(delivery['manifest']['omitted_artifacts'])
             previous = [item for item in previous if item['id'] not in omitted]
@@ -1399,7 +1398,7 @@ class Poise:
             old = dict(prior)
             if old['scope'] not in roots:
                 raise PoiseError('Registered artifact scope has no current owner root; use explicit recover_artifacts')
-            current = self._inspect_artifacts(data, [old['path']], roots, owners)[0]
+            current = self._inspect_artifacts([old['path']], roots, owners, delivery)[0]
             if any(current[key] != old[key] for key in ('id', 'owner', 'scope')):
                 raise PoiseError('Registered artifact identity/owner mismatch; inspect ownership before recovery')
             if current['digest'] != old['digest']:
@@ -1441,11 +1440,16 @@ class Poise:
             roots['sprint'] = sprint_root(self.state, self.paths, data['sprint_id'])
             owners['sprint'] = data['sprint_id']
         records = []
+        delivery_loaded = False
+        delivery = None
         for prior in self.store.artifact_records(data['id']):
             if prior['scope'] not in roots:
                 continue
             try:
-                current = self._inspect_artifacts(data, [prior['path']], roots, owners)[0]
+                if not delivery_loaded:
+                    delivery = self.transfer_repository.delivery_for_task(data['id'])
+                    delivery_loaded = True
+                current = self._inspect_artifacts([prior['path']], roots, owners, delivery)[0]
             except PoiseError:
                 continue
             if current['digest'] != prior['digest']:

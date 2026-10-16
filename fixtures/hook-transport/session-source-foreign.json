@@ -1,0 +1,13 @@
+{
+  "description": "Source-owned content",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^foreign$",
+        "hooks": [
+          {"type": "command", "command": "echo source foreign"}
+        ]
+      }
+    ]
+  }
+}

@@ -96,11 +96,29 @@ Full view возвращает ссылку на полный файл. Чтен
 
 ## Runtime и native hooks
 
+Для общей доставки launcher из рабочих деревьев используйте
+`runtime-config` с `operation: reconfigure`: полный целевой settings и definition,
+наблюдённые редакции исходных settings и обоих native-файлов, стабильный request ID.
+Настройте одну область репозитория и общий writer lock, затем выполните штатный
+review/trust hooks в Codex. Поля, повтор после частичной записи и проверка реального
+startup/fork описаны в [общей
+установке](../configuration/runtime-hooks.md#общая-установка-для-рабочих-деревьев).
+Целевые settings содержат обязательную `capability_summary`; её проверка выполняется
+до intent и побочных эффектов публикации. `reconfigure` меняет только `hooks_file`,
+`hooks_lock`, `repository_scope`, `source_root`, сохраняя остальные значения.
+Добавление или изменение настроек сводки этой операцией не поддерживается;
+[граница
+публикации](../operations/known-bugs.md#hook-settings-continuity-001--изменение-settings-нарушает-согласованность-привязок)
+остаётся отдельной операторской обязанностью.
+
+После сбоя повторяйте тот же пакет: проверенные новые native-сессии включаются
+в незавершённый перенос с сохранением их сообщений и истории.
+
 | Команда | Аргументы | Назначение |
 |---|---|---|
 | `runtime` | `--settings PATH`; JSON stdin. | Identity, capabilities, transcript и один work-пакет через общий владелец сессии. |
 | `runtime-setup` | `--settings PATH --max-input-bytes INT`; JSON stdin. | Создание настроек hook-установки одним пакетом; явный лимит входа. |
-| `runtime-config` | `--settings PATH`; JSON stdin. | Установка hook-конфигурации и непосредственные probes. |
+| `runtime-config` | `--settings PATH`; JSON stdin. | Установка hook-конфигурации, probes, сохранённое чтение `summary` и явное обновление `refresh`. |
 | `hook` | `--settings PATH --definition PATH`; native event JSON stdin. | Доставка события хоста по неизменяемому определению установки. |
 | `hook-work` | `--settings PATH --binding PATH`; work JSON stdin. | Выполнение по созданной hook привязке сессии. |
 
@@ -116,6 +134,26 @@ Full view возвращает ссылку на полный файл. Чтен
 настоящий вход события; `binding` — фактически созданная hook привязка.
 Хост вызывает hook, а выданный launcher использует hook-work.
 Оператор настраивает установку; агент сохраняет её настоящий контекст.
+
+Для чтения последней сводки пакет содержит только свою фактическую binding:
+
+```json
+{"operation": "summary", "input": {"binding_path": "/absolute/path/to/own/binding.json"}}
+```
+
+Для повторной проверки изменившейся инфраструктуры:
+
+```json
+{"operation": "refresh", "input": {"binding_path": "/absolute/path/to/own/binding.json"}}
+```
+
+Оба пакета передаются той же командой `runtime-config`. `summary` не выполняет probes;
+`refresh` использует workspace настоящего SessionStart. Ответ содержит `status` и
+`summary`; значения кодов задаёт `exit_codes` установки. После успешной инициализации `HookService`
+отсутствующая/повреждённая сводка или чужая привязка дают `rejected`. Точные результаты,
+отказы инициализации сервиса (settings, связанная конфигурация проекта, runtime association)
+с exit `2`/stderr без JSON и восстановление —
+[сводка готовности сессии](../configuration/runtime-hooks.md#сводка-готовности-сессии).
 
 Владельцы: [runtime
 adapter](../configuration/runtime-services.md#один-существующий-api-два-транспорта),

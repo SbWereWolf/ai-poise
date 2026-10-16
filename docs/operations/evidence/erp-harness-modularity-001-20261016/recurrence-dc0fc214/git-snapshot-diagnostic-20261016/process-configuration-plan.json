@@ -1,0 +1,21 @@
+{
+  "kind": "compatible-git-process-configuration-proposal",
+  "confirmed_environment": {"git_version": "2.43.0", "platform": "Ubuntu/WSL", "shared_core_fsmonitor": true, "builtin_fsmonitor_status": "not supported on this platform"},
+  "scope": "Only the next ordinary direct public work process and its owned children",
+  "explicit_git_setting": {"core.fsmonitor": false},
+  "mechanism": "Append a standard GIT_CONFIG_COUNT/KEY_n/VALUE_n entry to existing inherited entries, preserving all prior entries",
+  "shared_git_configuration_written": false,
+  "project_configuration_written": false,
+  "native_identity_overridden": false,
+  "git_seconds_changed": false,
+  "configured_git_seconds": 15,
+  "diagnostic_result_sha256": "eda2ca8f7ad006c9dd120fa036078028a78d55b148c9b6af860b3e96b4dfdd3f",
+  "diagnostic_add_seconds": 0.6611870839997209,
+  "diagnostic_tree": "c2b4dabc97df090336282ae24568fff620bd2366",
+  "real_index_unchanged": true,
+  "unique_cause_of_prior_timeout_claimed": false,
+  "exact_work_packet_sha256": "7ee2d42a06ac57674778caf38e8cc336d15c818890efa7f937134b85100dc2ad",
+  "test_sources_or_obligations_changed": false,
+  "diagnostic_is_native_verification": false,
+  "native_acceptance": false
+}

@@ -1,0 +1,26 @@
+{
+  "artifacts_retained": true,
+  "check_id": "chk_20261015T214921Z_6c689edb33",
+  "evidence_id": "provider-binding-report",
+  "files": [
+    {
+      "bytes": 6307,
+      "path": "provider-binding-report.json"
+    }
+  ],
+  "generated_at": "2026-10-15T21:49:43Z",
+  "max_files": 1,
+  "max_total_bytes": 1048576,
+  "missing_required": [],
+  "optional_globs": [],
+  "required_globs": [
+    "provider-binding-report.json"
+  ],
+  "retention_class": "task",
+  "root": ".runtime/checks/chk_20261015T214921Z_6c689edb33/result/evidence",
+  "schema_version": 1,
+  "status": "complete",
+  "total_bytes": 6307,
+  "total_files": 1,
+  "violations": []
+}

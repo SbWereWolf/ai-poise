@@ -1,7 +1,7 @@
 """Revision-aware live project configuration publication and recovery."""
 from __future__ import annotations
 from copy import deepcopy
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 import json
 import os
 from pathlib import Path
@@ -63,64 +63,62 @@ class FileProjectConfigUpdate:
         pending_path = receipt.with_name(receipt.name + '.pending')
         request_digest = digest(request)
         try:
-            with exclusive_lock(settings.lock, settings.raw['lock_seconds'],
-                                settings.raw['lock_poll_seconds']):
-                root, config, workflows = load_config(config_path)
-                resources = request['runtime_resources']
-                require_project_association(settings, config_path, config, resources)
-                state = configured_root(root, config['paths']['state'])
-                if any(path.is_relative_to(state) for path in
-                       (settings.lock, settings.path, settings.registry, receipt)):
-                    raise PoiseError('Bootstrap authority, fence and receipt must remain outside mutable state')
-                for item in resources['hooks']:
-                    observe_hook_association(item, config_path)
-                revision = digest({'config': config, 'workflows': workflows})
-                if receipt.is_file():
-                    saved = read_document(receipt)
-                    if (saved.get('request_digest') != request_digest or
-                            saved['result']['after_revision'] != revision):
-                        raise VersionConflict('Bootstrap request or live project revision changed')
-                    return {**saved['result'], 'replayed': True}
-                pending = read_document(pending_path) if pending_path.is_file() else None
-                if pending is not None:
-                    if (pending.get('request_digest') != request_digest or
-                            revision not in (pending['before_revision'], pending['after_revision'])):
-                        raise VersionConflict('Bootstrap pending publication conflicts with live project')
-                    candidate = pending['candidate']
-                    if candidate.get('runtime_resources') != resources:
-                        raise VersionConflict('Bootstrap pending association changed')
-                else:
-                    if 'runtime_resources' in config:
-                        raise PoiseError('Runtime resources association already exists')
-                    if revision != request['expected_revision']:
-                        raise VersionConflict('Bootstrap project revision changed since observation')
-                    candidate = deepcopy(config)
-                    candidate['runtime_resources'] = deepcopy(resources)
-                    self._validate_candidate(root, candidate, workflows)
-                    pending = {'schema': 'project-runtime-resources-bootstrap-pending-1',
-                               'request_digest': request_digest,
-                               'before_revision': revision,
-                               'after_revision': digest({'config': candidate, 'workflows': workflows}),
-                               'candidate': candidate}
-                    atomic_write(pending_path, encoded(pending, settings.raw['json_indent']),
-                                 settings.raw['file_mode'])
-                if revision == pending['before_revision']:
-                    atomic_write(config_path, encoded(candidate, settings.raw['json_indent']),
-                                 settings.raw['file_mode'])
-                _, final_config, final_workflows = load_config(config_path)
-                after = digest({'config': final_config, 'workflows': final_workflows})
-                if after != pending['after_revision']:
-                    raise VersionConflict('Bootstrap published project revision changed')
-                result = {'schema': 'project-runtime-resources-bootstrap-result-1',
-                          'status': 'completed', 'request_id': request['request_id'],
-                          'config_path': str(config_path), 'prior_revision': pending['before_revision'],
-                          'revision': after, 'before_revision': pending['before_revision'],
-                          'after_revision': after, 'replayed': revision != pending['before_revision']}
-                atomic_write(receipt, encoded({'schema': 'project-config-receipt-1',
-                             'request_digest': request_digest, 'request_id': request['request_id'],
-                             'result': result}, settings.raw['json_indent']), settings.raw['file_mode'])
-                pending_path.unlink(missing_ok=True)
-                return result
+            root, config, workflows = load_config(config_path)
+            resources = request['runtime_resources']
+            require_project_association(settings, config_path, config, resources)
+            state = configured_root(root, config['paths']['state'])
+            if any(path.is_relative_to(state) for path in
+                   (settings.lock, settings.path, settings.registry, receipt)):
+                raise PoiseError('Bootstrap authority, fence and receipt must remain outside mutable state')
+            for item in resources['hooks']:
+                observe_hook_association(item, config_path)
+            revision = digest({'config': config, 'workflows': workflows})
+            if receipt.is_file():
+                saved = read_document(receipt)
+                if (saved.get('request_digest') != request_digest or
+                        saved['result']['after_revision'] != revision):
+                    raise VersionConflict('Bootstrap request or live project revision changed')
+                return {**saved['result'], 'replayed': True}
+            pending = read_document(pending_path) if pending_path.is_file() else None
+            if pending is not None:
+                if (pending.get('request_digest') != request_digest or
+                        revision not in (pending['before_revision'], pending['after_revision'])):
+                    raise VersionConflict('Bootstrap pending publication conflicts with live project')
+                candidate = pending['candidate']
+                if candidate.get('runtime_resources') != resources:
+                    raise VersionConflict('Bootstrap pending association changed')
+            else:
+                if 'runtime_resources' in config:
+                    raise PoiseError('Runtime resources association already exists')
+                if revision != request['expected_revision']:
+                    raise VersionConflict('Bootstrap project revision changed since observation')
+                candidate = deepcopy(config)
+                candidate['runtime_resources'] = deepcopy(resources)
+                self._validate_candidate(root, candidate, workflows)
+                pending = {'schema': 'project-runtime-resources-bootstrap-pending-1',
+                           'request_digest': request_digest,
+                           'before_revision': revision,
+                           'after_revision': digest({'config': candidate, 'workflows': workflows}),
+                           'candidate': candidate}
+                atomic_write(pending_path, encoded(pending, settings.raw['json_indent']),
+                             settings.raw['file_mode'])
+            if revision == pending['before_revision']:
+                atomic_write(config_path, encoded(candidate, settings.raw['json_indent']),
+                             settings.raw['file_mode'])
+            _, final_config, final_workflows = load_config(config_path)
+            after = digest({'config': final_config, 'workflows': final_workflows})
+            if after != pending['after_revision']:
+                raise VersionConflict('Bootstrap published project revision changed')
+            result = {'schema': 'project-runtime-resources-bootstrap-result-1',
+                      'status': 'completed', 'request_id': request['request_id'],
+                      'config_path': str(config_path), 'prior_revision': pending['before_revision'],
+                      'revision': after, 'before_revision': pending['before_revision'],
+                      'after_revision': after, 'replayed': revision != pending['before_revision']}
+            atomic_write(receipt, encoded({'schema': 'project-config-receipt-1',
+                         'request_digest': request_digest, 'request_id': request['request_id'],
+                         'result': result}, settings.raw['json_indent']), settings.raw['file_mode'])
+            pending_path.unlink(missing_ok=True)
+            return result
         except OSError as exc:
             raise PoiseError(f'Bootstrap publication interrupted; retry the same request: {exc}') from exc
 
@@ -167,9 +165,8 @@ class FileProjectConfigUpdate:
             return root, config, workflows
 
     def stage_criteria_lock(self):
-        """The coordinator holds this before the Task lock, including recovery."""
-        s = self.settings
-        return exclusive_lock(s.lock, s.raw["lock_seconds"], s.raw["lock_poll_seconds"])
+        """Publication uses its own store boundary; no installation-wide lease."""
+        return nullcontext()
 
     @staticmethod
     def _receipt_digest(value):
@@ -338,9 +335,7 @@ class FileProjectConfigUpdate:
                 "root": str(s.root), "config_path": str(config_path),
                 "registry": digest(registry), "setup_receipt": digest(receipt),
                 "targets": {goal: str(workflow_path(config_path, value))
-                            for goal, value in config["workflows"].items()},
-                "lock": {"path": str(s.lock), "device": s.lock.stat().st_dev,
-                         "inode": s.lock.stat().st_ino}}
+                            for goal, value in config["workflows"].items()}}
 
     def stage_criteria_snapshot(self, config_path):
         binding = self.stage_criteria_binding(config_path)
@@ -567,12 +562,8 @@ class FileProjectConfigUpdate:
         receipt_path = self._receipt(settings.root, request["receipt_path"])
         pending_path = receipt_path.with_name(receipt_path.name + ".pending")
         request_digest = digest(request)
-        lock = confined(settings.root, settings.raw["lock"])
         try:
             with ExitStack() as locks:
-                locks.enter_context(exclusive_lock(
-                    lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
-                ))
                 if receipt_path.is_file():
                     saved = read_document(receipt_path)
                     if saved.get("request_digest") != request_digest:

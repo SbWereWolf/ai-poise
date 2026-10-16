@@ -1,0 +1,29 @@
+{
+  "classification": "derived_observation_of_actual_completed_mcp_calls",
+  "tool": "mcp__pycharm__get_file_problems",
+  "projectPath": "/home/sbwerewolf/workdata/erp",
+  "filePrefix": "worktrees/ERP-HARNESS-MODULARITY-001/",
+  "candidate_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+  "errorsOnly": true,
+  "initial_partial_results": [
+    "ai-assistant/checks/check_runner_lib.py",
+    "ai-assistant/checks/registered_command_adoption_lib.py",
+    "ai-assistant/tests/checks/check-runner.py"
+  ],
+  "partial_result_disposition": "All three timedOut=true responses were excluded as complete evidence and repeated sequentially with timeout30000; actual final responses had errors=[] and no timedOut flag.",
+  "completed_files_with_empty_errors": [
+    "ai-assistant/checks/run_check.py",
+    "ai-assistant/checks/check_runner_lib.py",
+    "ai-assistant/checks/registered_command_adoption_lib.py",
+    "ai-assistant/checks/command_profile_lib.py",
+    "ai-assistant/mcp/repo-checks-server.py",
+    "ai-assistant/tests/checks/artifact-evidence-inventory.py",
+    "ai-assistant/tests/checks/check-runner.py",
+    "ai-assistant/tests/checks/tooling-verification-config.py",
+    "ai-assistant/tests/checks/evidence-manifest.py",
+    "ai-assistant/tests/checks/registered-check-lock.py"
+  ],
+  "unconfirmed_files": [],
+  "warnings_inspected": false,
+  "source_modified": false
+}

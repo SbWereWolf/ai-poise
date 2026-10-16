@@ -413,3 +413,8 @@ gate. Launch the common selected source with the configured Python and
 `-P -s -B`, supplying `--poise-root` and `--project`. The source root supplies
 `PYTHONPATH=<poise-root>/src`; preserve operator command/override selection.
 See the [launcher contract](../docs/configuration/stride-launcher.md#выполнение-команды).
+
+Installation-wide setup locks must not serialize runtime work, project creation,
+configuration publication or state relocation. Keep short SQLite transactions and
+resource-owned write boundaries; operators perform configuration and relocation
+sequentially. See [relocation admission and order](../docs/configuration/project-setup.md#допуск-и-порядок-переноса).

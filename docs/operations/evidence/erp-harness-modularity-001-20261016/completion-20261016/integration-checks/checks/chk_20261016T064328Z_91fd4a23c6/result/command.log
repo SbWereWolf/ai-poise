@@ -1,0 +1,43 @@
+[verify] running: /usr/bin/python3 ai-assistant/agent/literal-boundary-policy.py --root /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001
+Literal-boundary policy passed.
+[verify] Markdown formatting: repository-documentation-verification owns task-scoped Markdown validation
+[verify] agent-tooling suites run sequentially; product application suites are outside this lifecycle
+[verify] tooling-fast-agent-contracts: cache hit; configured source inputs and fixtures unchanged, skipping
+[verify] tooling-fast-check-runtime: cache miss; running sequentially
+[verify] tooling-fast-check-runtime: completed with exit code 1
+[verify] tooling-fast-check-runtime: running suite
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/delta-artifact-hygiene.py
+delta artifact hygiene contracts: 3116 tracked paths, 0 findings
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/poise-source-test-package.py
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 5.090s
+
+OK
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/repository-documentation-contracts.py
+repository documentation contracts: 6 passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/evidence-manifest.py
+registered check evidence contracts passed: 9
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/test-packages.py
+[test-package] package=unit.a step=1/1 driver=document-ui-npm
+[test-package] package=integration.b-to-a step=1/1 driver=document-ui-npm
+[test-package] package=integration.b-to-a status=passed steps=2
+[test-package] package=unit.aggregate step=1/1 driver=document-ui-npm
+[test-package] package=unit.aggregate status=passed steps=1
+test package contracts passed: 15
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/reference-trigger-audit.py
+Reference trigger audit contracts passed: 4
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/checks/artifact-evidence-inventory.py --json
+{"deferred":[],"findings":[],"schema_version":1,"status":"passed","summary":{"adopted":32,"classified_profiles":135,"deferred":0,"findings":0,"not_artifact_producers":103,"registered_profiles":135,"remaining_mandatory_artifact_producers":0}}
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/artifact-evidence-inventory.py
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/artifact-evidence-inventory.py", line 191, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/artifact-evidence-inventory.py", line 181, in main
+    test_current_repository_inventory()
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/artifact-evidence-inventory.py", line 81, in test_current_repository_inventory
+    assert result["summary"] == {
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+[verify] tooling-fast-check-runtime failed with exit code 1

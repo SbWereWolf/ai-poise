@@ -1,7 +1,6 @@
 """Read existing runtime authority before allocating mutable project stores."""
 import json
 from contextlib import contextmanager
-from contextvars import ContextVar
 from pathlib import Path
 
 from ..common import PoiseError, digest, load_config, configured_root
@@ -11,11 +10,8 @@ from .goal_config import read_document
 from .projects import FileProjectSetup
 
 
-_held_project_leases = ContextVar('held_project_leases', default=frozenset())
-
-
 class ProjectRuntimeFence:
-    """One external setup fence, rereading authority before every owner effect."""
+    """Runtime association validation; ordinary work never locks the installation."""
     def __init__(self, config_path, expected_state=None, hook_settings=None):
         from .projects import ProjectSettings
         self.config_path = Path(config_path).resolve()
@@ -66,21 +62,9 @@ class ProjectRuntimeFence:
 
     @contextmanager
     def locked(self):
-        from .locking import exclusive_lock
-        key = str(self.settings.lock)
-        held = _held_project_leases.get()
-        if key in held:
-            self._validate()
-            yield
-            return
-        with exclusive_lock(self.settings.lock, self.settings.raw['lock_seconds'],
-                            self.settings.raw['lock_poll_seconds']):
-            self._validate()
-            token = _held_project_leases.set(held | {key})
-            try:
-                yield
-            finally:
-                _held_project_leases.reset(token)
+        """Validate current runtime configuration without a shared writer lease."""
+        self._validate()
+        yield
 
 
 def require_project_association(settings, config_path, config, resources):

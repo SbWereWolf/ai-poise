@@ -221,7 +221,12 @@
         "inspection",
         "correction",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "framing_inspection",
@@ -244,7 +249,12 @@
       },
       "rework_targets": [
         "framing"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "baseline",
@@ -273,7 +283,12 @@
         "inspection",
         "correction",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "baseline_inspection",
@@ -296,7 +311,12 @@
       },
       "rework_targets": [
         "baseline"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "change_planning",
@@ -331,7 +351,12 @@
         "inspection",
         "correction",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "change_planning_inspection",
@@ -354,7 +379,12 @@
       },
       "rework_targets": [
         "change_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "application",
@@ -386,7 +416,12 @@
         "inspection",
         "correction",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "application_inspection",
@@ -409,7 +444,12 @@
       },
       "rework_targets": [
         "application"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "verification",
@@ -440,7 +480,12 @@
         "inspection",
         "correction",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "inspection",
@@ -472,7 +517,12 @@
         "application",
         "verification",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "correction_planning",
@@ -496,7 +546,12 @@
       },
       "rework_targets": [
         "correction_planning"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "correction_planning_inspection",
@@ -519,7 +574,12 @@
       },
       "rework_targets": [
         "correction_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "correction",
@@ -553,7 +613,12 @@
         "verification",
         "inspection",
         "correction_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "correction_inspection",
@@ -585,7 +650,12 @@
         "application",
         "verification",
         "inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

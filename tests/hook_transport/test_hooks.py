@@ -85,7 +85,8 @@ def test_existing_owned_launcher_is_upgraded_to_bytecode_safe_command(project,tm
     s=service(project,tmp_path);out=install(s);native(s,out)
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);current=path.read_text()
-    legacy=current.replace(' -B -m poise ',' -m poise ')
+    # The historical entry neither used -B nor forwarded caller arguments.
+    legacy=current.replace(' -B -m poise ',' -m poise ').removesuffix(' "$@"\n')+'\n'
     assert legacy!=current
     path.write_text(legacy);path.chmod(s.settings.raw['executable_mode'])
     native(s,out)

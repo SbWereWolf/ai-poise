@@ -70,17 +70,20 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 
 ### Environment maintenance
 
+[Materialize the full working profile](../../../docs/operator/maintenance-profile-v2.md#развёртывание-из-примера)
+from the selected supply; use a dedicated profile and separate serviced data.
 [Installed CLI and standalone
 arguments](../../../docs/operator/poise-command-reference.md#обслуживание-окружения);
 [Bootstrap settings, handler and results](../../../docs/operator/bootstrap-catalog-v2.md).
 
 | Command | Purpose | Correct example |
 |---|---|---|
+| `poise_environment.profile` | Publish the selected complete maintenance profile. | `PYTHONPATH="$poise_root/src" "$poise_python" -B -m poise_environment.profile --source "$poise_root" --output "$catalog_dir" --state "$state_root" --repository "$repository" --project "$project_id" --base-ref "$base_ref" --author-name "$author_name" --author-email "$author_email" --module-path "$poise_root/src"` |
 | `poise infra` | Delegate infrastructure maintenance to the installed external CLI. | `"${poise[@]}" infra --catalog "$requirements_catalog" --repairs "$repairs_file" --dry-run` |
 | `poise deps` | Delegate dependency maintenance. | `"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" --dry-run` |
 | `poise check` | Delegate environment observation. | `"${poise[@]}" check --catalog "$requirements_catalog" --values "$values_file"` |
 | `bootstrap infra` | Observe, then allow one configured correction. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" infra --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
-| `bootstrap deps` | Observe dependency readiness with configured correction. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" deps --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
+| `bootstrap deps` | Observe the selected catalogue with configured correction. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" deps --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
 | `bootstrap check` | Observe with the supplied read-only sample permissions. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" check --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
 
 Run standalone examples from the explicitly selected `poise_root`; populate
@@ -1007,3 +1010,7 @@ is initial audit,
 not admission. Keep actual owner/path/type/link/foreign-material checks. Follow the
 [operator
 scope](../../../docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).
+
+For explicit project selection through the supplied native entry, follow the short
+[setup instruction](../../references/project-storage-setup.md#session-launcher-project-selection).
+Use one exact selector and the selected project's own message contract.

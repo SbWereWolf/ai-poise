@@ -24,7 +24,6 @@ from ..modules.projects.domain import ProjectBlueprint
 from ..modules.foundation.errors import PoiseError,VersionConflict
 from ..modules.foundation.validation import configuration_fields, nonempty
 from .goal_config import read_document,atomic_write
-from .locking import exclusive_lock
 from .workflow_files import workflow_path
 
 
@@ -247,106 +246,105 @@ class FileProjectSetup:
         complete = False
         marker = target / '.project-setup-pending.json'
         try:
-            with exclusive_lock(settings.lock, c['lock_seconds'], c['lock_poll_seconds']):
-                registry = self._registry()
-                if target.exists():
-                    manifest = target / c['manifest']
-                    config = read_document(manifest)
-                    configuration_fields(config, {'project'}, 'project config')
-                    nonempty(config['project'], 'project')
-                    identities = [edit['value'] for edit in request['edits']
-                                  if edit.get('path') == ['project']]
-                    if identities and identities != [config['project']]:
-                        raise VersionConflict('Existing project identity differs from requested project')
-                    binding = registry['projects'].get(config['project'])
-                    registered = (binding is not None
-                                  and confined(settings.root, binding['config_path']) == manifest.resolve())
-                    if registered:
-                        _, config, documents = load_config(manifest)
-                        result = self._result(target, config, documents, request, True)
-                        marker.unlink(missing_ok=True)
-                        return result
-                    if not marker.is_file():
-                        raise VersionConflict('Existing project is not registered and has no pending setup')
-                    configuration_fields(config, {'workflows'}, 'project config')
-                    if not isinstance(config['workflows'], dict) or not config['workflows']:
-                        raise PoiseError('Explicit selected workflows required')
-                    for goal, value in config['workflows'].items():
-                        if not isinstance(value, str) or not value or '\0' in value:
-                            raise PoiseError(f'workflows.{goal}: explicit string path without NUL required')
-                    selected_paths = {goal: workflow_path(manifest, value)
-                                      for goal, value in config['workflows'].items()}
-                    documents = self._documents(None, config, selected_paths, resume=True,
-                                                selection=request['template'])
-                    load_config_document(manifest, config, workflow_documents=documents)
-                    paths, marker = self._destinations(target, config)
-                    intent = read_document(marker)
-                    expected = {'schema': 'project-setup-pending-1',
-                                'request_id': request['request_id'], 'project': config['project'],
-                                'workflows': {goal: str(path) for goal, path in paths.items()}}
-                    if intent != expected:
-                        raise VersionConflict('Pending setup identifies another operation or destination set')
-                    validate_candidate_config(manifest, target, workflow_documents=documents)
+            registry = self._registry()
+            if target.exists():
+                manifest = target / c['manifest']
+                config = read_document(manifest)
+                configuration_fields(config, {'project'}, 'project config')
+                nonempty(config['project'], 'project')
+                identities = [edit['value'] for edit in request['edits']
+                              if edit.get('path') == ['project']]
+                if identities and identities != [config['project']]:
+                    raise VersionConflict('Existing project identity differs from requested project')
+                binding = registry['projects'].get(config['project'])
+                registered = (binding is not None
+                              and confined(settings.root, binding['config_path']) == manifest.resolve())
+                if registered:
+                    _, config, documents = load_config(manifest)
                     result = self._result(target, config, documents, request, True)
-                else:
-                    blueprint = self.template(request['template'])
-                    config = blueprint.build(request['edits'], c['max_edits'])
-                    if not isinstance(config.get('workflows'), dict) or not config['workflows']:
-                        raise PoiseError('Explicit selected workflows required')
-                    documents = self._documents(blueprint, config,
-                        {goal: None for goal in config['workflows']}, resume=False)
-                    load_config_document(target / c['manifest'], config, workflow_documents=documents)
-                    existing = registry['projects'].get(config['project'])
-                    if existing is not None:
-                        raise VersionConflict('Project identity already registered to another configuration')
-                    paths, marker = self._destinations(target, config)
-                    for path in paths.values():
-                        if path.exists():
-                            raise VersionConflict(f'Workflow destination already exists: {path}')
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with tempfile.TemporaryDirectory(prefix='.project-setup-', dir=target.parent) as temporary:
-                        candidate = Path(temporary) / 'candidate'
-                        candidate.mkdir(mode=c['directory_mode'])
-                        def write(path, value):
-                            atomic_write(path, (json.dumps(value, ensure_ascii=False,
-                                indent=c['json_indent'], allow_nan=False) + '\n').encode(), c['file_mode'])
-                        write(candidate / c['manifest'], config)
-                        validate_candidate_config(candidate / c['manifest'], target,
-                                                  workflow_documents=documents)
-                        result = self._result(target, config, documents, request, False)
-                        write(candidate / marker.name, {'schema': 'project-setup-pending-1',
+                    marker.unlink(missing_ok=True)
+                    return result
+                if not marker.is_file():
+                    raise VersionConflict('Existing project is not registered and has no pending setup')
+                configuration_fields(config, {'workflows'}, 'project config')
+                if not isinstance(config['workflows'], dict) or not config['workflows']:
+                    raise PoiseError('Explicit selected workflows required')
+                for goal, value in config['workflows'].items():
+                    if not isinstance(value, str) or not value or '\0' in value:
+                        raise PoiseError(f'workflows.{goal}: explicit string path without NUL required')
+                selected_paths = {goal: workflow_path(manifest, value)
+                                  for goal, value in config['workflows'].items()}
+                documents = self._documents(None, config, selected_paths, resume=True,
+                                            selection=request['template'])
+                load_config_document(manifest, config, workflow_documents=documents)
+                paths, marker = self._destinations(target, config)
+                intent = read_document(marker)
+                expected = {'schema': 'project-setup-pending-1',
                             'request_id': request['request_id'], 'project': config['project'],
-                            'workflows': {goal: str(path) for goal, path in paths.items()}})
-                        publish_directory(candidate, target)
-                        created_config = True
-                try:
-                    for goal, path in paths.items():
-                        if not created_config and path.is_file():
-                            continue  # Reserved by this explicit pending operation; preserve operator edits.
-                        path.parent.mkdir(parents=True, exist_ok=True)
-                        with path.open('xb') as stream:
-                            created_files.append(path)
-                            os.fchmod(stream.fileno(), c['file_mode'])
-                            stream.write((json.dumps(documents[goal], ensure_ascii=False,
-                                indent=c['json_indent'], allow_nan=False) + '\n').encode())
-                            stream.flush()
-                            os.fsync(stream.fileno())
-                    load_config(target / c['manifest'])
-                    complete = True
-                    self._register(registry, config['project'], target)
-                    marker.unlink()
-                except BaseException:
-                    if not complete:
-                        for path in reversed(created_files):
-                            path.unlink(missing_ok=True)
-                        if created_config:
-                            marker.unlink(missing_ok=True)
-                            (target / c['manifest']).unlink(missing_ok=True)
-                            try:
-                                target.rmdir()
-                            except OSError:
-                                pass  # Preserve any unrelated files that appeared in the directory.
-                    raise
-                return result
+                            'workflows': {goal: str(path) for goal, path in paths.items()}}
+                if intent != expected:
+                    raise VersionConflict('Pending setup identifies another operation or destination set')
+                validate_candidate_config(manifest, target, workflow_documents=documents)
+                result = self._result(target, config, documents, request, True)
+            else:
+                blueprint = self.template(request['template'])
+                config = blueprint.build(request['edits'], c['max_edits'])
+                if not isinstance(config.get('workflows'), dict) or not config['workflows']:
+                    raise PoiseError('Explicit selected workflows required')
+                documents = self._documents(blueprint, config,
+                    {goal: None for goal in config['workflows']}, resume=False)
+                load_config_document(target / c['manifest'], config, workflow_documents=documents)
+                existing = registry['projects'].get(config['project'])
+                if existing is not None:
+                    raise VersionConflict('Project identity already registered to another configuration')
+                paths, marker = self._destinations(target, config)
+                for path in paths.values():
+                    if path.exists():
+                        raise VersionConflict(f'Workflow destination already exists: {path}')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with tempfile.TemporaryDirectory(prefix='.project-setup-', dir=target.parent) as temporary:
+                    candidate = Path(temporary) / 'candidate'
+                    candidate.mkdir(mode=c['directory_mode'])
+                    def write(path, value):
+                        atomic_write(path, (json.dumps(value, ensure_ascii=False,
+                            indent=c['json_indent'], allow_nan=False) + '\n').encode(), c['file_mode'])
+                    write(candidate / c['manifest'], config)
+                    validate_candidate_config(candidate / c['manifest'], target,
+                                              workflow_documents=documents)
+                    result = self._result(target, config, documents, request, False)
+                    write(candidate / marker.name, {'schema': 'project-setup-pending-1',
+                        'request_id': request['request_id'], 'project': config['project'],
+                        'workflows': {goal: str(path) for goal, path in paths.items()}})
+                    publish_directory(candidate, target)
+                    created_config = True
+            try:
+                for goal, path in paths.items():
+                    if not created_config and path.is_file():
+                        continue  # Reserved by this explicit pending operation; preserve operator edits.
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    with path.open('xb') as stream:
+                        created_files.append(path)
+                        os.fchmod(stream.fileno(), c['file_mode'])
+                        stream.write((json.dumps(documents[goal], ensure_ascii=False,
+                            indent=c['json_indent'], allow_nan=False) + '\n').encode())
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                load_config(target / c['manifest'])
+                complete = True
+                self._register(registry, config['project'], target)
+                marker.unlink()
+            except BaseException:
+                if not complete:
+                    for path in reversed(created_files):
+                        path.unlink(missing_ok=True)
+                    if created_config:
+                        marker.unlink(missing_ok=True)
+                        (target / c['manifest']).unlink(missing_ok=True)
+                        try:
+                            target.rmdir()
+                        except OSError:
+                            pass  # Preserve any unrelated files that appeared in the directory.
+                raise
+            return result
         except OSError as exc:
             raise PoiseError(f'Project storage operation failed; retry same request to inspect publication: {exc}') from exc

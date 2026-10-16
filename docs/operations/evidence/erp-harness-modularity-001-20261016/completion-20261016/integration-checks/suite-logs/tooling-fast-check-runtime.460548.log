@@ -1,0 +1,22 @@
+[verify] tooling-fast-check-runtime: running suite
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/delta-artifact-hygiene.py
+delta artifact hygiene contracts: 3116 tracked paths, 0 findings
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/poise-source-test-package.py
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 5.104s
+
+OK
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/repository-documentation-contracts.py
+repository documentation contracts: 6 passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/evidence-manifest.py
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/evidence-manifest.py", line 510, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/evidence-manifest.py", line 504, in main
+    test()
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/evidence-manifest.py", line 384, in test_cache_reuses_complete_source_and_rejects_corrupt_manifest
+    _, without_hashes = run_registered_command(root, data, current)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_registered_command() missing 1 required keyword-only argument: 'configuration'

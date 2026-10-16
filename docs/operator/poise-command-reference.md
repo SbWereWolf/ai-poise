@@ -129,7 +129,7 @@ startup/fork описаны в [общей
 | `runtime-setup` | `--settings PATH --max-input-bytes INT`; JSON stdin. | Создание настроек hook-установки одним пакетом; явный лимит входа. |
 | `runtime-config` | `--settings PATH`; JSON stdin. | Установка hook-конфигурации, probes, сохранённое чтение `summary` и явное обновление `refresh`. |
 | `hook` | `--settings PATH --definition PATH`; native event JSON stdin. | Доставка события хоста по неизменяемому определению установки. |
-| `hook-work` | `--settings PATH --binding PATH`; work JSON stdin. | Выполнение по созданной hook привязке сессии. |
+| `hook-work` | `--settings PATH --binding PATH [--project EXACT_ID]`; work JSON stdin. | Выполнение по созданной hook привязке сессии. |
 
 ```bash
 "${poise[@]}" runtime --settings "$settings" < "$packet"
@@ -173,8 +173,13 @@ adapter](../configuration/runtime-services.md#один-существующий-
 
 ## Обслуживание окружения
 
+[Инструкция публикации полного рабочего профиля
+catalog/v2](maintenance-profile-v2.md#развёртывание-из-примера).
 [Инструкция настройки команды и рабочего файла
 Bootstrap](bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла).
+
+`poise_environment.profile` публикует выбранный профиль. Полная команда и [все аргументы
+материализатора](maintenance-profile-v2.md#аргументы-материализатора) находятся в инструкции.
 
 ### Действующий делегированный CLI
 
@@ -257,3 +262,13 @@ writers по процедуре владельца.
 [route migration](../route-count-limit-migration.md),
 [workflow snapshot
 migration](../task-workflow-snapshot-migration.md#миграция-типов-и-критериев-этапов).
+
+Явный выбор через выданный своей сессии entry:
+
+```bash
+bash "$native_launcher" --project "$project_id" < "$packet"
+```
+
+Настройка, сообщения выбранного проекта и отказы описаны в
+[контракте выбора](../configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher).
+Без селектора сохраняется исходный проект.

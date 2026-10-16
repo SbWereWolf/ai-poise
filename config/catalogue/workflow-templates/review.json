@@ -85,7 +85,12 @@
         "planning",
         "inspection",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "inspection",
@@ -116,7 +121,12 @@
         "inspection",
         "planning",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "self_inspection",
@@ -143,7 +153,12 @@
         "self_inspection",
         "inspection",
         "planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

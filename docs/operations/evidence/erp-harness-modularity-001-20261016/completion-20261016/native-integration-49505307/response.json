@@ -1,0 +1,1844 @@
+{
+  "status": "blocked",
+  "task": "ERP-HARNESS-MODULARITY-001",
+  "request_id": "ERP-HARNESS-MODULARITY-001-integrate-20261016",
+  "source_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "accepted_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "task_branch": "poise/ERP-HARNESS-MODULARITY-001",
+  "task_worktree": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+  "temporary_backup_directory": "/home/sbwerewolf/workdata/poise-project-data/erp/runtime/result-integration/ERP-HARNESS-MODULARITY-001/d81872a49c82",
+  "temporary_backups": [],
+  "phase": "checks_failed",
+  "last_included_target": "16c5b906615e57a5b5f89b495c42b79f51eab87e",
+  "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+  "target_before": "16c5b906615e57a5b5f89b495c42b79f51eab87e",
+  "target_after": null,
+  "conflicts": [
+    "ai-assistant/checks/check_runner_lib.py",
+    "ai-assistant/checks/command-profiles.toml",
+    "ai-assistant/checks/registered_command_adoption_lib.py",
+    "ai-assistant/checks/run_check.py",
+    "ai-assistant/checks/tooling-verification.json",
+    "ai-assistant/mcp/repo-checks-server.py",
+    "ai-assistant/tests/checks/artifact-evidence-inventory.py",
+    "ai-assistant/tests/checks/check-runner.py",
+    "ai-assistant/tests/checks/tooling-verification-config.py"
+  ],
+  "resolutions": [
+    {
+      "path": "ai-assistant/checks/check_runner_lib.py",
+      "resolution": "Keep canonical extracted profile contracts and explicit configuration; retain target public grammar and shared loading diagnostics without duplicate profile implementations."
+    },
+    {
+      "path": "ai-assistant/checks/command-profiles.toml",
+      "resolution": "Keep all135 producer declarations and the combined MCP, source-test and launcher cache inputs."
+    },
+    {
+      "path": "ai-assistant/checks/registered_command_adoption_lib.py",
+      "resolution": "Consume canonical profile/configuration owners while retaining target admission, cancellation and public grammar behavior."
+    },
+    {
+      "path": "ai-assistant/checks/run_check.py",
+      "resolution": "Delegate execution to the shared service; retain target dry-run, declared bookkeeping identity, optional selector semantics and exact diagnostic context."
+    },
+    {
+      "path": "ai-assistant/checks/tooling-verification.json",
+      "resolution": "Retain both harness modularity and all115 admission/lock tests and the complete combined source fingerprints."
+    },
+    {
+      "path": "ai-assistant/mcp/repo-checks-server.py",
+      "resolution": "Use the shared service with each request's explicit subject and configuration; retain target admission, preview, cancellation and original-exception diagnostic behavior."
+    },
+    {
+      "path": "ai-assistant/tests/checks/artifact-evidence-inventory.py",
+      "resolution": "Declare literal135-profile inventory: target133 plus two source variants, including103 non-artifact producers."
+    },
+    {
+      "path": "ai-assistant/tests/checks/check-runner.py",
+      "resolution": "Retain the source lock-release oracle, actually execute its14th test, and supply the complete bookkeeping identity required by target admission."
+    },
+    {
+      "path": "ai-assistant/tests/checks/tooling-verification-config.py",
+      "resolution": "Retain target launcher cache inputs and provide explicit configuration to the added prerequisite-owner test call."
+    }
+  ],
+  "checks": [
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 4.030002044000867,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/878c4057-cfab-404f-b184-615be3796fe0/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/878c4057-cfab-404f-b184-615be3796fe0/stderr.txt",
+      "stdout_preview": "",
+      "stderr_preview": "test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant) ... ok\ntest_hm09_render_reload_preserves_the_literal_contract (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm09_render_reload_preserves_the_literal_contract) ... ok\ntest_hm10_file_errors_are_lazy_and_keep_original_exception_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm10_file_errors_are_lazy_and_keep_original_exception_types) ... ok\ntest_hm12_context_profile_use_has_no_unrelated_prerequisites (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm12_context_profile_use_has_no_unrelated_prerequisites) ... ok\ntest_hm13_service_keeps_selected_configuration_separate_from_data_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm13_service_keeps_selected_configuration_separate_from_data_owner) ... ok\ntest_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation) ... ok\ntest_hm16_existing_success_contract_proves_the_execution_fixture (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm16_existing_success_contract_proves_the_execution_fixture) ... ok\ntest_hm18_real_consumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.634s\n\nOK\n",
+      "id": "878c4057-cfab-404f-b184-615be3796fe0",
+      "method": "MODULARITY-CONTRACTS",
+      "definition_digest": "f706b71f2eb270fb6c2b794805680ecff09462a0fd1d40c6bad0c439c9cf763b",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "-c",
+        "import runpy; runpy.run_path(\"ai-assistant/tests/checks/harness-modularity.py\", run_name=\"__main__\")"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_digest": "dc29563d592c27d29b829ecfb46c190c3ab8d78490822d22ce679a66fb1e4012",
+      "preview": "onsumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.634s\n\nOK\n\n"
+    },
+    {
+      "actual_exit_code": 1,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 1.114409969000917,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/01665ad4-305b-4acb-95b8-6fc00cdd05b4/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/01665ad4-305b-4acb-95b8-6fc00cdd05b4/stderr.txt",
+      "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":747,\"log_path\":\".runtime/checks/chk_20261016T074904Z_7745578407/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T074904Z_7745578407/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"aac2ac115f4c8f7235d9dbcba196d7b2b09b665230be607b634ab4f46bad0306\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":null,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":78.77,\"recommended_execution_timeout_seconds\":87,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T074904Z_7745578407\",\"command_id\":\"harness-runner-contracts\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":704,\"exit_code\":1,\"failures\":[{\"message\":\"Traceback (most recent call last):\",\"name\":\"command-output\",\"source\":null},{\"message\":\"AssertionError\",\"name\":\"command-output\",\"source\":null}],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:49:05Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.021,\"output_bytes\":747},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"failed\",\"summary\":\"AssertionError\",\"termination\":null,\"timeout\":{\"configured_seconds\":87,\"effective_seconds\":87,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":false,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+      "stderr_preview": "",
+      "id": "01665ad4-305b-4acb-95b8-6fc00cdd05b4",
+      "method": "MODULARITY-REGRESSION-RUN-CHECK",
+      "definition_digest": "08fadfc9bd718b59af454c84a54c2d777161074a27e609697adf391db38043dc",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/checks/run_check.py",
+        "--command-id",
+        "harness-runner-contracts",
+        "--workload-class",
+        "default",
+        "--runtime-class",
+        "posix-host",
+        "--fallback-reason",
+        "mcp-project-untrusted",
+        "--json"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": false,
+      "outputs": [],
+      "stdout_digest": "cf6cc3eec4ee5c1ae4d0247ade4c8dc28dd5eb3996f1e7b1b473e11d83115611",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "age_seconds\":0.021,\"output_bytes\":747},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"failed\",\"summary\":\"AssertionError\",\"termination\":null,\"timeout\":{\"configured_seconds\":87,\"effective_seconds\":87,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":false,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+    },
+    {
+      "actual_exit_code": 1,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 1.6013205489998654,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/18b0bdc2-44d9-4e49-b581-602f5bac940e/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/18b0bdc2-44d9-4e49-b581-602f5bac940e/stderr.txt",
+      "stdout_preview": "PASS test_current_artifacts_use_runtime_and_preserve_retained_history\n",
+      "stderr_preview": "Traceback (most recent call last):\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 864, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 851, in main\n    test()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results\n    assert hashlib.sha256((historical / \"evidence\" / item[\"path\"]).read_bytes()).hexdigest() == item[\"sha256\"]\n                                                                                                ~~~~^^^^^^^^^^\nKeyError: 'sha256'\n",
+      "id": "18b0bdc2-44d9-4e49-b581-602f5bac940e",
+      "method": "MODULARITY-REGRESSION-CHECK-CACHE",
+      "definition_digest": "7fe766f46673fce3cabd719c495856758401c7dbb2a8a506e7555bbab5d315d6",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/tests/checks/check-cache.py"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": false,
+      "outputs": [],
+      "stdout_digest": "113d874bcd7d1e8967102eaa1a3ebd453b05b5b30e8afd126750003b3e088262",
+      "stderr_digest": "bd32fa348f3bde271585e639d3717d6479e04a60aec46f3abe2fb3517288018f",
+      "preview": "\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results\n    assert hashlib.sha256((historical / \"evidence\" / item[\"path\"]).read_bytes()).hexdigest() == item[\"sha256\"]\n                                                                                                ~~~~^^^^^^^^^^\nKeyError: 'sha256'\n\nPASS test_current_artifacts_use_runtime_and_preserve_retained_history\n"
+    },
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 10.648707483998805,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/65233376-46e4-4cbb-91c3-9d473e6b1eb3/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/65233376-46e4-4cbb-91c3-9d473e6b1eb3/stderr.txt",
+      "stdout_preview": "registered check evidence contracts passed: 9\n",
+      "stderr_preview": "",
+      "id": "65233376-46e4-4cbb-91c3-9d473e6b1eb3",
+      "method": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST",
+      "definition_digest": "f1359f84049783846da08107e1313e254f0881d7df3257486f842ba288adbc82",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/tests/checks/evidence-manifest.py"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "b02fd48853002b39e0f44279005afe64308fdd449ab758661ec3582c6ce04977",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "\nregistered check evidence contracts passed: 9\n"
+    },
+    {
+      "actual_exit_code": 1,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 60.36203612999998,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5443ac01-c01c-489d-a603-e03a7ad2d50d/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5443ac01-c01c-489d-a603-e03a7ad2d50d/stderr.txt",
+      "stdout_preview": "",
+      "stderr_preview": "Traceback (most recent call last):\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1176, in <module>\n    main()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1170, in main\n    configuration_contract()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1091, in configuration_contract\n    hooks = json.loads((ROOT / \".codex\" / \"hooks.json\").read_text(encoding=\"utf-8\"))\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1029, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1015, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.codex/hooks.json'\n",
+      "id": "5443ac01-c01c-489d-a603-e03a7ad2d50d",
+      "method": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION",
+      "definition_digest": "c0e216bf0127380d15d667d5d8c39b1051e75a403bc02497f0c5779a0116972a",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/tests/checks/registered-command-adoption.py"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": false,
+      "outputs": [],
+      "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_digest": "c52a52c09a86a38998a2fe4436e4ff8220d1fef3b5766365ea4818e925953dfa",
+      "preview": "/pathlib.py\", line 1029, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1015, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.codex/hooks.json'\n\n"
+    },
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 16.77952776500024,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/d607932f-fd3a-46b8-b5d9-825813e48480/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/d607932f-fd3a-46b8-b5d9-825813e48480/stderr.txt",
+      "stdout_preview": "Generated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-ymiqcb1h/config.toml\nWindows launcher literal command contract passed; no Windows execution\nrepo-checks MCP contracts passed\n",
+      "stderr_preview": "",
+      "id": "d607932f-fd3a-46b8-b5d9-825813e48480",
+      "method": "MODULARITY-MCP-CONSUMER",
+      "definition_digest": "115fd89f515615c902bd4d5f2d2a14bc23b4c0294e277dd938c556f82a39ce0a",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/tests/mcp/repo-checks-server.py"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "b7e26aa5e24fe5215f7efdfc27e91469278f04cce8b2cabe10b4d80c3936b693",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "\nGenerated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-ymiqcb1h/config.toml\nWindows launcher literal command contract passed; no Windows execution\nrepo-checks MCP contracts passed\n"
+    },
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 18.6767955790001,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/931e0c86-05ac-44b8-8472-dc2e058897b6/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/931e0c86-05ac-44b8-8472-dc2e058897b6/stderr.txt",
+      "stdout_preview": "{\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"77db4bfb5b03cfce1e9474c2e598bcf9d9863c91c23e47bfeb4c1859f92eb13f\",\"source_check_id\":null,\"stored\":false},\"check_id\":\"chk_20261016T075037Z_4682af63b7\",\"command_id\":\"provider-binding-verification\",\"counts\":{},\"output_budget_bytes\":2048,\"overflow_schema_version\":1,\"recovery_path\":\".runtime/checks/chk_20261016T075037Z_4682af63b7/result/record.json\",\"result_kind\":\"overflow\",\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"verified_success\":true,\"workload_class\":\"default\"}\n",
+      "stderr_preview": "",
+      "id": "931e0c86-05ac-44b8-8472-dc2e058897b6",
+      "method": "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION",
+      "definition_digest": "75401e62d02f2e55f792588408edb6218e92bf9b6aa06917a72cb74c3f3acdb8",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/checks/run_check.py",
+        "--command-id",
+        "provider-binding-verification",
+        "--fallback-reason",
+        "mcp-project-untrusted",
+        "--json"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "7dd7db32e5f65ceda2526ea89d54fe49cf3909155a97980c11ed3519287ca00d",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "abled\",\"result_hash\":\"77db4bfb5b03cfce1e9474c2e598bcf9d9863c91c23e47bfeb4c1859f92eb13f\",\"source_check_id\":null,\"stored\":false},\"check_id\":\"chk_20261016T075037Z_4682af63b7\",\"command_id\":\"provider-binding-verification\",\"counts\":{},\"output_budget_bytes\":2048,\"overflow_schema_version\":1,\"recovery_path\":\".runtime/checks/chk_20261016T075037Z_4682af63b7/result/record.json\",\"result_kind\":\"overflow\",\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"verified_success\":true,\"workload_class\":\"default\"}\n"
+    },
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 1.330812326999876,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/6c35d0e9-2756-4bee-aa80-6216bf31f5d5/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/6c35d0e9-2756-4bee-aa80-6216bf31f5d5/stderr.txt",
+      "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":364,\"log_path\":\".runtime/checks/chk_20261016T075055Z_b0c5c36c23/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075055Z_b0c5c36c23/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"5bb160304787541c22ef088baaf42edd99881d4ee777335d07ff117b0c535233\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":0.903,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":0.903,\"recommended_execution_timeout_seconds\":1,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075055Z_b0c5c36c23\",\"command_id\":\"test-package-contracts\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":903,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:50:57Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.056,\"output_bytes\":364},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"test package contracts passed: 15\",\"termination\":null,\"timeout\":{\"configured_seconds\":1,\"effective_seconds\":1,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+      "stderr_preview": "",
+      "id": "6c35d0e9-2756-4bee-aa80-6216bf31f5d5",
+      "method": "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS",
+      "definition_digest": "1c6935e36ef99e8cb98f615edea97803bac6ed49507471537b74723ecf391993",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/checks/run_check.py",
+        "--command-id",
+        "test-package-contracts",
+        "--fallback-reason",
+        "mcp-project-untrusted",
+        "--json"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "5739ad61ec255fa99000998516b6ab8ebb84b2298ce8ccc898ca09360e27803a",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "56,\"output_bytes\":364},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"test package contracts passed: 15\",\"termination\":null,\"timeout\":{\"configured_seconds\":1,\"effective_seconds\":1,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+    },
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 107.94650132700008,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/3576d50e-4846-4588-b26e-ad0284bfdc02/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/3576d50e-4846-4588-b26e-ad0284bfdc02/stderr.txt",
+      "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":4822,\"log_path\":\".runtime/checks/chk_20261016T075058Z_9ff67ea9e4/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075058Z_9ff67ea9e4/result/record.json\"},\"cache\":{\"created_at\":\"2026-10-16T07:52:47Z\",\"eligible\":true,\"hit\":false,\"key\":\"b39055f2a587672b26185befc9c516f9abdda2023d6348df0ee6be33ca9a9e62\",\"lookup_duration_ms\":1,\"reason\":\"miss_stored\",\"result_hash\":\"8afe68a9dd45aad19fc5a3aa960f2809afb4a49e597454fe7b29d07abf865bfe\",\"source_check_id\":null,\"stored\":true},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":103.933,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":117.36,\"recommended_execution_timeout_seconds\":130,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075058Z_9ff67ea9e4\",\"command_id\":\"agent-tooling-fast-verification\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":103933,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:52:45Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.034,\"output_bytes\":4822},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"[verify] tooling-fast verification passed\",\"termination\":null,\"timeout\":{\"configured_seconds\":130,\"effective_seconds\":130,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+      "stderr_preview": "",
+      "id": "3576d50e-4846-4588-b26e-ad0284bfdc02",
+      "method": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION",
+      "definition_digest": "9922308d90249ce5c5aabed92aec1eafb96d05d7f512f480a3aaccd0e3c1227c",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/checks/run_check.py",
+        "--command-id",
+        "agent-tooling-fast-verification",
+        "--fallback-reason",
+        "mcp-project-untrusted",
+        "--json"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "3fb32aac7b922ee3ebc63ab0391cee31dadd27e669456a01693f832ab2177fce",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "tes\":4822},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"[verify] tooling-fast verification passed\",\"termination\":null,\"timeout\":{\"configured_seconds\":130,\"effective_seconds\":130,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+    },
+    {
+      "actual_exit_code": 0,
+      "timed_out": false,
+      "timeout_reason": null,
+      "capture_complete": true,
+      "termination": {
+        "schema": "run-termination-1",
+        "child_reaped": true,
+        "process_group_stopped": true,
+        "capture_complete": true
+      },
+      "capture_reason": null,
+      "cleanup_seconds": 0.25,
+      "cancelled": false,
+      "cancellation_reason": null,
+      "duration_seconds": 1.9629610500014678,
+      "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/ab2b46da-a08b-44a3-bcd0-11895ebb9cec/stdout.txt",
+      "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/ab2b46da-a08b-44a3-bcd0-11895ebb9cec/stderr.txt",
+      "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":99,\"log_path\":\".runtime/checks/chk_20261016T075248Z_125f1dab29/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075248Z_125f1dab29/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"883875e2d99bf70f92ae2cb0de86019d079f7bd75055723e581daf7e0af5f55a\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":1.212,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":4.322,\"recommended_execution_timeout_seconds\":5,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075248Z_125f1dab29\",\"command_id\":\"repository-documentation-verification\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":1212,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:52:49Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.038,\"output_bytes\":99},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"{\\\"status\\\":\\\"passed\\\",\\\"markdown_files\\\":5,\\\"scoped_markdown_targets\\\":5,\\\"findings\\\":[],\\\"finding_count\\\":0}\",\"termination\":null,\"timeout\":{\"configured_seconds\":5,\"effective_seconds\":5,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"harness-runtime-docs\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+      "stderr_preview": "",
+      "id": "ab2b46da-a08b-44a3-bcd0-11895ebb9cec",
+      "method": "MODULARITY-DOCUMENTATION-EXACT-SCOPE",
+      "definition_digest": "6004319da1613f97d497ed86c6dac1c332a04a33e02613c9a5241601d46221ec",
+      "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+      "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+      "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+      "argv": [
+        "bash",
+        "ai-assistant/bootstrap/python-runtime.sh",
+        "ai-assistant/checks/run_check.py",
+        "--command-id",
+        "repository-documentation-verification",
+        "--workload-class",
+        "harness-runtime-docs",
+        "--runtime-class",
+        "posix-host",
+        "--fallback-reason",
+        "mcp-project-untrusted",
+        "--json"
+      ],
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "source_provenance": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": ".",
+            "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+          }
+        ]
+      },
+      "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+      "expected_exit_code": 0,
+      "passed": true,
+      "outputs": [],
+      "stdout_digest": "81aad87a8c8ae025361b5a1b2be16f907ae43b31c12f68e675a410d8699533ce",
+      "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preview": "summary\":\"{\\\"status\\\":\\\"passed\\\",\\\"markdown_files\\\":5,\\\"scoped_markdown_targets\\\":5,\\\"findings\\\":[],\\\"finding_count\\\":0}\",\"termination\":null,\"timeout\":{\"configured_seconds\":5,\"effective_seconds\":5,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"harness-runtime-docs\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+    }
+  ],
+  "publication": null,
+  "cleanup": {
+    "task_branch": "pending",
+    "task_worktree": "pending",
+    "temporary_backups": "pending"
+  },
+  "failure": {
+    "reason": "checks_failed",
+    "checks": [
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 4.030002044000867,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/878c4057-cfab-404f-b184-615be3796fe0/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/878c4057-cfab-404f-b184-615be3796fe0/stderr.txt",
+        "stdout_preview": "",
+        "stderr_preview": "test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant) ... ok\ntest_hm09_render_reload_preserves_the_literal_contract (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm09_render_reload_preserves_the_literal_contract) ... ok\ntest_hm10_file_errors_are_lazy_and_keep_original_exception_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm10_file_errors_are_lazy_and_keep_original_exception_types) ... ok\ntest_hm12_context_profile_use_has_no_unrelated_prerequisites (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm12_context_profile_use_has_no_unrelated_prerequisites) ... ok\ntest_hm13_service_keeps_selected_configuration_separate_from_data_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm13_service_keeps_selected_configuration_separate_from_data_owner) ... ok\ntest_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation) ... ok\ntest_hm16_existing_success_contract_proves_the_execution_fixture (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm16_existing_success_contract_proves_the_execution_fixture) ... ok\ntest_hm18_real_consumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.634s\n\nOK\n",
+        "id": "878c4057-cfab-404f-b184-615be3796fe0",
+        "method": "MODULARITY-CONTRACTS",
+        "definition_digest": "f706b71f2eb270fb6c2b794805680ecff09462a0fd1d40c6bad0c439c9cf763b",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "-c",
+          "import runpy; runpy.run_path(\"ai-assistant/tests/checks/harness-modularity.py\", run_name=\"__main__\")"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_digest": "dc29563d592c27d29b829ecfb46c190c3ab8d78490822d22ce679a66fb1e4012",
+        "preview": "onsumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.634s\n\nOK\n\n"
+      },
+      {
+        "actual_exit_code": 1,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 1.114409969000917,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/01665ad4-305b-4acb-95b8-6fc00cdd05b4/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/01665ad4-305b-4acb-95b8-6fc00cdd05b4/stderr.txt",
+        "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":747,\"log_path\":\".runtime/checks/chk_20261016T074904Z_7745578407/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T074904Z_7745578407/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"aac2ac115f4c8f7235d9dbcba196d7b2b09b665230be607b634ab4f46bad0306\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":null,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":78.77,\"recommended_execution_timeout_seconds\":87,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T074904Z_7745578407\",\"command_id\":\"harness-runner-contracts\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":704,\"exit_code\":1,\"failures\":[{\"message\":\"Traceback (most recent call last):\",\"name\":\"command-output\",\"source\":null},{\"message\":\"AssertionError\",\"name\":\"command-output\",\"source\":null}],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:49:05Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.021,\"output_bytes\":747},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"failed\",\"summary\":\"AssertionError\",\"termination\":null,\"timeout\":{\"configured_seconds\":87,\"effective_seconds\":87,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":false,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+        "stderr_preview": "",
+        "id": "01665ad4-305b-4acb-95b8-6fc00cdd05b4",
+        "method": "MODULARITY-REGRESSION-RUN-CHECK",
+        "definition_digest": "08fadfc9bd718b59af454c84a54c2d777161074a27e609697adf391db38043dc",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/checks/run_check.py",
+          "--command-id",
+          "harness-runner-contracts",
+          "--workload-class",
+          "default",
+          "--runtime-class",
+          "posix-host",
+          "--fallback-reason",
+          "mcp-project-untrusted",
+          "--json"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": false,
+        "outputs": [],
+        "stdout_digest": "cf6cc3eec4ee5c1ae4d0247ade4c8dc28dd5eb3996f1e7b1b473e11d83115611",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "age_seconds\":0.021,\"output_bytes\":747},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"failed\",\"summary\":\"AssertionError\",\"termination\":null,\"timeout\":{\"configured_seconds\":87,\"effective_seconds\":87,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":false,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+      },
+      {
+        "actual_exit_code": 1,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 1.6013205489998654,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/18b0bdc2-44d9-4e49-b581-602f5bac940e/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/18b0bdc2-44d9-4e49-b581-602f5bac940e/stderr.txt",
+        "stdout_preview": "PASS test_current_artifacts_use_runtime_and_preserve_retained_history\n",
+        "stderr_preview": "Traceback (most recent call last):\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 864, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 851, in main\n    test()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results\n    assert hashlib.sha256((historical / \"evidence\" / item[\"path\"]).read_bytes()).hexdigest() == item[\"sha256\"]\n                                                                                                ~~~~^^^^^^^^^^\nKeyError: 'sha256'\n",
+        "id": "18b0bdc2-44d9-4e49-b581-602f5bac940e",
+        "method": "MODULARITY-REGRESSION-CHECK-CACHE",
+        "definition_digest": "7fe766f46673fce3cabd719c495856758401c7dbb2a8a506e7555bbab5d315d6",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/tests/checks/check-cache.py"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": false,
+        "outputs": [],
+        "stdout_digest": "113d874bcd7d1e8967102eaa1a3ebd453b05b5b30e8afd126750003b3e088262",
+        "stderr_digest": "bd32fa348f3bde271585e639d3717d6479e04a60aec46f3abe2fb3517288018f",
+        "preview": "\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results\n    assert hashlib.sha256((historical / \"evidence\" / item[\"path\"]).read_bytes()).hexdigest() == item[\"sha256\"]\n                                                                                                ~~~~^^^^^^^^^^\nKeyError: 'sha256'\n\nPASS test_current_artifacts_use_runtime_and_preserve_retained_history\n"
+      },
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 10.648707483998805,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/65233376-46e4-4cbb-91c3-9d473e6b1eb3/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/65233376-46e4-4cbb-91c3-9d473e6b1eb3/stderr.txt",
+        "stdout_preview": "registered check evidence contracts passed: 9\n",
+        "stderr_preview": "",
+        "id": "65233376-46e4-4cbb-91c3-9d473e6b1eb3",
+        "method": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST",
+        "definition_digest": "f1359f84049783846da08107e1313e254f0881d7df3257486f842ba288adbc82",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/tests/checks/evidence-manifest.py"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "b02fd48853002b39e0f44279005afe64308fdd449ab758661ec3582c6ce04977",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "\nregistered check evidence contracts passed: 9\n"
+      },
+      {
+        "actual_exit_code": 1,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 60.36203612999998,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5443ac01-c01c-489d-a603-e03a7ad2d50d/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5443ac01-c01c-489d-a603-e03a7ad2d50d/stderr.txt",
+        "stdout_preview": "",
+        "stderr_preview": "Traceback (most recent call last):\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1176, in <module>\n    main()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1170, in main\n    configuration_contract()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1091, in configuration_contract\n    hooks = json.loads((ROOT / \".codex\" / \"hooks.json\").read_text(encoding=\"utf-8\"))\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1029, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1015, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.codex/hooks.json'\n",
+        "id": "5443ac01-c01c-489d-a603-e03a7ad2d50d",
+        "method": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION",
+        "definition_digest": "c0e216bf0127380d15d667d5d8c39b1051e75a403bc02497f0c5779a0116972a",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/tests/checks/registered-command-adoption.py"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": false,
+        "outputs": [],
+        "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_digest": "c52a52c09a86a38998a2fe4436e4ff8220d1fef3b5766365ea4818e925953dfa",
+        "preview": "/pathlib.py\", line 1029, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1015, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.codex/hooks.json'\n\n"
+      },
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 16.77952776500024,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/d607932f-fd3a-46b8-b5d9-825813e48480/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/d607932f-fd3a-46b8-b5d9-825813e48480/stderr.txt",
+        "stdout_preview": "Generated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-ymiqcb1h/config.toml\nWindows launcher literal command contract passed; no Windows execution\nrepo-checks MCP contracts passed\n",
+        "stderr_preview": "",
+        "id": "d607932f-fd3a-46b8-b5d9-825813e48480",
+        "method": "MODULARITY-MCP-CONSUMER",
+        "definition_digest": "115fd89f515615c902bd4d5f2d2a14bc23b4c0294e277dd938c556f82a39ce0a",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/tests/mcp/repo-checks-server.py"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "b7e26aa5e24fe5215f7efdfc27e91469278f04cce8b2cabe10b4d80c3936b693",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "\nGenerated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-ymiqcb1h/config.toml\nWindows launcher literal command contract passed; no Windows execution\nrepo-checks MCP contracts passed\n"
+      },
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 18.6767955790001,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/931e0c86-05ac-44b8-8472-dc2e058897b6/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/931e0c86-05ac-44b8-8472-dc2e058897b6/stderr.txt",
+        "stdout_preview": "{\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"77db4bfb5b03cfce1e9474c2e598bcf9d9863c91c23e47bfeb4c1859f92eb13f\",\"source_check_id\":null,\"stored\":false},\"check_id\":\"chk_20261016T075037Z_4682af63b7\",\"command_id\":\"provider-binding-verification\",\"counts\":{},\"output_budget_bytes\":2048,\"overflow_schema_version\":1,\"recovery_path\":\".runtime/checks/chk_20261016T075037Z_4682af63b7/result/record.json\",\"result_kind\":\"overflow\",\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"verified_success\":true,\"workload_class\":\"default\"}\n",
+        "stderr_preview": "",
+        "id": "931e0c86-05ac-44b8-8472-dc2e058897b6",
+        "method": "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION",
+        "definition_digest": "75401e62d02f2e55f792588408edb6218e92bf9b6aa06917a72cb74c3f3acdb8",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/checks/run_check.py",
+          "--command-id",
+          "provider-binding-verification",
+          "--fallback-reason",
+          "mcp-project-untrusted",
+          "--json"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "7dd7db32e5f65ceda2526ea89d54fe49cf3909155a97980c11ed3519287ca00d",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "abled\",\"result_hash\":\"77db4bfb5b03cfce1e9474c2e598bcf9d9863c91c23e47bfeb4c1859f92eb13f\",\"source_check_id\":null,\"stored\":false},\"check_id\":\"chk_20261016T075037Z_4682af63b7\",\"command_id\":\"provider-binding-verification\",\"counts\":{},\"output_budget_bytes\":2048,\"overflow_schema_version\":1,\"recovery_path\":\".runtime/checks/chk_20261016T075037Z_4682af63b7/result/record.json\",\"result_kind\":\"overflow\",\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"verified_success\":true,\"workload_class\":\"default\"}\n"
+      },
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 1.330812326999876,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/6c35d0e9-2756-4bee-aa80-6216bf31f5d5/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/6c35d0e9-2756-4bee-aa80-6216bf31f5d5/stderr.txt",
+        "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":364,\"log_path\":\".runtime/checks/chk_20261016T075055Z_b0c5c36c23/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075055Z_b0c5c36c23/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"5bb160304787541c22ef088baaf42edd99881d4ee777335d07ff117b0c535233\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":0.903,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":0.903,\"recommended_execution_timeout_seconds\":1,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075055Z_b0c5c36c23\",\"command_id\":\"test-package-contracts\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":903,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:50:57Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.056,\"output_bytes\":364},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"test package contracts passed: 15\",\"termination\":null,\"timeout\":{\"configured_seconds\":1,\"effective_seconds\":1,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+        "stderr_preview": "",
+        "id": "6c35d0e9-2756-4bee-aa80-6216bf31f5d5",
+        "method": "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS",
+        "definition_digest": "1c6935e36ef99e8cb98f615edea97803bac6ed49507471537b74723ecf391993",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/checks/run_check.py",
+          "--command-id",
+          "test-package-contracts",
+          "--fallback-reason",
+          "mcp-project-untrusted",
+          "--json"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "5739ad61ec255fa99000998516b6ab8ebb84b2298ce8ccc898ca09360e27803a",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "56,\"output_bytes\":364},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"test package contracts passed: 15\",\"termination\":null,\"timeout\":{\"configured_seconds\":1,\"effective_seconds\":1,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+      },
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 107.94650132700008,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/3576d50e-4846-4588-b26e-ad0284bfdc02/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/3576d50e-4846-4588-b26e-ad0284bfdc02/stderr.txt",
+        "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":4822,\"log_path\":\".runtime/checks/chk_20261016T075058Z_9ff67ea9e4/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075058Z_9ff67ea9e4/result/record.json\"},\"cache\":{\"created_at\":\"2026-10-16T07:52:47Z\",\"eligible\":true,\"hit\":false,\"key\":\"b39055f2a587672b26185befc9c516f9abdda2023d6348df0ee6be33ca9a9e62\",\"lookup_duration_ms\":1,\"reason\":\"miss_stored\",\"result_hash\":\"8afe68a9dd45aad19fc5a3aa960f2809afb4a49e597454fe7b29d07abf865bfe\",\"source_check_id\":null,\"stored\":true},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":103.933,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":117.36,\"recommended_execution_timeout_seconds\":130,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075058Z_9ff67ea9e4\",\"command_id\":\"agent-tooling-fast-verification\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":103933,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:52:45Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.034,\"output_bytes\":4822},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"[verify] tooling-fast verification passed\",\"termination\":null,\"timeout\":{\"configured_seconds\":130,\"effective_seconds\":130,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+        "stderr_preview": "",
+        "id": "3576d50e-4846-4588-b26e-ad0284bfdc02",
+        "method": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION",
+        "definition_digest": "9922308d90249ce5c5aabed92aec1eafb96d05d7f512f480a3aaccd0e3c1227c",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/checks/run_check.py",
+          "--command-id",
+          "agent-tooling-fast-verification",
+          "--fallback-reason",
+          "mcp-project-untrusted",
+          "--json"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "3fb32aac7b922ee3ebc63ab0391cee31dadd27e669456a01693f832ab2177fce",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "tes\":4822},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"[verify] tooling-fast verification passed\",\"termination\":null,\"timeout\":{\"configured_seconds\":130,\"effective_seconds\":130,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+      },
+      {
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "timeout_reason": null,
+        "capture_complete": true,
+        "termination": {
+          "schema": "run-termination-1",
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        },
+        "capture_reason": null,
+        "cleanup_seconds": 0.25,
+        "cancelled": false,
+        "cancellation_reason": null,
+        "duration_seconds": 1.9629610500014678,
+        "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/ab2b46da-a08b-44a3-bcd0-11895ebb9cec/stdout.txt",
+        "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/ab2b46da-a08b-44a3-bcd0-11895ebb9cec/stderr.txt",
+        "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":99,\"log_path\":\".runtime/checks/chk_20261016T075248Z_125f1dab29/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075248Z_125f1dab29/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"883875e2d99bf70f92ae2cb0de86019d079f7bd75055723e581daf7e0af5f55a\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":1.212,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":4.322,\"recommended_execution_timeout_seconds\":5,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075248Z_125f1dab29\",\"command_id\":\"repository-documentation-verification\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":1212,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:52:49Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.038,\"output_bytes\":99},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"{\\\"status\\\":\\\"passed\\\",\\\"markdown_files\\\":5,\\\"scoped_markdown_targets\\\":5,\\\"findings\\\":[],\\\"finding_count\\\":0}\",\"termination\":null,\"timeout\":{\"configured_seconds\":5,\"effective_seconds\":5,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"harness-runtime-docs\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+        "stderr_preview": "",
+        "id": "ab2b46da-a08b-44a3-bcd0-11895ebb9cec",
+        "method": "MODULARITY-DOCUMENTATION-EXACT-SCOPE",
+        "definition_digest": "6004319da1613f97d497ed86c6dac1c332a04a33e02613c9a5241601d46221ec",
+        "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+        "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+        "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+        "argv": [
+          "bash",
+          "ai-assistant/bootstrap/python-runtime.sh",
+          "ai-assistant/checks/run_check.py",
+          "--command-id",
+          "repository-documentation-verification",
+          "--workload-class",
+          "harness-runtime-docs",
+          "--runtime-class",
+          "posix-host",
+          "--fallback-reason",
+          "mcp-project-untrusted",
+          "--json"
+        ],
+        "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+        "source_provenance": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": ".",
+              "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+            }
+          ]
+        },
+        "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+        "expected_exit_code": 0,
+        "passed": true,
+        "outputs": [],
+        "stdout_digest": "81aad87a8c8ae025361b5a1b2be16f907ae43b31c12f68e675a410d8699533ce",
+        "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "preview": "summary\":\"{\\\"status\\\":\\\"passed\\\",\\\"markdown_files\\\":5,\\\"scoped_markdown_targets\\\":5,\\\"findings\\\":[],\\\"finding_count\\\":0}\",\"termination\":null,\"timeout\":{\"configured_seconds\":5,\"effective_seconds\":5,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"harness-runtime-docs\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+      }
+    ]
+  },
+  "history": [
+    {
+      "phase": "prepared",
+      "status": "prepared"
+    },
+    {
+      "event": "target_update_started",
+      "phase": "updating",
+      "status": "running"
+    },
+    {
+      "details": {
+        "receipt": {
+          "actual_exit_code": 1,
+          "argv": [
+            "git",
+            "-C",
+            "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "merge",
+            "--no-ff",
+            "--no-commit",
+            "--no-edit",
+            "16c5b906615e57a5b5f89b495c42b79f51eab87e"
+          ],
+          "stderr": "",
+          "stdout": "Auto-merging ai-assistant/checks/artifact-evidence-dispositions.json\nAuto-merging ai-assistant/checks/check_runner_lib.py\nCONFLICT (content): Merge conflict in ai-assistant/checks/check_runner_lib.py\nAuto-merging ai-assistant/checks/command-profiles.toml\nCONFLICT (content): Merge conflict in ai-assistant/checks/command-profiles.toml\nAuto-merging ai-assistant/checks/registered_command_adoption_lib.py\nCONFLICT (content): Merge conflict in ai-assistant/checks/registered_command_adoption_lib.py\nAuto-merging ai-assistant/checks/run_check.py\nCONFLICT (content): Merge conflict in ai-assistant/checks/run_check.py\nAuto-merging ai-assistant/checks/tooling-verification.json\nCONFLICT (content): Merge conflict in ai-assistant/checks/tooling-verification.json\nAuto-merging ai-assistant/mcp/repo-checks-server.py\nCONFLICT (content): Merge conflict in ai-assistant/mcp/repo-checks-server.py\nAuto-merging ai-assistant/tests/checks/artifact-evidence-inventory.py\nCONFLICT (content): Merge conflict in ai-assistant/tests/checks/artifact-evidence-inventory.py\nAuto-merging ai-assistant/tests/checks/check-runner.py\nCONFLICT (content): Merge conflict in ai-assistant/tests/checks/check-runner.py\nAuto-merging ai-assistant/tests/checks/evidence-manifest.py\nAuto-merging ai-assistant/tests/checks/provider-binding.py\nAuto-merging ai-assistant/tests/checks/tooling-verification-config.py\nCONFLICT (content): Merge conflict in ai-assistant/tests/checks/tooling-verification-config.py\nAuto-merging ai-assistant/tests/mcp/repo-checks-server.py\nAuto-merging docs/tools/system-dev-tooling/registered-command-runner.md\nAuto-merging docs/tools/system-dev-tooling/repository-checks-mcp.md\nAutomatic merge failed; fix conflicts and then commit the result.\n"
+        }
+      },
+      "event": "conflicts_observed",
+      "phase": "awaiting_resolution",
+      "status": "awaiting_resolution"
+    },
+    {
+      "status": "running",
+      "phase": "updating",
+      "event": "resolutions_declared"
+    },
+    {
+      "status": "running",
+      "phase": "candidate_ready",
+      "event": "candidate_ready",
+      "details": {
+        "receipt": {
+          "argv": [
+            "git",
+            "-C",
+            "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "commit",
+            "--cleanup=verbatim",
+            "-m",
+            "Integrate independently accepted harness modularity\n\nPreserve registered check ownership and explicit configuration boundaries."
+          ],
+          "actual_exit_code": 0,
+          "stdout": "[poise/ERP-HARNESS-MODULARITY-001 b3b676d1] Integrate independently accepted harness modularity\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "status": "blocked",
+      "phase": "checks_failed",
+      "event": "checks_failed",
+      "details": {
+        "reason": "checks_failed",
+        "checks": [
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 4.030002044000867,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/878c4057-cfab-404f-b184-615be3796fe0/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/878c4057-cfab-404f-b184-615be3796fe0/stderr.txt",
+            "stdout_preview": "",
+            "stderr_preview": "test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant) ... ok\ntest_hm09_render_reload_preserves_the_literal_contract (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm09_render_reload_preserves_the_literal_contract) ... ok\ntest_hm10_file_errors_are_lazy_and_keep_original_exception_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm10_file_errors_are_lazy_and_keep_original_exception_types) ... ok\ntest_hm12_context_profile_use_has_no_unrelated_prerequisites (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm12_context_profile_use_has_no_unrelated_prerequisites) ... ok\ntest_hm13_service_keeps_selected_configuration_separate_from_data_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm13_service_keeps_selected_configuration_separate_from_data_owner) ... ok\ntest_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation) ... ok\ntest_hm16_existing_success_contract_proves_the_execution_fixture (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm16_existing_success_contract_proves_the_execution_fixture) ... ok\ntest_hm18_real_consumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.634s\n\nOK\n",
+            "id": "878c4057-cfab-404f-b184-615be3796fe0",
+            "method": "MODULARITY-CONTRACTS",
+            "definition_digest": "f706b71f2eb270fb6c2b794805680ecff09462a0fd1d40c6bad0c439c9cf763b",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "-c",
+              "import runpy; runpy.run_path(\"ai-assistant/tests/checks/harness-modularity.py\", run_name=\"__main__\")"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_digest": "dc29563d592c27d29b829ecfb46c190c3ab8d78490822d22ce679a66fb1e4012",
+            "preview": "onsumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok\ntest_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 3.634s\n\nOK\n\n"
+          },
+          {
+            "actual_exit_code": 1,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 1.114409969000917,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/01665ad4-305b-4acb-95b8-6fc00cdd05b4/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/01665ad4-305b-4acb-95b8-6fc00cdd05b4/stderr.txt",
+            "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":747,\"log_path\":\".runtime/checks/chk_20261016T074904Z_7745578407/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T074904Z_7745578407/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"aac2ac115f4c8f7235d9dbcba196d7b2b09b665230be607b634ab4f46bad0306\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":null,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":78.77,\"recommended_execution_timeout_seconds\":87,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T074904Z_7745578407\",\"command_id\":\"harness-runner-contracts\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":704,\"exit_code\":1,\"failures\":[{\"message\":\"Traceback (most recent call last):\",\"name\":\"command-output\",\"source\":null},{\"message\":\"AssertionError\",\"name\":\"command-output\",\"source\":null}],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:49:05Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.021,\"output_bytes\":747},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"failed\",\"summary\":\"AssertionError\",\"termination\":null,\"timeout\":{\"configured_seconds\":87,\"effective_seconds\":87,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":false,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+            "stderr_preview": "",
+            "id": "01665ad4-305b-4acb-95b8-6fc00cdd05b4",
+            "method": "MODULARITY-REGRESSION-RUN-CHECK",
+            "definition_digest": "08fadfc9bd718b59af454c84a54c2d777161074a27e609697adf391db38043dc",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/checks/run_check.py",
+              "--command-id",
+              "harness-runner-contracts",
+              "--workload-class",
+              "default",
+              "--runtime-class",
+              "posix-host",
+              "--fallback-reason",
+              "mcp-project-untrusted",
+              "--json"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": false,
+            "outputs": [],
+            "stdout_digest": "cf6cc3eec4ee5c1ae4d0247ade4c8dc28dd5eb3996f1e7b1b473e11d83115611",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "age_seconds\":0.021,\"output_bytes\":747},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"failed\",\"summary\":\"AssertionError\",\"termination\":null,\"timeout\":{\"configured_seconds\":87,\"effective_seconds\":87,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":false,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+          },
+          {
+            "actual_exit_code": 1,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 1.6013205489998654,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/18b0bdc2-44d9-4e49-b581-602f5bac940e/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/18b0bdc2-44d9-4e49-b581-602f5bac940e/stderr.txt",
+            "stdout_preview": "PASS test_current_artifacts_use_runtime_and_preserve_retained_history\n",
+            "stderr_preview": "Traceback (most recent call last):\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 864, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 851, in main\n    test()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results\n    assert hashlib.sha256((historical / \"evidence\" / item[\"path\"]).read_bytes()).hexdigest() == item[\"sha256\"]\n                                                                                                ~~~~^^^^^^^^^^\nKeyError: 'sha256'\n",
+            "id": "18b0bdc2-44d9-4e49-b581-602f5bac940e",
+            "method": "MODULARITY-REGRESSION-CHECK-CACHE",
+            "definition_digest": "7fe766f46673fce3cabd719c495856758401c7dbb2a8a506e7555bbab5d315d6",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/tests/checks/check-cache.py"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": false,
+            "outputs": [],
+            "stdout_digest": "113d874bcd7d1e8967102eaa1a3ebd453b05b5b30e8afd126750003b3e088262",
+            "stderr_digest": "bd32fa348f3bde271585e639d3717d6479e04a60aec46f3abe2fb3517288018f",
+            "preview": "\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-cache.py\", line 214, in test_historical_cache_pointer_supports_bounded_and_overflow_results\n    assert hashlib.sha256((historical / \"evidence\" / item[\"path\"]).read_bytes()).hexdigest() == item[\"sha256\"]\n                                                                                                ~~~~^^^^^^^^^^\nKeyError: 'sha256'\n\nPASS test_current_artifacts_use_runtime_and_preserve_retained_history\n"
+          },
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 10.648707483998805,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/65233376-46e4-4cbb-91c3-9d473e6b1eb3/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/65233376-46e4-4cbb-91c3-9d473e6b1eb3/stderr.txt",
+            "stdout_preview": "registered check evidence contracts passed: 9\n",
+            "stderr_preview": "",
+            "id": "65233376-46e4-4cbb-91c3-9d473e6b1eb3",
+            "method": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST",
+            "definition_digest": "f1359f84049783846da08107e1313e254f0881d7df3257486f842ba288adbc82",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/tests/checks/evidence-manifest.py"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "b02fd48853002b39e0f44279005afe64308fdd449ab758661ec3582c6ce04977",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "\nregistered check evidence contracts passed: 9\n"
+          },
+          {
+            "actual_exit_code": 1,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 60.36203612999998,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5443ac01-c01c-489d-a603-e03a7ad2d50d/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5443ac01-c01c-489d-a603-e03a7ad2d50d/stderr.txt",
+            "stdout_preview": "",
+            "stderr_preview": "Traceback (most recent call last):\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1176, in <module>\n    main()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1170, in main\n    configuration_contract()\n  File \"/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-command-adoption.py\", line 1091, in configuration_contract\n    hooks = json.loads((ROOT / \".codex\" / \"hooks.json\").read_text(encoding=\"utf-8\"))\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1029, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1015, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.codex/hooks.json'\n",
+            "id": "5443ac01-c01c-489d-a603-e03a7ad2d50d",
+            "method": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION",
+            "definition_digest": "c0e216bf0127380d15d667d5d8c39b1051e75a403bc02497f0c5779a0116972a",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/tests/checks/registered-command-adoption.py"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": false,
+            "outputs": [],
+            "stdout_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_digest": "c52a52c09a86a38998a2fe4436e4ff8220d1fef3b5766365ea4818e925953dfa",
+            "preview": "/pathlib.py\", line 1029, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/pathlib.py\", line 1015, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.codex/hooks.json'\n\n"
+          },
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 16.77952776500024,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/d607932f-fd3a-46b8-b5d9-825813e48480/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/d607932f-fd3a-46b8-b5d9-825813e48480/stderr.txt",
+            "stdout_preview": "Generated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-ymiqcb1h/config.toml\nWindows launcher literal command contract passed; no Windows execution\nrepo-checks MCP contracts passed\n",
+            "stderr_preview": "",
+            "id": "d607932f-fd3a-46b8-b5d9-825813e48480",
+            "method": "MODULARITY-MCP-CONSUMER",
+            "definition_digest": "115fd89f515615c902bd4d5f2d2a14bc23b4c0294e277dd938c556f82a39ce0a",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/tests/mcp/repo-checks-server.py"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "b7e26aa5e24fe5215f7efdfc27e91469278f04cce8b2cabe10b4d80c3936b693",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "\nGenerated local Codex config: /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/tmp/python/codex-config-contract-ymiqcb1h/config.toml\nWindows launcher literal command contract passed; no Windows execution\nrepo-checks MCP contracts passed\n"
+          },
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 18.6767955790001,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/931e0c86-05ac-44b8-8472-dc2e058897b6/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/931e0c86-05ac-44b8-8472-dc2e058897b6/stderr.txt",
+            "stdout_preview": "{\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"77db4bfb5b03cfce1e9474c2e598bcf9d9863c91c23e47bfeb4c1859f92eb13f\",\"source_check_id\":null,\"stored\":false},\"check_id\":\"chk_20261016T075037Z_4682af63b7\",\"command_id\":\"provider-binding-verification\",\"counts\":{},\"output_budget_bytes\":2048,\"overflow_schema_version\":1,\"recovery_path\":\".runtime/checks/chk_20261016T075037Z_4682af63b7/result/record.json\",\"result_kind\":\"overflow\",\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"verified_success\":true,\"workload_class\":\"default\"}\n",
+            "stderr_preview": "",
+            "id": "931e0c86-05ac-44b8-8472-dc2e058897b6",
+            "method": "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION",
+            "definition_digest": "75401e62d02f2e55f792588408edb6218e92bf9b6aa06917a72cb74c3f3acdb8",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/checks/run_check.py",
+              "--command-id",
+              "provider-binding-verification",
+              "--fallback-reason",
+              "mcp-project-untrusted",
+              "--json"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "7dd7db32e5f65ceda2526ea89d54fe49cf3909155a97980c11ed3519287ca00d",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "abled\",\"result_hash\":\"77db4bfb5b03cfce1e9474c2e598bcf9d9863c91c23e47bfeb4c1859f92eb13f\",\"source_check_id\":null,\"stored\":false},\"check_id\":\"chk_20261016T075037Z_4682af63b7\",\"command_id\":\"provider-binding-verification\",\"counts\":{},\"output_budget_bytes\":2048,\"overflow_schema_version\":1,\"recovery_path\":\".runtime/checks/chk_20261016T075037Z_4682af63b7/result/record.json\",\"result_kind\":\"overflow\",\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"verified_success\":true,\"workload_class\":\"default\"}\n"
+          },
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 1.330812326999876,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/6c35d0e9-2756-4bee-aa80-6216bf31f5d5/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/6c35d0e9-2756-4bee-aa80-6216bf31f5d5/stderr.txt",
+            "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":364,\"log_path\":\".runtime/checks/chk_20261016T075055Z_b0c5c36c23/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075055Z_b0c5c36c23/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"5bb160304787541c22ef088baaf42edd99881d4ee777335d07ff117b0c535233\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":0.903,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":0.903,\"recommended_execution_timeout_seconds\":1,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075055Z_b0c5c36c23\",\"command_id\":\"test-package-contracts\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":903,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:50:57Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.056,\"output_bytes\":364},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"test package contracts passed: 15\",\"termination\":null,\"timeout\":{\"configured_seconds\":1,\"effective_seconds\":1,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+            "stderr_preview": "",
+            "id": "6c35d0e9-2756-4bee-aa80-6216bf31f5d5",
+            "method": "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS",
+            "definition_digest": "1c6935e36ef99e8cb98f615edea97803bac6ed49507471537b74723ecf391993",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/checks/run_check.py",
+              "--command-id",
+              "test-package-contracts",
+              "--fallback-reason",
+              "mcp-project-untrusted",
+              "--json"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "5739ad61ec255fa99000998516b6ab8ebb84b2298ce8ccc898ca09360e27803a",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "56,\"output_bytes\":364},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"test package contracts passed: 15\",\"termination\":null,\"timeout\":{\"configured_seconds\":1,\"effective_seconds\":1,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+          },
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 107.94650132700008,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/3576d50e-4846-4588-b26e-ad0284bfdc02/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/3576d50e-4846-4588-b26e-ad0284bfdc02/stderr.txt",
+            "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":4822,\"log_path\":\".runtime/checks/chk_20261016T075058Z_9ff67ea9e4/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075058Z_9ff67ea9e4/result/record.json\"},\"cache\":{\"created_at\":\"2026-10-16T07:52:47Z\",\"eligible\":true,\"hit\":false,\"key\":\"b39055f2a587672b26185befc9c516f9abdda2023d6348df0ee6be33ca9a9e62\",\"lookup_duration_ms\":1,\"reason\":\"miss_stored\",\"result_hash\":\"8afe68a9dd45aad19fc5a3aa960f2809afb4a49e597454fe7b29d07abf865bfe\",\"source_check_id\":null,\"stored\":true},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":103.933,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":117.36,\"recommended_execution_timeout_seconds\":130,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075058Z_9ff67ea9e4\",\"command_id\":\"agent-tooling-fast-verification\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":103933,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:52:45Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.034,\"output_bytes\":4822},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"[verify] tooling-fast verification passed\",\"termination\":null,\"timeout\":{\"configured_seconds\":130,\"effective_seconds\":130,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+            "stderr_preview": "",
+            "id": "3576d50e-4846-4588-b26e-ad0284bfdc02",
+            "method": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION",
+            "definition_digest": "9922308d90249ce5c5aabed92aec1eafb96d05d7f512f480a3aaccd0e3c1227c",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/checks/run_check.py",
+              "--command-id",
+              "agent-tooling-fast-verification",
+              "--fallback-reason",
+              "mcp-project-untrusted",
+              "--json"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "3fb32aac7b922ee3ebc63ab0391cee31dadd27e669456a01693f832ab2177fce",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "tes\":4822},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"[verify] tooling-fast verification passed\",\"termination\":null,\"timeout\":{\"configured_seconds\":130,\"effective_seconds\":130,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"default\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+          },
+          {
+            "actual_exit_code": 0,
+            "timed_out": false,
+            "timeout_reason": null,
+            "capture_complete": true,
+            "termination": {
+              "schema": "run-termination-1",
+              "child_reaped": true,
+              "process_group_stopped": true,
+              "capture_complete": true
+            },
+            "capture_reason": null,
+            "cleanup_seconds": 0.25,
+            "cancelled": false,
+            "cancellation_reason": null,
+            "duration_seconds": 1.9629610500014678,
+            "stdout": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/ab2b46da-a08b-44a3-bcd0-11895ebb9cec/stdout.txt",
+            "stderr": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/ab2b46da-a08b-44a3-bcd0-11895ebb9cec/stderr.txt",
+            "stdout_preview": "{\"artifacts\":{\"ledger_path\":\"ai-assistant/checks/data/ledger.sqlite3\",\"log_bytes\":99,\"log_path\":\".runtime/checks/chk_20261016T075248Z_125f1dab29/result/command.log\",\"log_sha256\":null,\"progress_path\":null,\"record_path\":\".runtime/checks/chk_20261016T075248Z_125f1dab29/result/record.json\"},\"cache\":{\"created_at\":null,\"eligible\":false,\"hit\":false,\"key\":null,\"lookup_duration_ms\":0,\"reason\":\"profile_disabled\",\"result_hash\":\"883875e2d99bf70f92ae2cb0de86019d079f7bd75055723e581daf7e0af5f55a\",\"source_check_id\":null,\"stored\":false},\"calibration\":{\"automatic\":true,\"command\":null,\"observed_progress_gap_seconds\":null,\"observed_success_seconds\":1.212,\"previous_observed_max_progress_gap_seconds\":0.0,\"previous_observed_max_success_seconds\":4.322,\"recommended_execution_timeout_seconds\":5,\"recommended_stall_timeout_seconds\":null,\"required\":false,\"status\":\"current\"},\"check_id\":\"chk_20261016T075248Z_125f1dab29\",\"command_id\":\"repository-documentation-verification\",\"counts\":{},\"dependencies\":{\"missing_environment\":[],\"missing_executables\":[],\"missing_files\":[]},\"duration_ms\":1212,\"exit_code\":0,\"failures\":[],\"progress\":{\"age_seconds\":null,\"anomaly_count\":0,\"event_count\":0,\"last_event_at\":null,\"last_output_at\":\"2026-10-16T07:52:49Z\",\"last_value\":null,\"max_gap_seconds\":0.0,\"observability\":\"unavailable\",\"output_age_seconds\":0.038,\"output_bytes\":99},\"runtime_class\":\"posix-host\",\"schema_version\":1,\"status\":\"passed\",\"summary\":\"{\\\"status\\\":\\\"passed\\\",\\\"markdown_files\\\":5,\\\"scoped_markdown_targets\\\":5,\\\"findings\\\":[],\\\"finding_count\\\":0}\",\"termination\":null,\"timeout\":{\"configured_seconds\":5,\"effective_seconds\":5,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"harness-runtime-docs\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n",
+            "stderr_preview": "",
+            "id": "ab2b46da-a08b-44a3-bcd0-11895ebb9cec",
+            "method": "MODULARITY-DOCUMENTATION-EXACT-SCOPE",
+            "definition_digest": "6004319da1613f97d497ed86c6dac1c332a04a33e02613c9a5241601d46221ec",
+            "contract_digest": "012c36bf038552cea705d61c093bb61bebf598ec79c1a28435ec7858b55e1274",
+            "integration_head": "b3b676d1ca9dae040060fc7fa09f1f8dde82792f",
+            "verified_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+            "argv": [
+              "bash",
+              "ai-assistant/bootstrap/python-runtime.sh",
+              "ai-assistant/checks/run_check.py",
+              "--command-id",
+              "repository-documentation-verification",
+              "--workload-class",
+              "harness-runtime-docs",
+              "--runtime-class",
+              "posix-host",
+              "--fallback-reason",
+              "mcp-project-untrusted",
+              "--json"
+            ],
+            "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+            "source_provenance": {
+              "kind": "repository",
+              "bindings": [
+                {
+                  "kind": "cwd",
+                  "path": ".",
+                  "resolved_path": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001"
+                }
+              ]
+            },
+            "provenance_digest": "e726f755ea25079d727232995f2edb1adb109511e6cf34efa418dbe91abe95c7",
+            "expected_exit_code": 0,
+            "passed": true,
+            "outputs": [],
+            "stdout_digest": "81aad87a8c8ae025361b5a1b2be16f907ae43b31c12f68e675a410d8699533ce",
+            "stderr_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "preview": "summary\":\"{\\\"status\\\":\\\"passed\\\",\\\"markdown_files\\\":5,\\\"scoped_markdown_targets\\\":5,\\\"findings\\\":[],\\\"finding_count\\\":0}\",\"termination\":null,\"timeout\":{\"configured_seconds\":5,\"effective_seconds\":5,\"evidence_check_id\":null,\"override_reason\":null,\"override_seconds\":null},\"truncated\":false,\"verified_success\":true,\"workload_class\":\"harness-runtime-docs\",\"workspace_fingerprint\":{\"head\":\"b3b676d1ca9dae040060fc7fa09f1f8dde82792f\",\"status_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}}\n"
+          }
+        ]
+      }
+    }
+  ],
+  "replayed": false,
+  "interaction": {
+    "user_messages_count": 3,
+    "observed_messages_count": 3,
+    "coverage": "partial",
+    "source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
+    },
+    "reason_counts": {
+      "initial": 0,
+      "continue": 0,
+      "feedback": 0,
+      "requirement_change": 0,
+      "clarification": 0,
+      "authorization": 0,
+      "cancel": 0
+    },
+    "unclassified_messages": 3,
+    "task": "ERP-HARNESS-MODULARITY-001",
+    "goal_type": "development",
+    "outcome": "completed",
+    "planned_content_stages_count": 10,
+    "delivered_stages_count": 6,
+    "delivered_iterations_count": 10,
+    "delivery_observation": "tool_result_returned"
+  },
+  "notice": "Служебные материалы задачи удалены. Служебные журналы уничтожены",
+  "historical_receipts": [
+    {
+      "task": "ERP-HARNESS-MODULARITY-001",
+      "checks": [
+        {
+          "id": "878c4057-cfab-404f-b184-615be3796fe0",
+          "method": "MODULARITY-CONTRACTS",
+          "actual_exit_code": 0,
+          "passed": true
+        },
+        {
+          "id": "01665ad4-305b-4acb-95b8-6fc00cdd05b4",
+          "method": "MODULARITY-REGRESSION-RUN-CHECK",
+          "actual_exit_code": 1,
+          "passed": false
+        },
+        {
+          "id": "18b0bdc2-44d9-4e49-b581-602f5bac940e",
+          "method": "MODULARITY-REGRESSION-CHECK-CACHE",
+          "actual_exit_code": 1,
+          "passed": false
+        },
+        {
+          "id": "65233376-46e4-4cbb-91c3-9d473e6b1eb3",
+          "method": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST",
+          "actual_exit_code": 0,
+          "passed": true
+        },
+        {
+          "id": "5443ac01-c01c-489d-a603-e03a7ad2d50d",
+          "method": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION",
+          "actual_exit_code": 1,
+          "passed": false
+        },
+        {
+          "id": "d607932f-fd3a-46b8-b5d9-825813e48480",
+          "method": "MODULARITY-MCP-CONSUMER",
+          "actual_exit_code": 0,
+          "passed": true
+        },
+        {
+          "id": "931e0c86-05ac-44b8-8472-dc2e058897b6",
+          "method": "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION",
+          "actual_exit_code": 0,
+          "passed": true
+        },
+        {
+          "id": "6c35d0e9-2756-4bee-aa80-6216bf31f5d5",
+          "method": "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS",
+          "actual_exit_code": 0,
+          "passed": true
+        },
+        {
+          "id": "3576d50e-4846-4588-b26e-ad0284bfdc02",
+          "method": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION",
+          "actual_exit_code": 0,
+          "passed": true
+        },
+        {
+          "id": "ab2b46da-a08b-44a3-bcd0-11895ebb9cec",
+          "method": "MODULARITY-DOCUMENTATION-EXACT-SCOPE",
+          "actual_exit_code": 0,
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

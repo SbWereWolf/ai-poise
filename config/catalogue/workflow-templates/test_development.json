@@ -218,7 +218,12 @@
         "test_inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "baseline_inspection",
@@ -241,7 +246,12 @@
       },
       "rework_targets": [
         "baseline"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "coverage_planning",
@@ -272,7 +282,12 @@
         "test_inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "coverage_planning_inspection",
@@ -295,7 +310,12 @@
       },
       "rework_targets": [
         "coverage_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_planning",
@@ -330,7 +350,12 @@
         "test_inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_planning_inspection",
@@ -353,7 +378,12 @@
       },
       "rework_targets": [
         "test_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_implementation",
@@ -387,7 +417,12 @@
         "test_inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_implementation_inspection",
@@ -410,7 +445,12 @@
       },
       "rework_targets": [
         "test_implementation"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "sensitivity_verification",
@@ -441,7 +481,12 @@
         "test_inspection",
         "remediation",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_inspection",
@@ -471,7 +516,12 @@
         "test_implementation",
         "sensitivity_verification",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "remediation",
@@ -505,7 +555,12 @@
         "sensitivity_verification",
         "test_inspection",
         "remediation_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "remediation_inspection",
@@ -535,7 +590,12 @@
         "test_implementation",
         "sensitivity_verification",
         "test_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

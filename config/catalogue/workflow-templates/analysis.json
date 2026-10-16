@@ -220,7 +220,12 @@
         "reasoning",
         "challenge",
         "self_inspection"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "evidence_collection",
@@ -246,7 +251,12 @@
         "reasoning",
         "challenge",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "reasoning",
@@ -278,7 +288,12 @@
         "evidence_collection",
         "challenge",
         "self_inspection"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "challenge",
@@ -310,7 +325,12 @@
         "evidence_collection",
         "reasoning",
         "self_inspection"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "self_inspection",
@@ -339,7 +359,12 @@
         "reasoning",
         "challenge",
         "framing"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

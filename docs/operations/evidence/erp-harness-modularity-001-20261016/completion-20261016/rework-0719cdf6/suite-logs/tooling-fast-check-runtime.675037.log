@@ -1,0 +1,204 @@
+[verify] tooling-fast-check-runtime: running suite
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/delta-artifact-hygiene.py
+delta artifact hygiene contracts: 3098 tracked paths, 0 findings
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/poise-source-test-package.py
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 6.286s
+
+OK
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/repository-documentation-contracts.py
+repository documentation contracts: 6 passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/evidence-manifest.py
+registered check evidence contracts passed: 9
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/test-packages.py
+[test-package] package=unit.a step=1/1 driver=document-ui-npm
+[test-package] package=integration.b-to-a step=1/1 driver=document-ui-npm
+[test-package] package=integration.b-to-a status=passed steps=2
+[test-package] package=unit.aggregate step=1/1 driver=document-ui-npm
+[test-package] package=unit.aggregate status=passed steps=1
+test package contracts passed: 15
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/reference-trigger-audit.py
+Reference trigger audit contracts passed: 4
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/checks/artifact-evidence-inventory.py --json
+{"deferred":[],"findings":[],"schema_version":1,"status":"passed","summary":{"adopted":32,"classified_profiles":135,"deferred":0,"findings":0,"not_artifact_producers":103,"registered_profiles":135,"remaining_mandatory_artifact_producers":0}}
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/artifact-evidence-inventory.py
+Artifact evidence inventory contracts passed: 6
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/tooling-verification-config.py
+{"status":"passed","fast_suites":2,"release_suites":4}
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/playwright-case-provenance.py
+playwright case provenance contracts passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/check-runner.py
+PASS test_model_visible_result_uses_complete_or_versioned_overflow_union
+{"check_id":"chk_terminal","status":"passed"}
+PASS test_direct_runner_releases_its_adoption_lock_after_terminal_result
+PASS test_tracked_markdown_scope_ignores_ignored_tree
+PASS test_tracked_markdown_scope_is_bounded_and_fails_closed
+PASS test_generic_glob_scope_is_unchanged
+PASS test_documentation_profile_disables_repository_wide_markdown_cache
+PASS test_documentation_profile_classifies_missing_git_as_dependency
+PASS test_tracked_markdown_symlink_target_content_invalidates_fingerprint
+PASS test_tracked_markdown_selection_rejects_invalid_git_or_profile_identity
+PASS test_tracked_markdown_selection_rejects_escaped_path
+PASS test_overflow_preserves_non_hit_states_without_upgrading_proof
+PASS test_overflow_requires_actual_cache_metadata
+PASS test_overflow_does_not_drop_cache_to_fit_a_smaller_budget
+PASS test_overflow_schema_requires_cache_proof
+registered check input fingerprint contracts passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/harness-modularity.py
+test_hm01_profile_import_requires_no_runtime_or_configuration (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm01_profile_import_requires_no_runtime_or_configuration) ... ok
+test_hm01b_guard_detects_a_dependency_deferred_until_construction (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm01b_guard_detects_a_dependency_deferred_until_construction) ... ok
+test_hm01b_hm11_context_guard_covers_selection_and_use (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm01b_hm11_context_guard_covers_selection_and_use) ... ok
+test_hm02_literal_profile_contract_and_hm12_independent_loading (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm02_literal_profile_contract_and_hm12_independent_loading) ... ok
+test_hm03_hm04_schema_ignores_extensions_at_all_declared_levels (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm03_hm04_schema_ignores_extensions_at_all_declared_levels) ... ok
+test_hm03_real_cli_ignores_an_unknown_cache_extension (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm03_real_cli_ignores_an_unknown_cache_extension) ... ok
+test_hm03_root_extension_does_not_change_loaded_profile (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm03_root_extension_does_not_change_loaded_profile) ... ok
+test_hm04_every_nested_extension_is_ignored_by_its_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm04_every_nested_extension_is_ignored_by_its_owner) ... ok
+test_hm05_known_required_values_remain_strict_with_extensions (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_known_required_values_remain_strict_with_extensions) ... ok
+test_hm05_loader_rejects_missing_cache (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_loader_rejects_missing_cache) ... ok
+test_hm05_missing_required_profile_fields_fail_with_extensions (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_missing_required_profile_fields_fail_with_extensions) ... ok
+test_hm05_schema_retains_required_fields_and_known_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_schema_retains_required_fields_and_known_types) ... ok
+test_hm06_loader_rejects_unsupported_or_wrongly_typed_version (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm06_loader_rejects_unsupported_or_wrongly_typed_version) ... ok
+test_hm06_schema_does_not_equate_boolean_true_with_version_one (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm06_schema_does_not_equate_boolean_true_with_version_one) ... ok
+test_hm07_semantic_combinations_fail_even_with_extensions (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm07_semantic_combinations_fail_even_with_extensions) ... ok
+test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant) ... ok
+test_hm09_render_reload_preserves_the_literal_contract (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm09_render_reload_preserves_the_literal_contract) ... ok
+test_hm10_file_errors_are_lazy_and_keep_original_exception_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm10_file_errors_are_lazy_and_keep_original_exception_types) ... ok
+test_hm12_context_profile_use_has_no_unrelated_prerequisites (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm12_context_profile_use_has_no_unrelated_prerequisites) ... ok
+test_hm13_service_keeps_selected_configuration_separate_from_data_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm13_service_keeps_selected_configuration_separate_from_data_owner) ... ok
+test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation) ... ok
+test_hm16_existing_success_contract_proves_the_execution_fixture (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm16_existing_success_contract_proves_the_execution_fixture) ... ok
+test_hm18_real_consumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok
+test_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 3.063s
+
+OK
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/agent/session-temp-runtime.py --repository-root . --config ai-assistant/agent/artifact-path-policy.json -- bash -c 'exec "$BASH_RUNTIME_PYTHON_BIN" ai-assistant/tests/checks/registered-check-lock.py'
+test_intent_invalid_optional_cli_boolean_warns_and_executes (__main__.AdmissionLockContracts.test_intent_invalid_optional_cli_boolean_warns_and_executes) ... ok
+test_intent_missing_optional_cli_text_values_warn_and_execute (__main__.AdmissionLockContracts.test_intent_missing_optional_cli_text_values_warn_and_execute) ... ok
+test_rcal01_subject_only_profile_is_admitted_and_executed (__main__.AdmissionLockContracts.test_rcal01_subject_only_profile_is_admitted_and_executed) ... ok
+test_rcal02_implicit_child_releases_admission_before_posttool (__main__.AdmissionLockContracts.test_rcal02_implicit_child_releases_admission_before_posttool) ... ok
+test_rcal03_repeated_command_id_equals_selects_last_value (__main__.AdmissionLockContracts.test_rcal03_repeated_command_id_equals_selects_last_value) ... ok
+test_rcal03_repeated_command_id_separated_selects_last_value (__main__.AdmissionLockContracts.test_rcal03_repeated_command_id_separated_selects_last_value) ... ok
+test_rcal04_invalid_optional_cli_integer_warns_and_executes (__main__.AdmissionLockContracts.test_rcal04_invalid_optional_cli_integer_warns_and_executes) ... ok
+test_rcal04_missing_optional_selector_warns_and_executes (__main__.AdmissionLockContracts.test_rcal04_missing_optional_selector_warns_and_executes) ... ok
+test_rcal04_nonpositive_optional_timeout_warns_and_executes (__main__.AdmissionLockContracts.test_rcal04_nonpositive_optional_timeout_warns_and_executes) ... ok
+test_rcal04_partial_optional_timeout_warns_and_executes (__main__.AdmissionLockContracts.test_rcal04_partial_optional_timeout_warns_and_executes) ... ok
+test_rcal04_unknown_cli_argument_warns_and_executes (__main__.AdmissionLockContracts.test_rcal04_unknown_cli_argument_warns_and_executes) ... ok
+test_rcal05_changed_candidate_and_catalogue_preserve_legitimate_request (__main__.AdmissionLockContracts.test_rcal05_changed_candidate_and_catalogue_preserve_legitimate_request) ... ok
+test_admission_cleanup_failure_preserves_original_required_output_failure (__main__.MCPBindingContracts.test_admission_cleanup_failure_preserves_original_required_output_failure) ... ok
+test_cli_preview_does_not_create_missing_ledger (__main__.MCPBindingContracts.test_cli_preview_does_not_create_missing_ledger) ... ok
+test_cli_preview_preserves_existing_empty_ledger (__main__.MCPBindingContracts.test_cli_preview_preserves_existing_empty_ledger) ... ok
+test_describe_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_describe_preview_preserves_empty_ledger) ... ok
+test_describe_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_describe_preview_preserves_missing_ledger) ... ok
+test_failed_admission_rollback_never_consumes_completed_history (__main__.MCPBindingContracts.test_failed_admission_rollback_never_consumes_completed_history) ... ok
+test_failed_repeated_admission_preserves_preexisting_own_active (__main__.MCPBindingContracts.test_failed_repeated_admission_preserves_preexisting_own_active) ... ok
+test_intent_ambiguous_cancel_objects_do_not_select_the_first_request (__main__.MCPBindingContracts.test_intent_ambiguous_cancel_objects_do_not_select_the_first_request) ... ok
+test_intent_ambiguous_objects_are_rejected_without_a_guess (__main__.MCPBindingContracts.test_intent_ambiguous_objects_are_rejected_without_a_guess) ... ok
+test_intent_cancel_ignores_irrelevant_catalogue_hint (__main__.MCPBindingContracts.test_intent_cancel_ignores_irrelevant_catalogue_hint) ... ok
+test_intent_cancel_ignores_irrelevant_project_hint (__main__.MCPBindingContracts.test_intent_cancel_ignores_irrelevant_project_hint) ... ok
+test_intent_cancel_optional_provider_hint_does_not_change_the_target (__main__.MCPBindingContracts.test_intent_cancel_optional_provider_hint_does_not_change_the_target) ... ok
+test_intent_cancel_preview_does_not_create_a_missing_registry (__main__.MCPBindingContracts.test_intent_cancel_preview_does_not_create_a_missing_registry) ... ok
+test_intent_cancel_preview_preserves_exact_own_and_foreign_operations (__main__.MCPBindingContracts.test_intent_cancel_preview_preserves_exact_own_and_foreign_operations) ... ok
+test_intent_cli_preview_does_not_create_a_missing_registry (__main__.MCPBindingContracts.test_intent_cli_preview_does_not_create_a_missing_registry) ... ok
+test_intent_cli_preview_preserves_an_existing_own_operation (__main__.MCPBindingContracts.test_intent_cli_preview_preserves_an_existing_own_operation) ... ok
+test_intent_dry_run_resolves_without_reservation_or_execution (__main__.MCPBindingContracts.test_intent_dry_run_resolves_without_reservation_or_execution) ... ok
+test_intent_hook_emits_only_required_operation_object_references (__main__.MCPBindingContracts.test_intent_hook_emits_only_required_operation_object_references) ... ok
+test_intent_missing_command_remains_an_input_error (__main__.MCPBindingContracts.test_intent_missing_command_remains_an_input_error) ... ok
+test_intent_missing_context_uses_the_explicit_server_project (__main__.MCPBindingContracts.test_intent_missing_context_uses_the_explicit_server_project) ... ok
+test_intent_missing_profile_in_an_unused_project_does_not_block_work (__main__.MCPBindingContracts.test_intent_missing_profile_in_an_unused_project_does_not_block_work) ... ok
+test_intent_optional_provider_hint_cannot_prevent_the_requested_operation (__main__.MCPBindingContracts.test_intent_optional_provider_hint_cannot_prevent_the_requested_operation) ... ok
+test_intent_partial_tracking_identity_does_not_block_identified_work (__main__.MCPBindingContracts.test_intent_partial_tracking_identity_does_not_block_identified_work) ... ok
+test_intent_physical_checker_source_does_not_replace_the_operation_object (__main__.MCPBindingContracts.test_intent_physical_checker_source_does_not_replace_the_operation_object) ... ok
+test_intent_product_test_uses_child_registry_and_runtime_configuration (__main__.MCPBindingContracts.test_intent_product_test_uses_child_registry_and_runtime_configuration) ... ok
+test_intent_public_target_executes_the_selected_project_and_catalogue (__main__.MCPBindingContracts.test_intent_public_target_executes_the_selected_project_and_catalogue) ... ok
+test_intent_public_target_preview_has_no_tracking_or_execution_mutations (__main__.MCPBindingContracts.test_intent_public_target_preview_has_no_tracking_or_execution_mutations) ... ok
+test_intent_public_tools_list_exposes_operation_objects (__main__.MCPBindingContracts.test_intent_public_tools_list_exposes_operation_objects) ... ok
+test_intent_request_catalogue_overrides_the_server_default (__main__.MCPBindingContracts.test_intent_request_catalogue_overrides_the_server_default) ... ok
+test_intent_run_preview_does_not_create_a_missing_registry (__main__.MCPBindingContracts.test_intent_run_preview_does_not_create_a_missing_registry) ... ok
+test_intent_same_id_in_another_default_project_does_not_replace_the_object (__main__.MCPBindingContracts.test_intent_same_id_in_another_default_project_does_not_replace_the_object) ... ok
+test_intent_unknown_runtime_option_warns_and_runs_the_unique_target (__main__.MCPBindingContracts.test_intent_unknown_runtime_option_warns_and_runs_the_unique_target) ... ok
+test_intent_unknown_tracking_id_runs_without_consuming_another_request (__main__.MCPBindingContracts.test_intent_unknown_tracking_id_runs_without_consuming_another_request) ... ok
+test_intent_unrecognized_preview_mode_cannot_choose_execution (__main__.MCPBindingContracts.test_intent_unrecognized_preview_mode_cannot_choose_execution) ... ok
+test_intent_unused_registry_hint_does_not_replace_the_tracking_owner (__main__.MCPBindingContracts.test_intent_unused_registry_hint_does_not_replace_the_tracking_owner) ... ok
+test_invalid_known_required_cli_object_is_rejected (__main__.MCPBindingContracts.test_invalid_known_required_cli_object_is_rejected) ... ok
+test_list_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_list_preview_preserves_empty_ledger) ... ok
+test_list_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_list_preview_preserves_missing_ledger) ... ok
+test_optional_binding_public_objects_override_unused_private_context (__main__.MCPBindingContracts.test_optional_binding_public_objects_override_unused_private_context) ... ok
+test_optional_cancellation_release_failure_preserves_result_and_responsiveness (__main__.MCPBindingContracts.test_optional_cancellation_release_failure_preserves_result_and_responsiveness) ... ok
+test_optional_claim_failure_does_not_hide_invalid_required_telemetry (__main__.MCPBindingContracts.test_optional_claim_failure_does_not_hide_invalid_required_telemetry) ... ok
+test_optional_claim_write_failure_warns_without_reserving_and_job_runs (__main__.MCPBindingContracts.test_optional_claim_write_failure_warns_without_reserving_and_job_runs) ... ok
+test_optional_completion_cli_preserves_failed_check (__main__.MCPBindingContracts.test_optional_completion_cli_preserves_failed_check) ... ok
+test_optional_completion_cli_preserves_passed_check (__main__.MCPBindingContracts.test_optional_completion_cli_preserves_passed_check) ... ok
+test_optional_completion_mcp_preserves_failed_check (__main__.MCPBindingContracts.test_optional_completion_mcp_preserves_failed_check) ... ok
+test_optional_completion_mcp_preserves_passed_check (__main__.MCPBindingContracts.test_optional_completion_mcp_preserves_passed_check) ... ok
+test_optional_completion_posttool_warns_without_repairing_registry (__main__.MCPBindingContracts.test_optional_completion_posttool_warns_without_repairing_registry) ... ok
+test_r2_cli_refusal_reports_actual_selected_context (__main__.MCPBindingContracts.test_r2_cli_refusal_reports_actual_selected_context) ... ok
+test_r2_direct_admission_reports_actual_selected_context (__main__.MCPBindingContracts.test_r2_direct_admission_reports_actual_selected_context) ... ok
+test_r2_load_invalid_toml_cli (__main__.MCPBindingContracts.test_r2_load_invalid_toml_cli) ... ok
+test_r2_load_invalid_toml_direct_admission (__main__.MCPBindingContracts.test_r2_load_invalid_toml_direct_admission) ... ok
+test_r2_load_invalid_toml_mcp_admission (__main__.MCPBindingContracts.test_r2_load_invalid_toml_mcp_admission) ... ok
+test_r2_load_invalid_toml_mcp_execution (__main__.MCPBindingContracts.test_r2_load_invalid_toml_mcp_execution) ... ok
+test_r2_load_invalid_utf8_cli (__main__.MCPBindingContracts.test_r2_load_invalid_utf8_cli) ... ok
+test_r2_load_invalid_utf8_direct_admission (__main__.MCPBindingContracts.test_r2_load_invalid_utf8_direct_admission) ... ok
+test_r2_load_invalid_utf8_mcp_admission (__main__.MCPBindingContracts.test_r2_load_invalid_utf8_mcp_admission) ... ok
+test_r2_load_invalid_utf8_mcp_execution (__main__.MCPBindingContracts.test_r2_load_invalid_utf8_mcp_execution) ... ok
+test_r2_load_missing_cli (__main__.MCPBindingContracts.test_r2_load_missing_cli) ... ok
+test_r2_load_missing_direct_admission (__main__.MCPBindingContracts.test_r2_load_missing_direct_admission) ... ok
+test_r2_load_missing_mcp_admission (__main__.MCPBindingContracts.test_r2_load_missing_mcp_admission) ... ok
+test_r2_load_missing_mcp_execution (__main__.MCPBindingContracts.test_r2_load_missing_mcp_execution) ... ok
+test_r2_load_unreadable_cli (__main__.MCPBindingContracts.test_r2_load_unreadable_cli) ... ok
+test_r2_load_unreadable_direct_admission (__main__.MCPBindingContracts.test_r2_load_unreadable_direct_admission) ... ok
+test_r2_load_unreadable_mcp_admission (__main__.MCPBindingContracts.test_r2_load_unreadable_mcp_admission) ... ok
+test_r2_load_unreadable_mcp_execution (__main__.MCPBindingContracts.test_r2_load_unreadable_mcp_execution) ... ok
+test_r2_load_unsupported_version_cli (__main__.MCPBindingContracts.test_r2_load_unsupported_version_cli) ... ok
+test_r2_load_unsupported_version_direct_admission (__main__.MCPBindingContracts.test_r2_load_unsupported_version_direct_admission) ... ok
+test_r2_load_unsupported_version_mcp_admission (__main__.MCPBindingContracts.test_r2_load_unsupported_version_mcp_admission) ... ok
+test_r2_load_unsupported_version_mcp_execution (__main__.MCPBindingContracts.test_r2_load_unsupported_version_mcp_execution) ... ok
+test_r2_mcp_admission_reports_actual_selected_context (__main__.MCPBindingContracts.test_r2_mcp_admission_reports_actual_selected_context) ... ok
+test_raced_active_claim_is_denied_and_preserved (__main__.MCPBindingContracts.test_raced_active_claim_is_denied_and_preserved) ... ok
+test_rccancel01_no_target_snapshot_does_not_cancel_later_own_request (__main__.MCPBindingContracts.test_rccancel01_no_target_snapshot_does_not_cancel_later_own_request) ... ok
+test_rccancel02_exact_target_and_replay_preserve_foreign_requests (__main__.MCPBindingContracts.test_rccancel02_exact_target_and_replay_preserve_foreign_requests) ... ok
+test_rccancel03_old_target_cannot_cancel_distinct_next_tool (__main__.MCPBindingContracts.test_rccancel03_old_target_cannot_cancel_distinct_next_tool) ... ok
+test_rccancel04_no_adoption_cannot_target_an_adopted_foreign_request (__main__.MCPBindingContracts.test_rccancel04_no_adoption_cannot_target_an_adopted_foreign_request) ... ok
+test_rcmcp01_same_scope_distinct_tool_retry_and_terminal_replay (__main__.MCPBindingContracts.test_rcmcp01_same_scope_distinct_tool_retry_and_terminal_replay) ... ok
+test_rcmcp04_invalid_optional_fresh_warns_and_is_not_applied (__main__.MCPBindingContracts.test_rcmcp04_invalid_optional_fresh_warns_and_is_not_applied) ... ok
+test_rcmcp04_unknown_optional_argument_warns_and_executes (__main__.MCPBindingContracts.test_rcmcp04_unknown_optional_argument_warns_and_executes) ... ok
+test_rcmcp05_lawful_no_adoption_run_has_no_lease_side_effect (__main__.MCPBindingContracts.test_rcmcp05_lawful_no_adoption_run_has_no_lease_side_effect) ... ok
+test_rcmcp06_candidate_mismatch_cannot_consume_lease (__main__.MCPBindingContracts.test_rcmcp06_candidate_mismatch_cannot_consume_lease) ... ok
+test_rcmcp06_corrupt_optional_registry_hook_warns_and_admits (__main__.MCPBindingContracts.test_rcmcp06_corrupt_optional_registry_hook_warns_and_admits) ... ok
+test_rcmcp06_corrupt_registry_is_not_repaired (__main__.MCPBindingContracts.test_rcmcp06_corrupt_registry_is_not_repaired) ... ok
+test_rcmcp06_empty_registry_has_no_schema_or_side_files_created (__main__.MCPBindingContracts.test_rcmcp06_empty_registry_has_no_schema_or_side_files_created) ... ok
+test_rcmcp06_invalid_binding_shapes_preserve_legitimate_lease (__main__.MCPBindingContracts.test_rcmcp06_invalid_binding_shapes_preserve_legitimate_lease) ... ok
+test_rcmcp06_missing_registry_is_not_created (__main__.MCPBindingContracts.test_rcmcp06_missing_registry_is_not_created) ... ok
+test_rcmcp06_omitted_selectors_use_real_catalogue_and_exact_owned_row (__main__.MCPBindingContracts.test_rcmcp06_omitted_selectors_use_real_catalogue_and_exact_owned_row) ... ok
+test_rcmcp06_unknown_binding_member_is_ignored_on_valid_owned_run (__main__.MCPBindingContracts.test_rcmcp06_unknown_binding_member_is_ignored_on_valid_owned_run) ... ok
+test_rcmcp07_selected_config_is_distinct_from_execution_subject (__main__.MCPBindingContracts.test_rcmcp07_selected_config_is_distinct_from_execution_subject) ... ok
+test_rcmcp08_real_spawn_failure_completes_exact_owned_reservation (__main__.MCPBindingContracts.test_rcmcp08_real_spawn_failure_completes_exact_owned_reservation) ... ok
+test_rcowner_valid_primary_admission_and_posttool_preserve_foreign_rows (__main__.MCPBindingContracts.test_rcowner_valid_primary_admission_and_posttool_preserve_foreign_rows) ... ok
+test_rcowner_wrong_missing_runtime_creates_no_directory_or_database (__main__.MCPBindingContracts.test_rcowner_wrong_missing_runtime_creates_no_directory_or_database) ... ok
+test_rcowner_wrong_posttool_preserves_colliding_foreign_lease_and_primary_lease (__main__.MCPBindingContracts.test_rcowner_wrong_posttool_preserves_colliding_foreign_lease_and_primary_lease) ... ok
+test_rcowner_wrong_runtime_preserves_expired_foreign_active_and_completed (__main__.MCPBindingContracts.test_rcowner_wrong_runtime_preserves_expired_foreign_active_and_completed) ... ok
+test_real_hook_broken_stdout_abandons_unpublished_claim (__main__.MCPBindingContracts.test_real_hook_broken_stdout_abandons_unpublished_claim) ... ok
+test_real_hook_healthy_publication_preserves_owned_and_foreign_state (__main__.MCPBindingContracts.test_real_hook_healthy_publication_preserves_owned_and_foreign_state) ... ok
+test_required_telemetry_failure_rolls_back_new_claim_without_completion (__main__.MCPBindingContracts.test_required_telemetry_failure_rolls_back_new_claim_without_completion) ... ok
+test_terminal_runner_closes_its_actual_child_output_pipe (__main__.MCPBindingContracts.test_terminal_runner_closes_its_actual_child_output_pipe) ... ok
+test_unknown_ambiguous_cli_prefix_warns_and_runs (__main__.MCPBindingContracts.test_unknown_ambiguous_cli_prefix_warns_and_runs) ... ok
+test_unknown_unique_cli_prefix_does_not_enable_fresh (__main__.MCPBindingContracts.test_unknown_unique_cli_prefix_does_not_enable_fresh) ... ok
+test_verbose_describe_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_verbose_describe_preview_preserves_empty_ledger) ... ok
+test_verbose_describe_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_verbose_describe_preview_preserves_missing_ledger) ... ok
+test_verbose_list_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_verbose_list_preview_preserves_empty_ledger) ... ok
+test_verbose_list_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_verbose_list_preview_preserves_missing_ledger) ... ok
+
+----------------------------------------------------------------------
+Ran 115 tests in 62.243s
+
+OK
+[verify] running: bash ai-assistant/tests/agent/verify-cache.sh
+agent verify cache tests passed
+[verify] running: bash ai-assistant/tests/agent/verify-command-selection.sh
+agent verify command selection tests passed
+[verify] running: bash ai-assistant/tests/agent/verify-suite-metadata.sh
+agent verify suite metadata test passed

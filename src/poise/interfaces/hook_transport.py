@@ -51,7 +51,7 @@ def execute(command,args,stream,output,error):
             return cfg['exit_codes']['success']
         if command=='hook-work':
             require_result_budget('',cfg['output_chars'],'rejected')
-            result=service.work(args.binding,packet)
+            result=service.work(args.binding,packet,getattr(args,'project',None))
             write_result(service.runtime,result,output)
             bad = result['status'] in BUSINESS_INCOMPLETE_STATUSES
             return cfg['exit_codes']['incomplete' if bad else 'success']

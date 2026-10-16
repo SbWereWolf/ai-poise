@@ -1,0 +1,6 @@
+[verify] running: /usr/bin/python3 ai-assistant/agent/literal-boundary-policy.py --root /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001
+Literal-boundary policy passed.
+[verify] Markdown formatting: repository-documentation-verification owns task-scoped Markdown validation
+[verify] agent-tooling suites run sequentially; product application suites are outside this lifecycle
+[verify] tooling-fast-agent-contracts: cache hit; configured source inputs and fixtures unchanged, skipping
+[verify] tooling-fast-check-runtime: cache miss; running sequentially

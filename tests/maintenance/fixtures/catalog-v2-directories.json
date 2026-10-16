@@ -1,0 +1,9 @@
+[
+  {"id": "state-root", "path": ".", "mode": 488},
+  {"id": "runtime-directory", "path": "runtime", "mode": 488},
+  {"id": "task-directory", "path": "standalone", "mode": 488},
+  {"id": "sprint-directory", "path": "sprints", "mode": 488},
+  {"id": "worktree-directory", "path": "worktrees", "mode": 488},
+  {"id": "requirements-directory", "path": "database", "mode": 488},
+  {"id": "telemetry-directory", "path": "telemetry", "mode": 488}
+]

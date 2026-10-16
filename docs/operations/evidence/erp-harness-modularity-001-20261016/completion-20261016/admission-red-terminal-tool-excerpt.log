@@ -1,0 +1,157 @@
+ok
+test_rcowner_wrong_runtime_preserves_expired_foreign_active_and_completed (__main__.MCPBindingContracts.test_rcowner_wrong_runtime_preserves_expired_foreign_active_and_completed) ... ok
+test_real_hook_broken_stdout_abandons_unpublished_claim (__main__.MCPBindingContracts.test_real_hook_broken_stdout_abandons_unpublished_claim) ... ok
+test_real_hook_healthy_publication_preserves_owned_and_foreign_state (__main__.MCPBindingContracts.test_real_hook_healthy_publication_preserves_owned_and_foreign_state) ... ok
+test_required_telemetry_failure_rolls_back_new_claim_without_completion (__main__.MCPBindingContracts.test_required_telemetry_failure_rolls_back_new_claim_without_completion) ... ok
+test_terminal_runner_closes_its_actual_child_output_pipe (__main__.MCPBindingContracts.test_terminal_runner_closes_its_actual_child_output_pipe) ... ok
+test_unknown_ambiguous_cli_prefix_warns_and_runs (__main__.MCPBindingContracts.test_unknown_ambiguous_cli_prefix_warns_and_runs) ... ok
+test_unknown_unique_cli_prefix_does_not_enable_fresh (__main__.MCPBindingContracts.test_unknown_unique_cli_prefix_does_not_enable_fresh) ... ok
+test_verbose_describe_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_verbose_describe_preview_preserves_empty_ledger) ... ok
+test_verbose_describe_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_verbose_describe_preview_preserves_missing_ledger) ... ok
+test_verbose_list_preview_preserves_empty_ledger (__main__.MCPBindingContracts.test_verbose_list_preview_preserves_empty_ledger) ... ok
+test_verbose_list_preview_preserves_missing_ledger (__main__.MCPBindingContracts.test_verbose_list_preview_preserves_missing_ledger) ... ok
+
+======================================================================
+FAIL: test_intent_unknown_runtime_option_warns_and_runs_the_unique_target (__main__.MCPBindingContracts.test_intent_unknown_runtime_option_warns_and_runs_the_unique_target)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 829, in test_intent_unknown_runtime_option_warns_and_runs_the_unique_target
+    self.assert_optional_mcp_warning({"runtime_class": "not-a-runtime"}, "Unrecognized optional option runtime_class ignored.")
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 814, in assert_optional_mcp_warning
+    self.assertIn("result", envelope)
+AssertionError: 'result' not found in {'jsonrpc': '2.0', 'id': 2, 'error': {'code': -32602, 'message': "no registered profile matches command_id='provider-binding-contract', platform='linux', workload_class=None, runtime_class='not-a-runtime'. Use --list with the selected catalogue, then select an exact command/workload/runtime. Selected source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-4bxhgj_m/primary; subject=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-4bxhgj_m/primary; catalogue=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-4bxhgj_m/primary/ai-assistant/checks/command-profiles.toml."}}
+
+======================================================================
+FAIL: test_r2_cli_refusal_reports_actual_selected_context (__main__.MCPBindingContracts.test_r2_cli_refusal_reports_actual_selected_context)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 685, in test_r2_cli_refusal_reports_actual_selected_context
+    self.assert_profile_refusal_context(error, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 654, in assert_profile_refusal_context
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-tebhtdvk/primary' not found in "no registered profile matches command_id='absent-profile', platform='linux', workload_class=None, runtime_class='posix-host'. Use --list with the selected catalogue, then select an exact command/workload/runtime.\n"
+
+======================================================================
+FAIL: test_r2_load_invalid_toml_cli (__main__.MCPBindingContracts.test_r2_load_invalid_toml_cli)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1847, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-7nt_kvj3/primary' not found in 'Invalid value (at end of document)'
+
+======================================================================
+FAIL: test_r2_load_invalid_toml_mcp_execution (__main__.MCPBindingContracts.test_r2_load_invalid_toml_mcp_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1892, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-vnk9s0nj/primary' not found in 'Invalid value (at end of document)'
+
+======================================================================
+FAIL: test_r2_load_invalid_utf8_cli (__main__.MCPBindingContracts.test_r2_load_invalid_utf8_cli)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1847, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-vivco4bk/primary' not found in "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+
+======================================================================
+FAIL: test_r2_load_invalid_utf8_mcp_execution (__main__.MCPBindingContracts.test_r2_load_invalid_utf8_mcp_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1892, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-k8h6jlfh/primary' not found in "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+
+======================================================================
+FAIL: test_r2_load_missing_cli (__main__.MCPBindingContracts.test_r2_load_missing_cli)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1847, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-_9krhxdo/primary' not found in "[Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-_9krhxdo/catalogue/ai-assistant/checks/command-profiles.toml'"
+
+======================================================================
+FAIL: test_r2_load_missing_mcp_execution (__main__.MCPBindingContracts.test_r2_load_missing_mcp_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1892, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-3n_k07uz/primary' not found in "FileNotFoundError: [Errno 2] No such file or directory: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-3n_k07uz/catalogue/ai-assistant/checks/command-profiles.toml'"
+
+======================================================================
+FAIL: test_r2_load_unreadable_cli (__main__.MCPBindingContracts.test_r2_load_unreadable_cli)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1847, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-lciwlx3n/primary' not found in "[Errno 13] Fixture selected catalogue read denied: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-lciwlx3n/catalogue/ai-assistant/checks/command-profiles.toml'"
+
+======================================================================
+FAIL: test_r2_load_unreadable_mcp_execution (__main__.MCPBindingContracts.test_r2_load_unreadable_mcp_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1892, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-2kkqx4k7/primary' not found in "PermissionError: [Errno 13] Fixture selected catalogue read denied: '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-2kkqx4k7/catalogue/ai-assistant/checks/command-profiles.toml'"
+
+======================================================================
+FAIL: test_r2_load_unsupported_version_cli (__main__.MCPBindingContracts.test_r2_load_unsupported_version_cli)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1847, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-2yf43a7f/primary' not found in 'command profile schema_version must equal 1'
+
+======================================================================
+FAIL: test_r2_load_unsupported_version_mcp_execution (__main__.MCPBindingContracts.test_r2_load_unsupported_version_mcp_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 2087, in _catalogue_case
+    self.assert_catalogue_loading_boundary(fault, boundary)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1892, in assert_catalogue_loading_boundary
+    self.assert_loading_diagnostic(message, case, catalogue)
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/registered-check-lock.py", line 1794, in assert_loading_diagnostic
+    self.assertIn("source=" + str(self.env.primary), message)
+AssertionError: 'source=/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/agent-sessions/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/tmp/task-management-tests-box8jl7m/registered-check-lock-unit-zjwk2448/primary' not found in 'command profile schema_version must equal 1'
+
+----------------------------------------------------------------------
+Ran 115 tests in 92.241s
+
+FAILED (failures=12)

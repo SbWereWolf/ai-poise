@@ -1,0 +1,11 @@
+{
+  "task": "ERP-HARNESS-MODULARITY-001",
+  "durable_archive": "/home/sbwerewolf/workdata/poise-op/app/docs/operations/evidence/erp-harness-modularity-001-20261016",
+  "plan_sha256": "420c49087825405d57a41c97c6635e8ad318963cf3fe8c9ce5ab0eb98748ae9a",
+  "applied_sha256": "3931bd8f0e453a9250618587f2ed237114259658410c357175142f4e8272b456",
+  "journal_seq": 15043,
+  "original_outcome": "UNKNOWN",
+  "public_bootstrap": "8e0e1feb-6033-472a-b64d-3a9f6ca91181",
+  "native_acceptance": false,
+  "source_documentation_commit": "pending"
+}

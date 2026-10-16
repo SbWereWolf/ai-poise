@@ -1,0 +1,32 @@
+{
+  "classification": "actual_app_read_thread_command_items",
+  "source_thread_id": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+  "items": [
+    {
+      "type": "commandExecution",
+      "id": "exec-1fe49f32-0ca2-40b8-8102-9094006ea555",
+      "command": "/bin/bash -lc 'bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/check-cache.py'",
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "status": "completed",
+      "exitCode": 0,
+      "durationMs": 14743,
+      "output": {
+        "text": "PASS test_current_artifacts_use_runtime_and_preserve_retained_history\nPASS test_historical_cache_pointer_supports_bounded_and_overflow_results\nPASS test_identical_green_check_is_reused\nPASS test_only_declared_code_tests_and_fixtures_invalidate_cache\nPASS test_task_scope_overrides_profile_wide_globs\nPASS test_git_tracked_markdown_scope_rejects_cached_result_after_new_scoped_document\nPASS test_git_tracked_markdown_symlink_target_rejects_cached_result_after_content_change\nPASS test_explicit_ignored_input_is_invalid_configuration\nPASS test_environment_and_profile_changes_do_not_invalidate_cache\nPASS test_test_package_key_depends_only_on_source_tests_and_fixtures\nPASS test_config_root_package_execution_and_cache_use_selected_members\nPASS test_config_root_windows_package_transports_registry_to_python_argv\nPASS test_config_root_normalizes_only_package_registry_prerequisite\nPASS test_config_root_selection_does_not_precheck_configuration\nPASS test_config_root_profile_read_errors_keep_original_exceptions\nPASS test_config_root_invalid_package_contents_raise_original_errors\nPASS test_failed_result_is_never_reusable_green\nPASS test_fresh_bypasses_hit_and_refreshes_source\nPASS test_missing_source_record_and_invalid_cache_database_are_rebuilt\nPASS test_workspace_identity_is_not_a_cache_input\nPASS test_overflow_cache_hit_preserves_current_admission_and_immutable_receipt\ncheck cache contracts passed: 21\n",
+        "truncated": false
+      }
+    },
+    {
+      "type": "commandExecution",
+      "id": "exec-e56b0e53-81cc-4178-9174-bbbe6ecb68ed",
+      "command": "/bin/bash -lc 'bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/registered-command-adoption.py'",
+      "cwd": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "status": "completed",
+      "exitCode": 0,
+      "durationMs": 59675,
+      "output": {
+        "text": "registered command adoption contracts passed\n",
+        "truncated": false
+      }
+    }
+  ]
+}

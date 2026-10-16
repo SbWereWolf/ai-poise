@@ -1,0 +1,54 @@
+{
+  "operation": "integrate",
+  "input": {
+    "request_id": "ERP-HARNESS-MODULARITY-001-integrate-20261016",
+    "task_id": "ERP-HARNESS-MODULARITY-001",
+    "expected_source_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+    "expected_target_commit": "16c5b906615e57a5b5f89b495c42b79f51eab87e",
+    "authorization": "Пользователь поручил продолжить ERP-HARNESS-MODULARITY-001 с независимым приёмщиком Поводырь, исправить дефект и довести задачу до приёмки; ранее явно разрешил синхронизацию после проверки с сохранением чужих изменений. Независимый review принят, Task completed через public accept. Выполняется локальная интеграция и штатная очистка без push.",
+    "commit_message": "Integrate independently accepted harness modularity\n\nPreserve registered check ownership and explicit configuration boundaries.",
+    "resolutions": [
+      {
+        "path": "ai-assistant/checks/check_runner_lib.py",
+        "resolution": "Keep canonical extracted profile contracts and explicit configuration; retain target public grammar and shared loading diagnostics without duplicate profile implementations."
+      },
+      {
+        "path": "ai-assistant/checks/command-profiles.toml",
+        "resolution": "Keep all135 producer declarations and the combined MCP, source-test and launcher cache inputs."
+      },
+      {
+        "path": "ai-assistant/checks/registered_command_adoption_lib.py",
+        "resolution": "Consume canonical profile/configuration owners while retaining target admission, cancellation and public grammar behavior."
+      },
+      {
+        "path": "ai-assistant/checks/run_check.py",
+        "resolution": "Delegate execution to the shared service; retain target dry-run, declared bookkeeping identity, optional selector semantics and exact diagnostic context."
+      },
+      {
+        "path": "ai-assistant/checks/tooling-verification.json",
+        "resolution": "Retain both harness modularity and all115 admission/lock tests and the complete combined source fingerprints."
+      },
+      {
+        "path": "ai-assistant/mcp/repo-checks-server.py",
+        "resolution": "Use the shared service with each request's explicit subject and configuration; retain target admission, preview, cancellation and original-exception diagnostic behavior."
+      },
+      {
+        "path": "ai-assistant/tests/checks/artifact-evidence-inventory.py",
+        "resolution": "Declare literal135-profile inventory: target133 plus two source variants, including103 non-artifact producers."
+      },
+      {
+        "path": "ai-assistant/tests/checks/check-runner.py",
+        "resolution": "Retain the source lock-release oracle, actually execute its14th test, and supply the complete bookkeeping identity required by target admission."
+      },
+      {
+        "path": "ai-assistant/tests/checks/tooling-verification-config.py",
+        "resolution": "Retain target launcher cache inputs and provide explicit configuration to the added prerequisite-owner test call."
+      }
+    ],
+    "config_backup_paths": [
+      "task-management/settings.json",
+      "task-management/.env"
+    ]
+  },
+  "messages": []
+}

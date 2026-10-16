@@ -32,8 +32,7 @@ def migration_lock_probe():
     def tracked(path, seconds, poll):
         selected = Path(path).resolve()
         assert selected not in held, "Recursive acquisition of a held migration lock."
-        if selected == task_lock:
-            assert project_lock in held, "Task lock acquired before project publication lock."
+        assert selected != project_lock, "Migration acquired the shared project lock."
         with actual(path, seconds, poll):
             held.add(selected)
             events.append(str(selected))

@@ -61,6 +61,10 @@ def query_state(database):
             'cursors': db.execute('SELECT session_id,path,data FROM runtime_cursors ORDER BY session_id,path').fetchall(),
             'journal': db.execute('SELECT seq,event,data FROM journal ORDER BY seq').fetchall(),
             'messages': db.execute('SELECT id,data FROM interaction_events ORDER BY id').fetchall(),
+            'message_bindings': db.execute(
+                'SELECT event_id,task_id,sprint_id,goal_type,stage,iteration,session_id,project '
+                'FROM interaction_bindings ORDER BY event_id'
+            ).fetchall(),
         }
 
 
@@ -289,33 +293,23 @@ def test_read_observes_committed_wal_state_before_and_after_writer_commit(projec
 
 @pytest.mark.parametrize('boundary', ['task-local-lock', 'task-sqlite-writer', 'hook-local-lock', 'hook-sqlite-writer'])
 def test_fresh_hook_query_observes_already_recorded_source_without_writes(project, tmp_path, boundary):
-    from hook_transport.helpers import settings, install, event, host_environment
-    from poise.infrastructure.hook_transport import HookService
-
-    service = HookService(settings(project, tmp_path))
-    installed = install(service)
-    start = event(session='public-read-test-native')
-    start['cwd'] = str(service.settings.root)
-    service.event(installed['definition_path'], start)
-    prepare_task(project)
-    prompt = event('UserPromptSubmit', session='public-read-test-native')
-    prompt['cwd'] = str(service.settings.root)
-    service.event(installed['definition_path'], prompt)
-    binding = service.latest_binding('public-read-test-native', 'primary')
+    service, binding = prepare_hook(project, tmp_path)
     paths = ((service.settings.database, service.settings.lock) if boundary.startswith('hook-')
              else state_paths(project))
     kind = 'local-lock' if boundary.endswith('local-lock') else 'sqlite-writer'
     before = query_state(state_paths(project)[0])
     assert len(before['messages']) == 1
     assert before['tasks'][0][:2] == ('T1', 'public-read-test-native')
+    assert len(before['message_bindings']) == 1
+    assert before['message_bindings'][0][0] == before['messages'][0][0]
+    assert before['message_bindings'][0][1:] == (
+        'T1', None, 'development', 'tests', 1, 'public-read-test-native', 'demo',
+    )
     with sqlite3.connect(service.settings.database.as_uri() + '?mode=ro', uri=True) as db:
         registry_before = db.execute('SELECT id,data,latest_message FROM bindings ORDER BY id').fetchall()
         events_before = db.execute('SELECT id,at,binding,event,data FROM hook_events ORDER BY id').fetchall()
     with writer(project, kind, paths=paths):
-        result = subprocess.run(
-            ['bash', binding['launcher']], input=(FIXTURES / 'public-read-show.json').read_text(),
-            capture_output=True, text=True, env=host_environment('public-read-test-native'), timeout=15,
-        )
+        result = invoke_hook(binding)
         assert result.returncode == 0, 'HOOK_QUERY_WAITS_FOR_WRITER: ' + result.stdout + result.stderr
         assert message_count(result) == 1
         assert query_state(state_paths(project)[0]) == before
@@ -359,3 +353,132 @@ def test_optional_telemetry_does_not_make_foreground_query_a_writer(project):
         assert result.returncode == 0, 'TELEMETRY_QUERY_WAITS_FOR_WRITER: ' + result.stdout + result.stderr
         assert message_count(result) == 0
         assert query_state(database) == before
+
+
+def prepare_hook(project, tmp_path):
+    from hook_transport.helpers import settings, install, event
+    from poise.infrastructure.hook_transport import HookService
+
+    service = HookService(settings(project, tmp_path))
+    installed = install(service)
+    start = event(session='public-read-test-native')
+    start['cwd'] = str(service.settings.root)
+    service.event(installed['definition_path'], start)
+    prepare_task(project)
+    prompt = event('UserPromptSubmit', session='public-read-test-native')
+    prompt['cwd'] = str(service.settings.root)
+    service.event(installed['definition_path'], prompt)
+    return service, service.latest_binding('public-read-test-native', 'primary')
+
+
+def invoke_hook(binding):
+    from hook_transport.helpers import host_environment
+
+    return subprocess.run(
+        ['bash', binding['launcher']], input=(FIXTURES / 'public-read-show.json').read_text(),
+        capture_output=True, text=True, env=host_environment('public-read-test-native'), timeout=15,
+    )
+
+
+def test_primary_binding_oracle_detects_isolated_stage_and_session_rebinding(project, tmp_path):
+    prepare_hook(project, tmp_path)
+    database, _ = state_paths(project)
+    before = query_state(database)
+    assert len(before['message_bindings']) == 1
+    row = before['message_bindings'][0]
+    assert row[1:] == ('T1', None, 'development', 'tests', 1, 'public-read-test-native', 'demo')
+    try:
+        with sqlite3.connect(database) as db:
+            db.execute('UPDATE interaction_bindings SET stage=?,session_id=? WHERE event_id=?',
+                       ('changed-stage', 'changed-session', row[0]))
+        changed = query_state(database)
+        assert changed != before
+        assert changed['message_bindings'][0][4] == 'changed-stage'
+        assert changed['message_bindings'][0][6] == 'changed-session'
+        assert {k: v for k, v in changed.items() if k != 'message_bindings'} == {
+            k: v for k, v in before.items() if k != 'message_bindings'
+        }
+    finally:
+        with sqlite3.connect(database) as db:
+            db.execute('UPDATE interaction_bindings SET stage=?,session_id=? WHERE event_id=?',
+                       (row[4], row[6], row[0]))
+    assert query_state(database) == before
+
+
+@pytest.mark.parametrize('condition', ['absent', 'empty', 'unsupported'])
+def test_hook_observation_never_initializes_or_migrates_registry(project, tmp_path, condition):
+    service, binding = prepare_hook(project, tmp_path)
+    before = query_state(state_paths(project)[0])
+    database = service.settings.database
+    if condition == 'absent':
+        database.unlink()
+    elif condition == 'empty':
+        database.unlink()
+        with sqlite3.connect(database) as db:
+            db.execute('PRAGMA user_version=0')
+    else:
+        with sqlite3.connect(database) as db:
+            db.execute('PRAGMA user_version=99')
+    original = database.read_bytes() if database.exists() else None
+    result = invoke_hook(binding)
+    assert result.returncode == 2
+    envelope = json.loads(result.stdout)
+    full = json.loads(Path(envelope['response_path']).read_text())
+    assert full['status'] == 'rejected'
+    assert full['reason']
+    assert query_state(state_paths(project)[0]) == before
+    if original is None:
+        assert not database.exists(), 'HOOK_QUERY_INITIALIZED_ABSENT_REGISTRY'
+    else:
+        assert database.read_bytes() == original, 'HOOK_QUERY_CHANGED_REGISTRY_SCHEMA_OR_ROWS'
+
+
+@pytest.mark.parametrize('version', [1, 99])
+def test_unsupported_requirements_observation_preserves_other_store_state(project, version):
+    assert invoke(project, 'public-read-bootstrap.json').returncode == 0
+    database, _ = state_paths(project)
+    with sqlite3.connect(database) as db:
+        db.execute('UPDATE runtime_bindings SET inventory=?', ('["baseline-inventory"]',))
+    state = project['root'] / project['cfg']['paths']['state']
+    requirements = state / project['cfg']['paths']['requirements_database']
+    with sqlite3.connect(requirements) as db:
+        db.execute(f'PRAGMA user_version={version}')
+    original = requirements.read_bytes()
+    before = query_state(database)
+    result = invoke(project, 'public-read-show.json')
+    assert result.returncode == 2
+    assert result.stdout or result.stderr
+    assert requirements.read_bytes() == original
+    assert query_state(database) == before, 'REJECTED_REQUIREMENTS_READ_CHANGED_CALLER_STATE'
+
+
+def test_public_adapter_query_without_transcript_preserves_state_during_writer(project, tmp_path):
+    from runtime_services.test_adapter import settings
+
+    options = tmp_path / 'adapter-settings.json'
+    options.write_text(json.dumps(settings(project, tmp_path)))
+    packet = json.loads((FIXTURES / 'public-read-adapter-bootstrap.json').read_text())
+
+    def call():
+        return subprocess.run(
+            [sys.executable, '-B', '-m', 'poise', 'runtime', '--settings', str(options)],
+            input=json.dumps(packet), capture_output=True, text=True,
+            env=environment(project), timeout=15,
+        )
+
+    initialized = call()
+    assert initialized.returncode == 0, initialized.stdout + initialized.stderr
+    native = json.loads(initialized.stdout)['session']
+    database, _ = state_paths(project)
+    with sqlite3.connect(database) as db:
+        db.execute('INSERT INTO runtime_cursors(session_id,path,data) VALUES(?,?,?)',
+                   (native, 'existing-transcript', '{"offset":17}'))
+    before = query_state(database)
+    packet['work'] = json.loads((FIXTURES / 'public-read-show.json').read_text())
+    with writer(project, 'local-lock'):
+        result = call()
+        assert result.returncode == 0, 'ADAPTER_QUERY_WAITS_FOR_WRITER: ' + result.stdout + result.stderr
+        assert json.loads(result.stdout)['session'] == native
+        assert message_count(result) == 0
+        assert query_state(database) == before
+    assert query_state(database) == before

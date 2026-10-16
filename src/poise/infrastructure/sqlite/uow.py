@@ -9,6 +9,7 @@ from .accounting import SqliteAccountingCycles
 from .work_packets import SqliteWorkPacketRepository
 from .artifacts import SqliteArtifactRepository
 from .task_delivery import SqliteTaskDeliveryRepository
+from .integration_scopes import SqliteIntegrationScopeRepository
 
 
 class SqliteUnitOfWork:
@@ -32,6 +33,7 @@ class SqliteUnitOfWork:
         self.work_packets = SqliteWorkPacketRepository(connection)
         self.artifacts = SqliteArtifactRepository(connection)
         self.task_delivery = SqliteTaskDeliveryRepository(connection)
+        self.integration_scopes = SqliteIntegrationScopeRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

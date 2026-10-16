@@ -6,6 +6,7 @@ from .domain import Task, TaskState, Change, EmptyReworkRecoveryPoint
 from ..verification.domain import CheckRegistry
 from ..evidence.domain import EvidenceBook
 from .lifecycle import TaskLifecycle
+from ..result_integration.ports import IntegrationScopeRepository
 
 
 class TaskRepository(Protocol):
@@ -131,6 +132,7 @@ class TaskUnitOfWork(Protocol):
     ownership: object
     work_packets: WorkPacketRepository
     artifacts: ArtifactLinkRepository
+    integration_scopes: IntegrationScopeRepository
     def __enter__(self) -> TaskUnitOfWork: ...
     def __exit__(self, exc_type, exc, traceback) -> bool: ...
 

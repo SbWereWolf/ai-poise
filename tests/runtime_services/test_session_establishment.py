@@ -280,17 +280,31 @@ def test_native_and_generated_origins_receive_the_same_work_surface(project, tmp
 
 def test_all_work_composition_routes_are_structurally_bound_to_one_establisher():
     root = Path(__file__).resolve().parents[2] / "src" / "poise"
-    routes = (
-        root / "__main__.py",
-        root / "infrastructure" / "runtime_adapter.py",
-        root / "infrastructure" / "hook_transport.py",
-    )
-    for route in routes:
+    routes = {
+        root / "__main__.py": "establish_direct_poise",
+        root / "infrastructure" / "runtime_adapter.py": "establish_poise",
+        root / "infrastructure" / "hook_transport.py": "establish_poise",
+    }
+    for route, entry in routes.items():
         tree = ast.parse(route.read_text())
         calls = [
             node.func.id
             for node in ast.walk(tree)
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
         ]
-        assert "establish_poise" in calls, route
+        assert entry in calls, route
         assert "Poise" not in calls, route
+
+    tree = ast.parse((root / 'infrastructure' / 'session_establishment.py').read_text())
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    direct_calls = {
+        node.func.id for node in ast.walk(functions['establish_direct_poise'])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert 'establish_poise' in direct_calls
+    assert 'Poise' not in direct_calls
+    owning_calls = {
+        node.func.id for node in ast.walk(functions['establish_poise'])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert {'SessionEstablisher', 'Poise'} <= owning_calls

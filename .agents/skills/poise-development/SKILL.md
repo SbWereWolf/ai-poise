@@ -40,6 +40,10 @@ See [reviewer identity](../../../docs/workflows/local-handoff.md#независ�
 
 ## Development method
 
+For operational reads, follow the [observation instruction](../../references/project-runtime-observation.md#operational-observation):
+explicit observation composition, initialized stores, read admission before one body,
+and separate caller/message writers. Preserve detached-worker exit and optional telemetry.
+
 For repository changes follow TDD: contract/check design → tests → honest RED → test inspection → implementation → GREEN → code inspection → fixes → reinspection → documentation. Read [Development rules → TDD and inspection](../../../docs/governance/development-rules.md#tdd-и-осмотр) when working on implementation behaviour.
 
 For review, apply the incident-derived [evidence-based checklist](../../../docs/workflows/evidence-based-review.md#что-считать-находкой). Every actionable finding identifies the confirmed missing obligation, its producer stage, the later gate, an exact reproducible check and the evidenced cause class. Distinguish an AI poise runtime/task-contract defect, executor omission, reviewer omission, ordinary protective rejection and unresolved ownership. A historical repaired incident is regression provenance, not a current defect without new post-fix evidence. Batch independent Task/section/evidence/registry reads through the existing `show.queries`; never add another reader or claim unmeasured token savings.

@@ -8,7 +8,7 @@ from pathlib import Path
 import uuid
 from typing import TYPE_CHECKING
 
-from ..common import PoiseError, configured_root, descendant, load_config
+from ..common import PoiseError, configured_root, configured_storage_path, descendant, load_config
 from ..modules.session_establishment.domain import CallerIdentity, EstablishedSession
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ class EstablishedPoise:
     session: EstablishedSession
 
 
-def _binding_id(path):
+def _binding_id(path, *, create=True):
     target = Path(path)
     if not target.is_absolute() or target.is_symlink():
         raise PoiseError('POISE_CALLER_BINDING must be an absolute regular-file path')
@@ -48,6 +48,8 @@ def _binding_id(path):
     if target.exists():
         if not target.is_file():raise PoiseError('POISE_CALLER_BINDING must be a regular file')
         return read()
+    if not create:
+        return None
     caller_id = uuid.uuid4().hex
     raw = (json.dumps({'schema':'poise-caller-binding-1','caller_id':caller_id}, separators=(',',':'))+'\n').encode()
     try:
@@ -86,33 +88,69 @@ def native_session(environ, *, required=False):
     return values[0]
 
 
-def direct_caller(project, environ):
+def direct_caller(project, environ, *, create_binding=True):
     native = native_session(environ)
     binding = environ.get('POISE_CALLER_BINDING')
     if native and binding:
         raise PoiseError('POISE_CALLER_BINDING cannot be combined with native session identity; use the native session')
     if binding:
-        return CallerIdentity.generated(project, _binding_id(binding))
+        identifier = _binding_id(binding, create=create_binding)
+        return None if identifier is None else CallerIdentity.generated(project, identifier)
     if native:
         return CallerIdentity.native(project, native)
     raise PoiseError('No native caller identity; set POISE_CALLER_BINDING to an absolute persistent file')
 
 
+def _database(root, cfg, config_path, read_only):
+    from .sqlite.database import Database
+    from .project_resources import ProjectRuntimeFence
+    state = configured_root(root, cfg['paths']['state'])
+    return Database(descendant(state, cfg['paths']['database']), descendant(state, cfg['paths']['lock']),
+                    cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'],
+                    ProjectRuntimeFence(config_path, state), read_only=read_only,
+                    read_wait=cfg['limits']['sqlite_read_seconds'])
+
+
+def _validate_observation_requirements(root, cfg):
+    from .requirements_registry import RequirementsStore
+    state = configured_root(root, cfg['paths']['state'])
+    RequirementsStore(configured_storage_path(state, cfg['paths']['requirements_database']),
+                      configured_storage_path(state, cfg['paths']['requirements_lock']),
+                      cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'], read_only=True,
+                      read_wait=cfg['limits']['sqlite_read_seconds'])
+
+
+def establish_direct_poise(config_path, environ, clock, *, read_only):
+    config_path = Path(config_path).resolve()
+    root, cfg, _ = load_config(config_path)
+    caller = direct_caller(cfg['project'], environ, create_binding=not read_only)
+    if caller is None:
+        database = _database(root, cfg, config_path, True)
+        _validate_observation_requirements(root, cfg)
+        # The persistent caller file has its own lifecycle; acquire admission
+        # before creating it, then use the ordinary session reservation owner.
+        with database.write_transaction():
+            caller = direct_caller(cfg['project'], environ)
+    return establish_poise(config_path, caller, [], clock, read_only=read_only)
+
+
 def establish_poise(config_path, caller, inventory, clock, preferred_session=None,
-                    legacy_workflow_requirements=None, liveness=None):
+                    legacy_workflow_requirements=None, liveness=None, *, read_only=False):
     from ..application.session_establishment import SessionEstablisher
     from ..runtime import Poise
-    from .sqlite.database import Database
     from .sqlite.runtime_adapter import RuntimeRegistry
     config_path = Path(config_path).resolve()
     root,cfg,_ = load_config(config_path,legacy_workflow_requirements)
-    state = configured_root(root,cfg['paths']['state'])
-    database = Database(descendant(state,cfg['paths']['database']),descendant(state,cfg['paths']['lock']),
-                        cfg['limits']['lock_seconds'],cfg['limits']['lock_poll_seconds'])
+    database = _database(root, cfg, config_path, read_only)
     registry = RuntimeRegistry(database)
-    session = SessionEstablisher(registry).establish(caller,inventory,preferred_session)
+    owner = SessionEstablisher(registry)
+    session = owner.observe(caller, preferred_session) if read_only else None
+    if session is None:
+        if read_only:
+            _validate_observation_requirements(root, cfg)
+        session = owner.establish(caller, inventory, preferred_session)
     return EstablishedPoise(
-        Poise(config_path,session.session_id,clock,legacy_workflow_requirements,liveness),
+        Poise(config_path,session.session_id,clock,legacy_workflow_requirements,liveness,read_only=read_only),
         registry,
         session,
     )

@@ -23,6 +23,17 @@ class InteractionStore:
         return prepared
 
     def record(self,prepared,session,task):
+        if not prepared:return
+        if self.database.read_only:
+            with self.database.read_transaction() as db:
+                existing = {}
+                for event in prepared:
+                    row = db.execute('SELECT data FROM interaction_events WHERE id=?', (event.identity,)).fetchone()
+                    if row is None:
+                        raise PoiseError('Источник сообщения ещё не принят; наблюдение не выполняет приём сообщений')
+                    existing[event.identity] = row[0]
+                InteractionLedger.merge(existing, prepared)
+            return
         with self.database.transaction() as db:
             existing={}
             for event in prepared:
@@ -52,7 +63,7 @@ class InteractionStore:
                        (task['id'],report['stage'],report['iteration'],datetime.now(timezone.utc).isoformat(),'tool_result_returned'))
 
     def summary(self,task):
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             if task is None:
                 rows=db.execute('SELECT e.data FROM interaction_events e WHERE project=?',(self.project,)).fetchall()
                 delivered=[]

@@ -8,7 +8,7 @@ from ...modules.foundation.errors import PoiseError, SQLiteBoundaryUnavailable
 from ..locking import exclusive_lock
 
 
-def _boundary(db: sqlite3.Connection, sql: str, path: Path, wait: float, poll: float):
+def _boundary(db: sqlite3.Connection, sql: str, path: Path, wait: float, poll: float, *, limit_name: str):
     deadline = monotonic() + wait
     while True:
         try:
@@ -23,7 +23,7 @@ def _boundary(db: sqlite3.Connection, sql: str, path: Path, wait: float, poll: f
             remaining = deadline - monotonic()
             if remaining <= 0:
                 raise SQLiteBoundaryUnavailable(
-                    f'SQLite {sql}: истёк lock_seconds={wait:g} для {path}. '
+                    f'SQLite {sql}: истёк {limit_name}={wait:g} для {path}. '
                     'Закройте удерживающую транзакцию в другом процессе; '
                     'не удаляйте БД или lock-файлы. Повторите операцию после освобождения.'
                 ) from exc
@@ -45,9 +45,9 @@ def write_transaction(path: Path, lock: Path, wait: float, poll: float):
             db.execute('PRAGMA foreign_keys=ON')
             if db.execute('PRAGMA foreign_keys').fetchone()[0] != 1:
                 raise PoiseError('SQLite foreign_keys не включён')
-            _boundary(db, 'BEGIN IMMEDIATE', path, wait, poll)
+            _boundary(db, 'BEGIN IMMEDIATE', path, wait, poll, limit_name='lock_seconds')
             yield db
-            _boundary(db, 'COMMIT', path, wait, poll)
+            _boundary(db, 'COMMIT', path, wait, poll, limit_name='lock_seconds')
         except BaseException as exc:
             if db.in_transaction:
                 try:

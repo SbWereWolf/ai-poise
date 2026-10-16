@@ -96,6 +96,7 @@ class SqliteSprintRepository:
                     'pending':None if exe is None else exe['pending'],
                     'publication':None if exe is None else exe['publication'],
                     'worktree_owner':r['worktree_owner'],
+                    '_execution_branch':None if exe is None else exe['branch'],
                     'ready':newborn['ready'],
                     '_newborn_draft':draft,
                     '_newborn_workflow':meta.get('workflow'),
@@ -108,7 +109,8 @@ class SqliteSprintRepository:
                 'worktree':None if exe is None else exe['worktree'],
                 'pending':None if exe is None else exe['pending'],
                 'publication':None if exe is None else exe['publication'],
-                'worktree_owner':r['worktree_owner']}
+                'worktree_owner':r['worktree_owner'],
+                '_execution_branch':None if exe is None else exe['branch']}
         return result
 
     def add_draft_member(self, sprint_id, task_id):

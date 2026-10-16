@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 from .common import PoiseError,load_config
-from .infrastructure.session_establishment import direct_caller,establish_poise
+from .infrastructure.session_establishment import establish_direct_poise
 
 
 class SingleArgument(argparse.Action):
@@ -165,14 +165,19 @@ def main():
         print('Не задан POISE_CONFIG: выберите конфигурацию проекта.',file=sys.stderr)
         return 2
     try:
-        from .interfaces.work import execute
+        from .interfaces.work import execute, read_request, write_rejection
+        from .modules.work.domain import is_observation
         from .infrastructure.clock import SystemClock
         config=Path(os.environ['POISE_CONFIG'])
-        _,document,_=load_config(config)
-        caller=direct_caller(document['project'],os.environ)
-        h=establish_poise(config,caller,[],SystemClock()).runtime
-        return execute(h,sys.stdin.buffer,sys.stdout)
-    except PoiseError as exc:
+        config_root,document,_=load_config(config)
+        try:
+            request=read_request(document,sys.stdin.buffer)
+        except (PoiseError,UnicodeError,RecursionError) as exc:
+            write_rejection(config_root,document,exc,sys.stdout)
+            return 2
+        h=establish_direct_poise(config,os.environ,SystemClock(),read_only=is_observation(request)).runtime
+        return execute(h,sys.stdin.buffer,sys.stdout,request)
+    except (PoiseError,UnicodeError,RecursionError) as exc:
         print(str(exc),file=sys.stderr)
         return 2
 

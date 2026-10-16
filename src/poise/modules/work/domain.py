@@ -40,6 +40,11 @@ def status_filter(value, allowed, name):
         raise DomainError(f'{name} statuses must be unique')
 
 
+def is_observation(request):
+    """A validated query without a reported-message ingestion intention."""
+    return request['operation'] == 'show' and not request['messages']
+
+
 def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'restore_context':{'reason','event_id','facts','cwd','reads'},'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},

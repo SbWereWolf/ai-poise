@@ -248,31 +248,34 @@ class AsyncTelemetryDispatcher:
             os.close(write_fd)
             raise
         if child == 0:
-            os.close(read_fd)
             try:
-                grandchild = os.fork()
-            except OSError:
-                os.close(write_fd)
-                os._exit(1)
-            if grandchild:
+                os.close(read_fd)
+                try:
+                    grandchild = os.fork()
+                except OSError:
+                    os.close(write_fd)
+                    os._exit(1)
+                if grandchild:
+                    os._exit(0)
+                devnull = os.open(os.devnull, os.O_RDWR)
+                os.dup2(devnull, 0)
+                os.dup2(devnull, 1)
+                os.dup2(devnull, 2)
+                if devnull > 2:
+                    os.close(devnull)
+                _close_unrelated_pipes(write_fd)
+                status = b"1"
+                try:
+                    self.processor(envelope)
+                except Exception:
+                    status = b"0"
+                try:
+                    os.write(write_fd, status)
+                finally:
+                    os.close(write_fd)
                 os._exit(0)
-            devnull = os.open(os.devnull, os.O_RDWR)
-            os.dup2(devnull, 0)
-            os.dup2(devnull, 1)
-            os.dup2(devnull, 2)
-            if devnull > 2:
-                os.close(devnull)
-            _close_unrelated_pipes(write_fd)
-            status = b"1"
-            try:
-                self.processor(envelope)
-            except Exception:
-                status = b"0"
-            try:
-                os.write(write_fd, status)
             finally:
-                os.close(write_fd)
-            os._exit(0)
+                os._exit(0)
         os.close(write_fd)
         while True:
             try:
@@ -292,43 +295,46 @@ class AsyncTelemetryDispatcher:
                 os.close(descriptor)
             raise
         if child == 0:
-            os.close(final_write)
-            os.close(receipt_read)
             try:
-                grandchild = os.fork()
-            except OSError:
-                os.close(final_read)
-                os.close(receipt_write)
-                os._exit(1)
-            if grandchild:
+                os.close(final_write)
+                os.close(receipt_read)
+                try:
+                    grandchild = os.fork()
+                except OSError:
+                    os.close(final_read)
+                    os.close(receipt_write)
+                    os._exit(1)
+                if grandchild:
+                    os._exit(0)
+                devnull = os.open(os.devnull, os.O_RDWR)
+                os.dup2(devnull, 0)
+                os.dup2(devnull, 1)
+                os.dup2(devnull, 2)
+                if devnull > 2:
+                    os.close(devnull)
+                _close_unrelated_pipes(final_read, receipt_write)
+                status = b"1"
+                try:
+                    started = clock.observe()
+                    chunks = []
+                    while True:
+                        chunk = os.read(final_read, 65536)
+                        if not chunk:
+                            break
+                        chunks.append(chunk)
+                    final = json.loads(b"".join(chunks).decode())
+                    envelope = builder(base, started, clock.observe(), final)
+                    self.processor(envelope)
+                except Exception:
+                    status = b"0"
+                try:
+                    os.write(receipt_write, status)
+                finally:
+                    os.close(final_read)
+                    os.close(receipt_write)
                 os._exit(0)
-            devnull = os.open(os.devnull, os.O_RDWR)
-            os.dup2(devnull, 0)
-            os.dup2(devnull, 1)
-            os.dup2(devnull, 2)
-            if devnull > 2:
-                os.close(devnull)
-            _close_unrelated_pipes(final_read, receipt_write)
-            status = b"1"
-            try:
-                started = clock.observe()
-                chunks = []
-                while True:
-                    chunk = os.read(final_read, 65536)
-                    if not chunk:
-                        break
-                    chunks.append(chunk)
-                final = json.loads(b"".join(chunks).decode())
-                envelope = builder(base, started, clock.observe(), final)
-                self.processor(envelope)
-            except Exception:
-                status = b"0"
-            try:
-                os.write(receipt_write, status)
             finally:
-                os.close(final_read)
-                os.close(receipt_write)
-            os._exit(0)
+                os._exit(0)
         os.close(final_read)
         os.close(receipt_write)
         while True:

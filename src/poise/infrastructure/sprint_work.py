@@ -1,6 +1,8 @@
 """Workspace readiness outside SQL locks; orchestration never mutates Task fields."""
+from pathlib import Path
 from ..application.sprints import SprintCommands
 from ..modules.foundation.errors import PoiseError
+from ..modules.result_integration.domain import IntegrationBackupScope, IntegrationPublicationTarget
 from ..common import descendant
 
 
@@ -13,7 +15,19 @@ class SprintWork:
             runtime.config_hash,
             runtime.task_commands.prepare_creation,runtime._creation_base,
             runtime.task_commands.prepare_newborn_ready,
-            runtime.task_commands.promote_newborn_ready_in)
+            runtime.task_commands.promote_newborn_ready_in,self._publication_target,self._backup_scope)
+
+    def _backup_scope(self):
+        return IntegrationBackupScope(str(descendant(self.h.state, self.h.paths['runtime'])))
+
+    def _publication_target(self):
+        git=self.h.cfg['git']
+        try:
+            repository=str(Path(git['repository']).resolve(strict=True))
+        except OSError as exc:
+            raise PoiseError(f"Publication repository is unavailable: {git['repository']}: {exc}") from exc
+        return IntegrationPublicationTarget(
+            repository, IntegrationPublicationTarget.target_ref_for(git['base_ref']))
 
     def known(self,sprint_id):return self.commands.known(sprint_id)
 

@@ -1,0 +1,234 @@
+[
+  {
+    "node": "tests/content_reader/test_reader.py::test_complete_small_and_empty_files",
+    "independent_oracle": "Complete small and empty files exact full content/hash/complete range/0 sizes. State/control summaries exact.",
+    "covers": [
+      "requirements[0]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_large_range_and_actual_eof",
+    "independent_oracle": "Generate large input from frozen literal line patterns without whole-file expected hash; request100:140, last partial range and start-after-EOF. Assert every selected byte/range/line, read remains within policy, foreign files untouched.",
+    "covers": [
+      "requirements[0]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_utf8_and_mode_specific_newlines",
+    "independent_oracle": "LF/CRLF and final no-LF with β. Complete normalizes CRLF as donor; range preservesCRLF. Assert literal hashes/bytes/lines, not platform implicit text encoding.",
+    "covers": [
+      "requirements[0]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_strict_inclusive_range_contract",
+    "independent_oracle": "Start1/end1, equal endpoints, positive integers incl bool/null/zero/negative/reversed/unknown selection keys, complete start/end exactlynull. Invalid request while registry absent creates nothing.",
+    "covers": [
+      "requirements[0]",
+      "requirements[1]",
+      "requirements[3]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_complete_and_bounded_limits",
+    "independent_oracle": "Complete raw file byte and decoded-line bounds, selected range UTF8 byte/requested-line limits at exact and+1; requested-end beyondEOF does not evade requested-line budget.",
+    "covers": [
+      "requirements[0]",
+      "requirements[1]",
+      "requirements[3]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_full_output_budgets_before_registration",
+    "independent_oracle": "Both serialized JSON/text full-content NEW_CONTEXT candidate budgets exactbytes/lines and+1; current duplicate cannot bypass smaller changed output policy. Snapshot equals before on denial, no new cache/event. Deterministic read/reset interleaving specified in fixture budget_context_interleaving: reset finishes9->10 before reader final registry guard; limit exactly generation9 candidate bytes rejects generation10 with output_limit, no new read cache/event, context remains10. Limit exactly generation10 permits content/first_read when no prior read with root/item generation10. Test both JSON and text frames; waiting/reset threads bounded by events, never sleeps or timing guesses.",
+    "covers": [
+      "requirements[1]",
+      "requirements[3]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_first_and_exact_repeat_contract",
+    "independent_oracle": "Literal first and repeat full envelopes/source metadata/content presence and exact state summaries. Stored availability != modelmemory.",
+    "covers": [
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_new_range_and_changed_selected_content",
+    "independent_oracle": "Other normalizedrange then selected-content mutation; unrelated changeoutside range retains repeat; fresh contexts literalexpectedclassification.",
+    "covers": [
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_new_generation_and_classification_precedence",
+    "independent_oracle": "Reset owner increments generation; unchanged lastsame-range ->new_context_generation, changed hash ->content_changed precedence, then exactrepeat; no nativehook wiring or F06dependency.",
+    "covers": [
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_previously_seen_version_is_available",
+    "independent_oracle": "A->B->A samegen returns exact_repeat for originally available A; newgen consults latest first-registered same-range version as source. UTC audit never silently chooses version.",
+    "covers": [
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_project_checkout_and_caller_isolation",
+    "independent_oracle": "Two configured projects, registeredcheckouts, native and generatedcallers: identical labels/content never mix scopes. No caller-providedPOISE_SESSION substitute. Native/generated in callerprofile share capability.",
+    "covers": [
+      "requirements[2]",
+      "requirements[4]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_scoped_reset_clear_and_event_replay",
+    "independent_oracle": "Public prepare/context/reset/clear with stableevent IDs; repeatedlatest event idempotent, conflictingreuse refused; foreignscope summaries/files unchanged. Context whilemissing requiresprepare. Native reset/clear require same prepared episode/profile, latestreplay identity includes thatprofile/episode; profilechangeexplicitprepare only. Preserveforeignscopes.",
+    "covers": [
+      "requirements[2]",
+      "requirements[4]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_concurrent_exact_reads",
+    "independent_oracle": "Two actual concurrent CLI requests afterexplicitprepare: exactlyone content andone unchanged, one cachekey/two events. Joinallworkers; registeredrunner owns process/capture, no background observer.",
+    "covers": [
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_batch_validation_and_registration_atomicity",
+    "independent_oracle": "Batch sortedunique keys, later invalidsource or duplicatekey/foreignpath/overmaxitems refuses all registration; allreadselection/policy validated first. Same declared fragment undertwo unique keys serializes content thenunchanged; fullcandidatebudget still includesboth texts.",
+    "covers": [
+      "requirements[1]",
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_strict_request_and_policy_shapes",
+    "independent_oracle": "Required request/policyfield absence/null/wrongtypes/blankstrings/bools whereintegers; exactrequest schema, knownconfig strict, unknownconfiginert/retainedrawhash. Tables in fixturefiles.",
+    "covers": [
+      "requirements[3]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_source_failure_diagnostics",
+    "independent_oracle": "Missing/unreadable/nonUTF8/directory sources ordinarytypederrors/action/exit. Permissionerror via narrowstdlibPath.open fault aftergenuineCLI proof; no made-up setup failure RED.",
+    "covers": [
+      "requirements[3]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_prepared_storage_and_schema_preservation",
+    "independent_oracle": "Read/context missingfile/directory/wrongschema/malformedSQLite/foreignproject state: no implicitcreate/reset/migration; explicitprepare onunknownexistingrefuses andpreserves bytes/foreignmarker. TestheaderPRAGMAuser_version only, physicaltable names remainimplementationowner.",
+    "covers": [
+      "requirements[3]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_genuine_caller_admission_profile",
+    "independent_oracle": "Existingdirect_caller realnative/generatedbinding, valid/invalid/conflictingmissingidentity, runtimeassociationfence actualconfig; binderinitializationeffect separatedfrom readerstate. Callerprofile makesnoactivehookleaseclaim.",
+    "covers": [
+      "requirements[3]",
+      "requirements[4]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_native_hook_observation_profile",
+    "independent_oracle": "Nativeprofile actualisolatedHookRegistry find/read/liveness LIVE/DEAD/UNCERTAIN/missing/foreignsettings/ambiguousagent; no automaticcallerfallback. Genuinegeneratedcaller supported in explicitcallerprofile; nativeprofile lacksnativeauthority gives actionabledependency. Add actual StartA->End->lateStop/tool =>DEAD and noStart->UNCERTAIN. ExistinglastANYhelper alone mustNOT grantread; readonlyprojection belongs SAMEHookRegistryowner. Missinglock/read/version/foreignassociation refusedpreservingallstores.",
+    "covers": [
+      "requirements[3]",
+      "requirements[4]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_native_end_serializes_registration_admission",
+    "independent_oracle": "Ownerintegration: sourceread outsidehooktransaction, committedSessionEnd before finalregistration refusessuccessfulcache. Short finalguard uses EXISTINGHookRegistrylock andread-onlybinding_liveness throughreaderregistration; sameownerendwriter cannotcommit inthatcriticalsection. Actualfcntl exclusion andpublicisolatednativeevents, not mockedLIVE lease. Add StartA->read->End->StartB ordinaryresume: oldoperation capturedA finalBrefused; newrequest beforeexplicitprepare also refusesstoredA, explicitprepare B retiresonlyoldownscope andfreshread first_read/gen0 allowed. NativeeventIDs suppliedactualisolatedowner, no inventedrequesttoken. Canonicalhook/general lockaliasrefused beforeacquisition; allprepare/reset/clear/registrationpaths locksameorder and use readonlyoperations insideexistingflock, never nonreentrantownerwriter/cancellation helper.",
+    "covers": [
+      "requirements[3]",
+      "requirements[4]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_registry_write_lock_failure",
+    "independent_oracle": "RealSQLiteotherwriter BEGINIMMEDIATE withconfiguredshortbusybudget causesordinaryregistry_write/exit1 and logicalsnapshotunchanged; releaseactualwriter thenexplicitread works. No forceunlock/delete/callerchange.",
+    "covers": [
+      "requirements[3]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_registry_read_and_connection_failure",
+    "independent_oracle": "Preparedstate read/open fault afterpositiveentry throughnarrowexistingstdio/connectorfault; actiontyped, no replacement/implicitemptyDB; verify source/foreignTaskdataunchanged. Wrongversion/foreignschema remaindistinctfromI/O.",
+    "covers": [
+      "requirements[3]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_writer_failure_preserves_registered_availability",
+    "independent_oracle": "PublicPythonexecute withoutput sink failingbeforefirstbyte/afterpartialwrite, fullstderrtypedoutput_write, exit1, committedstatesourceavailability preserved. Same-ownerexplicitreset+read restorescontent. Do not assert failedoutput produced complete JSON or modeldelivery. Exactexit1 is the publicPython interface result with controlled standardfailing sink. It does not assert a platform-specific finalCLIbuffer exit or successfulcapture of a brokenpipe.",
+    "covers": [
+      "requirements[2]",
+      "requirements[3]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_both_complete_representation_consumers",
+    "independent_oracle": "Independent JSON consumer asserts exactfullobject/optionalcontentabsence andbodyhash; textconsumer parses eachheader thenexactUTF8 bytecount (no artificialseparatorLF), includingno-finalLF/batch/repeat. Uses literalexpected, not productrenderer.",
+    "covers": [
+      "requirements[0]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_complete_machine_output_and_common_views",
+    "independent_oracle": "Actualnewreader longcompletefullJSON saved bytestconsumer, existingresult-view/saved_result_view rendersboundedagentview/fullnavigation; completefilebytes/structuredcontent stayidentical. No newper-readerclipping or fullresponse replay mutation.",
+    "covers": [
+      "requirements[0]",
+      "definition_of_done[0]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_functional_metadata_and_clock_owner",
+    "independent_oracle": "Contextsummarycachecount/sourceeventaggregates count/contentbytes/model_content_bytes incl0repeat, realinjectedFakeClock auditboundary; no durations or crossdomainelapsed invented. PublicCLI usesexplicitSystemClock; activefunctionaldata only, noarchivalframework/F16report.",
+    "covers": [
+      "requirements[2]",
+      "definition_of_done[1]"
+    ]
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_configuration_unknown_values_remain_raw",
+    "independent_oracle": "Unknownworkingpolicy option staysinrawfile/hash, knownrequiredvalue stillvalidated; policyversionopaque. All paths/operatorlimits explicit, config_root independentcheckout; nocopy deploymentpaths tosourceexample.",
+    "covers": []
+  },
+  {
+    "node": "tests/content_reader/test_reader.py::test_taskless_reader_preserves_specialized_owners",
+    "independent_oracle": "NoTask/Sprintnewclaim/TaskDBmutation/sourcewrite/specializedreceiptmutation inordinaryread/control. Existing specializedwhole-file/ack behaviorguardindependent. NoPhysicalTaskplugin-uninstall claim; fullselectedprojectmanifest required.",
+    "covers": [
+      "requirements[4]",
+      "definition_of_done[1]"
+    ]
+  }
+]

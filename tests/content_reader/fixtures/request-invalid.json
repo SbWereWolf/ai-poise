@@ -1,0 +1,25 @@
+[
+  null,
+  [],
+  {},
+  {
+    "operation": "unknown"
+  },
+  {
+    "operation": "read",
+    "reads": []
+  },
+  {
+    "operation": "context",
+    "extra": 1
+  },
+  {
+    "operation": "reset",
+    "event_id": "x",
+    "reason": ""
+  },
+  {
+    "operation": "read",
+    "reads": true
+  }
+]

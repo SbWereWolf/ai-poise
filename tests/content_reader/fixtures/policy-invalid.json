@@ -1,0 +1,56 @@
+[
+  {
+    "path": [
+      "schema"
+    ],
+    "value": "invalid"
+  },
+  {
+    "path": [
+      "complete",
+      "max_bytes"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "bounded",
+      "max_lines"
+    ],
+    "value": 0
+  },
+  {
+    "path": [
+      "output",
+      "max_bytes"
+    ],
+    "value": null
+  },
+  {
+    "path": [
+      "version"
+    ],
+    "value": ""
+  },
+  {
+    "path": [
+      "registry",
+      "schema_version"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "admission",
+      "mode"
+    ],
+    "value": "invalid"
+  },
+  {
+    "path": [
+      "registry",
+      "filename"
+    ],
+    "value": "../foreign"
+  }
+]

@@ -25,7 +25,7 @@ from sprints.test_unpublish import (
 def delivered(project, tmp_path):
     project = deepcopy(project)
     setup(project)
-    project['cfg']['processes'].pop('documentation')
+    project['cfg']['workflows'].pop('documentation')
     project['cfg']['paths']['worktrees'] = str(project['app'] / 'task-worktrees')
     project['cfg']['paths']['requirements_database'] = str(tmp_path / 'requirements.sqlite')
     project['cfg']['paths']['requirements_lock'] = str(tmp_path / 'requirements.lock')
@@ -37,9 +37,9 @@ def delivered(project, tmp_path):
     exclude.write_text(exclude.read_text() + '\n/task-worktrees/\n')
     configure(project)
     settings, config_path, _ = installed_project(project)
-    root, cfg, processes = load_config(config_path)
+    root, cfg, workflows = load_config(config_path)
     project.update(root=root, cfg=cfg, config_path=config_path,
-                   process=processes['development'],
+                   workflow=workflows['development'],
                    requirements_registry=seed_fixture_requirements(root, cfg))
     planner = WorkTools(WorkPoise(config_path, 'planner'))
     born = draft(planner, [task(project, 'A'), task(project, 'B')], [

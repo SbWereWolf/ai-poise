@@ -98,7 +98,7 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
     set_execution(planner, 'A', receipt)
 
     # B owns retained work and evidence; A's delivery may legitimately remove A's tree.
-    worker = client(project, 'retained-worker')
+    worker = client(project, 'retained-worker', file_handoff=True)
     context = bootstrap(worker, 'B')
     payload = deepcopy(context['result_template'])
     payload['sections']['report'] = 'Retained participant evidence.'

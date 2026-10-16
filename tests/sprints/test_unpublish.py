@@ -15,7 +15,11 @@ from sprints.helpers import bootstrap, draft, publish, setup, task, verify
 from sprints.test_membership_conversion import add_execution
 
 
-def client(project, actor):
+def client(project, actor, *, file_handoff=False):
+    if file_handoff:
+        # Only scenarios explicitly preserving work request this optional service.
+        project['cfg']['runtime_services']['handoff'] = json.loads(
+            (Path(__file__).parent / 'fixtures/file-handoff.json').read_text())
     configure(project)
     return WorkTools(Poise(project['config_path'], actor))
 
@@ -89,7 +93,7 @@ def handoff(worker, suffix):
 
 
 def prepare_member(project, state):
-    worker = client(project, 'executor')
+    worker = client(project, 'executor', file_handoff=state in ('active', 'verified'))
     context = bootstrap(worker, 'A')
     assert context['status'] == 'active'
     if state in ('verified', 'completed'):
@@ -111,7 +115,7 @@ def git_state(path):
 
 
 def verified_materials(project):
-    worker = client(project, 'executor')
+    worker = client(project, 'executor', file_handoff=True)
     context = bootstrap(worker, 'A')
     payload = deepcopy(context['result_template'])
     payload['sections']['report'] = 'Original verified result with permanent proof.'
@@ -375,7 +379,7 @@ def test_draft_blocks_execution_and_republication_restores_admission(planned):
 def test_republish_retains_verified_and_completed_task_contracts(planned):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    worker = client(project, 'second-executor')
+    worker = client(project, 'second-executor', file_handoff=True)
     context = bootstrap(worker, 'B')
     assert verify(worker, context)['status'] == 'verified'
     handoff(worker, 'B-verified')
@@ -405,7 +409,7 @@ def test_verified_restart_ready_and_republish_preserve_history(planned):
     prior = deepcopy(planner.runtime.task_queries.record('A'))
     opened = reopen(planner, published['revision'])
     assert_materials(context, proof, files, git)
-    owner = client(project, 'restart-owner')
+    owner = client(project, 'restart-owner', file_handoff=True)
     restarted = restart(owner, 'A', prior['version'], request_id='revise-A')
     assert restarted['status'] == 'newborn'
     assert_materials(context, proof, files, git)
@@ -536,7 +540,7 @@ def test_draft_refuses_released_started_resume_then_republish_allows_it(planned,
 
 def test_draft_refuses_actual_verified_stage_advance_then_republish_allows_it(project):
     planner, published = two_stage_plan(project)
-    worker = client(project, 'executor')
+    worker = client(project, 'executor', file_handoff=True)
     context = bootstrap(worker, 'A')
     assert verify(worker, context)['status'] == 'verified'
     handoff(worker, 'before-stage-advance')
@@ -583,7 +587,7 @@ def test_member_claim_race_refuses_publication_without_partial_writes(planned, m
 
 def test_fixture_guard_two_stages_permit_real_progression(project):
     planner, _ = two_stage_plan(project)
-    worker = client(project, 'executor')
+    worker = client(project, 'executor', file_handoff=True)
     context = bootstrap(worker, 'A')
     assert verify(worker, context)['status'] == 'verified'
     handoff(worker, 'before-stage-advance')

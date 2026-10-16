@@ -164,7 +164,8 @@ def _direct_call(project: dict, env: dict[str, str], packet: dict | None = None)
         env=env,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    return json.loads(result.stdout)
+    envelope = json.loads(result.stdout)
+    return json.loads(Path(envelope['response_path']).read_bytes())
 
 
 def _direct_work(project: dict, env: dict[str, str]) -> dict:

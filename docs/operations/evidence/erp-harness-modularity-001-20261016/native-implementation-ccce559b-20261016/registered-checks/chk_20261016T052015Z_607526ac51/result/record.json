@@ -1,0 +1,580 @@
+{
+  "artifacts": {
+    "evidence_bytes": 6307,
+    "evidence_files": 1,
+    "evidence_manifest_path": ".runtime/checks/chk_20261016T052015Z_607526ac51/result/evidence/evidence-manifest.json",
+    "evidence_manifest_sha256": "6da79516aca5cfc7ef17c7387c51375b548af4b8a881ecf5de65bf8ad8c719f2",
+    "evidence_root": ".runtime/checks/chk_20261016T052015Z_607526ac51/result/evidence",
+    "evidence_status": "complete",
+    "ledger_path": "ai-assistant/checks/data/ledger.sqlite3",
+    "log_bytes": 34,
+    "log_path": ".runtime/checks/chk_20261016T052015Z_607526ac51/result/command.log",
+    "log_sha256": "ea0641aa43fae6b4d57bfbfdfd50eeb4232b69a4939009bfc255c1b336abd980",
+    "progress_path": null,
+    "record_path": ".runtime/checks/chk_20261016T052015Z_607526ac51/result/record.json"
+  },
+  "calibration": {
+    "automatic": true,
+    "command": null,
+    "observed_progress_gap_seconds": null,
+    "observed_success_seconds": 15.227,
+    "previous_observed_max_progress_gap_seconds": 0.0,
+    "previous_observed_max_success_seconds": 19.065,
+    "recommended_execution_timeout_seconds": 21,
+    "recommended_stall_timeout_seconds": null,
+    "required": false,
+    "status": "current"
+  },
+  "check_id": "chk_20261016T052015Z_607526ac51",
+  "dependencies": {
+    "missing_environment": [],
+    "missing_executables": [],
+    "missing_files": []
+  },
+  "duration_ms": 15227,
+  "evidence_scope": {
+    "inputs": {
+      "entries": [
+        {
+          "bytes": 17566,
+          "kind": "file",
+          "mode": 420,
+          "path": ".codex/hooks/tool-use-dispatcher.py",
+          "sha256": "a3cb5edb81d6e4469e994a9b3a219b36d4e74fa75d41bde9e65579f1d7aff5cc"
+        },
+        {
+          "bytes": 192,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/artifact-path-policy.json",
+          "sha256": "2fa20da7841be81c736e226193c2bd7b8021b8b3ed56d8f527ea16c9e8fbc561"
+        },
+        {
+          "bytes": 28263,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/artifact-path-policy.py",
+          "sha256": "19a8c11d1840fffc87f2f530218326f20c8406a6a176c07385f94cad978dba1f"
+        },
+        {
+          "bytes": 4451,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/artifact_policy_gate.py",
+          "sha256": "b03c0f22392dd1afdc7ada7cacbe95a31d1387e6fd76a0c716d9171b9e9e7662"
+        },
+        {
+          "bytes": 2414,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/ast-index.py",
+          "sha256": "dad26185771ce7243ae271212c0805b0c778b3e829860f0a1fb7befe87b9a3cd"
+        },
+        {
+          "bytes": 9562,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/bounded_output.py",
+          "sha256": "3ce4f40ecc2ed7ac4b56b3c21a9749eabf4a5fb6f702b605f630ad79aef75618"
+        },
+        {
+          "bytes": 20584,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/codex-exec-diagnostic.py",
+          "sha256": "29ead4fa396c08e0cbe62fbd42e12030358309849b246db5319758dc737d1261"
+        },
+        {
+          "bytes": 6458,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/codex-runtime-context.py",
+          "sha256": "4fb48baf97add069d0fb87e803a4c6f725087a264f4f11918821842c31c5b3e6"
+        },
+        {
+          "bytes": 9153,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/command-output.py",
+          "sha256": "50a5e4bf5a92f98755142df8b2c63fbbe0f3feab23e1f269e77e3d4517898a1f"
+        },
+        {
+          "bytes": 11677,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/compaction_resume_lib.py",
+          "sha256": "5185614488274d785acffd9914392828700ca38383a467ce7fb0b6a20f4f8a09"
+        },
+        {
+          "bytes": 2694,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/configure-codex-project.py",
+          "sha256": "b5e2be58d6f8353d12f812026b2d65f63eee8350fac2c909e32015f368bd1364"
+        },
+        {
+          "bytes": 4130,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/content-read.py",
+          "sha256": "0c3f06e7122c1ecfb3aac0194bd4f52177a3a5e67598b4619caf5eed4a23459d"
+        },
+        {
+          "bytes": 14020,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/content_read_lib.py",
+          "sha256": "36277096ca229aa3735ed3afb052c3c36775fb12b9f731e962e770d20c9ee50e"
+        },
+        {
+          "bytes": 1697,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/document-intake-policy.example.json",
+          "sha256": "c996168bfe6f1c44ad943a1d1ccc81d47ec57f339d04080d3ac07570c5e70380"
+        },
+        {
+          "bytes": 849,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/document-intake-registry-policy.json",
+          "sha256": "cdcb4bc72cf8b7f273d769258d43b70d503b881d8675e3be3e82701dc13dedd4"
+        },
+        {
+          "bytes": 2235,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/document-intake-registry.py",
+          "sha256": "6d297c872d0f3268b4776a0e9cdd432fde134911df64470539f7516179000d36"
+        },
+        {
+          "bytes": 59902,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/document_intake.py",
+          "sha256": "254854a84f5fb61a447d44756e893a47584d60ecc9dfb8b07bfa33a6c9cd35bd"
+        },
+        {
+          "bytes": 58905,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/document_intake_registry.py",
+          "sha256": "fac1b66032fda11ab4767672f811e1efddd1d9c32d231186b5b18ea6f23ca1b9"
+        },
+        {
+          "bytes": 53129,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/effective-policy-manifest.py",
+          "sha256": "0d4522b96ad0395f6a36174201a9f4c93623c41c38d6917f5667dcd6f0da92e5"
+        },
+        {
+          "bytes": 501,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/literal-boundary-policy.json",
+          "sha256": "bd7c41a4a89d45deac14d7bcd7c1c6484fad19b4309e3870d1fb2ed73ac51d64"
+        },
+        {
+          "bytes": 9438,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/literal-boundary-policy.py",
+          "sha256": "8544d97ff3b3f8d1030cda43e86d0b446073b13a6534dd8af88a3ddb2acdd90a"
+        },
+        {
+          "bytes": 1015,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/output-policy.json",
+          "sha256": "8e76ffa5481582acaf5e0e20cca39966dfc35b9fce96da22a9e76365fd0aa70d"
+        },
+        {
+          "bytes": 3046,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/path-dispositions.json",
+          "sha256": "ffe9ac9431927c9b642a23dea2e3796ee893ddda6edc80eb83d1432cde9dabba"
+        },
+        {
+          "bytes": 6376,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/path_dispositions.py",
+          "sha256": "fb01e4e91d6f2286112b80e5d14b73670e55c541f43023d7b4dcb3265b9f05ee"
+        },
+        {
+          "bytes": 434,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/rebuild-ast-index.py",
+          "sha256": "f7eabaf91d25b530f1f803770101cd4d3906f3fb2661ef7b71747af0c17446eb"
+        },
+        {
+          "bytes": 2843,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/session-temp-runtime.py",
+          "sha256": "fe1e4586fa5fd93412802c87b795993dd35475883d5741f71c4b925174b3fb21"
+        },
+        {
+          "bytes": 20066,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/validate-codex-rule-observation.py",
+          "sha256": "58e41d90db50458dd4616567492226d67f2495bbe2660f691da86861fdb8244f"
+        },
+        {
+          "bytes": 4448,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/workflow-manifest.py",
+          "sha256": "48876349e0914fcb0c35218bd703996efa5a30c5ed4d543076552ff8caecb525"
+        },
+        {
+          "bytes": 23680,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/agent/workflow_manifest_lib.py",
+          "sha256": "9501e4cade906f4d8384ffbe1e3bd454cae25b37a220c150d6092f951f1908b4"
+        },
+        {
+          "bytes": 775,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/bootstrap/python-runtime.sh",
+          "sha256": "c40f9bb234c9c9b84fa4e353217596a1db58cc05ddc2f921cade424261cffd6e"
+        },
+        {
+          "bytes": 1727,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/artifact-evidence-inventory.py",
+          "sha256": "6a8d6646c2820bf6ca70eec29b7ac740f834322f22e0bcf3f580f7da7454845a"
+        },
+        {
+          "bytes": 10423,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/artifact_evidence_inventory_lib.py",
+          "sha256": "74d3226655d429fe73beef020c01d68d98fdefc3109ef79a4329292b1b9bf1a9"
+        },
+        {
+          "bytes": 5489,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/calibrate_timeout.py",
+          "sha256": "3b359c952c3c253a14741ff890355c96f9cc73c6eebce0f2d8bd2e8370d8d3a5"
+        },
+        {
+          "bytes": 824,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/check_configuration.py",
+          "sha256": "bd7154d6b0343432375999d2bbb52a206e88900faf8b57227c2e599b50772ae5"
+        },
+        {
+          "bytes": 117870,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/check_runner_lib.py",
+          "sha256": "56158a6ed1efdfc2d834b3de65ed7bfb4042052abf19a1d233201d68444f3ff6"
+        },
+        {
+          "bytes": 33820,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/command_profile_lib.py",
+          "sha256": "dada2e288c2f52fcb4a9c52098e18e1883ef2c6fcf627b1d53c34a2e9abd8cae"
+        },
+        {
+          "bytes": 1952,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/generate_runtime_limits.py",
+          "sha256": "aed39af7061f3a4431a76d7b65f870430d8484d667de404b0ecc241c39f8d593"
+        },
+        {
+          "bytes": 10055,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/playwright-case-provenance.py",
+          "sha256": "1c4b421b71eb15fc57799ff6809fadd66e1715667945314f3591c3ad2b3189dd"
+        },
+        {
+          "bytes": 2334,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/reference-trigger-audit.py",
+          "sha256": "050d040ac9a0d5de1c4f4d4c06ac45f50f136a5af4ba8d0a294f438afc40e2a7"
+        },
+        {
+          "bytes": 22782,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/reference_trigger_audit_lib.py",
+          "sha256": "70843b812b4e18e6fe9b17c58fb0cad1bb706225dd960f9dcf707fb72bbe54bd"
+        },
+        {
+          "bytes": 2579,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/registered_check_service.py",
+          "sha256": "c163ad486a4f03eacd0e38c6776c2698019fa8451facc5564bc3bd71be60761a"
+        },
+        {
+          "bytes": 93862,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/registered_command_adoption_lib.py",
+          "sha256": "2671178e63287fac093c8f46ef829bcecb5c1f1eb8865b47fa0d5f087cee8b9c"
+        },
+        {
+          "bytes": 5019,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/registered_provider_lib.py",
+          "sha256": "3a05d39e89a7d65fce781792d74b636788d8832733035d9a4e08be052b2a6e8d"
+        },
+        {
+          "bytes": 8382,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/repository-documentation-contracts.py",
+          "sha256": "246ca6a04c5444b49945067a5992bfe2bd75d832378c1c236af055d51ff795ca"
+        },
+        {
+          "bytes": 11277,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/run_check.py",
+          "sha256": "8688ead05a2fe9862cd66f6703a2905d128796cd675620cbc784aecd391f89e2"
+        },
+        {
+          "bytes": 3186,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/run_test_package.py",
+          "sha256": "0b7153fb44a698dbe2e6fe7ff453dad65d6c1496eb9b65704b84ed5463cfe7c7"
+        },
+        {
+          "bytes": 2599,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/artifact-evidence-dispositions-v1.schema.json",
+          "sha256": "b7b5b86ff1dfc13ee0f3dce550c22c40b154ac0c7bfcef9dfc63d0301273d9c6"
+        },
+        {
+          "bytes": 6691,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/artifact-evidence-inventory-result.schema.json",
+          "sha256": "fc5643de6d1b9e6c7d7bb21ae2404ceeed75c1eee8aa2cc722b807cf83383d7c"
+        },
+        {
+          "bytes": 1384,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/cancel-result.schema.json",
+          "sha256": "12ec2376f4e06d68a807b28d5429a70c3cd3ff08b983dcc0b8d1b063b3ce79e1"
+        },
+        {
+          "bytes": 13573,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/check-result.schema.json",
+          "sha256": "bb9a34d54450bdc5a8ecd9b24b6a2da643f67f78b53ea0c0e749a37cb2ca47a4"
+        },
+        {
+          "bytes": 8097,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/command-profiles.schema.json",
+          "sha256": "c19d015da016c61553637599aa76164f6b7a9a3cb63443bf58613f29f8dbbfa0"
+        },
+        {
+          "bytes": 3349,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/evidence-manifest.schema.json",
+          "sha256": "8d43848486d356c666753a9cb224333fdc942d350b87bd25ad41e760def525f6"
+        },
+        {
+          "bytes": 3300,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/schemas/verification-plan-v1.schema.json",
+          "sha256": "dd3f954d273b47d2f532243b82d1ad5005e0162ed7f992cdee740f633ea001ed"
+        },
+        {
+          "bytes": 26449,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/checks/test_package_lib.py",
+          "sha256": "724cbe9af493a92c9f08ab6f2ed159a43a6fe88a367482fc85e5199a611dc0ce"
+        },
+        {
+          "bytes": 16895,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/check-runner.py",
+          "sha256": "5ac2362bbc113183e2f7c3715eb8c2b033f98b5f5592dbbaad913874000ef2ff"
+        },
+        {
+          "kind": "directory",
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding"
+        },
+        {
+          "bytes": 1024,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/cache-states.json",
+          "sha256": "11089195c9a72c926debc8e227253f3c03bfd4f81d0d1d677c0462b0bc546729"
+        },
+        {
+          "bytes": 529,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/cancel.json",
+          "sha256": "4f6fb1191e722758fa8c7ad42206d12656e579e3c1c911e9a03856f023911cc5"
+        },
+        {
+          "bytes": 835,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/command-profiles.toml",
+          "sha256": "c3c6709339b533fecdb896061e2286c6a87617f9335be039b49aa1c591fab3f5"
+        },
+        {
+          "bytes": 2642,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/complete.json",
+          "sha256": "8acdd1352bc598978c8403f1baffe72dbc61e4c6adfc0a19c5b501c7931351b3"
+        },
+        {
+          "bytes": 470,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/module-origin.py",
+          "sha256": "a3175c0a03b46949e9e34d388b87046ad24f81ba5ea5a11d772f797d4fb27560"
+        },
+        {
+          "bytes": 1376,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/overflow.json",
+          "sha256": "ea79eeadc672b5115563c481200bcc0eb8b1d64cb06cab671c5fd12132eaf267"
+        },
+        {
+          "bytes": 336,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/fixtures/provider-binding/probe.py",
+          "sha256": "02012850e9a206f4f5bae2f2129de34aa7e5f57755880a953ac1bd7e9bb2952d"
+        },
+        {
+          "bytes": 45433,
+          "kind": "file",
+          "mode": 420,
+          "path": "ai-assistant/tests/checks/provider-binding.py",
+          "sha256": "85fc8b2c5bdd68fb2fd8f63a6b999de462059faf1be79846e9af9c63d4dff691"
+        }
+      ],
+      "missing": [],
+      "patterns": [
+        "ai-assistant/tests/checks/provider-binding.py",
+        "ai-assistant/tests/checks/fixtures/provider-binding/**",
+        "ai-assistant/tests/checks/check-runner.py",
+        "ai-assistant/checks/*.py",
+        "ai-assistant/checks/schemas/*.json",
+        ".codex/hooks/tool-use-dispatcher.py",
+        "ai-assistant/agent/*.py",
+        "ai-assistant/agent/*.json",
+        "ai-assistant/bootstrap/python-runtime.sh"
+      ],
+      "sha256": "f3e0046bf478fda2bbe0f5196ff26d24b279ce3f27eba2dcf97c98ae1f7250ff"
+    },
+    "profile_sha256": "bb917ae408ac7587c9f871a87a2671d41b7f2f236fbb1c9465a203b3b92bdeb0",
+    "runtime": {
+      "environment": {},
+      "executables": [
+        {
+          "mtime_ns": 1711874463000000000,
+          "name": "bash",
+          "path": "/usr/bin/bash",
+          "size": 1446024
+        },
+        {
+          "mtime_ns": 1751487822000000000,
+          "name": "git",
+          "path": "/usr/bin/git",
+          "size": 4066232
+        }
+      ],
+      "machine": "x86_64",
+      "platform": "linux",
+      "platform_release": "6.18.40.1-microsoft-standard-WSL2",
+      "python": "3.12.3",
+      "runtime_class": "posix-host"
+    },
+    "schema_version": 1,
+    "sha256": "37aaf62bfa07314c3fe1878f9f86fb9242085a16e11a88466b21e6ff764e6011"
+  },
+  "exit_code": 0,
+  "finished_at": "2026-10-16T05:20:30Z",
+  "parser": {
+    "confirmed": true,
+    "counts": {},
+    "failures": [],
+    "name": "generic"
+  },
+  "profile": {
+    "argv": [
+      "bash",
+      "-c",
+      "export POISE_RUN_OUTPUT_DIR=\"$REPO_CHECK_EVIDENCE_DIR\"; bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/provider-binding.py"
+    ],
+    "command_id": "provider-binding-verification",
+    "cwd": ".",
+    "evidence_id": "provider-binding-report",
+    "parser": "generic",
+    "runtime_class": "posix-host",
+    "workload_class": "default"
+  },
+  "progress": {
+    "age_seconds": null,
+    "anomaly_count": 0,
+    "event_count": 0,
+    "last_event_at": null,
+    "last_output_at": "2026-10-16T05:20:30Z",
+    "last_value": null,
+    "max_gap_seconds": 0.0,
+    "observability": "unavailable",
+    "output_age_seconds": 0.032,
+    "output_bytes": 34
+  },
+  "runtime": {
+    "pid": 370386,
+    "platform": "linux",
+    "platform_release": "6.18.40.1-microsoft-standard-WSL2",
+    "python": "3.12.3"
+  },
+  "schema_version": 1,
+  "started_at": "2026-10-16T05:20:15Z",
+  "status": "passed",
+  "summary": "PROVIDER_BINDING_CONTRACTS_PASSED",
+  "termination": null,
+  "timeout": {
+    "configured_seconds": 21,
+    "effective_seconds": 21,
+    "evidence_check_id": null,
+    "override_reason": null,
+    "override_seconds": null
+  },
+  "verified_success": true,
+  "workspace": {
+    "head": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

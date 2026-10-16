@@ -1,0 +1,29 @@
+{
+  "history_evidence_ids": [
+    "22dede9d-8c77-45cb-8f94-07dbdfb5dc9f",
+    "87643571-4d41-4de8-92c8-f997f5f1db8d"
+  ],
+  "profile": {
+    "command": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/tests/checks/evidence-manifest.py"
+    ],
+    "runtime": {
+      "executable": "/usr/bin/bash",
+      "platform": "linux"
+    },
+    "workload": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST"
+  },
+  "selection": {
+    "basis": "verified_success_history",
+    "diagnostic_evidence_run_id": null,
+    "diagnostic_override_reason": null,
+    "history_count": 2,
+    "history_multiplier": 1.1,
+    "longest_verified_success_seconds": 10.52784008999879,
+    "poll_seconds": 0.1,
+    "progress_gap_seconds": 360.0,
+    "seconds": 360.0
+  }
+}

@@ -643,3 +643,136 @@ def test_numeric_bound_valid_controls(consumer, catalog, bound):
     assert row["state"] == "satisfied"
     assert [item["role"] for item in calls(root)] == ["check"]
     assert (root / "resource").read_text() == "valid"
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize("field", ["argv", "cwd", "env"])
+def test_unsupported_expanded_os_text_rejected_before_any_action(consumer, catalog, role, field):
+    root, data = catalog
+    data["parameters"] = {"opaque": {"type": "string", "default": "\ud800"}}
+    action = data["requirements"][0][role]
+    if field == "argv":
+        action["argv"].append("${opaque}")
+    elif field == "cwd":
+        action["cwd"] = "${opaque}"
+    else:
+        action["env"] = {"OPAQUE": "${opaque}"}
+    # Every raw action is representable; only the resolved parameter is invalid.
+    result = invoke(consumer, catalog, "infra", bootstrap=True)
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert ("invalid " + field + " encoding").encode() in result.stderr
+    assert b"Traceback" not in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("role,initial", [("check", "satisfied"), ("install", "missing"), ("repair", "invalid")])
+@pytest.mark.parametrize("field", ["argv", "cwd", "env"])
+@pytest.mark.parametrize("value", ["\udc80", "\U00010000"], ids=["surrogateescape", "astral"])
+def test_supported_expanded_os_text_round_trips(consumer, catalog, role, initial, field, value):
+    root, data = catalog
+    state(root, initial)
+    action = data["requirements"][0][role]
+    if field == "argv":
+        action["argv"].append("${opaque}")
+    elif field == "cwd":
+        directory = root / ("working-" + value)
+        directory.mkdir()
+        value = str(directory)
+        action["cwd"] = "${opaque}"
+    else:
+        action["env"] = {"OPAQUE": "${opaque}"}
+    data["parameters"] = {"opaque": {"type": "string", "default": value}}
+    result = invoke(consumer, catalog, "infra", bootstrap=True)
+    result.stdout.decode("utf-8", errors="strict")
+    packet = report(result, 0, "ready")
+    assert packet["parameters"]["opaque"] == value
+    observed = calls(root)
+    assert [item["role"] for item in observed] == (["check"] if role == "check" else ["check", role, "check"])
+    selected = next(item for item in observed if item["role"] == role)
+    if field == "argv":
+        assert selected["argv"][-1] == value
+    elif field == "cwd":
+        assert selected["cwd"] == value
+    else:
+        assert selected["env"]["OPAQUE"] == value
+    assert (root / "resource").read_text() == "valid"
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.fixture
+def supply_layout(tmp_path):
+    root = tmp_path / "supply-layout"
+    tests = root / "tests/maintenance"
+    tests.mkdir(parents=True)
+    shutil.copy2(REPO / "tests/maintenance/test_generic_v2_supply.py", tests / "test_generic_v2_supply.py")
+    (tests / "fixtures").mkdir()
+    for name in ("v2_selected_component.json", "v2_supply_inputs.json"):
+        shutil.copy2(ACTION.parent / name, tests / "fixtures" / name)
+    shutil.copy2(REPO / "bootstrap", root / "bootstrap")
+    shutil.copytree(REPO / "apps/bootstrap", root / "apps/bootstrap")
+    shutil.copy2(ACTION.parent / "v2_selected_component.json", root / "apps/bootstrap/component.json")
+    return root
+
+
+@pytest.mark.parametrize("case", [
+    f"{kind}-{field}"
+    for kind in ("nul", "blank", "surrogate", "wrong-type", "missing", "duplicate")
+    for field in ("schema", "distribution", "version", "accepted_commit", "wheel_sha256", "delivery_manifest_sha256")
+] + ["root-list", "invalid-utf8", "invalid-json", "wrong-schema"])
+def test_supply_malformed_lock_is_not_selection_red(consumer, supply_layout, case):
+    root = supply_layout
+    path = root / "apps/bootstrap/component.json"
+    lock = json.loads(path.read_text())
+    if case == "root-list":
+        raw = b"[]"
+    elif case == "invalid-utf8":
+        raw = b"\xff"
+    elif case == "invalid-json":
+        raw = b"{"
+    elif case == "wrong-schema":
+        lock["schema"] = "unknown"
+        raw = json.dumps(lock).encode()
+    elif case.startswith("duplicate-"):
+        field = case.removeprefix("duplicate-")
+        value = "0.2.0" if field == "version" else lock[field]
+        raw = (json.dumps(lock)[:-1] + "," + json.dumps(field) + ":" + json.dumps(value) + "}").encode()
+    else:
+        kind, field = case.rsplit("-", 1) if case.startswith("wrong-type-") else case.split("-", 1)
+        if kind == "missing":
+            del lock[field]
+        else:
+            lock[field] = {"nul": "x\x00y", "blank": " \t ", "surrogate": "\ud800", "wrong-type": False}[kind]
+        raw = json.dumps(lock).encode()
+    path.write_bytes(raw)
+    test = subprocess.run([str(consumer), "-I", "-B", str(root / "tests/maintenance/test_generic_v2_supply.py")],
+                          capture_output=True, env=os.environ.copy())
+    assert test.returncode == 1
+    assert test.stdout == b""
+    assert test.stderr
+    # Independent real consumer confirms this is invalid input, not a valid old selection.
+    actual = subprocess.run([str(consumer), "-I", "-B", str(root / "bootstrap"), "check",
+                             "--catalog-dir", str(root)], capture_output=True, env={})
+    assert actual.returncode == 2
+    assert actual.stderr == b""
+    packet = json.loads(actual.stdout)
+    assert packet["schema"] == "ai-poise/bootstrap-error/v1"
+    assert packet["code"] == "component_lock_invalid"
+    assert packet["exit_code"] == 2
+
+
+@pytest.mark.parametrize("selected", [True, False])
+def test_supply_valid_selection_controls(consumer, supply_layout, selected):
+    root = supply_layout
+    if not selected:
+        path = root / "apps/bootstrap/component.json"
+        lock = json.loads(path.read_text())
+        lock["version"] = "0.2.0"
+        path.write_text(json.dumps(lock))
+    result = subprocess.run([str(consumer), "-I", "-B", str(root / "tests/maintenance/test_generic_v2_supply.py")],
+                            capture_output=True, env=os.environ.copy())
+    assert result.returncode == (0 if selected else 1)
+    assert result.stdout == (b"SUPPLY_VERIFIED\n" if selected else b"SUPPLY_SELECTION_MISMATCH\n")
+    assert result.stderr == b""

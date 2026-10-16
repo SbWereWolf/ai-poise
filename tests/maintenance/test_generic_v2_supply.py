@@ -14,6 +14,11 @@ class SupplyGap(AssertionError):
     pass
 
 
+def independent_unique_pairs(pairs):
+    assert len(pairs) == len({key for key, _ in pairs}), "Duplicate lock field"
+    return dict(pairs)
+
+
 def test_supply_matches_exact_source_wheel_and_manifest():
     wheel = Path(os.environ["AIP_GENERIC_WHEEL"])
     build = json.loads(Path(os.environ["AIP_GENERIC_BUILD"]).read_text())
@@ -47,12 +52,16 @@ def test_supply_matches_exact_source_wheel_and_manifest():
     assert build["exit_code"] == 0
     assert hashlib.sha256(Path(os.environ["AIP_GENERIC_BUILD_STDOUT"]).read_bytes()).hexdigest() == build["stdout_sha256"]
     assert hashlib.sha256(Path(os.environ["AIP_GENERIC_BUILD_STDERR"]).read_bytes()).hexdigest() == build["stderr_sha256"]
-    lock = json.loads((REPO / "apps/bootstrap/component.json").read_text())
+    lock = json.loads((REPO / "apps/bootstrap/component.json").read_bytes().decode("utf-8"),
+                      object_pairs_hook=independent_unique_pairs)
+    selected = json.loads((FIXTURES / "v2_selected_component.json").read_text())
+    assert type(lock) is dict
+    assert set(lock) == set(selected)
+    for value in lock.values():
+        assert isinstance(value, str) and value.strip() and "\x00" not in value
+        value.encode("utf-8", errors="strict")
     assert lock["schema"] == "ai-poise/bootstrap-component/v1"
     assert lock["distribution"] == "environment-maintenance"
-    selected = json.loads((FIXTURES / "v2_selected_component.json").read_text())
-    assert set(lock) == set(selected)
-    assert all(isinstance(value, str) and value for value in lock.values())
     # Valid accepted inputs plus a different real product selection is the RED.
     if lock != selected:
         raise SupplyGap("SUPPLY_SELECTION_MISMATCH")

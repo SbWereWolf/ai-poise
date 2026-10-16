@@ -1,0 +1,55 @@
+{
+  "accepted_commit": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+  "target_commit": "16c5b906615e57a5b5f89b495c42b79f51eab87e",
+  "index_tree": "c2fcc025aa20b2be70432fd2ff3d45ea855c2329",
+  "files": [
+    {
+      "path": "ai-assistant/checks/check_runner_lib.py",
+      "sha256": "a96f425814d387511f22aeca304ad5b9af3ca7bc7432772e0d2fade465d02f49"
+    },
+    {
+      "path": "ai-assistant/checks/command-profiles.toml",
+      "sha256": "c35003848d5b79fc9538bab942c55c6834bdc74b54bfc7838dcd97da20f55cf2"
+    },
+    {
+      "path": "ai-assistant/checks/registered_command_adoption_lib.py",
+      "sha256": "b37bf86287576df58a20400d89ef5accfd9759bb89b2cd6a9967abaf6394d429"
+    },
+    {
+      "path": "ai-assistant/checks/run_check.py",
+      "sha256": "309b1731ada81b5aeee586132258ab494535b08987b05657d3cd282457b2f4e5"
+    },
+    {
+      "path": "ai-assistant/checks/tooling-verification.json",
+      "sha256": "820c4028ec351f0eb44ff567787244170b7681c55f154a2cea921b8d51553682"
+    },
+    {
+      "path": "ai-assistant/checks/command_profile_lib.py",
+      "sha256": "a5de27c3532131ad35aa934e4b2f7c4b6bb8f8cb98590697497a5f2edd5780bd"
+    },
+    {
+      "path": "ai-assistant/mcp/repo-checks-server.py",
+      "sha256": "dddb28fd46d3738afac353e266e048aa3bc2af20834163250144325f2e30824f"
+    },
+    {
+      "path": "ai-assistant/tests/checks/artifact-evidence-inventory.py",
+      "sha256": "353b7632507acad1700c3642944cff463910e501acc6f42ac9878128c84cafeb"
+    },
+    {
+      "path": "ai-assistant/tests/checks/check-runner.py",
+      "sha256": "f8db2d54a68ef9fb67f5dd5d64ebedb52f7110ca363af531b468667e2f11d371"
+    },
+    {
+      "path": "ai-assistant/tests/checks/tooling-verification-config.py",
+      "sha256": "f4d876042de310256aacbe3780f6bdad21e43c91ecfed806816e0825eba89053"
+    },
+    {
+      "path": "ai-assistant/tests/checks/evidence-manifest.py",
+      "sha256": "0ea88532a713a4bb086f30b15af36f7f7872bd56e32f52ffc5d9c17564c569cb"
+    },
+    {
+      "path": "ai-assistant/tests/checks/registered-check-lock.py",
+      "sha256": "baf782330f0124b8e86aee89751aa6edd8a920ec0ac47d220f9b99af99c46c93"
+    }
+  ]
+}

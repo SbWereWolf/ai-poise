@@ -1,0 +1,3159 @@
+diff --git a/ai-assistant/checks/check_runner_lib.py b/ai-assistant/checks/check_runner_lib.py
+index 9e74cf2a..8fb4bb0d 100644
+--- a/ai-assistant/checks/check_runner_lib.py
++++ b/ai-assistant/checks/check_runner_lib.py
+@@ -10,6 +10,8 @@ documentation.
+ from __future__ import annotations
+ 
+ import argparse
++import command_profile_lib as profile_contracts
++from check_configuration import CheckConfiguration
+ 
+ from contextlib import contextmanager
+ import copy
+@@ -34,7 +36,6 @@ import sys
+ import threading
+ import time
+ import tomllib
+-import textwrap
+ from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
+ import uuid
+ 
+@@ -58,10 +59,6 @@ LEDGER_CONNECTION_TIMEOUT_SECONDS = 30.0
+ LEDGER_LOCK_RETRY_SECONDS = 0.05
+ 
+ 
+-class ProfileError(ValueError):
+-    """The registered command-profile contract is invalid."""
+-
+-
+ class RunnerError(RuntimeError):
+     """The registered command could not be executed safely."""
+ 
+@@ -70,13 +67,6 @@ class LedgerError(RuntimeError):
+     """The durable check ledger is missing, invalid, or inconsistent."""
+ 
+ 
+-_IDENTIFIER_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,95}$")
+-_SUPPORTED_PLATFORMS = frozenset({"linux", "darwin", "windows"})
+-_SUPPORTED_INVOCATIONS = frozenset({"exec", "windows_cmd"})
+-_SUPPORTED_PARSERS = frozenset(
+-    {"generic", "phpunit", "vitest", "playwright", "phpstan", "deptrac", "build"}
+-)
+-_SUPPORTED_EVIDENCE_RETENTION_CLASSES = frozenset({"task", "release", "diagnostic"})
+ _SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+     (re.compile(r"(?i)(authorization\s*:\s*bearer\s+)[^\s]+"), r"\1<redacted>"),
+     (re.compile(r"(?i)\b(sk-[A-Za-z0-9_-]{8,})\b"), "<redacted-openai-key>"),
+@@ -97,11 +87,6 @@ _SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+ _LEDGER_SCHEMA_VERSION = 1
+ _CACHE_SCHEMA_VERSION = 1
+ _CACHE_MAX_MATCHED_FILES = 1_000_000
+-_INPUT_SELECTION_FILESYSTEM_GLOB = "filesystem-glob"
+-_INPUT_SELECTION_GIT_TRACKED_MARKDOWN = "git-tracked-markdown"
+-_SUPPORTED_INPUT_SELECTIONS = frozenset(
+-    {_INPUT_SELECTION_FILESYSTEM_GLOB, _INPUT_SELECTION_GIT_TRACKED_MARKDOWN}
+-)
+ _COMMAND_PROFILES_PATH = "ai-assistant/checks/command-profiles.toml"
+ _TEST_PACKAGES_PATH = "ai-assistant/checks/test-packages.toml"
+ 
+@@ -117,653 +102,6 @@ def redact(value: str) -> str:
+     return result
+ 
+ 
+-def _required_string(value: object, label: str) -> str:
+-    if not isinstance(value, str) or not value.strip():
+-        raise ProfileError(f"{label} must be a non-empty string")
+-    return value.strip()
+-
+-
+-def _timestamp_with_timezone(value: object, label: str) -> str:
+-    result = _required_string(value, label)
+-    normalized = result[:-1] + "+00:00" if result.endswith("Z") else result
+-    try:
+-        parsed = datetime.fromisoformat(normalized)
+-    except ValueError as error:
+-        raise ProfileError(f"{label} must be an ISO-8601 timestamp with time and timezone") from error
+-    if parsed.tzinfo is None or parsed.utcoffset() is None:
+-        raise ProfileError(f"{label} must include a timezone")
+-    return result
+-
+-
+-def _identifier(value: object, label: str) -> str:
+-    result = _required_string(value, label)
+-    if not _IDENTIFIER_RE.fullmatch(result):
+-        raise ProfileError(f"{label} must match {_IDENTIFIER_RE.pattern}: {result!r}")
+-    return result
+-
+-
+-def _positive_int(value: object, label: str) -> int:
+-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+-        raise ProfileError(f"{label} must be a positive integer")
+-    return value
+-
+-
+-def _non_negative_number(value: object, label: str) -> float:
+-    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+-        raise ProfileError(f"{label} must be a non-negative number")
+-    result = float(value)
+-    if not math.isfinite(result):
+-        raise ProfileError(f"{label} must be finite")
+-    return result
+-
+-
+-def _boolean(value: object, label: str) -> bool:
+-    if not isinstance(value, bool):
+-        raise ProfileError(f"{label} must be boolean")
+-    return value
+-
+-
+-def _string_list(value: object, label: str, *, allow_empty: bool = False) -> tuple[str, ...]:
+-    if not isinstance(value, list) or (not value and not allow_empty):
+-        qualifier = "" if allow_empty else " and non-empty"
+-        raise ProfileError(f"{label} must be a string list{qualifier}")
+-    return tuple(_required_string(item, f"{label}[{index}]") for index, item in enumerate(value))
+-
+-
+-def _relative_path(value: object, label: str) -> str:
+-    result = _required_string(value, label)
+-    path = Path(result)
+-    if path.is_absolute() or ".." in path.parts:
+-        raise ProfileError(f"{label} must remain inside the repository: {result!r}")
+-    return result.replace("\\", "/")
+-
+-
+-def _relative_glob(value: object, label: str) -> str:
+-    result = _required_string(value, label).replace("\\", "/")
+-    path = Path(result)
+-    if path.is_absolute() or ".." in path.parts or result.startswith("/"):
+-        raise ProfileError(f"{label} must remain inside the evidence directory: {result!r}")
+-    if result in {".", "./"} or result.endswith("/"):
+-        raise ProfileError(f"{label} must identify files, not a directory: {result!r}")
+-    return result
+-
+-
+-@dataclass(frozen=True)
+-class EvidenceContract:
+-    evidence_id: str
+-    required_globs: tuple[str, ...]
+-    optional_globs: tuple[str, ...]
+-    max_files: int
+-    max_total_bytes: int
+-    retention_class: str
+-
+-    @classmethod
+-    def from_raw(cls, raw: object, index: int) -> "EvidenceContract":
+-        label = f"evidence_contracts[{index}]"
+-        if not isinstance(raw, Mapping):
+-            raise ProfileError(f"{label} must be a table")
+-        allowed = {
+-            "evidence_id",
+-            "required_globs",
+-            "optional_globs",
+-            "max_files",
+-            "max_total_bytes",
+-            "retention_class",
+-        }
+-        unknown = set(raw) - allowed
+-        if unknown:
+-            raise ProfileError(f"{label} contains unsupported keys: {sorted(unknown)}")
+-        required = _string_list(
+-            raw.get("required_globs", []),
+-            f"{label}.required_globs",
+-            allow_empty=True,
+-        )
+-        optional = _string_list(
+-            raw.get("optional_globs", []),
+-            f"{label}.optional_globs",
+-            allow_empty=True,
+-        )
+-        required_globs = tuple(
+-            _relative_glob(item, f"{label}.required_globs[{position}]")
+-            for position, item in enumerate(required)
+-        )
+-        optional_globs = tuple(
+-            _relative_glob(item, f"{label}.optional_globs[{position}]")
+-            for position, item in enumerate(optional)
+-        )
+-        if len(set(required_globs)) != len(required_globs):
+-            raise ProfileError(f"{label}.required_globs must not contain duplicates")
+-        if len(set(optional_globs)) != len(optional_globs):
+-            raise ProfileError(f"{label}.optional_globs must not contain duplicates")
+-        overlap = set(required_globs) & set(optional_globs)
+-        if overlap:
+-            raise ProfileError(
+-                f"{label} globs cannot be both required and optional: {sorted(overlap)}"
+-            )
+-        retention_class = _required_string(
+-            raw.get("retention_class"), f"{label}.retention_class"
+-        )
+-        if retention_class not in _SUPPORTED_EVIDENCE_RETENTION_CLASSES:
+-            raise ProfileError(
+-                f"{label}.retention_class must be one of "
+-                f"{sorted(_SUPPORTED_EVIDENCE_RETENTION_CLASSES)}"
+-            )
+-        return cls(
+-            evidence_id=_identifier(raw.get("evidence_id"), f"{label}.evidence_id"),
+-            required_globs=required_globs,
+-            optional_globs=optional_globs,
+-            max_files=_positive_int(raw.get("max_files"), f"{label}.max_files"),
+-            max_total_bytes=_positive_int(
+-                raw.get("max_total_bytes"), f"{label}.max_total_bytes"
+-            ),
+-            retention_class=retention_class,
+-        )
+-
+-
+-@dataclass(frozen=True)
+-class ProgressProfile:
+-    mode: str
+-    pattern: str | None = None
+-    completed_group: str | None = None
+-    total_group: str | None = None
+-    stage_group: str | None = None
+-
+-    @classmethod
+-    def from_raw(cls, raw: object, label: str) -> "ProgressProfile":
+-        if not isinstance(raw, Mapping):
+-            raise ProfileError(f"{label} must be an inline table")
+-        mode = _required_string(raw.get("mode"), f"{label}.mode")
+-        if mode == "unavailable":
+-            if set(raw) != {"mode"}:
+-                raise ProfileError(f"{label} mode unavailable accepts only the mode key")
+-            return cls(mode=mode)
+-        if mode != "regex":
+-            raise ProfileError(f"{label}.mode must be unavailable or regex")
+-        pattern = _required_string(raw.get("pattern"), f"{label}.pattern")
+-        completed_group = _required_string(raw.get("completed_group"), f"{label}.completed_group")
+-        total_raw = raw.get("total_group")
+-        stage_raw = raw.get("stage_group")
+-        total_group = _required_string(total_raw, f"{label}.total_group") if total_raw is not None else None
+-        stage_group = _required_string(stage_raw, f"{label}.stage_group") if stage_raw is not None else None
+-        try:
+-            compiled = re.compile(pattern)
+-        except re.error as error:
+-            raise ProfileError(f"{label}.pattern is invalid: {error}") from error
+-        for key, group in (
+-            ("completed_group", completed_group),
+-            ("total_group", total_group),
+-            ("stage_group", stage_group),
+-        ):
+-            if group is not None and group not in compiled.groupindex:
+-                raise ProfileError(f"{label}.{key} references missing group {group!r}")
+-        return cls(mode, pattern, completed_group, total_group, stage_group)
+-
+-
+-@dataclass(frozen=True)
+-class OutputBudget:
+-    success_bytes: int
+-    failure_bytes: int
+-    timeout_bytes: int
+-    max_failures: int
+-
+-    @classmethod
+-    def from_raw(cls, raw: object, label: str) -> "OutputBudget":
+-        if not isinstance(raw, Mapping):
+-            raise ProfileError(f"{label} must be an inline table")
+-        return cls(
+-            _positive_int(raw.get("success_bytes"), f"{label}.success_bytes"),
+-            _positive_int(raw.get("failure_bytes"), f"{label}.failure_bytes"),
+-            _positive_int(raw.get("timeout_bytes"), f"{label}.timeout_bytes"),
+-            _positive_int(raw.get("max_failures"), f"{label}.max_failures"),
+-        )
+-
+-
+-@dataclass(frozen=True)
+-class Prerequisites:
+-    executables: tuple[str, ...]
+-    files: tuple[str, ...]
+-    environment: tuple[str, ...]
+-
+-    @classmethod
+-    def from_raw(cls, raw: object, label: str) -> "Prerequisites":
+-        if not isinstance(raw, Mapping):
+-            raise ProfileError(f"{label} must be an inline table")
+-        files = _string_list(raw.get("files", []), f"{label}.files", allow_empty=True)
+-        return cls(
+-            _string_list(raw.get("executables", []), f"{label}.executables", allow_empty=True),
+-            tuple(_relative_path(item, f"{label}.files[{index}]") for index, item in enumerate(files)),
+-            _string_list(raw.get("environment", []), f"{label}.environment", allow_empty=True),
+-        )
+-
+-
+-@dataclass(frozen=True)
+-class CacheProfile:
+-    enabled: bool
+-    input_paths: tuple[str, ...]
+-    environment: tuple[str, ...]
+-    input_selection: str = _INPUT_SELECTION_FILESYSTEM_GLOB
+-    max_input_files: int | None = None
+-    max_input_bytes: int | None = None
+-
+-    @classmethod
+-    def from_raw(cls, raw: object, label: str) -> "CacheProfile":
+-        if raw is None:
+-            return cls(False, (), ())
+-        if not isinstance(raw, Mapping):
+-            raise ProfileError(f"{label} must be an inline table")
+-        allowed = {
+-            "enabled",
+-            "input_paths",
+-            "environment",
+-            "input_selection",
+-            "max_input_files",
+-            "max_input_bytes",
+-        }
+-        unknown = set(raw) - allowed
+-        if unknown:
+-            raise ProfileError(f"{label} contains unsupported keys: {sorted(unknown)}")
+-        input_paths = _string_list(
+-            raw.get("input_paths", []),
+-            f"{label}.input_paths",
+-            allow_empty=True,
+-        )
+-        normalized_paths = tuple(
+-            _relative_path(item, f"{label}.input_paths[{index}]")
+-            for index, item in enumerate(input_paths)
+-        )
+-        environment = _string_list(
+-            raw.get("environment", []),
+-            f"{label}.environment",
+-            allow_empty=True,
+-        )
+-        input_selection = _required_string(
+-            raw.get("input_selection", _INPUT_SELECTION_FILESYSTEM_GLOB),
+-            f"{label}.input_selection",
+-        )
+-        if input_selection not in _SUPPORTED_INPUT_SELECTIONS:
+-            raise ProfileError(
+-                f"{label}.input_selection must be one of "
+-                f"{sorted(_SUPPORTED_INPUT_SELECTIONS)}"
+-            )
+-        has_limits = "max_input_files" in raw or "max_input_bytes" in raw
+-        if input_selection == _INPUT_SELECTION_GIT_TRACKED_MARKDOWN:
+-            if normalized_paths:
+-                raise ProfileError(
+-                    f"{label}.input_paths must be empty for "
+-                    "git-tracked-markdown selection"
+-                )
+-            if "max_input_files" not in raw or "max_input_bytes" not in raw:
+-                raise ProfileError(
+-                    f"{label} git-tracked-markdown selection requires "
+-                    "max_input_files and max_input_bytes"
+-                )
+-            max_input_files = _positive_int(
+-                raw["max_input_files"], f"{label}.max_input_files"
+-            )
+-            max_input_bytes = _positive_int(
+-                raw["max_input_bytes"], f"{label}.max_input_bytes"
+-            )
+-        else:
+-            if has_limits:
+-                raise ProfileError(
+-                    f"{label} filesystem-glob selection does not accept "
+-                    "max_input_files or max_input_bytes"
+-                )
+-            max_input_files = None
+-            max_input_bytes = None
+-        return cls(
+-            _boolean(raw.get("enabled", False), f"{label}.enabled"),
+-            normalized_paths,
+-            environment,
+-            input_selection,
+-            max_input_files,
+-            max_input_bytes,
+-        )
+-
+-
+-@dataclass(frozen=True)
+-class CommandProfile:
+-    command_id: str
+-    workload_class: str
+-    runtime_class: str
+-    platforms: tuple[str, ...]
+-    invocation: str
+-    argv: tuple[str, ...]
+-    cwd: str
+-    parser: str
+-    require_parser_confirmation: bool
+-    execution_timeout_seconds: int
+-    observed_max_success_seconds: float
+-    observed_max_progress_gap_seconds: float
+-    stall_timeout_seconds: int | None
+-    progress: ProgressProfile
+-    output: OutputBudget
+-    prerequisites: Prerequisites
+-    initial_limit_reason: str
+-    last_calibrated_at: str
+-    cache: CacheProfile = CacheProfile(False, (), ())
+-    evidence_id: str | None = None
+-    evidence: EvidenceContract | None = None
+-
+-    @property
+-    def key(self) -> tuple[str, str, str]:
+-        return self.command_id, self.workload_class, self.runtime_class
+-
+-    @classmethod
+-    def from_raw(cls, raw: object, index: int) -> "CommandProfile":
+-        label = f"commands[{index}]"
+-        if not isinstance(raw, Mapping):
+-            raise ProfileError(f"{label} must be a table")
+-        platforms = _string_list(raw.get("platforms"), f"{label}.platforms")
+-        unsupported = set(platforms) - _SUPPORTED_PLATFORMS
+-        if unsupported:
+-            raise ProfileError(f"{label}.platforms contains unsupported values: {sorted(unsupported)}")
+-        invocation = _required_string(raw.get("invocation"), f"{label}.invocation")
+-        if invocation not in _SUPPORTED_INVOCATIONS:
+-            raise ProfileError(f"{label}.invocation must be one of {sorted(_SUPPORTED_INVOCATIONS)}")
+-        parser_name = _required_string(raw.get("parser"), f"{label}.parser")
+-        if parser_name not in _SUPPORTED_PARSERS:
+-            raise ProfileError(f"{label}.parser must be one of {sorted(_SUPPORTED_PARSERS)}")
+-        stall_raw = raw.get("stall_timeout_seconds", 0)
+-        if isinstance(stall_raw, bool) or not isinstance(stall_raw, int) or stall_raw < 0:
+-            raise ProfileError(f"{label}.stall_timeout_seconds must be a non-negative integer")
+-        progress = ProgressProfile.from_raw(raw.get("progress"), f"{label}.progress")
+-        if stall_raw and progress.mode == "unavailable":
+-            raise ProfileError(f"{label}.stall_timeout_seconds requires a progress probe")
+-        result = cls(
+-            _identifier(raw.get("command_id"), f"{label}.command_id"),
+-            _identifier(raw.get("workload_class"), f"{label}.workload_class"),
+-            _identifier(raw.get("runtime_class"), f"{label}.runtime_class"),
+-            platforms,
+-            invocation,
+-            _string_list(raw.get("argv"), f"{label}.argv"),
+-            _relative_path(raw.get("cwd"), f"{label}.cwd"),
+-            parser_name,
+-            _boolean(raw.get("require_parser_confirmation"), f"{label}.require_parser_confirmation"),
+-            _positive_int(raw.get("execution_timeout_seconds"), f"{label}.execution_timeout_seconds"),
+-            _non_negative_number(raw.get("observed_max_success_seconds"), f"{label}.observed_max_success_seconds"),
+-            _non_negative_number(
+-                raw.get("observed_max_progress_gap_seconds", 0),
+-                f"{label}.observed_max_progress_gap_seconds",
+-            ),
+-            stall_raw or None,
+-            progress,
+-            OutputBudget.from_raw(raw.get("output"), f"{label}.output"),
+-            Prerequisites.from_raw(raw.get("prerequisites"), f"{label}.prerequisites"),
+-            _required_string(raw.get("initial_limit_reason"), f"{label}.initial_limit_reason"),
+-            _timestamp_with_timezone(raw.get("last_calibrated_at"), f"{label}.last_calibrated_at"),
+-            CacheProfile.from_raw(raw.get("cache"), f"{label}.cache"),
+-            (
+-                _identifier(raw.get("evidence_id"), f"{label}.evidence_id")
+-                if raw.get("evidence_id") is not None
+-                else None
+-            ),
+-            None,
+-        )
+-        if result.observed_max_success_seconds > 0:
+-            expected = math.ceil(result.observed_max_success_seconds * 1.10)
+-            if result.execution_timeout_seconds != expected:
+-                raise ProfileError(
+-                    f"{label}.execution_timeout_seconds must equal ceil(1.10 * observed maximum) = {expected}"
+-                )
+-        if result.progress.mode == "unavailable":
+-            if result.observed_max_progress_gap_seconds > 0:
+-                raise ProfileError(
+-                    f"{label}.observed_max_progress_gap_seconds requires a progress probe"
+-                )
+-        elif result.observed_max_progress_gap_seconds > 0:
+-            expected_stall = math.ceil(result.observed_max_progress_gap_seconds * 1.10)
+-            if result.stall_timeout_seconds != expected_stall:
+-                raise ProfileError(
+-                    f"{label}.stall_timeout_seconds must equal "
+-                    f"ceil(1.10 * observed progress gap) = {expected_stall}"
+-                )
+-        return result
+-
+-    def calibrated(
+-        self,
+-        maximum_seconds: float,
+-        calibrated_at: str,
+-        *,
+-        maximum_progress_gap_seconds: float = 0.0,
+-    ) -> "CommandProfile":
+-        if maximum_seconds <= 0:
+-            raise ProfileError("maximum_seconds must be positive")
+-        _timestamp_with_timezone(calibrated_at, "calibrated_at")
+-        maximum = max(maximum_seconds, self.observed_max_success_seconds)
+-        gap = self.observed_max_progress_gap_seconds
+-        stall = self.stall_timeout_seconds
+-        if self.progress.mode == "regex" and maximum_progress_gap_seconds > 0:
+-            gap = max(maximum_progress_gap_seconds, gap)
+-            stall = math.ceil(gap * 1.10)
+-        return replace(
+-            self,
+-            observed_max_success_seconds=maximum,
+-            observed_max_progress_gap_seconds=gap,
+-            execution_timeout_seconds=math.ceil(maximum * 1.10),
+-            stall_timeout_seconds=stall,
+-            last_calibrated_at=calibrated_at,
+-        )
+-
+-
+-@dataclass(frozen=True)
+-class ProfileSet:
+-    profiles: tuple[CommandProfile, ...]
+-    evidence_contracts: tuple[EvidenceContract, ...] = ()
+-
+-    def select(
+-        self,
+-        command_id: str,
+-        *,
+-        platform_name: str,
+-        workload_class: str | None = None,
+-        runtime_class: str | None = None,
+-    ) -> CommandProfile:
+-        matches = [
+-            item
+-            for item in self.profiles
+-            if item.command_id == command_id
+-            and platform_name in item.platforms
+-            and (workload_class is None or item.workload_class == workload_class)
+-            and (runtime_class is None or item.runtime_class == runtime_class)
+-        ]
+-        if not matches:
+-            raise ProfileError(
+-                "no registered profile matches "
+-                f"command_id={command_id!r}, platform={platform_name!r}, "
+-                f"workload_class={workload_class!r}, runtime_class={runtime_class!r}. "
+-                "Use --list with the selected catalogue, then select an exact command/workload/runtime."
+-            )
+-        if len(matches) != 1:
+-            variants = ", ".join(f"{item.workload_class}/{item.runtime_class}" for item in matches)
+-            raise ProfileError(f"command profile selection is ambiguous: {variants}. Use --list with the selected catalogue and supply exact workload/runtime selectors.")
+-        return matches[0]
+-
+-    def replace_profile(self, updated: CommandProfile) -> "ProfileSet":
+-        found = False
+-        values: list[CommandProfile] = []
+-        for item in self.profiles:
+-            if item.key == updated.key:
+-                values.append(updated)
+-                found = True
+-            else:
+-                values.append(item)
+-        if not found:
+-            raise ProfileError(f"profile not found for calibration: {updated.key}")
+-        return ProfileSet(tuple(values), self.evidence_contracts)
+-
+-
+-def resolve_configuration_root(repository_root: Path, configured_root: str | Path | None) -> Path:
+-    if configured_root is None:
+-        return repository_root.resolve()
+-    return Path(configured_root).resolve()
+-
+-
+-def load_profiles(path: Path) -> ProfileSet:
+-    raw = tomllib.loads(path.read_text(encoding="utf-8"))
+-    if not isinstance(raw, Mapping) or raw.get("schema_version") != 1:
+-        raise ProfileError("command profile schema_version must equal 1")
+-    evidence_raw = raw.get("evidence_contracts", [])
+-    if not isinstance(evidence_raw, list):
+-        raise ProfileError("evidence_contracts must be an array of tables")
+-    evidence_contracts = tuple(
+-        EvidenceContract.from_raw(item, index)
+-        for index, item in enumerate(evidence_raw)
+-    )
+-    evidence_by_id: dict[str, EvidenceContract] = {}
+-    for item in evidence_contracts:
+-        if item.evidence_id in evidence_by_id:
+-            raise ProfileError(f"duplicate evidence contract ID: {item.evidence_id}")
+-        evidence_by_id[item.evidence_id] = item
+-
+-    commands = raw.get("commands")
+-    if not isinstance(commands, list) or not commands:
+-        raise ProfileError("command profile file must contain [[commands]] tables")
+-    parsed_profiles = tuple(
+-        CommandProfile.from_raw(item, index) for index, item in enumerate(commands)
+-    )
+-    profiles: list[CommandProfile] = []
+-    seen: set[tuple[str, str, str]] = set()
+-    for item in parsed_profiles:
+-        if item.key in seen:
+-            raise ProfileError(f"duplicate command profile key: {item.key}")
+-        seen.add(item.key)
+-        evidence = None
+-        if item.evidence_id is not None:
+-            evidence = evidence_by_id.get(item.evidence_id)
+-            if evidence is None:
+-                raise ProfileError(
+-                    f"command profile {item.key} references unknown evidence_id "
+-                    f"{item.evidence_id!r}"
+-                )
+-        profiles.append(replace(item, evidence=evidence))
+-    return ProfileSet(tuple(profiles), evidence_contracts)
+-
+-
+-def _toml_string(value: str) -> str:
+-    return json.dumps(value, ensure_ascii=False)
+-
+-
+-def _toml_list(values: Sequence[str]) -> str:
+-    return "[" + ", ".join(_toml_string(value) for value in values) + "]"
+-
+-
+-def _inline(values: Iterable[tuple[str, str]]) -> str:
+-    return "{ " + ", ".join(f"{key} = {value}" for key, value in values) + " }"
+-
+-
+-def render_profiles(profile_set: ProfileSet) -> str:
+-    lines = ["schema_version = 1", ""]
+-    for contract in profile_set.evidence_contracts:
+-        lines.extend(
+-            [
+-                "[[evidence_contracts]]",
+-                f"evidence_id = {_toml_string(contract.evidence_id)}",
+-                f"required_globs = {_toml_list(contract.required_globs)}",
+-                f"optional_globs = {_toml_list(contract.optional_globs)}",
+-                f"max_files = {contract.max_files}",
+-                f"max_total_bytes = {contract.max_total_bytes}",
+-                f"retention_class = {_toml_string(contract.retention_class)}",
+-                "",
+-            ]
+-        )
+-    for item in profile_set.profiles:
+-        progress_pairs: list[tuple[str, str]] = [("mode", _toml_string(item.progress.mode))]
+-        if item.progress.mode == "regex":
+-            progress_pairs.extend(
+-                [
+-                    ("pattern", _toml_string(item.progress.pattern or "")),
+-                    ("completed_group", _toml_string(item.progress.completed_group or "")),
+-                ]
+-            )
+-            if item.progress.total_group is not None:
+-                progress_pairs.append(("total_group", _toml_string(item.progress.total_group)))
+-            if item.progress.stage_group is not None:
+-                progress_pairs.append(("stage_group", _toml_string(item.progress.stage_group)))
+-        maximum = (
+-            str(int(item.observed_max_success_seconds))
+-            if item.observed_max_success_seconds.is_integer()
+-            else repr(item.observed_max_success_seconds)
+-        )
+-        lines.extend(
+-            [
+-                "[[commands]]",
+-                f"command_id = {_toml_string(item.command_id)}",
+-                f"workload_class = {_toml_string(item.workload_class)}",
+-                f"runtime_class = {_toml_string(item.runtime_class)}",
+-                f"platforms = {_toml_list(item.platforms)}",
+-                f"invocation = {_toml_string(item.invocation)}",
+-                f"argv = {_toml_list(item.argv)}",
+-                f"cwd = {_toml_string(item.cwd)}",
+-                *(
+-                    [f"evidence_id = {_toml_string(item.evidence_id)}"]
+-                    if item.evidence_id is not None
+-                    else []
+-                ),
+-                f"parser = {_toml_string(item.parser)}",
+-                f"require_parser_confirmation = {'true' if item.require_parser_confirmation else 'false'}",
+-                f"execution_timeout_seconds = {item.execution_timeout_seconds}",
+-                f"observed_max_success_seconds = {maximum}",
+-                "observed_max_progress_gap_seconds = "
+-                + (
+-                    str(int(item.observed_max_progress_gap_seconds))
+-                    if item.observed_max_progress_gap_seconds.is_integer()
+-                    else repr(item.observed_max_progress_gap_seconds)
+-                ),
+-                f"stall_timeout_seconds = {item.stall_timeout_seconds or 0}",
+-                f"progress = {_inline(progress_pairs)}",
+-                "output = "
+-                + _inline(
+-                    [
+-                        ("success_bytes", str(item.output.success_bytes)),
+-                        ("failure_bytes", str(item.output.failure_bytes)),
+-                        ("timeout_bytes", str(item.output.timeout_bytes)),
+-                        ("max_failures", str(item.output.max_failures)),
+-                    ]
+-                ),
+-                "prerequisites = "
+-                + _inline(
+-                    [
+-                        ("executables", _toml_list(item.prerequisites.executables)),
+-                        ("files", _toml_list(item.prerequisites.files)),
+-                        ("environment", _toml_list(item.prerequisites.environment)),
+-                    ]
+-                ),
+-                "cache = "
+-                + _inline(
+-                    [
+-                        ("enabled", "true" if item.cache.enabled else "false"),
+-                        *(
+-                            [("input_selection", _toml_string(item.cache.input_selection))]
+-                            if item.cache.input_selection != _INPUT_SELECTION_FILESYSTEM_GLOB
+-                            else []
+-                        ),
+-                        ("input_paths", _toml_list(item.cache.input_paths)),
+-                        ("environment", _toml_list(item.cache.environment)),
+-                        *(
+-                            [("max_input_files", str(item.cache.max_input_files))]
+-                            if item.cache.max_input_files is not None
+-                            else []
+-                        ),
+-                        *(
+-                            [("max_input_bytes", str(item.cache.max_input_bytes))]
+-                            if item.cache.max_input_bytes is not None
+-                            else []
+-                        ),
+-                    ]
+-                ),
+-                f"initial_limit_reason = {_toml_string(item.initial_limit_reason)}",
+-                f"last_calibrated_at = {_toml_string(item.last_calibrated_at)}",
+-                "",
+-            ]
+-        )
+-    return "\n".join(lines).rstrip() + "\n"
+-
+-
+-def write_profiles(path: Path, profile_set: ProfileSet) -> None:
+-    _atomic_text(path, render_profiles(profile_set))
+-
+-
+ @dataclass(frozen=True)
+ class FailureItem:
+     name: str
+@@ -1163,9 +501,9 @@ def longest_verified_progress_gap_seconds(
+ 
+ 
+ def runtime_calibrated_profile(
+-    profile: CommandProfile,
++    profile: profile_contracts.CommandProfile,
+     ledger: Path,
+-) -> CommandProfile:
++) -> profile_contracts.CommandProfile:
+     """Return the live timeout profile derived from durable history.
+ 
+     The version-controlled profile is the initial/fallback baseline. Once a
+@@ -1278,7 +616,7 @@ def _reset_cache_database(path: Path) -> None:
+ def _record_from_cache_entry(
+     repository_root: Path,
+     row: sqlite3.Row,
+-    expected_evidence: EvidenceContract | None = None,
++    expected_evidence: profile_contracts.EvidenceContract | None = None,
+ ) -> dict[str, Any] | None:
+     record_path = repository_root / str(row["source_record_path"])
+     if not record_path.is_file():
+@@ -1325,7 +663,7 @@ def lookup_cached_success(
+     repository_root: Path,
+     cache_key: str,
+     *,
+-    expected_evidence: EvidenceContract | None = None,
++    expected_evidence: profile_contracts.EvidenceContract | None = None,
+ ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+     cache_path = _cache_database(repository_root)
+     started = time.monotonic()
+@@ -1385,7 +723,7 @@ def lookup_cached_success(
+ 
+ def store_cached_success(
+     repository_root: Path,
+-    profile: CommandProfile,
++    profile: profile_contracts.CommandProfile,
+     cache_key: str,
+     cache_material: Mapping[str, Any],
+     record: Mapping[str, Any],
+@@ -1489,7 +827,7 @@ class DependencyReport:
+ class ProgressTracker:
+     def __init__(
+         self,
+-        profile: ProgressProfile,
++        profile: profile_contracts.ProgressProfile,
+         artifact: Path,
+         started_monotonic: float,
+     ) -> None:
+@@ -1638,7 +976,7 @@ class ProgressTracker:
+ 
+ def current_platform_name() -> str:
+     system = platform.system().lower()
+-    if system in _SUPPORTED_PLATFORMS:
++    if system in profile_contracts._SUPPORTED_PLATFORMS:
+         return system
+     raise RunnerError(f"unsupported host platform: {platform.system()}")
+ 
+@@ -1655,23 +993,6 @@ def _private_directory(path: Path) -> None:
+         pass
+ 
+ 
+-def _atomic_text(path: Path, content: str, *, mode: int = 0o644) -> None:
+-    path.parent.mkdir(parents=True, exist_ok=True)
+-    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+-    try:
+-        temporary.write_text(content, encoding="utf-8", newline="\n")
+-        try:
+-            temporary.chmod(mode)
+-        except OSError:
+-            pass
+-        os.replace(temporary, path)
+-    finally:
+-        try:
+-            temporary.unlink()
+-        except FileNotFoundError:
+-            pass
+-
+-
+ def _run_paths(
+     repository_root: Path,
+     data_root: Path,
+@@ -1733,17 +1054,17 @@ def _run_paths(
+ 
+ 
+ def check_prerequisites(
+-    profile: CommandProfile, repository_root: Path, *, config_root: Path | None = None,
++    profile: profile_contracts.CommandProfile, repository_root: Path, *, configuration: CheckConfiguration,
+ ) -> DependencyReport:
+     missing_files: list[str] = []
+     for item in profile.prerequisites.files:
+         selected_registry = (
+-            config_root is not None and profile.command_id == "test-package"
++            configuration.explicit and profile.command_id == "test-package"
+             and Path(item) == Path(_TEST_PACKAGES_PATH)
+         )
+         path = repository_root / item
+-        if selected_registry and config_root is not None:
+-            path = config_root / item
++        if selected_registry:
++            path = configuration.root / item
+         if not path.is_file():
+             missing_files.append(str(path) if selected_registry else item)
+     return DependencyReport(
+@@ -1789,13 +1110,13 @@ def _canonical_json(value: object) -> bytes:
+     ).encode("utf-8")
+ 
+ 
+-def _profile_cache_material(profile: CommandProfile) -> dict[str, Any]:
++def _profile_cache_material(profile: profile_contracts.CommandProfile) -> dict[str, Any]:
+     cache: dict[str, Any] = {
+         "enabled": profile.cache.enabled,
+         "input_paths": list(profile.cache.input_paths),
+         "environment": list(profile.cache.environment),
+     }
+-    if profile.cache.input_selection != _INPUT_SELECTION_FILESYSTEM_GLOB:
++    if profile.cache.input_selection != profile_contracts._INPUT_SELECTION_FILESYSTEM_GLOB:
+         cache["input_selection"] = profile.cache.input_selection
+         cache["max_input_files"] = profile.cache.max_input_files
+         cache["max_input_bytes"] = profile.cache.max_input_bytes
+@@ -1827,7 +1148,7 @@ def _profile_cache_material(profile: CommandProfile) -> dict[str, Any]:
+     }
+ 
+ 
+-def profile_cache_fingerprint(profile: CommandProfile) -> str:
++def profile_cache_fingerprint(profile: profile_contracts.CommandProfile) -> str:
+     return hashlib.sha256(_canonical_json(_profile_cache_material(profile))).hexdigest()
+ 
+ 
+@@ -2060,7 +1381,7 @@ def explicit_input_fingerprint(
+ 
+ def _tracked_markdown_input_fingerprint(
+     repository_root: Path,
+-    cache: CacheProfile,
++    cache: profile_contracts.CacheProfile,
+     *,
+     scope_paths: Sequence[str] | None = None,
+ ) -> dict[str, Any]:
+@@ -2157,13 +1478,13 @@ def _tracked_markdown_input_fingerprint(
+ 
+ def profile_input_fingerprint(
+     repository_root: Path,
+-    cache: CacheProfile,
++    cache: profile_contracts.CacheProfile,
+     *,
+     scope_paths: Sequence[str] | None = None,
+ ) -> dict[str, Any]:
+-    if cache.input_selection == _INPUT_SELECTION_FILESYSTEM_GLOB:
++    if cache.input_selection == profile_contracts._INPUT_SELECTION_FILESYSTEM_GLOB:
+         return explicit_input_fingerprint(repository_root, cache.input_paths)
+-    if cache.input_selection == _INPUT_SELECTION_GIT_TRACKED_MARKDOWN:
++    if cache.input_selection == profile_contracts._INPUT_SELECTION_GIT_TRACKED_MARKDOWN:
+         return _tracked_markdown_input_fingerprint(
+             repository_root,
+             cache,
+@@ -2175,7 +1496,7 @@ def profile_input_fingerprint(
+     )
+ 
+ 
+-def runtime_cache_identity(profile: CommandProfile) -> dict[str, Any]:
++def runtime_cache_identity(profile: profile_contracts.CommandProfile) -> dict[str, Any]:
+     executables: list[dict[str, Any]] = []
+     for executable in profile.prerequisites.executables:
+         resolved = shutil.which(executable)
+@@ -2218,7 +1539,7 @@ def _test_package_cache_paths(
+     repository_root: Path,
+     package_id: str,
+     *,
+-    config_root: Path | None = None,
++    configuration: CheckConfiguration,
+ ) -> tuple[str, ...]:
+     """Return the deliberately narrow cache surface for one test package.
+ 
+@@ -2231,7 +1552,7 @@ def _test_package_cache_paths(
+ 
+     from test_package_lib import TestPackageRegistry
+ 
+-    path = resolve_configuration_root(repository_root, config_root) / _TEST_PACKAGES_PATH
++    path = configuration.root / _TEST_PACKAGES_PATH
+     registry = TestPackageRegistry.load(path, repository_root)
+     execution_packages = registry.execution_order(package_id)
+     executed_ids = {package.package_id for package in execution_packages}
+@@ -2317,9 +1638,9 @@ def test_package_cache_fingerprint(
+     repository_root: Path,
+     package_id: str,
+     *,
+-    config_root: Path | None = None,
++    configuration: CheckConfiguration,
+ ) -> dict[str, Any]:
+-    paths = _test_package_cache_paths(repository_root, package_id, config_root=config_root)
++    paths = _test_package_cache_paths(repository_root, package_id, configuration=configuration)
+     result = _test_input_content_fingerprint(repository_root, paths)
+     return {
+         "package_id": package_id,
+@@ -2331,13 +1652,13 @@ def test_package_cache_fingerprint(
+ 
+ def build_cache_key(
+     repository_root: Path,
+-    profile: CommandProfile,
++    profile: profile_contracts.CommandProfile,
+     *,
+     scope_paths: Sequence[str] | None = None,
+-    config_root: Path | None = None,
++    configuration: CheckConfiguration,
+ ) -> tuple[str, dict[str, Any]] | None:
+     if profile.command_id == "test-package":
+-        inputs = test_package_cache_fingerprint(repository_root, profile.workload_class, config_root=config_root)
++        inputs = test_package_cache_fingerprint(repository_root, profile.workload_class, configuration=configuration)
+         namespace = {
+             "key_schema": "test-package-source-test-fixtures-v2",
+             "command_id": profile.command_id,
+@@ -2359,7 +1680,7 @@ def build_cache_key(
+         }
+         return hashlib.sha256(_canonical_json(namespace)).hexdigest(), material
+ 
+-    if scope_paths is not None and profile.cache.input_selection == _INPUT_SELECTION_FILESYSTEM_GLOB:
++    if scope_paths is not None and profile.cache.input_selection == profile_contracts._INPUT_SELECTION_FILESYSTEM_GLOB:
+         inputs = explicit_input_fingerprint(repository_root, scope_paths)
+         key_schema = "task-scope-code-test-fixtures-v1"
+     else:
+@@ -2394,12 +1715,11 @@ def build_cache_key(
+     return hashlib.sha256(_canonical_json(namespace)).hexdigest(), material
+ 
+ 
+-
+ def build_evidence_scope(
+     repository_root: Path,
+-    profile: CommandProfile,
++    profile: profile_contracts.CommandProfile,
+     *,
+-    config_root: Path | None = None,
++    configuration: CheckConfiguration,
+ ) -> dict[str, Any] | None:
+     """Build a durable profile-scoped input identity for reusable evidence.
+ 
+@@ -2409,7 +1729,7 @@ def build_evidence_scope(
+     """
+ 
+     if profile.command_id == "test-package":
+-        inputs = test_package_cache_fingerprint(repository_root, profile.workload_class, config_root=config_root)
++        inputs = test_package_cache_fingerprint(repository_root, profile.workload_class, configuration=configuration)
+         material = {
+             "schema_version": 3,
+             "scope": "test-package-source-test-fixtures-v2",
+@@ -2423,7 +1743,7 @@ def build_evidence_scope(
+ 
+     if (
+         not profile.cache.input_paths
+-        and profile.cache.input_selection == _INPUT_SELECTION_FILESYSTEM_GLOB
++        and profile.cache.input_selection == profile_contracts._INPUT_SELECTION_FILESYSTEM_GLOB
+     ):
+         return None
+     material = {
+@@ -2438,7 +1758,7 @@ def build_evidence_scope(
+     }
+ 
+ 
+-def resolve_command(profile: CommandProfile) -> list[str]:
++def resolve_command(profile: profile_contracts.CommandProfile) -> list[str]:
+     if profile.invocation == "exec":
+         return list(profile.argv)
+     if profile.invocation == "windows_cmd":
+@@ -2669,9 +1989,7 @@ def repository_path(repository_root: Path, path: Path) -> str:
+         return str(path.resolve())
+ 
+ 
+-
+-
+-def _evidence_contract_material(contract: EvidenceContract) -> dict[str, Any]:
++def _evidence_contract_material(contract: profile_contracts.EvidenceContract) -> dict[str, Any]:
+     return {
+         "evidence_id": contract.evidence_id,
+         "required_globs": list(contract.required_globs),
+@@ -2716,7 +2034,7 @@ def _secure_evidence_tree(root: Path) -> None:
+ 
+ def _scan_evidence(
+     staging: Path,
+-    contract: EvidenceContract,
++    contract: profile_contracts.EvidenceContract,
+     *,
+     check_id: str,
+     durable_root: str,
+@@ -2881,7 +2199,7 @@ def _scan_evidence(
+ def finalize_evidence(
+     repository_root: Path,
+     paths: RunPaths,
+-    contract: EvidenceContract | None,
++    contract: profile_contracts.EvidenceContract | None,
+     check_id: str,
+ ) -> dict[str, Any]:
+     if contract is None:
+@@ -2912,7 +2230,7 @@ def finalize_evidence(
+             f"durable evidence directory already exists: {durable_root}"
+         )
+     if manifest["artifacts_retained"]:
+-        _atomic_text(
++        profile_contracts.write_text_atomically(
+             paths.evidence_staging / "evidence-manifest.json",
+             manifest_content,
+             mode=0o600,
+@@ -2921,7 +2239,7 @@ def finalize_evidence(
+         os.replace(paths.evidence_staging, paths.durable_evidence_root)
+     else:
+         _private_directory(paths.durable_evidence_root)
+-        _atomic_text(
++        profile_contracts.write_text_atomically(
+             paths.durable_evidence_manifest,
+             manifest_content,
+             mode=0o600,
+@@ -2942,7 +2260,7 @@ def finalize_evidence(
+ def validate_cached_evidence(
+     repository_root: Path,
+     record: Mapping[str, Any],
+-    expected: EvidenceContract | None,
++    expected: profile_contracts.EvidenceContract | None,
+ ) -> bool:
+     if expected is None:
+         return True
+@@ -3010,7 +2328,7 @@ def validate_cached_evidence(
+ 
+ 
+ def validate_timeout_override(
+-    profile: CommandProfile,
++    profile: profile_contracts.CommandProfile,
+     ledger: Path,
+     override: int | None,
+     evidence_id: str | None,
+@@ -3018,7 +2336,7 @@ def validate_timeout_override(
+ ) -> dict[str, Any]:
+     if override is None:
+         if evidence_id is not None or reason is not None:
+-            raise ProfileError("timeout evidence and reason require --timeout-override")
++            raise profile_contracts.ProfileError("timeout evidence and reason require --timeout-override")
+         return {
+             "configured_seconds": profile.execution_timeout_seconds,
+             "effective_seconds": profile.execution_timeout_seconds,
+@@ -3027,24 +2345,24 @@ def validate_timeout_override(
+             "override_reason": None,
+         }
+     if override <= profile.execution_timeout_seconds:
+-        raise ProfileError("timeout override must exceed the registered execution timeout")
++        raise profile_contracts.ProfileError("timeout override must exceed the registered execution timeout")
+     if not evidence_id or not reason or not reason.strip():
+-        raise ProfileError("timeout override requires --timeout-evidence and --override-reason")
++        raise profile_contracts.ProfileError("timeout override requires --timeout-evidence and --override-reason")
+     evidence = get_run(ledger, evidence_id)
+     evidence_profile = evidence.get("profile", {})
+     evidence_timeout = evidence.get("timeout", {})
+     if evidence.get("status") not in {"timed_out", "stalled"}:
+-        raise ProfileError("timeout evidence must reference a timed-out or stalled run")
++        raise profile_contracts.ProfileError("timeout evidence must reference a timed-out or stalled run")
+     if isinstance(evidence_timeout, Mapping) and evidence_timeout.get("override_seconds") is not None:
+-        raise ProfileError("a diagnostic override cannot authorize another timeout override")
++        raise profile_contracts.ProfileError("a diagnostic override cannot authorize another timeout override")
+     if timeout_evidence_use_count(ledger, evidence_id) > 0:
+-        raise ProfileError("timeout evidence has already authorized its one diagnostic rerun")
++        raise profile_contracts.ProfileError("timeout evidence has already authorized its one diagnostic rerun")
+     if (
+         evidence_profile.get("command_id"),
+         evidence_profile.get("workload_class"),
+         evidence_profile.get("runtime_class"),
+     ) != profile.key:
+-        raise ProfileError("timeout evidence belongs to a different command profile")
++        raise profile_contracts.ProfileError("timeout evidence belongs to a different command profile")
+     return {
+         "configured_seconds": profile.execution_timeout_seconds,
+         "effective_seconds": override,
+@@ -3054,7 +2372,7 @@ def validate_timeout_override(
+     }
+ 
+ 
+-def budget_for_status(profile: CommandProfile, status: str) -> int:
++def budget_for_status(profile: profile_contracts.CommandProfile, status: str) -> int:
+     if status == "passed":
+         return profile.output.success_bytes
+     if status in {"timed_out", "stalled", "cancelled"}:
+@@ -3226,10 +2544,10 @@ def _remove_runtime_directory(path: Path) -> None:
+ def run_registered_command(
+     repository_root: Path,
+     data_root: Path,
+-    profile: CommandProfile,
++    profile: profile_contracts.CommandProfile,
+     *,
+     scope_paths: Sequence[str] | None = None,
+-    config_root: Path | None = None,
++    configuration: CheckConfiguration,
+     fresh: bool = False,
+     timeout_override: int | None = None,
+     timeout_evidence: str | None = None,
+@@ -3241,8 +2559,6 @@ def run_registered_command(
+     artifact_session_id: str | None = None,
+ ) -> tuple[dict[str, Any], dict[str, Any]]:
+     repository_root = repository_root.resolve()
+-    configuration_selected = config_root is not None
+-    config_root = resolve_configuration_root(repository_root, config_root)
+     data_root = data_root.resolve()
+     if artifact_session_id is not None:
+         ensure_artifact_session(repository_root, artifact_session_id)
+@@ -3257,25 +2573,25 @@ def run_registered_command(
+     )
+     dependencies = check_prerequisites(
+         profile, repository_root,
+-        config_root=config_root if configuration_selected else None,
++        configuration=configuration,
+     )
+     execution_profile = profile
+     package_environment: dict[str, str] = {}
+-    if configuration_selected and profile.command_id == "test-package":
++    if configuration.explicit and profile.command_id == "test-package":
+         arguments = list(profile.argv)
+         nested_bash = (
+             profile.invocation == "windows_cmd"
+             and arguments[0].replace("\\", "/").rsplit("/", 1)[-1].casefold() == "msys2-bash.cmd"
+         )
+         if nested_bash and len(arguments) != 2:
+-            raise ProfileError("MSYS2 test-package profile requires one Bash program. Correct its argv before selecting --config-root.")
++            raise profile_contracts.ProfileError("MSYS2 test-package profile requires one Bash program. Correct its argv before selecting --config-root.")
+         try:
+             existing_arguments = shlex.split(arguments[1]) if nested_bash else arguments
+         except ValueError as error:
+-            raise ProfileError(f"Invalid MSYS2 test-package program: {error}. Correct quoting in profile argv.") from error
++            raise profile_contracts.ProfileError(f"Invalid MSYS2 test-package program: {error}. Correct quoting in profile argv.") from error
+         if any(item == "--registry" or item.startswith("--registry=") for item in existing_arguments):
+-            raise ProfileError("Test-package profile already selects a registry. Remove --registry from profile argv; use --config-root.")
+-        registry_path = str(config_root / _TEST_PACKAGES_PATH)
++            raise profile_contracts.ProfileError("Test-package profile already selects a registry. Remove --registry from profile argv; use --config-root.")
++        registry_path = str(configuration.root / _TEST_PACKAGES_PATH)
+         if nested_bash:
+             arguments[1] += ' --registry "$ERP_REPO_CHECKS_PACKAGE_REGISTRY"'
+             package_environment["ERP_REPO_CHECKS_PACKAGE_REGISTRY"] = registry_path
+@@ -3319,7 +2635,7 @@ def run_registered_command(
+                 repository_root,
+                 profile,
+                 scope_paths=scope_paths,
+-                config_root=config_root,
++                configuration=configuration,
+             )
+             if built is None:
+                 cache_metadata["reason"] = "workspace_identity_unavailable"
+@@ -3370,7 +2686,7 @@ def run_registered_command(
+     if profile.evidence is not None:
+         _private_directory(paths.evidence_staging)
+     workspace = workspace_identity(repository_root)
+-    evidence_scope = build_evidence_scope(repository_root, profile, config_root=config_root)
++    evidence_scope = build_evidence_scope(repository_root, profile, configuration=configuration)
+     started_at = timestamp()
+     started_monotonic = time.monotonic()
+     terminal_monotonic = started_monotonic
+@@ -3674,7 +2990,7 @@ def run_registered_command(
+             "command": None,
+         },
+     }
+-    _atomic_text(
++    profile_contracts.write_text_atomically(
+         paths.durable_record,
+         json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+         mode=0o600,
+@@ -3692,7 +3008,7 @@ def run_registered_command(
+             repository_root,
+             profile,
+             scope_paths=scope_paths,
+-            config_root=config_root,
++            configuration=configuration,
+         )
+         if final_cache_key is None:
+             cache_metadata["reason"] = "cache_inputs_unavailable_after_run"
+@@ -3721,105 +3037,6 @@ def run_registered_command(
+         result = fit_model_visible_result(result, budget_for_status(profile, status))
+     _remove_runtime_directory(paths.runtime_dir)
+     return record, result
+-
+-
+-def render_runtime_limits(profile_set: ProfileSet) -> str:
+-    lines = [
+-        "# Лимиты выполнения зарегистрированных команд",
+-        "",
+-        "## Назначение",
+-        "",
+-        "Документ генерируется из",
+-        "`ai-assistant/checks/command-profiles.toml` и не является вторым",
+-        "источником истины. Изменять таблицу вручную нельзя.",
+-        "",
+-        "Штатный лимит равен 110% максимального подтверждённого успешного",
+-        "времени для той же комбинации `command_id`, `workload_class` и",
+-        "`runtime_class`. Пока история отсутствует, действует явно",
+-        "обоснованный начальный лимит.",
+-        "",
+-        "## Зарегистрированные профили",
+-        "",
+-        "| Команда | Нагрузка | Runtime | Платформы | Timeout, с | Максимум, с | Stall, с | Макс. progress gap, с | Progress | Последняя калибровка |",
+-        "|---|---|---|---|---:|---:|---:|---:|---|---|",
+-    ]
+-    for item in profile_set.profiles:
+-        maximum = f"{item.observed_max_success_seconds:g}" if item.observed_max_success_seconds else "нет истории"
+-        lines.append(
+-            "| "
+-            + " | ".join(
+-                [
+-                    f"`{item.command_id}`",
+-                    f"`{item.workload_class}`",
+-                    f"`{item.runtime_class}`",
+-                    ", ".join(f"`{value}`" for value in item.platforms),
+-                    str(item.execution_timeout_seconds),
+-                    maximum,
+-                    str(item.stall_timeout_seconds) if item.stall_timeout_seconds else "—",
+-                    (
+-                        f"{item.observed_max_progress_gap_seconds:g}"
+-                        if item.observed_max_progress_gap_seconds
+-                        else "нет истории"
+-                    ),
+-                    f"`{item.progress.mode}`",
+-                    item.last_calibrated_at,
+-                ]
+-            )
+-            + " |"
+-        )
+-    lines.extend(["", "## Начальные лимиты", ""])
+-    for item in profile_set.profiles:
+-        lines.extend(
+-            [
+-                f"### `{item.command_id}` / `{item.workload_class}` / `{item.runtime_class}`",
+-                "",
+-                textwrap.fill(item.initial_limit_reason, width=72),
+-                "",
+-            ]
+-        )
+-    lines.extend(
+-        [
+-            "## Автоматическое обновление лимита",
+-            "",
+-            "Перед каждым запуском runner автоматически читает durable",
+-            "ledger и применяет `ceil(1.10 × longest verified success)`",
+-            "для той же комбинации command/workload/runtime. Новый",
+-            "подтверждённый successful result записывается в ledger и",
+-            "автоматически становится лимитом следующего запуска; действий",
+-            "AI-агента не требуется. `calibrate_timeout.py` остаётся только",
+-            "maintenance-командой для явной материализации ledger history в",
+-            "version-controlled profile snapshot и этот generated document.",
+-            "",
+-            "Подтверждённые интервалы между последовательными progress",
+-            "events калибруют optional stall timeout по тому же правилу +10%;",
+-            "подготовка до первого event в этот baseline не входит.",
+-            "Timeout, stall, отмена, ошибка среды, hang или loop не могут",
+-            "увеличить лимит. После timeout сначала исследуются сохранённые",
+-            "log, progress и process-tree evidence. Один диагностический",
+-            "rerun с увеличенным лимитом допускается только по ссылке на",
+-            "предыдущий timed-out check; новый максимум устанавливается",
+-            "только после успешного завершения rerun.",
+-            "",
+-            "## Ограничение наблюдаемости",
+-            "",
+-            "`regex` probe учитывает только монотонное предметное",
+-            "продвижение. Stall clock запускается только после первого",
+-            "подтверждённого progress event, поэтому подготовительная стадия",
+-            "ограничивается общим empirical timeout, а не stall timeout.",
+-            "Heartbeat, повторяющаяся строка и загрузка CPU не доказывают",
+-            "полезный прогресс. При `progress = unavailable`",
+-            "автоматически отличить медленную работу от бесконечного цикла",
+-            "нельзя; empirical timeout остаётся safety boundary.",
+-            "",
+-        ]
+-    )
+-    return "\n".join(lines)
+-
+-
+-def write_runtime_limits(path: Path, profile_set: ProfileSet) -> None:
+-    _atomic_text(path, render_runtime_limits(profile_set))
+-
+-
+ def profile_selection_diagnostic(
+     message: str, *, source_root: Path, subject_root: Path, profile_path: Path,
+ ) -> str:
+@@ -3829,7 +3046,7 @@ def profile_selection_diagnostic(
+     )
+ 
+ 
+-PROFILE_LOADING_ERRORS = (ProfileError, OSError, tomllib.TOMLDecodeError, UnicodeDecodeError)
++PROFILE_LOADING_ERRORS = (profile_contracts.ProfileError, OSError, tomllib.TOMLDecodeError, UnicodeDecodeError)
+ 
+ 
+ def exception_diagnostic(error: BaseException) -> str:
+@@ -3839,12 +3056,11 @@ def exception_diagnostic(error: BaseException) -> str:
+     return redact(message)
+ 
+ 
+-def load_selected_profiles(
+-    profile_path: Path, *, source_root: Path, subject_root: Path,
+-) -> ProfileSet:
+-    """Load the selected catalogue, preserving original read/parse exceptions."""
++@contextmanager
++def profile_loading_context(*, profile_path: Path, source_root: Path, subject_root: Path):
++    """Keep catalogue diagnostics consistent without replacing the loader or exception."""
+     try:
+-        return load_profiles(profile_path)
++        yield
+     except PROFILE_LOADING_ERRORS as error:
+         recovery = (
+             "Contact a system administrator to restore read access to the selected catalogue, then retry the check."
+@@ -3857,18 +3073,26 @@ def load_selected_profiles(
+         raise
+ 
+ 
++def load_selected_profiles(
++    profile_path: Path, *, source_root: Path, subject_root: Path,
++) -> profile_contracts.ProfileSet:
++    """Load the selected catalogue, preserving original read/parse exceptions."""
++    with profile_loading_context(profile_path=profile_path, source_root=source_root, subject_root=subject_root):
++        return profile_contracts.load_profiles(profile_path)
++
++
+ def validate_timeout_arguments(timeout: object, evidence: object, reason: object) -> None:
+     if timeout is not None and (type(timeout) is not int or timeout <= 0):
+-        raise ProfileError("timeout_override must be a positive integer")
++        raise profile_contracts.ProfileError("timeout_override must be a positive integer")
+     values = (timeout, evidence, reason)
+     if any(item is not None for item in values) and not all(item is not None for item in values):
+-        raise ProfileError("timeout_override, timeout_evidence, and override_reason must be supplied together")
++        raise profile_contracts.ProfileError("timeout_override, timeout_evidence, and override_reason must be supplied together")
+ 
+ 
+ def parse_public_run_arguments(value: object) -> dict[str, Any]:
+     """The canonical public run grammar shared by admission and MCP."""
+     if not isinstance(value, Mapping):
+-        raise ProfileError("run arguments must be an object")
++        raise profile_contracts.ProfileError("run arguments must be an object")
+     allowed = {
+         "command_id", "workload_class", "runtime_class", "fresh",
+         "timeout_override", "timeout_evidence", "override_reason", "dry_run", "verbose",
+@@ -3880,9 +3104,9 @@ def parse_public_run_arguments(value: object) -> dict[str, Any]:
+         item = value.get(name)
+         if item is not None:
+             if not isinstance(item, str) or not item.strip() or not Path(item).is_absolute():
+-                raise ProfileError(f"{name} must identify an absolute existing directory.")
++                raise profile_contracts.ProfileError(f"{name} must identify an absolute existing directory.")
+             if not Path(item).is_dir():
+-                raise ProfileError(f"{name} directory is unavailable. Select an existing directory.")
++                raise profile_contracts.ProfileError(f"{name} directory is unavailable. Select an existing directory.")
+             item = str(Path(item).resolve())
+         result[name] = item
+     for name, maximum in (
+@@ -3893,19 +3117,19 @@ def parse_public_run_arguments(value: object) -> dict[str, Any]:
+         if item is not None:
+             if not isinstance(item, str) or not item.strip() or len(item.strip()) > maximum:
+                 if name == "command_id":
+-                    raise ProfileError(f"{name} must be a nonempty string of at most {maximum} characters")
++                    raise profile_contracts.ProfileError(f"{name} must be a nonempty string of at most {maximum} characters")
+                 warnings.append(f"Invalid optional option {name} ignored: expected nonempty string.")
+                 item = None
+             else:
+                 item = item.strip()
+         result[name] = item
+     if result["command_id"] is None:
+-        raise ProfileError("command_id is required")
++        raise profile_contracts.ProfileError("command_id is required")
+     for name in ("fresh", "dry_run", "verbose"):
+         item = value.get(name)
+         if item is not None and type(item) is not bool:
+             if name == "dry_run":
+-                raise ProfileError("Cannot determine operation: dry_run must be boolean.")
++                raise profile_contracts.ProfileError("Cannot determine operation: dry_run must be boolean.")
+             warnings.append(f"Invalid optional option {name} ignored: expected boolean.")
+             item = None
+         result[name] = item is True
+@@ -3913,7 +3137,7 @@ def parse_public_run_arguments(value: object) -> dict[str, Any]:
+     result["timeout_override"] = timeout
+     try:
+         validate_timeout_arguments(timeout, result["timeout_evidence"], result["override_reason"])
+-    except ProfileError:
++    except profile_contracts.ProfileError:
+         warnings.append("Invalid optional timeout override ignored.")
+         for name in ("timeout_override", "timeout_evidence", "override_reason"):
+             result[name] = None
+@@ -3946,7 +3170,7 @@ def parse_runner_arguments(argv: Sequence[str] | None = None) -> argparse.Namesp
+ 
+ def parse_public_cancel_arguments(value: object) -> dict[str, Any]:
+     if not isinstance(value, Mapping):
+-        raise ProfileError("cancel arguments must be an object")
++        raise profile_contracts.ProfileError("cancel arguments must be an object")
+     warnings = [f"Unrecognized option {name} ignored." for name in sorted(set(value) - {"reason", "dry_run", "verbose"})]
+     result: dict[str, Any] = {"warnings": warnings}
+     reason = value.get("reason")
+@@ -3958,13 +3182,13 @@ def parse_public_cancel_arguments(value: object) -> dict[str, Any]:
+         item = value.get(name)
+         if item is not None and type(item) is not bool:
+             if name == "dry_run":
+-                raise ProfileError("Cannot determine operation: dry_run must be boolean.")
++                raise profile_contracts.ProfileError("Cannot determine operation: dry_run must be boolean.")
+             warnings.append(f"Invalid optional option {name} ignored: expected boolean.")
+         result[name] = item is True
+     return result
+ 
+ 
+-def select_run_profile(profiles: ProfileSet, arguments: dict[str, Any], platform_name: str) -> CommandProfile:
++def select_run_profile(profiles: profile_contracts.ProfileSet, arguments: dict[str, Any], platform_name: str) -> profile_contracts.CommandProfile:
+     """Ignore unrecognized optional selectors; require an unambiguous command."""
+     candidates = [item for item in profiles.profiles if item.command_id == arguments["command_id"] and platform_name in item.platforms]
+     for name in ("workload_class", "runtime_class"):
+@@ -3976,7 +3200,7 @@ def select_run_profile(profiles: ProfileSet, arguments: dict[str, Any], platform
+                            workload_class=arguments["workload_class"], runtime_class=arguments["runtime_class"])
+ 
+ 
+-def run_preview(repository_root: Path, profile: CommandProfile, warnings: list[str], *, configuration_root: Path | None = None) -> dict[str, Any]:
++def run_preview(repository_root: Path, profile: profile_contracts.CommandProfile, warnings: list[str], *, configuration_root: Path | None = None) -> dict[str, Any]:
+     return {
+         "schema_version": 1, "result_kind": "dry_run", "operation": "run",
+         "command_id": profile.command_id, "workload_class": profile.workload_class,
+diff --git a/ai-assistant/checks/command-profiles.toml b/ai-assistant/checks/command-profiles.toml
+index 06f4db63..f0ab3a71 100644
+--- a/ai-assistant/checks/command-profiles.toml
++++ b/ai-assistant/checks/command-profiles.toml
+@@ -2872,3 +2872,45 @@ prerequisites = { executables = ["cmd.exe"], files = ["ai-assistant/bootstrap/ms
+ cache = { enabled = false, input_paths = [], environment = [] }
+ initial_limit_reason = "Initial five minutes follow the complete single-file component profile; Windows runtime has not been executed or empirically calibrated."
+ last_calibrated_at = "2026-10-05T00:00:00Z"
++
++[[commands]]
++command_id = "harness-runner-contracts"
++workload_class = "default"
++runtime_class = "posix-host"
++platforms = ["linux", "darwin"]
++invocation = "exec"
++argv = ["bash", "ai-assistant/bootstrap/python-runtime.sh", "ai-assistant/tests/checks/run-check.py"]
++cwd = "."
++parser = "generic"
++require_parser_confirmation = false
++execution_timeout_seconds = 180
++observed_max_success_seconds = 0
++observed_max_progress_gap_seconds = 0
++stall_timeout_seconds = 0
++progress = { mode = "unavailable" }
++output = { success_bytes = 2048, failure_bytes = 8192, timeout_bytes = 4096, max_failures = 20 }
++prerequisites = { executables = ["bash"], files = ["ai-assistant/bootstrap/python-runtime.sh", "ai-assistant/tests/checks/run-check.py", "ai-assistant/tests/checks/fixtures/command_fixture.py", "ai-assistant/checks/command_profile_lib.py", "ai-assistant/checks/check_configuration.py", "ai-assistant/checks/check_runner_lib.py", "ai-assistant/checks/schemas/check-result.schema.json", "ai-assistant/agent/artifact_policy_gate.py", "ai-assistant/agent/artifact-path-policy.py", "ai-assistant/agent/artifact-path-policy.json"], environment = [] }
++cache = { enabled = false, input_paths = [], environment = [] }
++initial_limit_reason = "Полные 20 контрактов runner включают проверки завершения дочерних процессов и удержания stdout с объявленными интервалами очистки. Запуск превысил 60 секунд; начальный лимит 3 минуты покрывает эти ограниченные ожидания и подготовку. После первого зарегистрированного успешного запуска применяется эмпирический максимум +10%."
++last_calibrated_at = "2026-10-14T14:11:28Z"
++
++[[commands]]
++command_id = "repository-documentation-verification"
++workload_class = "harness-runtime-docs"
++runtime_class = "posix-host"
++platforms = ["linux", "darwin"]
++invocation = "exec"
++argv = ["env", "REPO_CHECK_SCOPE_PATHS_JSON=[\"ai-assistant/README.md\",\"docs/tools/system-dev-tooling/registered-command-runner.md\",\"docs/tools/system-dev-tooling/repository-checks-mcp.md\",\"docs/tools/system-dev-tooling/testing/README.md\",\"docs/agents/command-runtime-limits.md\"]", "bash", "ai-assistant/bootstrap/python-runtime.sh", "ai-assistant/checks/repository-documentation-contracts.py", "--repository-root", "."]
++cwd = "."
++parser = "generic"
++require_parser_confirmation = false
++execution_timeout_seconds = 60
++observed_max_success_seconds = 0
++observed_max_progress_gap_seconds = 0
++stall_timeout_seconds = 0
++progress = { mode = "unavailable" }
++output = { success_bytes = 2048, failure_bytes = 8192, timeout_bytes = 4096, max_failures = 20 }
++prerequisites = { executables = ["env", "bash", "git"], files = ["ai-assistant/checks/repository-documentation-contracts.py", "ai-assistant/md-fmt.py", "ai-assistant/bootstrap/python-runtime.sh", "ai-assistant/README.md", "docs/tools/system-dev-tooling/registered-command-runner.md", "docs/tools/system-dev-tooling/repository-checks-mcp.md", "docs/tools/system-dev-tooling/testing/README.md", "docs/agents/command-runtime-limits.md"], environment = [] }
++cache = { enabled = false, input_paths = [], environment = [] }
++initial_limit_reason = "Начальный лимит 60 секунд покрывает форматирование пяти канонических документов harness, проверку исходящих ссылок и входящих ссылок на эти документы. Это начальная конфигурация нового workload, без заявления эмпирического максимума; последующие лимиты определяет подтверждённая история runner."
++last_calibrated_at = "2026-10-14T16:54:51Z"
+diff --git a/ai-assistant/checks/command_profile_lib.py b/ai-assistant/checks/command_profile_lib.py
+new file mode 100644
+index 00000000..329b5791
+--- /dev/null
++++ b/ai-assistant/checks/command_profile_lib.py
+@@ -0,0 +1,777 @@
++"""Independent registered-command profile contracts and atomic text output."""
++from __future__ import annotations
++
++from dataclasses import dataclass, replace
++from datetime import datetime
++import json
++import math
++import os
++from pathlib import Path
++import re
++import tomllib
++import textwrap
++from typing import Iterable, Mapping, Sequence
++import uuid
++
++
++class ProfileError(ValueError):
++    """The registered command-profile contract is invalid."""
++
++
++_IDENTIFIER_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,95}$")
++
++
++_SUPPORTED_PLATFORMS = frozenset({"linux", "darwin", "windows"})
++
++
++_SUPPORTED_INVOCATIONS = frozenset({"exec", "windows_cmd"})
++
++
++_SUPPORTED_PARSERS = frozenset(
++    {"generic", "phpunit", "vitest", "playwright", "phpstan", "deptrac", "build"}
++)
++
++
++_SUPPORTED_EVIDENCE_RETENTION_CLASSES = frozenset({"task", "release", "diagnostic"})
++
++
++_INPUT_SELECTION_FILESYSTEM_GLOB = "filesystem-glob"
++
++
++_INPUT_SELECTION_GIT_TRACKED_MARKDOWN = "git-tracked-markdown"
++
++
++_SUPPORTED_INPUT_SELECTIONS = frozenset(
++    {_INPUT_SELECTION_FILESYSTEM_GLOB, _INPUT_SELECTION_GIT_TRACKED_MARKDOWN}
++)
++
++
++def _required_string(value: object, label: str) -> str:
++    if not isinstance(value, str) or not value.strip():
++        raise ProfileError(f"{label} must be a non-empty string")
++    return value.strip()
++
++
++def _timestamp_with_timezone(value: object, label: str) -> str:
++    result = _required_string(value, label)
++    normalized = result[:-1] + "+00:00" if result.endswith("Z") else result
++    try:
++        parsed = datetime.fromisoformat(normalized)
++    except ValueError as error:
++        raise ProfileError(f"{label} must be an ISO-8601 timestamp with time and timezone") from error
++    if parsed.tzinfo is None or parsed.utcoffset() is None:
++        raise ProfileError(f"{label} must include a timezone")
++    return result
++
++
++def _identifier(value: object, label: str) -> str:
++    result = _required_string(value, label)
++    if not _IDENTIFIER_RE.fullmatch(result):
++        raise ProfileError(f"{label} must match {_IDENTIFIER_RE.pattern}: {result!r}")
++    return result
++
++
++def _positive_int(value: object, label: str) -> int:
++    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
++        raise ProfileError(f"{label} must be a positive integer")
++    return value
++
++
++def _non_negative_number(value: object, label: str) -> float:
++    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
++        raise ProfileError(f"{label} must be a non-negative number")
++    result = float(value)
++    if not math.isfinite(result):
++        raise ProfileError(f"{label} must be finite")
++    return result
++
++
++def _boolean(value: object, label: str) -> bool:
++    if not isinstance(value, bool):
++        raise ProfileError(f"{label} must be boolean")
++    return value
++
++
++def _string_list(value: object, label: str, *, allow_empty: bool = False) -> tuple[str, ...]:
++    if not isinstance(value, list) or (not value and not allow_empty):
++        qualifier = "" if allow_empty else " and non-empty"
++        raise ProfileError(f"{label} must be a string list{qualifier}")
++    return tuple(_required_string(item, f"{label}[{index}]") for index, item in enumerate(value))
++
++
++def _relative_path(value: object, label: str) -> str:
++    result = _required_string(value, label)
++    path = Path(result)
++    if path.is_absolute() or ".." in path.parts:
++        raise ProfileError(f"{label} must remain inside the repository: {result!r}")
++    return result.replace("\\", "/")
++
++
++def _relative_glob(value: object, label: str) -> str:
++    result = _required_string(value, label).replace("\\", "/")
++    path = Path(result)
++    if path.is_absolute() or ".." in path.parts or result.startswith("/"):
++        raise ProfileError(f"{label} must remain inside the evidence directory: {result!r}")
++    if result in {".", "./"} or result.endswith("/"):
++        raise ProfileError(f"{label} must identify files, not a directory: {result!r}")
++    return result
++
++
++@dataclass(frozen=True)
++class EvidenceContract:
++    evidence_id: str
++    required_globs: tuple[str, ...]
++    optional_globs: tuple[str, ...]
++    max_files: int
++    max_total_bytes: int
++    retention_class: str
++
++    @classmethod
++    def from_raw(cls, raw: object, index: int) -> "EvidenceContract":
++        label = f"evidence_contracts[{index}]"
++        if not isinstance(raw, Mapping):
++            raise ProfileError(f"{label} must be a table")
++        required = _string_list(
++            raw.get("required_globs", []),
++            f"{label}.required_globs",
++            allow_empty=True,
++        )
++        optional = _string_list(
++            raw.get("optional_globs", []),
++            f"{label}.optional_globs",
++            allow_empty=True,
++        )
++        required_globs = tuple(
++            _relative_glob(item, f"{label}.required_globs[{position}]")
++            for position, item in enumerate(required)
++        )
++        optional_globs = tuple(
++            _relative_glob(item, f"{label}.optional_globs[{position}]")
++            for position, item in enumerate(optional)
++        )
++        if len(set(required_globs)) != len(required_globs):
++            raise ProfileError(f"{label}.required_globs must not contain duplicates")
++        if len(set(optional_globs)) != len(optional_globs):
++            raise ProfileError(f"{label}.optional_globs must not contain duplicates")
++        overlap = set(required_globs) & set(optional_globs)
++        if overlap:
++            raise ProfileError(
++                f"{label} globs cannot be both required and optional: {sorted(overlap)}"
++            )
++        retention_class = _required_string(
++            raw.get("retention_class"), f"{label}.retention_class"
++        )
++        if retention_class not in _SUPPORTED_EVIDENCE_RETENTION_CLASSES:
++            raise ProfileError(
++                f"{label}.retention_class must be one of "
++                f"{sorted(_SUPPORTED_EVIDENCE_RETENTION_CLASSES)}"
++            )
++        return cls(
++            evidence_id=_identifier(raw.get("evidence_id"), f"{label}.evidence_id"),
++            required_globs=required_globs,
++            optional_globs=optional_globs,
++            max_files=_positive_int(raw.get("max_files"), f"{label}.max_files"),
++            max_total_bytes=_positive_int(
++                raw.get("max_total_bytes"), f"{label}.max_total_bytes"
++            ),
++            retention_class=retention_class,
++        )
++
++
++@dataclass(frozen=True)
++class ProgressProfile:
++    mode: str
++    pattern: str | None = None
++    completed_group: str | None = None
++    total_group: str | None = None
++    stage_group: str | None = None
++
++    @classmethod
++    def from_raw(cls, raw: object, label: str) -> "ProgressProfile":
++        if not isinstance(raw, Mapping):
++            raise ProfileError(f"{label} must be an inline table")
++        mode = _required_string(raw.get("mode"), f"{label}.mode")
++        if mode == "unavailable":
++            if any(key in raw for key in ("pattern", "completed_group", "total_group", "stage_group")):
++                raise ProfileError(f"{label} mode unavailable accepts only the mode key")
++            return cls(mode=mode)
++        if mode != "regex":
++            raise ProfileError(f"{label}.mode must be unavailable or regex")
++        pattern = _required_string(raw.get("pattern"), f"{label}.pattern")
++        completed_group = _required_string(raw.get("completed_group"), f"{label}.completed_group")
++        total_raw = raw.get("total_group")
++        stage_raw = raw.get("stage_group")
++        total_group = _required_string(total_raw, f"{label}.total_group") if total_raw is not None else None
++        stage_group = _required_string(stage_raw, f"{label}.stage_group") if stage_raw is not None else None
++        try:
++            compiled = re.compile(pattern)
++        except re.error as error:
++            raise ProfileError(f"{label}.pattern is invalid: {error}") from error
++        for key, group in (
++            ("completed_group", completed_group),
++            ("total_group", total_group),
++            ("stage_group", stage_group),
++        ):
++            if group is not None and group not in compiled.groupindex:
++                raise ProfileError(f"{label}.{key} references missing group {group!r}")
++        return cls(mode, pattern, completed_group, total_group, stage_group)
++
++
++@dataclass(frozen=True)
++class OutputBudget:
++    success_bytes: int
++    failure_bytes: int
++    timeout_bytes: int
++    max_failures: int
++
++    @classmethod
++    def from_raw(cls, raw: object, label: str) -> "OutputBudget":
++        if not isinstance(raw, Mapping):
++            raise ProfileError(f"{label} must be an inline table")
++        return cls(
++            _positive_int(raw.get("success_bytes"), f"{label}.success_bytes"),
++            _positive_int(raw.get("failure_bytes"), f"{label}.failure_bytes"),
++            _positive_int(raw.get("timeout_bytes"), f"{label}.timeout_bytes"),
++            _positive_int(raw.get("max_failures"), f"{label}.max_failures"),
++        )
++
++
++@dataclass(frozen=True)
++class Prerequisites:
++    executables: tuple[str, ...]
++    files: tuple[str, ...]
++    environment: tuple[str, ...]
++
++    @classmethod
++    def from_raw(cls, raw: object, label: str) -> "Prerequisites":
++        if not isinstance(raw, Mapping):
++            raise ProfileError(f"{label} must be an inline table")
++        files = _string_list(raw.get("files"), f"{label}.files", allow_empty=True)
++        return cls(
++            _string_list(raw.get("executables"), f"{label}.executables", allow_empty=True),
++            tuple(_relative_path(item, f"{label}.files[{index}]") for index, item in enumerate(files)),
++            _string_list(raw.get("environment"), f"{label}.environment", allow_empty=True),
++        )
++
++
++@dataclass(frozen=True)
++class CacheProfile:
++    enabled: bool
++    input_paths: tuple[str, ...]
++    environment: tuple[str, ...]
++    input_selection: str = _INPUT_SELECTION_FILESYSTEM_GLOB
++    max_input_files: int | None = None
++    max_input_bytes: int | None = None
++
++    @classmethod
++    def from_raw(cls, raw: object, label: str) -> "CacheProfile":
++        if not isinstance(raw, Mapping):
++            raise ProfileError(f"{label} must be an inline table")
++        input_paths = _string_list(
++            raw.get("input_paths"),
++            f"{label}.input_paths",
++            allow_empty=True,
++        )
++        normalized_paths = tuple(
++            _relative_path(item, f"{label}.input_paths[{index}]")
++            for index, item in enumerate(input_paths)
++        )
++        environment = _string_list(
++            raw.get("environment"),
++            f"{label}.environment",
++            allow_empty=True,
++        )
++        input_selection = _required_string(
++            raw.get("input_selection", _INPUT_SELECTION_FILESYSTEM_GLOB),
++            f"{label}.input_selection",
++        )
++        if input_selection not in _SUPPORTED_INPUT_SELECTIONS:
++            raise ProfileError(
++                f"{label}.input_selection must be one of "
++                f"{sorted(_SUPPORTED_INPUT_SELECTIONS)}"
++            )
++        has_limits = "max_input_files" in raw or "max_input_bytes" in raw
++        if input_selection == _INPUT_SELECTION_GIT_TRACKED_MARKDOWN:
++            if normalized_paths:
++                raise ProfileError(
++                    f"{label}.input_paths must be empty for "
++                    "git-tracked-markdown selection"
++                )
++            if "max_input_files" not in raw or "max_input_bytes" not in raw:
++                raise ProfileError(
++                    f"{label} git-tracked-markdown selection requires "
++                    "max_input_files and max_input_bytes"
++                )
++            max_input_files = _positive_int(
++                raw["max_input_files"], f"{label}.max_input_files"
++            )
++            max_input_bytes = _positive_int(
++                raw["max_input_bytes"], f"{label}.max_input_bytes"
++            )
++        else:
++            if has_limits:
++                raise ProfileError(
++                    f"{label} filesystem-glob selection does not accept "
++                    "max_input_files or max_input_bytes"
++                )
++            max_input_files = None
++            max_input_bytes = None
++        return cls(
++            _boolean(raw.get("enabled"), f"{label}.enabled"),
++            normalized_paths,
++            environment,
++            input_selection,
++            max_input_files,
++            max_input_bytes,
++        )
++
++
++@dataclass(frozen=True)
++class CommandProfile:
++    command_id: str
++    workload_class: str
++    runtime_class: str
++    platforms: tuple[str, ...]
++    invocation: str
++    argv: tuple[str, ...]
++    cwd: str
++    parser: str
++    require_parser_confirmation: bool
++    execution_timeout_seconds: int
++    observed_max_success_seconds: float
++    observed_max_progress_gap_seconds: float
++    stall_timeout_seconds: int | None
++    progress: ProgressProfile
++    output: OutputBudget
++    prerequisites: Prerequisites
++    initial_limit_reason: str
++    last_calibrated_at: str
++    cache: CacheProfile = CacheProfile(False, (), ())
++    evidence_id: str | None = None
++    evidence: EvidenceContract | None = None
++
++    @property
++    def key(self) -> tuple[str, str, str]:
++        return self.command_id, self.workload_class, self.runtime_class
++
++    @classmethod
++    def from_raw(cls, raw: object, index: int) -> "CommandProfile":
++        label = f"commands[{index}]"
++        if not isinstance(raw, Mapping):
++            raise ProfileError(f"{label} must be a table")
++        platforms = _string_list(raw.get("platforms"), f"{label}.platforms")
++        unsupported = set(platforms) - _SUPPORTED_PLATFORMS
++        if unsupported:
++            raise ProfileError(f"{label}.platforms contains unsupported values: {sorted(unsupported)}")
++        invocation = _required_string(raw.get("invocation"), f"{label}.invocation")
++        if invocation not in _SUPPORTED_INVOCATIONS:
++            raise ProfileError(f"{label}.invocation must be one of {sorted(_SUPPORTED_INVOCATIONS)}")
++        parser_name = _required_string(raw.get("parser"), f"{label}.parser")
++        if parser_name not in _SUPPORTED_PARSERS:
++            raise ProfileError(f"{label}.parser must be one of {sorted(_SUPPORTED_PARSERS)}")
++        stall_raw = raw.get("stall_timeout_seconds")
++        if isinstance(stall_raw, bool) or not isinstance(stall_raw, int) or stall_raw < 0:
++            raise ProfileError(f"{label}.stall_timeout_seconds must be a non-negative integer")
++        progress = ProgressProfile.from_raw(raw.get("progress"), f"{label}.progress")
++        if stall_raw and progress.mode == "unavailable":
++            raise ProfileError(f"{label}.stall_timeout_seconds requires a progress probe")
++        result = cls(
++            _identifier(raw.get("command_id"), f"{label}.command_id"),
++            _identifier(raw.get("workload_class"), f"{label}.workload_class"),
++            _identifier(raw.get("runtime_class"), f"{label}.runtime_class"),
++            platforms,
++            invocation,
++            _string_list(raw.get("argv"), f"{label}.argv"),
++            _relative_path(raw.get("cwd"), f"{label}.cwd"),
++            parser_name,
++            _boolean(raw.get("require_parser_confirmation"), f"{label}.require_parser_confirmation"),
++            _positive_int(raw.get("execution_timeout_seconds"), f"{label}.execution_timeout_seconds"),
++            _non_negative_number(raw.get("observed_max_success_seconds"), f"{label}.observed_max_success_seconds"),
++            _non_negative_number(
++                raw.get("observed_max_progress_gap_seconds"),
++                f"{label}.observed_max_progress_gap_seconds",
++            ),
++            stall_raw or None,
++            progress,
++            OutputBudget.from_raw(raw.get("output"), f"{label}.output"),
++            Prerequisites.from_raw(raw.get("prerequisites"), f"{label}.prerequisites"),
++            _required_string(raw.get("initial_limit_reason"), f"{label}.initial_limit_reason"),
++            _timestamp_with_timezone(raw.get("last_calibrated_at"), f"{label}.last_calibrated_at"),
++            CacheProfile.from_raw(raw.get("cache"), f"{label}.cache"),
++            (
++                _identifier(raw.get("evidence_id"), f"{label}.evidence_id")
++                if raw.get("evidence_id") is not None
++                else None
++            ),
++            None,
++        )
++        if result.observed_max_success_seconds > 0:
++            expected = math.ceil(result.observed_max_success_seconds * 1.10)
++            if result.execution_timeout_seconds != expected:
++                raise ProfileError(
++                    f"{label}.execution_timeout_seconds must equal ceil(1.10 * observed maximum) = {expected}"
++                )
++        if result.progress.mode == "unavailable":
++            if result.observed_max_progress_gap_seconds > 0:
++                raise ProfileError(
++                    f"{label}.observed_max_progress_gap_seconds requires a progress probe"
++                )
++        elif result.observed_max_progress_gap_seconds > 0:
++            expected_stall = math.ceil(result.observed_max_progress_gap_seconds * 1.10)
++            if result.stall_timeout_seconds != expected_stall:
++                raise ProfileError(
++                    f"{label}.stall_timeout_seconds must equal "
++                    f"ceil(1.10 * observed progress gap) = {expected_stall}"
++                )
++        return result
++
++    def calibrated(
++        self,
++        maximum_seconds: float,
++        calibrated_at: str,
++        *,
++        maximum_progress_gap_seconds: float = 0.0,
++    ) -> "CommandProfile":
++        if maximum_seconds <= 0:
++            raise ProfileError("maximum_seconds must be positive")
++        _timestamp_with_timezone(calibrated_at, "calibrated_at")
++        maximum = max(maximum_seconds, self.observed_max_success_seconds)
++        gap = self.observed_max_progress_gap_seconds
++        stall = self.stall_timeout_seconds
++        if self.progress.mode == "regex" and maximum_progress_gap_seconds > 0:
++            gap = max(maximum_progress_gap_seconds, gap)
++            stall = math.ceil(gap * 1.10)
++        return replace(
++            self,
++            observed_max_success_seconds=maximum,
++            observed_max_progress_gap_seconds=gap,
++            execution_timeout_seconds=math.ceil(maximum * 1.10),
++            stall_timeout_seconds=stall,
++            last_calibrated_at=calibrated_at,
++        )
++
++
++@dataclass(frozen=True)
++class ProfileSet:
++    profiles: tuple[CommandProfile, ...]
++    evidence_contracts: tuple[EvidenceContract, ...] = ()
++
++    def select(
++        self,
++        command_id: str,
++        *,
++        platform_name: str,
++        workload_class: str | None = None,
++        runtime_class: str | None = None,
++    ) -> CommandProfile:
++        matches = [
++            item
++            for item in self.profiles
++            if item.command_id == command_id
++            and platform_name in item.platforms
++            and (workload_class is None or item.workload_class == workload_class)
++            and (runtime_class is None or item.runtime_class == runtime_class)
++        ]
++        if not matches:
++            raise ProfileError(
++                "no registered profile matches "
++                f"command_id={command_id!r}, platform={platform_name!r}, "
++                f"workload_class={workload_class!r}, runtime_class={runtime_class!r}. "
++                "Use --list with the selected catalogue, then select an exact command/workload/runtime."
++            )
++        if len(matches) != 1:
++            variants = ", ".join(f"{item.workload_class}/{item.runtime_class}" for item in matches)
++            raise ProfileError(f"command profile selection is ambiguous: {variants}. Use --list with the selected catalogue and supply exact workload/runtime selectors.")
++        return matches[0]
++
++    def replace_profile(self, updated: CommandProfile) -> "ProfileSet":
++        found = False
++        values: list[CommandProfile] = []
++        for item in self.profiles:
++            if item.key == updated.key:
++                values.append(updated)
++                found = True
++            else:
++                values.append(item)
++        if not found:
++            raise ProfileError(f"profile not found for calibration: {updated.key}")
++        return ProfileSet(tuple(values), self.evidence_contracts)
++
++
++def load_profiles(path: Path) -> ProfileSet:
++    raw = tomllib.loads(path.read_text(encoding="utf-8"))
++    if not isinstance(raw, Mapping) or type(raw.get("schema_version")) is not int or raw["schema_version"] != 1:
++        raise ProfileError("command profile schema_version must equal 1")
++    evidence_raw = raw.get("evidence_contracts", [])
++    if not isinstance(evidence_raw, list):
++        raise ProfileError("evidence_contracts must be an array of tables")
++    evidence_contracts = tuple(
++        EvidenceContract.from_raw(item, index)
++        for index, item in enumerate(evidence_raw)
++    )
++    evidence_by_id: dict[str, EvidenceContract] = {}
++    for item in evidence_contracts:
++        if item.evidence_id in evidence_by_id:
++            raise ProfileError(f"duplicate evidence contract ID: {item.evidence_id}")
++        evidence_by_id[item.evidence_id] = item
++
++    commands = raw.get("commands")
++    if not isinstance(commands, list) or not commands:
++        raise ProfileError("command profile file must contain [[commands]] tables")
++    parsed_profiles = tuple(
++        CommandProfile.from_raw(item, index) for index, item in enumerate(commands)
++    )
++    profiles: list[CommandProfile] = []
++    seen: set[tuple[str, str, str]] = set()
++    for item in parsed_profiles:
++        if item.key in seen:
++            raise ProfileError(f"duplicate command profile key: {item.key}")
++        seen.add(item.key)
++        evidence = None
++        if item.evidence_id is not None:
++            evidence = evidence_by_id.get(item.evidence_id)
++            if evidence is None:
++                raise ProfileError(
++                    f"command profile {item.key} references unknown evidence_id "
++                    f"{item.evidence_id!r}"
++                )
++        profiles.append(replace(item, evidence=evidence))
++    return ProfileSet(tuple(profiles), evidence_contracts)
++
++
++def _toml_string(value: str) -> str:
++    return json.dumps(value, ensure_ascii=False)
++
++
++def _toml_list(values: Sequence[str]) -> str:
++    return "[" + ", ".join(_toml_string(value) for value in values) + "]"
++
++
++def _inline(values: Iterable[tuple[str, str]]) -> str:
++    return "{ " + ", ".join(f"{key} = {value}" for key, value in values) + " }"
++
++
++def render_profiles(profile_set: ProfileSet) -> str:
++    lines = ["schema_version = 1", ""]
++    for contract in profile_set.evidence_contracts:
++        lines.extend(
++            [
++                "[[evidence_contracts]]",
++                f"evidence_id = {_toml_string(contract.evidence_id)}",
++                f"required_globs = {_toml_list(contract.required_globs)}",
++                f"optional_globs = {_toml_list(contract.optional_globs)}",
++                f"max_files = {contract.max_files}",
++                f"max_total_bytes = {contract.max_total_bytes}",
++                f"retention_class = {_toml_string(contract.retention_class)}",
++                "",
++            ]
++        )
++    for item in profile_set.profiles:
++        progress_pairs: list[tuple[str, str]] = [("mode", _toml_string(item.progress.mode))]
++        if item.progress.mode == "regex":
++            progress_pairs.extend(
++                [
++                    ("pattern", _toml_string(item.progress.pattern or "")),
++                    ("completed_group", _toml_string(item.progress.completed_group or "")),
++                ]
++            )
++            if item.progress.total_group is not None:
++                progress_pairs.append(("total_group", _toml_string(item.progress.total_group)))
++            if item.progress.stage_group is not None:
++                progress_pairs.append(("stage_group", _toml_string(item.progress.stage_group)))
++        maximum = (
++            str(int(item.observed_max_success_seconds))
++            if item.observed_max_success_seconds.is_integer()
++            else repr(item.observed_max_success_seconds)
++        )
++        lines.extend(
++            [
++                "[[commands]]",
++                f"command_id = {_toml_string(item.command_id)}",
++                f"workload_class = {_toml_string(item.workload_class)}",
++                f"runtime_class = {_toml_string(item.runtime_class)}",
++                f"platforms = {_toml_list(item.platforms)}",
++                f"invocation = {_toml_string(item.invocation)}",
++                f"argv = {_toml_list(item.argv)}",
++                f"cwd = {_toml_string(item.cwd)}",
++                *(
++                    [f"evidence_id = {_toml_string(item.evidence_id)}"]
++                    if item.evidence_id is not None
++                    else []
++                ),
++                f"parser = {_toml_string(item.parser)}",
++                f"require_parser_confirmation = {'true' if item.require_parser_confirmation else 'false'}",
++                f"execution_timeout_seconds = {item.execution_timeout_seconds}",
++                f"observed_max_success_seconds = {maximum}",
++                "observed_max_progress_gap_seconds = "
++                + (
++                    str(int(item.observed_max_progress_gap_seconds))
++                    if item.observed_max_progress_gap_seconds.is_integer()
++                    else repr(item.observed_max_progress_gap_seconds)
++                ),
++                f"stall_timeout_seconds = {item.stall_timeout_seconds or 0}",
++                f"progress = {_inline(progress_pairs)}",
++                "output = "
++                + _inline(
++                    [
++                        ("success_bytes", str(item.output.success_bytes)),
++                        ("failure_bytes", str(item.output.failure_bytes)),
++                        ("timeout_bytes", str(item.output.timeout_bytes)),
++                        ("max_failures", str(item.output.max_failures)),
++                    ]
++                ),
++                "prerequisites = "
++                + _inline(
++                    [
++                        ("executables", _toml_list(item.prerequisites.executables)),
++                        ("files", _toml_list(item.prerequisites.files)),
++                        ("environment", _toml_list(item.prerequisites.environment)),
++                    ]
++                ),
++                "cache = "
++                + _inline(
++                    [
++                        ("enabled", "true" if item.cache.enabled else "false"),
++                        *(
++                            [("input_selection", _toml_string(item.cache.input_selection))]
++                            if item.cache.input_selection != _INPUT_SELECTION_FILESYSTEM_GLOB
++                            else []
++                        ),
++                        ("input_paths", _toml_list(item.cache.input_paths)),
++                        ("environment", _toml_list(item.cache.environment)),
++                        *(
++                            [("max_input_files", str(item.cache.max_input_files))]
++                            if item.cache.max_input_files is not None
++                            else []
++                        ),
++                        *(
++                            [("max_input_bytes", str(item.cache.max_input_bytes))]
++                            if item.cache.max_input_bytes is not None
++                            else []
++                        ),
++                    ]
++                ),
++                f"initial_limit_reason = {_toml_string(item.initial_limit_reason)}",
++                f"last_calibrated_at = {_toml_string(item.last_calibrated_at)}",
++                "",
++            ]
++        )
++    return "\n".join(lines).rstrip() + "\n"
++
++
++def write_profiles(path: Path, profile_set: ProfileSet) -> None:
++    write_text_atomically(path, render_profiles(profile_set))
++
++
++def write_text_atomically(path: Path, content: str, *, mode: int = 0o644) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
++    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
++    try:
++        temporary.write_text(content, encoding="utf-8", newline="\n")
++        try:
++            temporary.chmod(mode)
++        except OSError:
++            pass
++        os.replace(temporary, path)
++    finally:
++        try:
++            temporary.unlink()
++        except FileNotFoundError:
++            pass
++
++
++def render_runtime_limits(profile_set: ProfileSet) -> str:
++    lines = [
++        "# Лимиты выполнения зарегистрированных команд",
++        "",
++        "## Назначение",
++        "",
++        "Документ генерируется из",
++        "`ai-assistant/checks/command-profiles.toml` и не является вторым",
++        "источником истины. Изменять таблицу вручную нельзя.",
++        "",
++        "Штатный лимит равен 110% максимального подтверждённого успешного",
++        "времени для той же комбинации `command_id`, `workload_class` и",
++        "`runtime_class`. Пока история отсутствует, действует явно",
++        "обоснованный начальный лимит.",
++        "",
++        "## Зарегистрированные профили",
++        "",
++        "| Команда | Нагрузка | Runtime | Платформы | Timeout, с | Максимум, с | Stall, с | Макс. progress gap, с | Progress | Последняя калибровка |",
++        "|---|---|---|---|---:|---:|---:|---:|---|---|",
++    ]
++    for item in profile_set.profiles:
++        maximum = f"{item.observed_max_success_seconds:g}" if item.observed_max_success_seconds else "нет истории"
++        lines.append(
++            "| "
++            + " | ".join(
++                [
++                    f"`{item.command_id}`",
++                    f"`{item.workload_class}`",
++                    f"`{item.runtime_class}`",
++                    ", ".join(f"`{value}`" for value in item.platforms),
++                    str(item.execution_timeout_seconds),
++                    maximum,
++                    str(item.stall_timeout_seconds) if item.stall_timeout_seconds else "—",
++                    (
++                        f"{item.observed_max_progress_gap_seconds:g}"
++                        if item.observed_max_progress_gap_seconds
++                        else "нет истории"
++                    ),
++                    f"`{item.progress.mode}`",
++                    item.last_calibrated_at,
++                ]
++            )
++            + " |"
++        )
++    lines.extend(["", "## Начальные лимиты", ""])
++    for item in profile_set.profiles:
++        lines.extend(
++            [
++                f"### `{item.command_id}` / `{item.workload_class}` / `{item.runtime_class}`",
++                "",
++                textwrap.fill(item.initial_limit_reason, width=72),
++                "",
++            ]
++        )
++    lines.extend(
++        [
++            "## Автоматическое обновление лимита",
++            "",
++            "Перед каждым запуском runner автоматически читает durable",
++            "ledger и применяет `ceil(1.10 × longest verified success)`",
++            "для той же комбинации command/workload/runtime. Новый",
++            "подтверждённый successful result записывается в ledger и",
++            "автоматически становится лимитом следующего запуска; действий",
++            "AI-агента не требуется. `calibrate_timeout.py` остаётся только",
++            "maintenance-командой для явной материализации ledger history в",
++            "version-controlled profile snapshot и этот generated document.",
++            "",
++            "Подтверждённые интервалы между последовательными progress",
++            "events калибруют optional stall timeout по тому же правилу +10%;",
++            "подготовка до первого event в этот baseline не входит.",
++            "Timeout, stall, отмена, ошибка среды, hang или loop не могут",
++            "увеличить лимит. После timeout сначала исследуются сохранённые",
++            "log, progress и process-tree evidence. Один диагностический",
++            "rerun с увеличенным лимитом допускается только по ссылке на",
++            "предыдущий timed-out check; новый максимум устанавливается",
++            "только после успешного завершения rerun.",
++            "",
++            "## Ограничение наблюдаемости",
++            "",
++            "`regex` probe учитывает только монотонное предметное",
++            "продвижение. Stall clock запускается только после первого",
++            "подтверждённого progress event, поэтому подготовительная стадия",
++            "ограничивается общим empirical timeout, а не stall timeout.",
++            "Heartbeat, повторяющаяся строка и загрузка CPU не доказывают",
++            "полезный прогресс. При `progress = unavailable`",
++            "автоматически отличить медленную работу от бесконечного цикла",
++            "нельзя; empirical timeout остаётся safety boundary.",
++            "",
++        ]
++    )
++    return "\n".join(lines)
++
++
++def write_runtime_limits(path: Path, profile_set: ProfileSet) -> None:
++    write_text_atomically(path, render_runtime_limits(profile_set))
+diff --git a/ai-assistant/checks/registered_command_adoption_lib.py b/ai-assistant/checks/registered_command_adoption_lib.py
+index fa190de4..071e29ab 100644
+--- a/ai-assistant/checks/registered_command_adoption_lib.py
++++ b/ai-assistant/checks/registered_command_adoption_lib.py
+@@ -17,16 +17,16 @@ import shutil
+ import sqlite3
+ from typing import Any, Callable, Iterable, Mapping, Sequence
+ 
++from check_configuration import CheckConfiguration
++from command_profile_lib import CommandProfile, ProfileError, load_profiles
++from check_runner_lib import current_platform_name
+ from check_runner_lib import (
+-    CommandProfile,
+-    ProfileError,
+     build_runner_parser,
+     current_platform_name,
+     load_selected_profiles,
+     exception_diagnostic,
+     parse_public_run_arguments,
+     profile_selection_diagnostic,
+-    resolve_configuration_root,
+     validate_timeout_arguments,
+ )
+ from registered_provider_lib import primary_provider_settings, resolve_subject_root
+@@ -1679,7 +1679,7 @@ def _selected_runner_profile(arguments, source_root: Path, cwd: Path) -> Candida
+     config_path = arguments.config_root
+     if config_path is not None and not Path(config_path).is_absolute():
+         config_path = cwd / config_path
+-    configuration = resolve_configuration_root(subject, config_path)
++    configuration = CheckConfiguration.select(subject, config_path).root
+     profile_path = configuration / "ai-assistant/checks/command-profiles.toml"
+     profiles = load_selected_profiles(profile_path, source_root=source_root, subject_root=subject)
+     try:
+diff --git a/ai-assistant/checks/run_check.py b/ai-assistant/checks/run_check.py
+index ab100849..19522aa0 100644
+--- a/ai-assistant/checks/run_check.py
++++ b/ai-assistant/checks/run_check.py
+@@ -10,6 +10,9 @@ import sys
+ from typing import Sequence
+ import tomllib
+ 
++from check_configuration import CheckConfiguration
++from command_profile_lib import ProfileError
++from registered_check_service import RegisteredCheckService
+ from check_runner_lib import (
+     build_runner_parser as build_parser,
+     parse_runner_arguments,
+@@ -21,17 +24,14 @@ from check_runner_lib import (
+     EXIT_INVALID_ARGUMENTS,
+     EXIT_MISSING_DEPENDENCY,
+     LedgerError,
+-    ProfileError,
+     RunnerError,
+     current_platform_name,
+     fit_model_visible_result,
+-    load_selected_profiles,
+     exception_diagnostic,
+     profile_selection_diagnostic,
+-    run_registered_command,
+-    runtime_calibrated_profile,
+-    resolve_configuration_root,
++    profile_loading_context,
+     validate_timeout_arguments,
++    runtime_calibrated_profile,
+ )
+ from registered_command_adoption_lib import ActiveCheck, ActiveRegistry, AdoptionError, Candidate, optional_adoption_update
+ from test_package_lib import RegistryError
+@@ -119,14 +119,14 @@ def main(argv: Sequence[str] | None = None) -> int:
+             binding = capture_execution_binding(root, subject)
+             root = subject
+         reading_selected_configuration = args.config_root is not None
+-        config_root = resolve_configuration_root(root, args.config_root)
+-        if args.config_root is not None:
+-            selected_registry_path = str(config_root / "ai-assistant/checks/test-packages.toml")
+-        profile_path = config_root / "ai-assistant" / "checks" / "command-profiles.toml"
++        configuration = CheckConfiguration.select(root, args.config_root)
++        if configuration.explicit:
++            selected_registry_path = str(configuration.root / "ai-assistant/checks/test-packages.toml")
+         data_root = root / "ai-assistant" / "checks" / "data"
+-        profiles = load_selected_profiles(
+-            profile_path, source_root=source_root, subject_root=root,
+-        )
++        profile_path = configuration.root / "ai-assistant/checks/command-profiles.toml"
++        with profile_loading_context(profile_path=profile_path, source_root=source_root, subject_root=root):
++            service = RegisteredCheckService(configuration)
++        profiles = service.profiles
+         reading_selected_configuration = False
+         platform_name = current_platform_name()
+         if args.list:
+@@ -154,24 +154,28 @@ def main(argv: Sequence[str] | None = None) -> int:
+                 args.json,
+             )
+             return 0
+-        selected_id = args.describe or args.command_id
++        selection = {**vars(args), "command_id": args.describe or args.command_id}
+         try:
+-            selection = {**vars(args), "command_id": selected_id}
+             profile = select_run_profile(profiles, selection, platform_name)
+         except ProfileError as error:
+             raise ProfileError(profile_selection_diagnostic(
+                 str(error), source_root=source_root, subject_root=root, profile_path=profile_path,
+             )) from error
++        args.workload_class = selection["workload_class"]
++        args.runtime_class = selection["runtime_class"]
+         if owned_claim is not None and Candidate.from_profile(profile) != owned_claim[1].candidate:
+             args.warnings.append("Optional bookkeeping ignored: selected operation differs from the recorded request.")
+             owned_claim = None
+         if args.dry_run:
+-            emit(run_preview(root, profile, args.warnings, configuration_root=config_root), args.json)
++            emit(run_preview(root, profile, args.warnings, configuration_root=configuration.root), args.json)
+             return 0
+-        profile = runtime_calibrated_profile(profile, data_root / "ledger.sqlite3")
+         if args.verbose and args.warnings:
+             print(json.dumps({"warnings": args.warnings}), file=sys.stderr)
+         if args.describe:
++            profile = service.select(
++                data_root, args.describe, platform_name=platform_name,
++                workload_class=args.workload_class, runtime_class=args.runtime_class,
++            )
+             emit(
+                 {
+                     "schema_version": 1,
+@@ -211,11 +215,13 @@ def main(argv: Sequence[str] | None = None) -> int:
+                 args.json,
+             )
+             return 0
+-        _, result = run_registered_command(
++        profile, _, result = service.run(
+             root,
+             data_root,
+-            profile,
+-            config_root=config_root if args.config_root is not None else None,
++            args.command_id,
++            platform_name=platform_name,
++            workload_class=args.workload_class,
++            runtime_class=args.runtime_class,
+             fresh=args.fresh,
+             timeout_override=args.timeout_override,
+             timeout_evidence=args.timeout_evidence,
+diff --git a/ai-assistant/checks/tooling-verification.json b/ai-assistant/checks/tooling-verification.json
+index d21a3ac2..0f65b98e 100644
+--- a/ai-assistant/checks/tooling-verification.json
++++ b/ai-assistant/checks/tooling-verification.json
+@@ -53,6 +53,8 @@
+       ],
+       "sources": [
+         "ai-assistant/checks",
++        "ai-assistant/mcp",
++        "ai-assistant/tests/mcp",
+         "ai-assistant/mcp/repo-checks-server.py",
+         "ai-assistant/tests/mcp/fixtures/registered-check-lock",
+         ".codex/hooks/tool-use-dispatcher.py",
+@@ -75,6 +77,7 @@
+         "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/tooling-verification-config.py",
+         "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/playwright-case-provenance.py",
+         "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/check-runner.py",
++        "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/harness-modularity.py",
+         "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/agent/session-temp-runtime.py --repository-root . --config ai-assistant/agent/artifact-path-policy.json -- bash -c 'exec \"$BASH_RUNTIME_PYTHON_BIN\" ai-assistant/tests/checks/registered-check-lock.py'",
+         "bash ai-assistant/tests/agent/verify-cache.sh",
+         "bash ai-assistant/tests/agent/verify-command-selection.sh",
+diff --git a/ai-assistant/mcp/repo-checks-server.py b/ai-assistant/mcp/repo-checks-server.py
+index 3307f77b..6c176016 100644
+--- a/ai-assistant/mcp/repo-checks-server.py
++++ b/ai-assistant/mcp/repo-checks-server.py
+@@ -172,7 +172,8 @@ def _adoption_arguments(arguments: Mapping[str, Any]) -> dict[str, Any]:
+ 
+ 
+ def parse_run_arguments(value: object) -> dict[str, Any]:
+-    from check_runner_lib import ProfileError, parse_public_run_arguments
++    from command_profile_lib import ProfileError
++    from check_runner_lib import parse_public_run_arguments
+     arguments = _mapping(value, "tools/call arguments")
+     private = _adoption_arguments(arguments)
+     try:
+@@ -286,22 +287,22 @@ class RepoChecksServer:
+             raise RuntimeError(f"checks directory is unavailable: {checks_root}")
+         self.source_root = Path(__file__).resolve().parents[2]
+         sys.path.insert(0, str(self.source_root / "ai-assistant/checks"))
++        from check_configuration import CheckConfiguration  # noqa: PLC0415
++        from command_profile_lib import ProfileError  # noqa: PLC0415
++        from registered_check_service import RegisteredCheckService  # noqa: PLC0415
+         from check_runner_lib import (  # noqa: PLC0415
+             LedgerError,
+-            ProfileError,
+             RunnerError,
+             budget_for_status,
+             canonical_model_visible_json,
+             current_platform_name,
+             fit_model_visible_result,
+-            load_selected_profiles,
+             exception_diagnostic,
+             profile_selection_diagnostic,
+-            redact,
+-            run_registered_command,
++            profile_loading_context,
+             select_run_profile,
+             run_preview,
+-            resolve_configuration_root,
++            redact,
+             terminate_process_tree,
+         )
+         from registered_command_adoption_lib import (  # noqa: PLC0415
+@@ -318,22 +319,22 @@ class RepoChecksServer:
+         self.canonical_model_visible_json = canonical_model_visible_json
+         self.current_platform_name = current_platform_name
+         self.fit_model_visible_result = fit_model_visible_result
+-        self.load_profiles_for_execution = load_selected_profiles
++        self.redact = redact
++        self.RegisteredCheckService = RegisteredCheckService
++        self.CheckConfiguration = CheckConfiguration
++        self.terminate_process_tree = terminate_process_tree
++        self.ActiveRegistry = ActiveRegistry
++        self.configuration = CheckConfiguration.select(self.repository_root, config_root)
+         self.exception_diagnostic = exception_diagnostic
+         self.profile_selection_diagnostic = profile_selection_diagnostic
+-        self.redact = redact
+-        self.run_registered_command = run_registered_command
++        self.profile_loading_context = profile_loading_context
+         self.select_run_profile = select_run_profile
+         self.run_preview = run_preview
+-        self.terminate_process_tree = terminate_process_tree
+-        self.ActiveRegistry = ActiveRegistry
+         self.Candidate = Candidate
+         self.optional_adoption_update = optional_adoption_update
+         self.validate_adoption_binding = validate_adoption_binding
+         self.primary_provider_settings = primary_provider_settings
+-        self.configuration_selected = config_root is not None
+-        self.config_root = resolve_configuration_root(self.repository_root, config_root)
+-        self.profile_path = self.config_root / "ai-assistant/checks/command-profiles.toml"
++        self.config_root = self.configuration.root
+         self.output_schema = json.loads(
+             (checks_root / "schemas" / "check-result.schema.json").read_text(
+                 encoding="utf-8"
+@@ -526,8 +527,9 @@ class RepoChecksServer:
+         arguments["_subject_root"] = subject_root
+         arguments["_configuration_root"] = configuration_root
+         if arguments["dry_run"]:
+-            profiles = self.load_profiles_for_execution(configuration_root / "ai-assistant/checks/command-profiles.toml", source_root=self.source_root, subject_root=subject_root)
+-            profile = self.select_run_profile(profiles, arguments, self.current_platform_name())
++            with self.profile_loading_context(profile_path=configuration_root / "ai-assistant/checks/command-profiles.toml", source_root=self.source_root, subject_root=subject_root):
++                service = self.RegisteredCheckService(self.CheckConfiguration.select(subject_root, configuration_root))
++            profile = self.select_run_profile(service.profiles, arguments, self.current_platform_name())
+             result = self.run_preview(subject_root, profile, arguments["warnings"], configuration_root=configuration_root)
+             self.response(request_id, {"content": [{"type": "text", "text": json.dumps(result)}], "structuredContent": result, "isError": False})
+             return
+@@ -562,20 +564,21 @@ class RepoChecksServer:
+         profile_path = configuration_root / "ai-assistant/checks/command-profiles.toml"
+         try:
+             loading_catalogue = True
+-            profiles = self.load_profiles_for_execution(
+-                profile_path, source_root=self.source_root, subject_root=subject_root,
+-            )
++            with self.profile_loading_context(profile_path=profile_path, source_root=self.source_root, subject_root=subject_root):
++                service = self.RegisteredCheckService(self.CheckConfiguration.select(subject_root, configuration_root))
+             loading_catalogue = False
+-            profile = self.select_run_profile(profiles, arguments, self.current_platform_name())
++            selected = self.select_run_profile(service.profiles, arguments, self.current_platform_name())
+             owned = arguments["_owned_admission"]
+-            if owned is not None and self.Candidate.from_profile(profile) != owned[1].candidate:
++            if owned is not None and self.Candidate.from_profile(selected) != owned[1].candidate:
+                 arguments["_owned_admission"] = None
+                 arguments["warnings"].append("Optional bookkeeping ignored: selected profile differs from its record.")
+-            record, result = self.run_registered_command(
++            profile, record, result = service.run(
+                 subject_root,
+                 subject_root / "ai-assistant/checks/data",
+-                profile,
+-                config_root=configuration_root,
++                arguments["command_id"],
++                platform_name=self.current_platform_name(),
++                workload_class=arguments["workload_class"],
++                runtime_class=arguments["runtime_class"],
+                 fresh=arguments["fresh"],
+                 timeout_override=arguments["timeout_override"],
+                 timeout_evidence=arguments["timeout_evidence"],
+diff --git a/ai-assistant/tests/checks/artifact-evidence-inventory.py b/ai-assistant/tests/checks/artifact-evidence-inventory.py
+index 7fc105fa..9ee4f084 100644
+--- a/ai-assistant/tests/checks/artifact-evidence-inventory.py
++++ b/ai-assistant/tests/checks/artifact-evidence-inventory.py
+@@ -79,16 +79,16 @@ def test_current_repository_inventory() -> None:
+     validate_schema_contract(result, load(RESULT_SCHEMA))
+     assert result["status"] == "passed", result["findings"]
+     assert result["summary"] == {
+-        "registered_profiles": 133,
+-        "classified_profiles": 133,
++        "registered_profiles": 135,
++        "classified_profiles": 135,
+         "adopted": 32,
+-        "not_artifact_producers": 101,
++        "not_artifact_producers": 103,
+         "deferred": 0,
+         "findings": 0,
+         "remaining_mandatory_artifact_producers": 0,
+     }
+     profiles = result["profiles"]
+-    assert isinstance(profiles, list) and len(profiles) == 133
++    assert isinstance(profiles, list) and len(profiles) == 135
+     assert all(Path(str(row["owner"])).as_posix() == row["owner"] for row in profiles)
+ 
+ 
+@@ -116,7 +116,7 @@ def test_cli_output_is_bounded_and_schema_valid() -> None:
+     assert complete.returncode == 0, complete.stderr
+     payload = json.loads(complete.stdout)
+     validate_schema_contract(payload, load(RESULT_SCHEMA))
+-    assert len(payload["profiles"]) == 133
++    assert len(payload["profiles"]) == 135
+ 
+ 
+ def test_missing_profile_disposition_is_blocking() -> None:
+diff --git a/ai-assistant/tests/checks/check-runner.py b/ai-assistant/tests/checks/check-runner.py
+index f1709564..fb64a11b 100644
+--- a/ai-assistant/tests/checks/check-runner.py
++++ b/ai-assistant/tests/checks/check-runner.py
+@@ -16,17 +16,24 @@ from unittest.mock import patch
+ ROOT = Path(__file__).resolve().parents[3]
+ sys.path.insert(0, str(ROOT / "ai-assistant" / "checks"))
+ 
+-from check_runner_lib import (  # noqa: E402
++from check_configuration import CheckConfiguration
++from command_profile_lib import (
+     CacheProfile,
+     ProfileError,
++    ProfileSet,
++    load_profiles,
++)
++from check_runner_lib import (
+     RunnerError,
+     canonical_model_visible_json,
+     check_prerequisites,
+     explicit_input_fingerprint,
+     fit_model_visible_result,
+-    load_profiles,
+     profile_input_fingerprint,
+ )
++from registered_command_adoption_lib import ActiveRegistry, Candidate  # noqa: E402
++import run_check as runner_cli  # noqa: E402
++import registered_check_service as registered_service  # noqa: E402
+ 
+ 
+ CACHE_HIT = {
+@@ -198,6 +205,49 @@ def test_overflow_schema_requires_cache_proof() -> None:
+     assert "cache" in schema["allOf"][0]["then"]["required"]
+ 
+ 
++def test_direct_runner_releases_its_adoption_lock_after_terminal_result() -> None:
++    profile = load_profiles(ROOT / "ai-assistant" / "checks" / "command-profiles.toml").select(
++        "repository-documentation-verification",
++        platform_name="linux",
++        workload_class="default",
++        runtime_class="posix-host",
++    )
++    with tempfile.TemporaryDirectory() as directory:
++        root = Path(directory)
++        registry = ActiveRegistry(root / ".runtime" / "registered-command-adoption" / "state.sqlite3")
++        assert registry.claim(
++            scope_key="scope-test",
++            session_id="session-test",
++            turn_id="turn-test",
++            tool_use_id="tool-test",
++            selected_transport="direct-fallback",
++            candidate=Candidate.from_profile(profile),
++        ) is None
++        with (
++            patch.object(runner_cli, "repository_root", return_value=root),
++            patch.object(runner_cli, "primary_provider_settings", return_value={"adoption_runtime_root": registry.path.parent}),
++            patch.object(CheckConfiguration, "load_profiles", return_value=ProfileSet((profile,))),
++            patch.object(registered_service, "runtime_calibrated_profile", side_effect=lambda selected, ledger: selected),
++            patch.object(registered_service, "run_registered_command", return_value=(
++                {"check_id": "chk_terminal"}, {"status": "passed", "check_id": "chk_terminal"},
++            )),
++        ):
++            assert runner_cli.main(
++                [
++                    "--command-id",
++                    profile.command_id,
++                    "--adoption-scope-key",
++                    "scope-test",
++                    "--adoption-tool-use-id",
++                    "tool-test",
++                    "--adoption-registry-path",
++                    str(registry.path),
++                    "--json",
++                ]
++            ) == 0
++        assert registry.current("scope-test") is None
++
++
+ def test_tracked_markdown_scope_ignores_ignored_tree() -> None:
+     root = repository()
+     (root / ".gitignore").write_text("tasks/\n", encoding="utf-8")
+@@ -275,10 +325,12 @@ def test_documentation_profile_disables_repository_wide_markdown_cache() -> None
+     profile = profiles.select(
+         "repository-documentation-verification",
+         platform_name="linux",
++        workload_class="default",
+     )
+     windows_profile = profiles.select(
+         "repository-documentation-verification",
+         platform_name="windows",
++        workload_class="default",
+     )
+     assert profile.cache.enabled is False
+     assert profile.cache.input_selection == "filesystem-glob"
+@@ -292,12 +344,13 @@ def test_documentation_profile_classifies_missing_git_as_dependency() -> None:
+     profile = load_profiles(ROOT / "ai-assistant" / "checks" / "command-profiles.toml").select(
+         "repository-documentation-verification",
+         platform_name="linux",
++        workload_class="default",
+     )
+     with patch(
+         "check_runner_lib.shutil.which",
+         side_effect=lambda executable: None if executable == "git" else "/bin/tool",
+     ):
+-        report = check_prerequisites(profile, ROOT)
++        report = check_prerequisites(profile, ROOT, configuration=CheckConfiguration.select(ROOT, None))
+     assert report.missing_executables == ("git",)
+     assert not report.missing_files
+ 
+@@ -329,7 +382,10 @@ def test_tracked_markdown_selection_rejects_invalid_git_or_profile_identity() ->
+         raise AssertionError("missing Git identity must fail explicitly")
+ 
+     try:
+-        CacheProfile.from_raw({"input_selection": "unknown"}, "cache")
++        CacheProfile.from_raw(
++            {"enabled": False, "input_paths": [], "environment": [], "input_selection": "unknown"},
++            "cache",
++        )
+     except ProfileError as error:
+         assert "input_selection" in str(error)
+     else:
+@@ -366,6 +422,7 @@ def main() -> None:
+     failures = []
+     for test in (
+         test_model_visible_result_uses_complete_or_versioned_overflow_union,
++        test_direct_runner_releases_its_adoption_lock_after_terminal_result,
+         test_tracked_markdown_scope_ignores_ignored_tree,
+         test_tracked_markdown_scope_is_bounded_and_fails_closed,
+         test_generic_glob_scope_is_unchanged,
+diff --git a/ai-assistant/tests/checks/evidence-manifest.py b/ai-assistant/tests/checks/evidence-manifest.py
+index bf6dce40..ad0f9b3e 100644
+--- a/ai-assistant/tests/checks/evidence-manifest.py
++++ b/ai-assistant/tests/checks/evidence-manifest.py
+@@ -23,8 +23,9 @@ for path in (CHECKS, SUPPORT):
+     if str(path) not in sys.path:
+         sys.path.insert(0, str(path))
+ 
++from check_configuration import CheckConfiguration
+ import check_runner_lib as runner_lib  # noqa: E402
+-from check_runner_lib import (  # noqa: E402
++from command_profile_lib import (
+     CacheProfile,
+     CommandProfile,
+     EvidenceContract,
+@@ -33,11 +34,10 @@ from check_runner_lib import (  # noqa: E402
+     ProfileError,
+     ProfileSet,
+     ProgressProfile,
+-    RunnerError,
+     load_profiles,
+-    run_registered_command,
+     write_profiles,
+ )
++from check_runner_lib import RunnerError, run_registered_command
+ from json_schema_contract import validate_schema_contract  # noqa: E402
+ 
+ FIXTURE = ROOT / "ai-assistant" / "tests" / "checks" / "fixtures" / "command_fixture.py"
+@@ -260,7 +260,7 @@ def test_required_evidence_is_retained_without_integrity_receipts() -> None:
+             root,
+             data,
+             profile("evidence-complete"),
+-            artifact_session_id="evidence-contract",
++            artifact_session_id="evidence-contract", configuration=CheckConfiguration.select(root, None),
+         )
+         validate_schema_contract(result, RESULT_SCHEMA)
+         assert result["status"] == "passed"
+@@ -285,7 +285,7 @@ def test_required_evidence_is_retained_without_integrity_receipts() -> None:
+ 
+ def test_missing_required_is_unconfirmed_but_optional_is_not_required() -> None:
+     for root, data in temporary_root():
+-        _, missing = run_registered_command(root, data, profile("evidence-missing"))
++        _, missing = run_registered_command(root, data, profile("evidence-missing"), configuration=CheckConfiguration.select(root, None))
+         assert missing["status"] == "unconfirmed"
+         assert missing["verified_success"] is False
+         manifest = read_manifest(root, missing)
+@@ -297,7 +297,7 @@ def test_missing_required_is_unconfirmed_but_optional_is_not_required() -> None:
+         _, result = run_registered_command(
+             root,
+             data,
+-            profile("evidence-missing", evidence=optional_only),
++            profile("evidence-missing", evidence=optional_only), configuration=CheckConfiguration.select(root, None),
+         )
+         assert result["status"] == "passed"
+         assert read_manifest(root, result)["status"] == "complete"
+@@ -305,7 +305,7 @@ def test_missing_required_is_unconfirmed_but_optional_is_not_required() -> None:
+ 
+ def test_failed_and_timed_out_runs_keep_valid_artifacts() -> None:
+     for root, data in temporary_root():
+-        _, failed = run_registered_command(root, data, profile("evidence-failure"))
++        _, failed = run_registered_command(root, data, profile("evidence-failure"), configuration=CheckConfiguration.select(root, None))
+         assert failed["status"] == "failed"
+         assert failed["artifacts"]["evidence_status"] == "complete"
+         assert (root / failed["artifacts"]["evidence_root"] / "junit.xml").is_file()
+@@ -318,7 +318,7 @@ def test_failed_and_timed_out_runs_keep_valid_artifacts() -> None:
+                 "evidence-timeout",
+                 timeout=3,
+                 extra=("--seconds", "10"),
+-            ),
++            ), configuration=CheckConfiguration.select(root, None),
+         )
+         assert timed_out["status"] == "timed_out"
+         assert timed_out["artifacts"]["evidence_status"] == "complete"
+@@ -328,7 +328,7 @@ def test_failed_and_timed_out_runs_keep_valid_artifacts() -> None:
+ def test_symlink_and_budget_violations_are_fail_closed() -> None:
+     if os.name != "nt":
+         for root, data in temporary_root():
+-            _, result = run_registered_command(root, data, profile("evidence-symlink"))
++            _, result = run_registered_command(root, data, profile("evidence-symlink"), configuration=CheckConfiguration.select(root, None))
+             assert result["status"] == "unconfirmed"
+             assert result["artifacts"]["evidence_status"] == "invalid"
+             manifest = read_manifest(root, result)
+@@ -340,7 +340,7 @@ def test_symlink_and_budget_violations_are_fail_closed() -> None:
+ 
+         for root, data in temporary_root():
+             _, result = run_registered_command(
+-                root, data, profile("evidence-root-symlink")
++                root, data, profile("evidence-root-symlink"), configuration=CheckConfiguration.select(root, None)
+             )
+             assert result["status"] == "unconfirmed"
+             manifest = read_manifest(root, result)
+@@ -355,7 +355,7 @@ def test_symlink_and_budget_violations_are_fail_closed() -> None:
+         _, result = run_registered_command(
+             root,
+             data,
+-            profile("evidence-oversize", evidence=limited),
++            profile("evidence-oversize", evidence=limited), configuration=CheckConfiguration.select(root, None),
+         )
+         assert result["status"] == "unconfirmed"
+         manifest = read_manifest(root, result)
+@@ -369,8 +369,8 @@ def test_symlink_and_budget_violations_are_fail_closed() -> None:
+ def test_cache_reuses_complete_source_and_rejects_corrupt_manifest() -> None:
+     for root, data in git_repository():
+         current = profile("evidence-complete", cache=True)
+-        _, first = run_registered_command(root, data, current)
+-        _, hit = run_registered_command(root, data, current)
++        _, first = run_registered_command(root, data, current, configuration=CheckConfiguration.select(root, None))
++        _, hit = run_registered_command(root, data, current, configuration=CheckConfiguration.select(root, None))
+         assert hit["cache"]["hit"] is True
+         assert hit["cache"]["source_check_id"] == first["check_id"]
+         assert hit["check_id"] == first["check_id"]
+@@ -381,19 +381,19 @@ def test_cache_reuses_complete_source_and_rejects_corrupt_manifest() -> None:
+         for item in manifest["files"]:
+             item.pop("sha256", None)
+         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+-        _, without_hashes = run_registered_command(root, data, current)
++        _, without_hashes = run_registered_command(root, data, current, configuration=CheckConfiguration.select(root, None))
+         assert without_hashes["cache"]["hit"] is True
+         assert without_hashes["check_id"] == first["check_id"]
+         evidence_file = root / first["artifacts"]["evidence_root"] / "junit.xml"
+         evidence_file.unlink()
+-        _, missing_rerun = run_registered_command(root, data, current)
++        _, missing_rerun = run_registered_command(root, data, current, configuration=CheckConfiguration.select(root, None))
+         assert missing_rerun["cache"]["hit"] is False
+         assert missing_rerun["cache"]["reason"] in {"miss_stored", "fresh_stored"}
+         assert missing_rerun["check_id"] != first["check_id"]
+ 
+         manifest_path = root / missing_rerun["artifacts"]["evidence_manifest_path"]
+         manifest_path.write_text("{}\n", encoding="utf-8")
+-        _, rerun = run_registered_command(root, data, current)
++        _, rerun = run_registered_command(root, data, current, configuration=CheckConfiguration.select(root, None))
+         assert rerun["cache"]["hit"] is False
+         assert rerun["cache"]["reason"] in {"miss_stored", "fresh_stored"}
+         assert rerun["check_id"] != missing_rerun["check_id"]
+@@ -455,7 +455,7 @@ def test_parallel_checks_have_isolated_staging_and_manifests() -> None:
+         with ThreadPoolExecutor(max_workers=8) as executor:
+             results = list(
+                 executor.map(
+-                    lambda _: run_registered_command(root, data, current)[1],
++                    lambda _: run_registered_command(root, data, current, configuration=CheckConfiguration.select(root, None))[1],
+                     range(8),
+                 )
+             )
+@@ -479,7 +479,7 @@ def test_model_result_is_bounded_and_contains_no_artifact_content() -> None:
+         _, result = run_registered_command(
+             root,
+             data,
+-            profile("evidence-oversize", evidence=generous),
++            profile("evidence-oversize", evidence=generous), configuration=CheckConfiguration.select(root, None),
+         )
+         encoded = json.dumps(result, ensure_ascii=False)
+         assert len(encoded.encode("utf-8")) <= 4096
+diff --git a/ai-assistant/tests/checks/registered-check-lock.py b/ai-assistant/tests/checks/registered-check-lock.py
+index 73e70c48..415ff30f 100644
+--- a/ai-assistant/tests/checks/registered-check-lock.py
++++ b/ai-assistant/tests/checks/registered-check-lock.py
+@@ -43,6 +43,9 @@ binding = load_fixture_module(
+     "registered_lock_binding_fixture",
+     ROOT / "ai-assistant/tests/checks/provider-binding.py",
+ )
++import registered_check_service as registered_service
++from check_configuration import CheckConfiguration
++
+ dispatcher = load_fixture_module(
+     "registered_lock_dispatcher",
+     ROOT / ".codex/hooks/tool-use-dispatcher.py",
+@@ -337,7 +340,7 @@ class AdmissionLockContracts(RegisteredCheckFixture):
+                 "AGENT_ARTIFACT_SESSION_ID": "provider-binding-contract",
+                 "PROVIDER_BINDING_CHILD_EXIT": "0",
+             }),
+-            patch.object(binding.runner_cli, "run_registered_command", wraps=binding.runner_cli.run_registered_command) as runner,
++            patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner,
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(error),
+         ):
+             code = binding.runner_cli.main(argv)
+@@ -397,7 +400,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         content = content.replace('files = ["provider-only.py", "input.txt"]', 'files = ["input.txt"]')
+         content = content.replace('enabled = true', 'enabled = false')
+         profile.write_text(content)
+-        selected = binding.runner_cli.load_selected_profiles(profile, source_root=self.env.primary, subject_root=self.env.subject)
++        selected = CheckConfiguration.select(self.env.subject, self.env.primary).load_profiles()
+         self.assertEqual(selected.profiles[0].argv, (sys.executable, str(tool)))
+         return {**self.public_arguments(), "project_root": str(self.env.subject),
+                 "config_root": str(self.env.primary), "dry_run": dry_run}
+@@ -414,12 +417,12 @@ class MCPBindingContracts(RegisteredCheckFixture):
+     def test_intent_public_target_executes_the_selected_project_and_catalogue(self) -> None:
+         arguments = self.public_target_arguments()
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, arguments)
+                 self.assertEqual(runner.call_count, 1)
+                 self.assertEqual(runner.call_args.args[0], self.env.subject)
+                 self.assertEqual(runner.call_args.args[2].argv, (sys.executable, str(self.env.primary / "provider-only.py")))
+-                self.assertEqual(runner.call_args.kwargs["config_root"], self.env.primary)
++                self.assertEqual(runner.call_args.kwargs["configuration"].root, self.env.primary)
+             envelope = self.response_for(responses, 2)
+             self.assertIn("result", envelope)
+             self.assertEqual(envelope["result"]["structuredContent"]["status"], "passed")
+@@ -440,7 +443,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+             decision = self.admit_mcp(arguments)
+             self.assertIn(decision.get("permissionDecision"), (None, "allow"))
+             with self.server_transport(self.env.primary) as (server, responses):
+-                with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++                with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                     self.call(server, arguments)
+                     self.assertEqual(runner.call_count, 0)
+                 envelope = self.response_for(responses, 2)
+@@ -540,11 +543,11 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         arguments = {"command_id":"test-package", "workload_class":"unit.a",
+                      "project_root":str(self.env.subject), "config_root":str(self.env.subject)}
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, arguments)
+                 self.assertEqual(runner.call_count, 1)
+                 self.assertEqual(runner.call_args.args[0], self.env.subject)
+-                self.assertEqual(runner.call_args.kwargs["config_root"], self.env.subject)
++                self.assertEqual(runner.call_args.kwargs["configuration"].root, self.env.subject)
+             envelope = self.response_for(responses, 2)
+             self.assertIn("result", envelope)
+             self.assertEqual(envelope["result"]["structuredContent"]["status"], "passed")
+@@ -614,7 +617,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         if missing_profile:
+             self.select_subject_only_catalogue()
+         with self.server_transport(self.env.subject) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, decision["updatedInput"])
+                 self.assertEqual(runner.call_count, 1)
+             self.assert_foreign_unchanged()
+@@ -671,7 +674,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+ 
+     def test_r2_cli_refusal_reports_actual_selected_context(self) -> None:
+         catalogue = self.diagnostic_catalogue()
+-        with patch.object(binding.runner_cli, "run_registered_command", wraps=binding.runner_cli.run_registered_command) as runner:
++        with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+             code, output, error = self.env.invoke_argv([
+                 "--command-id", "absent-profile", "--runtime-class", "posix-host",
+                 "--project-root", str(self.env.subject), "--config-root", str(catalogue), "--json",
+@@ -747,7 +750,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         forged["_adoption_tool_use_id"] = "forged-tool"
+         expected = self.expected_mcp_row()
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, forged)
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -764,7 +767,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         del partial["_adoption_tool_use_id"]
+         expected = self.expected_mcp_row()
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, partial)
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -843,7 +846,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+             self.assertIn(decision.get("permissionDecision"), (None, "allow"))
+             self.assertEqual(self.own_active_rows(), [])
+             with self.server_transport(self.env.primary) as (server, responses):
+-                with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++                with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                     self.call(server, arguments)
+                     self.assertEqual(runner.call_count, 0)
+                 expected = json.loads((FIXTURES / "intent-preview.json").read_text().replace("@PRIMARY@", str(self.env.primary)).replace("@PYTHON@", sys.executable))
+@@ -963,7 +966,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         return {**decision["updatedInput"], "_adoption_binding": self.expected_binding()}
+ 
+     def assert_unowned_refusal(self, server, responses, arguments, request_id=2) -> None:
+-        with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++        with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+             self.call(server, arguments, request_id=request_id)
+             self.assertEqual(runner.call_count, 0)
+         self.assertEqual(self.response_for(responses, request_id)["error"]["code"], -32602)
+@@ -1022,7 +1025,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         arguments = self.bound_arguments()
+         arguments["_adoption_binding"]["provider_root"] = str(self.env.subject)
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, arguments)
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -1040,7 +1043,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         self.assertEqual(other.read_bytes(), original.read_bytes())
+         self.server_module = load_fixture_module("registered_lock_other_server", other)
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, decision["updatedInput"])
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -1086,7 +1089,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         registry.unlink()
+         before = sorted(path.name for path in registry.parent.iterdir())
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, arguments)
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -1103,7 +1106,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         registry.write_bytes(b"unit-owned corrupt registry\n")
+         before = sorted(path.name for path in registry.parent.iterdir())
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, arguments)
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -1135,7 +1138,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         corrupt = b"unit-owned registry failed after actual check\n"
+         observed = []
+         with self.server_transport(self.env.primary) as (server, responses):
+-            actual_run = server.run_registered_command
++            actual_run = registered_service.run_registered_command
+ 
+             def run_then_corrupt(*args, **kwargs):
+                 result = actual_run(*args, **kwargs)
+@@ -1145,7 +1148,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+                 return result
+ 
+             with (
+-                patch.object(server, "run_registered_command", side_effect=run_then_corrupt),
++                patch.object(registered_service, "run_registered_command", side_effect=run_then_corrupt),
+                 patch.dict(os.environ, {"PROVIDER_BINDING_CHILD_EXIT": child_exit}),
+             ):
+                 self.call(server, arguments)
+@@ -1178,7 +1181,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         output, error = io.StringIO(), io.StringIO()
+         observed = []
+         corrupt = b"unit-owned registry failed after actual CLI check\n"
+-        actual_run = binding.runner_cli.run_registered_command
++        actual_run = registered_service.run_registered_command
+ 
+         def run_then_corrupt(*args, **kwargs):
+             result = actual_run(*args, **kwargs)
+@@ -1190,7 +1193,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         with (
+             contextlib.chdir(cwd),
+             patch.object(binding.runner_cli, "repository_root", return_value=self.env.primary),
+-            patch.object(binding.runner_cli, "run_registered_command", side_effect=run_then_corrupt),
++            patch.object(registered_service, "run_registered_command", side_effect=run_then_corrupt),
+             patch("subprocess.run", side_effect=self.env.git_run),
+             patch.dict(os.environ, {"AGENT_ARTIFACT_SESSION_ID": "provider-binding-contract",
+                                     "PROVIDER_BINDING_CHILD_EXIT": child_exit}),
+@@ -1238,7 +1241,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         argv = ["--command-id", "provider-binding-contract", "--project-root", str(self.env.primary),
+                 "--config-root", str(self.env.primary), "--dry-run", "--json"]
+         with contextlib.redirect_stdout(output), patch.object(
+-            binding.runner_cli, "run_registered_command", side_effect=AssertionError("Preview executed a check"),
++            registered_service, "run_registered_command", side_effect=AssertionError("Preview executed a check"),
+         ):
+             code = binding.runner_cli.main(argv)
+         self.assertEqual(code, 0)
+@@ -1263,7 +1266,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+                 "--config-root", str(self.env.primary), "--json", "--verbose", option]
+         with (
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors),
+-            patch.object(binding.runner_cli, "run_registered_command", wraps=binding.runner_cli.run_registered_command) as runner,
++            patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner,
+             patch("subprocess.run", side_effect=self.env.git_run),
+             patch.dict(os.environ, {"AGENT_ARTIFACT_SESSION_ID": "provider-binding-contract",
+                                     "PROVIDER_BINDING_CHILD_EXIT": "0"}),
+@@ -1291,7 +1294,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+                 "--config-root", str(self.env.primary), "--json"]
+         with (
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors),
+-            patch.object(binding.runner_cli, "run_registered_command", side_effect=AssertionError("Invalid object executed a check")),
++            patch.object(registered_service, "run_registered_command", side_effect=AssertionError("Invalid object executed a check")),
+         ):
+             code = binding.runner_cli.main(argv)
+         self.assertEqual(code, 2)
+@@ -1358,7 +1361,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+             argv.append("--verbose")
+         with (
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors),
+-            patch.object(binding.runner_cli, "run_registered_command", side_effect=AssertionError("Preview executed checker")),
++            patch.object(registered_service, "run_registered_command", side_effect=AssertionError("Preview executed checker")),
+         ):
+             code = binding.runner_cli.main(argv)
+         self.assertEqual(code, 0)
+@@ -1579,7 +1582,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+         registry.touch()
+         before = sorted(path.name for path in registry.parent.iterdir())
+         with self.server_transport(self.env.primary) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, arguments)
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -1592,7 +1595,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+     def test_intent_request_catalogue_overrides_the_server_default(self) -> None:
+         decision = self.admit_mcp(self.public_arguments())
+         with self.server_transport(self.env.primary, config_root=self.env.subject) as (server, responses):
+-            with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++            with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                 self.call(server, decision["updatedInput"])
+                 self.assertEqual(runner.call_count, 1)
+             envelope = self.response_for(responses, 2)
+@@ -1818,7 +1821,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+                 "ProfileError": binding.ProfileError,
+             }[case["exception"]]
+             with self.catalogue_loading_fault(case, catalogue) as injected:
+-                with patch.object(binding.runner_cli, "run_registered_command", wraps=binding.runner_cli.run_registered_command) as runner:
++                with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                     with self.assertRaises(expected_type) as caught:
+                         self.env.invoke_argv([
+                             "--command-id", "provider-binding-contract", "--runtime-class", "posix-host",
+@@ -1867,7 +1870,7 @@ class MCPBindingContracts(RegisteredCheckFixture):
+             self.assertEqual(self.own_active_rows(), [expected])
+             with self.server_transport(self.env.subject, config_root=catalogue) as (server, responses):
+                 with self.catalogue_loading_fault(case, catalogue):
+-                    with patch.object(server, "run_registered_command", wraps=server.run_registered_command) as runner:
++                    with patch.object(registered_service, "run_registered_command", wraps=registered_service.run_registered_command) as runner:
+                         self.call(server, decision["updatedInput"])
+                         self.assertEqual(runner.call_count, 0)
+                     self.assert_loading_no_effects(expected)
+diff --git a/ai-assistant/tests/checks/tooling-verification-config.py b/ai-assistant/tests/checks/tooling-verification-config.py
+index 01385091..c896bbf3 100644
+--- a/ai-assistant/tests/checks/tooling-verification-config.py
++++ b/ai-assistant/tests/checks/tooling-verification-config.py
+@@ -103,7 +103,9 @@ def prerequisite_scope_regressions(profiles: list[dict]) -> None:
+ 
+     # Invoke the actual selected-profile dependency checker; no app/check starts.
+     sys.path.insert(0, str(ROOT / "ai-assistant/checks"))
+-    from check_runner_lib import check_prerequisites, load_profiles
++    from check_configuration import CheckConfiguration
++    from command_profile_lib import load_profiles
++    from check_runner_lib import check_prerequisites
+ 
+     profile = load_profiles(COMMAND_PROFILES_PATH).select(
+         "repository-documentation-verification", platform_name="linux",
+@@ -116,7 +118,7 @@ def prerequisite_scope_regressions(profiles: list[dict]) -> None:
+     with patch.object(Path, "is_file", absent_runtime):
+         validate_prerequisite_sources(profiles)
+         selected = replace(profile, prerequisites=replace(profile.prerequisites, files=(runtime,)))
+-        result = check_prerequisites(selected, ROOT)
++        result = check_prerequisites(selected, ROOT, configuration=CheckConfiguration.select(ROOT, None))
+         assert result.missing and result.missing_files == (runtime,)
+     poise = "ai-assistant/checks/poise-source.settings.json"
+ 
+@@ -129,13 +131,13 @@ def prerequisite_scope_regressions(profiles: list[dict]) -> None:
+             "poise-source-test-package", platform_name="linux",
+             workload_class="contract-migration", runtime_class="posix-host",
+         )
+-        result = check_prerequisites(scoped, ROOT)
++        result = check_prerequisites(scoped, ROOT, configuration=CheckConfiguration.select(ROOT, None))
+         assert result.missing and result.missing_files == (poise,)
+     directory = replace(profile, prerequisites=replace(profile.prerequisites, files=("ai-assistant",)))
+-    result = check_prerequisites(directory, ROOT)
++    result = check_prerequisites(directory, ROOT, configuration=CheckConfiguration.select(ROOT, None))
+     assert result.missing and result.missing_files == ("ai-assistant",)
+     existing = replace(profile, prerequisites=replace(profile.prerequisites, files=(source,)))
+-    assert check_prerequisites(existing, ROOT).missing_files == ()
++    assert check_prerequisites(existing, ROOT, configuration=CheckConfiguration.select(ROOT, None)).missing_files == ()
+ 
+ 
+ def main() -> None:
+@@ -248,6 +250,9 @@ def main() -> None:
+         "task-management/erp-shell.example.env", "task-management.requirements.txt",
+         "task-ctl", "sprint-ctl", "req-ctl", "exec-ctl",
+     )
++    runtime_suite = by_suite["tooling-fast-check-runtime"]
++    assert {"ai-assistant/mcp", "ai-assistant/tests/mcp"} <= set(runtime_suite["sources"])
++    assert "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/harness-modularity.py" in runtime_suite["commands"]
+     for command_id, (test_profile, fresh) in expected.items():
+         entries = by_id[command_id]
+         assert {entry["runtime_class"] for entry in entries} == {"posix-host", "windows-msys2-host"}

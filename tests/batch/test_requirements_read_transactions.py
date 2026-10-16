@@ -4,21 +4,30 @@ import sqlite3
 import subprocess
 import sys
 import pytest
-from batch.test_public_read_transactions import environment, writer, state_paths
+from batch.test_public_read_transactions import environment, writer, \
+    state_paths
 
 
 def packet(name):
     from batch.test_public_read_transactions import FIXTURES
-    return json.loads((FIXTURES / 'requirements-read-packets.json').read_text())[name]
+    return json.loads(
+        (FIXTURES / 'requirements-read-packets.json').read_text())[
+        name]
 
 
 def paths(project):
     state = project['root'] / project['cfg']['paths']['state']
-    return state / project['cfg']['paths']['requirements_database'], state / project['cfg']['paths']['requirements_lock']
+    return state / project['cfg']['paths'][
+        'requirements_database'], state / project['cfg']['paths'][
+               'requirements_lock']
 
 
 def invoke(project, request):
-    return subprocess.run([sys.executable, '-B', '-m', 'poise', 'requirements', '--config', str(project['config_path'])], input=json.dumps(request), capture_output=True, text=True, env=environment(project), timeout=15)
+    return subprocess.run(
+        [sys.executable, '-B', '-m', 'poise', 'requirements',
+         '--config', str(project['config_path'])],
+        input=json.dumps(request), capture_output=True, text=True,
+        env=environment(project), timeout=15)
 
 
 def query(project):
@@ -26,12 +35,14 @@ def query(project):
 
 
 def snapshot(database):
-    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as db:
+    with sqlite3.connect(database.as_uri() + '?mode=ro',
+                         uri=True) as db:
         return '\n'.join(db.iterdump())
 
 
 @pytest.mark.parametrize('kind', ['local-lock', 'sqlite-writer'])
-def test_requirements_query_reads_committed_state_during_writer(project, kind):
+def test_requirements_query_reads_committed_state_during_writer(
+        project, kind):
     database, lock = paths(project)
     before = snapshot(database)
     with writer(project, kind, paths=(database, lock)):
@@ -41,8 +52,10 @@ def test_requirements_query_reads_committed_state_during_writer(project, kind):
         assert response['status'] == 'read_only'
         assert response['revision'] == 1
         registry = response['results'][0]['value']
-        assert set(registry['requirements']) == {'FIXTURE-SYSTEM', 'FIXTURE-APPLICATION'}
-        assert registry['links'] == [{'system': 'FIXTURE-SYSTEM', 'application': 'FIXTURE-APPLICATION'}]
+        assert set(registry['requirements']) == {'FIXTURE-SYSTEM',
+                                                 'FIXTURE-APPLICATION'}
+        assert registry['links'] == [{'system': 'FIXTURE-SYSTEM',
+                                      'application': 'FIXTURE-APPLICATION'}]
         assert snapshot(database) == before
     assert snapshot(database) == before
     assert not state_paths(project)[0].exists()
@@ -60,7 +73,8 @@ def test_requirements_query_does_not_initialize_absent_store(project):
 
 
 @pytest.mark.parametrize('kind', ['local-lock', 'sqlite-writer'])
-def test_requirements_command_preserves_writer_admission(project, kind):
+def test_requirements_command_preserves_writer_admission(project,
+                                                         kind):
     database, lock = paths(project)
     before = snapshot(database)
     request = packet('apply')
@@ -72,16 +86,21 @@ def test_requirements_command_preserves_writer_admission(project, kind):
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)['revision'] == 2
     response = json.loads(query(project).stdout)
-    assert response['results'][0]['value']['requirements']['WRITER-CONTROL']['text'] == 'The authorized change is saved.'
+    assert \
+    response['results'][0]['value']['requirements']['WRITER-CONTROL'][
+        'text'] == 'The authorized change is saved.'
 
 
-def test_old_requirements_read_preserves_explicit_migration_recovery(project):
+def test_old_requirements_read_preserves_explicit_migration_recovery(
+        project):
     from batch.test_public_read_transactions import FIXTURES
     database, _ = paths(project)
     database.unlink()
     with sqlite3.connect(database) as db:
-        db.executescript((FIXTURES.parents[1] / 'requirements_registry/fixtures/schema_v1.sql').read_text())
-        db.execute('INSERT INTO requirements_meta(revision) VALUES(?)', (7,))
+        db.executescript((FIXTURES.parents[
+                              1] / 'requirements_registry/fixtures/schema_v1.sql').read_text())
+        db.execute(
+            'INSERT INTO requirements_meta(revision) VALUES(?)', (7,))
     before = snapshot(database)
     result = query(project)
     assert result.returncode == 2

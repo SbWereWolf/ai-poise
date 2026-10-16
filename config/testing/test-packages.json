@@ -239,6 +239,10 @@
           "src/poise/infrastructure/catalogue.py",
           "src/poise/modules/catalogue/domain.py",
           "src/poise/__main__.py",
+          "src/poise/common.py",
+          "src/poise/composition.py",
+          "src/poise/interfaces/requirements_registry.py",
+          "src/poise/infrastructure/sqlite/transaction.py",
           "src/poise/application/session_establishment.py",
           "src/poise/infrastructure/diagnostic_io.py",
           "src/poise/infrastructure/hook_transport.py",
@@ -259,7 +263,10 @@
         "tests": [
           "tests/runtime_services/test_*.py",
           "tests/batch/test_public_read_transactions.py",
-          "tests/batch/test_read_failure_boundaries.py"
+          "tests/batch/test_read_failure_boundaries.py",
+          "tests/batch/test_requirements_read_transactions.py",
+          "tests/batch/test_read_rejections.py",
+          "tests/batch/test_read_wait_configuration.py"
         ],
         "fixtures": [
           "tests/conftest.py",

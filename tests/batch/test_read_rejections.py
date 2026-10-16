@@ -5,12 +5,14 @@ from pathlib import Path
 import subprocess
 import sys
 import pytest
-from batch.test_public_read_transactions import environment, invoke, query_state, state_paths, writer
+from batch.test_public_read_transactions import environment, invoke, \
+    query_state, state_paths, writer
 
 
 @pytest.mark.parametrize('prepared', [False, True])
 @pytest.mark.parametrize('raw', [' ' * 31, '{'])
-def test_precomposition_rejection_preserves_full_response_without_store_write(project, prepared, raw):
+def test_precomposition_rejection_preserves_full_response_without_store_write(
+        project, prepared, raw):
     if prepared:
         result = invoke(project, 'public-read-bootstrap.json')
         assert result.returncode == 0, result.stdout + result.stderr
@@ -20,7 +22,10 @@ def test_precomposition_rejection_preserves_full_response_without_store_write(pr
     config['batch']['max_input_bytes'] = 30
     project['config_path'].write_text(json.dumps(config))
     with writer(project, 'local-lock') if prepared else nullcontext():
-        result = subprocess.run([sys.executable, '-B', '-m', 'poise', 'work'], input=raw, capture_output=True, text=True, env=environment(project), timeout=15)
+        result = subprocess.run(
+            [sys.executable, '-B', '-m', 'poise', 'work'], input=raw,
+            capture_output=True, text=True, env=environment(project),
+            timeout=15)
         assert result.returncode == 2
         assert result.stdout, 'PRECOMPOSITION_REJECTION_LOST_COMPLETE_RESPONSE: ' + result.stderr
         assert len(result.stdout) <= config['limits']['output_chars']

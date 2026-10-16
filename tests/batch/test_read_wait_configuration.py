@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import pytest
 from poise.common import PoiseError, load_config
-from batch.test_public_read_transactions import SOURCE
+from batch.test_public_read_transactions import SOURCE, state_paths
 
 
 def test_read_wait_is_required_in_common_project_config(project):
@@ -98,3 +98,26 @@ def test_configured_read_budget_controls_actual_sqlite_busy_admission(project, t
         writer.close()
     assert sleeps
     assert query_state(task_database) == before
+
+
+@pytest.mark.parametrize('value', [None, [], {}, float('nan'), float('-inf'), 10 ** 1000], ids=['null', 'list', 'object', 'nan', 'negative-infinity', 'unrepresentable-integer'])
+def test_read_wait_rejects_malformed_or_unrepresentable_values_before_effects(project, value):
+    config = json.loads(project['config_path'].read_text())
+    config['limits']['sqlite_read_seconds'] = value
+    project['config_path'].write_text(json.dumps(config))
+    database, lock = state_paths(project)
+    assert not database.exists()
+    assert not lock.exists()
+    with pytest.raises(PoiseError):
+        load_config(project['config_path'])
+    assert not database.exists()
+    assert not lock.exists()
+
+
+def test_read_wait_accepts_explicit_positive_integer(project):
+    config = json.loads(project['config_path'].read_text())
+    config['limits']['sqlite_read_seconds'] = 3
+    project['config_path'].write_text(json.dumps(config))
+    _, loaded, _ = load_config(project['config_path'])
+    assert loaded['limits']['sqlite_read_seconds'] == 3
+    assert type(loaded['limits']['sqlite_read_seconds']) is int

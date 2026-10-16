@@ -123,16 +123,18 @@ fb09c8d59146e44770b4c9145a8eb221b10164b6a4c3f366ffa64e61676f77f1
 
 ### 2.3 Текущая реализация и граница наблюдения
 
-Текущий `apps/requirements/shell.py` использует legacy `RequirementsCommands` и
-`RequirementsStore`, принимает envelope `{operation,input}` и предоставляет
-`apply`, `query`, `import_bootstrap`. `TaskIdPolicy` проверяется в config, но это
-не означает, что shell уже создаёт все target Task statements.
+Текущий `apps/requirements/shell.py` компонует общий `RequirementsCommands` с
+собственной фабрикой `apps.requirements.storage.RequirementsStore`. Публичный
+`standalone(...,registry_type=RequirementsGraph)` выбирает backend самостоятельного
+формата и трёхуровневую модель. Новая база содержит 20 таблиц; существующая основная
+модель из 15 таблиц поддерживается без добавления каталога.
 
-[Target contract](contract-req.md#2-транспорт-и-версия) описывает другой точный
-wire envelope — `{schema,operation,input}` с `stride-requirements/v1`.
-Ни схема SQLite 1, ни текущий shell не объявляются реализацией всей target-модели.
-Ниже все новые таблицы, операции назначения и переносы — требования к реализации,
-а не отчёт о выполненных migrations или тестах.
+Shell принимает `{operation,input}` и предоставляет `apply`, `query`,
+`import_bootstrap`, включая описанное в [graph-профиле](graph-req.md) чтение и
+изменение известной Task. `TaskIdPolicy` проверяется в конфигурации; выдача нового
+ID, publication, purpose-aware готовность и outcomes развиваются отдельно.
+[Target contract](contract-req.md#2-транспорт-и-версия) описывает будущий расширенный
+envelope `{schema,operation,input}` с `stride-requirements/v1` и остальные операции.
 
 ## 3. Идентичности и инварианты
 

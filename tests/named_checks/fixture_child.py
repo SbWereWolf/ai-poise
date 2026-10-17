@@ -14,8 +14,10 @@ def main():
     parser.add_argument('--stdout', default='work done\n')
     parser.add_argument('--stderr', default='')
     parser.add_argument('--exit', type=int, default=0)
+    parser.add_argument('--exit-file')
     parser.add_argument('--sleep', type=float, default=0)
     parser.add_argument('--progress', action='store_true')
+    parser.add_argument('--paced-progress', action='store_true')
     parser.add_argument('--descendant', action='store_true')
     parser.add_argument('--barrier', action='store_true')
     parser.add_argument('--evidence')
@@ -45,12 +47,21 @@ def main():
         for number in range(3):
             print(f'PROGRESS {number}/2', flush=True)
             time.sleep(0.02)
+    if args.paced_progress:
+        for number in range(3):
+            print(f'PROGRESS {number}/2', flush=True)
+            deadline = time.monotonic() + 5
+            acknowledgement = root / ('captured-progress-' + str(number))
+            while not acknowledgement.exists():
+                if time.monotonic() > deadline:
+                    raise RuntimeError('The capture owner did not acknowledge actual fixture output')
+                time.sleep(0.005)
     sys.stdout.buffer.write(args.stdout.encode('utf-8'))
     sys.stdout.buffer.flush()
     sys.stderr.buffer.write(args.stderr.encode('utf-8'))
     sys.stderr.buffer.flush()
     time.sleep(args.sleep)
-    return args.exit
+    return int(Path(args.exit_file).read_text()) if args.exit_file is not None else args.exit
 
 
 if __name__ == '__main__':

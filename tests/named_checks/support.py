@@ -172,6 +172,58 @@ def snapshot(root):
             for p in sorted(root.rglob('*')) if p.is_file()}
 
 
+def logical_ledger(path):
+    """Observe stored application rows, not SQLite headers or initialized metadata."""
+    if not path.exists():
+        return {}
+    try:
+        with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True) as connection:
+            tables = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+            result = {}
+            for (table,) in tables:
+                # The donor ledger's metadata and SQLite's own sequence state
+                # are bookkeeping; every other nonempty table is observable
+                # functional data, including runs/history/calibration samples.
+                if table == 'metadata' or table.startswith('sqlite_'):
+                    continue
+                columns = [v[0] for v in connection.execute(
+                    'SELECT name FROM pragma_table_info(?) ORDER BY cid', (table,))]
+                quoted = lambda name: '"' + name.replace('"', '""') + '"'
+                rows = connection.execute('SELECT ' + ','.join(quoted(v) for v in columns)
+                                          + ' FROM ' + quoted(table)).fetchall()
+                if rows:
+                    result[table] = (columns, sorted(rows, key=repr))
+            return result
+    except sqlite3.DatabaseError:
+        # Deliberately damaged input has no readable logical projection. The
+        # separate corruption scenario requires those exact bad bytes retained.
+        return {'unreadable_bytes': digest(path.read_bytes())}
+
+
+def functional_snapshot(state, storage):
+    """Observe owned logical state; configured diagnostics/engine control differ."""
+    ledger_name = storage['ledger_file']
+    responses = storage['response_directory'].rstrip('/') + '/'
+    raw = snapshot(state)
+    databases = {ledger_name}
+    # File type recognition is not a header equality requirement. Optional
+    # cache databases receive the same logical treatment as the run ledger.
+    databases.update(name for name, body in raw.items()
+                     if not name.startswith(responses) and body.startswith(b'SQLite format 3\x00'))
+    ignored = {storage['lock_file']}
+    for name in databases:
+        ignored.update([name, name + '-wal', name + '-shm', name + '-journal'])
+    files = {name: body for name, body in raw.items()
+             if name not in ignored and not name.startswith(responses)}
+    application_rows = {}
+    for name in sorted(databases):
+        value = logical_ledger(state / name)
+        if value:
+            application_rows[name] = value
+    return {'files': files, 'application_rows': application_rows}
+
+
 def task_projection(project):
     """Read only Task/Sprint ownership data; optional caller telemetry is separate."""
     database = project['root'] / project['cfg']['paths']['state'] / project['cfg']['paths']['database']
@@ -368,6 +420,9 @@ class Scene:
         path = self.events / 'markers.jsonl'
         return [] if not path.exists() else [json.loads(v) for v in path.read_text().splitlines()]
 
+    def functional_state(self):
+        return functional_snapshot(self.state, self.policy['storage'])
+
     def outputs(self, record):
         result = []
         for name in ['stdout', 'stderr']:
@@ -378,14 +433,19 @@ class Scene:
         return result
 
     def error(self, request, code, *, field=None, raw=None):
-        before = (self.markers(), snapshot(self.state / 'cache'), self.profiles_path.read_bytes())
+        before = (self.markers(), self.functional_state(), task_projection(self.project),
+                  self.profiles_path.read_bytes(), self.policy_path.read_bytes(),
+                  self.packages_path.read_bytes(), self.suites_path.read_bytes())
         exit_code, value, _ = self.invoke(request, raw=raw)
         assert value['error']['code'] == code, value
         assert exit_code in (1, 2, 3) and value['status'] not in ('passed', 'published')
+        assert value['items'] == [], 'Admission failure must not return fictitious or partially produced runs'
         if field is not None:
             assert value['error']['field'] == field
         assert value['error']['cause'] and value['error']['reason'] and value['error']['recovery']
-        assert (self.markers(), snapshot(self.state / 'cache'), self.profiles_path.read_bytes()) == before
+        assert (self.markers(), self.functional_state(), task_projection(self.project),
+                self.profiles_path.read_bytes(), self.policy_path.read_bytes(),
+                self.packages_path.read_bytes(), self.suites_path.read_bytes()) == before
         return value['error']
 
     def declaration(self, paths, required=None):

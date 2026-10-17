@@ -1,13 +1,17 @@
 """Actual successful history, content reuse, explicit freshness and publication."""
 from copy import deepcopy
+import json
+import sys
 from pathlib import Path
 import tomllib
+import threading
+import time
 
 from .support import FakeClock, Scene, clock_pair, digest, git, literal, snapshot, write_json
 
 
-def calibrate(s, records, *, expected_sha=None):
-    return s.request('calibrate', items=[{'profile': s.selection(),
+def calibrate(s, records, *, expected_sha=None, selection=None):
+    return s.request('calibrate', items=[{'profile': s.selection() if selection is None else selection,
                       'evidence_run_ids': [v['run_id'] for v in records],
                       'expected_profile_sha256': digest(s.profiles_path.read_bytes()) if expected_sha is None else expected_sha}])
 
@@ -31,6 +35,56 @@ def test_initial_and_history_calibrated_limits(project, tmp_path, monkeypatch):
     assert next_run['timeout']['effective_seconds'] == 3
     assert next_run['timeout']['basis'] == 'verified_success_history'
     assert s.profile()['execution_timeout_seconds'] == 10  # Ordinary run did not publish calibration.
+    from .progress_clock import CapturedProgressClock
+    specification = literal('stall-history-cases.json')
+    selection = s.selection('progress-history')
+    profile = s.child('--paced-progress', name='progress-history',
+                      execution_timeout_seconds=specification['initial_hard'],
+                      stall_timeout_seconds=specification['initial_stall'],
+                      observed_max_success_seconds=0.0, observed_max_progress_gap_seconds=0.0,
+                      progress={'mode': 'regex', 'pattern': r'PROGRESS (?P<done>\d+)/(?P<total>\d+)',
+                                'completed_group': 'done', 'total_group': 'total'})
+    successful = []
+    exit_file = s.events / 'progress-exit.txt'
+    profile['argv'] = [sys.executable, str(Path(__file__).with_name('fixture_child.py')),
+                       '--marker', 'progress-history', '--paced-progress', '--exit-file', str(exit_file)]
+    for case in specification['cases']:
+        # Profile/runtime/config bytes stay identical, including for failed
+        # samples. Actual fixture input alone chooses its real process exit.
+        exit_file.write_text(str(case['child_exit']) + '\n')
+        s.save()
+        before_profile = s.profiles_path.read_bytes()
+        clock = CapturedProgressClock(s.events, specification, case)
+        with monkeypatch.context() as patch:
+            clock.install(patch)
+            item = s.run(selection=selection, clock=clock, fresh=True, status=case['status'])
+        observed = s.record(item)
+        assert observed['actual_exit_code'] == case['child_exit']
+        assert observed['progress']['mode'] == 'regex' and observed['progress']['observed']
+        assert observed['progress']['completed'] == 2 and observed['progress']['total'] == 2
+        assert observed['progress']['max_gap_seconds'] == case['expected_gap']
+        assert clock.forwarded[0]['progress_gap_seconds'] == case['expected_forwarded_stall']
+        assert s.outputs(observed) == [specification['raw_stdout'].encode(), b'']
+        assert s.profiles_path.read_bytes() == before_profile
+        if case['status'] == 'passed':
+            assert observed['verified_success']
+            successful.append(observed)
+        else:
+            assert not observed['verified_success'] and not item['cache']['stored']
+        if case['name'] == 'probe-small':
+            code, published, _ = s.invoke(calibrate(s, successful, selection=selection))
+            assert code == 0 and published['status'] == 'published'
+            assert published['items'][0]['values'] == specification['first_publication']
+            assert published['items'][0]['publication']['profile_written']
+            assert published['items'][0]['publication']['report_written']
+            # Restore the explicit original fixture baseline for following
+            # ordinary runs, so persisted history must drive future limits.
+            s.save()
+    code, published, _ = s.invoke(calibrate(s, successful, selection=selection))
+    assert code == 0 and published['status'] == 'published'
+    assert published['items'][0]['values'] == specification['final_publication']
+    assert published['items'][0]['publication']['profile_written']
+    assert published['items'][0]['publication']['report_written']
 
 
 def test_history_compatibility_and_verified_samples(project, tmp_path, monkeypatch):
@@ -69,10 +123,23 @@ def test_one_use_diagnostic_override(project, tmp_path, monkeypatch):
     interrupted = s.record(s.run(fresh=True, status='timed_out'))
     override = {'seconds': 2, 'evidence_run_id': interrupted['run_id'], 'reason': 'Inspect the declared slow operation once.'}
     s.child(execution_timeout_seconds=1)
-    actual = s.record(s.run(fresh=True, timeout_override=override))
+    s.save()
+    from .test_execution import BrokenOutput
+    code, _, diagnostic = s.invoke(s.request(fresh=True, timeout_override=override), output=BrokenOutput())
+    assert code == 1
+    error = json.loads(diagnostic)
+    assert error['code'] == 'output_write'
+    saved = json.loads(Path(error['references']['response_path']).read_text())
+    assert saved['status'] == 'passed'
+    execution = saved['items'][0]
+    actual = s.record(execution)
+    assert actual['actual_exit_code'] == 0 and actual['verified_success']
+    assert s.outputs(actual) == [b'work done\n', b'']
     assert actual['timeout']['basis'] == 'diagnostic_override'
     assert actual['timeout']['effective_seconds'] == 2
     assert actual['timeout']['evidence_run_id'] == interrupted['run_id']
+    code, read, _ = s.invoke(s.request('result', items=[{'result_id': execution['result_id']}]))
+    assert code == 0 and read['items'] == [execution] and len(s.markers()) == 2
     before = len(s.markers())
     s.error(s.request(fresh=True, timeout_override=override), 'override_consumed')
     assert len(s.markers()) == before
@@ -180,6 +247,40 @@ def test_failed_incomplete_or_mutated_inputs_are_not_reused(project, tmp_path, m
     changed = s.run()
     assert changed['kind'] == 'execution' and changed['result_id'] != good['result_id']
     assert len(s.markers()) == 4
+    s.child('--barrier', name='input-mutator')
+    # A new declared input guarantees an ordinary miss despite unchanged argv
+    # not belonging to the key; the barrier must actually execute.
+    (s.checkout / 'src/double.py').write_text('def double(n):\n    return n * 4\n')
+    mutations = []
+
+    def mutate_during_child():
+        deadline = time.monotonic() + 5
+        while not (s.events / 'started').exists():
+            assert time.monotonic() < deadline
+            time.sleep(0.01)
+        # The actual ordinary child is blocked AFTER starting and BEFORE exit.
+        (s.checkout / 'src/double.py').write_text('def double(n):\n    return n * 3\n')
+        mutations.append(True)
+        (s.events / 'continue').write_text('continue\n')
+    worker = threading.Thread(target=mutate_during_child)
+    worker.start()
+    try:
+        self_mutating = s.run(selection=s.selection('input-mutator'))
+    finally:
+        worker.join(6)
+    assert not worker.is_alive() and mutations == [True]
+    record = s.record(self_mutating)
+    assert record['actual_exit_code'] == 0 and record['status'] == 'passed' and record['verified_success']
+    assert self_mutating['cache']['eligible'] is True and self_mutating['cache']['stored'] is False
+    assert self_mutating['cache']['reason'] == 'declared_inputs_changed_during_run'
+    assert len(s.markers()) == 5
+    # Keep the genuine operational observation; only cache admission failed.
+    code, history_read, _ = s.invoke(s.request('result', items=[{'result_id': self_mutating['result_id']}]))
+    assert code == 0 and s.record(history_read['items'][0]) == record
+    s.child(name='input-mutator')
+    following = s.run(selection=s.selection('input-mutator'))
+    assert following['kind'] == 'execution' and following['result_id'] != self_mutating['result_id']
+    assert len(s.markers()) == 6
 
 
 def test_package_and_markdown_cache_scope(project, tmp_path, monkeypatch):

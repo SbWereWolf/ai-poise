@@ -109,12 +109,15 @@ def test_policy_known_fields_and_unknown_raw_values(project, tmp_path, monkeypat
 
 def test_strict_request_and_atomic_batch_preflight(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
+    s.run()  # Existing real records/success history must survive every rejection.
     valid = s.request()
     broken = [dict(valid, unknown=True), dict(valid, operation='unknown'),
               dict(valid, items=[valid['items'][0], {'selection': s.selection('missing'),
                                                  'options': valid['items'][0]['options']}])]
     for value in broken:
         s.error(value, 'selection_missing' if value is broken[-1] else 'invalid_request')
+    for case in literal('admission-late-errors.json'):
+        s.error(case['request'], case['error_code'], field=case['field'])
     s.error(valid, 'invalid_request', raw=b'{"schema":"one","schema":"two"}')
     s.error(s.request(items=[valid['items'][0], deepcopy(valid['items'][0])]), 'invalid_request')
     oversized = s.request(items=[valid['items'][0]] * (project['cfg']['batch']['max_items'] + 1))
@@ -124,7 +127,7 @@ def test_strict_request_and_atomic_batch_preflight(project, tmp_path, monkeypatc
     s.save()
     s.error(s.request(selection=s.selection('base', kind='package')), 'packages_unavailable')
     s.error(s.request(selection={'kind': 'suite_set', 'profile': 'fast', 'changed_paths': None}), 'suites_unavailable')
-    assert s.run()['status'] == 'passed'
+    assert s.run(fresh=True)['status'] == 'passed'
 
 
 def test_conditional_runtime_selection_and_preview(project, tmp_path, monkeypatch):

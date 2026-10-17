@@ -43,6 +43,17 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
 | `placement` | Prepare/check explicit working-result placement without requiring a Task. | `"${poise[@]}" placement --config "$project_json" --checkout "$checkout" --policy "$placement_policy" < "$packet"` |
 | `skills` | Read metadata, validate decomposition, or prepare file-scoped instructions without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+| `checks` | Run/read configured named checks without a Task. | `"${poise[@]}" checks --config "$project_json" --checkout "$checkout" --policy "$checks_policy" --view expanded < "$packet"` |
+
+Named-check setup, exact operations, effective cwd/PATH, saved results and recovery
+belong to the [operator contract](../../../docs/configuration/named-project-checks.md).
+Retain the genuine native caller and omit `POISE_CALLER_BINDING`, or use an explicit
+persistent binding in a separate direct process without native session variables.
+Do not combine those identities or change the session launcher to prepare a check.
+For independently reviewing test-only RED in an unfinished `revise` stage, use the
+existing [partial-material handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
+save immutable materials through public artifacts, then public null-result handoff.
+Do not invent resolution proposals or native stage completion before actual fixes.
 
 ### Project and workflow configuration
 

@@ -1,3 +1,34 @@
+def project_checks_tools(bound, policy_path, environment, clock):
+    """General checks compose existing identity/execution/presentation owners."""
+    from .application.project_checks import ProjectChecks
+    from .execution import RegisteredCheckRunner
+    from .modules.project_checks.timing import TimingPolicy
+    from .infrastructure.project_checks.configuration import CheckConfiguration
+    from .infrastructure.project_checks.inputs import InputSnapshot
+    from .infrastructure.project_checks.runtime import RuntimeAdapter
+    from .infrastructure.project_checks.ledger import NamedRunLedger
+    from .infrastructure.project_checks.cache import NamedResultCache
+    from .infrastructure.project_checks.subject import SubjectAdmission
+    from .infrastructure.project_checks.execution import CheckExecution
+    from .infrastructure.project_checks.publication import ProfilePublisher
+    from .infrastructure.session_establishment import establish_project_check_session
+    configuration = CheckConfiguration.load(bound, policy_path)
+    inputs = InputSnapshot(bound.checkout, bound.config['limits']['git_seconds'], configuration.packages)
+    runtime = RuntimeAdapter(bound.checkout, configuration.policy['runtime_adapters'])
+    ledger = NamedRunLedger(configuration)
+    cache = NamedResultCache(configuration, ledger)
+    subject = SubjectAdmission(inputs)
+    runner = RegisteredCheckRunner(bound.config['limits']['output_chars'])
+    execution = CheckExecution(configuration, runner, clock, subject)
+    timing = TimingPolicy(configuration.policy['timing']['history_multiplier'],
+                          configuration.policy['timing']['diagnostic_override_max_seconds'])
+    publisher = ProfilePublisher(configuration, clock)
+    service = ProjectChecks(configuration, inputs, runtime, ledger, cache, execution,
+                            timing, subject, publisher, environment)
+    service.establish_session = lambda: establish_project_check_session(bound, environment)
+    return service
+
+
 def task_tools(store, repository_tree, requirements_gate):
     """Explicit composition for the extracted Task slice; no service locator."""
     from .application.tasks import TaskCommands

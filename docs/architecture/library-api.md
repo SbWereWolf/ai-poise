@@ -2,6 +2,27 @@
 
 Обновлено: **2026-10-08**. Исходный срез **POISE-DDD-04B** и последующие API.
 
+## Именованные проверки проекта
+
+`interfaces.project_checks.execute(config_path, checkout, policy_path, stream,
+output, error_output, clock)` — полный JSON-порт обычных проверок. Семь аргументов
+выбираются явно; CLI `checks` использует тот же порт и `SystemClock`, а представление
+делегирует общему `SavedResponse`/`saved_result_view`.
+
+`project_checks_tools` связывает чистые `ProfileCatalogue`, `GeneralPackageCatalogue`,
+`SuiteCatalogue`, `TimingPolicy`, парсеры и admission сохранённых DTO из
+`modules.project_checks.records` с прикладным `ProjectChecks`. Infrastructure
+владеет выбранными файлами, executable/cwd/environment, Git inputs/subject,
+`NamedRunLedger`, необязательным `NamedResultCache`, evidence и публикацией
+калибровки. Capture/spawn/cleanup выполняет существующий `RegisteredCheckRunner`;
+semantic progress подключается его opt-in observer.
+
+Сессионный владелец устанавливает подлинного вызывающего без Task. Операция не
+меняет lifecycle/claims Task/Sprint. Generic run/result/history/cache имеют свои
+семантику и хранение, поэтому не заменяют CheckRegistry, Task evidence или C018.
+Точная форма семи операций, настройка, результаты и отказы описаны один раз в
+[справочнике проверок](../configuration/named-project-checks.md).
+
 ## Локальные assets — 2026-10-04
 
 `RestoreRequest.parse`, `AssetDeclaration.parse` и `AssetSpec.parse` в

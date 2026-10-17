@@ -1,0 +1,261 @@
+[
+  {
+    "case": "poll-boolean",
+    "input": {
+      "policy.timing.poll_seconds": true
+    },
+    "expected_error_without_references": {
+      "code": "invalid_policy",
+      "field": "policy.timing.poll_seconds",
+      "cause": "Получен boolean вместо положительного числа.",
+      "reason": "policy.timing.poll_seconds должен быть положительным числом; получен boolean.",
+      "recovery": "Укажите положительное числовое значение policy.timing.poll_seconds."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "poll-zero",
+    "input": {
+      "policy.timing.poll_seconds": 0
+    },
+    "expected_error_without_references": {
+      "code": "invalid_policy",
+      "field": "policy.timing.poll_seconds",
+      "cause": "Значение 0 не превышает нижнюю границу 0.",
+      "reason": "policy.timing.poll_seconds должен быть больше 0; получено 0.",
+      "recovery": "Укажите policy.timing.poll_seconds больше 0."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "missing-profile-path",
+    "input": {
+      "fixture_mutation": {
+        "remove_field": "policy.profiles_path"
+      }
+    },
+    "expected_error_without_references": {
+      "code": "invalid_policy",
+      "field": "policy.profiles_path",
+      "cause": "Обязательное поле отсутствует.",
+      "reason": "В настройках отсутствует policy.profiles_path.",
+      "recovery": "Укажите абсолютный путь policy.profiles_path к выбранному каталогу профилей."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "argv-empty",
+    "input": {
+      "profiles.commands[0].argv": []
+    },
+    "expected_error_without_references": {
+      "code": "invalid_profiles",
+      "field": "profiles.commands[0].argv",
+      "cause": "Список аргументов пуст.",
+      "reason": "profiles.commands[0].argv должен содержать исполняемую команду.",
+      "recovery": "Укажите непустой список аргументов profiles.commands[0].argv."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "parser-unknown",
+    "input": {
+      "profiles.commands[0].parser": "alien"
+    },
+    "expected_error_without_references": {
+      "code": "invalid_profiles",
+      "field": "profiles.commands[0].parser",
+      "cause": "Парсер alien не поддерживается.",
+      "reason": "profiles.commands[0].parser содержит неподдерживаемый парсер alien.",
+      "recovery": "Укажите generic, phpunit, vitest, playwright, phpstan, deptrac или build в profiles.commands[0].parser."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "fresh-string",
+    "input": {
+      "request.items[0].options.fresh": "yes"
+    },
+    "expected_error_without_references": {
+      "code": "invalid_request",
+      "field": "request.items[0].options.fresh",
+      "cause": "Получена строка вместо boolean.",
+      "reason": "request.items[0].options.fresh должен быть boolean; получена строка.",
+      "recovery": "Передайте true или false в request.items[0].options.fresh."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "bad-scope-path",
+    "input": {
+      "request.items[0].selection.changed_paths": [
+        "../outside.py"
+      ]
+    },
+    "expected_error_without_references": {
+      "code": "invalid_options",
+      "field": "request.items[0].selection.changed_paths[0]",
+      "cause": "Путь ../outside.py выходит за корень выбранной рабочей копии.",
+      "reason": "request.items[0].selection.changed_paths[0] должен быть каноническим относительным путём внутри рабочей копии.",
+      "recovery": "Передайте путь внутри выбранной рабочей копии без сегмента .. в request.items[0].selection.changed_paths[0]."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "override-low",
+    "input": {
+      "request.items[0].options.timeout_override.seconds": 2,
+      "ordinary_seconds": 3
+    },
+    "expected_error_without_references": {
+      "code": "override_invalid",
+      "field": "request.items[0].options.timeout_override.seconds",
+      "cause": "Запрошено 2 при обычном ограничении 3.",
+      "reason": "Диагностическое ограничение 2 должно превышать обычное ограничение 3.",
+      "recovery": "Укажите seconds больше 3 и не выше настроенного максимума с доказательством исходного прерывания."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "missing-result",
+    "input": {
+      "request.items[0].result_id": "missing-result-1"
+    },
+    "expected_error_without_references": {
+      "code": "result_missing",
+      "field": "request.items[0].result_id",
+      "cause": "Сохранённый результат missing-result-1 не найден в выбранном проекте.",
+      "reason": "Запрошенный result_id missing-result-1 отсутствует.",
+      "recovery": "Передайте result_id существующего сохранённого результата выбранного проекта."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "missing-other-result",
+    "input": {
+      "request.items[1].result_id": "missing-result-2"
+    },
+    "expected_error_without_references": {
+      "code": "result_missing",
+      "field": "request.items[1].result_id",
+      "cause": "Сохранённый результат missing-result-2 не найден в выбранном проекте.",
+      "reason": "Запрошенный result_id missing-result-2 отсутствует.",
+      "recovery": "Передайте result_id существующего сохранённого результата выбранного проекта."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "ambiguous-profile",
+    "input": {
+      "request.items[0].selection": {
+        "kind": "profile",
+        "id": "unit",
+        "workload_class": null,
+        "runtime_class": null
+      },
+      "arranged_candidates": [
+        "unit/small/linux",
+        "unit/large/linux"
+      ]
+    },
+    "expected_error_without_references": {
+      "code": "selection_ambiguous",
+      "field": "request.items[0].selection.workload_class",
+      "cause": "Профиль unit соответствует кандидатам unit/small/linux и unit/large/linux.",
+      "reason": "Выбор профиля unit неоднозначен по workload_class.",
+      "recovery": "Укажите workload_class small или large в request.items[0].selection.workload_class."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "unknown-suite-profile",
+    "input": {
+      "request.items[0].selection": {
+        "kind": "suite_set",
+        "profile": "nightly",
+        "changed_paths": null
+      }
+    },
+    "expected_error_without_references": {
+      "code": "invalid_request",
+      "field": "request.items[0].selection.profile",
+      "cause": "Профиль nightly не поддерживается; допустимы fast и release.",
+      "reason": "request.items[0].selection.profile должен быть fast или release; получено nightly.",
+      "recovery": "Передайте fast или release в request.items[0].selection.profile."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "duplicate-suite-id",
+    "input": {
+      "suites.suites[1].id": "suite-core",
+      "suites.suites[0].id": "suite-core"
+    },
+    "expected_error_without_references": {
+      "code": "invalid_suites",
+      "field": "suites.suites[1].id",
+      "cause": "Идентификатор suite-core уже объявлен в suites.suites[0].id.",
+      "reason": "suites.suites[1].id повторяет идентификатор suite-core.",
+      "recovery": "Задайте уникальный идентификатор в suites.suites[1].id."
+    },
+    "expected_status": "invalid",
+    "expected_exit_code": 2,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  },
+  {
+    "case": "missing-executable",
+    "input": {
+      "profiles.commands[0].prerequisites.executables": [
+        "missing-tool"
+      ]
+    },
+    "expected_error_without_references": {
+      "code": "prerequisites_unavailable",
+      "field": "profiles.commands[0].prerequisites.executables[0]",
+      "cause": "Исполняемый файл missing-tool недоступен в выбранном окружении.",
+      "reason": "Требуемая команда missing-tool не найдена.",
+      "recovery": "Подготовьте missing-tool в выбранном окружении или исправьте profiles.commands[0].prerequisites.executables[0]."
+    },
+    "expected_status": "unavailable",
+    "expected_exit_code": 3,
+    "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
+    "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
+  }
+]

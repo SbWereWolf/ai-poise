@@ -19,6 +19,24 @@ from .goal_config import atomic_write
 from .task_paths import task_root, sprint_root
 
 
+class SavedResponse:
+    """Complete saved data precedes raw delivery and common agent presentation."""
+    def __init__(self, path, file_mode):
+        self.path = Path(path)
+        self.file_mode = file_mode
+
+    def save(self, result, *, canonical):
+        if canonical:
+            body = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n'
+        else:
+            body = json.dumps(result, ensure_ascii=False, indent=2) + '\n'
+        atomic_write(self.path, body.encode('utf-8'), self.file_mode)
+        return body
+
+    def view(self, result, mode, budget):
+        return result_view(result, self.path, budget, mode)
+
+
 def task_response_root(h, task):
     """Use the existing live/retired Task owner, never resurrect its materials."""
     saved = h.task_queries.record(task['id'])

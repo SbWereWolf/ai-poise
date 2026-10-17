@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "suites": [
+    {
+      "id": "suite-core",
+      "profiles": [
+        "fast",
+        "release"
+      ],
+      "sources": [
+        "src/core",
+        "tests/core"
+      ],
+      "commands": [
+        {
+          "kind": "profile",
+          "id": "core-1",
+          "workload_class": null,
+          "runtime_class": null
+        },
+        {
+          "kind": "profile",
+          "id": "core-2",
+          "workload_class": null,
+          "runtime_class": null
+        }
+      ]
+    },
+    {
+      "id": "suite-ui",
+      "profiles": [
+        "fast",
+        "release"
+      ],
+      "sources": [
+        "src/ui"
+      ],
+      "commands": [
+        {
+          "kind": "profile",
+          "id": "ui-1",
+          "workload_class": null,
+          "runtime_class": null
+        }
+      ]
+    },
+    {
+      "id": "suite-release",
+      "profiles": [
+        "release"
+      ],
+      "sources": [
+        "src/core",
+        "src/ui",
+        "src/security"
+      ],
+      "commands": [
+        {
+          "kind": "profile",
+          "id": "release-1",
+          "workload_class": null,
+          "runtime_class": null
+        }
+      ]
+    },
+    {
+      "id": "suite-fast-only",
+      "profiles": [
+        "fast"
+      ],
+      "sources": [
+        "src/core/sub"
+      ],
+      "commands": [
+        {
+          "kind": "profile",
+          "id": "fast-1",
+          "workload_class": null,
+          "runtime_class": null
+        }
+      ]
+    }
+  ]
+}

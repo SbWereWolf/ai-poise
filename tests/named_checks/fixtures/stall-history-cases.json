@@ -1,0 +1,120 @@
+{
+  "started_ns": 1000000000,
+  "audit_utc": "2026-10-17T00:00:00+00:00",
+  "initial_stall": 5,
+  "initial_hard": 10,
+  "multiplier": 1.1,
+  "cases": [
+    {
+      "name": "failed-large",
+      "domain": "fixture-progress-failed",
+      "progress_ns": [
+        1200000000,
+        4200000000,
+        4300000000
+      ],
+      "finish_ns": 5000000000,
+      "expected_gap": 3.0,
+      "child_exit": 7,
+      "status": "failed",
+      "expected_forwarded_stall": 5
+    },
+    {
+      "name": "valid-small",
+      "domain": "fixture-progress-small",
+      "progress_ns": [
+        1200000000,
+        2000000000,
+        2100000000
+      ],
+      "finish_ns": 3000000000,
+      "expected_gap": 0.8,
+      "child_exit": 0,
+      "status": "passed",
+      "expected_forwarded_stall": 5
+    },
+    {
+      "name": "probe-small",
+      "domain": "fixture-progress-probe-small",
+      "progress_ns": [
+        1200000000,
+        1400000000,
+        1500000000
+      ],
+      "finish_ns": 3000000000,
+      "expected_gap": 0.2,
+      "child_exit": 0,
+      "status": "passed",
+      "expected_forwarded_stall": 1
+    },
+    {
+      "name": "valid-medium",
+      "domain": "fixture-progress-medium",
+      "progress_ns": [
+        1200000000,
+        2400000000,
+        2500000000
+      ],
+      "finish_ns": 4000000000,
+      "expected_gap": 1.2,
+      "child_exit": 0,
+      "status": "passed",
+      "expected_forwarded_stall": 1
+    },
+    {
+      "name": "probe-medium",
+      "domain": "fixture-progress-probe-medium",
+      "progress_ns": [
+        1200000000,
+        1400000000,
+        1500000000
+      ],
+      "finish_ns": 3000000000,
+      "expected_gap": 0.2,
+      "child_exit": 0,
+      "status": "passed",
+      "expected_forwarded_stall": 2
+    },
+    {
+      "name": "valid-margin",
+      "domain": "fixture-progress-margin",
+      "progress_ns": [
+        1200000000,
+        3100000000,
+        3200000000
+      ],
+      "finish_ns": 4000000000,
+      "expected_gap": 1.9,
+      "child_exit": 0,
+      "status": "passed",
+      "expected_forwarded_stall": 2
+    },
+    {
+      "name": "probe-margin",
+      "domain": "fixture-progress-probe-margin",
+      "progress_ns": [
+        1200000000,
+        1400000000,
+        1500000000
+      ],
+      "finish_ns": 3000000000,
+      "expected_gap": 0.2,
+      "child_exit": 0,
+      "status": "passed",
+      "expected_forwarded_stall": 3
+    }
+  ],
+  "first_publication": {
+    "observed_max_success_seconds": 2.0,
+    "observed_max_progress_gap_seconds": 0.8,
+    "execution_timeout_seconds": 3,
+    "stall_timeout_seconds": 1
+  },
+  "final_publication": {
+    "observed_max_success_seconds": 3.0,
+    "observed_max_progress_gap_seconds": 1.9,
+    "execution_timeout_seconds": 4,
+    "stall_timeout_seconds": 3
+  },
+  "raw_stdout": "PROGRESS 0/2\nPROGRESS 1/2\nPROGRESS 2/2\nwork done\n"
+}

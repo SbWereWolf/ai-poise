@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 from conftest import write_json
-from poise.common import load_config, configured_root
+from poise.common import PoiseError, load_config, configured_root
 from poise.infrastructure.hook_transport import HookService
 from poise.interfaces.hook_transport import execute
 from .helpers import settings, install, event
@@ -190,6 +190,18 @@ def test_changed_registration_or_binding_is_not_a_pass(project, tmp_path, damage
         data = json.loads(Path(binding['binding_path']).read_text()); data['agent_id'] = 'foreign'
         Path(binding['binding_path']).write_text(json.dumps(data))
     code, result = call(s, request(installed))
+    if damage == 'launcher':
+        assert code == 0
+        assert result['binding']['status'] == 'valid'
+        assert result['native_event']['status'] == 'observed'
+        assert result['effect']['status'] == 'confirmed'
+        assert result['runtime']['provenance'] == 'current_diagnostic_process_not_historical_hook'
+        launcher = Path(binding['launcher'])
+        before = launcher.read_bytes(), s.settings.database.read_bytes()
+        with pytest.raises(PoiseError, match='Launcher was changed externally'):
+            native(s, installed, source='resume')
+        assert (launcher.read_bytes(), s.settings.database.read_bytes()) == before
+        return
     assert code == 1
     assert result['installation']['status'] == 'changed' or result['binding']['status'] == 'changed'
 

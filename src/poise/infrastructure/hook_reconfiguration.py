@@ -208,10 +208,12 @@ def reconfigure(settings_path, packet):
     service = transport.HookService(settings_path)
     proposed = transport.HookSettings.proposed(settings_path, packet['settings'])
     proposed.require_summary()
-    if 'repository_scope' not in proposed.raw:
-        raise PoiseError('Shared session entry requires explicit repository_scope and hooks_lock')
+    if ('repository_scope' not in proposed.raw
+            and proposed.hooks_file != service.settings.hooks_file):
+        raise PoiseError('Moving native hooks requires explicit repository_scope and hooks_lock')
     definition = HookDefinition.parse(packet['definition'])
-    allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher'}
+    allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher',
+               'capability_summary'}
     unchanged = lambda value: {key: item for key, item in value.items() if key not in allowed}
     if unchanged(service.settings.raw) != unchanged(proposed.raw):
         raise PoiseError('Hook reconfiguration cannot change project, stores or other transport settings')

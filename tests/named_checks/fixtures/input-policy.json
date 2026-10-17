@@ -1,0 +1,51 @@
+{
+  "schema": "poise-project-checks-policy-1",
+  "profiles_path": "@PROFILES@",
+  "packages_path": "@PACKAGES@",
+  "suites_path": "@SUITES@",
+  "storage": {
+    "directory": "@STATE@",
+    "ledger_file": "named-runs.sqlite",
+    "lock_file": "named-runs.lock",
+    "runs_directory": "runs",
+    "cache_directory": "cache",
+    "response_directory": "responses"
+  },
+  "timing": {
+    "history_multiplier": 1.1,
+    "poll_seconds": 0.01,
+    "cleanup_seconds": 0.5,
+    "diagnostic_override_max_seconds": 30
+  },
+  "environment": {
+    "clear_keys": [
+      "POISE_CHECK_DOCUMENTATION_SCOPE_JSON",
+      "REPO_CHECK_DOCUMENTATION_SCOPE_JSON",
+      "REPO_CHECK_SCOPE_PATHS_JSON"
+    ]
+  },
+  "drivers": [
+    {
+      "id": "fixture",
+      "argv_prefix": [
+        "@PYTHON@",
+        "@CHILD@"
+      ],
+      "cwd": ".",
+      "path_prefix": "."
+    }
+  ],
+  "publication": {
+    "report_directory": "@REPORTS@"
+  },
+  "runtime_adapters": [
+    {
+      "id": "python",
+      "platforms": [
+        "linux"
+      ],
+      "invocation": "exec",
+      "command_processor": null
+    }
+  ]
+}

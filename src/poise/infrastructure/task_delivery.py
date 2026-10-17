@@ -113,7 +113,8 @@ class RuntimeTaskDelivery:
         with self.h.store.unit_of_work() as uow:
             if any(d['state'] != 'finalized' for d in uow.artifacts.drafts(record['id']).values()):
                 return 'artifact_draft_open'
-            if uow.handoffs.latest(record['id']) is not None:
+            handoff = uow.handoffs.latest_recovery_candidate(record['id'])
+            if handoff is not None and handoff['state'] == 'released':
                 return 'handoff_pending'
             if uow.tasks.pending_artifact_consumers(record['id']):
                 return 'artifact_consumer_pending'

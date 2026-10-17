@@ -182,7 +182,10 @@ class RegisteredCheckRunner:
         progress_gap_seconds: float | None = None,
         poll_seconds: float = 0.05,
         cleanup_seconds: float = 0.25,
+        capture_observer=None,
     ) -> dict:
+        if capture_observer is not None and not callable(capture_observer):
+            raise ValueError('Capture observer must be callable or None')
         if os.name != 'posix' or not callable(getattr(os, 'killpg', None)):
             raise PoiseError('RegisteredCheckRunner requires POSIX process groups; use Linux/WSL')
         if not isinstance(run_id, str) or not run_id:
@@ -216,6 +219,7 @@ class RegisteredCheckRunner:
         child_reaped = False
         timed_out = False
         timeout_reason = None
+        observer_error = None
         cancellation_reason = None
         cancellation_observation = None
         try:
@@ -287,7 +291,15 @@ class RegisteredCheckRunner:
                             if chunk:
                                 key.data.write(chunk)
                                 key.data.flush()
-                                state['last_progress'] = time.monotonic()
+                                try:
+                                    advanced = (True if capture_observer is None else
+                                                capture_observer('stdout' if key.data is out else 'stderr', chunk))
+                                except Exception as exc:
+                                    # Observer failure must not erase terminal child/capture truth.
+                                    observer_error = type(exc).__name__ + ': ' + str(exc)
+                                    advanced = False
+                                if advanced:
+                                    state['last_progress'] = time.monotonic()
                             else:
                                 selector.unregister(key.fileobj)
                                 key.fileobj.close()
@@ -337,6 +349,8 @@ class RegisteredCheckRunner:
                 'stdout': str(stdout_path),
                 'stderr': str(stderr_path),
             }
+            if observer_error is not None:
+                result['observer_error'] = observer_error
             # Display I/O cannot discard the actual owner's terminal facts.
             preview_errors = {}
             for name, path in (('stdout', stdout_path), ('stderr', stderr_path)):

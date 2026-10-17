@@ -26,6 +26,10 @@ def parser():
     result_view.add_argument('--output-chars',type=int,required=True)
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
+    checks=sub.add_parser('checks',help='Select and run configured named project checks')
+    for name in ('config', 'checkout', 'policy'):
+        checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    checks.add_argument('--view',choices=('brief','expanded','full'),required=True,action=SingleArgument)
     local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
     local_assets.add_argument('--manifest',type=Path,required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
@@ -94,6 +98,10 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='checks':
+        from .interfaces.project_checks import execute_cli
+        from .infrastructure.clock import SystemClock
+        return execute_cli(args.config,args.checkout,args.policy,args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
     if args.command=='result-view':
         from .interfaces.result_views import execute
         return execute(args.response,args.view,args.output_chars,sys.stdout,sys.stderr)

@@ -1,6 +1,7 @@
 """Native event commitment, configured consumer delivery and episode continuity."""
 import json
 from pathlib import Path
+import subprocess
 import sys
 import time
 
@@ -247,7 +248,7 @@ def test_exhausted_host_budget_never_launches_consumer(project, tmp_path, monkey
 
 
 @pytest.mark.parametrize('kind', ['command', 'mcp_stdio'])
-def test_native_probe_uses_remaining_shared_deadline(project, tmp_path, kind):
+def test_native_probe_uses_remaining_shared_deadline(project, tmp_path, monkeypatch, kind):
     selected = definition()
     selected['events'][0]['timeout_seconds'] = 1.0
     marker = str(project['root'] / 'probe-started.txt')
@@ -263,6 +264,10 @@ def test_native_probe_uses_remaining_shared_deadline(project, tmp_path, kind):
     probe['timeout_seconds'] = 3.0
     selected['probes'] = [probe]
     service, installed = configured(project, tmp_path, hook_definition=selected)
+    # This test owns the optional probe boundary, not unrelated Task reconstruction.
+    monkeypatch.setattr(service, '_runtime_event', lambda *args: {
+        'hookSpecificOutput': {'hookEventName': 'SessionStart',
+                              'additionalContext': 'test-owned native context'}})
     started = time.monotonic()
     deliver(service, installed)
     elapsed = time.monotonic() - started
@@ -272,4 +277,67 @@ def test_native_probe_uses_remaining_shared_deadline(project, tmp_path, kind):
     binding = service.latest_binding('conversation', 'primary')
     summary = json.loads(Path(binding['binding_path']).with_name('capabilities.json').read_text())
     assert summary['ready'] is False
+
+
+def test_optional_readiness_exhaustion_never_launches_a_probe(project, tmp_path, monkeypatch):
+    selected = definition()
+    marker = project['root'] / 'optional-probe-started.txt'
+    probe = command_probe()
+    probe['argv'] = [sys.executable, '-B', '-c',
+        'from pathlib import Path;import sys;Path(sys.argv[1]).write_text("started");print("ready")', str(marker)]
+    selected['probes'] = [probe]
+    service, installed = configured(project, tmp_path, hook_definition=selected)
+    monkeypatch.setattr(service, '_runtime_event', lambda *args: {
+        'hookSpecificOutput': {'hookEventName': 'SessionStart',
+                              'additionalContext': 'test-owned native context'}})
+    original_clock, original_readiness = time.monotonic, service._readiness
+    shift, entries = [0.0], []
+    monkeypatch.setattr(time, 'monotonic', lambda: original_clock() + shift[0])
+
+    def exhaust_at_optional_boundary(*args, **kwargs):
+        readiness = original_readiness(*args, **kwargs)
+        entries.append(True)
+        shift[0] = 100.0
+        return readiness
+
+    monkeypatch.setattr(service, '_readiness', exhaust_at_optional_boundary)
+    result = deliver(service, installed)
+    assert entries == [True]
+    assert 'ERP admission delivered' in result['hookSpecificOutput']['additionalContext']
+    assert received(project)['event_receipt']['event'] == 'SessionStart'
+    assert not marker.exists(), 'An optional probe launched after its shared deadline expired'
+    binding = service.latest_binding('conversation', 'primary')
+    summary = json.loads(Path(binding['binding_path']).with_name('capabilities.json').read_text())
+    assert summary['ready'] is False
+
+
+def test_public_retry_delivers_the_same_saved_receipt_without_replaying_native_event(project, tmp_path):
+    selected = definition()
+    selected['events'][0]['timeout_seconds'] = 1.0
+    prefix = ('import os,sys;from pathlib import Path\n'
+              'marker=Path(os.environ["MARKER"])\n'
+              'if not marker.exists():\n'
+              ' marker.write_text("first attempt failed");sys.exit(7)\n')
+    service, installed = configured(project, tmp_path, prefix + RECEIVER, hook_definition=selected)
+    with pytest.raises(PoiseError, match='consumer'):
+        deliver(service, installed)
+    before = native_rows(service)
+    assert len(before) == 1 and before[0][2] == 'SessionStart'
+    paths = [path for path in service.settings.observations.rglob(service.settings.raw['response_file'])
+             if json.loads(path.read_text()).get('schema') == 'poise-hook-lifecycle-delivery-1']
+    assert len(paths) == 1
+    record = json.loads(paths[0].read_text())
+    assert record['status'] == 'incomplete' and record['reason'] == 'nonzero_exit'
+    # An explicit retry obtains a new delivery budget, not a fabricated new event.
+    time.sleep(max(0, record['packet']['deadline_monotonic'] - time.monotonic()))
+    assert record['packet']['deadline_monotonic'] <= time.monotonic()
+    retry = subprocess.run([sys.executable, '-P', '-s', '-B', '-m', 'poise', 'hook',
+        '--settings', str(service.settings.path), '--definition', installed['definition_path'],
+        '--retry', str(paths[0])], input='', capture_output=True, text=True, timeout=10)
+    assert retry.returncode == 0, retry.stdout + retry.stderr
+    assert 'ERP admission delivered' in json.loads(retry.stdout)['hookSpecificOutput']['additionalContext']
+    packet = received(project)
+    assert packet['event_receipt'] == record['packet']['event_receipt']
+    assert packet['deadline_monotonic'] > record['packet']['deadline_monotonic']
+    assert native_rows(service) == before
 

@@ -1,0 +1,10 @@
+{
+  "schema": "fixture/environment/v2",
+  "failure_exit_code": 17,
+  "status_exit_codes": {"ready": 0, "not_ready": 17},
+  "success_statuses": ["ready"],
+  "repairable_statuses": ["not_ready"],
+  "repair_operations": ["infra", "deps"],
+  "repair_command": "repair",
+  "verification_command": "verification"
+}

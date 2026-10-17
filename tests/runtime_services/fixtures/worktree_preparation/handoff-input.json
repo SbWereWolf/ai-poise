@@ -1,0 +1,7 @@
+{
+  "request_id": "prepared-handoff",
+  "reason": "Independent test actor resumes prepared work.",
+  "result": null,
+  "commit_message": null,
+  "artifact_paths": []
+}

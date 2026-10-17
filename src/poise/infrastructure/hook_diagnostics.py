@@ -5,8 +5,8 @@ import sqlite3
 import sys
 
 from ..common import PoiseError, digest, descendant, configured_root, load_config
-from ..modules.hook_transport.domain import HookDefinition, EVENTS
-from .diagnostic_io import json_file, regular_bytes
+from ..modules.hook_transport.domain import HookDefinition, EVENTS, binding_context
+from .diagnostic_io import json_file
 from .source_reader import FileSourceReader
 from .sqlite.interactions import InteractionStore
 from .sqlite.evidence import SqliteEvidenceRepository
@@ -77,7 +77,7 @@ class HookObservationPort:
         if not isinstance(saved, dict) or not isinstance(saved.get('external_session'), str):
             raise PoiseError('Invalid binding observation')
         expected = {'session_id': req['session_id'], 'settings': str(self.settings.path),
-                    'settings_digest': digest(self.settings.raw), 'definition_path': req['definition_path'],
+                    'definition_path': req['definition_path'],
                     'project': cfg['project'], 'agent_id': definition.data['agent_id']}
         if any(saved.get(k) != v for k, v in expected.items()):
             return {'status': 'changed'}
@@ -89,11 +89,7 @@ class HookObservationPort:
                 return {'status': 'changed'}
         if binding_path.parent != launcher.parent:
             return {'status': 'changed'}
-        if json_file(binding_path, self.settings.raw['max_input_bytes']) != saved:
-            return {'status': 'changed'}
-        expected_script = self.settings.launcher_bytes(binding_path)
-        if (regular_bytes(launcher, self.settings.raw['max_input_bytes']) != expected_script
-                or launcher.stat().st_mode & 0o777 != self.settings.raw['executable_mode']):
+        if binding_context(json_file(binding_path, self.settings.raw['max_input_bytes'])) != binding_context(saved):
             return {'status': 'changed'}
         if cfg['batch']['message_source'] != {'id': definition.data['message_source'], 'mode': 'runtime_event'}:
             return {'status': 'changed'}

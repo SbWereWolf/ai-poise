@@ -11,7 +11,7 @@ import shlex
 import string
 from dataclasses import replace
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
-from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
+from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document,binding_context
 from ..modules.capabilities.domain import positive
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
@@ -530,17 +530,17 @@ class HookService:
         launcher=descendant(root,self.settings.raw['launcher']);binding=descendant(root,self.settings.raw['binding_file'])
         assigned=native['session_id']
         if binding.exists():
-            prior=read_document(binding)
-            if not isinstance(prior,dict) or not isinstance(prior.get('session_id'),str) or not prior['session_id']:
-                raise PoiseError('Existing hook binding has no assigned session')
+            prior,_=self._binding_record(binding)
             assigned=prior['session_id']
         record={'session_id':assigned,'external_session':native['session_id'],'agent_id':d['agent_id'],
             'project':cfg['project'],'settings':str(self.settings.path),'settings_digest':digest(self.settings.raw),
             'definition_path':str(Path(definition_path).resolve()),'launcher':str(launcher),'binding_path':str(binding)}
-        self.registry.bind(record)
+        if binding.exists() and binding_context(prior)!=binding_context(record):
+            raise PoiseError('Existing hook binding differs from the selected session/settings; '
+                             'use its matching settings and definition, then retry SessionStart')
+        record=self.registry.bind(record)
         # Both files are deterministic for the binding; no task root or global current file.
         raw=(json.dumps(record,ensure_ascii=False,indent=2)+'\n').encode()
-        if binding.exists() and binding.read_bytes()!=raw:raise PoiseError('Binding file was changed externally')
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
         script=self.settings.launcher_bytes(binding)
         priors=tuple(('#!/bin/sh\nexec '+command+'\n').encode() for command in
@@ -554,17 +554,32 @@ class HookService:
         else:atomic_write(launcher,script,self.settings.raw['executable_mode'])
         return definition,native,record
 
-    def _record(self,path):
-        self.settings.require_runtime()
+    def _binding_record(self,path):
         p=Path(path)
         if not p.is_absolute() or p.is_symlink() or not p.resolve().is_relative_to(self.settings.bindings):
             raise PoiseError('Binding outside configured root')
         raw=read_document(p)
-        exact_keys(raw,{'session_id','external_session','agent_id','project','settings','settings_digest',
+        exact_keys(binding_context(raw),{'session_id','external_session','agent_id','project','settings',
             'definition_path','launcher','binding_path'},'hook binding')
         stored,message=self.registry.get(raw['session_id'])
-        if raw!=stored or stored['settings_digest']!=digest(self.settings.raw):raise PoiseError('Stale or changed hook binding')
-        self.definition(stored['definition_path'])
+        if binding_context(raw)!=binding_context(stored):
+            raise PoiseError('Binding file identifies a different registered actor; restore the matching binding')
+        definition=self.definition(stored['definition_path'])
+        cfg=self.project_fence.hook_manifest()
+        identity=RuntimeIdentity.parse(cfg['project'],definition.data['message_source'],
+            {'kind':'external','session_id':stored['external_session'],'agent_id':definition.data['agent_id']})
+        root=descendant(self.settings.bindings,identity.key)
+        expected={'project':cfg['project'],'settings':str(self.settings.path),
+            'agent_id':definition.data['agent_id'],'binding_path':str(p),
+            'launcher':str(descendant(root,self.settings.raw['launcher']))}
+        if (p!=descendant(root,self.settings.raw['binding_file'])
+                or any(stored.get(key)!=value for key,value in expected.items())):
+            raise PoiseError('Binding object does not match the selected project/settings; select its matching configuration')
+        return stored,message
+
+    def _record(self,path):
+        self.settings.require_runtime()
+        stored,message=self._binding_record(path)
         self.settings.require_runtime(stored['launcher'])
         return stored,message
 

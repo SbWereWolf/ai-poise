@@ -61,7 +61,8 @@ def execute(command,args,stream,output,error):
         if packet['operation'] in ('install','reconcile','reconfigure'):
             action=getattr(service,packet['operation'])
             result=action(packet['input'])
-            if packet['operation'] == 'reconfigure':
+            if (packet['operation'] == 'reconfigure'
+                    and 'repository_scope' in packet['input']['settings']):
                 current=HookSettings(args.settings)
                 workspace=current.raw['repository_scope']['repository']
             else:

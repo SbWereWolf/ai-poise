@@ -4,7 +4,7 @@ import sqlite3
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded,load_config_limits
-from ...modules.hook_transport.domain import MissingHookBinding
+from ...modules.hook_transport.domain import MissingHookBinding, binding_context
 from .transaction import write_transaction
 
 
@@ -61,7 +61,9 @@ class HookRegistry:
             old=db.execute('SELECT data FROM bindings WHERE id=?',(record['session_id'],)).fetchone()
             if old is not None:
                 prior=json.loads(old[0])
-                if prior!=record:raise PoiseError('Session binding changed; restart explicitly with a new configured actor')
+                if binding_context(prior)!=binding_context(record):
+                    raise PoiseError('Session binding identifies another actor or settings path; select its matching configuration')
+                return prior
             else:db.execute('INSERT INTO bindings VALUES(?,?,NULL)',(record['session_id'],encoded(record)))
         return record
 

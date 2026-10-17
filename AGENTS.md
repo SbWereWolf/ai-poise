@@ -427,22 +427,41 @@ Keep this English projection and its Russian source consistent in the same chang
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
   unchanged.
-- Before terminal handling, agree the permanent delivery of every result (or explicit no_result). After terminal status,
-  confirmed delivery and closure of required consumers/resources, the owning runtime removes the complete Task folder,
+- Before a terminal transition, decide and perform the required result integration/delivery or refuse it through
+  cancellation. Cancellation itself authorizes refusal and Task-owned cleanup; do not demand a separate no_result
+  decision. The owning runtime removes the complete Task folder,
   including raw evidence, temporary artifacts and checkpoints, without a hidden archive. Preserve minimal DB history,
   delivered results, shared Sprint material, foreign resources and operator backups. Follow
   [terminal material delivery](docs/workflows/terminal-materials.md#договор-и-граница-хранения). Deliberate replacement
   with an ordinary directory at the configured Task path is allowed; saved device/inode is audit only. Preserve actual
   owner/path/type/link boundaries; do not add root-substitution hardening. Follow the
   [operator contract](docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).
-- The commit disposition requires a separate explicit decision. Cleanup itself authorizes neither publication to
-  the configured target branch nor destruction of unique commits and does not prescribe merge or discard. Clean
-  accepted successful work
-  only after its separately authorized integration completes. On cancellation, record a separate commit-disposition
-  decision before removing a resource would destroy unique commits.
+- A decision to transition a Task to a status authorizes every action defined by that transition's contract,
+  including its cleanup and commit disposition; do not request separate approval for those actions.
+  Decide the result before any terminal transition: integrate it or refuse integration. Integration includes a
+  commit into the selected working branch (not necessarily master) and/or delivery of materials to the customer's
+  destination. Cancellation means refusal and authorizes removal of all Task-owned working materials, worktree and
+  temporary branch, including undelivered changes and unique commits, without another decision or hidden archive.
+  Preserve already delivered results, accounting history and foreign resources.
+  Existing runtime demands for another approval are an implementation gap, not continuing policy. Follow
+  [status transition authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
+- Every stage must explicitly declare whether it requires a worktree. On stage entry or Task acquisition, use the
+  current stage's contract: create an absent required worktree from available saved state and continue; an absent
+  worktree must not block or trigger creation for a stage that does not require one. Runtime code consumes only
+  the explicit stage flag; it must not infer it from stage names, purpose, position or material type.
+  The current Task-wide worktree_required does not implement this contract; do not invent unsupported API fields.
+  Lost changes require neither a separate record nor recovery before continuing.
+  Preserve Task identity, available history/results and foreign work; obtain current verification
+  for the new state. Follow [continuation authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
+- Set worktree flags during stage design. Initial goal/requirement formulation needs no worktree. For versioned
+  changes, plan it for implementation, verification, acceptance and integration preparation; after confirmed
+  fast-forward remove it, and assign later changes to a new Task. Tasks on materials outside version control
+  require no worktree at any stage. These are planning principles, not runtime heuristics. Follow
+  [stage worktree design](docs/workflows/task-planning.md#потребность-этапа-в-рабочем-дереве).
 - Use public delivery/agree and delivery/settle rather than manually deleting managed Task material. Terminal status,
-  verified checks, delivery completion, resource cleanup and integration are distinct observations. Existing Tasks
-  without an agreement are not silently assigned one or retired. Preserve their actual blocked/incomplete status.
+  verified checks, delivery completion, resource cleanup and integration are distinct observations. Cancellation
+  itself records refusal; a missing earlier delivery agreement must not demand another user decision. Report actual
+  technical blockers and continue the authorized transition through its owners.
 - Never use the main checkout or foreign WIP for preparation or conflict resolution, and never `stash`, `reset`,
   `restore`, `checkout`, `clean`, stage, commit, or delete their state. The sole publication effect is the serialized
   `git merge --ff-only`; a dirty or unfinished checkout may block it without being modified. After confirmed

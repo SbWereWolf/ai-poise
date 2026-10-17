@@ -508,6 +508,16 @@ class HookService:
 
     def definition(self,path):return _read_definition(self.settings,path)
 
+    def current_definition_path(self, definition_path):
+        reference=self.definition(definition_path)
+        installed=self.registry.observed_installation(reference.data['id'])
+        if installed is None:
+            raise PoiseError('Native installation is not observed; install its configured definition through the public owner and retry')
+        current=Path(installed['receipt']['definition_path'])
+        if self.definition(current).data['id']!=reference.data['id']:
+            raise PoiseError('Current definition selects another native installation; restore the matching installation through its public owner')
+        return current
+
     def bind_lifecycle_receipt(self, definition_path, event_receipt, episode):
         definition=self.definition(definition_path)
         if not isinstance(event_receipt,dict) or not isinstance(event_receipt.get('binding_id'),str):

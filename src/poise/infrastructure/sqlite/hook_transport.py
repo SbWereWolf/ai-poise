@@ -137,6 +137,20 @@ class HookRegistry:
         requested.observation = None
         return requested
 
+    @staticmethod
+    def _observed_installation(db, definition_id, limit):
+        from ..diagnostic_io import json_record
+        row = db.execute('SELECT substr(data,1,?) FROM installations WHERE id=?',
+                         (limit+1, definition_id)).fetchone()
+        return None if row is None else json_record(row[0], limit)
+
+    def observed_installation(self, definition_id):
+        from ..diagnostic_io import readonly_database
+        with readonly_database(self.settings.database) as db:
+            if db.execute('PRAGMA user_version').fetchone()[0] != 1:
+                raise PoiseError('Unsupported hook registry schema; no migrations')
+            return self._observed_installation(db, definition_id, self.settings.raw['max_input_bytes'])
+
     def observe(self, definition_id, session, event, event_id):
         """Existing committed owner state only; never create a missing registry."""
         from ..diagnostic_io import readonly_database, json_record
@@ -144,7 +158,6 @@ class HookRegistry:
         with readonly_database(self.settings.database) as db:
             if db.execute('PRAGMA user_version').fetchone()[0] != 1:
                 raise PoiseError('Unsupported hook registry schema; no migrations')
-            installed = db.execute('SELECT substr(data,1,?) FROM installations WHERE id=?', (limit+1, definition_id)).fetchone()
             binding = db.execute('SELECT substr(data,1,?) FROM bindings WHERE id=?', (limit+1, session)).fetchone()
             params = [limit+1, session, event]
             suffix = ''
@@ -153,7 +166,7 @@ class HookRegistry:
             row = db.execute('SELECT id,at,binding,event,substr(data,1,?) AS data FROM hook_events WHERE binding=? AND event=?'
                              + suffix + ' ORDER BY id DESC LIMIT 1', params).fetchone()
             return {
-                'installation': None if installed is None else json_record(installed[0], limit),
+                'installation': self._observed_installation(db, definition_id, limit),
                 'binding': None if binding is None else json_record(binding[0], limit),
                 'event': None if row is None else {**dict(row), 'data': json_record(row['data'], limit)},
             }

@@ -1,34 +1,23 @@
 [
   {
-    "case": "missing_binding",
-    "error": "admission_uncertain"
+    "case": "no_native_start"
   },
   {
-    "case": "wrong_agent",
-    "error": "admission_uncertain"
+    "case": "generated_caller"
   },
   {
-    "case": "missing_settings",
-    "error": "admission_unavailable"
+    "case": "conflicting_identity"
   },
   {
-    "case": "unregistered_settings_association",
-    "error": "admission_unavailable"
+    "case": "unregistered_settings_association"
   },
   {
-    "case": "foreign_settings_project",
-    "error": "admission_unavailable"
+    "case": "foreign_registered_settings"
   },
   {
-    "case": "foreign_registered_settings",
-    "error": "admission_unavailable"
+    "case": "ended_episode"
   },
   {
-    "case": "generated_caller",
-    "error": "admission_unavailable"
-  },
-  {
-    "case": "ambiguous_agent",
-    "error": "admission_unavailable"
+    "case": "unknown_after_contradictory_stop"
   }
 ]

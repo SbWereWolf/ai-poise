@@ -1,131 +1,44 @@
 [
   {
     "path": [
-      "schema"
+      "registry",
+      "schema_version"
     ],
-    "value": "invalid"
+    "value": 1
   },
   {
     "path": [
-      "complete",
-      "max_bytes"
+      "registry",
+      "busy_timeout_ms"
     ],
     "value": true
   },
   {
     "path": [
       "bounded",
-      "max_lines"
+      "max_bytes"
+    ],
+    "value": false
+  },
+  {
+    "path": [
+      "coordination",
+      "wait_seconds"
     ],
     "value": 0
   },
   {
     "path": [
-      "output",
-      "max_bytes"
+      "admission",
+      "definition_path"
     ],
     "value": null
   },
   {
     "path": [
-      "version"
+      "session",
+      "temporary_root"
     ],
     "value": ""
-  },
-  {
-    "path": [
-      "registry",
-      "schema_version"
-    ],
-    "value": true
-  },
-  {
-    "path": [
-      "admission",
-      "mode"
-    ],
-    "value": "invalid"
-  },
-  {
-    "path": [
-      "registry",
-      "filename"
-    ],
-    "value": "../foreign"
-  },
-  {
-    "path": [
-      "registry",
-      "directory"
-    ],
-    "value": "@OUTSIDE_STATE@"
-  },
-  {
-    "path": [
-      "registry",
-      "lock"
-    ],
-    "value": "reads.sqlite"
-  },
-  {
-    "path": [
-      "registry"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "admission"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "registry",
-      "directory"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "registry",
-      "filename"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "registry",
-      "lock"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "registry",
-      "schema_version"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "admission",
-      "mode"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "admission",
-      "hook_settings"
-    ],
-    "delete": true
-  },
-  {
-    "path": [
-      "admission",
-      "agent_id"
-    ],
-    "delete": true
   }
 ]

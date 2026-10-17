@@ -1,21 +1,20 @@
-"""Full research reader contract; 28 stable calls with independent oracles."""
+"""36 independently specified calls; pre-code RED is only absent public CLI."""
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+from pathlib import Path
 import io
-import fcntl
 import json
 import os
+import shutil
 import sqlite3
-from pathlib import Path
 import subprocess
 import sys
-import threading
 
 import pytest
 
 from tests.content_reader.helpers import (
-    Scenario, before_final_guard, before_reader_commit, canonical, files,
-    fixture, other_project, sha, storage_snapshot, text_frames,
+    Scenario, FIXTURES, SOURCE, canonical, files, fixture, other_project,
+    sha, storage_snapshot, strict_json, text_frames, typed_equal,
 )
 
 
@@ -26,48 +25,49 @@ def s(project, tmp_path):
 
 def test_complete_small_and_empty_files(s):
     s.ready()
-    text = fixture()['source_texts']['lf']
-    s.row(s.read(complete=True), text=text, selection='complete', classification='first_read')
+    s.row(s.read(complete=True), text=fixture()['source_texts']['lf'],
+          selection='complete', classification='first_read')
     s.write('docs/sample.txt', b'')
     s.row(s.read(complete=True), text='', selection='complete', classification='content_changed')
-    summary = s.context()['summary']
-    assert summary['cache_entries'] == 2 and summary['event_count'] == 2
+    assert s.context()['summary']['event_count'] == 2
+    assert s.context()['summary']['cache_entries'] == 2
 
 
 def test_large_range_and_actual_eof(s):
     s.ready()
-    s.write('docs/sample.txt', ''.join(f'{n:04d} literal line {n:04d}\n'
-                                     for n in range(1, 2001)).encode())
+    s.write('docs/sample.txt', ''.join(f'{n:04d} literal line {n:04d}\n' for n in range(1, 2001)).encode())
     oracle = fixture()['large_file_oracle']
     s.row(s.read(start=100, end=140), text=oracle['expected_content'],
           selection=oracle['expected_range'], classification='first_read')
-    last = '2000 literal line 2000\n'
-    s.row(s.read(start=2000, end=2010), text=last, selection='lines:2000-2000',
-          classification='new_range')
-    before = s.context()
-    s.error(s.invoke(s.request(start=2001, end=2002)), 'range_after_eof')
-    assert s.context() == before
+    assert sha(oracle['expected_content'].encode()) == oracle['expected_hash']
+    s.row(s.read(start=2000, end=2010), text='2000 literal line 2000\n',
+          selection='lines:2000-2000', classification='new_range')
+    before = s.metadata()
+    s.error(s.invoke(s.request(start=2001, end=2002)), 'range_after_eof', key='sample')
+    assert s.metadata() == before
 
 
 def test_utf8_and_mode_specific_newlines(s):
     s.ready()
     data = fixture()['source_texts']
+    for name, literal in data.items():
+        assert sha(literal.encode()) == fixture()['selected_sha256_literals'][name]
     s.write('docs/sample.txt', data['crlf'].encode())
     s.row(s.read(complete=True), text=data['lf'], selection='complete', classification='first_read')
-    s.row(s.read(start=1, end=2), text=data['range_crlf_1_2'],
-          selection='lines:1-2', classification='new_range')
-    assert len(data['lf'].encode()) == 16
-    assert len(data['crlf'].encode()) == 18
+    s.row(s.read(start=1, end=2), text=data['range_crlf_1_2'], selection='lines:1-2', classification='new_range')
+    assert len(data['lf'].encode()) == 16 and len(data['crlf'].encode()) == 18
 
 
 def test_strict_inclusive_range_contract(s):
-    s.prove()
+    s.active()
     for selection in fixture('selection-invalid.json'):
         request = s.request(); request['reads'][0]['selection'] = selection
-        s.error(s.invoke(request), 'invalid_selection')
-        assert not s.db.exists() and not s.lock.exists()
+        s.error(s.invoke(request), 'invalid_selection', key='sample')
     s.ready()
     s.row(s.read(start=1, end=1), text='alpha\n', selection='lines:1-1', classification='first_read')
+    # Requested span is limited before clipping to actual EOF.
+    s.data['bounded']['max_lines'] = 3; s.save_policy()
+    s.error(s.invoke(s.request(start=2, end=8)), 'bounded_limit', key='sample')
 
 
 def test_complete_and_bounded_limits(s):
@@ -82,633 +82,493 @@ def test_complete_and_bounded_limits(s):
         s.data[mode][bound] = value; s.save_policy()
         assert s.invoke(s.request(**kwargs))[0] == 0
         s.data[mode][bound] = value - 1; s.save_policy()
-        before = s.context()['summary']
-        s.error(s.invoke(s.request(**kwargs)), error)
-        assert s.context()['summary'] == before
+        before = s.metadata()
+        s.error(s.invoke(s.request(**kwargs)), error, key='sample')
+        assert s.metadata() == before
         s.data = original; s.save_policy()
     s.write('docs/sample.txt', fixture()['source_texts']['crlf'].encode())
     s.data['complete']['max_bytes'] = 17; s.save_policy()
-    s.error(s.invoke(s.request(complete=True)), 'complete_limit')
+    s.error(s.invoke(s.request(complete=True)), 'complete_limit', key='sample')
 
 
-def test_full_output_budgets_before_registration(s, monkeypatch):
+def test_full_output_budgets_before_registration(s):
     s.ready()
+    used = False
     for fmt in ['json', 'text']:
-        s.reset('clear-' + fmt, operation='clear')
-        candidate = s.fill(fixture()['full_preflight_response'])
-        expected = canonical(candidate) if fmt == 'json' else (
-            canonical(dict({k: v for k, v in candidate.items() if k != 'items'},
-                           item={k: v for k, v in candidate['items'][0].items() if k != 'content'}))
-            + fixture()['source_texts']['range_2_3'])
-        # Raw-policy hash is always 64 bytes: setting the limit does not alter width.
-        s.data['output']['max_bytes'] = len(expected.encode()); s.save_policy()
-        assert s.raw(s.request(), fmt)[0] == 0
-        s.data['output']['max_bytes'] -= 1; s.save_policy()
-        before = s.context()['summary']
-        code, out, err = s.raw(s.request(), fmt)
-        assert err == ''
-        s.error((code, json.loads(out)), 'output_limit')
-        assert s.context()['summary'] == before
-        s.data['output']['max_bytes'] = 32768; s.save_policy()
-        # Line bound is independent of the byte bound, including repeat reads.
-        lines = len(expected.splitlines())
-        s.data['output']['max_lines'] = lines; s.save_policy()
-        assert s.raw(s.request(), fmt)[0] == 0
-        if lines > 1:
-            s.data['output']['max_lines'] = lines - 1; s.save_policy()
-            code, out, err = s.raw(s.request(), fmt)
-            assert err == ''; s.error((code, json.loads(out)), 'output_limit')
-        s.data['output']['max_lines'] = 512; s.save_policy()
-        for allow in [False, True]:
-            s.reset('clear-race-' + fmt + str(allow), operation='clear')
-            for n in range(9):
-                s.reset('race-' + fmt + str(allow) + '-' + str(n))
-            candidate = s.fill(fixture()['full_preflight_response'])
-            generation = 10 if allow else 9
-            candidate['context']['generation'] = generation
-            candidate['items'][0]['context_generation'] = generation
+        for dimension in ['max_bytes', 'max_lines']:
+            if used:
+                s.event('SessionEnd')
+                assert s.invoke({'operation': 'recover'})[0] == 0
+                s.event(); s.ready()
+            used = True
+            # Only paths, native IDs and own policy hash are dynamic inputs.
+            candidate = deepcopy(fixture()['first_response'])
+            observed = s.context()
+            for key in ['project', 'checkout', 'policy_sha256', 'context', 'response_path']:
+                candidate[key] = observed[key]
+            candidate['items'][0]['classification'] = 'new_context_generation'
             if fmt == 'json':
                 encoded = canonical(candidate)
             else:
                 encoded = canonical(dict({k: v for k, v in candidate.items() if k != 'items'},
-                                         item={k: v for k, v in candidate['items'][0].items() if k != 'content'}))
-                encoded += fixture()['source_texts']['range_2_3']
-            s.data['output']['max_bytes'] = len(encoded.encode()); s.save_policy()
-            results, errors = [], []
-
-            def read_worker():
-                try:
-                    results.append(s.transport(monkeypatch, s.request(), fmt=fmt))
-                except BaseException as exc:
-                    errors.append(exc)
-
-            with before_final_guard(monkeypatch, s, s.lock) as (entered, release):
-                worker = threading.Thread(target=read_worker, name='reader-interleaving')
-                worker.start()
-                try:
-                    assert entered.wait(10), 'Reader never reached final guard after source I/O'
-                    assert s.reset('race-tenth-' + fmt + str(allow))['context']['generation'] == 10
-                finally:
-                    release.set(); worker.join(10)
-                assert not worker.is_alive() and not errors
-            assert len(results) == 1
-            code, out, err = results[0]; assert err == ''
-            if not allow:
-                s.error((code, json.loads(out)), 'output_limit')
-                assert s.context()['summary'] == s.fill(fixture()['context_before'])['summary']
+                                        item={k: v for k, v in candidate['items'][0].items() if k != 'content'})) + 'βeta\nlast'
+            n = len(encoded.encode()) if dimension == 'max_bytes' else len(encoded.splitlines())
+            original = s.data['output'][dimension]
+            if n > 1:
+                s.data['output'][dimension] = n - 1; s.save_policy()
+                before = s.metadata()
+                code, out, err = s.raw(s.request(), fmt)
+                assert err == ''
+                s.error((code, strict_json(out)), 'output_limit')
+                assert s.metadata() == before
+            s.data['output'][dimension] = n; s.save_policy()
+            assert s.raw(s.request(), fmt)[0] == 0
+            # JSON has one physical line; zero is an invalid positive policy.
+            if n == 1:
+                s.data['output'][dimension] = 0; s.save_policy()
+                s.error(s.invoke(s.request()), 'invalid_policy', field='policy:output.' + dimension)
             else:
-                assert code == 0
-                if fmt == 'json':
-                    result = json.loads(out)
-                    assert result['context']['generation'] == 10
-                    item = result['items'][0]
-                else:
-                    header, content = text_frames(out)[0]
-                    assert header['context']['generation'] == 10
-                    assert content == fixture()['source_texts']['range_2_3'].encode()
-                    item = header['item']
-                assert item['context_generation'] == 10 and item['classification'] == 'first_read'
-                assert s.context()['summary']['cache_entries'] == 1
-                assert s.context()['summary']['event_count'] == 1
-                assert len(out.encode()) <= s.data['output']['max_bytes']
-            assert s.context()['context']['generation'] == 10
-            s.data['output']['max_bytes'] = 32768; s.save_policy()
+                s.data['output'][dimension] = 1; s.save_policy()
+                before = s.metadata()
+                code, out, err = s.raw(s.request(), fmt)
+                assert err == ''
+                s.error((code, strict_json(out)), 'output_limit')
+                assert s.metadata() == before
+            s.data['output'][dimension] = original; s.save_policy()
 
 
 def test_first_and_exact_repeat_contract(s):
     s.ready()
-    assert s.read() == s.fill(fixture()['first_response'])
-    assert s.context() == s.fill(fixture()['context_after_first'])
-    assert s.read() == s.fill(fixture()['repeat_response'])
-    assert s.context() == s.fill(fixture()['context_after_repeat'])
+    first = s.read()
+    s.row(first, text='βeta\nlast', selection='lines:2-3', classification='first_read')
+    typed_equal(first['summary'], fixture('context-sequences.json')['first'])
+    second = s.read()
+    s.row(second, text='βeta\nlast', selection='lines:2-3', classification='exact_repeat', status='unchanged')
+    typed_equal(second['summary'], fixture('context-sequences.json')['repeat'])
+    assert first['context'] == second['context']
 
 
 def test_new_range_and_changed_selected_content(s):
     s.ready(); s.read()
     s.row(s.read(start=1, end=1), text='alpha\n', selection='lines:1-1', classification='new_range')
-    s.write('docs/sample.txt', 'outside\nβeta\nlast'.encode())
-    assert s.read() == s.fill(fixture()['repeat_response'])
-    s.write('docs/sample.txt', 'outside\nγeta\nlast'.encode())
+    s.write('docs/sample.txt', 'ALPHA\nβeta\nlast'.encode())
+    s.row(s.read(), text='βeta\nlast', selection='lines:2-3', classification='exact_repeat', status='unchanged')
+    s.write('docs/sample.txt', 'ALPHA\nγeta\nlast'.encode())
     s.row(s.read(), text='γeta\nlast', selection='lines:2-3', classification='content_changed')
 
 
 def test_new_generation_and_classification_precedence(s):
-    s.ready(); s.read(); s.reset()
-    s.row(s.read(), text='βeta\nlast', selection='lines:2-3',
-          classification='new_context_generation', generation=1)
-    s.row(s.read(), text='βeta\nlast', selection='lines:2-3',
-          classification='exact_repeat', status='unchanged', generation=1)
-    s.reset('manual-2'); s.write('docs/sample.txt', 'alpha\nγeta\nlast'.encode())
-    s.row(s.read(), text='γeta\nlast', selection='lines:2-3',
-          classification='content_changed', generation=2)
+    s.ready(); s.read(); s.advance()
+    s.row(s.read(), text='βeta\nlast', selection='lines:2-3', classification='new_context_generation', generation=1)
+    s.row(s.read(start=1, end=1), text='alpha\n', selection='lines:1-1', classification='new_range', generation=1)
+    s.write('docs/sample.txt', 'alpha\nγeta\nlast'.encode())
+    s.row(s.read(), text='γeta\nlast', selection='lines:2-3', classification='content_changed', generation=1)
 
 
 def test_previously_seen_version_is_available(s):
-    s.ready()
-    for step in fixture()['state_sequences'][0]['steps']:
-        text = 'γeta\nlast' if step['hash'] == fixture()['selected_sha256_literals']['changed_range_2_3'] else 'βeta\nlast'
-        if step['read'] == 'lines:1-1':
-            s.read(start=1, end=1)
-            continue
-        s.write('docs/sample.txt', ('alpha\n' + text).encode())
-        s.row(s.read(), text=text, selection=step['read'], classification=step['classification'],
-              status=step['status'], generation=step['generation'])
-    s.reset()
-    # Latest FIRST-registered version was B; a repeat A did not reorder history.
-    s.row(s.read(), text='βeta\nlast', selection='lines:2-3', classification='content_changed', generation=1)
+    s.ready(); s.read()
+    s.write('docs/sample.txt', 'alpha\nγeta\nlast'.encode()); s.read()
+    s.write('docs/sample.txt', fixture()['source_texts']['lf'].encode())
+    s.row(s.read(), text='βeta\nlast', selection='lines:2-3', classification='exact_repeat', status='unchanged')
+    cache, events = s.metadata()
+    assert len(cache) == 2 and len(events) == 3
+    s.advance(); s.read()
+    assert len(s.metadata()[0]) == 3
 
 
 def test_project_checkout_and_caller_isolation(s, project, tmp_path):
-    s.ready(); s.read()
-    other = Scenario(project, tmp_path, identity='second-caller')
-    other.ready(); assert other.read()['items'][0]['classification'] == 'first_read'
-    assert s.read()['items'][0]['classification'] == 'exact_repeat'
-    other.native_identity(); assert other.invoke({'operation': 'prepare'})[0] == 0
-    assert other.read()['items'][0]['classification'] == 'first_read'
-    # A separate configured project and repository via the existing setup owner.
-    beta = other_project(project, tmp_path)
-    beta.ready(); assert beta.read()['items'][0]['classification'] == 'first_read'
-    original = s.checkout
-    s.checkout = beta.checkout
-    s.error(s.invoke(s.request()), 'project_binding')
+    s.ready(); a = s.read()
+    foreign = other_project(project, tmp_path); foreign.ready(); b = foreign.read()
+    assert a['context']['caller_key'] != b['context']['caller_key']
+    before = s.metadata(); foreign.advance(); foreign.read(); assert s.metadata() == before
+    # A second registered worktree shares the project and native episode, not cache namespace.
+    second = tmp_path / 'second-checkout'
+    subprocess.run(['git', '-C', str(s.checkout), 'worktree', 'add', '-b', 'reader-copy', str(second)], check=True, capture_output=True)
+    original = s.checkout; s.checkout = second
+    s.write('docs/sample.txt', fixture()['source_texts']['lf'].encode())
+    c = s.read(); assert c['items'][0]['classification'] == 'first_read'
+    assert c['context']['checkout_key'] != a['context']['checkout_key']
     s.checkout = original
-    assert s.read()['items'][0]['classification'] == 'exact_repeat'
+    assert s.read()['items'][0]['status'] == 'unchanged'
+    peer = Scenario(project, tmp_path, identity='second-native')
+    peer.prove(); peer.native_identity('second-native'); peer.native_hooks(); peer.event(); peer.ready()
+    assert peer.read()['items'][0]['classification'] == 'first_read'
+    assert peer.context()['context']['caller_key'] != a['context']['caller_key']
 
 
-def test_scoped_reset_clear_and_event_replay(s, project, tmp_path):
-    s.prove(); s.error(s.invoke({'operation': 'context'}), 'registry_missing')
+def test_context_generation_event_replay_is_scoped(s, project, tmp_path):
     s.ready(); s.read()
-    other = Scenario(project, tmp_path, identity='other-scope'); other.ready(); other.read()
-    before = other.context()
-    first = s.reset(); assert s.reset() == first
-    s.error(s.invoke({'operation': 'reset', 'reason': 'conflict', 'event_id': 'manual-1'}), 'event_conflict')
-    s.error(s.invoke({'operation': 'clear', 'reason': 'manual', 'event_id': 'manual-1'}), 'event_conflict')
-    clear = s.reset('clear-1', operation='clear')
-    assert s.reset('clear-1', operation='clear') == clear
-    assert clear['context']['generation'] == 0
-    assert s.context()['summary'] == s.fill(fixture()['context_before'])['summary']
-    assert s.read()['items'][0]['classification'] == 'first_read'
-    assert other.context() == before
+    assert s.context()['context']['generation'] == 0
+    first = s.advance('unique-epoch'); assert first['context']['generation'] == 1
+    assert s.advance('unique-epoch')['context']['generation'] == 1
+    s.error(s.invoke({'operation': 'advance_context', 'request_id': 'unique-epoch', 'reason': 'different'}), 'event_conflict')
+    assert s.advance('epoch-2')['context']['generation'] == 2
+    assert len(s.metadata()[0]) == 1  # Metadata is retained across generations.
+    foreign = other_project(project, tmp_path); foreign.ready()
+    assert foreign.advance('unique-epoch')['context']['generation'] == 1
+    assert s.context()['context']['generation'] == 2
 
 
 def test_concurrent_exact_reads(s):
     s.ready()
     with ThreadPoolExecutor(max_workers=2) as pool:
-        futures = [pool.submit(s.read) for _ in range(2)]
-        results = [f.result(timeout=10) for f in futures]
+        results = [f.result(timeout=10) for f in [pool.submit(s.read), pool.submit(s.read)]]
     assert sorted(v['items'][0]['status'] for v in results) == ['content', 'unchanged']
-    assert s.context() == s.fill(fixture()['context_after_repeat'])
+    typed_equal(s.context()['summary'], fixture('context-sequences.json')['repeat'])
+    assert len(s.metadata()[0]) == 1 and len(s.metadata()[1]) == 2
 
 
-def test_batch_validation_and_registration_atomicity(s):
-    s.ready()
-    request = s.request(); first = request['reads'][0]
-    before = s.context()
-    for second in [first, dict(first, key='z', path='docs/missing.txt'),
-                   dict(first, key='z', path='../foreign')]:
-        actual = s.invoke({'operation': 'read', 'reads': [first, second]})
-        assert actual[0] in (2, 3) and actual[1]['status'] == 'rejected'
-        assert s.context() == before
-    count = s.base['cfg']['batch']['max_items'] + 1
-    s.error(s.invoke({'operation': 'read', 'reads': [dict(first, key='k' + str(n))
-                                                   for n in range(count)]}), 'invalid_request')
-    code, result = s.invoke({'operation': 'read', 'reads': [dict(first, key='z'), dict(first, key='a')]})
-    assert code == 0 and [v['key'] for v in result['items']] == ['a', 'z']
-    assert [v['status'] for v in result['items']] == ['content', 'unchanged']
-    assert s.context()['summary']['cache_entries'] == 1
-    assert s.context()['summary']['event_count'] == 2
+def test_batch_preflight_and_per_item_registration_outcomes(s):
+    s.ready(); first = s.request()['reads'][0]
+    before = s.metadata()
+    for bad in [deepcopy(first), dict(first, key='bad', selection={'kind':'lines','start':False,'end':2})]:
+        value = s.invoke({'operation': 'read', 'reads': [first, bad]})
+        assert value[0] == 2 and value[1]['status'] == 'rejected'
+        assert s.metadata() == before
+    code, value = s.invoke({'operation':'read','reads':[dict(first,key='z'),dict(first,key='missing',path='docs/absent.txt'),dict(first,key='a')]})
+    assert code == 1 and value['status'] == 'partial'
+    assert [v['key'] for v in value['items']] == ['z','missing','a']
+    assert [v['status'] for v in value['items']] == ['content','failed','unchanged']
+    assert value['items'][1]['error']['code'] == 'source_missing'
+    assert len(s.metadata()[0]) == 1 and len(s.metadata()[1]) == 2
 
 
 def test_strict_request_and_policy_shapes(s):
     s.prove()
-    for request in fixture('request-invalid.json'):
-        s.error(s.invoke(request), 'invalid_request'); assert not s.db.exists()
+    for request in [None, [], {}, {'operation':'unknown'}, {'operation':'context','extra':1},
+                    {'operation':'reset'}, {'operation':'clear'}, {'operation':'recover','receipt':{}},
+                    {'operation':'advance_context','request_id':True,'reason':'manual'}]:
+        s.error(s.invoke(request), 'invalid_request')
     for raw in [b'{', b'{"operation":"context","operation":"prepare"}', b'NaN']:
-        s.error(s.invoke({}, raw=raw), 'invalid_request'); assert not s.db.exists()
-    for case in fixture('read-invalid.json'):
-        request = s.request()
-        if case.get('delete'):
-            del request['reads'][0][case['field']]
-        else:
-            request['reads'][0][case['field']] = case['value']
-        s.error(s.invoke(request), case['error'])
-        assert not s.db.exists() and not s.lock.exists()
-    base = deepcopy(s.data)
-    owned_db, owned_lock = s.db, s.lock
-    for case in fixture('policy-invalid.json'):
-        s.data = deepcopy(base); target = s.data
-        for key in case['path'][:-1]: target = target[key]
-        if case.get('delete'):
-            del target[case['path'][-1]]
-        else:
-            target[case['path'][-1]] = (str(s.root / 'outside-reader')
-                                      if case['value'] == '@OUTSIDE_STATE@' else case['value'])
-        s.save_policy()
-        before_state = files(s.state)
-        s.error(s.invoke({'operation': 'prepare'}), 'invalid_policy')
-        assert not owned_db.exists() and not owned_lock.exists()
-        assert files(s.state) == before_state
-        assert not (s.root / 'outside-reader').exists()
-    s.data = deepcopy(base); del s.data['complete']; s.save_policy()
-    s.error(s.invoke({'operation': 'prepare'}), 'invalid_policy')
+        s.error(s.invoke({}, raw=raw), 'invalid_request')
+    original = deepcopy(s.data)
+    for path, value in [('registry.schema_version',1),('registry.busy_timeout_ms',True),
+                        ('bounded.max_bytes',False),('coordination.wait_seconds',0),
+                        ('admission.definition_path',None),('session.temporary_root','')]:
+        s.data = deepcopy(original); section, field = path.split('.')
+        s.data[section][field] = value; s.save_policy()
+        s.error(s.invoke({'operation':'prepare'}), 'invalid_policy', field='policy:'+path)
+    s.data = deepcopy(original); s.data['admission']['mode']='caller';s.save_policy()
+    # Unknown options are preserved but cannot supply the missing required definition.
+    del s.data['admission']['definition_path'];s.save_policy()
+    s.error(s.invoke({'operation':'prepare'}), 'invalid_policy', field='policy:admission.definition_path')
 
 
 def test_source_failure_diagnostics(s, monkeypatch):
     s.ready()
-    s.error(s.invoke(s.request(path='docs/missing.txt')), 'source_missing')
-    s.error(s.invoke(s.request(path='docs')), 'source_not_file')
-    s.error(s.invoke(s.request(path='../foreign')), 'path_outside_project')
-    s.write('docs/sample.txt', b'\xff\xfe')
-    s.error(s.invoke(s.request()), 'source_not_utf8')
-    s.write('docs/sample.txt', fixture()['source_texts']['lf'].encode())
+    for path, code in [('docs/missing.txt','source_missing'),('docs','source_not_file'),('../foreign','path_outside_project')]:
+        s.error(s.invoke(s.request(path=path)), code, key='sample')
+    s.write('docs/sample.txt', b'\xff\xfe');s.error(s.invoke(s.request()),'source_not_utf8',key='sample')
+    s.write('docs/sample.txt',fixture()['source_texts']['lf'].encode())
     original = Path.open
-
-    def denied(path, *args, **kwargs):
-        if path == s.checkout / 'docs/sample.txt': raise PermissionError('fixture permission denied')
-        return original(path, *args, **kwargs)
-
-    before = s.context()
+    def denied(path,*args,**kwargs):
+        if path == s.checkout/'docs/sample.txt':raise PermissionError('fixture denied')
+        return original(path,*args,**kwargs)
+    before = s.metadata()
     with monkeypatch.context() as patch:
-        patch.setattr(Path, 'open', denied)
-        code, out, err = s.transport(patch, s.request())
-    assert err == ''; s.error((code, json.loads(out)), 'source_unreadable')
-    assert s.context() == before
+        patch.setattr(Path,'open',denied);code,out,err=s.transport(patch,s.request())
+    assert err=='';s.error((code,strict_json(out)),'source_unreadable',key='sample')
+    assert s.metadata()==before
 
 
-def test_prepared_storage_and_schema_preservation(s, project, tmp_path):
-    s.prove()
-    directory = s.db.parent
-    assert not directory.exists()
-    s.error(s.invoke(s.request()), 'registry_missing'); assert not directory.exists()
-    s.error(s.invoke({'operation': 'context'}), 'registry_missing')
-    assert not directory.exists()
+def test_prepared_storage_and_schema_preservation(s):
+    s.active()
+    assert not list(Path(s.data['session']['temporary_root']).glob('**/reads.sqlite'))
+    # First read may legitimately prepare its own fresh resource.
+    assert s.read()['items'][0]['classification']=='first_read'
     s.ready()
-    other = Scenario(project, tmp_path, identity='missing-reader-context')
-    other.prove()
-    before_logical = storage_snapshot(s.db)
-    other.error(other.invoke({'operation': 'context'}), 'context_missing')
-    assert storage_snapshot(s.db) == before_logical
-    s.lock.unlink()
-    before = s.db.read_bytes()
-    s.error(s.invoke(s.request()), 'registry_missing')
-    assert not s.lock.exists() and s.db.read_bytes() == before
-    assert s.invoke({'operation': 'prepare'})[0] == 0
-    with sqlite3.connect(s.db) as db: db.execute('PRAGMA user_version=71')
-    before = files(directory)
-    s.error(s.invoke(s.request()), 'registry_schema')
-    s.error(s.invoke({'operation': 'context'}), 'registry_schema')
-    s.error(s.invoke({'operation': 'prepare'}), 'registry_schema')
-    assert files(directory) == before
-    # Unknown/corrupt storage belongs to its existing owner and is not replaced.
-    s.db.write_bytes(b'foreign database marker')
-    before = files(directory)
-    s.error(s.invoke(s.request()), 'registry_invalid')
-    s.error(s.invoke({'operation': 'context'}), 'registry_invalid')
-    s.error(s.invoke({'operation': 'prepare'}), 'registry_invalid')
-    assert files(directory) == before
-    # Publicly prepare a compatible store for an independently configured project.
-    foreign = other_project(project, tmp_path)
-    foreign.ready(); foreign.read()
-    foreign_before = storage_snapshot(foreign.db)
-    s.db.unlink()  # Fixture replacement only after corruption-preservation assertions.
-    with sqlite3.connect(foreign.db) as source, sqlite3.connect(s.db) as destination:
-        source.backup(destination)
     with sqlite3.connect(s.db) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 1
-    copied = storage_snapshot(s.db)
-    for request in [s.request(), {'operation': 'context'}, {'operation': 'prepare'}]:
-        s.error(s.invoke(request), 'registry_invalid')
-        assert storage_snapshot(s.db) == copied
-        assert storage_snapshot(foreign.db) == foreign_before
+        assert db.execute('SELECT singleton,schema_version FROM registry_schema').fetchall()==[(1,2)]
+        db.execute('UPDATE registry_schema SET schema_version=? WHERE singleton=?',(71,1))
+    before=s.db.read_bytes()
+    for req in [s.request(),{'operation':'context'},{'operation':'prepare'}]:
+        s.error(s.invoke(req),'registry_schema');assert s.db.read_bytes()==before
+    s.db.write_bytes(b'corrupt existing own registry');before=s.db.read_bytes()
+    s.error(s.invoke({'operation':'prepare'}),'registry_invalid');assert s.db.read_bytes()==before
 
 
 def test_genuine_caller_admission_profile(s):
-    s.ready()
-    assert s.read()['context']['caller_key'] == s.caller_key
-    s.native_identity()
-    assert s.invoke({'operation': 'prepare'})[0] == 0
-    assert s.read()['context']['caller_key'] == s.caller_key
-    invalid = dict(s.env, CODEX_SESSION_ID='conflicting')
-    s.error(s.invoke(s.request(), env=invalid), 'invalid_caller')
-    invalid = {k: v for k, v in s.env.items() if k not in ('CODEX_THREAD_ID', 'CODEX_SESSION_ID')}
-    invalid['POISE_SESSION'] = 'not-supported'
-    s.error(s.invoke(s.request(), env=invalid), 'invalid_caller')
+    s.prove();s.template()
+    for op in ['prepare','context','adopt']:
+        code,value=s.invoke({'operation':op});assert code==1
+        assert value['error']['code'] in ['admission_uncertain','admission_unavailable']
+    assert not list(Path(s.data['session']['temporary_root']).glob('**/reads.sqlite'))
+    s.ready();assert s.read()['context']['caller_key']==s.caller_key
+    s.error(s.invoke(s.request(),env=dict(s.env,CODEX_SESSION_ID='conflicting')),'invalid_caller')
+    invalid={k:v for k,v in s.env.items() if k not in ('CODEX_THREAD_ID','CODEX_SESSION_ID')};invalid['POISE_SESSION']='unsupported'
+    s.error(s.invoke(s.request(),env=invalid),'invalid_caller')
 
 
-def test_native_hook_observation_profile(s, tmp_path):
-    s.prove(); s.native_identity()
-    assert s.invoke({'operation': 'prepare'})[0] == 0
-    s.native_hooks(tmp_path)
-    start = s.event()
-    s.error(s.invoke(s.request()), 'context_profile_changed')
-    assert s.invoke({'operation': 'prepare'})[0] == 0
-    value = s.read()
-    assert value['context']['native_episode'] == start
-    assert value['context']['admission_mode'] == 'native_hook'
-    s.event('SessionEnd'); s.event('Stop')
-    s.error(s.invoke(s.request()), 'admission_dead')
-    binding = s.hooks.latest_binding(s.identity, 'primary')
-    s.hooks.registry.record_event(binding['session_id'], 'PostToolUse', 'tool', None)
-    s.error(s.invoke(s.request()), 'admission_dead')
-    second = s.event()
-    assert second > start
-    s.error(s.invoke(s.request()), 'context_episode_changed')
-    assert s.invoke({'operation': 'prepare'})[0] == 0
-    assert s.read()['items'][0]['classification'] == 'first_read'
-    # Binding publication and SessionStart observation are distinct operations.
-    known = deepcopy(s.hooks.latest_binding(s.identity, 'primary'))
-    previous_identity = s.identity
-    known['session_id'] = 'known-reader-without-start'
-    known['external_session'] = 'known-reader-without-start'
-    s.hooks.registry.bind(known)
-    s.native_identity('known-reader-without-start')
-    s.error(s.invoke({'operation': 'prepare'}), 'admission_uncertain')
-    s.native_identity(previous_identity)
-    with sqlite3.connect(s.hooks.settings.database) as db:
-        db.execute('PRAGMA user_version=71')
-    before = s.db.read_bytes()
-    s.error(s.invoke(s.request()), 'admission_unavailable')
-    assert s.db.read_bytes() == before
-    with sqlite3.connect(s.hooks.settings.database) as db:
-        db.execute('PRAGMA user_version=1')
-    s.hooks.settings.lock.unlink()
-    before = s.db.read_bytes()
-    s.error(s.invoke(s.request()), 'admission_unavailable')
-    assert not s.hooks.settings.lock.exists() and s.db.read_bytes() == before
-    # Explicit fixture owner restores its lock; the reader never recreates it.
-    current_binding = s.hooks.latest_binding(s.identity, 'primary')
-    s.hooks.registry.record_event(current_binding['session_id'], 'PostToolUse', 'restored', None)
-    foreign = other_project(s.base, tmp_path)
-    foreign.ready(); foreign.read(); foreign.native_hooks(tmp_path)
-    foreign.event()
-    original_data, original_env = deepcopy(s.data), dict(s.env)
-    original_identity, original_origin = s.identity, s.origin
-    raw_settings = json.loads((s.root / 'hook-settings.json').read_text())
-    missing = s.root / 'missing-reader-hook-settings.json'
-    unregistered = s.root / 'unregistered-reader-hook-settings.json'
-    unregistered.write_text(json.dumps(raw_settings), encoding='utf-8')
-    foreign_copy = s.root / 'foreign-reader-hook-settings.json'
-    copied_settings = dict(raw_settings, project_config=str(foreign.config))
-    foreign_copy.write_text(json.dumps(copied_settings), encoding='utf-8')
-    for case in fixture('native-negative.json'):
-        s.data, s.env = deepcopy(original_data), dict(original_env)
-        s.identity, s.origin = original_identity, original_origin
-        name = case['case']
-        if name == 'missing_binding':
-            s.native_identity('missing-native-reader')
-        elif name == 'wrong_agent':
-            s.data['admission']['agent_id'] = 'not-installed-reader-agent'
-        elif name == 'missing_settings':
-            s.data['admission']['hook_settings'] = str(missing)
-        elif name == 'unregistered_settings_association':
-            s.data['admission']['hook_settings'] = str(unregistered)
-        elif name == 'foreign_settings_project':
-            s.data['admission']['hook_settings'] = str(foreign_copy)
-        elif name == 'foreign_registered_settings':
-            s.data['admission']['hook_settings'] = str(foreign.root / 'hook-settings.json')
-        elif name == 'generated_caller':
-            s.env.pop('CODEX_THREAD_ID'); s.env['POISE_CALLER_BINDING'] = str(s.binding)
-            s.identity, s.origin = 'reader-fixture-caller', 'generated'
-        elif name == 'ambiguous_agent':
-            # Last case: two existing-owner bindings match the exact external/agent.
-            record = deepcopy(current_binding); record['session_id'] = 'duplicate-native-reader'
-            s.hooks.registry.bind(record)
-        else:
-            raise AssertionError('Unrecognized frozen native case: ' + name)
-        s.save_policy()
-        own, external = storage_snapshot(s.db), storage_snapshot(foreign.db)
-        hooks = storage_snapshot(s.hooks.settings.database)
-        foreign_hooks = storage_snapshot(foreign.hooks.settings.database)
-        for request in [s.request(), {'operation': 'context'}, {'operation': 'prepare'}]:
-            s.error(s.invoke(request), case['error'])
-            assert storage_snapshot(s.db) == own
-            assert storage_snapshot(foreign.db) == external
-            assert storage_snapshot(s.hooks.settings.database) == hooks
-            assert storage_snapshot(foreign.hooks.settings.database) == foreign_hooks
-        assert not missing.exists()
+def test_native_hook_observation_profile(s):
+    s.ready();start=s.episode.copy();s.read();s.event('UserPromptSubmit');s.event('Stop')
+    assert s.context()['context']['native_episode']==start
+    assert s.read()['items'][0]['status']=='unchanged'
+    s.event('SessionEnd');s.event('Stop')
+    before=files(s.resource)
+    code,value=s.invoke(s.request());assert code==1
+    assert value['error']['code'] in ['admission_uncertain','admission_dead']
+    assert files(s.resource)==before
+    assert set(start)=={'project_id','session_id','binding_id','start_event_id'}
 
 
-def test_native_end_serializes_registration_admission(s, tmp_path, monkeypatch):
-    s.prove(); s.native_hooks(tmp_path); s.event()
-    assert s.invoke({'operation': 'prepare'})[0] == 0
-    # End competes AFTER observation, while actual general DML awaits COMMIT.
-    results, failures, end_attempt, end_lock_result = [], [], threading.Event(), []
-    original_flock = fcntl.flock
-
-    def observe_end(fd, operation):
-        observed, target = os.fstat(fd), s.hooks.settings.lock.stat()
-        watching = (threading.current_thread().name == 'end-writer'
-                    and operation & fcntl.LOCK_EX
-                    and (observed.st_dev, observed.st_ino) == (target.st_dev, target.st_ino))
-        try:
-            result = original_flock(fd, operation)
-        except BlockingIOError:
-            if watching and not end_attempt.is_set():
-                end_lock_result.append('blocked'); end_attempt.set()
-            raise
-        if watching and not end_attempt.is_set():
-            end_lock_result.append('acquired'); end_attempt.set()
-        return result
-
-    def registering_reader():
-        try: results.append(s.transport(monkeypatch, s.request()))
-        except BaseException as exc: failures.append(exc)
-
-    def competing_end():
-        try: s.event('SessionEnd')
-        except BaseException as exc: failures.append(exc)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(fcntl, 'flock', observe_end)
-        with before_reader_commit(patch, s) as (entered, release):
-            reader = threading.Thread(target=registering_reader, name='reader-interleaving')
-            ending = threading.Thread(target=competing_end, name='end-writer')
-            reader.start()
-            try:
-                assert entered.wait(10), 'Reader did not reach its real registration commit'
-                ending.start()
-                assert end_attempt.wait(10), 'End writer never attempted the existing hook lock'
-                assert end_lock_result == ['blocked'], 'Hook lock was released before registration committed'
-            finally:
-                release.set(); reader.join(10)
-                if ending.ident is not None: ending.join(10)
-            assert not reader.is_alive() and not ending.is_alive() and not failures
-    assert len(results) == 1
-    code, out, err = results[0]
-    assert code == 0 and err == '' and json.loads(out)['items'][0]['classification'] == 'first_read'
-    s.error(s.invoke(s.request()), 'admission_dead')
-    s.event(); assert s.invoke({'operation': 'prepare'})[0] == 0
-    for resume in [False, True]:
-        if resume:
-            s.event(); assert s.invoke({'operation': 'prepare'})[0] == 0
-        results, errors = [], []
-
-        def reader():
-            try: results.append(s.transport(monkeypatch, s.request()))
-            except BaseException as exc: errors.append(exc)
-
-        with before_final_guard(monkeypatch, s, s.hooks.settings.lock) as (entered, release):
-            thread = threading.Thread(target=reader, name='reader-interleaving'); thread.start()
-            try:
-                assert entered.wait(10)
-                s.event('SessionEnd')
-                if resume: s.event()
-            finally:
-                release.set(); thread.join(10)
-            assert not thread.is_alive() and not errors
-        code, out, err = results[0]; assert err == ''
-        s.error((code, json.loads(out)), 'context_episode_changed' if resume else 'admission_dead')
-        if resume:
-            for request in [s.request(), {'operation': 'context'},
-                            {'operation': 'reset', 'reason': 'manual', 'event_id': 'new'},
-                            {'operation': 'clear', 'reason': 'manual', 'event_id': 'new'}]:
-                s.error(s.invoke(request), 'context_episode_changed')
-            assert s.invoke({'operation': 'prepare'})[0] == 0
-            assert s.context()['summary']['event_count'] == 0
-            assert s.read()['items'][0]['classification'] == 'first_read'
-    original = deepcopy(s.data)
-    s.data['registry']['directory'] = str(s.hooks.settings.lock.parent)
-    s.data['registry']['lock'] = s.hooks.settings.lock.name
-    s.save_policy()
-    s.error(s.invoke(s.request()), 'lock_resources_conflict')
-    s.data = original; s.save_policy()
+def test_confirmed_end_cleanup_and_next_episode_admission(s):
+    s.ready();s.read();old=s.resource;episode=s.episode.copy();s.event('SessionEnd')
+    code,result=s.invoke({'operation':'recover'});assert code==0 and result['status']=='cleaned'
+    assert not old.exists();assert result['details']['episode']==episode
+    s.event();assert s.episode['start_event_id']>episode['start_event_id']
+    s.ready();assert s.read()['items'][0]['classification']=='first_read'
+    assert s.resource!=old
 
 
 def test_registry_write_lock_failure(s):
-    s.ready(); before = s.context()
-    writer = sqlite3.connect(s.db)
-    try:
-        writer.execute('BEGIN IMMEDIATE')
-        s.error(s.invoke(s.request()), 'registry_write')
-    finally:
-        writer.rollback(); writer.close()
-    assert s.context() == before
-    assert s.read()['items'][0]['classification'] == 'first_read'
+    s.ready();before=s.metadata()
+    with sqlite3.connect(s.db,timeout=0) as lock:
+        lock.execute('BEGIN IMMEDIATE')
+        s.error(s.invoke(s.request()),'registry_write',key='sample')
+        lock.rollback()
+    assert s.metadata()==before
+    assert s.read()['items'][0]['classification']=='first_read'
 
 
-def test_registry_read_and_connection_failure(s, monkeypatch):
-    s.ready(); before = s.context(); original = sqlite3.connect
-
-    def denied(path, *args, **kwargs):
-        if str(s.db) in str(path) or s.db.as_uri() in str(path):
-            raise sqlite3.OperationalError('fixture connection unavailable')
-        return original(path, *args, **kwargs)
-
+def test_registry_read_and_connection_failure(s,monkeypatch):
+    s.ready();original=sqlite3.connect;before=s.metadata()
+    def fail(database,*args,**kwargs):
+        if str(s.db) in str(database):raise sqlite3.OperationalError('fixture connection unavailable')
+        return original(database,*args,**kwargs)
     with monkeypatch.context() as patch:
-        patch.setattr(sqlite3, 'connect', denied)
-        code, out, err = s.transport(patch, {'operation': 'context'})
-    assert err == ''; s.error((code, json.loads(out)), 'registry_read')
-    assert s.context() == before
+        patch.setattr(sqlite3,'connect',fail);code,out,err=s.transport(patch,{'operation':'context'})
+    assert err=='';s.error((code,strict_json(out)),'registry_read')
+    assert s.metadata()==before
 
 
-def test_writer_failure_preserves_registered_availability(s, monkeypatch):
+def test_writer_failure_preserves_registered_availability(s,monkeypatch):
     s.ready()
-
-    class BrokenSink(io.StringIO):
-        def __init__(self, prefix):
-            super().__init__(); self.prefix = prefix
-
-        def write(self, value):
-            super().write(value[:self.prefix])
-            raise OSError('fixture output failed')
-
-    for prefix in [0, 17]:
-        s.reset('writer-clear-' + str(prefix), operation='clear')
-        sink = BrokenSink(prefix)
-        code, out, err = s.transport(monkeypatch, s.request(), sink=sink)
-        s.error((code, json.loads(err)), 'output_write')
-        assert len(out) == prefix
-        assert s.context()['summary']['cache_entries'] == 1
-        assert s.read()['items'][0]['status'] == 'unchanged'
-        s.reset('writer-recover-' + str(prefix))
-        assert s.read()['items'][0]['status'] == 'content'
+    class Broken(io.StringIO):
+        def write(self,value):raise OSError('fixture sink failed')
+    code,out,err=s.transport(monkeypatch,s.request(),sink=Broken())
+    assert code==1 and out==''
+    error=strict_json(err);assert error['error']['code']=='output_write'
+    assert error['response_path'] is not None and Path(error['response_path']).is_file()
+    s.row(s.read(),text='βeta\nlast',selection='lines:2-3',classification='exact_repeat',status='unchanged')
+    s.advance('after-output-failure')
+    assert s.read()['items'][0]['status']=='content'
 
 
 def test_both_complete_representation_consumers(s):
     s.ready()
-    assert s.read() == s.fill(fixture()['first_response'])
-    s.reset('text-clear', operation='clear')
-    request = s.request()
-    request['reads'].append(dict(request['reads'][0], key='z'))
-    code, out, err = s.raw(request, 'text')
-    assert code == 0 and err == ''
-    frames = text_frames(out)
-    assert len(frames) == 2
-    assert frames[0][1] == 'βeta\nlast'.encode() and frames[1][1] == b''
-    assert frames[0][0]['item']['status'] == 'content'
-    assert frames[1][0]['item']['status'] == 'unchanged'
+    for raw in [b'{"x":1,"x":2}',b'{"x":NaN}']:
+        with pytest.raises(AssertionError):strict_json(raw)
+    for actual,expected in [(True,1),(1.0,1),(0,False),(None,'')]:
+        with pytest.raises(AssertionError):typed_equal(actual,expected)
+    code,out,err=s.raw(s.request(),'text');assert code==0 and err==''
+    frames=text_frames(out);assert len(frames)==1
+    assert frames[0][1]=='βeta\nlast'.encode()
+    assert set(frames[0][0])==TOP_TEXT_KEYS
+    expected = deepcopy(fixture()['first_response']['items'][0]); del expected['content']
+    typed_equal(frames[0][0]['item'], expected)
     assert 'content' not in frames[0][0]['item']
-    s.reset('text-single', operation='clear')
-    code, out, err = s.raw(s.request(), 'text')
-    assert (code, out, err) == (0, s.fill(fixture()['first_text_utf8_template']), '')
-    code, out, err = s.raw(s.request(), 'text')
-    assert (code, out, err) == (0, s.fill(fixture()['repeat_text_utf8_template']), '')
+    code,out,err=s.raw(s.request(),'text');assert code==0 and err==''
+    assert text_frames(out)[0][1]==b''
+    s.advance('multiple-frames');request=s.request();request['reads']=[dict(request['reads'][0],key='z'),dict(request['reads'][0],key='a')]
+    code,out,err=s.raw(request,'text');assert code==0 and err==''
+    frames=text_frames(out);assert [x[0]['item']['key'] for x in frames]==['z','a']
+    assert [x[1] for x in frames]==['βeta\nlast'.encode(),b'']
 
 
-def test_complete_machine_output_and_common_views(s, tmp_path):
+TOP_TEXT_KEYS={'schema','status','operation','project','checkout','policy_sha256','context','item','summary','details','error','response_path'}
+
+
+def test_complete_machine_output_and_common_views(s):
+    s.ready();text=(FIXTURES/'long-body.txt').read_text()
+    assert len(text)>99
+    s.write('docs/sample.txt',text.encode());s.data['complete']['max_bytes']=16384;s.save_policy()
+    code,out,err=s.raw(s.request(complete=True));assert code==0 and err==''
+    result=strict_json(out);typed_equal(result['items'][0]['content'],text)
+    saved=Path(result['response_path']);before=saved.read_bytes()
+    for view in ['brief','expanded','full']:
+        r=subprocess.run([sys.executable,'-B','-m','poise','result-view','--response',str(saved),'--view',view,'--output-chars','1200'],capture_output=True,env=s.env,check=False)
+        assert r.returncode==0 and r.stderr==b'' and len(r.stdout.decode())<=1200
+        v=strict_json(r.stdout);assert v['response_path']==str(saved)
+        assert saved.read_bytes()==before
+        if view=='full':assert text not in r.stdout.decode()
+
+
+def test_functional_metadata_and_clock_owner(s,monkeypatch):
     s.ready()
-    from tests.content_reader.helpers import FIXTURES
-    text = (FIXTURES / 'long-body.txt').read_text(encoding='utf-8')
-    s.write('docs/sample.txt', text.encode())
-    s.data['complete']['max_bytes'] = 16384; s.save_policy()
-    code, out, err = s.raw(s.request(complete=True)); assert code == 0 and err == ''
-    assert json.loads(out)['items'][0]['content'] == text
-    saved = tmp_path / 'reader-response.json'; saved.write_bytes(out.encode())
-    for view in ['brief', 'expanded', 'full']:
-        result = subprocess.run([sys.executable, '-B', '-m', 'poise', 'result-view',
-                                 '--response', str(saved), '--view', view, '--output-chars', '1200'],
-                                capture_output=True, env=s.env, check=False)
-        assert result.returncode == 0 and result.stderr == b''
-        assert len(result.stdout.decode()) <= 1200
-        value = json.loads(result.stdout)
-        assert value['response_path'] == str(saved) and value['status'] == 'ready'
-        assert saved.read_bytes() == out.encode()
-
-
-def test_functional_metadata_and_clock_owner(s, monkeypatch):
-    s.ready()
-    from tests.accounting.test_clock import FakeClock, observation
+    from tests.accounting.test_clock import FakeClock,observation
     class ObservedClock(FakeClock):
-        observations = 0
-
-        def observe(self):
-            self.observations += 1
-            return super().observe()
-
-    clock = ObservedClock([observation('2026-01-01T00:00:00+00:00', n, 'fixture-domain')
-                           for n in range(32)])
-    code, out, err = s.transport(monkeypatch, s.request(), clock=clock)
-    assert code == 0 and err == '' and json.loads(out) == s.fill(fixture()['first_response'])
-    assert clock.observations > 0
-    assert s.context() == s.fill(fixture()['context_after_first'])
-    s.read()
-    assert s.context() == s.fill(fixture()['context_after_repeat'])
-    assert b'\xce\xb2eta' not in s.db.read_bytes(), 'Registry must not retain source bodies'
+        count=0
+        def observe(self):self.count+=1;return super().observe()
+    clock=ObservedClock([observation('2026-01-01T00:00:00+00:00',n,'fixture-domain') for n in range(64)])
+    code,out,err=s.transport(monkeypatch,s.request(),clock=clock)
+    assert code==0 and err=='' and clock.count>0
+    s.row(strict_json(out),text='βeta\nlast',selection='lines:2-3',classification='first_read')
+    s.read();cache,events=s.metadata()
+    assert len(cache)==1 and len(events)==2
+    assert [e[6:8] for e in events]==[('content','first_read'),('unchanged','exact_repeat')]
+    assert [e[-1] for e in events]==[10,0]
+    assert b'\xce\xb2eta' not in s.db.read_bytes()
     assert 'duration' not in canonical(s.context())
 
 
 def test_configuration_unknown_values_remain_raw(s):
-    s.ready()
-    s.data['future_option'] = {'opaque': ['retained', 123]}; s.data['version'] = 'future-opaque'
-    s.save_policy(); before = s.policy.read_bytes()
-    result = s.read()
-    assert result['policy_sha256'] == sha(before)
-    assert s.policy.read_bytes() == before
-    assert json.loads(before)['future_option'] == {'opaque': ['retained', 123]}
-    s.data['bounded']['max_bytes'] = False; s.save_policy()
-    s.error(s.invoke(s.request()), 'invalid_policy')
+    s.ready();s.data['future_option']={'opaque':['retained',123]};s.save_policy();before=s.policy.read_bytes()
+    result=s.read();assert result['policy_sha256']==sha(before) and s.policy.read_bytes()==before
+    s.data['bounded']['max_bytes']=False;s.save_policy()
+    s.error(s.invoke(s.request()),'invalid_policy',field='policy:bounded.max_bytes')
 
 
 def test_taskless_reader_preserves_specialized_owners(s):
-    s.ready()
-    task_db = s.state / s.base['cfg']['paths']['database']
-    before_task = task_db.read_bytes() if task_db.exists() else None
-    checkout = files(s.checkout)
-    foreign = s.state / 'foreign-specialized-receipt.json'
-    foreign.write_bytes(b'foreign immutable specialized receipt')
-    for request in [s.request(), {'operation': 'context'},
-                    fixture()['requests']['reset'], fixture()['requests']['clear']]:
-        assert s.invoke(request)[0] == 0
-    assert (task_db.read_bytes() if task_db.exists() else None) == before_task
-    assert foreign.read_bytes() == b'foreign immutable specialized receipt'
-    assert files(s.checkout) == checkout
+    s.ready();task_db=s.state/s.base['cfg']['paths']['database']
+    with sqlite3.connect(task_db) as db:
+        before_tasks=db.execute('SELECT id,status,stage_index,iteration,claimed_by FROM tasks ORDER BY id').fetchall()
+        before_sprints=db.execute('SELECT id FROM sprints ORDER BY id').fetchall()
+    foreign=s.state/'foreign-specialized-receipt.json';foreign.write_bytes(b'foreign immutable specialized receipt')
+    checkout=files(s.checkout)
+    assert s.read()['items'][0]['status']=='content';s.advance();s.context()
+    with sqlite3.connect(task_db) as db:
+        assert db.execute('SELECT id,status,stage_index,iteration,claimed_by FROM tasks ORDER BY id').fetchall()==before_tasks
+        assert db.execute('SELECT id FROM sprints ORDER BY id').fetchall()==before_sprints
+    assert foreign.read_bytes()==b'foreign immutable specialized receipt' and files(s.checkout)==checkout
+
+
+def test_template_preparation_is_non_overwriting_and_install_owned(s):
+    s.prove();s.template();template=Path(s.data['session']['registry_template']);before=template.read_bytes()
+    s.error(s.invoke({'operation':'prepare_template'}),'template_exists');assert template.read_bytes()==before
+    with sqlite3.connect(template.as_uri()+'?mode=ro',uri=True) as db:
+        assert db.execute('SELECT singleton,schema_version FROM registry_schema').fetchall()==[(1,2)]
+        tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert set(fixture('schema2-shape.json')['tables'])<=tables
+        assert db.execute('SELECT session_id,epoch FROM content_read_cache').fetchall()==[]
+        assert db.execute('SELECT session_id,epoch FROM content_read_events').fetchall()==[]
+    s.active();s.ready();assert s.db.read_bytes()==before
+    template.write_bytes(b'invalid template marker');preserved=template.read_bytes()
+    s.native_identity('fresh-invalid-template');s.event()
+    s.error(s.invoke({'operation':'prepare'}),'template_invalid');assert template.read_bytes()==preserved
+
+
+def test_session_resources_require_exact_owner_and_explicit_adoption(s):
+    s.ready();s.read();before=files(s.resource)
+    code,value=s.invoke({'operation':'adopt'});assert code==0 and value['details']['episode']==s.episode
+    assert s.metadata()[0]
+    owner=list(s.resource.rglob(s.data['session']['ownership_filename']))
+    assert len(owner)==1
+    original=owner[0].read_bytes();owner[0].write_bytes(b'{"foreign":"do not replace"}')
+    snapshot=files(s.resource)
+    for req in [s.request(),{'operation':'prepare'},{'operation':'adopt'}]:
+        result=s.invoke(req);assert result[0]==1
+        assert result[1]['error']['code'] in ['ownership_unknown','episode_mismatch','authority_mismatch']
+        assert files(s.resource)==snapshot
+    owner[0].write_bytes(original)
+    assert s.read()['items'][0]['status']=='unchanged'
+
+
+def test_cleanup_incomplete_preserves_diagnostics_and_recovery(s,monkeypatch):
+    s.ready();s.read();s.event('SessionEnd');old=s.resource
+    original=shutil.rmtree
+    def fail(path,*args,**kwargs):
+        if Path(path)==old:raise PermissionError('fixture removal refused')
+        return original(path,*args,**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(shutil,'rmtree',fail);code,out,err=s.transport(patch,{'operation':'recover'})
+    assert code==1 and err=='';v=strict_json(out);assert v['status']=='incomplete' and old.exists()
+    diagnostic=Path(s.data['session']['diagnostic_file']);assert diagnostic.is_file()
+    assert not diagnostic.is_relative_to(old) and diagnostic.stat().st_size>0
+    assert s.invoke({'operation':'recover'})[1]['status']=='cleaned' and not old.exists()
+    # Diagnostic write after deletion is a separate observable failure boundary.
+    s.event();s.ready();old=s.resource;s.event('SessionEnd');open_original=Path.open
+    def denied(path,*args,**kwargs):
+        mode=args[0] if args else kwargs.get('mode','r')
+        if path==diagnostic and any(c in mode for c in 'wa+'):raise OSError('fixture diagnostic failure')
+        return open_original(path,*args,**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(Path,'open',denied);code,out,err=s.transport(patch,{'operation':'recover'})
+    assert code==1 and not old.exists()
+    assert strict_json(out)['status']=='incomplete'
+    assert s.invoke({'operation':'recover'})[1]['status']=='already_absent'
+
+
+def test_unknown_or_active_native_authority_preserves_owned_tree(s,monkeypatch):
+    s.ready();s.read();before=files(s.resource)
+    code,value=s.invoke({'operation':'recover'});assert code==1 and value['status'] in ['stale','incomplete']
+    assert files(s.resource)==before
+    from poise.infrastructure.hook_transport import HookService
+    def unknown(*args,**kwargs):raise OSError('fixture authority transport unavailable')
+    with monkeypatch.context() as patch:
+        patch.setattr(HookService,'diagnose',unknown);code,out,err=s.transport(patch,{'operation':'recover'})
+    assert code==1 and strict_json(out)['status'] in ['stale','incomplete']
+    assert files(s.resource)==before
+    s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+
+
+def test_native_settings_revision_preserves_valid_binding_context(s):
+    s.ready();s.read();episode=s.episode.copy()
+    settings=s.root/'hook-settings.json';doc=json.loads(settings.read_text());doc['output_chars']+=1
+    settings.write_text(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
+    assert s.read()['items'][0]['status']=='unchanged' and s.context()['context']['native_episode']==episode
+    # An unregistered settings copy is not a benign revision of the selected installation.
+    foreign=s.root/'foreign-hook-settings.json';foreign.write_bytes(settings.read_bytes())
+    s.data['admission']['hook_settings']=str(foreign);s.save_policy()
+    code,value=s.invoke(s.request());assert code==1
+    assert value['error']['code'] in ['admission_unavailable','authority_mismatch']
+
+
+def test_session_end_receipt_is_exact_and_replay_safe(s):
+    s.ready();s.read();old=s.resource;old_episode=s.episode.copy()
+    # Caller-provided receipts cannot authorize deletion.
+    s.error(s.invoke({'operation':'recover','receipt':{'event':'SessionEnd','event_id':999999,'episode':old_episode}}),'invalid_request')
+    assert old.exists();s.event('SessionEnd')
+    assert s.invoke({'operation':'recover'})[1]['status']=='cleaned'
+    assert s.invoke({'operation':'recover'})[1]['status']=='already_absent'
+    s.event();s.ready();s.read();new=s.resource
+    assert new!=old and s.episode['start_event_id']>old_episode['start_event_id']
+    snapshot=files(new)
+    assert s.invoke({'operation':'recover'})[0]==1 and files(new)==snapshot
+
+
+def test_installed_package_reader_template_and_text_consumer(s,tmp_path):
+    s.prove()
+    from tests.content_reader.installed_consumer import verify_installed
+    verify_installed(s,tmp_path)
+
+
+def test_registration_failure_and_saved_output_failure_are_truthful(s,monkeypatch):
+    s.ready();before=s.metadata();connect=sqlite3.connect
+    class FailCommit(sqlite3.Connection):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.mutation_seen = False
+            self.set_trace_callback(self.observe)
+        def observe(self, sql):
+            if sql.lstrip().split(None, 1)[0].upper() in ('INSERT','UPDATE','DELETE','REPLACE'):
+                self.mutation_seen = True
+        def execute(self,sql,parameters=()):
+            if sql.strip().upper().rstrip(';')=='COMMIT' and self.in_transaction and self.mutation_seen:raise sqlite3.OperationalError('fixture commit failure')
+            return super().execute(sql,parameters)
+        def commit(self):
+            if self.in_transaction and self.mutation_seen:raise sqlite3.OperationalError('fixture commit failure')
+            return super().commit()
+        def __exit__(self,kind,value,tb):
+            if kind is None and self.in_transaction and self.mutation_seen:
+                self.rollback();raise sqlite3.OperationalError('fixture commit failure')
+            return super().__exit__(kind,value,tb)
+    def fail(database,*args,**kwargs):
+        if str(s.db) in str(database):kwargs['factory']=FailCommit
+        return connect(database,*args,**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(sqlite3,'connect',fail);code,out,err=s.transport(patch,s.request())
+    assert code==1 and err=='' and strict_json(out)['items'][0]['error']['code']=='registry_write'
+    assert s.metadata()==before
+    from poise.infrastructure.result_views import SavedResponse
+    original = SavedResponse.save
+    def save_failure(saved, result, *, canonical):
+        if saved.path.is_relative_to(s.resource):
+            raise OSError('fixture saved response refused')
+        return original(saved, result, canonical=canonical)
+    with monkeypatch.context() as patch:
+        patch.setattr(SavedResponse, 'save', save_failure)
+        code,out,err=s.transport(patch,s.request())
+    assert code==1
+    value=strict_json(out or err);assert value['status']=='unconfirmed' and value['error']['code']=='result_save_failed'
+    assert len(s.metadata()[0])==1 and len(s.metadata()[1])==1
+    assert s.read()['items'][0]['status']=='unchanged'

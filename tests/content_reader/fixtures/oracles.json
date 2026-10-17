@@ -1,64 +1,4 @@
 {
-  "kind": "independent literal fixture design, not executable tests or observed product output",
-  "encoding": "Fixtures >99 canonical Unicode characters are files. UTF-8 JSON ensure_ascii=False/sort_keys=True/compact separators/one LF; helper fills only explicit path/project/caller/raw-policy-hash tokens. Hash literals below precomputed from literal bytes, never from reader code.",
-  "policy_caller": {
-    "schema": "poise-content-reader-policy-1",
-    "version": "fixture-1",
-    "complete": {
-      "max_bytes": 4096,
-      "max_lines": 200
-    },
-    "bounded": {
-      "max_bytes": 4096,
-      "max_lines": 160
-    },
-    "output": {
-      "max_bytes": 32768,
-      "max_lines": 512
-    },
-    "registry": {
-      "directory": "@HARNESS_STATE@/general-reads",
-      "filename": "reads.sqlite",
-      "lock": "reads.lock",
-      "schema_version": 1
-    },
-    "admission": {
-      "mode": "caller",
-      "hook_settings": null,
-      "agent_id": null
-    }
-  },
-  "policy_native_hook": {
-    "schema": "poise-content-reader-policy-1",
-    "version": "fixture-1",
-    "complete": {
-      "max_bytes": 4096,
-      "max_lines": 200
-    },
-    "bounded": {
-      "max_bytes": 4096,
-      "max_lines": 160
-    },
-    "output": {
-      "max_bytes": 32768,
-      "max_lines": 512
-    },
-    "registry": {
-      "directory": "@HARNESS_STATE@/general-reads",
-      "filename": "reads.sqlite",
-      "lock": "reads.lock",
-      "schema_version": 1
-    },
-    "admission": {
-      "mode": "native_hook",
-      "hook_settings": "@HOOK_SETTINGS@",
-      "agent_id": "primary"
-    }
-  },
-  "generated_binding": {
-    "schema": "poise-caller-binding-1",
-    "caller_id": "reader-fixture-caller"
-  },
   "source_texts": {
     "lf": "alpha\nβeta\nlast",
     "crlf": "alpha\r\nβeta\r\nlast",
@@ -75,37 +15,17 @@
     "changed_range_2_3": "86d34abea1f5fb30a821576d75801d6b7c406ccd028a926cd6dab3b944390dd4",
     "empty": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
-  "requests": {
-    "prepare": {
-      "operation": "prepare"
-    },
-    "read": {
-      "operation": "read",
-      "reads": [
-        {
-          "key": "sample",
-          "path": "docs/sample.txt",
-          "selection": {
-            "kind": "lines",
-            "start": 2,
-            "end": 8
-          }
-        }
-      ]
-    },
-    "context": {
-      "operation": "context"
-    },
-    "reset": {
-      "operation": "reset",
-      "reason": "manual",
-      "event_id": "manual-1"
-    },
-    "clear": {
-      "operation": "clear",
-      "reason": "manual",
-      "event_id": "clear-1"
-    }
+  "large_file_oracle": {
+    "input_builder": "Test-owned2000lines, 1..2000 each fourdigit number+\" literal line \"+samefourdigit+LF. No production builder or reader selection used.",
+    "requested": [
+      100,
+      140
+    ],
+    "expected_range": "lines:100-140",
+    "expected_content": "0100 literal line 0100\n0101 literal line 0101\n0102 literal line 0102\n0103 literal line 0103\n0104 literal line 0104\n0105 literal line 0105\n0106 literal line 0106\n0107 literal line 0107\n0108 literal line 0108\n0109 literal line 0109\n0110 literal line 0110\n0111 literal line 0111\n0112 literal line 0112\n0113 literal line 0113\n0114 literal line 0114\n0115 literal line 0115\n0116 literal line 0116\n0117 literal line 0117\n0118 literal line 0118\n0119 literal line 0119\n0120 literal line 0120\n0121 literal line 0121\n0122 literal line 0122\n0123 literal line 0123\n0124 literal line 0124\n0125 literal line 0125\n0126 literal line 0126\n0127 literal line 0127\n0128 literal line 0128\n0129 literal line 0129\n0130 literal line 0130\n0131 literal line 0131\n0132 literal line 0132\n0133 literal line 0133\n0134 literal line 0134\n0135 literal line 0135\n0136 literal line 0136\n0137 literal line 0137\n0138 literal line 0138\n0139 literal line 0139\n0140 literal line 0140\n",
+    "expected_lines": 41,
+    "expected_bytes": 943,
+    "expected_hash": "e45048129a1125a695555d2f5ca5453dac7789b3855ddde2af759f1285bee2f9"
   },
   "first_response": {
     "schema": "poise-content-read-result-1",
@@ -117,8 +37,14 @@
     "context": {
       "caller_key": "@CALLER_KEY@",
       "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
+      "admission_mode": "native_hook",
+      "native_episode": {
+        "project_id": "@PROJECT@",
+        "session_id": "@NATIVE_SESSION@",
+        "binding_id": "@BINDING_ID@",
+        "start_event_id": "@START_EVENT_ID@"
+      },
+      "checkout_key": "@CHECKOUT_KEY@"
     },
     "items": [
       {
@@ -137,881 +63,383 @@
         "content_follows": true,
         "content": "βeta\nlast"
       }
-    ]
-  },
-  "repeat_response": {
-    "schema": "poise-content-read-result-1",
-    "status": "ready",
-    "operation": "read",
-    "project": "@PROJECT@",
-    "checkout": "@CHECKOUT@",
-    "policy_sha256": "@POLICY_SHA256@",
-    "context": {
-      "caller_key": "@CALLER_KEY@",
-      "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
-    },
-    "items": [
-      {
-        "schema_version": 1,
-        "key": "sample",
-        "status": "unchanged",
-        "classification": "exact_repeat",
-        "path": "docs/sample.txt",
-        "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-        "range": "lines:2-3",
-        "reader_kind": "repository-content-read",
-        "context_generation": 0,
-        "previous_read_available": true,
-        "content_bytes": 10,
-        "content_lines": 2,
-        "content_follows": false
-      }
-    ]
-  },
-  "prepare_response": {
-    "schema": "poise-content-read-result-1",
-    "status": "ready",
-    "operation": "prepare",
-    "project": "@PROJECT@",
-    "checkout": "@CHECKOUT@",
-    "policy_sha256": "@POLICY_SHA256@",
-    "context": {
-      "caller_key": "@CALLER_KEY@",
-      "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
-    },
-    "summary": {
-      "cache_entries": 0,
-      "event_count": 0,
-      "content_read_events": []
-    }
-  },
-  "context_before": {
-    "schema": "poise-content-read-result-1",
-    "status": "ready",
-    "operation": "context",
-    "project": "@PROJECT@",
-    "checkout": "@CHECKOUT@",
-    "policy_sha256": "@POLICY_SHA256@",
-    "context": {
-      "caller_key": "@CALLER_KEY@",
-      "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
-    },
-    "summary": {
-      "cache_entries": 0,
-      "event_count": 0,
-      "content_read_events": []
-    }
-  },
-  "context_after_first": {
-    "schema": "poise-content-read-result-1",
-    "status": "ready",
-    "operation": "context",
-    "project": "@PROJECT@",
-    "checkout": "@CHECKOUT@",
-    "policy_sha256": "@POLICY_SHA256@",
-    "context": {
-      "caller_key": "@CALLER_KEY@",
-      "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
-    },
+    ],
     "summary": {
       "cache_entries": 1,
       "event_count": 1,
-      "content_read_events": [
+      "content_events": 1,
+      "unchanged_events": 0,
+      "model_content_bytes": 10,
+      "avoided_bytes": 0
+    },
+    "details": null,
+    "error": null,
+    "response_path": "@SAVED_RESPONSE_PATH@"
+  },
+  "generated_binding": {
+    "schema": "poise-caller-binding-1",
+    "caller_id": "reader-fixture-caller"
+  },
+  "requests": {
+    "read": {
+      "operation": "read",
+      "reads": [
         {
-          "status": "content",
-          "classification": "first_read",
-          "count": 1,
-          "content_bytes": 10,
-          "model_content_bytes": 10
+          "key": "sample",
+          "path": "docs/sample.txt",
+          "selection": {
+            "kind": "lines",
+            "start": 2,
+            "end": 8
+          }
         }
       ]
+    },
+    "context": {
+      "operation": "context"
+    },
+    "prepare_template": {
+      "operation": "prepare_template"
+    },
+    "prepare": {
+      "operation": "prepare"
+    },
+    "advance": {
+      "operation": "advance_context",
+      "request_id": "context-1",
+      "reason": "manual"
+    },
+    "recover": {
+      "operation": "recover"
+    },
+    "adopt": {
+      "operation": "adopt"
     }
   },
-  "context_after_repeat": {
-    "schema": "poise-content-read-result-1",
-    "status": "ready",
-    "operation": "context",
-    "project": "@PROJECT@",
-    "checkout": "@CHECKOUT@",
-    "policy_sha256": "@POLICY_SHA256@",
-    "context": {
-      "caller_key": "@CALLER_KEY@",
-      "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
-    },
-    "summary": {
-      "cache_entries": 1,
-      "event_count": 2,
-      "content_read_events": [
-        {
-          "status": "content",
-          "classification": "first_read",
-          "count": 1,
-          "content_bytes": 10,
-          "model_content_bytes": 10
-        },
-        {
-          "status": "unchanged",
-          "classification": "exact_repeat",
-          "count": 1,
-          "content_bytes": 10,
-          "model_content_bytes": 0
-        }
-      ]
-    }
-  },
-  "first_text_utf8_template": "{\"checkout\":\"@CHECKOUT@\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"@CALLER_KEY@\",\"generation\":0,\"native_episode\":null},\"item\":{\"classification\":\"first_read\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":0,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"},\"operation\":\"read\",\"policy_sha256\":\"@POLICY_SHA256@\",\"project\":\"@PROJECT@\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\nβeta\nlast",
-  "repeat_text_utf8_template": "{\"checkout\":\"@CHECKOUT@\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"@CALLER_KEY@\",\"generation\":0,\"native_episode\":null},\"item\":{\"classification\":\"exact_repeat\",\"content_bytes\":10,\"content_follows\":false,\"content_lines\":2,\"context_generation\":0,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":true,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"unchanged\"},\"operation\":\"read\",\"policy_sha256\":\"@POLICY_SHA256@\",\"project\":\"@PROJECT@\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\n",
-  "full_preflight_response": {
-    "schema": "poise-content-read-result-1",
-    "status": "ready",
-    "operation": "read",
-    "project": "@PROJECT@",
-    "checkout": "@CHECKOUT@",
-    "policy_sha256": "@POLICY_SHA256@",
-    "context": {
-      "caller_key": "@CALLER_KEY@",
-      "generation": 0,
-      "admission_mode": "caller",
-      "native_episode": null
-    },
-    "items": [
-      {
-        "schema_version": 1,
-        "key": "sample",
-        "status": "content",
-        "classification": "new_context_generation",
-        "path": "docs/sample.txt",
-        "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-        "range": "lines:2-3",
-        "reader_kind": "repository-content-read",
-        "context_generation": 0,
-        "previous_read_available": false,
-        "content_bytes": 10,
-        "content_lines": 2,
-        "content_follows": true,
-        "content": "βeta\nlast"
-      }
-    ]
-  },
-  "full_preflight_json_utf8_template": "{\"checkout\":\"@CHECKOUT@\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"@CALLER_KEY@\",\"generation\":0,\"native_episode\":null},\"items\":[{\"classification\":\"new_context_generation\",\"content\":\"βeta\\nlast\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":0,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"}],\"operation\":\"read\",\"policy_sha256\":\"@POLICY_SHA256@\",\"project\":\"@PROJECT@\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\n",
-  "full_preflight_text_utf8_template": "{\"checkout\":\"@CHECKOUT@\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"@CALLER_KEY@\",\"generation\":0,\"native_episode\":null},\"item\":{\"classification\":\"new_context_generation\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":0,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"},\"operation\":\"read\",\"policy_sha256\":\"@POLICY_SHA256@\",\"project\":\"@PROJECT@\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\nβeta\nlast",
-  "independence": "Byte/line-limit boundaries are set from these frozen expected serialized templates AFTER token fill using test-owned encoding; never from actual product stdout or serializer. Literal selected hashes and full first/repeat/control envelopes checked exactly. Other states are literal state-sequence rows below; all field shapes/values exact, not status-only assertions.",
-  "state_sequences": [
+  "errors": [
     {
-      "name": "selected changes and ranges",
-      "steps": [
-        {
-          "read": "lines:2-3",
-          "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-          "generation": 0,
-          "status": "content",
-          "classification": "first_read"
-        },
-        {
-          "read": "lines:1-1",
-          "hash": "b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060",
-          "generation": 0,
-          "status": "content",
-          "classification": "new_range"
-        },
-        {
-          "read": "lines:2-3",
-          "hash": "86d34abea1f5fb30a821576d75801d6b7c406ccd028a926cd6dab3b944390dd4",
-          "generation": 0,
-          "status": "content",
-          "classification": "content_changed"
-        },
-        {
-          "read": "lines:2-3",
-          "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-          "generation": 0,
-          "status": "unchanged",
-          "classification": "exact_repeat"
-        }
-      ]
+      "code": "invalid_request",
+      "single_failure_exit": 2,
+      "field": "request",
+      "message": "Неверная структура пакета.",
+      "action": "Передайте поддержанный пакет без лишних или повторных полей."
     },
     {
-      "name": "fresh context preserves last registered same-range identity",
-      "steps": [
-        {
-          "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-          "generation": 0,
-          "status": "content",
-          "classification": "first_read"
-        },
-        {
-          "hash": "86d34abea1f5fb30a821576d75801d6b7c406ccd028a926cd6dab3b944390dd4",
-          "generation": 0,
-          "status": "content",
-          "classification": "content_changed"
-        },
-        {
-          "reset": "manual-1",
-          "generation": 1
-        },
-        {
-          "hash": "86d34abea1f5fb30a821576d75801d6b7c406ccd028a926cd6dab3b944390dd4",
-          "generation": 1,
-          "status": "content",
-          "classification": "new_context_generation"
-        },
-        {
-          "hash": "86d34abea1f5fb30a821576d75801d6b7c406ccd028a926cd6dab3b944390dd4",
-          "generation": 1,
-          "status": "unchanged",
-          "classification": "exact_repeat"
-        },
-        {
-          "reset": "manual-2",
-          "generation": 2
-        },
-        {
-          "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-          "generation": 2,
-          "status": "content",
-          "classification": "content_changed"
-        }
-      ]
+      "code": "invalid_selection",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Неверные границы чтения.",
+      "action": "Укажите полный режим либо включительный положительный диапазон."
+    },
+    {
+      "code": "invalid_path",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Неверный путь файла.",
+      "action": "Укажите непустой путь обычного файла выбранной копии."
+    },
+    {
+      "code": "path_outside_project",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Путь находится вне выбранной рабочей копии.",
+      "action": "Выберите файл внутри зарегистрированного checkout."
+    },
+    {
+      "code": "invalid_caller",
+      "single_failure_exit": 2,
+      "field": "caller",
+      "message": "Не подтверждён подлинный вызывающий.",
+      "action": "Используйте действительную native identity либо явный допустимый binding."
+    },
+    {
+      "code": "invalid_project",
+      "single_failure_exit": 2,
+      "field": "config",
+      "message": "Не удалось выбрать проект.",
+      "action": "Укажите действительный manifest проекта."
+    },
+    {
+      "code": "project_binding",
+      "single_failure_exit": 2,
+      "field": "checkout",
+      "message": "Рабочая копия не принадлежит выбранному проекту.",
+      "action": "Выберите зарегистрированный checkout этого репозитория."
+    },
+    {
+      "code": "policy_missing",
+      "single_failure_exit": 3,
+      "field": "policy",
+      "message": "Нужная политика отсутствует.",
+      "action": "Подготовьте и явно выберите рабочую политику."
+    },
+    {
+      "code": "invalid_policy",
+      "single_failure_exit": 2,
+      "field": "policy:@FIELD@",
+      "message": "Обязательное известное значение политики недопустимо.",
+      "action": "Исправьте указанное поле политики и повторите допустимую операцию."
+    },
+    {
+      "code": "source_missing",
+      "single_failure_exit": 3,
+      "field": "reads:@KEY@:path",
+      "message": "Файл отсутствует.",
+      "action": "Восстановите файл или выберите доступный путь."
+    },
+    {
+      "code": "source_unreadable",
+      "single_failure_exit": 3,
+      "field": "reads:@KEY@:path",
+      "message": "Файл недоступен для чтения.",
+      "action": "Восстановите доступ к файлу и повторите этот элемент."
+    },
+    {
+      "code": "source_not_file",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Путь не является обычным файлом.",
+      "action": "Выберите обычный UTF-8 файл."
+    },
+    {
+      "code": "source_not_utf8",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Выбранный файл не является допустимым UTF-8 текстом.",
+      "action": "Выберите поддержанный текстовый файл."
+    },
+    {
+      "code": "range_after_eof",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Начало диапазона находится после конца файла.",
+      "action": "Выберите существующие строки файла."
+    },
+    {
+      "code": "complete_limit",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Полное чтение превышает настроенный предел.",
+      "action": "Запросите допустимый диапазон строк."
+    },
+    {
+      "code": "bounded_limit",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Диапазон превышает настроенный предел.",
+      "action": "Уменьшите выбранный диапазон."
+    },
+    {
+      "code": "output_limit",
+      "single_failure_exit": 2,
+      "field": "output",
+      "message": "Полное представление превышает настроенный предел.",
+      "action": "Уменьшите диапазон или число выбранных элементов."
+    },
+    {
+      "code": "template_missing",
+      "single_failure_exit": 3,
+      "field": "session.registry_template",
+      "message": "Подготовленный шаблон отсутствует.",
+      "action": "Подготовьте пустой шаблон публичной операцией prepare_template."
+    },
+    {
+      "code": "template_invalid",
+      "single_failure_exit": 3,
+      "field": "session.registry_template",
+      "message": "Подготовленный шаблон не соответствует схеме.",
+      "action": "Сохраните текущий файл и подготовьте шаблон по новому свободному адресу."
+    },
+    {
+      "code": "template_exists",
+      "single_failure_exit": 2,
+      "field": "session.registry_template",
+      "message": "Адрес шаблона уже занят.",
+      "action": "Выберите новый свободный адрес; существующий файл не заменяется."
+    },
+    {
+      "code": "template_publication_unconfirmed",
+      "single_failure_exit": 1,
+      "field": "session.registry_template",
+      "message": "Долговечность публикации шаблона не подтверждена.",
+      "action": "Сохраните текущие bytes и подготовьте новый шаблон по свободному адресу."
+    },
+    {
+      "code": "registry_missing",
+      "single_failure_exit": 3,
+      "field": "registry",
+      "message": "Принадлежащий контексту реестр отсутствует.",
+      "action": "Подготовьте ресурсы активного эпизода через их владельца."
+    },
+    {
+      "code": "registry_schema",
+      "single_failure_exit": 3,
+      "field": "registry",
+      "message": "Версия подготовленного реестра не поддержана.",
+      "action": "Сохраните реестр и восстановите его через подготовленный совместимый шаблон."
+    },
+    {
+      "code": "registry_invalid",
+      "single_failure_exit": 3,
+      "field": "registry",
+      "message": "Подготовленный реестр повреждён либо имеет неверное устройство.",
+      "action": "Сохраните данные и восстановите ресурс через его владельца."
+    },
+    {
+      "code": "registry_read",
+      "single_failure_exit": 1,
+      "field": "registry",
+      "message": "Не удалось прочитать реестр.",
+      "action": "Восстановите доступ и повторите допустимую операцию."
+    },
+    {
+      "code": "registry_write",
+      "single_failure_exit": 1,
+      "field": "registry",
+      "message": "Не удалось зарегистрировать чтение.",
+      "action": "Прочитайте сохранённый исход и восстановите доступ перед повтором."
+    },
+    {
+      "code": "admission_unavailable",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Native authority недоступна.",
+      "action": "Восстановите выбранную native конфигурацию и повторите наблюдение."
+    },
+    {
+      "code": "admission_dead",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Native authority подтверждает окончание эпизода.",
+      "action": "Завершите восстановление его временных ресурсов через recover."
+    },
+    {
+      "code": "admission_uncertain",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Активный native эпизод не подтверждён.",
+      "action": "Сохраните данные и подтвердите действительную сессию."
+    },
+    {
+      "code": "authority_mismatch",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Выбрана другая native authority.",
+      "action": "Верните конфигурацию действительного владельца ресурса."
+    },
+    {
+      "code": "episode_mismatch",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Наблюдаемый эпизод отличается от владельца ресурса.",
+      "action": "Продолжите восстановление через действительного владельца эпизода."
+    },
+    {
+      "code": "ownership_unknown",
+      "single_failure_exit": 1,
+      "field": "session",
+      "message": "Владение существующим каталогом не подтверждено.",
+      "action": "Сохраните каталог; используйте допустимое явное принятие либо восстановление владельцем."
+    },
+    {
+      "code": "event_conflict",
+      "single_failure_exit": 2,
+      "field": "request_id",
+      "message": "Идентичность доменного перехода уже использована с другим смыслом.",
+      "action": "Прочитайте первоначальный исход или задайте другую действительную операцию."
+    },
+    {
+      "code": "context_missing",
+      "single_failure_exit": 3,
+      "field": "context",
+      "message": "Подготовленный контекст отсутствует.",
+      "action": "Подготовьте ресурсы подтверждённого активного эпизода."
+    },
+    {
+      "code": "context_changed",
+      "single_failure_exit": 1,
+      "field": "context",
+      "message": "Контекст изменился до завершения допустимой операции.",
+      "action": "Прочитайте актуальный контекст и сохранённые результаты элементов."
+    },
+    {
+      "code": "output_write",
+      "single_failure_exit": 1,
+      "field": "output",
+      "message": "Не удалось полностью записать поток результата.",
+      "action": "Прочитайте доступный сохранённый полный результат; регистрация не доказывает доставку."
+    },
+    {
+      "code": "result_save_failed",
+      "single_failure_exit": 1,
+      "field": "response_path",
+      "message": "Полный результат не удалось подтвердить в хранилище.",
+      "action": "Восстановите доступ и прочитайте известные сохранённые материалы без выдуманного успеха."
+    },
+    {
+      "code": "cleanup_incomplete",
+      "single_failure_exit": 1,
+      "field": "session",
+      "message": "Очистка завершённого эпизода не закончена.",
+      "action": "Прочитайте сохранённую причину и повторите допустимый recover."
+    },
+    {
+      "code": "adoption_unconfirmed",
+      "single_failure_exit": 1,
+      "field": "session",
+      "message": "Принятие существующего ресурса не подтверждено.",
+      "action": "Сохраните его и проверьте действительного владельца."
+    },
+    {
+      "code": "lock_resources_conflict",
+      "single_failure_exit": 2,
+      "field": "policy:session",
+      "message": "Временные данные и управляющие ресурсы имеют несовместимое размещение.",
+      "action": "Разделите удаляемый subtree, координацию и постоянную диагностику."
     }
   ],
-  "effects": {
-    "prepare": "Explicit only: initialize missing owned general registry schema1/current scope generation0. Idempotent for same prepared caller/profile/nativeepisode. When actual native episode or explicit admission profile changes, ordinary read/context/reset/clear refuses context_episode_changed/context_profile_changed; explicit prepare acknowledges the new observed episode/profile and clears ONLY this caller+checkout old-episode cache/events/availability, generation0. Other scopes/data untouched, no archival retention. Native begin/end/identity remain actual hook owner; no fake event or implicit read reset. Foreign/wrong/corrupt existing store refused unchanged.",
-    "read": "Source filesystem I/O and decoding/selection occur before acquiring registry guard. Any earlier generation/budget observation is advisory only. After native hook guard where applicable, acquire the same existing general-registry lock used by reset/clear and begin its short transaction. Under this single serialization boundary read final prepared profile/episode/generation, construct the complete FULLCONTENT candidate for that generation, serialize/count chosen representation, and reject over budget BEFORE any read cache/event write. Classify/register the batch and materialize final response from the SAME generation while retaining the guard, then commit and release. Stdout write and source I/O stay outside guards. Reset either completes before that final snapshot (read budgets/registers new generation) or waits until read commits (read returns coherent old generation); no mid-snapshot reset. No new lease/request token/acknowledgement; existing general registry owner provides serialization. All input/source validation failures and final output-limit denial add no read cache/event. Writer follows successful COMMIT as ERP.",
-    "reset": "Current project+checkout+caller only; increment current generation once for new event_id, preserve minimum active-episode cache/history needed for classification and statistical facts. Replaying latest identical reset event/reason is idempotent; same event_id/different action or reason is event_conflict. No SessionEnd fabrication or other-scope mutation. Native profile requires the SAME already-prepared observed episode; differentepisode requires explicitprepare first. Every native mutation capturesinitialepisode and finalguard comparesit; lock orderhook->general. Callerprofile cannot silently reuse a context preparedfornativeprofile without explicitprepare. Event replay guarantee is ONLY the latest action of the active preparedscope: same last event_id/operation/reason/profile/episode is idempotent; conflictingreuse of thatlatestID refuses. No indefinite historical ID registry is introduced. Explicit prepare for new observedepisode/profile retires the oldscope action/cache/event data and initializesgeneration0; oldscope IDs are not cross-context identities. Explicit clear retains its ownlatestclear identity so exactreplay remainsidempotent.",
-    "clear": "Current project+checkout+caller only; clear reader cache/events/availability, generation0; preserve last clear event identity to make exact replay idempotent. Other scopes and all foreign files untouched. No implicit clear on ordinary read refusal. Same-profile/same-nativeepisode checked; actual scope cannot be selected by payload. Eventreplay identity includesoperation/reason/currentpreparedprofile+episode. No automaticold-episodeclear onreadfallback. Event replay guarantee is ONLY the latest action of the active preparedscope: same last event_id/operation/reason/profile/episode is idempotent; conflictingreuse of thatlatestID refuses. No indefinite historical ID registry is introduced. Explicit prepare for new observedepisode/profile retires the oldscope action/cache/event data and initializesgeneration0; oldscope IDs are not cross-context identities. Explicit clear retains its ownlatestclear identity so exactreplay remainsidempotent.",
-    "context": "Read-only current-scope summary and generation, no implicit DB/context creation; cache_entries is active episode total as source snapshot, event aggregates status/classification sorted and total count. Empty/absent current scope requires explicit prepare. Returns context caller_key/generation/admission_mode/native_episode (null for caller mode). Requires explicitprepare on profile/episode mismatch; publicsummary remains readonly.",
-    "writer_failure": "Actual sink OSError/BrokenPipeError after registration returns1; stderr has exact typed output_write diagnostic, stdout may be partial. Committed cache/events remain and next equal read may be unchanged. Smallest recovery: inspect actual captured exit/stdout/stderr; explicit scoped reset with new manual event then reread returns content. No ack/delivery-proof/pending states or claim model received text. Return1 is the controlled publicPython sink-failure result. RealCLI broken pipe/final-buffer failure is recorded by the actual runner terminal status/fullstderr; do not fabricate a fixed1/completecapture when Python actually reports another nonzero status. This plan tests the genuine public output port with standardOSError sink, not a fake successful CLI capture.",
-    "prepared_lock": "Ordinary read/context/reset/clear requires already prepared ownedregistryDB andownlock; missinggeneralstore/lock is registry_missing, nevercreatedimplicitly. Explicitprepare maypublish/recoveronlyitsvalidatedownedlock aftercheckingcompatibleproject-specificregistryheader; foreign/wrongschema untouched. Nativehook lock isALWAYS existingonly andnevercreatedbyreader."
-  },
-  "caller_key_literals": {
-    "demo": {
-      "native": "50391fa5aef1a84d7ff2febb9e3ce93638894df89f8b32341e82adadef872cf7",
-      "generated": "2ad538bbbfb3e72d45d23f8176fa6bc35e7c38abfb47b8d6e8957867a7ab4b5a"
+  "policy": {
+    "schema": "poise-content-reader-policy-1",
+    "version": "fixture-2",
+    "complete": {
+      "max_bytes": 4096,
+      "max_lines": 200
     },
-    "beta": {
-      "native": "68eb693e63d098c05d7fa791be04e0b25e41ef367f56bee8a4bdaf088f7074e1",
-      "generated": "c005ee3ed3ab521354daa788819070627cc0d7b8a6611d93149da260bde74ed8"
+    "bounded": {
+      "max_bytes": 4096,
+      "max_lines": 160
+    },
+    "output": {
+      "max_bytes": 32768,
+      "max_lines": 512
+    },
+    "registry": {
+      "filename": "reads.sqlite",
+      "schema_version": 2,
+      "busy_timeout_ms": 40
+    },
+    "session": {
+      "temporary_root": "@ROOT@/reader-tmp",
+      "coordination_root": "@ROOT@/reader-control",
+      "diagnostic_file": "@ROOT@/reader-diagnostics.jsonl",
+      "registry_template": "@ROOT@/reader-template.sqlite",
+      "registry_directory": "registry",
+      "response_directory": "responses",
+      "ownership_filename": "ownership.json"
+    },
+    "admission": {
+      "hook_settings": "@ROOT@/hook-settings.json",
+      "definition_path": "@ROOT@/definition-pending.json"
+    },
+    "coordination": {
+      "wait_seconds": 0.15,
+      "poll_seconds": 0.01,
+      "recovery_budget_seconds": 0.3,
+      "host_event_budget_seconds": 0.3,
+      "end_observation_poll_seconds": 0.01
+    },
+    "storage": {
+      "control_response_root": "@ROOT@/reader-control-responses"
     }
-  },
-  "typed_tokens": "Exact-string fixturetokens may resolve to external-owner returned integer event IDs. @EPISODE_A@/@EPISODE_B@ come from genuine isolated HookRegistry writer/fixture observations, NOT the new reader output. Ordinary string/path tokens remain strings; selected hashes literal. No subject output generates expectations.",
-  "native_episode_cases": [
-    {
-      "events": [
-        "SessionStart:A"
-      ],
-      "initial_episode": "@EPISODE_A@",
-      "final_episode": "@EPISODE_A@",
-      "owner_state": "LIVE",
-      "read_exit": 0,
-      "registry_effect": "one admitted cache/event"
-    },
-    {
-      "events": [
-        "SessionStart:A",
-        "SessionEnd",
-        "Stop"
-      ],
-      "initial_episode": "@EPISODE_A@",
-      "owner_state": "DEAD",
-      "read_exit": 3,
-      "error": "admission_dead",
-      "registry_effect": "none; lateStopdoesnotreopenepisode"
-    },
-    {
-      "events": [
-        "SessionStart:A",
-        "SessionEnd",
-        "tool event"
-      ],
-      "initial_episode": "@EPISODE_A@",
-      "owner_state": "DEAD",
-      "read_exit": 3,
-      "error": "admission_dead",
-      "registry_effect": "none"
-    },
-    {
-      "events": [
-        "Stop"
-      ],
-      "owner_state": "UNCERTAIN",
-      "read_exit": 3,
-      "error": "admission_uncertain",
-      "registry_effect": "none"
-    },
-    {
-      "events": [
-        "SessionStart:A",
-        "READ_SOURCE",
-        "SessionEnd"
-      ],
-      "initial_episode": "@EPISODE_A@",
-      "owner_state": "DEAD",
-      "read_exit": 3,
-      "error": "admission_dead",
-      "registry_effect": "no new cache/event"
-    },
-    {
-      "events": [
-        "SessionStart:A",
-        "READ_SOURCE",
-        "SessionEnd",
-        "SessionStart:B"
-      ],
-      "initial_episode": "@EPISODE_A@",
-      "final_episode": "@EPISODE_B@",
-      "owner_state": "LIVE differentepisode",
-      "read_exit": 3,
-      "error": "context_episode_changed",
-      "registry_effect": "none; prepared request never crosses into B"
-    },
-    {
-      "events": [
-        "SessionStart:A",
-        "SessionEnd",
-        "SessionStart:B",
-        "new read request without prepare"
-      ],
-      "initial_episode": "@EPISODE_B@",
-      "stored_episode": "@EPISODE_A@",
-      "read_exit": 3,
-      "error": "context_episode_changed",
-      "registry_effect": "none"
-    },
-    {
-      "events": [
-        "SessionStart:A",
-        "SessionEnd",
-        "SessionStart:B",
-        "explicit prepare B",
-        "new read request"
-      ],
-      "initial_episode": "@EPISODE_B@",
-      "stored_episode": "@EPISODE_B@",
-      "generation": 0,
-      "read_exit": 0,
-      "classification": "first_read",
-      "registry_effect": "prepare resetsONLYcurrentcaller+checkout oldepisode functionalcache/events thenreadaddsfirst; othercaller/projectunchanged"
-    }
-  ],
-  "error_envelopes": {
-    "invalid_request": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "invalid_request",
-          "key": null,
-          "field": "request",
-          "action": "provide:request"
-        }
-      }
-    },
-    "invalid_selection": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "invalid_selection",
-          "key": "sample",
-          "field": "reads:sample:selection",
-          "action": "provide:selection"
-        }
-      }
-    },
-    "invalid_path": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "invalid_path",
-          "key": "sample",
-          "field": "reads:sample:path",
-          "action": "provide:path"
-        }
-      }
-    },
-    "path_outside_project": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "path_outside_project",
-          "key": "sample",
-          "field": "reads:sample:path",
-          "action": "select:project_path"
-        }
-      }
-    },
-    "invalid_caller": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "invalid_caller",
-          "key": null,
-          "field": "caller",
-          "action": "provide:caller"
-        }
-      }
-    },
-    "invalid_project": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "invalid_project",
-          "key": null,
-          "field": "config",
-          "action": "provide:config"
-        }
-      }
-    },
-    "project_binding": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "project_binding",
-          "key": null,
-          "field": "checkout",
-          "action": "select:checkout"
-        }
-      }
-    },
-    "policy_missing": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "policy_missing",
-          "key": null,
-          "field": "policy",
-          "action": "provide:policy"
-        }
-      }
-    },
-    "invalid_policy": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "invalid_policy",
-          "key": null,
-          "field": "policy",
-          "action": "correct:policy"
-        }
-      }
-    },
-    "source_missing": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "source_missing",
-          "key": "sample",
-          "field": "reads:sample:path",
-          "action": "restore:source"
-        }
-      }
-    },
-    "source_unreadable": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "source_unreadable",
-          "key": "sample",
-          "field": "reads:sample:path",
-          "action": "restore:source_access"
-        }
-      }
-    },
-    "source_not_file": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "source_not_file",
-          "key": "sample",
-          "field": "reads:sample:path",
-          "action": "select:regular_file"
-        }
-      }
-    },
-    "source_not_utf8": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "source_not_utf8",
-          "key": "sample",
-          "field": "reads:sample:path",
-          "action": "select:utf8_source"
-        }
-      }
-    },
-    "range_after_eof": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "range_after_eof",
-          "key": "sample",
-          "field": "reads:sample:selection",
-          "action": "select:range"
-        }
-      }
-    },
-    "complete_limit": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "complete_limit",
-          "key": "sample",
-          "field": "reads:sample:selection",
-          "action": "select:range"
-        }
-      }
-    },
-    "bounded_limit": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "bounded_limit",
-          "key": "sample",
-          "field": "reads:sample:selection",
-          "action": "select:smaller_range"
-        }
-      }
-    },
-    "output_limit": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "output_limit",
-          "key": null,
-          "field": "output",
-          "action": "select:smaller_output"
-        }
-      }
-    },
-    "registry_missing": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "registry_missing",
-          "key": null,
-          "field": "registry",
-          "action": "prepare:registry"
-        }
-      }
-    },
-    "registry_schema": {
-      "exit": 1,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "failed",
-        "error": {
-          "code": "registry_schema",
-          "key": null,
-          "field": "registry",
-          "action": "inspect:registry"
-        }
-      }
-    },
-    "registry_invalid": {
-      "exit": 1,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "failed",
-        "error": {
-          "code": "registry_invalid",
-          "key": null,
-          "field": "registry",
-          "action": "inspect:registry"
-        }
-      }
-    },
-    "registry_read": {
-      "exit": 1,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "failed",
-        "error": {
-          "code": "registry_read",
-          "key": null,
-          "field": "registry",
-          "action": "inspect:registry"
-        }
-      }
-    },
-    "registry_write": {
-      "exit": 1,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "failed",
-        "error": {
-          "code": "registry_write",
-          "key": null,
-          "field": "registry",
-          "action": "retry:read"
-        }
-      }
-    },
-    "admission_unavailable": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "admission_unavailable",
-          "key": null,
-          "field": "admission",
-          "action": "observe:caller_admission"
-        }
-      }
-    },
-    "admission_dead": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "admission_dead",
-          "key": null,
-          "field": "admission",
-          "action": "observe:native_session"
-        }
-      }
-    },
-    "admission_uncertain": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "admission_uncertain",
-          "key": null,
-          "field": "admission",
-          "action": "observe:native_session"
-        }
-      }
-    },
-    "event_conflict": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "event_conflict",
-          "key": null,
-          "field": "event_id",
-          "action": "provide:new_event"
-        }
-      }
-    },
-    "context_missing": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "context_missing",
-          "key": null,
-          "field": "context",
-          "action": "prepare:registry"
-        }
-      }
-    },
-    "output_write": {
-      "exit": 1,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "failed",
-        "error": {
-          "code": "output_write",
-          "key": null,
-          "field": "output",
-          "action": "inspect:output_then_reset_context"
-        }
-      }
-    },
-    "context_episode_changed": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "context_episode_changed",
-          "key": null,
-          "field": "context",
-          "action": "prepare:registry"
-        }
-      }
-    },
-    "context_profile_changed": {
-      "exit": 3,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "context_profile_changed",
-          "key": null,
-          "field": "context",
-          "action": "prepare:registry"
-        }
-      }
-    },
-    "lock_resources_conflict": {
-      "exit": 2,
-      "response": {
-        "schema": "poise-content-read-result-1",
-        "status": "rejected",
-        "error": {
-          "code": "lock_resources_conflict",
-          "key": null,
-          "field": "policy:registry",
-          "action": "correct:lock_resources"
-        }
-      }
-    }
-  },
-  "large_file_oracle": {
-    "input_builder": "Test-owned2000lines, 1..2000 each fourdigit number+\" literal line \"+samefourdigit+LF. No production builder or reader selection used.",
-    "requested": [
-      100,
-      140
-    ],
-    "expected_range": "lines:100-140",
-    "expected_content": "0100 literal line 0100\n0101 literal line 0101\n0102 literal line 0102\n0103 literal line 0103\n0104 literal line 0104\n0105 literal line 0105\n0106 literal line 0106\n0107 literal line 0107\n0108 literal line 0108\n0109 literal line 0109\n0110 literal line 0110\n0111 literal line 0111\n0112 literal line 0112\n0113 literal line 0113\n0114 literal line 0114\n0115 literal line 0115\n0116 literal line 0116\n0117 literal line 0117\n0118 literal line 0118\n0119 literal line 0119\n0120 literal line 0120\n0121 literal line 0121\n0122 literal line 0122\n0123 literal line 0123\n0124 literal line 0124\n0125 literal line 0125\n0126 literal line 0126\n0127 literal line 0127\n0128 literal line 0128\n0129 literal line 0129\n0130 literal line 0130\n0131 literal line 0131\n0132 literal line 0132\n0133 literal line 0133\n0134 literal line 0134\n0135 literal line 0135\n0136 literal line 0136\n0137 literal line 0137\n0138 literal line 0138\n0139 literal line 0139\n0140 literal line 0140\n",
-    "expected_lines": 41,
-    "expected_bytes": 943,
-    "expected_hash": "e45048129a1125a695555d2f5ca5453dac7789b3855ddde2af759f1285bee2f9"
-  },
-  "budget_context_interleaving": {
-    "node": "tests/content_reader/test_reader.py::test_full_output_budgets_before_registration",
-    "tokens": {
-      "@CHECKOUT@": "/fixture/project",
-      "@CALLER_KEY@": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "@POLICY_SHA256@": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "@PROJECT@": "demo"
-    },
-    "candidate_oracles": {
-      "9": {
-        "candidate": {
-          "schema": "poise-content-read-result-1",
-          "status": "ready",
-          "operation": "read",
-          "project": "demo",
-          "checkout": "/fixture/project",
-          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "context": {
-            "caller_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "generation": 9,
-            "admission_mode": "caller",
-            "native_episode": null
-          },
-          "items": [
-            {
-              "schema_version": 1,
-              "key": "sample",
-              "status": "content",
-              "classification": "new_context_generation",
-              "path": "docs/sample.txt",
-              "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-              "range": "lines:2-3",
-              "reader_kind": "repository-content-read",
-              "context_generation": 9,
-              "previous_read_available": false,
-              "content_bytes": 10,
-              "content_lines": 2,
-              "content_follows": true,
-              "content": "βeta\nlast"
-            }
-          ]
-        },
-        "json_utf8": "{\"checkout\":\"/fixture/project\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"generation\":9,\"native_episode\":null},\"items\":[{\"classification\":\"new_context_generation\",\"content\":\"βeta\\nlast\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":9,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"}],\"operation\":\"read\",\"policy_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"project\":\"demo\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\n",
-        "text_utf8": "{\"checkout\":\"/fixture/project\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"generation\":9,\"native_episode\":null},\"item\":{\"classification\":\"new_context_generation\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":9,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"},\"operation\":\"read\",\"policy_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"project\":\"demo\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\nβeta\nlast",
-        "json_bytes": 767,
-        "text_bytes": 750
-      },
-      "10": {
-        "candidate": {
-          "schema": "poise-content-read-result-1",
-          "status": "ready",
-          "operation": "read",
-          "project": "demo",
-          "checkout": "/fixture/project",
-          "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "context": {
-            "caller_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "generation": 10,
-            "admission_mode": "caller",
-            "native_episode": null
-          },
-          "items": [
-            {
-              "schema_version": 1,
-              "key": "sample",
-              "status": "content",
-              "classification": "new_context_generation",
-              "path": "docs/sample.txt",
-              "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
-              "range": "lines:2-3",
-              "reader_kind": "repository-content-read",
-              "context_generation": 10,
-              "previous_read_available": false,
-              "content_bytes": 10,
-              "content_lines": 2,
-              "content_follows": true,
-              "content": "βeta\nlast"
-            }
-          ]
-        },
-        "json_utf8": "{\"checkout\":\"/fixture/project\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"generation\":10,\"native_episode\":null},\"items\":[{\"classification\":\"new_context_generation\",\"content\":\"βeta\\nlast\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":10,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"}],\"operation\":\"read\",\"policy_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"project\":\"demo\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\n",
-        "text_utf8": "{\"checkout\":\"/fixture/project\",\"context\":{\"admission_mode\":\"caller\",\"caller_key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"generation\":10,\"native_episode\":null},\"item\":{\"classification\":\"new_context_generation\",\"content_bytes\":10,\"content_follows\":true,\"content_lines\":2,\"context_generation\":10,\"hash\":\"acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b\",\"key\":\"sample\",\"path\":\"docs/sample.txt\",\"previous_read_available\":false,\"range\":\"lines:2-3\",\"reader_kind\":\"repository-content-read\",\"schema_version\":1,\"status\":\"content\"},\"operation\":\"read\",\"policy_sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"project\":\"demo\",\"schema\":\"poise-content-read-result-1\",\"status\":\"ready\"}\nβeta\nlast",
-        "json_bytes": 769,
-        "text_bytes": 752
-      }
-    },
-    "setup": "Explicit caller profile; prepare isolated owned registry; nine public reset operations with distinct IDs yield generation9, no reads/cache/events. Independent source LF fixture and lines2..8. Existing public APIs only.",
-    "synchronization": "Run public read in worker thread. Test-only wrapper around the existing general-lock acquisition boundary signals after source selection and before reader final guard, then waits on a threading.Event. Gate only reader worker/current exact owned lock; reset thread passes normally. Main thread observes reached event, performs public reset tenth unique ID and verifies generation10 via public context, then releases reader gate. No source sleeps/timing assumption/production test hook/new API. All waits and joins bounded; deadlock/setup errors fail test. Adapt to actual lock adapter chosen at implementation design without weakening this ordering.",
-    "deny": "For each JSON/text format set max_bytes to its literal generation9 candidate byte length; max_lines sufficient. Reset succeeds. Read returns exit2/output_limit exact error; public context generation10, cache_entries0,event_count0; reset is not a content_read event. Other scope unchanged.",
-    "allow": "Fresh independent scope with identical controlled interleaving, max_bytes exactly literal generation10 candidate bytes. Public read returns content/first_read (no prior read), root/item generation10, selected literal bytes/hash, one cache/event. Full actual representation <= bound. Old generation9 response or cache entry fails oracle.",
-    "sensitivity": "Implementation budgeting unlocked generation9 then registering generation10 incorrectly succeeds deny; implementation pinning stale9 fails generation oracle. Full candidate calculation must remain inside same serialized snapshot as register.",
-    "literal_encoding_correction": "The prior planning artifact used visible backslash-n notation in content/frame strings while lengths/hashes referred to actual newlines. This revision materializes only declared fixture content and wire frames as actual LF/CRLF; all selected-content hashes stay fixed. Independent byte/hash checks validate corrected literal representation. Reviewer historical768/770 illustration is not reused as expected lengths for these explicit fixture tokens.",
-    "runtime_token_rule": "Fixed tokens and767/769JSON,750/752text lengths above are independent illustrative literal arithmetic. Actual producer uses isolated registered checkout/project/caller/raw policy supplied by existing test fixtures: substitute ONLY those explicit external tokens into the literal candidate, then stdlib canonical serialization/frame construction determines exact independent runtime limit9 and limit10. Paths may be longer; never impose illustrative absolute lengths on temp checkout, and never derive expected generation/content/classification/size from the new reader output. Both generation locations are literal9/10; delta exactly2 remains required. Policy raw hash length64 in both max-byte variants; use actual configured bytes for hash token, keeping its field width unchanged."
   }
 }

@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "tables": [
+    "registry_schema",
+    "pending_calls",
+    "read_events",
+    "compactions",
+    "content_read_cache",
+    "content_read_events"
+  ],
+  "cache_columns": [
+    "session_id",
+    "epoch",
+    "path_label",
+    "content_sha256",
+    "normalized_range",
+    "reader_kind",
+    "content_bytes",
+    "content_lines",
+    "first_read_at"
+  ],
+  "event_columns": [
+    "id",
+    "session_id",
+    "epoch",
+    "occurred_at",
+    "path_label",
+    "content_sha256",
+    "normalized_range",
+    "reader_kind",
+    "status",
+    "classification",
+    "content_bytes",
+    "content_lines",
+    "model_content_bytes"
+  ]
+}

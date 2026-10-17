@@ -9,6 +9,9 @@ import pytest
 
 from hook_transport.preparation_source_upgrade_support import (
     FIXTURES, FORMS, SESSION, arrange_hooks, fixture_script, lifecycle, read_json, snapshot,
+    assert_captures_preserved, assert_reconfiguration_reply, assert_reconfigured_state,
+    assert_session_preserved, assert_target_summary, operation_result, public_reconfigure,
+    reconfigure_packet, resume, save_replay_proof,
 )
 from runtime_services.worktree_preparation_support import arrange, capture_origin, use_environment_handler
 
@@ -71,3 +74,37 @@ def test_preparation_native_arrangement_keeps_real_project_binding(project, tmp_
     assert read_json(preparation['configuration'])['handler']['callable'] == 'apps.bootstrap.environment_result:handle'
     assert hook['binding']['project'] == 'demo'
     assert [row[3] for row in lifecycle(snapshot(hook)['rows']['events'])] == ['SessionStart', 'UserPromptSubmit']
+
+
+def test_public_reconfiguration_replay_keeps_operation_and_observes_current_inputs(project, tmp_path):
+    first_input = (FIXTURES / 'replay-initial.stdout').read_bytes()
+    replay_input = (FIXTURES / 'replay-current.stdout').read_bytes()
+    observation_input = tmp_path / 'current observation.txt'
+    observation_input.write_bytes(first_input)
+    probe = read_json(FIXTURES / 'replay-probe.template.json')
+    probe['argv'] = [sys.executable, '-B', str(FIXTURES / 'replay-probe.py'), str(observation_input)]
+    case = arrange_hooks(project, tmp_path, probe=probe)
+    packet = reconfigure_packet(case)
+    before = snapshot(case)
+    code, first = public_reconfigure(case, packet)
+    assert code == 0, first
+    initial_capture = assert_reconfiguration_reply(case, packet, first, first_input)
+    first_state = snapshot(case)
+    assert_reconfigured_state(case, packet, before, first_state)
+    observation_input.write_bytes(replay_input)
+    repeated_code, repeated = public_reconfigure(case, packet)
+    assert repeated_code == 0, repeated
+    replay_capture = assert_reconfiguration_reply(case, packet, repeated, replay_input)
+    with pytest.raises(AssertionError):
+        assert_reconfiguration_reply(case, packet, first, replay_input)
+    assert operation_result(repeated) == operation_result(first)
+    replay_state = snapshot(case)
+    assert replay_state == first_state
+    assert_captures_preserved(initial_capture)
+    result = resume(case, first['definition_path'])
+    assert_target_summary(case, packet, result)
+    assert_session_preserved(replay_state, snapshot(case))
+    assert_captures_preserved(initial_capture)
+    assert_captures_preserved(replay_capture)
+    save_replay_proof(case, packet, before, first_state, replay_state,
+                      (initial_capture, replay_capture), (first_input, replay_input), tmp_path)

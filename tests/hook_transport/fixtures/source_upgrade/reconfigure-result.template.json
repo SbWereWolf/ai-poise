@@ -1,0 +1,18 @@
+{
+  "status": "installed",
+  "request_id": "BOUND_BY_FIXTURE",
+  "hooks_path": "BOUND_BY_FIXTURE",
+  "previous_hooks_path": "BOUND_BY_FIXTURE",
+  "definition_path": "BOUND_BY_FIXTURE",
+  "settings_path": "BOUND_BY_FIXTURE",
+  "events": [
+    "SessionStart",
+    "UserPromptSubmit",
+    "Stop",
+    "SessionEnd"
+  ],
+  "binding_count": 1,
+  "trust_status": "requires_user_review",
+  "live_codex": "not_observed",
+  "revision": "BOUND_BY_FILE_BYTES"
+}

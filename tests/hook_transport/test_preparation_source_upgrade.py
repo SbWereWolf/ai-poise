@@ -18,8 +18,9 @@ from hook_transport.helpers import host_environment
 from hook_transport.preparation_package_support import installed_probe, output_directory
 from hook_transport.preparation_source_upgrade_support import (
     FIXTURES, FORMS, ROOT, SESSION, arrange_hooks, assert_current, assert_probe,
+    assert_captures_preserved, assert_reconfiguration_reply, assert_reconfigured_state, assert_target_summary,
     assert_session_preserved, clean_environment, copy_candidate, fixture_script, lifecycle,
-    public_reconfigure, read_json, ready_handler_result, reconfigure_packet, resume, snapshot, write_launcher,
+    operation_result, public_reconfigure, read_json, ready_handler_result, reconfigure_packet, resume, snapshot, write_launcher,
 )
 from poise.common import PoiseError
 from runtime_services.worktree_preparation_support import (
@@ -57,21 +58,19 @@ def test_old_owned_launcher_upgrades_on_public_samefile_reconfigure(project, tmp
     packet = reconfigure_packet(case)
     before = snapshot(case)
     code, response = public_reconfigure(case, packet)
-    assert code == 0 and response['status'] == 'installed', response
-    assert response['capability_checks']['ready'] is True
-    assert response['binding_count'] == 1
+    assert code == 0, response
+    first_captures = assert_reconfiguration_reply(case, packet, response)
     assert_current(case)
     after = snapshot(case)
-    assert_session_preserved(before, after, reconfigured=True)
-    assert lifecycle(after['rows']['events']) == lifecycle(before['rows']['events'])
-    assert read_json(case['settings_path']) == packet['settings']
-    native = read_json(case['settings_path'].parent / packet['settings']['hooks_file'])
-    assert native['description'] == case['foreign']['description']
-    assert case['foreign']['hooks']['SessionStart'][0] in native['hooks']['SessionStart']
+    assert_reconfigured_state(case, packet, before, after)
     repeated_code, repeated = public_reconfigure(case, packet)
-    assert repeated_code == 0 and repeated == response
+    assert repeated_code == 0
+    assert_reconfiguration_reply(case, packet, repeated)
+    assert operation_result(repeated) == operation_result(response)
     assert snapshot(case) == after
-    resume(case, response['definition_path'])
+    assert_captures_preserved(first_captures)
+    result = resume(case, response['definition_path'])
+    assert_target_summary(case, packet, result)
     assert_session_preserved(after, snapshot(case))
 
 
@@ -106,11 +105,16 @@ def test_current_literal_launcher_keeps_its_binding(project, tmp_path, route):
     else:
         packet = reconfigure_packet(case)
         code, reply = public_reconfigure(case, packet)
-        assert code == 0 and reply['status'] == 'installed'
+        assert code == 0
+        first_captures = assert_reconfiguration_reply(case, packet, reply)
         after = snapshot(case)
-        assert_session_preserved(before, after, reconfigured=True)
-        assert public_reconfigure(case, packet) == (code, reply)
+        assert_reconfigured_state(case, packet, before, after)
+        repeated_code, repeated = public_reconfigure(case, packet)
+        assert repeated_code == 0
+        assert_reconfiguration_reply(case, packet, repeated)
+        assert operation_result(repeated) == operation_result(reply)
         assert snapshot(case) == after
+        assert_captures_preserved(first_captures)
     assert_current(case)
 
 

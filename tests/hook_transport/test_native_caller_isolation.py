@@ -140,6 +140,19 @@ def claims(project):
 def test_concurrent_copied_launcher_cannot_replace_or_release_sender(project, tmp_path, foreign_operation):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Barrier
+    from poise.common import digest, load_config
+    from poise.composition import project_config_tools
+    from projects.test_update import update_request
+    _, current, workflows = load_config(project['config_path'])
+    configured = update_request(project['config_path'], digest({'config': current, 'workflows': workflows}),
+        request_id='caller-isolation-handoff', manifest_edits=[{
+            'path': ['runtime_services'], 'value': {**current['runtime_services'], 'handoff': {
+                'directory': 'handoffs', 'preserved_directory': 'preserved',
+                'file_mode': 384, 'bundle': 'handoff.tar.gz', 'receipt': 'receipt.json',
+            }}}])
+    configured['receipt_path'] = 'operations/caller-isolation-handoff.json'
+    assert project_config_tools(current['runtime_resources']['project_setup']).apply(configured)['status'] == 'updated'
+    _, project['cfg'], _ = load_config(project['config_path'])
     service, installed = fixture_service(project, tmp_path)
     child = event(session='delegate'); child['cwd'] = str(project['root'])
     service.event(installed['definition_path'], child)

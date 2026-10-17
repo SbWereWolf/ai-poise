@@ -38,7 +38,7 @@ def test_task_work_never_selects_or_dispatches_a_task_owned_runtime():
 
     transport_tree=ast.parse(transport)
     hook_service=next(node for node in transport_tree.body if isinstance(node,ast.ClassDef) and node.name=='HookService')
-    bind=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='_bind')
+    bind=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='_bind_locked')
     work=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='work')
     record=next(
         node.value for node in ast.walk(bind)

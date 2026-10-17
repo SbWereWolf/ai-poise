@@ -1,6 +1,6 @@
 # Работа с графом требований
 
-Обновлено: **2026-10-17**.
+Обновлено: **2026-10-18**.
 
 Это реализованный профиль самостоятельного Requirements: System → Application →
 Task с отношениями M:N на обоих переходах. Запуск, Python 3.13 и все параметры
@@ -36,6 +36,8 @@ Task с отношениями M:N на обоих переходах. Запу�
 | Порядок постановок Task и их goals | `task_history`, `task_id` |
 | Полные редакции System/Application | `history_requirement`, `requirement_id` |
 | Сохранённый полный снимок | `snapshot`, `task_id`, `snapshot_revision` |
+| Текущая полная оценка TR/AR/SR | `current_satisfaction` |
+| Исходы и решения выбранной публикации | `outcome_state`, `task_id`, `snapshot_revision` |
 | Поиск System/Application | `search_requirements`, `filter`, `limit`, `after_id` |
 | Полнота распределения ответственности | `coverage`, необязательный `mode` |
 | Пробелы и типизированные placeholders | `gaps` |
@@ -832,9 +834,10 @@ identity, текст, локальная ревизия `1`, связь с `SYS-
 История и значения снимков читаются отдельно от текущей применимости.
 
 Текущий профиль предоставляет `create_task/apply/query/import_bootstrap`: создание
-Task и ID, описанные чтения и изменения постановки. Публикация snapshot,
-purpose-aware готовность, outcomes и satisfaction относятся к последующим
-возможностям [целевого контракта](contract-req.md).
+Task и ID, описанные чтения и изменения постановки. Публикация snapshot, приём
+исходов, явный выбор подтверждения и текущий каскад TR → AR → SR описаны в
+[инструкции исходов](outcome-operations.md). Purpose-aware готовность и расширенный
+протокол остаются отдельными возможностями [целевого контракта](contract-req.md).
 
 Описанный отказ CLI возвращает exit 2 и JSON object с `status:"rejected"` и
 содержательным `reason`. Публичный Python API использует `PoiseError` для описанных

@@ -1,6 +1,6 @@
 # Requirements public contract
 
-Обновлено: **2026-10-17**.
+Обновлено: **2026-10-18**.
 
 Статус: target design for `PS-DEV-002-T010` (`M01.T010`).
 
@@ -12,7 +12,10 @@ Requirements после разделения монолита. Контракт 
 формат хранения — в [описании хранилища](storage-req.md). Реализованные чтения и
 изменения трёхуровневого графа, создание Task и ID, чтение исходного намерения
 и оценку текущих оснований определяет [текущий профиль](graph-req.md#создание-task-и-канонический-id).
-Остальные операции и расширенный envelope ниже остаются проектом будущего интерфейса.
+Публикация постановок, исходы, явный выбор и глобальная оценка уже реализованы
+в [текущем профиле исходов](outcome-operations.md). Описанный ниже расширенный
+envelope, purpose-aware правила и дополнительные операции остаются проектом
+будущего интерфейса; используйте пакет из действующей инструкции CLI.
 
 ## 1. Граница владельца
 
@@ -211,9 +214,9 @@ Requirements не читает Execution DB:
 
 Предметная [политика пересчёта](outcome-recalculation.md) определяет повторы, restart,
 замену подтверждения, полный набор всех Task и изменение старых/новых родителей.
-Она согласована как проект; автономный CLI ещё не реализует outcomes/satisfaction.
-Точный transport выбора подтверждений и physical storage принадлежат будущей
-реализации. `unsupported_policy` ниже относится к проектному интерфейсу, когда
+Автономный CLI реализует эти предметные правила через
+[публикацию, исходы и явный выбор](outcome-operations.md); physical storage описано
+[в собственном формате](storage-req.md#публикации-исходы-и-решения). `unsupported_policy` ниже относится к проектному интерфейсу, когда
 запрошенная операция требует ещё не реализованной политики; текущий shell
 сохраняет собственный [формат отказа](shell-req.md#ошибки-и-продолжение-работы).
 
@@ -706,10 +709,12 @@ Requirements config и owner tests. При extraction должны быть со
 - Poise session/role protocol;
 - Bootstrap/UAT responsibilities.
 
-Downstream T011/T012 должны принимать canonical ID/revision явно. T018 реализует
-самостоятельный Requirements CLI/config. T031/T037 владеют отложенной physical
-auxiliary schema и полной attempt/restart recalculation policy. До появления этих
-контрактов Requirements отвечает `unsupported_policy`, а не читает соседний store.
+Downstream потребители передают canonical ID/revision явно. Текущие
+[CLI/config](shell-req.md), [хранилище](storage-req.md) и
+[исходы/пересчёт](outcome-operations.md) реализованы в собственном приложении.
+Расширенные операции этого target design сохраняют отдельный статус проекта.
+`unsupported_policy` относится к будущему target-envelope; текущий shell
+использует собственные `status/reason` и выбранные публичные данные Requirements.
 
 Главные риски реализации: перенос старого allocator без shared Task/Sprint DB,
 сохранение exact replay при генерации ID, миграция immutable snapshots из Task

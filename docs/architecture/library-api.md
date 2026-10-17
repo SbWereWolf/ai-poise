@@ -50,7 +50,7 @@ Backend приложения реализует пять методов:
 | Метод | Вход и результат |
 | --- | --- |
 | `initialize(connection)` | Подготовить новую схему или прочитать обязательную metadata своего формата. Вернуть `None`. |
-| `registry_rows(connection)` | Вернуть именованные входы выбранной модели. Для RequirementsGraph: `requirements`, `links`, `task_identities`, `task_requirement_versions`, `application_task_links`, `revisions`. |
+| `registry_rows(connection)` | Вернуть именованные входы выбранной модели. Для RequirementsGraph: `requirements`, `links`, `task_identities`, `task_requirement_versions`, `application_task_links`, `revisions`, `owner_revision`, `outcomes`, `decisions`. |
 | `prepare_queries(connection)` | Подготовить TEMP-представления `requirements(id,level,status,text)` и `requirement_links(system_id,application_id)` для общего SQL-владельца. Вернуть `None`. |
 | `previous_request(connection,namespace,request_id)` | Вернуть `None` либо dict с декодированными JSON objects `intent` и `response`. Ошибка необходимых сохранённых данных описывается как `PoiseError`. |
 | `persist_apply(connection,before,after,revision,request_id,intent,response)` | Сохранить итоговые значения, следующую общую ревизию и точный запрос/ответ. Вернуть `None`. |
@@ -59,13 +59,14 @@ Backend приложения реализует пять методов:
 `system/application`. Входы Task содержат известные IDs/текущие указатели,
 упорядоченные версии keys/status/text и их Application IDs. `revisions` —
 отсоединённый порт сохранённых значений: `has_statement`, `statement`, `task_history`,
-`requirement_history`, `latest_snapshot_revision`, `snapshot`, `task_creation`. Адаптер `SavedRevisions`
+`requirement_history`, `latest_snapshot_revision`, `snapshot_for_statement`, `snapshot`, `task_creation`. Адаптер `SavedRevisions`
 владеет чтением выбранного JSON и переводом его ошибок в `PoiseError`; домен
 работает со значениями без SQL, файловой системы и конкретного backend.
 
 `apply` формирует отдельное предполагаемое состояние. Для backend `before/after`
 содержат `requirements`, `links` и новые полные `statements` с `task_id` и
-`statement_revision`. Backend дописывает версии/ключи/связи и текущий указатель,
+`statement_revision`, а также новые `publications`, `outcomes`, `decisions`.
+Backend дописывает версии/ключи/связи и текущий указатель,
 закрывает снятые периоды и сохраняет ответ в переданной транзакции. Это обычные
 входы сохранения; отдельного mutable журнала модели нет. Публичный запрос
 `registry` сохраняет свой прежний ответ `requirements/links`; Task читается
@@ -130,6 +131,32 @@ claim и execution записи создают их отдельные публ�
 app use case для `create_task`; общий `RequirementsCommands` продолжает обслуживать
 `apply/query/import_bootstrap`. Расширенный schema-envelope и publication относятся
 к отдельно обозначенному целевому интерфейсу.
+
+### Исходы и полный текущий каскад — 2026-10-18
+
+`RequirementsGraph.restore` получает явную общую `owner_revision`, сырые строки
+`outcomes` и упорядоченные `decisions`. Доменный `OutcomeLedger` различает факты
+и явные решения для Task/публикации/key; `null` — собственное решение, отличное
+от его отсутствия. `record` сохраняет новый факт и допускает первый positive
+только при отсутствии решения текущей публикации; `select` меняет конкретный
+выбор, `state` возвращает полную историю, `pending` — только новые строки записи.
+Сохранённые keys JSON читаются при обращении к нужному факту, без SQL в домене.
+
+`SavedRevisions.snapshot_for_statement(task_id,statement_revision)` выбирает
+публикацию по заголовкам; её тело декодируется отдельно через `snapshot`.
+`RequirementsGraph` сочетает сохранённые и подготовленные в пакете публикации.
+`publish_task` использует имеющийся `RequirementsRegistry.plan_task` и сохраняет
+полное основание в позиции операции с фиксируемой общей ревизией. Текущая оценка
+не подменяет публикацию текущей постановки последним историческим snapshot.
+
+`current_satisfaction` обходит все текущие постановки и полные текущие наборы
+родителей в собственном графе. Старые и новые родители после изменения связей
+получают оценку по тем же данным; кеш или чтение Execution store для этого
+не нужны. `outcome_state` читает выбранную публикацию с фактами и решениями.
+Backend сохраняет публикации/факты/решения и общую ревизию/ответ в переданной
+транзакции; общий store сохраняет собственный порядок replay и revision checks.
+[Рабочие пакеты](../../apps/requirements/docs/outcome-operations.md) определяют
+фактический транспорт; будущий target-envelope остаётся отдельным проектом.
 
 ## Остальные доменные библиотеки
 

@@ -1045,3 +1045,17 @@ artifact ownership, hooks or cleanup. Follow the
 prerequisites](../../../docs/configuration/result-placement.md#подготовка-проекта-и-вызов),
 [packet contract](../../../docs/configuration/result-placement.md#пакет-prepare-и-check)
 and [failure/retry contract](../../../docs/configuration/result-placement.md#отказы-и-повтор).
+
+## General project-file reading
+
+Use installed `poise content-read` for complete or bounded project-file content without a Task.
+Select absolute config, registered checkout and operator-owned policy, plus explicit `--format
+json` or `--format text`; preserve genuine caller identity and native admission. Send the reader
+operation packet directly, not a Work envelope. Follow the canonical
+[setup and examples](../../../docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
+and [episode recovery](../../../docs/workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+Keep complete machine JSON/frames and saved responses; a registered read is not acknowledgement
+or model-memory proof. New context transitions accept only reason `manual`; replay preserves the
+saved transition generation without rolling back live state. The specialized acknowledged source
+reader retains its existing owner. This API does not intercept arbitrary tools or automatically
+reset general context after compaction.

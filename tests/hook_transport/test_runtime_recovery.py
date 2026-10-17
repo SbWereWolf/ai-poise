@@ -38,6 +38,17 @@ def _native(service, installed):
     return service.event(installed["definition_path"], native)
 
 
+def _service_with_copied_source(project, tmp_path, source_name):
+    settings_path = settings(project, tmp_path)
+    document = json.loads(settings_path.read_text(encoding="utf-8"))
+    selected_source = tmp_path / source_name
+    shutil.copytree(Path(document["source_root"]) / "poise", selected_source / "poise",
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    document["source_root"] = str(selected_source)
+    write_json(settings_path, document)
+    return HookService(settings_path), selected_source
+
+
 def _guarded_command(service, binding_path):
     recovery = str(Path(service.settings.raw["source_root"]) / "poise/recover_runtime.sh")
     recovery_command = shlex.join(
@@ -85,7 +96,8 @@ def test_managed_command_invokes_configured_interpreter_directly(project, tmp_pa
 
     command = service.settings.command("hook-work", "--binding", str(binding))
 
-    assert shlex.split(command) == [
+    arguments = shlex.split(command)
+    assert arguments[arguments.index("env"):] == [
         "env",
         f"PYTHONPATH={service.settings.raw['source_root']}",
         str(selected),
@@ -102,7 +114,42 @@ def test_managed_command_invokes_configured_interpreter_directly(project, tmp_pa
         str(binding),
     ]
     assert "poise-runtime-guard" not in command
-    assert "Recovery:" not in command
+
+
+@pytest.mark.parametrize("route", ["launcher", "hook"])
+@pytest.mark.parametrize("problem", ["package", "init", "main", "path_separator"])
+def test_invalid_selected_source_has_configured_rejection_and_recovery(project, tmp_path, route, problem):
+    source_name = "selected source" if problem != "path_separator" else "selected" + os.pathsep + "source"
+    service, selected_source = _service_with_copied_source(project, tmp_path, source_name)
+    document = json.loads(service.settings.path.read_text(encoding="utf-8"))
+    document["exit_codes"]["rejected"] = 17
+    write_json(service.settings.path, document)
+    service = HookService(service.settings.path)
+    if route == "launcher":
+        launcher = tmp_path / "work.sh"
+        launcher.write_bytes(service.settings.launcher_bytes(tmp_path / "unused-binding.json"))
+        command = ["/bin/sh", str(launcher), "--help"]
+    else:
+        command = shlex.split(service.settings.command("hook")) + ["--help"]
+    if problem == "package":
+        (selected_source / "poise").rename(tmp_path / "removed-source")
+    elif problem == "init":
+        (selected_source / "poise/__init__.py").unlink()
+    elif problem == "main":
+        (selected_source / "poise/__main__.py").unlink()
+    else:
+        assert (selected_source / "poise/__init__.py").is_file()
+        assert (selected_source / "poise/__main__.py").is_file()
+    empty_cwd = tmp_path / "empty-cwd"
+    empty_cwd.mkdir()
+    result = subprocess.run(command, cwd=empty_cwd, capture_output=True, text=True, timeout=15)
+    assert result.returncode == 17
+    assert result.stdout == ""
+    assert result.stderr == (
+        "Configured Poise source must be one directory containing poise/__init__.py and poise/__main__.py: "
+        + str(selected_source) + "\nRecovery: restore that source directory or correct source_root in "
+        + str(service.settings.path) + ", then retry.\n"
+    )
 
 
 @pytest.mark.parametrize("route", ["launcher", "hook"])
@@ -181,16 +228,18 @@ def test_next_invocation_reads_edited_source_with_valid_old_timestamp_bytecode(p
 
 @pytest.mark.parametrize("route", ["native", "reconfigure"])
 @pytest.mark.parametrize("foreign_edit", [False, True])
-def test_previous_forwarded_launcher_upgrade_preserves_binding_and_foreign_content(project, tmp_path, route, foreign_edit):
-    service = HookService(settings(project, tmp_path))
+@pytest.mark.parametrize("issued_form", ["bytecode_only", "selected_source"])
+def test_previous_forwarded_launcher_upgrade_preserves_binding_and_foreign_content(project, tmp_path, route, foreign_edit, issued_form):
+    service, selected_source = _service_with_copied_source(project, tmp_path, "selected-source")
     foreign = {"matcher": "startup", "hooks": [{"type": "command", "command": "echo foreign"}]}
     write_json(service.settings.hooks_file, {"hooks": {"SessionStart": [foreign]}})
     installed = install(service, revision=service.revision())
     _native(service, installed)
     binding = service.latest_binding("conversation", "primary")
     launcher = Path(binding["launcher"])
+    flags = ["-B"] if issued_form == "bytecode_only" else ["-P", "-B", "-X", "pycache_prefix=" + os.devnull]
     historical = ["env", "PYTHONPATH=" + service.settings.raw["source_root"],
-                  service.settings.raw["python"], "-B", "-m", "poise", "hook-work",
+                  service.settings.raw["python"], *flags, "-m", "poise", "hook-work",
                   "--settings", str(service.settings.path), "--binding", binding["binding_path"]]
     previous = ('#!/bin/sh\nexec ' + shlex.join(historical) + ' "$@"\n').encode()
     launcher.write_bytes(previous + (b"# foreign edit\n" if foreign_edit else b""))
@@ -220,9 +269,19 @@ def test_previous_forwarded_launcher_upgrade_preserves_binding_and_foreign_conte
         assert service.settings.hooks_file.read_bytes() == before_hooks
     else:
         invoke()
-        expected = historical[:3] + ["-P", "-B", "-X", "pycache_prefix=" + os.devnull] + historical[4:]
-        assert launcher.read_bytes() == ('#!/bin/sh\nexec ' + shlex.join(expected) + ' "$@"\n').encode()
+        arguments = shlex.split(launcher.read_text(encoding="utf-8").splitlines()[1])
+        assert arguments[arguments.index("env"):] == [
+            "env", "PYTHONPATH=" + str(selected_source), service.settings.raw["python"],
+            "-P", "-B", "-X", "pycache_prefix=" + os.devnull, "-m", "poise", "hook-work",
+            "--settings", str(service.settings.path), "--binding", binding["binding_path"], "$@",
+        ]
         assert service.latest_binding("conversation", "primary") == binding
+        (selected_source / "poise").rename(tmp_path / "removed-source")
+        result = subprocess.run(["/bin/sh", str(launcher), "--help"], cwd=tmp_path,
+                                capture_output=True, text=True, timeout=15)
+        assert result.returncode == 2
+        assert result.stdout == ""
+        assert "Recovery: restore that source directory or correct source_root in " in result.stderr
     document = json.loads(service.settings.hooks_file.read_text(encoding="utf-8"))
     assert foreign in document["hooks"]["SessionStart"]
 
@@ -234,7 +293,8 @@ def test_native_event_creates_direct_launcher_and_recreates_deleted_binding(proj
     binding = service.latest_binding("conversation", "primary")
     launcher = Path(binding["launcher"])
     command = launcher.read_text(encoding="utf-8")
-    assert "exec env PYTHONPATH=" in command
+    arguments = shlex.split(command)
+    assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + service.settings.raw["source_root"]
     assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in command
     assert "poise-runtime-guard" not in command
 
@@ -260,7 +320,9 @@ def test_install_emits_one_direct_group_per_declared_event(project, tmp_path):
 
     assert installed["status"] == "installed"
     assert len(commands) == len(definition()["events"])
-    assert all(command.startswith("env PYTHONPATH=") for command in commands)
+    for command in commands:
+        arguments = shlex.split(command)
+        assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + service.settings.raw["source_root"]
     assert all((" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook ") in command for command in commands)
     assert all("poise-runtime-guard" not in command for command in commands)
 
@@ -282,7 +344,8 @@ def test_exact_guarded_launcher_is_migrated_without_changing_session(project, tm
     command = launcher.read_text(encoding="utf-8")
 
     assert migrated["session_id"] == binding["session_id"]
-    assert "exec env PYTHONPATH=" in command
+    arguments = shlex.split(command)
+    assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + service.settings.raw["source_root"]
     assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in command
     assert "poise-runtime-guard" not in command
 

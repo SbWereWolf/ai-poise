@@ -62,7 +62,20 @@ def test_ready_reloads_retired_stages_and_replays_without_checks(project, verifi
         "checks": {stage: [] for stage in stages},
         "content_contract": {"sections": [], "routes": [], "requirements": []},
         "evidence_plan": {stage: {"subject_methods": {}, "arguments": [], "review_arguments": []} for stage in stages},
-        "stage_contracts": [{"stage_id": stage, "entry_requirements": [], "exit_requirements": [], "allowed_paths": []} for stage in stages],
+        "stage_contracts": [
+            {
+                "stage_id": stage,
+                "entry_requirements": [],
+                "exit_requirements": [],
+                "allowed_paths": [],
+                "criteria": {
+                    "requirements": [],
+                    "definition_of_ready": [],
+                    "definition_of_done": [],
+                },
+            }
+            for stage in stages
+        ],
         "decomposition": {"kind": "ordinary", "integration": None, "phases": [
             {"stage": stage, "skills": ["task-domain"], "areas": []} for stage in stages]},
     }

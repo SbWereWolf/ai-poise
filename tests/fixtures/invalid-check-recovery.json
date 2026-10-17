@@ -1,0 +1,90 @@
+{
+  "finding": {
+    "id": "missing-green",
+    "subject": "current registry",
+    "description": "Restore executable GREEN coverage in the registry-owning stage.",
+    "evidence": "No current GREEN executable test remains."
+  },
+  "coverage_finding": {
+    "id": "missing-coverage",
+    "subject": "current registry",
+    "description": "Restore coverage of definition_of_done[0].",
+    "evidence": "Current GREEN covers only requirements[0]."
+  },
+  "criteria": {
+    "requirements": [
+      "Исправление сохраняет замечания и исходные доказательства."
+    ],
+    "definition_of_ready": [
+      "Проверяющий согласовал план исправления."
+    ],
+    "definition_of_done": [
+      "Восстановлено полное покрытие исполняемых обязательств."
+    ]
+  },
+  "plan_stages": [
+    {
+      "id": "repair_plan",
+      "handler": "produce",
+      "role": "executor",
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": ["test_remediation"],
+        "decide": []
+      },
+      "instruction": "Design the imminent registry repair while preserving its invalid state.",
+      "normalization": "strip",
+      "read_only": true,
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "required_sections": ["report"],
+      "sections": {
+        "report": "State the imminent repair plan.",
+        "test_registry": "Read-only registry input; no method changes."
+      },
+      "rework_targets": ["repair_plan"],
+      "transitions": {"complete": "repair_plan_inspection"}
+    },
+    {
+      "id": "repair_plan_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": ["test_remediation"]
+      },
+      "instruction": "Independently decide the repair plan and exact criteria proposal.",
+      "normalization": "strip",
+      "read_only": true,
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "required_sections": ["report"],
+      "sections": {"report": "Inspect the repair plan without changing the registry."},
+      "rework_targets": ["repair_plan_revision"],
+      "transitions": {
+        "clear": "test_remediation",
+        "changes_requested": "repair_plan_revision"
+      }
+    },
+    {
+      "id": "repair_plan_revision",
+      "handler": "revise",
+      "role": "executor",
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": ["test_remediation"],
+        "decide": []
+      },
+      "instruction": "Correct only the rejected repair plan and criteria proposal.",
+      "normalization": "strip",
+      "read_only": true,
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "required_sections": ["report"],
+      "sections": {"report": "State the corrected repair plan."},
+      "rework_targets": ["repair_plan_revision"],
+      "transitions": {"complete": "repair_plan_inspection"}
+    }
+  ]
+}

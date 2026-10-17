@@ -227,12 +227,12 @@ argv = [
 cwd = "."
 parser = "generic"
 require_parser_confirmation = false
-execution_timeout_seconds = 0
-observed_max_success_seconds = 0.0
+execution_timeout_seconds = 1239
+observed_max_success_seconds = 1125.571379616
 observed_max_progress_gap_seconds = 0.0
 stall_timeout_seconds = 0
 initial_limit_reason = "Первый полный запуск исходников Poise на CPython 3.15 без начального предела; следующий предел публикуется по успешному измерению."
-last_calibrated_at = "2026-10-17T00:00:00+00:00"
+last_calibrated_at = "2026-10-17T20:20:38.084098+00:00"
 [commands.progress]
 mode = "unavailable"
 [commands.output]

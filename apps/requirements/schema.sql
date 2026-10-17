@@ -96,6 +96,16 @@ CREATE TABLE requirement_outcomes (
     keys TEXT NOT NULL,
     FOREIGN KEY (task_id, snapshot_revision) REFERENCES task_snapshots(task_id, snapshot_revision)
 );
+CREATE TABLE requirement_confirmation_decisions (
+    task_id TEXT NOT NULL,
+    snapshot_revision INTEGER NOT NULL,
+    sequence INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    outcome_id TEXT,
+    PRIMARY KEY (task_id, snapshot_revision, sequence),
+    FOREIGN KEY (task_id, snapshot_revision) REFERENCES task_snapshots(task_id, snapshot_revision),
+    FOREIGN KEY (outcome_id) REFERENCES requirement_outcomes(outcome_id)
+);
 CREATE TABLE requirement_requests (
     protocol_namespace TEXT NOT NULL,
     request_id TEXT NOT NULL,

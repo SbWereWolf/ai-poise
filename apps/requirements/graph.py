@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from poise.modules.foundation.errors import DomainError
 from poise.modules.requirements_registry.domain import RequirementsRegistry
+from .outcomes import OutcomeLedger
 
 
 def _exact(value, fields, where):
@@ -28,12 +29,13 @@ class RequirementsGraph:
     query_kinds = (
         'task_chain', 'application_tasks', 'get_task', 'task_history',
         'history_requirement', 'snapshot', 'search_requirements',
-        'task_basis', 'task_creation',
+        'task_basis', 'task_creation', 'current_satisfaction', 'outcome_state',
     )
 
     @classmethod
     def restore(cls, requirements, links, task_identities,
-                task_requirement_versions, application_task_links, revisions):
+                task_requirement_versions, application_task_links, revisions,
+                owner_revision, outcomes, decisions):
         graph = cls()
         graph._registry = RequirementsRegistry.restore(requirements, links)
         graph._current = {
@@ -52,6 +54,9 @@ class RequirementsGraph:
             })
         graph._revisions = revisions
         graph._new_statements = {}
+        graph._owner_revision = owner_revision
+        graph._publications = {}
+        graph._outcomes = OutcomeLedger.restore(outcomes, decisions)
         return graph
 
     def _task(self, task_id):
@@ -159,6 +164,12 @@ class RequirementsGraph:
                 graph._revise_task(operation, max_items)
             elif kind == 'unlink':
                 graph._unlink(operation)
+            elif kind == 'publish_task':
+                graph._publish_task(operation)
+            elif kind == 'record_outcome':
+                graph._record_outcome(operation, max_items)
+            elif kind == 'select_confirmation':
+                graph._select_confirmation(operation)
             else:
                 graph._registry = graph._registry.apply([operation], max_items)
         return graph
@@ -241,10 +252,129 @@ class RequirementsGraph:
         statement = self._statement(task_id, revision)
         return {
             'task_id': task_id, 'statement_revision': revision,
-            'snapshot_revision': self._revisions.latest_snapshot_revision(task_id),
+            'snapshot_revision': self._latest_snapshot_revision(task_id),
             'goal': statement['goal'], 'definition_of_done': statement['definition_of_done'],
             'task_requirements': deepcopy(self._entries.get((task_id, revision), [])),
         }
+
+    def _latest_snapshot_revision(self, task_id):
+        saved = self._revisions.latest_snapshot_revision(task_id)
+        pending = [revision for identifier, revision in self._publications if identifier == task_id]
+        return max(([saved] if saved is not None else []) + pending, default=None)
+
+    def _snapshot(self, task_id, snapshot_revision):
+        self._task(task_id)
+        _positive_integer(snapshot_revision, 'snapshot revision')
+        pending = self._publications.get((task_id, snapshot_revision))
+        if pending is not None:
+            return deepcopy(pending)
+        return self._revisions.snapshot(task_id, snapshot_revision)
+
+    def _current_snapshot(self, task_id):
+        statement_revision = self._task(task_id)
+        for (identifier, revision), snapshot in self._publications.items():
+            if identifier == task_id and snapshot['statement_revision'] == statement_revision:
+                return revision
+        return self._revisions.snapshot_for_statement(task_id, statement_revision)
+
+    def _publish_task(self, operation):
+        _exact(operation, {'kind', 'task_id', 'statement_revision'}, 'publish_task')
+        task_id = operation['task_id']
+        current = self._task(task_id)
+        if _positive_integer(operation['statement_revision'], 'statement revision') != current:
+            raise DomainError('publication requires the current Task statement')
+        if self._current_snapshot(task_id) is not None:
+            return
+        if not self.task_basis(task_id)['basis_ready']:
+            raise DomainError('Task publication requires its complete requirement basis')
+        entries = deepcopy(self._entries[(task_id, current)])
+        planned = self._registry.plan_task([
+            {field: entry[field] for field in ('text', 'status', 'applications')}
+            for entry in entries if entry['status'] != 'obsolete'
+        ])['snapshot']
+        revision = (self._latest_snapshot_revision(task_id) or 0) + 1
+        statement = {'task_id': task_id, 'statement_revision': current,
+                     **self._statement(task_id, current), 'task_requirements': entries}
+        lower = [{'application': application, 'key': entry['key'], 'task_id': task_id}
+                 for entry in entries if entry['status'] != 'obsolete'
+                 for application in entry['applications']]
+        self._publications[(task_id, revision)] = {
+            'task_id': task_id, 'statement_revision': current, 'snapshot_revision': revision,
+            'registry_revision': self._owner_revision + 1, 'statement': statement,
+            'requirements': planned['requirements'],
+            'links': {'system_application': planned['links'], 'application_task': sorted(
+                lower, key=lambda row: (row['application'], row['key'], row['task_id']))},
+        }
+
+    def _record_outcome(self, operation, max_items):
+        _exact(operation, {'kind', 'outcome'}, 'record_outcome')
+        outcome = operation['outcome']
+        if not isinstance(outcome, dict) or not {'task_id', 'snapshot_revision'} <= set(outcome):
+            raise DomainError('outcome requires its addressed Task publication')
+        snapshot = self._snapshot(outcome['task_id'], outcome['snapshot_revision'])
+        self._outcomes.record(outcome, snapshot,
+                              self._current_snapshot(outcome['task_id']) == outcome['snapshot_revision'],
+                              max_items)
+
+    def _select_confirmation(self, operation):
+        _exact(operation, {'kind', 'task_id', 'snapshot_revision', 'key', 'outcome_id'},
+               'select_confirmation')
+        task_id, revision = operation['task_id'], operation['snapshot_revision']
+        snapshot = self._snapshot(task_id, revision)
+        if self._current_snapshot(task_id) != revision:
+            raise DomainError('confirmation requires the current Task publication')
+        key = _identifier(operation['key'], 'Task requirement key')
+        if key not in {entry['key'] for entry in snapshot['statement']['task_requirements']}:
+            raise DomainError('confirmation key must exist in the addressed snapshot')
+        self._outcomes.select(task_id, revision, key, operation['outcome_id'])
+
+    def current_satisfaction(self):
+        state = self._registry.to_dict()
+        task_rows, children = [], {}
+        for task_id, statement_revision in sorted(self._current.items()):
+            snapshot_revision = self._current_snapshot(task_id)
+            for entry in sorted(self._entries.get((task_id, statement_revision), []),
+                                key=lambda value: value['key']):
+                applicable = self._applicable(entry, 'current')
+                proof = self._outcomes.choice(task_id, snapshot_revision, entry['key'])
+                satisfied = applicable and proof is not None
+                task_rows.append({
+                    'task_id': task_id, 'statement_revision': statement_revision,
+                    'snapshot_revision': snapshot_revision, 'key': entry['key'],
+                    'applicable': applicable, 'satisfied': satisfied,
+                    'evidence_outcome_ids': [proof] if satisfied else [],
+                })
+                if applicable:
+                    for application in entry['applications']:
+                        children.setdefault(application, []).append(({
+                            'task_id': task_id, 'statement_revision': statement_revision,
+                            'key': entry['key'],
+                        }, satisfied))
+        applications = []
+        for identifier, node in sorted(state['requirements'].items()):
+            if node['level'] != 'application':
+                continue
+            applicable = self._applicable(node, 'current')
+            related = children.get(identifier, []) if applicable else []
+            applications.append({'id': identifier, 'children': [row for row, flag in related],
+                                 'applicable': applicable,
+                                 'satisfied': bool(related) and all(flag for row, flag in related)})
+        systems = []
+        for identifier, node in sorted(state['requirements'].items()):
+            if node['level'] != 'system':
+                continue
+            applicable = self._applicable(node, 'current')
+            linked = {edge['application'] for edge in state['links'] if edge['system'] == identifier}
+            related = [row for row in applications if row['applicable'] and row['id'] in linked]
+            if not applicable:
+                related = []
+            systems.append({'id': identifier, 'children': [row['id'] for row in related],
+                            'applicable': applicable,
+                            'satisfied': bool(related) and all(row['satisfied'] for row in related)})
+        return {'task_requirements': task_rows, 'applications': applications, 'systems': systems}
+
+    def outcome_state(self, task_id, snapshot_revision):
+        return self._outcomes.state(self._snapshot(task_id, snapshot_revision))
 
     def task_basis(self, task_id):
         revision = self._task(task_id)
@@ -297,6 +427,7 @@ class RequirementsGraph:
             'task_history': {'task_id'}, 'history_requirement': {'requirement_id'},
             'task_basis': {'task_id'}, 'task_creation': {'task_id'},
             'snapshot': {'task_id', 'snapshot_revision'},
+            'outcome_state': {'task_id', 'snapshot_revision'}, 'current_satisfaction': set(),
             'search_requirements': {'filter', 'limit', 'after_id'},
         }
         if kind in fields:
@@ -318,9 +449,11 @@ class RequirementsGraph:
             self._registry.requirement(query['requirement_id'])
             return self._revisions.requirement_history(query['requirement_id'])
         if kind == 'snapshot':
-            self._task(query['task_id'])
-            _positive_integer(query['snapshot_revision'], 'snapshot revision')
-            return self._revisions.snapshot(query['task_id'], query['snapshot_revision'])
+            return self._snapshot(query['task_id'], query['snapshot_revision'])
+        if kind == 'outcome_state':
+            return self.outcome_state(query['task_id'], query['snapshot_revision'])
+        if kind == 'current_satisfaction':
+            return self.current_satisfaction()
         if kind == 'search_requirements':
             return self.search_requirements(query['filter'], query['limit'], query['after_id'], max_items)
         if kind == 'coverage':
@@ -337,4 +470,6 @@ class RequirementsGraph:
             **self._registry.to_dict(),
             'statements': [{'task_id': task_id, 'statement_revision': revision, **deepcopy(value)}
                            for (task_id, revision), value in sorted(self._new_statements.items())],
+            'publications': deepcopy(list(self._publications.values())),
+            **self._outcomes.pending(),
         }

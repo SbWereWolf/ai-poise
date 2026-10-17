@@ -76,6 +76,10 @@ class SavedRevisions:
         return max((revision for identifier, revision in self.snapshots if identifier == task_id),
                    default=None)
 
+    def snapshot_for_statement(self, task_id, statement_revision):
+        return next((revision for (identifier, revision), row in self.snapshots.items()
+                     if identifier == task_id and row['statement_revision'] == statement_revision), None)
+
     def snapshot(self, task_id, snapshot_revision):
         row = self.snapshots.get((task_id, snapshot_revision))
         if row is None:
@@ -135,7 +139,8 @@ class StandaloneBackend:
             'FROM main.requirement_revisions ORDER BY id,revision'
         )]
         snapshots = [dict(row) for row in connection.execute(
-            'SELECT task_id,snapshot_revision,payload FROM main.task_snapshots '
+            'SELECT task_id,snapshot_revision,statement_revision,registry_revision,payload '
+            'FROM main.task_snapshots '
             'ORDER BY task_id,snapshot_revision'
         )]
         creations = [dict(row) for row in connection.execute(
@@ -146,6 +151,15 @@ class StandaloneBackend:
             'requirements': requirements, 'links': links, 'task_identities': identities,
             'task_requirement_versions': versions, 'application_task_links': task_links,
             'revisions': SavedRevisions(statements, requirement_revisions, snapshots, creations),
+            'owner_revision': connection.execute(
+                'SELECT revision FROM main.requirements_meta').fetchone()['revision'],
+            'outcomes': [dict(row) for row in connection.execute(
+                'SELECT outcome_id,task_id,snapshot_revision,kind,keys '
+                'FROM main.requirement_outcomes ORDER BY outcome_id')],
+            'decisions': [dict(row) for row in connection.execute(
+                'SELECT task_id,snapshot_revision,sequence,key,outcome_id '
+                'FROM main.requirement_confirmation_decisions '
+                'ORDER BY task_id,snapshot_revision,sequence')],
         }
 
     def prepare_queries(self, connection):
@@ -216,6 +230,27 @@ class StandaloneBackend:
                 )
         for statement in after['statements']:
             self._persist_statement(connection, statement, origin)
+        for snapshot in after['publications']:
+            connection.execute(
+                'INSERT INTO main.task_snapshots'
+                '(task_id,snapshot_revision,statement_revision,registry_revision,payload) '
+                'VALUES(?,?,?,?,?)',
+                (snapshot['task_id'], snapshot['snapshot_revision'], snapshot['statement_revision'],
+                 snapshot['registry_revision'], _json(snapshot)),
+            )
+        for outcome in after['outcomes']:
+            connection.execute(
+                'INSERT INTO main.requirement_outcomes'
+                '(outcome_id,task_id,snapshot_revision,kind,keys) VALUES(?,?,?,?,?)',
+                (outcome['outcome_id'], outcome['task_id'], outcome['snapshot_revision'],
+                 outcome['kind'], _json(outcome['satisfied_task_requirements'])),
+            )
+        connection.executemany(
+            'INSERT INTO main.requirement_confirmation_decisions'
+            '(task_id,snapshot_revision,sequence,key,outcome_id) VALUES(?,?,?,?,?)',
+            [(row['task_id'], row['snapshot_revision'], row['sequence'], row['key'], row['outcome_id'])
+             for row in after['decisions']],
+        )
         connection.execute('UPDATE main.requirements_meta SET revision=?', (revision,))
         connection.execute(
             'INSERT INTO main.requirement_requests(protocol_namespace,request_id,intent,response) '

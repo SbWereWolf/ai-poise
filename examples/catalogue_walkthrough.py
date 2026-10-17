@@ -20,7 +20,8 @@ from poise.application.work import WorkTools
 from poise.application.catalogue import CatalogueCommands
 from poise.infrastructure.catalogue import FileCatalogue
 from poise.composition import goal_config_tools
-from poise.common import load_config
+from poise.common import descendant, load_config
+from poise.modules.foundation.errors import PoiseError
 
 
 EMPTY={'sections':[],'routes':[],'requirements':[]}
@@ -66,21 +67,38 @@ def coverage():
             'unmapped':sorted(expected-actual),'extra':sorted(actual-expected)}
 
 
-def _selection(entry,ident):return {'id':ident,'version':entry['version'],'digest':entry['digest']}
-
-
 def install(home):
     source=SOURCE/'config/catalogue'
-    for directory in ('workflow-templates','task-templates'):
-        shutil.copytree(source/directory,home/'config/catalogue'/directory)
-    for template, name in (
-        ('settings.example.json', 'settings.json'),
-        ('editor.example.json', 'editor.example.json'),
-        ('reference.json', 'reference.json'),
-    ):
-        shutil.copy2(source/template,home/'config/catalogue'/name)
-    path=home/'config/catalogue/settings.json'
+    directory=home.resolve()/'config/catalogue'
+    path=directory/'settings.json'
+    editor_path=directory/'editor.json'
+    settings=json.loads((source/'settings.example.json').read_text())
+    editor=json.loads((source/'editor.example.json').read_text())
+    if descendant(directory,settings['editor']) != editor_path:
+        raise PoiseError('The disposable catalogue requires editor.json')
+    editor['root']=str(home.resolve())
+    save(path,settings)
+    save(editor_path,editor)
+    # Owners validate the complete destination registry before any template copy.
     repo=FileCatalogue(path)
+    copies=[]
+    for entries, folder in (
+        (repo.editor.raw['templates'],'workflow-templates'),
+        (repo.raw['task_templates'],'task-templates'),
+    ):
+        for entry in entries.values():
+            destination=descendant(repo.root,entry['path'])
+            origin=source/folder/destination.name
+            if not origin.is_file():
+                raise PoiseError(f'Missing catalogue input: {origin}')
+            copies.append((origin,destination))
+    destinations=[destination for _,destination in copies]
+    if len(destinations) != len(set(destinations)):
+        raise PoiseError('Catalogue input destinations must be distinct')
+    for origin,destination in copies:
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(origin,destination)
+    shutil.copy2(source/'reference.json',directory/'reference.json')
     commands=CatalogueCommands(repo,goal_config_tools(repo.editor.path),repo.raw['max_items'])
     request=[{'goal_type':goal,'request_id':'install-'+goal,'mode':'create','expected_revision':None,
               'template':repo.workflow_selection(goal),'changes':[]} for goal in repo.editor.raw['workflows']]
@@ -195,7 +213,8 @@ def prepare_task(
     membership=None,
 ):
     workflow=workflows[goal];methods=_methods(goal,home)
-    blueprint=repo.task_blueprint(_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'))
+    selection=repo.task_selection(goal)
+    blueprint=repo.task_blueprint(selection)
     # The development reference scenario supplies its concrete initial schedule. The
     # product template neither names future methods nor invents a missing schedule.
     if goal == 'development':
@@ -266,7 +285,7 @@ def prepare_task(
     if blueprint.data['task']['checks'] == {'$input': 'checks'}:
         vals['checks'] = checks
     task = commands.tasks(
-        [{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
+        [{'template':selection,
           'parameters':vals}], workflows, [], decomposition_policy
     )['tasks'][0]
     return task

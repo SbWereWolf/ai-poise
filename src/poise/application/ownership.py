@@ -261,6 +261,7 @@ class OwnershipCommands:
             if (uow.ownership.worktree_required(task_id)
                     and target.worktree_owner not in (None, actor)):
                 raise PoiseError('Release rejected inconsistent foreign dependent worktree ownership')
+            uow.accounting_cycles.release(actor, task_id)
             _release_task_in(uow, actor, task_id)
             after = uow.ownership.snapshot(actor)
             result = {'status': 'ownership_released', 'task': task_id,

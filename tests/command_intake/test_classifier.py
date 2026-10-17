@@ -28,6 +28,7 @@ def test_classifier_contract(case, project, tmp_path, monkeypatch):
                     i.configure(**{'classifier.mode':mode})
                     prior = i.coverage()['details']['counts']['pending']
                     call, native, pre = i.pre(row['command'])
+                    assert not (i.s.checkout/'classification-executed').exists()
                     forbidden = row['reason'] is not None
                     if forbidden:
                         assert pre['decision']['reason_code'] == row['reason'], pre

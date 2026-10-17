@@ -845,6 +845,38 @@
         "classifier.unknown_expansion.deny_command_substitutions": false
       },
       "run": false
+    },
+    {
+      "command": "echo $(touch classification-executed; cat docs/A.txt)",
+      "reason": "reader_command_substitution",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "echo `touch classification-executed; cat docs/A.txt`",
+      "reason": "reader_command_substitution",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat <(touch classification-executed; cat docs/A.txt)",
+      "reason": "reader_command_substitution",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "eval 'touch classification-executed; cat docs/A.txt'",
+      "reason": "eval_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
     }
   ],
   "C14": [

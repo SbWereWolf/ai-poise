@@ -191,14 +191,20 @@ def bounded_summary(i):
 
 def privacy(i):
     marker=fixture('native.json')['privacy_marker']
+    command_marker=fixture('native.json')['command_marker']
     i.s.write('docs/private.txt',(marker+'\n').encode())
-    call,_,_=i.pre('cat docs/private.txt')
+    call,_,_=i.pre('env '+command_marker+'=1 cat docs/private.txt')
     response=i.actual(call);assert marker in response['stdout']
     _,result=i.post(call,response);assert result['status']=='settled'
     assert marker.encode() not in i.s.db.read_bytes()
+    assert command_marker.encode() not in i.s.db.read_bytes()
     diagnostics=Path(i.s.data['session']['diagnostic_file'])
-    if diagnostics.exists():assert marker not in diagnostics.read_text()
-    for _,control in i.controls().values():assert marker not in canonical(control)
+    if diagnostics.exists():
+        assert marker not in diagnostics.read_text()
+        assert command_marker not in diagnostics.read_text()
+    for _,control in i.controls().values():
+        assert marker not in canonical(control)
+        assert command_marker not in canonical(control)
     assert marker not in canonical(i.coverage())
     assert len(i.plans(call))==1
 
@@ -224,6 +230,29 @@ def concurrent_registration(i):
     later,_,_=i.pre("sed -n '7,8p' docs/A.txt")
     i.advance();_,post=i.post(later,i.actual(later))
     assert post['status']=='discarded' and i.plans(later)==[]
+    ended,_,_=i.pre('head -n2 docs/B.txt');response=i.actual(ended)
+    late=deepcopy(i.calls[ended]);late.update(hook_event_name='PostToolUse',tool_response=response)
+    resource=i.s.resource
+    i.s.event('SessionEnd');assert i.s.invoke({'operation':'recover'})[0]==0
+    assert not resource.exists()
+    binding=i.service.latest_binding(i.s.identity,'primary')
+    with i.service.registry.read_transaction() as db:
+        starts=db.execute("SELECT count(id) FROM hook_events WHERE binding=? AND event='SessionStart'",
+                          (binding['session_id'],)).fetchone()[0]
+    barrier=threading.Barrier(3);errors.clear();native.clear()
+    def late_settle():
+        try:
+            barrier.wait(timeout=120)
+            native.append(i.service.event(i.installation['definition_path'],deepcopy(late)))
+        except BaseException as exc:errors.append(exc)
+    threads=[threading.Thread(target=late_settle,name='ended-settler-'+str(n)) for n in [1,2]]
+    for thread in threads:thread.start()
+    barrier.wait(timeout=120)
+    for thread in threads:thread.join(timeout=120);assert not thread.is_alive()
+    assert not errors and len(native)==2 and not resource.exists()
+    with i.service.registry.read_transaction() as db:
+        assert db.execute("SELECT count(id) FROM hook_events WHERE binding=? AND event='SessionStart'",
+                          (binding['session_id'],)).fetchone()[0]==starts
 
 
 def selected_files(i):

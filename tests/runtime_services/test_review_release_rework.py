@@ -203,3 +203,62 @@ def test_receiving_bootstrap_refuses_foreign_ownership(project, claim):
         assert (case["worktree"] / relative).read_text(encoding="utf-8") == expected
     assert receiver.runtime.ownership.snapshot("receiver").task_id is None
     assert receiver.runtime.ownership.snapshot("receiver").worktree_task_id is None
+
+
+def test_receiver_self_reacquisition_preserves_reviewed_continuation(project):
+    case = prepare(project)
+    review(case)
+    executor = case["executor"]
+    assert preserve(case["reviewer"], "review-to-receiver-self-cycle")["verified"] is True
+    assert acquire(executor)["status"] == "verified"
+    history = task_history(executor)
+    before = snapshot(executor, case["worktree"], ("executor", "reviewer"))
+
+    release(executor, "receiver-self-release")
+    assert_history(executor, history, FIRST_REVIEW_EVENTS)
+    assert acquire(executor)["status"] == "verified"
+    assert_history(executor, history, FIRST_REVIEW_EVENTS)
+    reacquired = snapshot(executor, case["worktree"], ("executor", "reviewer"))
+    retained = ("evidence", "results", "head", "tree", "index", "status", "source_bytes")
+    for field in retained:
+        assert reacquired[field] == before[field]
+
+    context = advance(executor)
+
+    assert_current_correction(case, context, 1)
+    assert_history(executor, history, FIRST_CORRECTION_EVENTS)
+    assert saved_results(executor) == case["reviewed_results"]
+    after = snapshot(executor, case["worktree"], ("executor", "reviewer"))
+    for field in retained:
+        assert after[field] == before[field]
+
+
+def test_verified_author_self_reacquisition_keeps_role_boundary(project):
+    case = prepare(project)
+    review(case)
+    author = case["reviewer"]
+    history = task_history(author)
+    before = snapshot(author, case["worktree"], ("executor", "reviewer"))
+
+    release(author, "verified-author-self-release")
+    assert_history(author, history, FIRST_REVIEW_EVENTS)
+    received = acquire(author)
+    assert (received["status"], received["stage"], received["iteration"]) == ("verified", "audit", 1)
+    assert_history(author, history, FIRST_REVIEW_EVENTS)
+    record = author.runtime.task_queries.record("T1")
+    assert (record["status"], record["stage_index"], record["claimed_by"]) == ("verified", 1, "reviewer")
+    expected_finding = {**case["data"]["finding"], "stage": "audit", "iteration": 1}
+    assert received["workflow"]["feedback"]["open_findings"] == [expected_finding]
+    assert saved_results(author) == case["reviewed_results"]
+    reacquired = snapshot(author, case["worktree"], ("executor", "reviewer"))
+    for field in ("evidence", "results", "head", "tree", "index", "status", "source_bytes"):
+        assert reacquired[field] == before[field]
+    before_advance_history = task_history(author)
+
+    context = advance(author)
+
+    assert (context["status"], context["stage"], context["iteration"]) == ("role_handoff_required", "audit", 1)
+    assert context["workflow"]["feedback"]["open_findings"] == [expected_finding]
+    assert task_history(author) == before_advance_history
+    assert_history(author, history, FIRST_REVIEW_EVENTS)
+    assert snapshot(author, case["worktree"], ("executor", "reviewer")) == reacquired

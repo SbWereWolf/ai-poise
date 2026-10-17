@@ -31,11 +31,33 @@ def selected_stores(case):
     project, _, cfg, values = case
     setup(project)
     first = create_available(project, project['config_path'], 'EXISTS-HERE')
-    second_cfg = deepcopy(cfg)
-    second_cfg['paths']['state'] = 'other-state'
-    second = write_json(project['root'] / 'other-project.json', second_cfg)
-    seed_fixture_requirements(project['root'], second_cfg)
+    # Same project label, separately published authority and explicitly separate data.
+    # Copying the first managed manifest would leave its registry association invalid.
+    from poise.composition import project_tools
+    from .helpers import setup_case
+    arrangement = deepcopy(project)
+    arrangement['root'] = project['root'] / 'other-control'
+    arrangement['cfg'] = deepcopy(cfg)
+    arrangement['cfg']['paths']['state'] = str(project['root'] / 'other-state')
+    from poise.common import digest
+    sources = {}
+    for goal, relative in cfg['workflows'].items():
+        document = json.loads((project['root'] / relative).read_text())
+        target = f'config/workflows/{goal}.json'
+        write_json(arrangement['root'] / target, document)
+        arrangement['cfg']['workflows'][goal] = target
+        sources[goal] = {'path': target, 'digest': digest(document)}
+    settings, blueprint, creation = setup_case(arrangement)
+    blueprint['workflow_sources'] = sources
+    write_json(arrangement['root'] / 'config/project-blueprint.json', blueprint)
+    creation['edits'][0]['value'] = cfg['project']
+    published = project_tools(settings).apply(creation)
+    second = Path(published['config_path'])
+    second_cfg = json.loads(second.read_text())
+    seed_fixture_requirements(second.parent, second_cfg)
     other = WorkPoise(second, 'fixture-other-store')
+    WorkTools(other).invoke({'operation': 'bootstrap', 'input': {
+        'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}, 'messages': []})
     # A real domain-created Task plus exact persisted nonterminal ownership and
     # interrupted execution. Diagnostic must not repair either owner.
     with sqlite3.connect(values['task_db']) as db:

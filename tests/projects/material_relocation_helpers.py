@@ -7,6 +7,7 @@ import sqlite3
 import tempfile
 
 from batch.helpers import request, result
+from check_configuration_helpers import prepare_check_systems
 from conftest import WorkPoise, bind_task_requirements, seed_fixture_requirements, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError, load_config
@@ -56,6 +57,14 @@ def prepare(project, tmp_path, *, released=True, native_hooks=False):
     project['workflow'].update(route={'entry': 'implementation'}, stages=[stage])
     write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     settings, config_path, _ = installed_project(project)
+    root, cfg, workflows = load_config(config_path)
+    companions = prepare_check_systems(root, Path(cfg['git']['repository']), config_path)
+    configure_companions = update_request(
+        config_path, project_revision(config_path), request_id='material-relocation-companions',
+        manifest_edits=[{'path': ['runtime_services', 'check_runner'],
+                         'value': {**cfg['runtime_services']['check_runner'], 'systems': companions}}])
+    configure_companions['receipt_path'] = 'operations/material-relocation-companions.json'
+    required(update_tools(settings).apply, configure_companions)
     root, cfg, workflows = load_config(config_path)
     project.update(root=root, config_path=config_path, cfg=cfg,
                    workflow=workflows['development'],

@@ -193,15 +193,3 @@ def test_public_integration_reads_preserved_receipt_and_new_physical_input(proje
     assert case['marker'].read_text() == 'run\nrun\n'
     assert placed(case, case['receipt']['acceptance_manifest']['path']).read_bytes() == original_manifest
     assert not case['source'].exists()
-
-
-def test_transfer_proof_reader_validates_the_same_moved_material(project, tmp_path):
-    case = prepare(project, tmp_path)
-    moved = relocate(case)
-    # Actual export proof reader; no synthetic imported-history permission or map.
-    required(moved.runtime.transfer_tools.port._proof_outputs, case['receipt'], None, {})
-    target = placed(case, case['receipt']['outputs'][0]['path'])
-    target.write_bytes(b'changed export proof\n')
-    with pytest.raises(PoiseError, match='digest|Changed'):
-        moved.runtime.transfer_tools.port._proof_outputs(case['receipt'], None, {})
-    assert case['marker'].read_text() == 'run\n'

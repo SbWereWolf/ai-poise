@@ -101,6 +101,17 @@ TOML содержит `schema_version = 1`, непустой список `comma
 `evidence_contracts`. В TOML нет `null`: необязательное поле опускается. Ключ профиля —
 `command_id + workload_class + runtime_class`; он уникален.
 
+Профиль `native-hook-regression / hooks-runner-named-checks / python` из
+`config/examples/project-check-profiles.example.toml` проверяет исходники самого
+Poise: целиком `tests/hook_transport`, `tests/named_checks` и файл
+`tests/runner/test_registered_check_runner.py`. Он использует CPython 3.15 из
+`tools/.venv` выбранной рабочей копии. Первый запуск не ограничен по времени;
+после полного успешного запуска `calibrate` публикует измерения и следующий
+предел в выбранном TOML-реестре. Сохраните опубликованный реестр вместе с
+настройками инструментов: очистка временных логов не должна удалять будущий
+предел. Сбои в дополнительных контекстах фиксируются отдельно и не считаются
+успешным измерением этого профиля.
+
 | Поля профиля | Значение |
 |---|---|
 | `command_id`, `workload_class`, `runtime_class` | Явные идентификаторы команды, нагрузки и адаптера. |

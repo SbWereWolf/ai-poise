@@ -214,7 +214,7 @@ storage paths, modes и лимиты. Это не настройки из AGENTS
 | `schema` | Ровно `hook-settings-1`. |
 | `root` | Существующий общий файловый корень; относительное значение разрешается от файла settings. |
 | `project_config` | Путь manifest относительно `root`; выбранный проект определяется manifest. |
-| `python`, `source_root` | Явные абсолютные пути исполняемого Python и установленного пакета, содержащего `poise/__main__.py`. |
+| `python`, `source_root` | Явные абсолютные пути исполняемого Python и исходников Poise, содержащих `poise/__main__.py`. |
 | `hooks_file`, `definitions` | Пути native hooks и неизменяемых определений относительно `root`. Общий native-файл может иметь абсолютный путь при явном `repository_scope`; definitions и operational state разделены. |
 | `repository_scope`, `hooks_lock` | Необязательный режим общей установки: объект с абсолютным `repository` и положительным `timeout_seconds`, плюс отдельный абсолютный writer lock. Все писатели общего native-файла используют один lock. |
 | `state` | Проектный корень Hook Registry относительно `root`, например `poise-project-data/demo/codex-hook`. |
@@ -275,7 +275,10 @@ hooks.json. Operational SQLite сохраняет pending/completed receipt. О�
 файл частью SQLite; повтор сверяет фактический digest.
 
 Управляемые native-команды и session launcher напрямую запускают явно настроенный Python с
-`-B`, поэтому загрузка installation source не создаёт и не обновляет bytecode в checkout.
+`-P -B -X pycache_prefix=<os.devnull>`: текущий каталог не подменяет настроенные
+исходники, а чтение старого timestamp bytecode не скрывает их изменения.
+`os.devnull` — стандартный нулевой путь платформы (`/dev/null` в Ubuntu),
+не каталог кэша; `-B` запрещает запись bytecode. Новые каталоги не создаются.
 Точная ранее управляемая форма launcher (включая снятую shell-обёртку и прежнюю форму без
 `-B`) при следующем native event атомарно заменяется текущей прямой командой; любое другое
 изменение launcher считается внешним и вызывает отказ без перезаписи. Рабочий `hooks.json`
@@ -745,6 +748,14 @@ correctness rename/format без их отдельных испытаний. Liv
 Gmail находятся вне текущего среза.
 
 
+Пакет тестов `hooks-source-runtime` проверяет архитектуру, выбор настроенных
+исходников, команды hooks и согласование установки четырьмя полными модулями:
+`test_architecture.py`, `test_runtime_recovery.py`, `test_hooks.py` и
+`test_installation_reconciliation.py` из `tests/hook_transport/`. Он не заменяет
+общий пакет `hooks`. Состав исходников, тестов и фикстур объявлен в
+`config/testing/test-packages.json`; прямые входы архитектурных проверок и
+`src/poise/__main__.py` включены в отпечаток пакета.
+
 ## Предварительная проверка настроенной среды
 
 До установки hooks и до запуска содержательного `bootstrap` существующий владелец
@@ -756,7 +767,8 @@ Gmail находятся вне текущего среза.
 создания runtime/claim/worktree и изменений Task. Это предварительное наблюдение, а не
 гарантия от последующего удаления файла другим процессом.
 
-Команды остаются прямыми: настроенный интерпретатор, `-B`, настроенный `PYTHONPATH`,
+Команды остаются прямыми: настроенный интерпретатор, `-P -B`, стандартный параметр
+`-X pycache_prefix=<os.devnull>`, настроенный `PYTHONPATH`,
 `-m poise`, точные settings и native binding. Ни `recover_runtime.sh`, ни
 `poise-runtime-guard`, ни запасной системный Python для исполнения Task не используются.
 Если сам интерпретатор отсутствует, не запустившийся native workflow не может вывести

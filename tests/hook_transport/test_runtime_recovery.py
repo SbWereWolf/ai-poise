@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import py_compile
 import shutil
 import shlex
+import subprocess
 import sys
 
 import pytest
-from poise.common import PoiseError
+from poise.common import PoiseError, digest, file_digest
 from batch.helpers import request
 
 from conftest import write_json
@@ -86,7 +89,10 @@ def test_managed_command_invokes_configured_interpreter_directly(project, tmp_pa
         "env",
         f"PYTHONPATH={service.settings.raw['source_root']}",
         str(selected),
+        "-P",
         "-B",
+        "-X",
+        "pycache_prefix=" + os.devnull,
         "-m",
         "poise",
         "hook-work",
@@ -99,6 +105,128 @@ def test_managed_command_invokes_configured_interpreter_directly(project, tmp_pa
     assert "Recovery:" not in command
 
 
+@pytest.mark.parametrize("route", ["launcher", "hook"])
+def test_configured_source_wins_over_real_source_in_current_directory(project, tmp_path, route):
+    service = HookService(settings(project, tmp_path))
+    selected_source = Path(service.settings.raw["source_root"]) / "poise"
+    shadow_cwd = tmp_path / "shadow-cwd"
+    shutil.copytree(selected_source, shadow_cwd / "poise", ignore=shutil.ignore_patterns("__pycache__"))
+    shadow_entry = shadow_cwd / "poise/__main__.py"
+    text = shadow_entry.read_text(encoding="utf-8")
+    markers = [
+        "bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')",
+        "hook=sub.add_parser('hook',help='Codex native command-hook event (adapter, not a task API)')",
+    ]
+    for marker in markers:
+        assert text.count(marker) == 1
+        text = text.replace(marker, marker[:-1] + ",description='CWD_SOURCE_SENTINEL')")
+    shadow_entry.write_text(text, encoding="utf-8")
+    if route == "launcher":
+        launcher = tmp_path / "work.sh"
+        launcher.write_bytes(service.settings.launcher_bytes(tmp_path / "unused-binding.json"))
+        command = ["/bin/sh", str(launcher), "--help"]
+    else:
+        command = shlex.split(service.settings.command("hook")) + ["--help"]
+    empty_cwd = tmp_path / "empty-cwd"
+    empty_cwd.mkdir()
+    reference = subprocess.run(command, cwd=empty_cwd, capture_output=True, text=True, timeout=15)
+    assert reference.returncode == 0, reference.stderr
+    assert "usage:" in reference.stdout
+    assert "CWD_SOURCE_SENTINEL" not in reference.stdout
+    actual = subprocess.run(command, cwd=shadow_cwd, capture_output=True, text=True, timeout=15)
+    assert actual.returncode == 0, actual.stderr
+    assert actual.stderr == ""
+    assert actual.stdout == reference.stdout
+    assert "CWD_SOURCE_SENTINEL" not in actual.stdout
+
+
+@pytest.mark.parametrize("route", ["launcher", "hook"])
+def test_next_invocation_reads_edited_source_with_valid_old_timestamp_bytecode(project, tmp_path, route):
+    service = HookService(settings(project, tmp_path))
+    selected_source = tmp_path / "selected-source"
+    shutil.copytree(Path(service.settings.raw["source_root"]) / "poise", selected_source / "poise",
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    service.settings.raw["source_root"] = str(selected_source)
+    entry = selected_source / "poise/__main__.py"
+    source = entry.read_text(encoding="utf-8")
+    for marker in (
+        "bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')",
+        "hook=sub.add_parser('hook',help='Codex native command-hook event (adapter, not a task API)')",
+    ):
+        assert source.count(marker) == 1
+        source = source.replace(marker, marker[:-1] + ",description='SOURCE_CACHED')")
+    entry.write_text(source, encoding="utf-8")
+    if route == "launcher":
+        launcher = tmp_path / "work.sh"
+        launcher.write_bytes(service.settings.launcher_bytes(tmp_path / "unused-binding.json"))
+        command = ["/bin/sh", str(launcher), "--help"]
+    else:
+        command = shlex.split(service.settings.command("hook")) + ["--help"]
+    reference = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, timeout=15)
+    assert reference.returncode == 0, reference.stderr
+    assert "SOURCE_CACHED" in reference.stdout
+    py_compile.compile(str(entry), doraise=True,
+                       invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
+    cached_stat = entry.stat()
+    edited = source.replace("SOURCE_CACHED", "SOURCE_EDITED")
+    assert len(edited.encode("utf-8")) == len(source.encode("utf-8"))
+    entry.write_text(edited, encoding="utf-8")
+    os.utime(entry, ns=(cached_stat.st_atime_ns, cached_stat.st_mtime_ns))
+    actual = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, timeout=15)
+    assert actual.returncode == 0, actual.stderr
+    assert actual.stderr == ""
+    assert "SOURCE_EDITED" in actual.stdout
+    assert "SOURCE_CACHED" not in actual.stdout
+
+
+@pytest.mark.parametrize("route", ["native", "reconfigure"])
+@pytest.mark.parametrize("foreign_edit", [False, True])
+def test_previous_forwarded_launcher_upgrade_preserves_binding_and_foreign_content(project, tmp_path, route, foreign_edit):
+    service = HookService(settings(project, tmp_path))
+    foreign = {"matcher": "startup", "hooks": [{"type": "command", "command": "echo foreign"}]}
+    write_json(service.settings.hooks_file, {"hooks": {"SessionStart": [foreign]}})
+    installed = install(service, revision=service.revision())
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    launcher = Path(binding["launcher"])
+    historical = ["env", "PYTHONPATH=" + service.settings.raw["source_root"],
+                  service.settings.raw["python"], "-B", "-m", "poise", "hook-work",
+                  "--settings", str(service.settings.path), "--binding", binding["binding_path"]]
+    previous = ('#!/bin/sh\nexec ' + shlex.join(historical) + ' "$@"\n').encode()
+    launcher.write_bytes(previous + (b"# foreign edit\n" if foreign_edit else b""))
+    before_launcher = launcher.read_bytes()
+    before_binding = Path(binding["binding_path"]).read_bytes()
+    before_hooks = service.settings.hooks_file.read_bytes()
+    if route == "native":
+        def invoke():
+            return _native(service, installed)
+        expected_error = "Launcher was changed externally"
+    else:
+        raw = json.loads(service.settings.path.read_text(encoding="utf-8"))
+        packet = {"request_id": "upgrade-previous-forwarded-launcher",
+                  "expected_settings_digest": digest(raw),
+                  "expected_revision": file_digest(service.settings.hooks_file),
+                  "target_revision": file_digest(service.settings.hooks_file),
+                  "settings": raw,
+                  "definition": json.loads(Path(installed["definition_path"]).read_text(encoding="utf-8"))}
+        def invoke():
+            return service.reconfigure(packet)
+        expected_error = "Foreign launcher content before reconfiguration"
+    if foreign_edit:
+        with pytest.raises(PoiseError, match=expected_error):
+            invoke()
+        assert launcher.read_bytes() == before_launcher
+        assert Path(binding["binding_path"]).read_bytes() == before_binding
+        assert service.settings.hooks_file.read_bytes() == before_hooks
+    else:
+        invoke()
+        expected = historical[:3] + ["-P", "-B", "-X", "pycache_prefix=" + os.devnull] + historical[4:]
+        assert launcher.read_bytes() == ('#!/bin/sh\nexec ' + shlex.join(expected) + ' "$@"\n').encode()
+        assert service.latest_binding("conversation", "primary") == binding
+    document = json.loads(service.settings.hooks_file.read_text(encoding="utf-8"))
+    assert foreign in document["hooks"]["SessionStart"]
+
+
 def test_native_event_creates_direct_launcher_and_recreates_deleted_binding(project, tmp_path):
     service, _ = _service_with_selected_interpreter(project, tmp_path)
     installed = install(service)
@@ -107,7 +235,7 @@ def test_native_event_creates_direct_launcher_and_recreates_deleted_binding(proj
     launcher = Path(binding["launcher"])
     command = launcher.read_text(encoding="utf-8")
     assert "exec env PYTHONPATH=" in command
-    assert " -B -m poise hook-work " in command
+    assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in command
     assert "poise-runtime-guard" not in command
 
     binding_root = Path(binding["binding_path"]).parent
@@ -133,7 +261,7 @@ def test_install_emits_one_direct_group_per_declared_event(project, tmp_path):
     assert installed["status"] == "installed"
     assert len(commands) == len(definition()["events"])
     assert all(command.startswith("env PYTHONPATH=") for command in commands)
-    assert all(" -B -m poise hook " in command for command in commands)
+    assert all((" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook ") in command for command in commands)
     assert all("poise-runtime-guard" not in command for command in commands)
 
 
@@ -155,7 +283,7 @@ def test_exact_guarded_launcher_is_migrated_without_changing_session(project, tm
 
     assert migrated["session_id"] == binding["session_id"]
     assert "exec env PYTHONPATH=" in command
-    assert " -B -m poise hook-work " in command
+    assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in command
     assert "poise-runtime-guard" not in command
 
 
@@ -260,7 +388,7 @@ def test_operator_restore_reuses_original_binding_and_direct_launcher(project, t
     _native(service, installed)
     restored = service.latest_binding("conversation", "primary")
     assert restored == binding
-    assert " -B -m poise hook-work " in launcher.read_text()
+    assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in launcher.read_text()
     assert "poise-runtime-guard" not in launcher.read_text()
     result = service.work(binding["binding_path"], request("bootstrap", {
         "task": None, "decision": None, "feedback": None, "rework_stage": None}))

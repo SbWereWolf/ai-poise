@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 from .common import PoiseError,load_config
 from .infrastructure.session_establishment import establish_direct_poise
@@ -95,6 +96,7 @@ def parser():
 
 
 def main():
+    started_at=time.monotonic()
     if len(sys.argv)>1 and sys.argv[1] in ('infra','deps','check'):
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
@@ -146,7 +148,7 @@ def main():
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)
     if args.command in ('runtime-config','hook','hook-work'):
         from .interfaces.hook_transport import execute
-        return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr)
+        return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr,started_at=started_at)
     if args.command=='goal-config':
         from .interfaces.goal_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)

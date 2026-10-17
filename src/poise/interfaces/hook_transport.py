@@ -1,6 +1,7 @@
 """CLI envelopes for managed configuration, native hooks and bound work."""
 from pathlib import Path
 import uuid
+import time
 from ..common import PoiseError,exact_keys,load_config
 from ..infrastructure.hook_transport import HookService, HookSettings, matches_repository_scope
 from ..infrastructure.goal_config import strict_json,atomic_write
@@ -37,7 +38,8 @@ def _write_native(service,result,definition_path,output):
     output.write(text)
 
 
-def execute(command,args,stream,output,error):
+def execute(command,args,stream,output,error, *, started_at=None):
+    started_at=time.monotonic() if started_at is None else started_at
     service=None
     try:
         settings=HookSettings(args.settings);cfg=settings.raw
@@ -56,7 +58,7 @@ def execute(command,args,stream,output,error):
             return cfg['exit_codes']['success']
         service=HookService(args.settings)
         if command=='hook':
-            result=service.event(args.definition,packet)
+            result=service.event(args.definition,packet,started_at=started_at)
             _write_native(service,result,args.definition,output)
             return cfg['exit_codes']['success']
         if command=='hook-work':

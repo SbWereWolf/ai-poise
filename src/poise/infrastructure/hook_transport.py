@@ -639,8 +639,8 @@ class HookService:
 
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
-    def event(self,definition_path,event):
-        started=time.monotonic()
+    def event(self,definition_path,event, *, started_at=None):
+        started=time.monotonic() if started_at is None else started_at
         if isinstance(event, dict) and event.get('hook_event_name') == 'SessionStart':
             self.settings.require_summary()
         delivery=None

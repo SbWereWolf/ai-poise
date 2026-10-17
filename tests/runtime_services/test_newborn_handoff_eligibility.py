@@ -9,11 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from batch.helpers import request
+from batch.helpers import bootstrap, request
 from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
-from runtime_services.test_newborn_handoff import draft, handoff
+from runtime_services.test_newborn_handoff import configure_handoff, draft, handoff
+from runtime_services.test_task_restart import restart
 
 
 def select(tools, task_id):
@@ -271,3 +272,39 @@ def test_current_handoff_rechecks_after_material_validation(project, monkeypatch
     assert len(observed) == 1, 'Real saved-material validation must have succeeded'
     assert state(runtime, tid) == observed[0]
     assert receiver.runtime.ownership.snapshot('receiver').task_id is None
+
+
+def test_authoritative_restart_keeps_current_draft(project):
+    configure_handoff(project)
+    runtime = WorkPoise(project['config_path'], 'owner')
+    tools = WorkTools(runtime)
+    active = bootstrap(tools, project)
+    tid = active['task']
+    (Path(active['worktree']) / 'untracked-note.txt').write_text('WIP to preserve\n')
+    receipt = preserve(tools, 'active-handoff', note=True)
+    receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
+    assert select(receiver, tid)['status'] == 'active'
+    restart(receiver, tid, receiver.runtime.current_task()['version'])
+    edit(receiver, tid, 'Continue preparation after restart')
+    create(receiver, 'NEXT')
+    before = deepcopy(runtime.task_queries.record(tid))
+    old_rows, old_history = handoffs(runtime, tid), events(runtime, tid)
+    old_metadata = state(runtime, tid)[0][-1]
+    work = workspace(before)
+    receipt_bytes = Path(receipt['receipt_path']).read_bytes()
+    third = WorkTools(WorkPoise(project['config_path'], 'third'))
+
+    acquired = select(third, tid)
+
+    assert acquired['status'] == 'newborn' and acquired['claimed_by'] == 'third'
+    assert acquired['draft']['goal'] == 'Исправить double(2): получить 4.'
+    assert acquired['draft']['definition_of_done'] == ['Continue preparation after restart']
+    assert acquired['draft'] == before['draft']
+    assert [row[2] for row in handoffs(runtime, tid)] == ['resumed']
+    assert json.loads(old_rows[0][3])['receipt']['task_status'] == 'active'
+    assert handoffs(runtime, tid) == old_rows
+    assert events(runtime, tid)[:len(old_history)] == old_history
+    assert state(runtime, tid)[0][-1] == old_metadata
+    assert workspace(acquired) == work
+    assert Path(receipt['preserved_artifacts'][0]).read_bytes() == b'Keep this working note.\n'
+    assert Path(receipt['receipt_path']).read_bytes() == receipt_bytes

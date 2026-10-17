@@ -47,6 +47,48 @@
       ]
     },
     {
+      "id": "task-domain",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/modules/tasks/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "task-domain"
+      ]
+    },
+    {
+      "id": "sprint-domain",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/modules/sprints/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "sprint-domain"
+      ]
+    },
+    {
+      "id": "verification-domain",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/modules/verification/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "verification-domain"
+      ]
+    },
+    {
       "id": "changed-code",
       "priority": 50,
       "when": {

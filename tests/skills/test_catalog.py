@@ -173,7 +173,7 @@ def test_distributed_catalog_matches_only_delivered_skills():
     entries = catalog.as_dict()["skills"]
     actual = {p.parent.name for p in (ROOT / ".agents/skills").glob("*/SKILL.md")}
     assert {item["id"] for item in entries} == actual
-    assert len(actual) == 40
+    assert len(actual) == 43
     assert not {"safe-commit", "system-tests", "preflight", "playwright", "jetbrains-ide"} & actual
     assert all(item["path"] == f".agents/skills/{item['id']}/SKILL.md" for item in entries)
     assert {item["class"] for item in entries} == {"meta", "common", "working"}

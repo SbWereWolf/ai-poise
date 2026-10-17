@@ -205,10 +205,10 @@ class Poise:
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
         self.source_under_test_resolver = resolve_source_under_test
-        self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
+        integration_adapter=RuntimeResultIntegration(self)
+        self.integration_tools=ResultIntegrationCommands(integration_adapter)
         from .application.task_cleanup import TaskResourceCleanup
-        from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup
-        self.cleanup_tools=TaskResourceCleanup(RuntimeTaskResourceCleanup(self))
+        self.cleanup_tools=TaskResourceCleanup(integration_adapter.cleanup)
         from .application.task_delivery import TaskDeliveryCommands
         from .infrastructure.task_delivery import RuntimeTaskDelivery
         self.delivery_effects=RuntimeTaskDelivery(self)

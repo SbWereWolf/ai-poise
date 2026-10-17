@@ -479,5 +479,64 @@
         }
       }
     ]
-  }
+  },
+  "mixed_sql_rows": [
+    [
+      "complete",
+      "current",
+      0
+    ],
+    [
+      "orphan",
+      "current",
+      1
+    ],
+    [
+      "task-future",
+      "future",
+      2
+    ],
+    [
+      "app-future",
+      "current",
+      3
+    ],
+    [
+      "system-future",
+      "current",
+      4
+    ]
+  ],
+  "obsolete_sql_rows": [
+    [
+      1,
+      "report",
+      "current"
+    ],
+    [
+      1,
+      "extra",
+      "current"
+    ],
+    [
+      2,
+      "report",
+      "obsolete"
+    ],
+    [
+      2,
+      "extra",
+      "current"
+    ],
+    [
+      3,
+      "report",
+      "obsolete"
+    ],
+    [
+      3,
+      "extra",
+      "obsolete"
+    ]
+  ]
 }

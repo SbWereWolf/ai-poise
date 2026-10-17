@@ -252,11 +252,7 @@ def test_mixed_basis_requires_all_active_entries_and_preserves_literal_gaps(tmp_
     task_id = env.create(body, DATA['created_010_3'])
     env.query('task_basis', task_id, 3, DATA['mixed_basis'])
     assert env.sql('SELECT key,status,position FROM task_requirement_versions '
-                   'WHERE task_id=? ORDER BY position', (task_id,)) == [
-        ('complete', 'current', 0), ('orphan', 'current', 1),
-        ('task-future', 'future', 2), ('app-future', 'current', 3),
-        ('system-future', 'current', 4),
-    ]
+                   'WHERE task_id=? ORDER BY position', (task_id,)) == [tuple(row) for row in DATA['mixed_sql_rows']]
 
 
 def test_obsolete_basis_error_then_entry_exclusion_and_no_active_basis(tmp_path):
@@ -282,11 +278,7 @@ def test_obsolete_basis_error_then_entry_exclusion_and_no_active_basis(tmp_path)
     env.revise(task_id, statement, 5, 2)
     env.query('task_basis', task_id, 6, {**DATA['basis_empty'], 'statement_revision': 3})
     assert env.sql('SELECT statement_revision,key,status FROM task_requirement_versions '
-                   'WHERE task_id=? ORDER BY statement_revision,position', (task_id,)) == [
-        (1, 'report', 'current'), (1, 'extra', 'current'),
-        (2, 'report', 'obsolete'), (2, 'extra', 'current'),
-        (3, 'report', 'obsolete'), (3, 'extra', 'obsolete'),
-    ]
+                   'WHERE task_id=? ORDER BY statement_revision,position', (task_id,)) == [tuple(row) for row in DATA['obsolete_sql_rows']]
 
 
 def test_apply_and_creation_share_request_text_with_independent_replays(tmp_path):

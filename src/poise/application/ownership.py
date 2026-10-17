@@ -190,9 +190,21 @@ class OwnershipCommands:
             uow.ownership.bind_worktree(owner, None)
         recovered.add(owner)
 
-    def acquire_task(self, actor, task_id, *, force_duplicate_start=False):
+    def acquire_task(self, actor, task_id, *, force_duplicate_start=False,
+                     expected_newborn_revision=None):
         self._preflight(actor, task_id)
         with self.uow() as uow:
+            if expected_newborn_revision is not None:
+                if (type(expected_newborn_revision) is not int
+                        or not uow.tasks.is_newborn(task_id)):
+                    raise PoiseError('Newborn Task changed before acquisition')
+                newborn = uow.tasks.load_newborn(task_id)
+                if newborn.version != expected_newborn_revision:
+                    raise PoiseError('Newborn Task version changed before acquisition')
+                if newborn.claimed_by is None:
+                    from .handoff import HandoffCommands
+                    HandoffCommands.require_newborn_acquisition_in(
+                        uow, task_id, expected_newborn_revision)
             if not uow.tasks.is_newborn(task_id):
                 from .tasks import require_reviewer_identity_in
                 require_reviewer_identity_in(uow, uow.tasks.load(task_id), actor, acquiring=True)
@@ -302,9 +314,13 @@ class BoundOwnership:
     def snapshot(self, actor):
         return self.commands.snapshot(actor)
 
-    def acquire_task(self, task_id, *, force_duplicate_start=False):
+    def acquire_task(self, task_id, *, force_duplicate_start=False,
+                     expected_newborn_revision=None):
+        admission = {}
+        if expected_newborn_revision is not None:
+            admission['expected_newborn_revision'] = expected_newborn_revision
         return self.commands.acquire_task(self.actor, task_id,
-            force_duplicate_start=force_duplicate_start)
+            force_duplicate_start=force_duplicate_start, **admission)
 
     def acquire_worktree(self, task_id):
         return self.commands.acquire_worktree(self.actor, task_id)

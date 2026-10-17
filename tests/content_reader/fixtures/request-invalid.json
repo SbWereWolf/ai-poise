@@ -1,0 +1,27 @@
+[
+  null,
+  [],
+  {},
+  {
+    "operation": "unknown"
+  },
+  {
+    "operation": "context",
+    "extra": 1
+  },
+  {
+    "operation": "reset"
+  },
+  {
+    "operation": "clear"
+  },
+  {
+    "operation": "recover",
+    "receipt": {}
+  },
+  {
+    "operation": "advance_context",
+    "request_id": true,
+    "reason": "manual"
+  }
+]

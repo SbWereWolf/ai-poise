@@ -912,3 +912,28 @@ Placement декларации не заменяют immutable artifact publicat
 управление Task. Их владельцы и полномочия сохранены. Полный операторский контракт:
 [пакеты](../configuration/result-placement.md#пакет-prepare-и-check),
 [эффекты и повтор](../configuration/result-placement.md#отказы-и-повтор).
+
+## Общее чтение файлов и ресурсы эпизода
+
+`modules.document_intake` владеет выборкой, идентичностью выбранного текста, read decisions,
+строгими request/policy contracts и ports; домен не обращается к SQLite/filesystem/hooks.
+`application.ContentReader` согласует подготовку текста, short gate, generation/budget snapshot,
+поэлементную регистрацию и сохранение полного ответа. `IntakeSessions` связывает session операции.
+
+Инфраструктурные `ProjectContentSource`, `PreparedRegistry`, `PreparedTemplate`, `EpisodeResources`
+и rendering реализуют ports. Пустая schema2 — versioned ресурс пакета; чтение live registry не
+мигрирует схему. Настоящий native episode/End остаётся у существующего HookService. Общие
+SessionEstablisher/CallerIdentity и SavedResponse переиспользуются с другими потребителями;
+новый Task/Sprint/evidence lifecycle не создаётся.
+
+`CoordinationStore` отвергает существующие non-object записи до обращения к полям.
+`EpisodeResources` проверяет owner/path/episode и перечитывает его под gate перед восстановлением:
+старый A не перезаписывает допущенный B. Exact End перепроверяется перед удалением своего
+temporary tree, внешние control/diagnostic/coordination/template сохраняются. Source code,
+настройки live hooks и пути работающей установки не загружаются из читаемого checkout.
+
+[Публичный контракт](../configuration/project-file-reading.md#назначение-и-явные-входы) и
+[жизненный цикл](../workflows/file-intake-lifecycle.md#допуск-и-владение) отделены от
+[специализированного acknowledged reader](../workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).
+Общий перехват обычных инструментов и автоматический compaction reset не являются поведением
+этой композиции.

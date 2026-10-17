@@ -1,0 +1,62 @@
+[
+  {
+    "field": "key",
+    "value": "",
+    "error": "invalid_request"
+  },
+  {
+    "field": "key",
+    "value": null,
+    "error": "invalid_request"
+  },
+  {
+    "field": "key",
+    "value": false,
+    "error": "invalid_request"
+  },
+  {
+    "field": "key",
+    "value": [],
+    "error": "invalid_request"
+  },
+  {
+    "field": "key",
+    "value": "bad/key",
+    "error": "invalid_request"
+  },
+  {
+    "field": "path",
+    "value": "",
+    "error": "invalid_path"
+  },
+  {
+    "field": "path",
+    "value": null,
+    "error": "invalid_path"
+  },
+  {
+    "field": "path",
+    "value": false,
+    "error": "invalid_path"
+  },
+  {
+    "field": "path",
+    "value": [],
+    "error": "invalid_path"
+  },
+  {
+    "field": "key",
+    "delete": true,
+    "error": "invalid_request"
+  },
+  {
+    "field": "path",
+    "delete": true,
+    "error": "invalid_request"
+  },
+  {
+    "field": "selection",
+    "delete": true,
+    "error": "invalid_request"
+  }
+]

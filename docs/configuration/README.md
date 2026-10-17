@@ -18,3 +18,6 @@
 - [test-package-cache.md](test-package-cache.md)
 - [test-packages.md](test-packages.md)
 - [wsl-local-delivery.md](wsl-local-delivery.md)
+
+- [project-file-reading.md](project-file-reading.md) — общий reader, обе политики, операции, рамки и ошибки.
+- [Жизненный цикл reader](../workflows/file-intake-lifecycle.md) — шаблон, native admission и восстановление.

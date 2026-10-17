@@ -334,3 +334,21 @@ retirement повторно наблюдает постоянный резуль
 неявный договор, полномочия приёмки/интеграции не выводятся из settlement.
 Точные формы и ограничения — в [договоре
 поставки](../workflows/terminal-materials.md#публичный-договор-поставки).
+
+## Общее чтение частей файлов проекта
+
+Реализован `content-read` и Python JSON-порт общего чтения зарегистрированного checkout без
+Task/Sprint. Поддержаны UTF-8 complete/lines, SHA выбранного текста, строгие packet/policy поля,
+current-generation repeat и явный manual переход, консервативный полный budget preflight,
+поэлементные факты и полные JSON/text результаты. Пустой schema2 template поставляется
+versioned Python resource; native admission и exact-End recovery используют существующий owner.
+Stale recovery прежнего episode сохраняет нового владельца; неверный JSON root owner record
+возвращает structured ownership_unknown с сохранением данных.
+
+Поставка проверяется offline wheel/noneditable install, изолированным `-I` CLI consumer и
+настоящим isolated SDK lifecycle, включая оба обезличенных профиля. Ссылки на
+[политику и исполняемые примеры](../configuration/project-file-reading.md#проверка-поставленных-примеров)
+и [жизненный цикл](../workflows/file-intake-lifecycle.md#границы-поставки-и-проверка) определяют
+текущую возможность. Это не общий перехват всех tool results и не автоматический reset при
+compaction; специализированный acknowledged SourceReader сохраняет собственный API.
+Регистрация текста не является доказательством памяти модели, доставки или provider billing.

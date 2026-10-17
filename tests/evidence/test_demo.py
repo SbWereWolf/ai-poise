@@ -47,8 +47,8 @@ def test_documented_evidence_cli_routes(tmp_path,scenario,commands,args,decision
     reviewer=json.loads((home/'reviewer-caller.json').read_text())
     assert reviewer['schema']=='poise-caller-binding-1'
     assert reviewer['caller_id'] != caller['caller_id']
-    handoffs=[call for call in data['calls'] if call['operation']=='handoff']
-    assert len(handoffs)==(3 if scenario=='observe_feedback' else 1)
-    assert all(call['status']=='handed_off' for call in handoffs)
+    releases=[call for call in data['calls'] if call['operation']=='release']
+    assert len(releases)==(3 if scenario=='observe_feedback' else 1)
+    assert all(call['status']=='ownership_released' for call in releases)
     config=json.loads((home/'project.json').read_text())
     assert 'LANG' in config['environment_names']

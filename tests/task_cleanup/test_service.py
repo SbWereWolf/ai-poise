@@ -202,16 +202,16 @@ def test_cleanup_blocks_when_the_registered_branch_commit_has_drifted(project):
     assert git(project["app"], "rev-parse", "HEAD") == main_before
 
 
-def test_dirty_standalone_worktree_remains_blocked_after_disposition_replay(project):
-    # A preservation intent grants no permission to discard unfinished bytes.
-    # Authorized discard is covered separately through the real cancel path.
+@pytest.mark.parametrize("disposition", ["preserved", "discard_authorized"])
+def test_dirty_standalone_worktree_remains_blocked_after_disposition_replay(project, disposition):
+    # Neither preservation nor explicit discard permits dirty worktree deletion.
     tools, worktree, commit, _ = prepare_cancelled_task(project)
     marker = worktree / "unfinished.txt"
     marker.write_bytes(b"uncommitted user work\n")
-    packet = request("cleanup", cleanup_input(commit, kind="preserved"))
+    packet = request("cleanup", cleanup_input(commit, kind=disposition))
 
     blocked = tools.invoke(packet)
-    assert blocked["status"] == "cleanup_blocked"
+    assert blocked["status"] == "cleanup_blocked", "DIRTY_DISCARD_MUST_REQUIRE_CLEAN_CHECKPOINT"
     assert blocked["blocker"]["reason"] == "dirty_worktree_requires_decision"
 
     replay = tools.invoke(packet)

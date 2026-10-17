@@ -116,7 +116,8 @@ def test_cancelled_cleanup_retries_with_independent_missing_layers(project, monk
     assert foreign_rows(tools) == unrelated
 
 
-def test_cancelled_no_result_task_releases_allocated_worktree_branch_and_service_material(project):
+@pytest.mark.parametrize("dirty", [False, True], ids=["clean", "dirty"])
+def test_cancelled_no_result_task_releases_allocated_worktree_branch_and_service_material(project, dirty):
     tools, task = _prepare(project, worktree_required=True)
     context = _start(tools, task)
     root = Path(context["task_root"])
@@ -124,7 +125,8 @@ def test_cancelled_no_result_task_releases_allocated_worktree_branch_and_service
     (root / "internal-plan.txt").write_bytes(b"discarded planning material\n")
     worktree = Path(context["worktree"])
     branch = tools.runtime.current_task()["branch"]
-    (worktree / "scratch.note").write_bytes(b"unrequested unfinished material\n")
+    if dirty:
+        (worktree / "scratch.note").write_bytes(b"unfinished material must survive cancellation\n")
     foreign, keep = create_unrelated_task(project, root)
     unrelated = foreign_rows(tools)
     adapter = tools.runtime.cleanup_tools.adapter
@@ -144,11 +146,20 @@ def test_cancelled_no_result_task_releases_allocated_worktree_branch_and_service
     cancelled = tools.invoke(request("cancel", {"reason": "Discard this Task and its unrequested work."}))
 
     assert cancelled["status"] == "cancelled"
-    assert not root.exists(), "CANCELLED_TASK_ROOT_RETAINED"
-    assert not worktree.exists()
-    assert not service_root.exists()
-    assert branch not in git(project["app"], "for-each-ref", "--format=%(refname:short)", "refs/heads").splitlines()
-    assert str(worktree) not in git(project["app"], "worktree", "list", "--porcelain")
+    if dirty:
+        assert cancelled['cleanup']['status'] == 'cleanup_blocked', 'DIRTY_RUNTIME_CANCELLATION_MUST_KEEP_WORK'
+        assert cancelled['cleanup']['blocker']['reason'] == 'dirty_worktree_requires_decision'
+        assert root.is_dir() and worktree.is_dir() and service_root.is_dir()
+        assert (worktree / 'scratch.note').read_bytes() == b'unfinished material must survive cancellation\n'
+        assert branch in git(project['app'], 'for-each-ref', '--format=%(refname:short)', 'refs/heads').splitlines()
+        for kind in ('temporary', 'temporary_backup'):
+            assert (adapter.resource_root(task['id'], kind) / 'internal.txt').read_bytes() == b'unrequested service material\n'
+    else:
+        assert not root.exists(), "CANCELLED_TASK_ROOT_RETAINED"
+        assert not worktree.exists()
+        assert not service_root.exists()
+        assert branch not in git(project["app"], "for-each-ref", "--format=%(refname:short)", "refs/heads").splitlines()
+        assert str(worktree) not in git(project["app"], "worktree", "list", "--porcelain")
     assert keep.read_bytes() == b"unrelated working material\n"
     assert other_resource.read_bytes() == b"foreign service material\n"
     assert foreign_rows(tools) == unrelated

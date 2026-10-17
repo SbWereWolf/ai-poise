@@ -29,11 +29,21 @@ def removals(calls):
     return [call for call in calls if call[:2] == ('worktree', 'remove')]
 
 
-def test_authorized_cancel_discards_dirty_owned_work_and_preserves_foreign_work(project, monkeypatch):
+@pytest.mark.parametrize('dirty_kind', ['untracked', 'unstaged', 'staged'])
+def test_authorized_cancel_preserves_dirty_work_until_clean_checkpoint(project, monkeypatch, dirty_kind):
     tools, root, _, _ = arrange(project)
     record = tools.runtime.current_task()
     tree = Path(record['worktree'])
-    (tree / 'unfinished.txt').write_bytes(b'Unrequested unfinished Task material\n')
+    if dirty_kind == 'untracked':
+        unfinished = tree / 'unfinished.txt'
+    else:
+        unfinished = tree / 'src/delivered.py'
+    unfinished.write_bytes(b'Unfinished Task material must survive cancellation\n')
+    if dirty_kind == 'staged':
+        git(tree, 'add', '--', 'src/delivered.py')
+    index_before = git(tree, 'diff', '--cached', '--binary')
+    status_before = git(tree, 'status', '--porcelain', '--untracked-files=all')
+    tree_head = git(tree, 'rev-parse', 'HEAD')
     foreign = project['root'].parent / 'foreign-worktree'
     git(project['app'], 'worktree', 'add', '-b', 'foreign-owned', str(foreign), 'main')
     keep = foreign / 'operator-note.txt'
@@ -42,13 +52,19 @@ def test_authorized_cancel_discards_dirty_owned_work_and_preserves_foreign_work(
     primary_head = git(project['app'], 'rev-parse', 'HEAD')
     calls = observe_commands(monkeypatch, tools.runtime.cleanup_tools.adapter)
 
-    result = tools.invoke(request('cancel', {'reason': 'Discard this Task and its unfinished working materials.'}))
+    result = tools.invoke(request('cancel', {'reason': 'Cancel this Task; cleanup requires a clean checkpoint.'}))
 
     assert result['status'] == 'cancelled'
+    assert result['cleanup']['status'] == 'cleanup_blocked', 'DIRTY_CANCELLATION_MUST_PRESERVE_WORKTREE'
+    assert result['cleanup']['blocker']['reason'] == 'dirty_worktree_requires_decision'
     assert result['cleanup']['disposition']['kind'] == 'discard_authorized'
-    assert removals(calls) == [('worktree', 'remove', '--force', str(tree))]
-    assert not tree.exists() and not root.exists()
-    assert not branch_exists(project)
+    assert removals(calls) == []
+    assert not any(call[:2] == ('update-ref', '-d') for call in calls)
+    assert tree.is_dir() and root.is_dir() and branch_exists(project)
+    assert unfinished.read_bytes() == b'Unfinished Task material must survive cancellation\n'
+    assert git(tree, 'rev-parse', 'HEAD') == tree_head
+    assert git(tree, 'diff', '--cached', '--binary') == index_before
+    assert git(tree, 'status', '--porcelain', '--untracked-files=all') == status_before
     assert keep.read_bytes() == b'Foreign unfinished material\n'
     assert git(foreign, 'rev-parse', 'HEAD') == foreign_head
     assert git(project['app'], 'rev-parse', 'HEAD') == primary_head

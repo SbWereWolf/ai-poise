@@ -197,7 +197,7 @@ class HookSettings:
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
     def command(self,verb,*args):
-        return self._direct_command(['-B'],verb,*args)
+        return self._direct_command(['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
 
     def launcher_bytes(self, binding_path):
         return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + ' "$@"\n').encode()
@@ -209,7 +209,7 @@ class HookSettings:
             self._superseded_guarded_command(['-B'],verb,*args),
             self._superseded_guarded_command([],verb,*args),
             self._direct_command([],verb,*args),
-        )
+        ) + ((self._direct_command(['-B'],verb,*args)+' "$@"',) if verb=='hook-work' else ())
 
 
 def _read_definition(settings,path):

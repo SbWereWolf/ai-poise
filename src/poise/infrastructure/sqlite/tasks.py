@@ -188,9 +188,9 @@ class SqliteTaskRepository:
                 "stage": row["stage"], "iteration": row["iteration"],
                 "submission_id": row["submission_id"]}
 
-    def ownership_event_suffix(
+    def _event_range(
         self, task_id: str, after_version: int, through_version: int
-    ) -> tuple[str, ...]:
+    ) -> list[dict] | None:
         rows = self.db.execute(
             "SELECT version,data FROM task_events "
             "WHERE task_id=? AND version>? AND version<=? ORDER BY version",
@@ -199,8 +199,16 @@ class SqliteTaskRepository:
         if [row["version"] for row in rows] != list(
             range(after_version + 1, through_version + 1)
         ):
+            return None
+        return [{**json.loads(row["data"]), "version": row["version"]} for row in rows]
+
+    def ownership_event_suffix(
+        self, task_id: str, after_version: int, through_version: int
+    ) -> tuple[str, ...]:
+        rows = self._event_range(task_id, after_version, through_version)
+        if rows is None:
             return ()
-        events = tuple(json.loads(row["data"])["event"] for row in rows)
+        events = tuple(row["event"] for row in rows)
         ownership_events = {
             "handed_off",
             "handoff_resumed",
@@ -208,6 +216,39 @@ class SqliteTaskRepository:
             "ownership_released",
         }
         return events if set(events) <= ownership_events else ()
+
+    def verified_ownership_history(
+        self, task_id: str, stage_id: str, iteration: int,
+        submission_digest: str, through_version: int,
+    ) -> dict | None:
+        current = self.db.execute(
+            "SELECT t.version,t.current_submission_id,s.digest,s.stage,s.iteration "
+            "FROM tasks t JOIN submissions s "
+            "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
+            (task_id,),
+        ).fetchone()
+        if (current is None or current["version"] != through_version
+                or current["digest"] != submission_digest
+                or current["stage"] != stage_id or current["iteration"] != iteration):
+            return None
+        submission_id = current["current_submission_id"]
+        anchor = self.db.execute(
+            "SELECT version FROM task_events WHERE task_id=? AND version<=? "
+            "AND json_extract(data,'$.event')='verified' "
+            "AND json_extract(data,'$.submission')=? "
+            "AND json_extract(data,'$.stage')=? AND json_extract(data,'$.iteration')=? "
+            "ORDER BY version DESC LIMIT 1",
+            (task_id, through_version, submission_id, stage_id, iteration),
+        ).fetchone()
+        if anchor is None:
+            return None
+        events = self._event_range(task_id, anchor["version"] - 1, through_version)
+        if events is None:
+            return None
+        return {"task_id": task_id, "submission_id": submission_id,
+                "submission_digest": submission_digest, "stage_id": stage_id,
+                "iteration": iteration, "through_version": through_version,
+                "events": events}
 
     def _newborn_metadata(self, newborn, config_hash):
         metadata = newborn.metadata(config_hash)

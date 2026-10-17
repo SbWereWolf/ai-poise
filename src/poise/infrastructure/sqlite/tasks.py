@@ -188,9 +188,11 @@ class SqliteTaskRepository:
                 "stage": row["stage"], "iteration": row["iteration"],
                 "submission_id": row["submission_id"]}
 
-    def ownership_event_suffix(
+    def versioned_event_suffix(
         self, task_id: str, after_version: int, through_version: int
-    ) -> tuple[str, ...]:
+    ) -> tuple[tuple[int, dict], ...] | None:
+        if through_version < after_version:
+            return None
         rows = self.db.execute(
             "SELECT version,data FROM task_events "
             "WHERE task_id=? AND version>? AND version<=? ORDER BY version",
@@ -199,8 +201,16 @@ class SqliteTaskRepository:
         if [row["version"] for row in rows] != list(
             range(after_version + 1, through_version + 1)
         ):
+            return None
+        return tuple((row['version'], json.loads(row['data'])) for row in rows)
+
+    def ownership_event_suffix(
+        self, task_id: str, after_version: int, through_version: int
+    ) -> tuple[str, ...]:
+        suffix = self.versioned_event_suffix(task_id, after_version, through_version)
+        if suffix is None:
             return ()
-        events = tuple(json.loads(row["data"])["event"] for row in rows)
+        events = tuple(data['event'] for _, data in suffix)
         ownership_events = {
             "handed_off",
             "handoff_resumed",

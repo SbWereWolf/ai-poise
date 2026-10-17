@@ -1,0 +1,383 @@
+{
+  "environment": "dev",
+  "version": "local-dev-host-runtime.1.0.0",
+  "runtimeCompatibilityContractPath": "platform-infrastructure/contracts/runtime-compatibility.json",
+  "phpExecutable": "/usr/bin/php",
+  "hostToolTimeoutSeconds": {
+    "probe": 5,
+    "command": 20,
+    "repair": 40
+  },
+  "redisCliExecutable": "redis-cli",
+  "redis": {
+    "mode": "standalone-container",
+    "image": "redis:7.4-alpine",
+    "host": "127.0.0.1",
+    "port": 6379,
+    "readinessTimeoutSeconds": 5,
+    "command": [
+      "docker",
+      "run",
+      "--name",
+      "erp-local-dev-redis",
+      "--publish",
+      "127.0.0.1:6379:6379",
+      "redis:7.4-alpine"
+    ]
+  },
+  "variants": {
+    "wsl-full-host": {
+      "requiredPhpExtensions": [
+        "bcmath",
+        "dom",
+        "pcntl",
+        "posix"
+      ],
+      "hostProcesses": [
+        {
+          "name": "planning-workspace-web",
+          "placement": "host",
+          "workingDirectory": "planning-workspace",
+          "command": [
+            "php",
+            "artisan",
+            "serve",
+            "--host=127.0.0.1",
+            "--port=8000",
+            "--tries=1"
+          ]
+        },
+        {
+          "name": "calculation-service-web",
+          "placement": "host",
+          "workingDirectory": "calculation-service",
+          "command": [
+            "php",
+            "artisan",
+            "serve",
+            "--host=127.0.0.1",
+            "--port=8301",
+            "--tries=1"
+          ]
+        },
+        {
+          "name": "system-admin-web",
+          "placement": "host",
+          "workingDirectory": "system-admin",
+          "command": [
+            "php",
+            "artisan",
+            "serve",
+            "--host=127.0.0.1",
+            "--port=8311",
+            "--tries=1"
+          ]
+        }
+      ],
+      "nodeProcesses": [
+        {
+          "name": "document-ui-vite",
+          "placement": "host",
+          "workingDirectory": "document-ui",
+          "command": [
+            "npm",
+            "run",
+            "dev",
+            "--",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "5173"
+          ]
+        }
+      ],
+      "workerProcesses": [
+        {
+          "name": "calculation-service-worker",
+          "placement": "host",
+          "workingDirectory": "calculation-service",
+          "command": [
+            "php",
+            "artisan",
+            "queue:work",
+            "planning-workspace-to-calculation-service",
+            "--queue=calculations",
+            "--sleep=1",
+            "--tries=1",
+            "--timeout=0"
+          ]
+        },
+        {
+          "name": "planning-workspace-worker",
+          "placement": "host",
+          "workingDirectory": "planning-workspace",
+          "command": [
+            "php",
+            "artisan",
+            "queue:work",
+            "planning-workspace-to-planning-workspace",
+            "--queue=planning-workspace",
+            "--sleep=1",
+            "--tries=1",
+            "--timeout=0"
+          ]
+        },
+        {
+          "name": "planning-workspace-events-worker",
+          "placement": "host",
+          "workingDirectory": "planning-workspace",
+          "command": [
+            "php",
+            "artisan",
+            "queue:work",
+            "calculation-service-to-planning-workspace",
+            "--queue=calculation-events",
+            "--sleep=1",
+            "--tries=3",
+            "--timeout=0"
+          ]
+        },
+        {
+          "name": "planning-workspace-export-scheduler",
+          "placement": "host",
+          "workingDirectory": "planning-workspace",
+          "command": [
+            "php",
+            "artisan",
+            "schedule:work"
+          ]
+        }
+      ]
+    },
+    "native-windows-hybrid": {
+      "requiredPhpExtensions": [
+        "bcmath",
+        "dom",
+        "redis"
+      ],
+      "hostProcesses": [
+        {
+          "name": "planning-workspace-web",
+          "placement": "host",
+          "workingDirectory": "planning-workspace",
+          "command": [
+            "php",
+            "artisan",
+            "serve",
+            "--host=127.0.0.1",
+            "--port=8000"
+          ]
+        },
+        {
+          "name": "system-admin-web",
+          "placement": "host",
+          "workingDirectory": "system-admin",
+          "command": [
+            "php",
+            "artisan",
+            "serve",
+            "--host=127.0.0.1",
+            "--port=8311"
+          ]
+        }
+      ],
+      "nodeProcesses": [
+        {
+          "name": "document-ui-vite",
+          "placement": "host",
+          "workingDirectory": "document-ui",
+          "command": [
+            "npm",
+            "run",
+            "dev",
+            "--",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "5173"
+          ]
+        }
+      ],
+      "workerProcesses": [
+        {
+          "name": "calculation-service-horizon",
+          "placement": "container",
+          "workingDirectory": "platform-infrastructure/compose",
+          "command": [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.dev.yml",
+            "up",
+            "calculation-service-dev"
+          ]
+        },
+        {
+          "name": "planning-workspace-worker",
+          "placement": "container",
+          "workingDirectory": "platform-infrastructure/compose",
+          "command": [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.dev.yml",
+            "up",
+            "planning-workspace-worker-dev"
+          ]
+        },
+        {
+          "name": "planning-workspace-export-scheduler",
+          "placement": "container",
+          "workingDirectory": "platform-infrastructure/compose",
+          "command": [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.dev.yml",
+            "up",
+            "planning-workspace-export-scheduler-dev"
+          ]
+        }
+      ]
+    }
+  },
+  "queueDatabaseBootstrap": {
+    "provisioner": "platform-infrastructure/tools/local-database-provisioner.sh",
+    "environmentFile": "platform-infrastructure/config/dev/local-development.env",
+    "workersCreateDatabasesOrTables": false,
+    "routes": [
+      {
+        "sender": "planning-workspace",
+        "recipient": "calculation-service",
+        "environmentVariable": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_DATABASE_PATH",
+        "queue": "calculations"
+      },
+      {
+        "sender": "planning-workspace",
+        "recipient": "planning-workspace",
+        "environmentVariable": "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+        "queue": "planning-workspace"
+      },
+      {
+        "sender": "calculation-service",
+        "recipient": "planning-workspace",
+        "environmentVariable": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+        "queue": "calculation-events"
+      }
+    ]
+  },
+  "nodeExecutable": "var/runtime/node/bin/node",
+  "nodeArguments": [],
+  "phpArguments": [],
+  "expectedToolchainIdentity": {
+    "php": {
+      "majorMinor": "8.4"
+    },
+    "node": {
+      "majorMinor": "22.23",
+      "modulesAbi": 127
+    }
+  },
+  "testRunners": {
+    "phpunit": {
+      "entryPoint": "platform-infrastructure/tools/php-test-runner.php",
+      "requiredExtensions": [
+        "simplexml"
+      ]
+    },
+    "playwright": {
+      "entryPoint": "platform-infrastructure/tests/playwright/node_modules/@playwright/test/cli.js",
+      "defaultProfile": "automatic",
+      "profiles": {
+        "automatic": "platform-infrastructure/tests/playwright/playwright.cjm.config.mjs",
+        "local-development": "platform-infrastructure/tests/playwright/playwright.cjm.local-development.config.mjs",
+        "visual-review": "platform-infrastructure/tests/playwright/playwright.cjm.visual-review.config.mjs"
+      }
+    }
+  },
+  "composerExecutable": "/usr/local/bin/composer",
+  "npmExecutable": "var/runtime/node/bin/npm",
+  "localBootstrap": {
+    "schemaVersion": 1,
+    "variant": "wsl-full-host",
+    "phpApplications": [
+      "planning-workspace",
+      "calculation-service",
+      "system-admin"
+    ],
+    "nodeApplications": [
+      "document-ui",
+      "platform-infrastructure/tests/playwright"
+    ],
+    "runtimeDirectories": [
+      "database",
+      "bootstrap/cache",
+      "storage/app",
+      "storage/framework/cache/data",
+      "storage/framework/sessions",
+      "storage/framework/views",
+      "storage/logs"
+    ],
+    "applicationDatabases": [
+      "PLANNING_WORKSPACE_DATABASE_PATH",
+      "SYSTEM_ADMIN_DATABASE_PATH"
+    ],
+    "queueDatabases": [
+      "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_DATABASE_PATH",
+      "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+      "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH"
+    ],
+    "initialization": [
+      {
+        "application": "planning-workspace",
+        "arguments": [
+          "artisan",
+          "migrate",
+          "--force",
+          "--no-interaction"
+        ]
+      },
+      {
+        "application": "system-admin",
+        "arguments": [
+          "artisan",
+          "migrate",
+          "--force",
+          "--no-interaction"
+        ]
+      },
+      {
+        "application": "planning-workspace",
+        "arguments": [
+          "artisan",
+          "runtime:bootstrap-settings",
+          "--no-interaction"
+        ]
+      }
+    ],
+    "requiredTables": {
+      "planning-workspace": [
+        "draft",
+        "plan",
+        "plan_calculation",
+        "terminal_operation_notifications",
+        "migrations",
+        "calculation_lifecycle_outbox",
+        "calculation_lifecycle_receipts",
+        "calculation_lifecycle_projection"
+      ],
+      "system-admin": [
+        "artifact_packages",
+        "artifact_package_upload_audits",
+        "sessions",
+        "migrations"
+      ]
+    },
+    "rootDirectories": [
+      "var/local-development/browser-home"
+    ],
+    "initializationTimeoutSeconds": 180,
+    "dependencyInstallTimeoutSeconds": 600
+  },
+  "npmEntryPoint": "var/runtime/node/lib/node_modules/npm/bin/npm-cli.js"
+}

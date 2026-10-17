@@ -1,0 +1,23 @@
+[
+  {
+    "case": "no_native_start"
+  },
+  {
+    "case": "generated_caller"
+  },
+  {
+    "case": "conflicting_identity"
+  },
+  {
+    "case": "unregistered_settings_association"
+  },
+  {
+    "case": "foreign_registered_settings"
+  },
+  {
+    "case": "ended_episode"
+  },
+  {
+    "case": "unknown_after_contradictory_stop"
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "unsupported_documents": [
+    {"kind": "array", "raw": "[]\n"},
+    {"kind": "null", "raw": "null\n"},
+    {"kind": "boolean", "raw": "false\n"},
+    {"kind": "number", "raw": "17\n"},
+    {"kind": "string", "raw": "\"unsupported-owner\"\n"}
+  ],
+  "malformed_document": "{\"schema\":\n",
+  "selected_content": "βeta\nlast",
+  "coordination": {
+    "wait_seconds": 120,
+    "recovery_budget_seconds": 120,
+    "host_event_budget_seconds": 120
+  },
+  "valid_context": {
+    "schema": "poise-content-read-result-1",
+    "status": "ready",
+    "operation": "context",
+    "project": "@PROJECT@",
+    "checkout": "@CHECKOUT@",
+    "policy_sha256": "@POLICY_SHA256@",
+    "context": {
+      "caller_key": "@CALLER_KEY@",
+      "checkout_key": null,
+      "generation": 0,
+      "admission_mode": "native_hook",
+      "native_episode": null
+    },
+    "items": [],
+    "summary": {
+      "cache_entries": 1,
+      "event_count": 1,
+      "content_events": 1,
+      "unchanged_events": 0,
+      "model_content_bytes": 10,
+      "avoided_bytes": 0
+    },
+    "details": null,
+    "error": null,
+    "response_path": null
+  },
+  "owner_failure": {
+    "schema": "poise-content-read-result-1",
+    "status": "failed",
+    "operation": "context",
+    "project": "@PROJECT@",
+    "checkout": "@CHECKOUT@",
+    "policy_sha256": "@POLICY_SHA256@",
+    "context": null,
+    "items": [],
+    "summary": null,
+    "details": null,
+    "error": {
+      "code": "ownership_unknown",
+      "key": null,
+      "field": "session",
+      "message": "Владение существующим каталогом не подтверждено.",
+      "action": "Сохраните каталог; используйте допустимое явное принятие либо восстановление владельцем."
+    },
+    "response_path": null
+  },
+  "stale_recovery": {
+    "schema": "poise-content-read-result-1",
+    "status": "stale",
+    "operation": "recover",
+    "project": "@PROJECT@",
+    "checkout": "@CHECKOUT@",
+    "policy_sha256": "@POLICY_SHA256@",
+    "context": null,
+    "items": [],
+    "summary": null,
+    "details": {
+      "path": null,
+      "episode": null
+    },
+    "error": {
+      "code": "episode_mismatch",
+      "key": null,
+      "field": "admission",
+      "message": "Наблюдаемый эпизод отличается от владельца ресурса.",
+      "action": "Продолжите восстановление через действительного владельца эпизода."
+    },
+    "response_path": null
+  }
+}

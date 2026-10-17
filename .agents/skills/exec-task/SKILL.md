@@ -136,6 +136,9 @@ Before executing each logical stage, design only that imminent stage's goal, res
    result, confirm public release, then follow the [handoff
    contract](../../references/context-handoff-contract.md).
    There are only executor and reviewer; self-review does not impersonate the other role.
+   In paired work, communicate only at Task handoff. The executor owns working decisions and
+   applies corrections; the reviewer checks the handed-over design or result. Save questions and
+   decisions with that result instead of requesting separate approvals during execution.
 7. Diagnose failures from saved evidence. Before retrying an effectful action, determine what
    completed and how the owning API resumes it idempotently. If the frozen requirements/rules make
    success impossible or the available workaround is not adequate to the Task, preserve the evidence

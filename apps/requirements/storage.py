@@ -86,6 +86,16 @@ class SavedRevisions:
             raise PoiseError(f'unknown Task snapshot revision: {snapshot_revision}')
         return _decoded(row['payload'], dict, 'Task snapshot')
 
+    def references_requirement(self, requirement_id):
+        for row in self.snapshots.values():
+            snapshot = _decoded(row['payload'], dict, 'Task snapshot')
+            requirements = snapshot.get('requirements')
+            if not isinstance(requirements, dict):
+                raise PoiseError('Task snapshot: requirements must be an object')
+            if requirement_id in requirements:
+                return True
+        return False
+
 
 class StandaloneBackend:
     def initialize(self, connection):
@@ -108,6 +118,26 @@ class StandaloneBackend:
 
     def task_drafts(self, connection):
         return TaskDraftRepository(connection, self)
+
+    @staticmethod
+    def _reference_ids(connection):
+        identifiers = {row[0] for row in connection.execute(
+            'SELECT system_id FROM main.system_application_versions '
+            'UNION SELECT application_id FROM main.system_application_versions '
+            'UNION SELECT application_id FROM main.application_purposes '
+            'UNION SELECT application_id FROM main.application_purpose_revisions'
+        )}
+        tables = {row[0] for row in connection.execute(
+            "SELECT name FROM main.sqlite_master WHERE type='table' "
+            "AND name IN ('requirement_entities','requirement_actions')"
+        )}
+        if 'requirement_entities' in tables:
+            identifiers.update(row[0] for row in connection.execute(
+                'SELECT requirement_id FROM main.requirement_entities'))
+        if 'requirement_actions' in tables:
+            identifiers.update(row[0] for row in connection.execute(
+                'SELECT requirement_id FROM main.requirement_actions'))
+        return identifiers
 
     def registry_rows(self, connection):
         requirements = [dict(row) for row in connection.execute(
@@ -151,6 +181,7 @@ class StandaloneBackend:
             'requirements': requirements, 'links': links, 'task_identities': identities,
             'task_requirement_versions': versions, 'application_task_links': task_links,
             'revisions': SavedRevisions(statements, requirement_revisions, snapshots, creations),
+            'reference_ids': self._reference_ids(connection),
             'owner_revision': connection.execute(
                 'SELECT revision FROM main.requirements_meta').fetchone()['revision'],
             'outcomes': [dict(row) for row in connection.execute(
@@ -191,8 +222,12 @@ class StandaloneBackend:
 
     def persist_apply(self, connection, before, after, revision, request_id, intent, response):
         origin = _json({'type': 'explicit', 'request_id': request_id})
+        retired = set(after['deleted_requirements'])
+        for identifier in sorted(retired):
+            connection.execute('DELETE FROM main.requirement_revisions WHERE id=?', (identifier,))
+            connection.execute('DELETE FROM main.requirements WHERE id=?', (identifier,))
         for identifier, value in after['requirements'].items():
-            previous = before['requirements'].get(identifier)
+            previous = None if identifier in retired else before['requirements'].get(identifier)
             if previous == value:
                 continue
             if previous is None:

@@ -35,7 +35,7 @@ class RequirementsGraph:
     @classmethod
     def restore(cls, requirements, links, task_identities,
                 task_requirement_versions, application_task_links, revisions,
-                owner_revision, outcomes, decisions):
+                owner_revision, outcomes, decisions, reference_ids):
         graph = cls()
         graph._registry = RequirementsRegistry.restore(requirements, links)
         graph._current = {
@@ -57,6 +57,8 @@ class RequirementsGraph:
         graph._owner_revision = owner_revision
         graph._publications = {}
         graph._outcomes = OutcomeLedger.restore(outcomes, decisions)
+        graph._reference_ids = set(reference_ids)
+        graph._deleted_requirements = set()
         return graph
 
     def _task(self, task_id):
@@ -152,6 +154,27 @@ class RequirementsGraph:
             [link for link in state['links'] if link != removed],
         )
 
+    def _delete_requirement(self, operation):
+        _exact(operation, {'kind', 'requirement_id'}, 'delete_requirement')
+        identifier = _identifier(operation['requirement_id'], 'requirement_id')
+        self._registry.requirement(identifier)
+        state = self._registry.to_dict()
+        used = (
+            identifier in self._reference_ids
+            or any(identifier in (edge['system'], edge['application']) for edge in state['links'])
+            or any(identifier in entry['applications']
+                   for entries in self._entries.values() for entry in entries)
+            or any(identifier in snapshot['requirements'] for snapshot in self._publications.values())
+            or self._revisions.references_requirement(identifier)
+        )
+        if used:
+            raise DomainError(f'requirement is used: {identifier}')
+        self._registry = RequirementsRegistry.restore(
+            [value for key, value in state['requirements'].items() if key != identifier],
+            state['links'],
+        )
+        self._deleted_requirements.add(identifier)
+
     def apply(self, operations, max_items):
         if not isinstance(operations, list) or not 0 < len(operations) <= max_items:
             raise DomainError('Requirements batch must be bounded and nonempty')
@@ -164,6 +187,8 @@ class RequirementsGraph:
                 graph._revise_task(operation, max_items)
             elif kind == 'unlink':
                 graph._unlink(operation)
+            elif kind == 'delete_requirement':
+                graph._delete_requirement(operation)
             elif kind == 'publish_task':
                 graph._publish_task(operation)
             elif kind == 'record_outcome':
@@ -399,8 +424,9 @@ class RequirementsGraph:
         return self._revisions.task_creation(task_id)
 
     def search_requirements(self, filter, limit, after_id, max_items):
-        if not isinstance(filter, dict) or set(filter) - {'level', 'status', 'text_contains'}:
-            raise DomainError('search filter requires level, status or text_contains')
+        if not isinstance(filter, dict) or set(filter) - {
+                'level', 'status', 'text_contains', 'applicable', 'satisfied'}:
+            raise DomainError('search filter requires level, status, text_contains, applicable or satisfied')
         if 'level' in filter and filter['level'] not in ('system', 'application'):
             raise DomainError('search level must be system or application')
         if 'status' in filter and filter['status'] not in ('current', 'future', 'obsolete'):
@@ -412,10 +438,19 @@ class RequirementsGraph:
             raise DomainError('search limit must be a positive integer within max_items')
         if after_id is not None and (not isinstance(after_id, str) or not after_id):
             raise DomainError('after_id must be a nonempty identifier or null')
+        predicates = {field: filter[field] for field in ('applicable', 'satisfied') if field in filter}
+        if any(type(value) is not bool for value in predicates.values()):
+            raise DomainError('applicable and satisfied must be booleans when supplied')
+        flags = {}
+        if predicates:
+            satisfaction = self.current_satisfaction()
+            flags = {row['id']: row for level in ('systems', 'applications')
+                     for row in satisfaction[level]}
         rows = [node for identifier, node in self._registry.to_dict()['requirements'].items()
                 if (after_id is None or identifier > after_id)
                 and all(node[field] == filter[field] for field in ('level', 'status') if field in filter)
-                and text in node['text']]
+                and text in node['text']
+                and all(flags[identifier][field] == value for field, value in predicates.items())]
         page = rows[:limit]
         return {'rows': page, 'next': page[-1]['id'] if len(rows) > limit else None}
 
@@ -471,5 +506,6 @@ class RequirementsGraph:
             'statements': [{'task_id': task_id, 'statement_revision': revision, **deepcopy(value)}
                            for (task_id, revision), value in sorted(self._new_statements.items())],
             'publications': deepcopy(list(self._publications.values())),
+            'deleted_requirements': sorted(self._deleted_requirements),
             **self._outcomes.pending(),
         }

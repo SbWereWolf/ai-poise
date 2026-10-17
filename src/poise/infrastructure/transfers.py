@@ -1,5 +1,6 @@
 """Compact saved-work delivery through the configured workspace-recover pipeline."""
 from copy import deepcopy
+from ..modules.foundation.errors import DomainError
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -137,24 +138,37 @@ class RuntimeTransfers:
         if old is not None and old['phase'] == 'prepared':
             prepared = ExportPreparation.parse(old)
         else:
-            with h.delivery_effects.locked():
-                prepared = self._prepare_export(args, selected, old)
+            prepared = self._prepare_export(args, selected, old)
         return self._publish_prepared(args, prepared)
 
     def _prepare_export(self, args, selected, old):
         h, c, identity = self.h, self.policy, digest(args)
         h.result_views.finish()
-        tables = self.repo.capture(selected, args['sprint_id'], h.cfg['project'], c['max_tasks'])
+        try:
+            tables = self.repo.capture(selected, args['sprint_id'], h.cfg['project'], c['max_tasks'])
+        except DomainError as exc:
+            if old is not None:
+                raise PoiseError(f'Original export inputs changed before preparation completed: {exc}') from exc
+            raise
         task_ids = [r['id'] for r in tables['tasks']]
         sprint_ids = [r['id'] for r in tables['sprints']]
         preparation = ExportPreparation.parse({'phase': 'preparing', 'task_ids': task_ids,
             'sprint_ids': sprint_ids, 'fingerprint': snapshot_fingerprint(tables)})
         if old is not None and ExportPreparation.parse(old).data != preparation.data:
             raise PoiseError('Original export inputs changed before preparation completed')
-        for task_id in task_ids:
-            h.delivery_tools.material_admission(task_id, 'export')
-        if old is None:
-            self.repo.remember_export(h.session, args['request_id'], identity, preparation.data, expected_phase=None)
+        # Admission and the existing preparing consumer are one atomic decision
+        # with root retirement; traversal/copy/tool work follows after commit.
+        with h.store.unit_of_work() as uow:
+            for row in tables['tasks']:
+                current = uow.tasks.load_state(row['id'])
+                if current.version != row['version'] or current.claimed_by is not None:
+                    raise PoiseError('Export Task authority/version changed before preparation')
+                delivery = uow.task_delivery.read(row['id'])
+                if delivery is not None and delivery.data['retirement_started']:
+                    raise PoiseError('Task working material has been retired')
+            if old is None:
+                uow.transfers.remember_export(h.session, args['request_id'], identity,
+                                              preparation.data, expected_phase=None)
         directory, paths = self._paths(args)
         owners = {'task': {r['id']: str(task_root(h.state, h.paths, r['id'], _sprint_id(r)))
                            for r in tables['tasks']},

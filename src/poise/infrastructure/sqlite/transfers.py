@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded,digest
+from ...modules.foundation.errors import DomainError
 from ...modules.transfers.domain import validate_saved_work, ExportPreparation
 from .database import SCHEMA,SCHEMA_VERSION
 from .tasks import SqliteTaskRepository
@@ -34,32 +35,16 @@ class SqliteTransferRepository:
     def __init__(self,database):self.database=database
 
     def pending_consumers(self, task_id):
-        return self._consumers(task_id, ('preparing', 'prepared'))
+        with self.database.read_transaction() as db:
+            return SqliteTransferContext(db).pending_consumers(task_id)
 
     def preparing_consumers(self, task_id):
-        return self._consumers(task_id, ('preparing',))
-
-    def _consumers(self, task_id, phases):
-        with self.database.transaction() as db:
-            rows = db.execute("SELECT data FROM transfer_requests WHERE json_extract(data,'$.phase') IN (" +
-                              ','.join('?' for _ in phases) + ")", phases)
-            # Import preparation has a different contract and is not an export consumer.
-            return any('task_ids' in data and task_id in ExportPreparation.parse(data).data['task_ids']
-                       for data in (json.loads(row[0]) for row in rows))
+        with self.database.read_transaction() as db:
+            return SqliteTransferContext(db).preparing_consumers(task_id)
 
     def remember_export(self, actor, rid, identity, data, expected_phase):
-        if data['phase'] != 'complete':
-            ExportPreparation.parse(data)
         with self.database.transaction() as db:
-            prior = db.execute('SELECT digest,data FROM transfer_requests WHERE actor=? AND request_id=?',
-                               (actor, rid)).fetchone()
-            if prior is not None and prior['digest'] != identity:
-                raise PoiseError('Transfer request identity conflict')
-            phase = None if prior is None else json.loads(prior['data'])['phase']
-            if phase != expected_phase:
-                raise PoiseError('Export preparation phase changed concurrently')
-            db.execute('INSERT INTO transfer_requests VALUES(?,?,?,?) ON CONFLICT(actor,request_id) DO UPDATE SET data=excluded.data',
-                       (actor, rid, identity, encoded(data)))
+            SqliteTransferContext(db).remember_export(actor, rid, identity, data, expected_phase)
 
     def request(self,actor,rid,identity):
         with self.database.transaction() as db:
@@ -79,15 +64,15 @@ class SqliteTransferRepository:
         with self.database.transaction() as db:
             if sprint_id is not None:
                 sprint=db.execute('SELECT project,state FROM sprints WHERE id=?',(sprint_id,)).fetchone()
-                if sprint is None or sprint['project']!=project:raise PoiseError('Unknown sprint in this project')
-                if sprint['state']=='draft':raise PoiseError('Publish the sprint draft before transferring it')
+                if sprint is None or sprint['project']!=project:raise DomainError('Unknown sprint in this project')
+                if sprint['state']=='draft':raise DomainError('Publish the sprint draft before transferring it')
                 task_ids=[r[0] for r in db.execute('SELECT task_id FROM sprint_members WHERE sprint_id=? ORDER BY task_id',(sprint_id,))]
-            if not task_ids or len(task_ids)>limit:raise PoiseError('Empty or oversized transfer selection')
+            if not task_ids or len(task_ids)>limit:raise DomainError('Empty or oversized transfer selection')
             q=','.join('?' for _ in task_ids)
             roots=[dict(r) for r in db.execute(f'SELECT * FROM tasks WHERE id IN ({q}) ORDER BY id',task_ids)]
-            if len(roots)!=len(task_ids):raise PoiseError('Unknown task in transfer selection')
+            if len(roots)!=len(task_ids):raise DomainError('Unknown task in transfer selection')
             members=list(db.execute(f'SELECT sprint_id,task_id FROM sprint_members WHERE task_id IN ({q})',task_ids))
-            if any(r['sprint_id']!=sprint_id for r in members):raise PoiseError('Use complete sprint scope, not partial task selection')
+            if any(r['sprint_id']!=sprint_id for r in members):raise DomainError('Use complete sprint scope, not partial task selection')
             released={r[0] for r in db.execute(f"SELECT task_id FROM handoffs WHERE task_id IN ({q}) AND state='released'",task_ids)}
             validate_saved_work(roots,released)
             for row in roots:
@@ -96,7 +81,7 @@ class SqliteTransferRepository:
                 if e is not None:
                     pending=json.loads(e[0])['pending']
                     if pending is not None and not completed_external_execution(pending):
-                        raise PoiseError('Resolve pending execution before transfer')
+                        raise DomainError('Resolve pending execution before transfer')
             data={table:[] for table in ALL_TABLES}
             data['tasks']=roots
             for table in ALL_TABLES:
@@ -221,6 +206,31 @@ class SqliteTransferContext:
     """Imported availability and one-time fresh verification, owned by delivery."""
     def __init__(self, connection):
         self.db = connection
+
+    def pending_consumers(self, task_id):
+        return self._consumers(task_id, ('preparing', 'prepared'))
+
+    def preparing_consumers(self, task_id):
+        return self._consumers(task_id, ('preparing',))
+
+    def _consumers(self, task_id, phases):
+        rows = self.db.execute("SELECT data FROM transfer_requests WHERE json_extract(data,'$.phase') IN (" +
+                               ','.join('?' for _ in phases) + ")", phases)
+        return any('task_ids' in data and task_id in ExportPreparation.parse(data).data['task_ids']
+                   for data in (json.loads(row[0]) for row in rows))
+
+    def remember_export(self, actor, rid, identity, data, expected_phase):
+        if data['phase'] != 'complete':
+            ExportPreparation.parse(data)
+        prior = self.db.execute('SELECT digest,data FROM transfer_requests WHERE actor=? AND request_id=?',
+                                (actor, rid)).fetchone()
+        if prior is not None and prior['digest'] != identity:
+            raise PoiseError('Transfer request identity conflict')
+        phase = None if prior is None else json.loads(prior['data'])['phase']
+        if phase != expected_phase:
+            raise PoiseError('Export preparation phase changed concurrently')
+        self.db.execute('INSERT INTO transfer_requests VALUES(?,?,?,?) ON CONFLICT(actor,request_id) DO UPDATE SET data=excluded.data',
+                        (actor, rid, identity, encoded(data)))
 
     def _receipt_for_owner(self, scope, owner_id):
         owner_ids = {'task': 'task_ids', 'sprint': 'sprint_ids'}[scope]

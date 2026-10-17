@@ -1,11 +1,9 @@
 """Configured material observations and confined effects, not Task lifecycle writes."""
 import json
-from contextlib import contextmanager
 import os
 import shutil
 from pathlib import Path
 from .file_publication import BinaryFilePublisher
-from .locking import exclusive_lock
 from .task_paths import task_root
 from ..common import PoiseError, descendant
 from ..modules.task_cleanup.domain import CleanupRun
@@ -14,14 +12,6 @@ from ..modules.task_cleanup.domain import CleanupRun
 class RuntimeTaskDelivery:
     def __init__(self, runtime):
         self.h = runtime
-
-    @contextmanager
-    def locked(self):
-        h = self.h
-        with h.project_fence.locked():
-            with exclusive_lock(descendant(h.state, h.cfg['batch']['artifact_lock']),
-                                h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds']):
-                yield
 
     def admission(self, task_id, actor):
         record = self.h.task_queries.record(task_id)
@@ -106,26 +96,7 @@ class RuntimeTaskDelivery:
     def preparing_consumer(self, task_id):
         return self.h.transfer_repository.preparing_consumers(task_id)
 
-    def consumer_blocker(self, record):
-        pending = record.get('pending')
-        if isinstance(pending, dict) and pending.get('kind') == 'check_attempt':
-            return 'checks_pending'
-        with self.h.store.unit_of_work() as uow:
-            if any(d['state'] != 'finalized' for d in uow.artifacts.drafts(record['id']).values()):
-                return 'artifact_draft_open'
-            handoff = uow.handoffs.latest_recovery_candidate(record['id'])
-            if handoff is not None and handoff['state'] == 'released':
-                return 'handoff_pending'
-            if uow.tasks.pending_artifact_consumers(record['id']):
-                return 'artifact_consumer_pending'
-        if self.h.transfer_repository.pending_consumers(record['id']):
-            return 'transfer_pending'
-        return None
-
     def blocker(self, record, state):
-        reason = self.consumer_blocker(record)
-        if reason:
-            return reason
         pending = record.get('pending')
         if record['status'] not in ('completed', 'cancelled'):
             return 'task_not_terminal'
@@ -226,11 +197,6 @@ class RuntimeTaskDelivery:
             return None, reason
         return {k: v for k, v in output.items() if k != 'source'}, None
 
-    def retiring_artifacts(self, state):
-        root = Path(state.data['root'])
-        return [r['id'] for r in self.h.store.artifact_records(state.data['task'])
-                if Path(r['path']).is_relative_to(root)]
-
     def remove_owned_root(self, state):
         root = Path(state.data['root'])
         self.h.result_views.finish()
@@ -240,6 +206,8 @@ class RuntimeTaskDelivery:
             def removal_error(function, path, error):
                 # shutil may attach a filename to an errno-less OSError and
                 # obscure its original message. Preserve the actual failure.
+                if isinstance(error, FileNotFoundError):
+                    return
                 raise PoiseError(f'Task removal failed at {path}: {error.args}') from error
             shutil.rmtree(root, onexc=removal_error)
             BinaryFilePublisher.sync_parent(root)

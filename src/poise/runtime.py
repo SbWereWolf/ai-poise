@@ -1136,10 +1136,9 @@ class Poise:
         selected = self.task_queries.record(selected_id) if selected_id is not None else self.store.current(self.session)
         if selected is not None and is_terminal_task_status(selected['status']):
             return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
-        with self.delivery_effects.locked():
-            if selected is not None:
-                self.delivery_tools.material_admission(selected['id'], 'bootstrap')
-            return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        if selected is not None:
+            self.delivery_tools.material_admission(selected['id'], 'bootstrap')
+        return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
 
     def _bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
         if type(force_duplicate_start) is not bool:

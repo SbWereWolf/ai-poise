@@ -5,6 +5,8 @@ import json
 
 from ..modules.foundation.errors import DomainError, VersionConflict
 from ..modules.sprints.domain import Sprint
+from ..modules.task_delivery.domain import MaterialUseIntent
+from ..modules.foundation.errors import PoiseError
 from .ownership import reserve_reuse_in, release_dependent_worktree_in
 from .handoff import HandoffCommands
 
@@ -90,7 +92,8 @@ class DuplicateReuseCommands:
         intent = {'task_id': task_id, 'source_task_id': source_task_id,
                   'request_id': request_id, 'expected_version': expected_version}
         intent_digest = fingerprint(intent)
-        with self.workspace.material_scope():
+        token = None
+        try:
             with self.uow() as uow:
                 task = uow.tasks.load(task_id)
                 saved = None if task.duplicate_reuse is None else json.loads(task.duplicate_reuse)
@@ -120,6 +123,14 @@ class DuplicateReuseCommands:
                     raise DomainError('Pending reuse checks belong to another session; resolve their outcome first')
                 task, context, commit, contract_digest, methods, artifact_source = reuse_inputs_in(uow, task_id, source_task_id)
                 version = task.state.version
+                if saved is None:
+                    ownership = uow.ownership.preflight(actor, task_id)
+                    if (ownership.task_owner not in (None, actor)
+                            or uow.ownership.snapshot(actor).task_id not in (None, task_id)):
+                        raise DomainError('Reuse requires a released Task or its actual current owner')
+                    token = self.workspace.admit_use_in(uow, MaterialUseIntent(
+                        'reuse', task_id, request_id, intent_digest), [task_id, source_task_id],
+                        permanent_sources=[source_task_id])
             self.workspace.admit_material(task_id, source_task_id)
             handoff = (self.workspace.handoff_preflight(task_id)
                        if task.state.claimed_by is None and execution is not None else None)
@@ -147,6 +158,18 @@ class DuplicateReuseCommands:
                     uow.execution.create(task_id, reservation)
                 elif saved is None:
                     uow.execution.patch(task_id, {'last_report': None, 'publication': None})
+                if token is not None:
+                    self.workspace.complete_use_in(uow, token, accepted=True)
+        except (PoiseError, OSError) as exc:
+            with self.uow() as uow:
+                current = uow.tasks.load(task_id)
+                candidate = None if current.duplicate_reuse is None else json.loads(current.duplicate_reuse)['candidate']
+                accepted = candidate is not None and candidate['intent_digest'] == intent_digest
+                if token is not None:
+                    self.workspace.complete_use_in(uow, token, accepted=accepted)
+            if accepted:
+                raise VersionConflict('Original reuse candidate is already reserved; repeat the original request') from exc
+            raise
         self.workspace.reconcile(task_id)
         self.workspace.deliver_artifacts(task_id)
         if saved is not None and saved['verified']:

@@ -8,15 +8,17 @@ from ..application.check_attempts import is_check_attempt
 from ..artifacts import check_counts
 from .artifact_factory import FileArtifactFactory
 from .task_paths import task_root, sprint_root
-from ..common import descendant
 
 
 class DuplicateReuseWorkspace:
     def __init__(self, runtime):
         self.h = runtime
 
-    def material_scope(self):
-        return self.h.delivery_effects.locked()
+    def admit_use_in(self, uow, intent, sources, *, permanent_sources):
+        return self.h.delivery_tools.admit_use_in(uow, intent, sources, permanent_sources=permanent_sources)
+
+    def complete_use_in(self, uow, token, *, accepted):
+        self.h.delivery_tools.complete_use_in(uow, token, accepted=accepted)
 
     def admit_material(self, task_id, source_task_id):
         self.h.delivery_tools.material_admission(task_id, 'reuse')
@@ -117,9 +119,7 @@ class DuplicateReuseWorkspace:
 
     def _artifact_factory(self, roots):
         h = self.h
-        return FileArtifactFactory(roots, h.cfg['batch'],
-            descendant(h.state, h.cfg['batch']['artifact_lock']),
-            h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds'])
+        return FileArtifactFactory(roots, h.cfg['batch'])
 
     def _artifact_rules(self, task_id, context, stage_id, records):
         # Reuse delivers the accepted result, not artifacts for simulated prior stages.

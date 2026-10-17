@@ -884,8 +884,7 @@ class RuntimeResultIntegration:
         return completed, True
 
     def _cleanup(self, run, repository):
-        with self.h.delivery_effects.locked():
-            return self._cleanup_material_scope(run, repository)
+        return self._cleanup_material_scope(run, repository)
 
     def _cleanup_material_scope(self, run, repository):
         if run.phase != "cleanup_pending":

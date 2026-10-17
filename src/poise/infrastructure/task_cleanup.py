@@ -23,8 +23,6 @@ class RuntimeTaskResourceCleanup:
     def __init__(self, runtime):
         self.h = runtime
 
-    def material_scope(self):
-        return self.h.delivery_effects.locked()
 
     def material_gate(self, task_id):
         return self.h.delivery_tools.resource_gate(task_id)

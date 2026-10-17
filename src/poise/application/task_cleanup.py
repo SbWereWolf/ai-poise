@@ -55,8 +55,7 @@ class TaskResourceCleanup:
     def apply(self, args: dict, *, internal=False) -> dict:
         if internal:
             return self._apply(args, internal=True)
-        with self.adapter.material_scope():
-            return self._apply(args, internal=False)
+        return self._apply(args, internal=False)
 
     def _apply(self, args, *, internal):
         intent = CleanupIntent.parse(args, internal=internal)

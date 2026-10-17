@@ -7,7 +7,7 @@ description: Formulate a bounded Poise Task draft from known facts without imple
 
 ## Registration and execution preparation
 
-Follow the [shared contract](../../../docs/workflows/task-execution-contract.md#постановка-и-подготовка-задачи). At registration record the stated goal and optional existing materials only. The detailed procedure below applies when beginning execution preparation, not as a creation gate. Research the actual subject; code research applies only to code tasks. Every requirement condition must change meaning. Do not perform future-stage work. The executor prepares the work; the reviewer reviews it.
+Follow the [shared contract](../../../docs/workflows/task-execution-contract.md#постановка-и-подготовка-задачи). The registration API may record only the stated goal and existing materials. Initial formulation uses available facts and bounded source inspection to state the goal, draft DoR/DoD and a feasible overall path. Detailed stage design is not a creation gate. Research the actual subject; code research applies only to code tasks. Every requirement condition must change meaning. Do not perform future-stage work. The executor prepares the work; the reviewer reviews it.
 
 Use for creating or revising one authorized Task draft. Use
 [sprint-design](../sprint-design/SKILL.md) for a dependency graph and
@@ -28,7 +28,7 @@ workflow, routing and supported public Task schema.
 1. When beginning execution preparation, investigate the actual subject and conditions.
    For code tasks use applicable semantic tools. Do not build a prototype for registration.
    Separate observations from assumptions.
-2. Refine the stated goal and determine requirements and achievable DoD from current
+2. Preserve the registered goal and determine requirements and achievable DoD from current
    conditions, without performing future execution stages. For product development, keep
    incident history and concrete installation facts in the factual basis,
    architectural obligations in constraints, and implementation choices in their
@@ -63,7 +63,7 @@ workflow, routing and supported public Task schema.
    using the selected project's decomposition contract. A paired workflow requires
    independent review after each substantive executor result, not role impersonation.
 5. Use only public create/edit/ready and contract APIs. Preserve identity, ownership,
-   history and source facts. Do not change the meaning of an accepted goal.
+   history and source facts. Do not change the registered goal.
 6. Submit the draft for independent review of scope, feasibility, responsibility
    and allowed_paths. Paths may be narrow or explicitly broad; the reviewer checks
    sufficiency and stage separation, not just whitelist syntax.
@@ -75,6 +75,8 @@ workflow, routing and supported public Task schema.
    and decisions through `verify.criteria_work`. Follow the canonical stage criteria
    contract for authority, exact revisions and execution binding. Changes to bound
    criteria require an authorized restart; do not invent a combined restart endpoint.
+
+Apply [just-in-time stage design](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом): agree the overall stage sequence first; prepare and independently review only the imminent stage's goal, requirements and acceptance criteria before execution. Ordinary refinement of an unstarted stage is not a reason to restart the Task.
 
 ## Output
 

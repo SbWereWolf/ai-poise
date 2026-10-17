@@ -13,7 +13,9 @@ import uuid
 from ..common import descendant, digest, file_digest
 from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
-from ..modules.result_integration.domain import IntegrationRun
+from ..modules.result_integration.domain import (
+    IntegrationBackupScope, IntegrationRun, IntegrationPublicationTarget,
+)
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 from .locking import exclusive_lock
 from .task_cleanup import RuntimeTaskResourceCleanup
@@ -29,8 +31,7 @@ class RuntimeResultIntegration:
         self.cleanup = RuntimeTaskResourceCleanup(runtime)
 
     def _target_ref(self):
-        name = self.h.cfg["git"]["base_ref"]
-        return name if name.startswith("refs/heads/") else f"refs/heads/{name}"
+        return IntegrationPublicationTarget.target_ref_for(self.h.cfg["git"]["base_ref"])
 
     @staticmethod
     def _short_branch(ref):
@@ -52,16 +53,11 @@ class RuntimeResultIntegration:
 
     @staticmethod
     def _identity(intent):
-        return hashlib.sha256(
-            f"{intent.task_id}\0{intent.request_id}".encode()
-        ).hexdigest()[:12]
+        return IntegrationBackupScope.request_identity(intent.task_id, intent.request_id)
 
     def _temporary_backup_directory(self, task_id, request_id):
-        identity = hashlib.sha256(f"{task_id}\0{request_id}".encode()).hexdigest()[:12]
-        return str(
-            descendant(self.h.state, self.h.paths["runtime"])
-            / "result-integration" / task_id / identity
-        )
+        scope = IntegrationBackupScope(str(descendant(self.h.state, self.h.paths["runtime"])))
+        return scope.directory_for(task_id, request_id)
 
     def _read_state(self, task_id):
         """Decode through the existing domain owner without persisting recovery."""

@@ -10,7 +10,7 @@ class TaskQueries:
 
     def stage_criteria(self, task_id, stage_id):
         from ...modules.tasks.stage_criteria import StageCriteriaBook
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row = db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
             if row is None:
                 raise PoiseError('Task not found')
@@ -21,12 +21,12 @@ class TaskQueries:
 
     def resolve_path(self, task_id, path):
         from ...modules.transfers.placement import relocate_path
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()
             return path if row is None else relocate_path(path,json.loads(row['data']))
 
     def section(self, task_id: str, stage_id: str, section_id: str, submission_id: int | None) -> dict:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             sql = ("SELECT s.seq,s.iteration,l.content,l.content_state FROM section_layers l "
                    "JOIN submissions s ON s.seq=l.submission_id AND s.task_id=l.task_id "
                    "WHERE s.task_id=? AND s.stage=? AND l.section_id=?")
@@ -44,12 +44,12 @@ class TaskQueries:
 
     def content(self, task_id: str) -> dict:
         from .tasks import SqliteTaskRepository
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             task = SqliteTaskRepository(db).load(task_id)
             return task.content_policy.describe(task.stage.stage_id, task.content_snapshot)
 
     def trace_point(self, task_id: str, route_id: str, point_id: str, submission_id: int | None) -> dict:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             sql = "SELECT submission_id,data FROM trace_point_layers WHERE task_id=? AND route_id=? AND point_id=?"
             params = [task_id,route_id,point_id]
             if submission_id is not None:
@@ -63,7 +63,7 @@ class TaskQueries:
             return {"task":task_id,"route":route_id,"point":point_id,"submission":row[0],"value":json.loads(row[1])}
 
     def current_submission(self, task_id):
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row=db.execute(
                 "SELECT s.seq,s.data FROM tasks t JOIN submissions s "
                 "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
@@ -98,7 +98,7 @@ class TaskQueries:
             return envelope
 
     def result(self, task_id: str, submission_id: int) -> dict:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row=db.execute("SELECT data FROM task_results WHERE task_id=? AND submission_id=?",(task_id,submission_id)).fetchone()
             if row is None:
                 raise PoiseError("Проверенный результат не найден")
@@ -110,7 +110,7 @@ class TaskQueries:
             return result
 
     def record(self, task_id: str) -> dict | None:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             return self.record_in(db, task_id)
 
     @staticmethod
@@ -203,7 +203,7 @@ class TaskQueries:
                 "history":history,"progression":progression}
 
     def receipt_task(self, receipt_id):
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row=db.execute('SELECT task_id FROM evidence WHERE id=?',(receipt_id,)).fetchone()
             if row is not None:
                 return row[0]
@@ -223,7 +223,7 @@ class TaskQueries:
     def terminal_snapshot(self, task_id: str) -> dict:
         """One immutable ledger view for every terminal Task, not an execution restore."""
         from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row = db.execute('SELECT id,status,version,metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
             if row is None or not is_terminal_task_status(TaskStatus.parse(row['status'])):
                 raise PoiseError('Terminal ledger requires a completed or cancelled Task')
@@ -249,18 +249,18 @@ class TaskQueries:
                     'notice': 'Stored historical material; not fresh verification or an executable contract'}
 
     def history(self, task_id: str) -> list[dict]:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             return [json.loads(r[0]) for r in db.execute("SELECT data FROM task_events WHERE task_id=? ORDER BY seq",(task_id,))]
 
     def summary(self) -> list[dict]:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             return [{"id":r["id"],"status":r["status"],"goal":json.loads(r["metadata"])["goal"]}
                     for r in db.execute(
                         "SELECT id,status,metadata FROM tasks WHERE status!='newborn' ORDER BY id"
                     )]
 
     def standalone_summary(self) -> list[dict]:
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             result=[]
             for row in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id"):
                 metadata=json.loads(row["metadata"])
@@ -270,7 +270,7 @@ class TaskQueries:
 
     def evidence_view(self, task_id):
         from .tasks import SqliteTaskRepository
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             result=SqliteTaskRepository(db).load(task_id).evidence_context()
             locations=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()
             if locations is not None:
@@ -280,7 +280,7 @@ class TaskQueries:
 
     def verification_registry(self, task_id):
         from .tasks import SqliteTaskRepository
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             repository = SqliteTaskRepository(db)
             if repository.is_newborn(task_id):
                 newborn = repository.load_newborn(task_id)

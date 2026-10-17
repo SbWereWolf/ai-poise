@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 from .common import PoiseError,load_config
-from .infrastructure.session_establishment import direct_caller,establish_poise
+from .infrastructure.session_establishment import establish_direct_poise
 
 
 class SingleArgument(argparse.Action):
@@ -26,6 +26,10 @@ def parser():
     result_view.add_argument('--output-chars',type=int,required=True)
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
+    checks=sub.add_parser('checks',help='Select and run configured named project checks')
+    for name in ('config', 'checkout', 'policy'):
+        checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    checks.add_argument('--view',choices=('brief','expanded','full'),required=True,action=SingleArgument)
     local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
     local_assets.add_argument('--manifest',type=Path,required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
@@ -51,6 +55,9 @@ def parser():
     skills=sub.add_parser('skills',help='Read skill metadata or validate decomposition without a Task session')
     skills.add_argument('--catalog',type=Path,required=True)
     skills.add_argument('--root',type=Path,required=True)
+    placement=sub.add_parser('placement',help='Determine and check declared result locations by project policy')
+    for name in ('config', 'checkout', 'policy'):
+        placement.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     creation=sub.add_parser('runtime-setup',help='Create explicit hook settings and install with one packet')
     creation.add_argument('--settings',type=Path,required=True)
     creation.add_argument('--max-input-bytes',type=int,required=True)
@@ -91,6 +98,10 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='checks':
+        from .interfaces.project_checks import execute_cli
+        from .infrastructure.clock import SystemClock
+        return execute_cli(args.config,args.checkout,args.policy,args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
     if args.command=='result-view':
         from .interfaces.result_views import execute
         return execute(args.response,args.view,args.output_chars,sys.stdout,sys.stderr)
@@ -126,6 +137,9 @@ def main():
     if args.command=='skills':
         from .interfaces.skills import execute
         return execute(args.catalog,args.root,sys.stdin.buffer,sys.stdout)
+    if args.command=='placement':
+        from .interfaces.placement import execute
+        return execute(args.config,args.checkout,args.policy,sys.stdin.buffer,sys.stdout)
     if args.command=='runtime-setup':
         from .interfaces.hook_transport import setup
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)
@@ -159,14 +173,19 @@ def main():
         print('Не задан POISE_CONFIG: выберите конфигурацию проекта.',file=sys.stderr)
         return 2
     try:
-        from .interfaces.work import execute
+        from .interfaces.work import execute, read_request, write_rejection
+        from .modules.work.domain import is_observation
         from .infrastructure.clock import SystemClock
         config=Path(os.environ['POISE_CONFIG'])
-        _,document,_=load_config(config)
-        caller=direct_caller(document['project'],os.environ)
-        h=establish_poise(config,caller,[],SystemClock()).runtime
-        return execute(h,sys.stdin.buffer,sys.stdout)
-    except PoiseError as exc:
+        config_root,document,_=load_config(config)
+        try:
+            request=read_request(document,sys.stdin.buffer)
+        except (PoiseError,UnicodeError,RecursionError) as exc:
+            write_rejection(config_root,document,exc,sys.stdout)
+            return 2
+        h=establish_direct_poise(config,os.environ,SystemClock(),read_only=is_observation(request)).runtime
+        return execute(h,sys.stdin.buffer,sys.stdout,request)
+    except (PoiseError,UnicodeError,RecursionError) as exc:
         print(str(exc),file=sys.stderr)
         return 2
 

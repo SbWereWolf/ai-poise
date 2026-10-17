@@ -1,0 +1,14 @@
+{
+  "operation": "prepare",
+  "items": [
+    {
+      "key": "source-report",
+      "purpose": "source",
+      "recipient": "product",
+      "lifetime": "versioned",
+      "name": "report.py",
+      "path": null
+    }
+  ],
+  "authorizations": []
+}

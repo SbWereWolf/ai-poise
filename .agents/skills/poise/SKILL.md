@@ -26,7 +26,8 @@ warning is available for recovery, not evidence that Task work is ready. See
 [session entry delivery](../../../docs/configuration/runtime-hooks.md#доставка-launcher-при-старте).
 For worktree-wide discovery, use the public `runtime-config` reconfiguration
 owner and the explicit shared repository scope; retain the common native-file
-writer lock. Follow [shared installation](../../../docs/configuration/runtime-hooks.md#общая-установка-для-рабочих-деревьев).
+writer lock. Follow [shared
+installation](../../../docs/configuration/runtime-hooks.md#общая-установка-для-рабочих-деревьев).
 Host hook trust and genuine native delivery remain separate observations.
 
 ### Task work and reads
@@ -40,7 +41,19 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `result-view` | Read a saved bounded view without replay. | `"${poise[@]}" result-view --response "$response" --view expanded --output-chars 3000` |
 | `next` | List startable Tasks without claiming. | `"${poise[@]}" next --settings "$settings" --project "$project_id"` |
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
+| `placement` | Prepare/check explicit working-result placement without requiring a Task. | `"${poise[@]}" placement --config "$project_json" --checkout "$checkout" --policy "$placement_policy" < "$packet"` |
 | `skills` | Read metadata, validate decomposition, or prepare file-scoped instructions without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+| `checks` | Run/read configured named checks without a Task. | `"${poise[@]}" checks --config "$project_json" --checkout "$checkout" --policy "$checks_policy" --view expanded < "$packet"` |
+
+Named-check setup, exact operations, effective cwd/PATH, saved results and recovery
+belong to the [operator contract](../../../docs/configuration/named-project-checks.md).
+Retain the genuine native caller and omit `POISE_CALLER_BINDING`, or use an explicit
+persistent binding in a separate direct process without native session variables.
+Do not combine those identities or change the session launcher to prepare a check.
+For independently reviewing test-only RED in an unfinished `revise` stage, use the
+existing [partial-material handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
+save immutable materials through public artifacts, then public null-result handoff.
+Do not invent resolution proposals or native stage completion before actual fixes.
 
 ### Project and workflow configuration
 
@@ -72,7 +85,8 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 
 [ERP profile setup and operation](../../../docs/operator/maintenance-profile-v2.md#профиль-erp)
 uses the explicit ERP specification, ignored working values and a separate state.
-[Materialize the full working profile](../../../docs/operator/maintenance-profile-v2.md#развёртывание-из-примера)
+[Materialize the full working
+profile](../../../docs/operator/maintenance-profile-v2.md#развёртывание-из-примера)
 from the selected supply; use a dedicated profile and separate serviced data.
 [Installed CLI and standalone
 arguments](../../../docs/operator/poise-command-reference.md#обслуживание-окружения);
@@ -298,12 +312,14 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
-Apply the [accepted-goal
+Apply the [registered-goal
 rule](../../../docs/governance/development-rules.md#task-goal-preservation):
-review may clarify an inadequate goal until an independent reviewer confirms the first
-substantive result. After that confirmation, agents must keep the goal unchanged even
-when a lawful restart returns the Task to newborn. The API's newborn edit capability
-does not enforce this historical agent rule.
+keep the registered Task goal unchanged throughout its lifetime, including after
+a lawful restart. The API can edit the newborn goal field; that capability does
+not grant agent authority to change it. Agree the stage sequence first and design
+only the imminent stage immediately before execution, with independent design and
+result review. Ordinary refinement of an unstarted stage uses its criteria owner
+and does not restart the Task; follow [the shared contract](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом).
 
 Read task_decomposition from the selected project's project-specific routing. Declare every workflow
 phase before an
@@ -824,7 +840,8 @@ previous response, not a clipped view. Ready reports instruction availability,
 not model cognition, tests or Task acceptance. This general operation does not
 automatically replace native bootstrap or the existing AI-poise selector.
 Configuration and exact protocol belong to
-[the canonical operator contract](../../../docs/configuration/development-routing.md#подготовка-инструкций-по-файлам).
+[the canonical operator
+contract](../../../docs/configuration/development-routing.md#подготовка-инструкций-по-файлам).
 
 ## Inputs for migrated skills
 
@@ -1025,3 +1042,17 @@ scope](../../../docs/workflows/terminal-materials.md#владение-катал
 For explicit project selection through the supplied native entry, follow the short
 [setup instruction](../../references/project-storage-setup.md#session-launcher-project-selection).
 Use one exact selector and the selected project's own message contract.
+
+## Working-result placement
+
+Use the separate `placement` CLI for explicit working-result declarations; its
+JSON stdin is not a Work envelope. Select the project, registered checkout and
+operator-owned policy explicitly with the authentic caller. General placement
+does not require a Task; enabled Task/Sprint rules obtain their current owners.
+Prepare anticipated outputs, including tool outputs, and check explicit paths
+against current policy. This does not change content-edit authority, immutable
+artifact ownership, hooks or cleanup. Follow the
+[operator
+prerequisites](../../../docs/configuration/result-placement.md#подготовка-проекта-и-вызов),
+[packet contract](../../../docs/configuration/result-placement.md#пакет-prepare-и-check)
+and [failure/retry contract](../../../docs/configuration/result-placement.md#отказы-и-повтор).

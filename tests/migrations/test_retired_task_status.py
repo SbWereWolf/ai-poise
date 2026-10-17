@@ -140,7 +140,7 @@ def test_terminal_ledger_does_not_compile_an_obsolete_execution_contract(retired
         db.execute('UPDATE tasks SET metadata=? WHERE id=?',(json.dumps(data),'OLD'))
     from poise.infrastructure.sqlite.database import Database
     from poise.infrastructure.sqlite.queries import TaskQueries
-    queries = TaskQueries(Database(dest,dest.with_suffix('.lock'),1,.01))
+    queries = TaskQueries(Database(dest,dest.with_suffix('.lock'),1,.01,read_wait=1))
     ledger = queries.terminal_snapshot('OLD')
     assert ledger['status'] == 'cancelled'
     assert ledger['result_template'] is None

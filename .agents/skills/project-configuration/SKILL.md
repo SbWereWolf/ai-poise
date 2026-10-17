@@ -1,0 +1,34 @@
+---
+name: project-configuration
+description: Change Poise project templates, options and configuration routing through their existing public owners while preserving project boundaries.
+---
+
+# Project configuration
+
+Own the `project-configuration` responsibility for project options, template
+defaults and configuration routing. The delivered catalog declares this skill
+as working, level 1; decomposition maps it to narrow with the same responsibility.
+General `poise-development` and `repo-tooling` instructions complement this owner.
+
+For reference templates, edit sanitized source examples and verify the resulting
+project configuration through the existing project owner. A template change does
+not update an already configured project. Keep working configuration out of Git.
+Follow [project creation](../../../docs/configuration/project-setup.md#пакетный-путь-для-агента)
+and [existing project updates](../../../docs/configuration/project-setup.md#обновление-действующего-проекта).
+
+For managed configuration, reuse public `project` or `project-config` operations
+with the selected project and fresh composite configuration revision. Preserve
+unrelated options, unknown raw values and workflows. Never edit managed files or
+Task snapshots directly. Before integration or a base-ref correction, verify the
+[actual primary branch](../../../docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
+
+Keep skill metadata in the [delivered catalog](../../../docs/configuration/skill-catalog.md#владелец-и-состав)
+and selection conditions in the existing
+[routing owner](../../../docs/configuration/development-routing.md#декларативные-условия-выбора-skills).
+Verify the real instruction file, catalog-to-decomposition mapping and affected
+template declarations together. Configuration phases declare this narrow owner;
+common skills alone do not satisfy its responsibility.
+
+Preserve focused behavior and failure evidence for the changed configuration,
+then obtain independent review of the exact source and managed publication.
+Configuration work grants no Task acceptance, publication or integration authority.

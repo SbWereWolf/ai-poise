@@ -1,0 +1,5 @@
+{
+  "operation": "show",
+  "input": {"queries": [{"id": "invalid", "kind": "not-a-query"}]},
+  "messages": []
+}

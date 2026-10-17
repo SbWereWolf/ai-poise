@@ -1,0 +1,16 @@
+[
+  {
+    "reference": "human:new-area-for-product-report",
+    "root": "product",
+    "prefix": "new-area",
+    "purposes": [
+      "source"
+    ],
+    "recipients": [
+      "product"
+    ],
+    "lifetimes": [
+      "versioned"
+    ]
+  }
+]

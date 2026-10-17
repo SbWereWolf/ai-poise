@@ -1,0 +1,993 @@
+[
+  {
+    "id": "wrong-purpose",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "wrong-purpose",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area",
+          "purposes": [
+            "documentation"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "wrong-purpose",
+      "status": "needs_agreement",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area/report.py",
+      "absolute_path": "@CHECKOUT@/new-area/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_agreement",
+    "diagnostics": [
+      {
+        "key": "wrong-purpose",
+        "code": "approval_required",
+        "field": "items:wrong-purpose:path",
+        "action": "agree:product:new-area"
+      }
+    ],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "wrong-recipient",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "wrong-recipient",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "reviewer"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "wrong-recipient",
+      "status": "needs_agreement",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area/report.py",
+      "absolute_path": "@CHECKOUT@/new-area/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_agreement",
+    "diagnostics": [
+      {
+        "key": "wrong-recipient",
+        "code": "approval_required",
+        "field": "items:wrong-recipient:path",
+        "action": "agree:product:new-area"
+      }
+    ],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "wrong-lifetime",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "wrong-lifetime",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "handoff"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "wrong-lifetime",
+      "status": "needs_agreement",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area/report.py",
+      "absolute_path": "@CHECKOUT@/new-area/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_agreement",
+    "diagnostics": [
+      {
+        "key": "wrong-lifetime",
+        "code": "approval_required",
+        "field": "items:wrong-lifetime:path",
+        "action": "agree:product:new-area"
+      }
+    ],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "wrong-root",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "wrong-root",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "local",
+          "prefix": "new-area",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "wrong-root",
+      "status": "needs_agreement",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area/report.py",
+      "absolute_path": "@CHECKOUT@/new-area/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_agreement",
+    "diagnostics": [
+      {
+        "key": "wrong-root",
+        "code": "approval_required",
+        "field": "items:wrong-root:path",
+        "action": "agree:product:new-area"
+      }
+    ],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "component-neighbor",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "component-neighbor",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area-extra/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "component-neighbor",
+      "status": "needs_agreement",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area-extra/report.py",
+      "absolute_path": "@CHECKOUT@/new-area-extra/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_agreement",
+    "diagnostics": [
+      {
+        "key": "component-neighbor",
+        "code": "approval_required",
+        "field": "items:component-neighbor:path",
+        "action": "agree:product:new-area-extra"
+      }
+    ],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "exact-prefix",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "exact-prefix",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area/report.py",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "exact-prefix",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area/report.py",
+      "absolute_path": "@CHECKOUT@/new-area/report.py",
+      "reserved": true,
+      "authorization_refs": [
+        "configured-product",
+        "human:new-area-for-product-report"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "ready",
+    "diagnostics": [],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area/report.py",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ],
+      "reservations": [
+        {
+          "key": "exact-prefix",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "versioning": "versioned",
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "new-area/report.py",
+          "absolute_path": "@CHECKOUT@/new-area/report.py",
+          "authorization_refs": [
+            "configured-product",
+            "human:new-area-for-product-report"
+          ]
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "descendant-prefix",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "descendant-prefix",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "new-area/deep/report.py"
+        }
+      ],
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ]
+    },
+    "row": {
+      "key": "descendant-prefix",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "new-area/deep/report.py",
+      "absolute_path": "@CHECKOUT@/new-area/deep/report.py",
+      "reserved": true,
+      "authorization_refs": [
+        "configured-product",
+        "human:new-area-for-product-report"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "ready",
+    "diagnostics": [],
+    "before": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    },
+    "expected_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [
+        {
+          "reference": "human:new-area-for-product-report",
+          "root": "product",
+          "prefix": "new-area",
+          "purposes": [
+            "source"
+          ],
+          "recipients": [
+            "product"
+          ],
+          "lifetimes": [
+            "versioned"
+          ]
+        }
+      ],
+      "reservations": [
+        {
+          "key": "descendant-prefix",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "versioning": "versioned",
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "new-area/deep/report.py",
+          "absolute_path": "@CHECKOUT@/new-area/deep/report.py",
+          "authorization_refs": [
+            "configured-product",
+            "human:new-area-for-product-report"
+          ]
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  }
+]

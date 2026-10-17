@@ -53,6 +53,8 @@
 
 ## Конфигурация и окружение
 
+- [Именованные проверки проекта](configuration/named-project-checks.md) — профили,
+  пакеты, наборы, обычный запуск без Task, результаты и восстановление.
 - [Каталог этапов](configuration/catalogue-stage-map.md)
 - [Конфигурация типов целей](configuration/goal-config.md)
 - [Каталог процессов](configuration/workflow-catalogue.md)

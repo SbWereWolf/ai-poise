@@ -1,0 +1,35 @@
+{
+  "query": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "registry",
+          "kind": "registry"
+        }
+      ]
+    }
+  },
+  "apply": {
+    "operation": "apply",
+    "input": {
+      "request_id": "query-writer-control",
+      "expected_revision": 1,
+      "operations": [
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "WRITER-CONTROL",
+            "level": "system",
+            "status": "current",
+            "text": "The authorized change is saved."
+          }
+        }
+      ]
+    }
+  },
+  "migrate": {
+    "operation": "migrate",
+    "input": {}
+  }
+}

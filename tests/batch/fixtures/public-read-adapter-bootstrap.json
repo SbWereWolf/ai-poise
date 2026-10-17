@@ -1,0 +1,10 @@
+{
+  "identity": {"kind": "external", "session_id": "adapter-read-test", "agent_id": "main"},
+  "capabilities": [],
+  "transcript": null,
+  "work": {
+    "operation": "bootstrap",
+    "input": {"task": null, "decision": null, "feedback": null, "rework_stage": null},
+    "messages": []
+  }
+}

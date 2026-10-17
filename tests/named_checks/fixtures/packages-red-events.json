@@ -1,0 +1,300 @@
+{
+  "exit_code": 1,
+  "collection_errors": [],
+  "reports": [
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_both_documentation_modes_disable_cache",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_both_documentation_modes_disable_cache",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_both_documentation_modes_disable_cache",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_change_scope_and_integration_boundaries",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_change_scope_and_integration_boundaries",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_change_scope_and_integration_boundaries",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_committed_documentation_scope_exact_identity",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_committed_documentation_scope_exact_identity",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_committed_documentation_scope_exact_identity",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_deleted_and_renamed_subject_targets",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_deleted_and_renamed_subject_targets",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_deleted_and_renamed_subject_targets",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_generic_native_driver_arguments",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_generic_native_driver_arguments",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_generic_native_driver_arguments",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_invalid_subject_schema_and_admission_effects",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_invalid_subject_schema_and_admission_effects",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_invalid_subject_schema_and_admission_effects",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_package_dependency_order_and_deduplication",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_package_dependency_order_and_deduplication",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_package_dependency_order_and_deduplication",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_package_inventory_and_shared_test_contract",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_package_inventory_and_shared_test_contract",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_package_inventory_and_shared_test_contract",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_run_history_and_calibration_project_isolation",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_run_history_and_calibration_project_isolation",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_run_history_and_calibration_project_isolation",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_subject_capability_is_independent_of_erp_command_id",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_subject_capability_is_independent_of_erp_command_id",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_subject_capability_is_independent_of_erp_command_id",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_subject_change_after_admission_is_unconfirmed",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_subject_change_after_admission_is_unconfirmed",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_subject_change_after_admission_is_unconfirmed",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_suite_profile_and_order_no_full_fallback",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_suite_profile_and_order_no_full_fallback",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_suite_profile_and_order_no_full_fallback",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_task_state_and_specialized_checks_are_preserved",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_task_state_and_specialized_checks_are_preserved",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_task_state_and_specialized_checks_are_preserved",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_working_documentation_scope",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_working_documentation_scope",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_packages.py::test_working_documentation_scope",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    }
+  ]
+}

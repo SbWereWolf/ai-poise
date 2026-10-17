@@ -1,0 +1,97 @@
+[
+  {
+    "id": "null-schema",
+    "path": [
+      "schema"
+    ],
+    "value": null
+  },
+  {
+    "id": "blank-version",
+    "path": [
+      "version"
+    ],
+    "value": " "
+  },
+  {
+    "id": "null-roots",
+    "path": [
+      "roots"
+    ],
+    "value": null
+  },
+  {
+    "id": "wrong-rules",
+    "path": [
+      "rules"
+    ],
+    "value": {}
+  },
+  {
+    "id": "null-state",
+    "path": [
+      "state"
+    ],
+    "value": null
+  },
+  {
+    "id": "wrong-provider",
+    "path": [
+      "owner_provider"
+    ],
+    "value": false
+  },
+  {
+    "id": "null-root-path",
+    "path": [
+      "roots",
+      0,
+      "path"
+    ],
+    "value": null
+  },
+  {
+    "id": "wrong-root-owner",
+    "path": [
+      "roots",
+      0,
+      "owner"
+    ],
+    "value": 4
+  },
+  {
+    "id": "blank-versioning",
+    "path": [
+      "roots",
+      0,
+      "versioning"
+    ],
+    "value": " "
+  },
+  {
+    "id": "wrong-priority",
+    "path": [
+      "rules",
+      0,
+      "priority"
+    ],
+    "value": "10"
+  },
+  {
+    "id": "null-patterns",
+    "path": [
+      "rules",
+      0,
+      "paths"
+    ],
+    "value": null
+  },
+  {
+    "id": "null-filename",
+    "path": [
+      "state",
+      "filename"
+    ],
+    "value": null
+  }
+]

@@ -118,9 +118,15 @@ def full_response(result):
     return envelope, response, full
 
 
+def prepare_selection(case):
+    packet = Path(__file__).parents[1] / 'batch' / 'fixtures' / 'public-read-bootstrap.json'
+    full_response(invoke(case, '--project', 'selected-project', packet_path=packet))
+
+
 def test_supplied_entry_uses_explicit_selected_project_without_rebinding_source(
         selected_case):
     case = selected_case
+    prepare_selection(case)
     before = rows(case['source_db'])
     binding_bytes = Path(case['binding']['binding_path']).read_bytes()
 
@@ -235,6 +241,7 @@ def test_unrelated_invalid_registry_entry_does_not_replace_the_valid_selection(
         'config_path': 'missing-neighbor/project.json'}
     write_json(case['registry'], registry)
 
+    prepare_selection(case)
     _, response, _ = full_response(
         invoke(case, '--project', 'selected-project'))
 
@@ -260,6 +267,7 @@ def test_selected_data_outside_configured_root_refuses_before_project_work(
 def test_project_registry_address_is_reread_by_the_same_entry(
         selected_case):
     case = selected_case
+    prepare_selection(case)
     full_response(invoke(case, '--project', 'selected-project'))
     moved = case['tools'] / 'moved-config' / 'project.json'
     shutil.copytree(case['other_path'].parent, moved.parent)
@@ -272,6 +280,7 @@ def test_project_registry_address_is_reread_by_the_same_entry(
         moved.relative_to(case['tools']))
     write_json(case['registry'], registry)
 
+    prepare_selection(case)
     _, response, _ = full_response(
         invoke(case, '--project', 'selected-project'))
 
@@ -387,6 +396,7 @@ def test_public_reconfigure_upgrades_the_exact_owned_non_forwarding_entry(
     assert Path(case['binding']['launcher']).read_text().endswith(
         ' "$@"\n')
     assert rows(case['source_db']) == before
+    prepare_selection(case)
     _, response, _ = full_response(
         invoke(case, '--project', 'selected-project'))
     assert response.is_relative_to(case['tools'] / 'selected-data')
@@ -420,6 +430,7 @@ def record_source_prompt(case):
 def test_source_prompt_is_not_injected_into_hookless_selected_project(
         selected_case):
     case = selected_case
+    prepare_selection(case)
     before = record_source_prompt(case)
 
     _, response, _ = full_response(
@@ -488,6 +499,7 @@ def test_explicit_current_project_retains_unavailable_capability_gate(
 def test_valid_selection_is_independent_of_broken_source_subject_workflow(
         selected_case):
     case = selected_case
+    prepare_selection(case)
     relative = next(
         iter(case['project']['cfg']['workflows'].values()))
     (case['project']['config_path'].parent / relative).unlink()
@@ -597,6 +609,17 @@ def test_public_reconfigure_enables_project_selection(selected_case):
     binding = json.loads(Path(case['binding']['binding_path']).read_text())
     assert binding['settings_digest'] == digest(proposed)
     assert binding['external_session'] == 'entry-owner'
+    prepare_selection(case)
     _, response, _ = full_response(invoke(case, '--project', 'selected-project'))
     assert response.is_relative_to(case['tools'] / 'selected-data')
+    assert rows(case['source_db']) == before
+
+
+def test_valid_selected_query_preserves_uninitialized_target(selected_case):
+    case = selected_case
+    before = rows(case['source_db'])
+    result = invoke(case, '--project', 'selected-project')
+    assert result.returncode == 2
+    assert 'read-only' in result.stdout.decode()
+    assert not case['selected_db'].exists()
     assert rows(case['source_db']) == before

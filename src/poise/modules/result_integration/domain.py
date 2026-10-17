@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
+import json
+from pathlib import PurePath
 import re
 
 from ..foundation.errors import DomainError
@@ -33,6 +36,127 @@ def _resolution(value):
     if path.startswith("/") or ".." in path.split("/"):
         raise DomainError("Resolution path must stay inside the task worktree")
     return {"path": path, "resolution": _text(value["resolution"], "resolution rationale")}
+
+
+@dataclass(frozen=True)
+class IntegrationBackupScope:
+    runtime_root: str
+
+    def __post_init__(self):
+        _text(self.runtime_root, "integration runtime root")
+
+    @staticmethod
+    def request_identity(task_id, request_id):
+        return hashlib.sha256(f"{task_id}\0{request_id}".encode()).hexdigest()[:12]
+
+    def directory_for(self, task_id, request_id):
+        return str(
+            PurePath(self.runtime_root) / "result-integration" / task_id
+            / self.request_identity(task_id, request_id)
+        )
+
+    def for_record(self, value, task_id):
+        return self
+
+
+def integration_proof_digest(value):
+    """Identity of the original proof, including optional field presence."""
+    return hashlib.sha256(json.dumps(
+        value, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class IntegrationScopeRelocation:
+    relocation_request_id: str
+    task_id: str
+    task_version: int
+    integration_request_id: str
+    proof_digest: str
+    source_runtime: str
+    target_runtime: str
+
+    def __post_init__(self):
+        for name in ("relocation_request_id", "task_id", "integration_request_id"):
+            _text(getattr(self, name), name)
+        if type(self.task_version) is not int or self.task_version < 0:
+            raise DomainError("Integration placement requires an exact Task version")
+        if not isinstance(self.proof_digest, str) or re.fullmatch(r"[0-9a-f]{64}", self.proof_digest) is None:
+            raise DomainError("Integration placement requires a SHA256 proof identity")
+        for name in ("source_runtime", "target_runtime"):
+            if not PurePath(_text(getattr(self, name), name)).is_absolute():
+                raise DomainError("Integration placement runtime must be absolute")
+
+    def to_dict(self):
+        return {"schema": "integration-backup-placement-1", **self.__dict__}
+
+    @classmethod
+    def parse(cls, value):
+        fields = {"relocation_request_id", "task_id", "task_version",
+                  "integration_request_id", "proof_digest", "source_runtime", "target_runtime"}
+        if (not isinstance(value, dict) or set(value) != fields | {"schema"}
+                or value["schema"] != "integration-backup-placement-1"):
+            raise DomainError("Integration placement requires exact versioned fields")
+        return cls(**{name: value[name] for name in fields})
+
+
+class IntegrationHistoricalBackupScope(IntegrationBackupScope):
+    def __init__(self, runtime_root, task_versions, relocations):
+        super().__init__(runtime_root)
+        object.__setattr__(self, "task_versions", dict(task_versions))
+        grouped = {}
+        for sequence, edge in sorted(relocations, key=lambda item: item[0]):
+            key = (edge.task_id, edge.task_version, edge.integration_request_id, edge.proof_digest)
+            grouped.setdefault(key, []).append(edge)
+        object.__setattr__(self, "relocations", grouped)
+
+    def for_record(self, value, task_id):
+        request_id = value["intent"]["request_id"]
+        directory = value["temporary_backup_directory"]
+        if directory == self.directory_for(task_id, request_id):
+            return IntegrationBackupScope(self.runtime_root)
+        key = (task_id, self.task_versions.get(task_id), request_id, integration_proof_digest(value))
+        edges = self.relocations.get(key, ())
+        if not edges:
+            return None
+        original = IntegrationBackupScope(edges[0].source_runtime)
+        if directory != original.directory_for(task_id, request_id):
+            return None
+        current = original.runtime_root
+        for edge in edges:
+            if edge.source_runtime != current:
+                return None
+            current = edge.target_runtime
+        return original if current == self.runtime_root else None
+
+
+@dataclass(frozen=True)
+class IntegrationPublicationTarget:
+    repository: str
+    target_ref: str
+
+    def __post_init__(self):
+        _text(self.repository, "publication repository")
+        _text(self.target_ref, "publication target ref")
+
+    @staticmethod
+    def target_ref_for(base_ref):
+        name = _text(base_ref, "publication base ref")
+        return name if name.startswith("refs/heads/") else f"refs/heads/{name}"
+
+    def confirms_ordinary_receipt(self, receipt, task_branch):
+        return (
+            isinstance(receipt, dict)
+            and set(receipt) == {"argv", "actual_exit_code", "stdout", "stderr"}
+            and receipt["argv"] == [
+                "git", "-C", self.repository, "merge", "--ff-only",
+                task_branch.removeprefix("refs/heads/"),
+            ]
+            and type(receipt["actual_exit_code"]) is int
+            and receipt["actual_exit_code"] == 0
+            and isinstance(receipt["stdout"], str)
+            and isinstance(receipt["stderr"], str)
+        )
 
 
 @dataclass(frozen=True)
@@ -125,6 +249,70 @@ class IntegrationRun:
                 "temporary_backups": "removed",
             }
         )
+
+    @classmethod
+    def terminal_receipt_for(cls, value, *, task_id, result_commit,
+                             task_branch, task_worktree, publication_target, backup_scope):
+        """Recognize saved proof; never recover or rewrite the retained run."""
+        try:
+            if (not isinstance(value, dict)
+                    or any(not isinstance(value[key], dict)
+                           for key in ("intent", "publication", "cleanup"))
+                    or any(not isinstance(value[key], list) for key in (
+                        "history", "checks", "conflicts", "resolutions", "temporary_backups"))):
+                return False
+            if not isinstance(backup_scope, IntegrationBackupScope):
+                return False
+            scope = backup_scope.for_record(value, task_id)
+            return cls.restore(value).confirms_publication_for(
+                task_id=task_id, result_commit=result_commit, task_branch=task_branch,
+                task_worktree=task_worktree, publication_target=publication_target,
+                backup_scope=scope,
+            )
+        except (DomainError, KeyError, TypeError, ValueError):
+            return False
+
+    def confirms_publication_for(self, *, task_id, result_commit,
+                                 task_branch, task_worktree, publication_target, backup_scope):
+        if (not isinstance(publication_target, IntegrationPublicationTarget)
+                or not isinstance(backup_scope, IntegrationBackupScope)):
+            return False
+        if not self.complete or self.failure is not None or self.intent.task_id != task_id:
+            return False
+        if self.temporary_backup_directory != backup_scope.directory_for(
+                self.intent.task_id, self.intent.request_id):
+            return False
+        for name, commit in (
+            ("accepted commit", self.accepted_commit), ("result commit", result_commit),
+            ("integration head", self.integration_head), ("target after", self.target_after),
+            ("included target", self.last_included_target),
+        ):
+            _commit(commit, name)
+        _text(task_branch, "execution branch")
+        _text(task_worktree, "execution worktree")
+        if (self.accepted_commit != self.intent.expected_source_commit
+                or self.accepted_commit != result_commit
+                or self.task_branch != task_branch or self.task_worktree != task_worktree
+                or task_branch.removeprefix("refs/heads/")
+                == publication_target.target_ref.removeprefix("refs/heads/")):
+            return False
+        publication = self.publication
+        if (publication.get("status") != "confirmed"
+                or self.integration_head != self.target_after
+                or publication.get("commit") != self.integration_head
+                or publication.get("last_included_target") != self.last_included_target
+                or publication.get("target_ref") != publication_target.target_ref
+                or type(publication.get("no_op")) is not bool
+                or type(publication.get("recovered")) is not bool
+                or publication["no_op"] != (self.integration_head == self.last_included_target)):
+            return False
+        receipt = publication.get("receipt")
+        if publication["recovered"]:
+            return receipt == {
+                "kind": "reconciled_fast_forward", "commit": self.integration_head,
+            }
+        return (not publication["no_op"]
+                and publication_target.confirms_ordinary_receipt(receipt, task_branch))
 
     @classmethod
     def new(cls, intent, task_branch, task_worktree, temporary_backup_directory):

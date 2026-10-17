@@ -1,11 +1,14 @@
 """The current-Task selector must understand newborn before executable stages."""
 
+import json
 from copy import deepcopy
+from pathlib import Path
 
+import poise
 import pytest
 
 from batch.helpers import configure, request, result, verify
-from conftest import WorkPoise, add_test
+from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import DomainError, PoiseError
 from runtime_services.test_task_version_projection import (
@@ -50,6 +53,34 @@ def assert_newborn_projection(value, saved):
     assert "version" not in value
 
 
+def durable_state(tools, task_id):
+    """Observe the isolated fixture's persisted state without its deserializer."""
+    statements = {
+        "task": (
+            "SELECT id,status,stage_index,iteration,claimed_by,version,"
+            "current_submission_id,metadata FROM tasks WHERE id=?",
+            (task_id,),
+        ),
+        "execution": (
+            "SELECT data,version FROM task_execution WHERE task_id=?",
+            (task_id,),
+        ),
+        "bindings": (
+            "SELECT id,task_id FROM sessions WHERE id=? OR task_id=? ORDER BY id",
+            (tools.runtime.session, task_id),
+        ),
+        "events": (
+            "SELECT version,at,data FROM task_events WHERE task_id=? ORDER BY seq",
+            (task_id,),
+        ),
+    }
+    with tools.runtime.store.transaction() as database:
+        return {
+            name: [tuple(row) for row in database.execute(sql, parameters)]
+            for name, (sql, parameters) in statements.items()
+        }
+
+
 def test_restarted_current_newborn_matches_explicit_selection(project):
     tools, task_id, _ = restart_to_newborn(project)
     explicit = bootstrap(tools, {"id": task_id})
@@ -62,7 +93,13 @@ def test_restarted_current_newborn_matches_explicit_selection(project):
         "Fixture user authorizes restart of this unfinished Task."
     )
 
-    current = bootstrap(tools)
+    persisted_before = durable_state(tools, task_id)
+    try:
+        current = bootstrap(tools)
+    finally:
+        assert durable_state(tools, task_id) == persisted_before
+        print("TASK_AND_OWNERSHIP_UNCHANGED")
+        print(f"POISE_SOURCE={Path(poise.__file__).resolve()}")
 
     assert_newborn_projection(explicit, before)
     assert_newborn_projection(current, before)
@@ -140,6 +177,15 @@ def test_active_verified_and_accepted_current_task_paths_are_preserved(project):
 
 def test_completed_task_is_terminal_and_current_selector_becomes_taskless(project):
     task = _configure_single_stage(project)
+    workflow_path = project["root"] / "config/workflows/development.json"
+    workflow = json.loads(workflow_path.read_text())
+    workflow["stages"][0].update(
+        purpose="execution", criteria_authority={"propose": [], "decide": []},
+    )
+    write_json(workflow_path, workflow)
+    task["stage_contracts"][0]["criteria"] = {
+        "requirements": [], "definition_of_ready": [], "definition_of_done": [],
+    }
     tools = WorkTools(WorkPoise(project["config_path"], "executor"))
     context = bootstrap(tools, task)
     assert verify(tools, _result(context))["status"] == "verified"

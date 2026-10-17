@@ -65,6 +65,14 @@ class RequirementsStore:
             backend.initialize(connection)
         return store
 
+    @contextmanager
+    def task_drafts(self):
+        """Yield the standalone backend's narrow draft repository atomically."""
+        if self._backend is None:
+            raise DomainError('Standalone Task drafting requires its explicit backend')
+        with self._transaction() as connection:
+            yield self._backend.task_drafts(connection)
+
     def _initialize_legacy(self, connection):
         version = connection.execute("PRAGMA user_version").fetchone()[0]
         if version == 1:

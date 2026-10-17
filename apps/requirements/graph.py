@@ -28,6 +28,7 @@ class RequirementsGraph:
     query_kinds = (
         'task_chain', 'application_tasks', 'get_task', 'task_history',
         'history_requirement', 'snapshot', 'search_requirements',
+        'task_basis', 'task_creation',
     )
 
     @classmethod
@@ -73,15 +74,7 @@ class RequirementsGraph:
             raise DomainError(f'unknown Application requirement: {identifier}')
         return value
 
-    def _revise_task(self, operation, max_items):
-        _exact(operation, {'kind', 'task_id', 'expected_statement_revision', 'statement'},
-               'revise_task')
-        task_id = operation['task_id']
-        current = self._task(task_id)
-        expected = _positive_integer(operation['expected_statement_revision'], 'statement revision')
-        if expected != current:
-            raise DomainError('Task statement revision changed')
-        statement = operation['statement']
+    def validate_statement(self, statement, max_items):
         _exact(statement, {'goal', 'task_requirements', 'definition_of_done'}, 'Task statement')
         if not isinstance(statement['goal'], str) or not statement['goal'].strip():
             raise DomainError('Task goal must be nonempty text')
@@ -114,11 +107,32 @@ class RequirementsGraph:
                     raise DomainError('applications must be unique')
                 seen.add(identifier)
                 self._application(identifier)
+        return deepcopy(statement)
+
+    def _revise_task(self, operation, max_items):
+        _exact(operation, {'kind', 'task_id', 'expected_statement_revision', 'statement'},
+               'revise_task')
+        task_id = operation['task_id']
+        current = self._task(task_id)
+        expected = _positive_integer(operation['expected_statement_revision'], 'statement revision')
+        if expected != current:
+            raise DomainError('Task statement revision changed')
+        statement = self.validate_statement(operation['statement'], max_items)
         revision = current + 1
         saved = deepcopy(statement)
         self._new_statements[(task_id, revision)] = saved
         self._entries[(task_id, revision)] = deepcopy(saved['task_requirements'])
         self._current[task_id] = revision
+
+    def create_draft(self, task_id, statement, max_items):
+        _identifier(task_id, 'Task ID')
+        if task_id in self._current:
+            raise DomainError(f'Task ID already exists: {task_id}')
+        saved = self.validate_statement(statement, max_items)
+        self._current[task_id] = 1
+        self._new_statements[(task_id, 1)] = saved
+        self._entries[(task_id, 1)] = deepcopy(saved['task_requirements'])
+        return deepcopy(saved)
 
     def _unlink(self, operation):
         _exact(operation, {'kind', 'system', 'application'}, 'unlink')
@@ -232,6 +246,28 @@ class RequirementsGraph:
             'task_requirements': deepcopy(self._entries.get((task_id, revision), [])),
         }
 
+    def task_basis(self, task_id):
+        revision = self._task(task_id)
+        requirements = []
+        for entry in self._entries.get((task_id, revision), []):
+            if entry['status'] == 'obsolete':
+                continue
+            source = {key: deepcopy(entry[key]) for key in ('text', 'status', 'applications')}
+            result = self._registry.plan_task([source])
+            requirements.append({
+                'key': entry['key'], 'basis_ready': result['status'] == 'ready',
+                'gaps': result['gaps'],
+            })
+        return {
+            'task_id': task_id, 'statement_revision': revision,
+            'basis_ready': bool(requirements) and all(item['basis_ready'] for item in requirements),
+            'requirements': requirements,
+        }
+
+    def task_creation(self, task_id):
+        self._task(task_id)
+        return self._revisions.task_creation(task_id)
+
     def search_requirements(self, filter, limit, after_id, max_items):
         if not isinstance(filter, dict) or set(filter) - {'level', 'status', 'text_contains'}:
             raise DomainError('search filter requires level, status or text_contains')
@@ -259,6 +295,7 @@ class RequirementsGraph:
             'task_chain': {'task_id', 'key', 'statement_revision'},
             'application_tasks': {'application_id'}, 'get_task': {'task_id'},
             'task_history': {'task_id'}, 'history_requirement': {'requirement_id'},
+            'task_basis': {'task_id'}, 'task_creation': {'task_id'},
             'snapshot': {'task_id', 'snapshot_revision'},
             'search_requirements': {'filter', 'limit', 'after_id'},
         }
@@ -270,6 +307,10 @@ class RequirementsGraph:
             return self.application_tasks(query['application_id'])
         if kind == 'get_task':
             return self.get_task(query['task_id'])
+        if kind == 'task_basis':
+            return self.task_basis(query['task_id'])
+        if kind == 'task_creation':
+            return self.task_creation(query['task_id'])
         if kind == 'task_history':
             self._task(query['task_id'])
             return self._revisions.task_history(query['task_id'])

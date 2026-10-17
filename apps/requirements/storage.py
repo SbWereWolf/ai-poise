@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from poise.infrastructure.requirements_registry import RequirementsStore as SharedStore
-from poise.modules.foundation.errors import PoiseError
+from poise.modules.foundation.errors import DomainError, PoiseError
 from .graph import RequirementsGraph
 
 
@@ -31,10 +31,21 @@ def _decoded(value, expected, where):
 class SavedRevisions:
     """Detached saved rows; decode only the record requested by the graph."""
 
-    def __init__(self, statements, requirements, snapshots):
+    def __init__(self, statements, requirements, snapshots, creations):
         self.statements = {(row['task_id'], row['statement_revision']): row for row in statements}
+        self.creations = {row['task_id']: row for row in creations}
         self.requirements = requirements
         self.snapshots = {(row['task_id'], row['snapshot_revision']): row for row in snapshots}
+
+    def task_creation(self, task_id):
+        row = self.creations.get(task_id)
+        if row is None:
+            raise DomainError(f'Task has no creation request: {task_id}')
+        return {
+            'task_id': task_id, 'request_id': row['creation_request_id'],
+            'intent': _decoded(row['intent'], dict, 'Task creation intent'),
+            'response': _decoded(row['response'], dict, 'Task creation response'),
+        }
 
     def has_statement(self, task_id, revision):
         return (task_id, revision) in self.statements
@@ -91,6 +102,9 @@ class StandaloneBackend:
                 or rows[0]['revision'] < 0 or rows[0]['schema_version'] != 1):
             raise PoiseError('Requirements metadata requires one valid owner revision and schema version')
 
+    def task_drafts(self, connection):
+        return TaskDraftRepository(connection, self)
+
     def registry_rows(self, connection):
         requirements = [dict(row) for row in connection.execute(
             'SELECT r.id,r.level,v.status,v.text FROM main.requirements r '
@@ -124,10 +138,14 @@ class StandaloneBackend:
             'SELECT task_id,snapshot_revision,payload FROM main.task_snapshots '
             'ORDER BY task_id,snapshot_revision'
         )]
+        creations = [dict(row) for row in connection.execute(
+            'SELECT creation_request_id,intent,task_id,response FROM main.task_creation_requests '
+            'ORDER BY creation_request_id'
+        )]
         return {
             'requirements': requirements, 'links': links, 'task_identities': identities,
             'task_requirement_versions': versions, 'application_task_links': task_links,
-            'revisions': SavedRevisions(statements, requirement_revisions, snapshots),
+            'revisions': SavedRevisions(statements, requirement_revisions, snapshots, creations),
         }
 
     def prepare_queries(self, connection):
@@ -232,3 +250,54 @@ class StandaloneBackend:
             'UPDATE main.task_identities SET current_statement_revision=? WHERE task_id=?',
             (revision, task_id),
         )
+
+
+class TaskDraftRepository:
+    """Connection-scoped creation port; every method shares one owned transaction."""
+
+    def __init__(self, connection, backend):
+        self._connection = connection
+        self._backend = backend
+
+    def creation(self, request_id):
+        row = self._connection.execute(
+            'SELECT intent,response FROM main.task_creation_requests WHERE creation_request_id=?',
+            (request_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            'intent': _decoded(row['intent'], dict, 'Task creation intent'),
+            'response': _decoded(row['response'], dict, 'Task creation response'),
+        }
+
+    def identifiers(self):
+        return {row['task_id'] for row in self._connection.execute(
+            'SELECT task_id FROM main.task_identities'
+        )}
+
+    def create(self, task_id, draft, max_items):
+        graph = RequirementsGraph.restore(**self._backend.registry_rows(self._connection))
+        statement = graph.create_draft(task_id, draft.statement(), max_items)
+        origin = {'type': 'create_task', 'request_id': draft.intent['request_id']}
+        self._connection.execute(
+            'INSERT INTO main.task_identities(task_id,origin,current_statement_revision) '
+            'VALUES(?,?,?)', (task_id, _json(origin), 1),
+        )
+        self._backend._persist_statement(
+            self._connection, {'task_id': task_id, 'statement_revision': 1, **statement}, _json(origin),
+        )
+        revision = self._connection.execute(
+            'SELECT revision FROM main.requirements_meta'
+        ).fetchone()['revision'] + 1
+        self._connection.execute('UPDATE main.requirements_meta SET revision=?', (revision,))
+        response = {
+            'status': 'created', 'task_id': task_id, 'statement_revision': 1,
+            'revision': revision, 'replayed': False,
+        }
+        self._connection.execute(
+            'INSERT INTO main.task_creation_requests(creation_request_id,intent,task_id,response) '
+            'VALUES(?,?,?,?)',
+            (draft.intent['request_id'], _json(draft.intent), task_id, _json(response)),
+        )
+        return response

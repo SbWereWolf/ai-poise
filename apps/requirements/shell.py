@@ -10,6 +10,7 @@ import sys
 from poise.application.requirements_registry import RequirementsCommands
 from poise.modules.foundation.strict_json import strict_json
 from apps.requirements.storage import RequirementsStore
+from apps.requirements.commands import DraftTaskCommands
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.tasks.allocation import TaskIdPolicy
 
@@ -87,9 +88,10 @@ def load_requirements_config(config_path):
     max_items = _positive_integer(data["batch"]["max_items"], "Requirements config batch.max_items")
     lock_seconds = _positive_number(data["lock"]["seconds"], "Requirements config lock.seconds")
     poll_seconds = _positive_number(data["lock"]["poll_seconds"], "Requirements config lock.poll_seconds")
-    TaskIdPolicy.parse(data["task_ids"])
+    task_ids = TaskIdPolicy.parse(data["task_ids"])
 
     return {
+        "task_ids": task_ids,
         "database": database,
         "lock": lock,
         "max_input_bytes": max_input_bytes,
@@ -114,18 +116,16 @@ def execute(config_path, stream, output):
         if len(raw) > config["max_input_bytes"]:
             raise PoiseError("Requirements packet exceeds max_input_bytes")
         packet = _packet(strict_json(raw.decode("utf-8")))
-        commands = RequirementsCommands(
-            RequirementsStore(
-                config["database"],
-                config["lock"],
-                config["lock_seconds"],
-                config["poll_seconds"],
-            ),
-            config["max_items"],
+        store = RequirementsStore(
+            config["database"], config["lock"],
+            config["lock_seconds"], config["poll_seconds"],
         )
+        commands = RequirementsCommands(store, config["max_items"])
         operation = packet["operation"]
         body = packet["input"]
-        if operation == "apply":
+        if operation == "create_task":
+            result = DraftTaskCommands(store, config["task_ids"], config["max_items"]).create_task(body)
+        elif operation == "apply":
             result = {"status": "applied", **commands.apply(body)}
         elif operation == "query":
             if set(body) != {"queries"}:

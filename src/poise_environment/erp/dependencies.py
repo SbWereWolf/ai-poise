@@ -42,15 +42,7 @@ def composer_dependencies(options: dict, action: str) -> Observation:
     return Observation("satisfied")
 
 
-def node_dependencies(options: dict, action: str) -> Observation:
-    root = Path(options["cwd"])
-    ready = all(
-        (root / path).is_file() for path in options["required_files"])
-    if ready:
-        return Observation("satisfied")
-    if action == "check":
-        return Observation("missing", "missing",
-                           "Node dependencies: " + str(root))
+def node_environment(options: dict) -> dict:
     selected = shutil.which(options["runtime"])
     if selected is None:
         raise MaintenanceError("process",
@@ -60,10 +52,37 @@ def node_dependencies(options: dict, action: str) -> Observation:
     process_environment["PATH"] = str(
         Path(selected).parent) + os.pathsep + process_environment[
                                       "PATH"]
+    return process_environment
+
+
+def node_readiness(options: dict, process_environment: dict) -> Observation:
+    root = Path(options["cwd"])
+    if not all((root / path).is_file() for path in options["required_files"]):
+        return Observation("missing", "missing",
+                           "Node dependencies: " + str(root))
+    if not options["check_argvs"]:
+        raise ValueError("Node readiness requires configured probe commands")
+    for argv in options["check_argvs"]:
+        result = execute(argv, str(root), process_environment,
+                         options["bound_seconds"])
+        if result.returncode != 0:
+            detail = (f"Node dependency probe exited {result.returncode}\n"
+                      + result.stdout.decode("utf-8", errors="backslashreplace")
+                      + result.stderr.decode("utf-8", errors="backslashreplace"))
+            return Observation("invalid", "invalid", detail)
+    return Observation("satisfied")
+
+
+def node_dependencies(options: dict, action: str) -> Observation:
+    process_environment = node_environment(options)
+    observed = node_readiness(options, process_environment)
+    if observed.state == "satisfied" or action == "check":
+        return observed
+    root = Path(options["cwd"])
     require_success(execute(options["install_argv"], str(root),
                             process_environment,
                             options["bound_seconds"]))
-    return node_dependencies(options, "check")
+    return node_readiness(options, process_environment)
 
 
 def mirrored_packages(options: dict, action: str) -> Observation:

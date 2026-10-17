@@ -52,10 +52,6 @@ def bind_parameters(args, catalog, output):
                 f"Profile catalog lacks parameter: {name}")
         catalog["parameters"][name]["default"] = value
         values[name] = value
-    values = {name: render_data(value, values) for name, value in
-              values.items()}
-    for name, value in values.items():
-        catalog["parameters"][name]["default"] = value
     return values
 
 

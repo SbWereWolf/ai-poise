@@ -13,11 +13,18 @@ class Resource:
     raw: dict
 
 
+def bind_paths(parameters: dict, path_roots: dict) -> dict:
+    bound = dict(parameters)
+    for name, root_name in path_roots.items():
+        bound[name] = str(Path(parameters[root_name]) / parameters[name])
+    return bound
+
+
 def load_resource(path: str, identifier: str, parameters: dict,
                   fields: dict[str, tuple[str, ...]]) -> Resource:
-    raw = \
-    json.loads(Path(path).read_text(encoding="utf-8"))["resources"][
-        identifier]
+    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    parameters = bind_paths(parameters, document["path_roots"])
+    raw = document["resources"][identifier]
     kind = raw["kind"]
     if kind not in fields:
         raise ValueError(f"Unknown resource kind: {kind}")

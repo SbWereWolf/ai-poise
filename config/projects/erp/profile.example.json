@@ -645,6 +645,14 @@
           "path": [
             "handler",
             "options",
+            "configuration_root"
+          ],
+          "value": "${repository}"
+        },
+        {
+          "path": [
+            "handler",
+            "options",
             "configuration_targets",
             0,
             "path"

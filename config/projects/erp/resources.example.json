@@ -1,4 +1,13 @@
 {
+  "path_roots": {
+    "environment_file": "repository",
+    "local_settings_path": "repository",
+    "host_runtime_settings_path": "repository",
+    "cjm_settings_path": "repository",
+    "local_settings_source": "profile_root",
+    "host_runtime_settings_source": "profile_root",
+    "cjm_settings_source": "profile_root"
+  },
   "resources": {
     "erp-git-repository": {
       "kind": "repository"
@@ -673,6 +682,21 @@
         "package-lock.json",
         "node_modules/.package-lock.json"
       ],
+      "check_argvs": [
+        [
+          "${node_executable}",
+          "${npm_entry_point}",
+          "ls",
+          "--json",
+          "--depth=0"
+        ],
+        [
+          "${node_executable}",
+          "--input-type=module",
+          "--eval",
+          "const module = await import('vite'); if (typeof module.createServer !== 'function') { throw new Error('Vite createServer is unavailable'); }"
+        ]
+      ],
       "install_argv": [
         "${node_executable}",
         "${npm_entry_point}",
@@ -690,6 +714,21 @@
       "required_files": [
         "package-lock.json",
         "node_modules/.package-lock.json"
+      ],
+      "check_argvs": [
+        [
+          "${node_executable}",
+          "${npm_entry_point}",
+          "ls",
+          "--json",
+          "--depth=0"
+        ],
+        [
+          "${node_executable}",
+          "--input-type=module",
+          "--eval",
+          "const module = await import('@playwright/test'); if (typeof module.chromium?.launch !== 'function') { throw new Error('Playwright chromium.launch is unavailable'); }"
+        ]
       ],
       "install_argv": [
         "${node_executable}",

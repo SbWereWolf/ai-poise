@@ -29,11 +29,11 @@ def selection(options: Mapping[str, object]) -> list[dict]:
     return targets
 
 
-def observe_configuration(target: dict) -> dict[str, object]:
+def observe_configuration(target: dict, root: Path) -> dict[str, object]:
     record = {"id": target["id"], "kind": target["kind"],
               "state": "unavailable", "sha256": None, "cause": ""}
     try:
-        content = Path(target["path"]).read_bytes()
+        content = (root / target["path"]).read_bytes()
     except FileNotFoundError:
         record.update(state="absent", cause="not-found")
     except PermissionError:
@@ -50,8 +50,11 @@ def handle(initial: CompletedProcess[bytes], invoke: InvokeCommand,
            options: Mapping[str, object],
            context: OperationContext) -> dict[str, object]:
     targets = selection(options)
+    root = options["configuration_root"]
+    if not isinstance(root, str) or not root.strip():
+        raise ValueError("configuration_root must be a nonempty path")
     result = handle_environment(initial, invoke, options, context)
-    observed = [observe_configuration(target) for target in targets]
+    observed = [observe_configuration(target, Path(root)) for target in targets]
     result["configuration_observations"] = observed
     if result["status"] == "ready" and any(
             record["state"] != "present" for record in observed

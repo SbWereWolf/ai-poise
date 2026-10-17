@@ -88,6 +88,7 @@
       "repair_command": "repair",
       "verification_command": "verify",
       "failure_exit_code": 4,
+      "configuration_root": "",
       "configuration_targets": [
         {
           "id": "local-settings",

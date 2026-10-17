@@ -83,31 +83,31 @@
     },
     "environment_file": {
       "type": "string",
-      "default": "${repository}/platform-infrastructure/config/dev/local-development.env"
+      "default": "platform-infrastructure/config/dev/local-development.env"
     },
     "local_settings_path": {
       "type": "string",
-      "default": "${repository}/platform-infrastructure/config/dev/local-development.settings.json"
+      "default": "platform-infrastructure/config/dev/local-development.settings.json"
     },
     "host_runtime_settings_path": {
       "type": "string",
-      "default": "${repository}/platform-infrastructure/config/dev/local-dev-host-runtime.settings.json"
+      "default": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.json"
     },
     "cjm_settings_path": {
       "type": "string",
-      "default": "${repository}/platform-infrastructure/tests/playwright/cjm.local-development.settings.json"
+      "default": "platform-infrastructure/tests/playwright/cjm.local-development.settings.json"
     },
     "local_settings_source": {
       "type": "string",
-      "default": "${profile_root}/documents/local-settings.json"
+      "default": "documents/local-settings.json"
     },
     "host_runtime_settings_source": {
       "type": "string",
-      "default": "${profile_root}/documents/host-runtime-settings.json"
+      "default": "documents/host-runtime-settings.json"
     },
     "cjm_settings_source": {
       "type": "string",
-      "default": "${profile_root}/documents/cjm-settings.json"
+      "default": "documents/cjm-settings.json"
     }
   },
   "inherit_env": [

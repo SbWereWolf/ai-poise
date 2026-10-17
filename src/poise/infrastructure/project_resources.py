@@ -79,7 +79,7 @@ def require_project_association(settings, config_path, config, resources):
 
 def observe_hook_association(item, config_path):
     """Observe a historical installation without initializing its registry."""
-    from .hook_transport import HookSettings, FileHookRepository, _read_definition
+    from .hook_transport import HookSettings, _read_definition
     settings = HookSettings(item['settings_path'])
     if settings.project_config != config_path:
         raise PoiseError('Hook installation project binding differs from selected project')
@@ -97,9 +97,7 @@ def observe_hook_association(item, config_path):
         raise PoiseError('Hook definition installation identity differs from association')
     if receipt['hooks_path'] != str(settings.hooks_file):
         raise PoiseError('Hook installation native file differs from settings')
-    groups = FileHookRepository(settings, None)._groups(definition, Path(receipt['definition_path']))
-    if groups != record['groups']:
-        raise PoiseError('Hook installation definition or settings groups changed')
+    groups = record['groups']
     native = read_document(settings.hooks_file)
     if any(native.get('hooks', {}).get(event, []).count(group) != 1 for event, group in groups):
         raise PoiseError('Hook installation native group changed')

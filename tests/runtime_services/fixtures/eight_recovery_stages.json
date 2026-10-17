@@ -28,7 +28,12 @@
       },
       "rework_targets": [
         "baseline"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "baseline_inspection",
@@ -51,7 +56,12 @@
       },
       "rework_targets": [
         "baseline"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "solution_planning",
@@ -76,7 +86,12 @@
       },
       "rework_targets": [
         "solution_planning"
-      ]
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "solution_planning_inspection",
@@ -99,7 +114,12 @@
       },
       "rework_targets": [
         "solution_planning"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_implementation",
@@ -124,7 +144,12 @@
       },
       "rework_targets": [
         "test_implementation"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "test_inspection",
@@ -147,7 +172,12 @@
       },
       "rework_targets": [
         "test_implementation"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "implementation",
@@ -172,7 +202,12 @@
       },
       "rework_targets": [
         "implementation"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "implementation_inspection",
@@ -195,7 +230,12 @@
       },
       "rework_targets": [
         "implementation"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

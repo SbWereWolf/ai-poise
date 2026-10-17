@@ -108,7 +108,7 @@ def test_stale_release_version_preserves_the_exact_unknown_attempt(
     assert calls == [pending['runs'][0]['run_id']]
 
 
-def _verify_in_other_process(config_path, session, context, ready, stop, outcome):
+def _verify_in_other_process(config_path, session, payload, ready, stop, outcome):
     producer = WorkTools(WorkPoise(config_path, session))
 
     def observe_and_cancel():
@@ -124,7 +124,7 @@ def _verify_in_other_process(config_path, session, context, ready, stop, outcome
     observer = threading.Thread(target=observe_and_cancel)
     observer.start()
     try:
-        outcome.put(verify(producer, result(context, 'Active check.')))
+        outcome.put(verify(producer, deepcopy(payload)))
     except Exception as exc:
         outcome.put(repr(exc))
     finally:
@@ -140,13 +140,14 @@ def test_release_preserves_a_live_run_and_next_actor_cannot_reexecute_it(project
         command=[sys.executable, '-S', '-c', 'import time; time.sleep(10)'],
     )
     session = producer.runtime.session
+    payload = result(context, 'Active check.')
     process_context = multiprocessing.get_context('spawn')
     ready = process_context.Queue()
     stop = process_context.Event()
     outcome = process_context.Queue()
     child = process_context.Process(
         target=_verify_in_other_process,
-        args=(project['config_path'], session, context, ready, stop, outcome),
+        args=(project['config_path'], session, payload, ready, stop, outcome),
     )
     child.start()
     try:
@@ -173,9 +174,13 @@ def test_release_preserves_a_live_run_and_next_actor_cannot_reexecute_it(project
         }))
         assert acquired['status'] == 'active'
         assert reviewer.runtime.current_task()['pending'] == pending
-        with pytest.raises(PoiseError, match='Unknown check outcome'):
-            verify(reviewer, result(acquired, 'Do not execute an unresolved live check again.'))
-        assert reviewer.runtime.current_task()['pending'] == pending
+        unresolved = deepcopy(reviewer.runtime.current_task())
+        assert pending['actor'] == session
+        assert pending['actor'] != reviewer.runtime.session
+        with pytest.raises(PoiseError, match='Check attempt context changed'):
+            verify(reviewer, deepcopy(payload))
+        assert reviewer.runtime.current_task() == unresolved
+        assert reviewer.runtime.check_runner.active_ids() == ()
         assert child.is_alive()
     finally:
         stop.set()

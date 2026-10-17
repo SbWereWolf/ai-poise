@@ -108,7 +108,7 @@ def test_release_and_resume_ignore_whole_config_digest(project):
     context = bootstrap_task(source, project)
     add_test(context["worktree"])
     payload = result(context, "Preserve this exact WIP submission")
-    source.runtime.runner.submit(source.runtime.current_task(), payload)
+    source.runtime.runner.submit(context["task"], source.runtime.session, payload)
     current = source.runtime.current_task()
     first = source.invoke(request("release", {
         "request_id": "release-before-change",

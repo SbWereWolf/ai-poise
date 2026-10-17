@@ -145,20 +145,23 @@ def test_legacy_task_directory_is_ignored_without_migration_or_fallback(project)
 def test_task_path_consumers_do_not_duplicate_namespace_selection(project):
     repository = Path(__file__).parents[2]
     owner = repository / "src" / "poise" / "infrastructure" / "task_paths.py"
+    paths = importlib.import_module("poise.infrastructure.task_paths")
+    views = importlib.import_module("poise.infrastructure.result_views")
     consumers = {
-        repository / "src" / "poise" / "interfaces" / "work.py":
-            "from ..infrastructure.task_paths import sprint_root, task_root",
-        repository / "src" / "poise" / "runtime.py":
-            "from .infrastructure.task_paths import sprint_root, task_root",
-        repository / "src" / "poise" / "infrastructure" / "result_integration.py":
-            "from .task_paths import task_root",
+        "poise.interfaces.work": {"sprint_root": paths.sprint_root,
+                                  "task_response_root": views.task_response_root},
+        "poise.runtime": {"sprint_root": paths.sprint_root, "task_root": paths.task_root},
+        "poise.infrastructure.result_integration": {"task_root": paths.task_root},
+        "poise.infrastructure.result_views": {"task_root": paths.task_root,
+                                              "sprint_root": paths.sprint_root},
     }
 
     assert 'paths["standalone_tasks"]' in owner.read_text(encoding="utf-8")
-    for consumer, owner_import in consumers.items():
-        source = consumer.read_text(encoding="utf-8")
-        assert owner_import in source, consumer
-        assert "task_root(" in source, consumer
+    for name, bindings in consumers.items():
+        consumer = importlib.import_module(name)
+        source = Path(consumer.__file__).read_text(encoding="utf-8")
+        for binding, canonical in bindings.items():
+            assert getattr(consumer, binding) is canonical, name
         assert 'paths["standalone_tasks"]' not in source, consumer
         assert 'paths["sprints"]' not in source, consumer
         assert ' / "task"' not in source, consumer
@@ -320,7 +323,7 @@ def test_continuation_preserves_distinct_nested_task_and_sprint_artifacts(projec
     payload["sections"]["report"] = "Preserve nested owners."
     payload["artifact_paths"] = made["artifact_paths"]
     payload["commit_message"] = "test: preserve nested owners"
-    member.runtime.runner.submit(member.runtime.current_task(), payload)
+    member.runtime.runner.submit(context["task"], member.runtime.session, payload)
     original = member.runtime.store.artifact_records('MEMBER')
     assert member.invoke(release_packet(member))['status'] == 'ownership_released'
     receiver = WorkTools(Poise(project['config_path'], 'next-member-participant'))

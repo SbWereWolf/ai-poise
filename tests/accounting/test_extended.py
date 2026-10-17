@@ -146,7 +146,7 @@ def test_metrics_survive_participant_change_and_replay_without_double_counting(p
     from runtime_services.test_participant_continuity import release_packet
     h,w,c=setup(project);send(w,[sample()],cause='initial')
     p=deepcopy(c['result_template']);p['sections']['report']='WIP';p['commit_message']='WIP: save'
-    h.runner.submit(h.current_task(), p)
+    h.runner.submit(c['task'], h.session, p)
     packet=release_packet(w)
     assert w.invoke(packet)['status']=='ownership_released'
     other=WorkTools(Poise(project['config_path'],'B',DeterministicClock()))

@@ -1,0 +1,33 @@
+{
+  "id": "VERIFY",
+  "argv": [
+    "<selected-python>",
+    "-B",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/projects/test_reference.py::test_installed_reference_template_builds_all_thirteen_workflows"
+  ],
+  "cwd": ".",
+  "environment": {
+    "PYTHONPATH": "tests"
+  },
+  "source_under_test": {
+    "kind": "external",
+    "reason": "Verify the explicitly selected real-source checkout without editing it."
+  },
+  "verification_plan": {
+    "responsibility": "Verify real project setup from the selected source revision.",
+    "change_surface": [],
+    "red_stages": [],
+    "green_stages": [
+      "execution"
+    ],
+    "red_failure": null
+  },
+  "expected_exit_code": 0,
+  "stdout_contains": [
+    "passed"
+  ],
+  "stderr_contains": []
+}

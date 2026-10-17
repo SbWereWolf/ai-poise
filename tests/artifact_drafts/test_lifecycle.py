@@ -311,7 +311,9 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
         result(context, "Register the prematurely frozen ERP v6 file."),
         [text_artifact("task", "ERP-AI-ANALYSIS-v6.md", "premature immutable review\n")],
     )
-    artifact = artifact_records(owner_runtime)[0]
+    artifact = next(item for item in artifact_records(owner_runtime)
+                    if Path(item['path']).name == 'ERP-AI-ANALYSIS-v6.md')
+    assert artifact['owner'] == 'T1' and artifact['scope'] == 'task'
     original_digest = artifact["digest"]
 
     task_root = Path(context["task_root"])
@@ -377,7 +379,7 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
             )
         assert protected_state(recovery_runtime, task_root) == before_invalid
 
-    artifact_path = Path(verified["artifacts"][0]["path"])
+    artifact_path = Path(artifact['path'])
     artifact_path.write_text("conflicting unreviewed bytes\n", encoding="utf-8")
     before_conflict = protected_state(recovery_runtime, task_root)
     with pytest.raises(PoiseError, match="digest|conflict|changed"):

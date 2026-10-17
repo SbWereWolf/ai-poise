@@ -324,6 +324,7 @@ def configure_public_registry_case(project: dict) -> None:
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
         }
         for stage in stages
     ]

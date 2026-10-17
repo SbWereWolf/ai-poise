@@ -146,6 +146,9 @@ def configured_hook(case, tmp_path, *, independent=False):
 
 
 def relocate(case):
+    # The operator moves state after its writers have completed. Ordinary
+    # release preserves optional queued telemetry; drain its actual owner too.
+    case['tools'].runtime.telemetry.dispatcher.close()
     outcome = required(update_tools(case['settings']).apply, case['packet'])
     assert outcome['state_relocation']['status'] == 'completed'
     assert not case['source'].exists(), 'Original state must be retired by its owner'

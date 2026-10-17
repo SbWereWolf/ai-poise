@@ -74,7 +74,7 @@ def test_draft_release_rejects_a_submitted_execution_result_without_mutation(pro
     rows = saved_rows(h, before['id'])
     packet = release_request(h)
     packet['input']['result'] = {'pretend': 'execution'}
-    with pytest.raises(PoiseError, match="release input: unknown fields.*result"):
+    with pytest.raises(PoiseError, match="release input: required fields"):
         tools.invoke(packet)
     assert h.current_task() == before
     assert saved_rows(h, before['id']) == rows

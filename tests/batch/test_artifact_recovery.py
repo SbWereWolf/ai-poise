@@ -80,7 +80,8 @@ def test_public_recovery_of_registered_artifacts_removes_verify_blocker(legacy):
     assert len(h._candidate_artifacts(task, [], h._roots(task))) == len(records)
     resumed = legacy['tools'].invoke(request('bootstrap', {
         'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None}))
-    assert verify(legacy['tools'], resumed['result_template'])['status'] == 'verified'
+    payload = result(resumed, 'Verify the recovered registered artifact bytes in the original Task.')
+    assert verify(legacy['tools'], payload)['status'] == 'verified'
 
 
 def test_exact_replay_returns_original_receipt_and_conflict_is_rejected(legacy):

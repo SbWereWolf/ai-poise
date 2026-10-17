@@ -90,7 +90,15 @@ def materials(planner):
     database = planner.runtime.state / planner.runtime.paths['database']
     with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as db:
         records = db.execute('SELECT id,owner,scope,path,digest FROM artifacts ORDER BY id').fetchall()
-    return {row[0]: (*row[1:], Path(row[3]).read_bytes()) for row in records}
+    delivery = planner.runtime.delivery_tools.query('A')
+    assert delivery['status'] == 'delivery_complete' and delivery['outputs']
+    retired = set(delivery['retired_artifacts'])
+    assert {row[0] for row in records if row[1] == 'A'} <= retired
+    assert not any(row[0] in retired for row in records if row[1] != 'A')
+    # Only the confirmed retired owner's service material is disposable. Every
+    # live/unknown record must still resolve to its exact bytes, including B.
+    return {row[0]: (*row[1:], Path(row[3]).read_bytes())
+            for row in records if row[0] not in retired}
 
 
 def move(project, settings, planner, destination, number):

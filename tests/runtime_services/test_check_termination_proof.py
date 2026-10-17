@@ -418,12 +418,18 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
     assert saved == historical
     target = {'request_id': 'repeat-all-eight-obligations', 'task_id': 'T1',
               'target_stage': 'implementation_inspection'}
+    # Stop on entry before replaying historical acceptance: this scenario needs
+    # a new substantive baseline and eight new results, not accepted-visit reuse.
+    baseline_entry = {'request_id': 'fresh-eight-baseline-entry', 'task_id': 'T1',
+                      'target_stage': 'baseline'}
+    assert executor.invoke(request('advance', baseline_entry))['status'] == 'progression_target_reached'
     names = ['baseline', 'baseline_inspection', 'solution_planning',
              'solution_planning_inspection', 'test_implementation',
              'test_inspection', 'implementation', 'implementation_inspection']
     for index, stage in enumerate(names):
         actor = executor if index % 2 == 0 else reviewer
-        actor.invoke(request('advance', target))
+        if index:
+            actor.invoke(request('advance', target))
         context = actor.invoke(request('bootstrap', {
             'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}))
         assert context['stage'] == stage

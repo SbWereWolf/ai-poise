@@ -27,6 +27,7 @@ def _contracts(project, *, scope=None):
             "allowed_paths": list(stage["allowed_paths"] if scope is None or index else scope),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
         })
     return values
 

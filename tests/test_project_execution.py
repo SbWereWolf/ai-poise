@@ -1,5 +1,6 @@
 """A real-source verification stops and resumes in the same assigned working area."""
 import json
+from copy import deepcopy
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,10 +10,10 @@ import pytest
 
 from poise.application.work import WorkTools
 from poise.composition import project_tools
+from poise.common import load_config
 from conftest import WorkPoise as Poise
 from examples.project_execution import continue_execution
-from examples.project_pilot import run as plan_real_source
-from tests.conftest import git
+from tests.conftest import bind_task_requirements, git, seed_fixture_requirements, write_json
 
 
 def snapshot_source(tmp_path):
@@ -32,10 +33,87 @@ def snapshot_source(tmp_path):
     return repo
 
 
-def test_real_execution_is_not_accepted_and_resumes_in_the_same_working_area(tmp_path):
+def plan_real_source(project, repo, tmp_path):
+    """Arrange a current supported verification Task through public owners.
+
+    The historical pilot hard-codes a whole package invocation. This fixture
+    selects one actual-source setup oracle and keeps the live execution example
+    as the subject; it does not repair or mock that historical pilot.
+    """
+    workflow = deepcopy(project['workflow'])
+    names = ['planning', 'execution', 'interpretation']
+    stages = workflow['stages'][:3]
+    for index, stage in enumerate(stages):
+        stage.update(id=names[index], handler='produce', role='executor',
+                     purpose=['design', 'execution', 'observation'][index],
+                     read_only=True, allowed_paths=[], rework_targets=[names[index]],
+                     transitions={'complete': names[index + 1] if index < 2 else None})
+    workflow.update(goal_type='verification', route={'entry': 'planning'}, stages=stages,
+                    benefit={'git_categories': [], 'sections': []})
+    root = project['root']
+    workflow_path = write_json(root / 'execution-workflow.json', workflow)
+    settings_path = root / 'execution-setup.json'
+    config = deepcopy(project['cfg'])
+    config['git']['repository'] = str(repo)
+    config['automatic_checks'] = []
+    config['workflows'] = {'verification': 'workflows/verification.json'}
+    config['paths'].update(state=str(tmp_path / 'pilot-data'),
+                           worktrees=str(repo / 'pilot-worktrees'))
+    config['runtime_resources'] = {'project_setup': str(settings_path), 'hooks': []}
+    blueprint = write_json(root / 'execution-blueprint.json', {
+        'schema': 'project-blueprint-1', 'config': config,
+        'workflow_sources': {'verification': {'path': str(workflow_path)}},
+        'questions': [{'id': 'project', 'path': ['project'], 'type': 'text',
+                       'prompt': 'Идентификатор проверяемого проекта'}],
+    })
+    settings = json.loads((Path(__file__).parents[1] / 'config/project-setup.example.json').read_text())
+    settings.update(root=str(root), templates={'execution': {'path': str(blueprint)}},
+                    registry='execution-registry.json', lock='execution-setup.lock')
+    write_json(settings_path, settings)
+    write_json(root / 'execution-registry.json', {'schema': 'configured-project-registry-1', 'projects': {}})
+    created = project_tools(settings_path).apply({
+        'schema': 'project-setup-1', 'request_id': 'execution-project',
+        'destination': 'execution-config', 'template': {'id': 'execution'},
+        'edits': [{'path': ['project'], 'value': 'execution-fixture'}], 'probe_repository': True,
+    })
+    config_path = Path(created['config_path'])
+    configured_root, configured, _ = load_config(config_path)
+    registry = seed_fixture_requirements(configured_root, configured)
+    method = json.loads((Path(__file__).parent / 'projects/fixtures/project_execution_method.json').read_text())
+    method['argv'][0] = sys.executable
+    task = deepcopy(project['task'])
+    task.update(id='VERIFY-SOURCE', goal_type='verification',
+                goal='Проверить настройку проекта на фактическом коде.',
+                requirements=['Исполнение сохраняет проверенные исходники и рабочую область.'],
+                definition_of_done=['Сохранена квитанция адресной проверки без неявной приёмки.'],
+                methods=[method], method_inputs=[{'method_id': 'VERIFY',
+                    'repository_inputs': ['tests/projects/test_reference.py'], 'future_outputs': [],
+                    'reference_profile': {'runner': 'pytest', 'parser': 'positional-paths', 'version': 1}}],
+                checks={name: ['VERIFY'] if name == 'execution' else [] for name in names},
+                artifact_requirements=[],
+                evidence_plan={name: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for name in names},
+                stage_contracts=[{'stage_id': name, 'allowed_paths': [], 'entry_requirements': [],
+                    'exit_requirements': [], 'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
+                    for name in names],
+                decomposition={'kind': 'ordinary', 'integration': None,
+                    'phases': [{'stage': name, 'skills': ['workflow'], 'areas': []} for name in names]})
+    bind_task_requirements(task, registry)
+    exclude = repo / '.git/info/exclude'
+    exclude.write_text(exclude.read_text() + '\n/pilot-worktrees/\n')
+    tools = WorkTools(Poise(config_path, 'VERIFY-SOURCE'))
+    context = tools.invoke({'operation': 'bootstrap', 'input': {
+        'task': task, 'decision': None, 'feedback': None, 'rework_stage': None}, 'messages': []})
+    payload = deepcopy(context['result_template'])
+    payload['sections']['report'] = 'Проверить один адресный oracle настройки проекта на фактическом коде.'
+    planned = tools.invoke({'operation': 'verify', 'input': {'result': payload, 'artifacts': []}, 'messages': []})
+    assert planned['status'] == 'verified' and planned['checks'] == []
+    return {'setup': created}
+
+
+def test_real_execution_is_not_accepted_and_resumes_in_the_same_working_area(project, tmp_path):
     repo = snapshot_source(tmp_path)
     base = git(repo, 'rev-parse', 'HEAD')
-    first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE', requirements_root=tmp_path/'requirements-planned')
+    first = plan_real_source(project, repo, tmp_path)
     # User decision is an explicit fixture. The test does not simulate a human reviewer.
     result = continue_execution(config_path=Path(first['setup']['config_path']),
                                session='VERIFY-SOURCE', task_id='VERIFY-SOURCE',

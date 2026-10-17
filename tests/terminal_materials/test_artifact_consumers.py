@@ -18,7 +18,9 @@ from .helpers import absent, agree, declaration, delivery_status
 def family(project):
     saved = {}
     def agreement(producer, context, verified_report):
-        records = producer.runtime.store.artifact_records("P")
+        records = [record for record in producer.runtime.store.artifact_records("P")
+                   if record["owner"] == "P" and record["scope"] == "task"
+                   and Path(record["path"]) == Path(context["task_root"]) / "artifacts" / "result.txt"]
         assert len(records) == 1
         source = Path(records[0]["path"])
         assert source.read_bytes() == b"accepted family result\n"
@@ -68,7 +70,11 @@ def test_reserved_required_artifact_consumer_blocks_source_retirement_until_deli
     absent(root)
     assert (project["root"] / "permanent-family-input.txt").read_bytes() == b"accepted family result\n"
     assert consumer.runtime.task_queries.record("D")["duplicate_reuse"]["candidate"] == candidate
-    local = consumer.runtime.store.artifact_records("D")[0]
+    local_records = [record for record in consumer.runtime.store.artifact_records("D")
+                     if record["owner"] == "D" and record["scope"] == "task"
+                     and Path(record["path"]) == destination]
+    assert len(local_records) == 1
+    local = local_records[0]
     assert local["id"] != saved["record"]["id"]
     assert local["digest"] == saved["record"]["digest"] == hashlib.sha256(b"accepted family result\n").hexdigest()
     assert consumer.invoke(request("accept", {}))["status"] == "completed"

@@ -16,6 +16,12 @@ from .helpers import (absent, agree, arrange, cancel_and_discard, declaration,
                       file_output, finish, fresh, settle)
 
 
+@pytest.fixture(autouse=True)
+def configured_file_handoff(project):
+    project["cfg"]["runtime_services"]["handoff"] = json.loads(
+        (Path(__file__).parents[1] / "sprints" / "fixtures" / "file-handoff.json").read_text())
+
+
 def test_newborn_cancel_with_explicit_no_result_retires_materials(project):
     setup(project)
     tools = WorkTools(WorkPoise(project["config_path"], "newborn-owner"))
@@ -179,10 +185,10 @@ def test_released_handoff_is_needed_for_real_resume_but_not_terminal_replay(proj
     absent(root)
 
 
-def test_interrupted_export_blocks_retirement_until_exact_export_finishes(project, monkeypatch):
+def test_interrupted_export_blocks_retirement_until_exact_export_finishes(project, monkeypatch, recovery_tool):
     import zipfile
     from transfer.helpers import enabled, export
-    enabled(project)
+    enabled(project, recovery_tool)
     tools, root, source, commit = arrange(project)
     agree(tools, declaration([file_output(source, project["root"] / "result.txt")]))
     saved = tools.invoke(request("handoff", {
@@ -230,20 +236,22 @@ def test_interrupted_export_blocks_retirement_until_exact_export_finishes(projec
 
 @pytest.mark.parametrize("phase", ["after-receipt", "during-cleanup"])
 @pytest.mark.parametrize("retire_first", [False, True], ids=["replay-before-retirement", "replay-after-retirement"])
-def test_completed_export_replay_finishes_only_original_preparation(project, monkeypatch, phase, retire_first):
-    _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_replay=False)
+def test_completed_export_replay_finishes_only_original_preparation(project, monkeypatch, phase, retire_first, recovery_tool):
+    _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_replay=False,
+                               recovery_tool=recovery_tool)
 
 
-def test_completed_export_replay_cleanup_failure_is_truthful_and_resumable(project, monkeypatch):
-    _completed_export_recovery(project, monkeypatch, "after-receipt", True, fail_replay=True)
+def test_completed_export_replay_cleanup_failure_is_truthful_and_resumable(project, monkeypatch, recovery_tool):
+    _completed_export_recovery(project, monkeypatch, "after-receipt", True, fail_replay=True,
+                               recovery_tool=recovery_tool)
 
 
-def _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_replay):
+def _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_replay, recovery_tool):
     """003/008/009: real original and replay effects, exact package, no new copy."""
     from transfer.helpers import enabled, export
     from .archive_oracle import material_provenance, no_new_material_archive
 
-    enabled(project)
+    enabled(project, recovery_tool)
     tools, root, source, commit = arrange(project)
     destination = project["root"] / "result.txt"
     agree(tools, declaration([file_output(source, destination)]))

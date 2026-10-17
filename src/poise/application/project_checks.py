@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 from ..modules.project_checks.contracts import CheckFailure
-from ..modules.project_checks.outcomes import aggregate, cache_metadata, item_status, not_executed
+from ..modules.project_checks.outcomes import aggregate, cache_metadata, item_status, not_executed, omitted_step
 from ..modules.project_checks.profiles import resolved_selection
 from ..modules.project_checks.timing import eligible
 
@@ -30,9 +30,12 @@ class ProjectChecks:
         kind = selected['kind']
         if kind == 'profile':
             profile = self.configuration.profiles.select(selected, field, self.warnings)
+            invocation = self.runtime.resolve(profile)
             return {'kind': 'profile', 'value': {'selection': resolved_selection(profile),
                     'platforms': list(profile['platforms']), 'invocation': profile['invocation'],
-                    'profile': deepcopy(profile)}}
+                    'profile': deepcopy(profile), 'profile_sha256': self.configuration.profiles_sha256,
+                    'available': invocation['available'],
+                    'unavailable_reason': None if invocation['available'] else 'runtime_unavailable'}}
         if kind == 'suite_set':
             return self.suite_set(selected, field, 'describe', None)
         catalogue = self.catalogue('packages' if kind == 'package' else 'suites', field)
@@ -215,7 +218,8 @@ class ProjectChecks:
             steps, omitted, stopped = [], [], False
             for child in plan['children']:
                 if stopped:
-                    omitted.append(not_executed(child['selection']))
+                    omitted.extend(omitted_step(len(steps) + len(omitted) + i + 1, child['selection'])
+                                   for i in range(len(child['steps'])))
                     continue
                 child_result = self.run(child)
                 execution = child_result['source'] if child_result['kind'] == 'reuse' else child_result
@@ -244,7 +248,7 @@ class ProjectChecks:
             step_selection = ({'kind': 'package', 'id': step['package_id']}
                               if step['package_id'] is not None else step['selection'])
             if stopped:
-                omitted.append(not_executed(step_selection))
+                omitted.append(omitted_step(i + 1, step_selection))
                 continue
             self.runtime.prerequisites(step['profile'], step['invocation'], step['environment'], step['field'])
             addresses = self.ledger.allocate(process=True)
@@ -255,7 +259,7 @@ class ProjectChecks:
             self.known_records.append(record)
             self.ledger.save_run(record)
             steps.append({'ordinal': i + 1, 'package_id': step['package_id'], 'driver': step['driver'],
-                          'selection': deepcopy(step_selection), 'record': record})
+                          'selection': deepcopy(step['selection']), 'record': record})
             stopped = record['status'] != 'passed'
         if eligible_cache and not stopped:
             final_key, _ = self.inputs.key(profile, plan['options']['scope_paths'], plan['package'])

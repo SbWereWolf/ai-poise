@@ -37,3 +37,8 @@ def cache_metadata(eligible, key, reason):
 def not_executed(selection):
     return {'kind': 'not_executed', 'selection': selection,
             'reason': 'Предшествующий шаг не завершился подтверждённым успехом.'}
+
+
+def omitted_step(ordinal, selection):
+    return {'ordinal': ordinal, 'selection': selection,
+            'reason': 'Предшествующий шаг не завершился подтверждённым успехом.'}

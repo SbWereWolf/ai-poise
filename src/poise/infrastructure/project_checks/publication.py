@@ -34,7 +34,11 @@ class ProfilePublisher:
             before = path.read_bytes()
             raw = tomllib.loads(before.decode())
             rendered = before.decode()
-            starts = [m.start() for m in re.finditer(r'^\s*\[\[commands\]\]\s*$', rendered, re.MULTILINE)]
+            starts = []
+            for match in re.finditer(r'^[ \t]*\[\[[^\n]+\]\][ \t]*(?:#[^\n]*)?$', rendered, re.MULTILINE):
+                header = tomllib.loads(match.group() + '\n')
+                if isinstance(header.get('commands'), list):
+                    starts.append(match.start())
             spans = [(start, starts[i + 1] if i + 1 < len(starts) else len(rendered))
                      for i, start in enumerate(starts)]
             edits, changed = [], set()
@@ -53,7 +57,8 @@ class ProfilePublisher:
                 head, rest = block[:boundary], block[boundary:]
                 updates = {**values, 'last_calibrated_at': self.clock.observe().audit_utc}
                 for key, value in updates.items():
-                    head, count = re.subn(r'^(\s*' + re.escape(key) + r'\s*=)[^\n]*',
+                    spelling = '(?:' + re.escape(key) + '|"' + re.escape(key) + '"|\'' + re.escape(key) + '\')'
+                    head, count = re.subn(r'^([ \t]*' + spelling + r'[ \t]*=)[^\n]*',
                                          lambda m: m[1] + ' ' + json.dumps(value, ensure_ascii=False),
                                          head, flags=re.MULTILINE)
                     if count != 1:

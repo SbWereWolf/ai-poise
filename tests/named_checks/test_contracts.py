@@ -158,7 +158,11 @@ def test_taskless_native_and_generated_callers(project, tmp_path, monkeypatch):
     monkeypatch.delenv('CODEX_THREAD_ID', raising=False)
     monkeypatch.delenv('CODEX_SESSION_ID', raising=False)
     monkeypatch.delenv('POISE_CALLER_BINDING', raising=False)
+    binding = tmp_path / 'named-generated-caller.json'
+    monkeypatch.setenv('POISE_CALLER_BINDING', str(binding))
     generated = s.run(fresh=True)
+    assert binding.is_file()
+    monkeypatch.delenv('POISE_CALLER_BINDING')
     monkeypatch.setenv('CODEX_THREAD_ID', 'f07-isolated-protocol-fixture')
     monkeypatch.setenv('CODEX_SESSION_ID', 'f07-isolated-protocol-fixture')
     native = s.run(fresh=True)

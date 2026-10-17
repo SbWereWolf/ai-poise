@@ -11,7 +11,7 @@ def project_checks_tools(bound, policy_path, environment, clock):
     from .infrastructure.project_checks.subject import SubjectAdmission
     from .infrastructure.project_checks.execution import CheckExecution
     from .infrastructure.project_checks.publication import ProfilePublisher
-    from .infrastructure.session_establishment import establish_direct_poise
+    from .infrastructure.session_establishment import establish_project_check_session
     configuration = CheckConfiguration.load(bound, policy_path)
     inputs = InputSnapshot(bound.checkout, bound.config['limits']['git_seconds'])
     runtime = RuntimeAdapter(bound.checkout, configuration.policy['runtime_adapters'], environment)
@@ -25,7 +25,7 @@ def project_checks_tools(bound, policy_path, environment, clock):
     publisher = ProfilePublisher(configuration, clock)
     service = ProjectChecks(configuration, inputs, runtime, ledger, cache, execution,
                             timing, subject, publisher, environment)
-    service.establish_session = lambda: establish_direct_poise(bound.config_path, environment, clock, read_only=True)
+    service.establish_session = lambda: establish_project_check_session(bound, environment)
     return service
 
 

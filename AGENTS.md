@@ -267,6 +267,10 @@ Keep this English projection and its Russian source consistent in the same chang
   role boundaries and separately controlled publish acceptance; after public handoff, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
+  Continue the current verified result through its proved ownership history: a receiver's self-cycle
+  preserves an earlier transfer, while the original author alone does not establish one. Keep the same
+  progression intent and existing source/claim/unknown/review gates; follow
+  [verified-result continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 - Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New
   messages add to the working plan unless they explicitly change an assignment; preserve pending work and blockers
   across checkpoints and compaction. Reading or acknowledging a message does not complete its assignment.

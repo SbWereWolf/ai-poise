@@ -505,6 +505,13 @@ acceptance, or infer
 publication authority. A publish stage opens only through the separately authorized public
 acceptance path.
 
+Continue the exact current verified result through its proved ownership history after an
+authorized ordinary release/acquire or preserved handoff/resume. A receiver's later self-cycle
+retains the already proved transfer; the original verified author alone does not establish one.
+Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
+Follow the canonical [verified-result continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
+this does not replace the paired handoff/message procedure or grant acceptance/publication authority.
+
 Poise isolates the temporary Git index for every repository snapshot invocation and cleans only that
 invocation's owned
 directory. Never delete `snapshot.index.lock` manually or remove a sibling snapshot directory:

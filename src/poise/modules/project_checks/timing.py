@@ -37,7 +37,8 @@ class TimingPolicy:
 
     def limits(self, profile, samples):
         if not samples:
-            return profile['execution_timeout_seconds'], profile['stall_timeout_seconds'], 'initial'
+            configured = profile['execution_timeout_seconds']
+            return configured or None, profile['stall_timeout_seconds'], 'initial'
         hard = math.ceil(max(v['duration_seconds'] for v in samples) * self.multiplier)
         gaps = [v['progress']['max_gap_seconds'] for v in samples
                 if v['progress']['mode'] == 'regex'
@@ -47,6 +48,10 @@ class TimingPolicy:
 
     def admit_override(self, override, ordinary, evidence, expected_identity, consumed, field):
         seconds = override['seconds']
+        if ordinary is None:
+            raise CheckFailure('override_invalid', field + '.seconds',
+                               'У профиля нет начального ограничения времени.',
+                               'Запустите проверку без диагностического ограничения.')
         if seconds <= ordinary:
             raise CheckFailure('override_invalid', field + '.seconds',
                                f'Запрошено {seconds} при обычном ограничении {ordinary}.',

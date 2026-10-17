@@ -514,8 +514,9 @@ class HookService:
             raise PoiseError('Invalid lifecycle event receipt; use a genuine native episode')
         record,_=self.registry.get(event_receipt['binding_id'])
         bound,_=self._binding_record(Path(record['binding_path']))
-        if bound['definition_path']!=str(Path(definition_path).resolve()):
-            raise PoiseError('Lifecycle receipt selects another native definition; select its matching episode configuration')
+        bound_definition=self.definition(bound['definition_path'])
+        if bound_definition.data['id']!=definition.data['id']:
+            raise PoiseError('Lifecycle receipt selects another native installation; select its matching episode configuration')
         return self.registry.bind_lifecycle_receipt(event_receipt,episode,definition.data['id'],bound['project'])
 
     def probe_lifecycle_consumer(self):

@@ -46,7 +46,7 @@
         "${python}",
         "-B",
         "-c",
-        "import sys; print(\"ready\" if sys.version_info[:2] == (3,13) else \"unsupported\")"
+        "import sys; print(\"ready\" if sys.version_info[:2] == (3,15) else \"unsupported\")"
       ],
       "cwd": "${workspace}",
       "environment": {},
@@ -61,7 +61,7 @@
       "mcp": null,
       "tool_ref": "CPython",
       "project_bound": false,
-      "remediation": "Install CPython 3.13 and select its executable in the explicit settings."
+      "remediation": "Install CPython 3.15 and select its executable in the explicit settings."
     }
   ],
   "gate_operations": [

@@ -88,7 +88,7 @@ class EpisodeResources:
         self.scope = None
         self.target = None
         self.registry = None
-        self.validated_episode = None
+        self.validated_template = False
 
     @property
     def authority(self):
@@ -129,12 +129,8 @@ class EpisodeResources:
 
     def _ensure_registry(self, *, create=True):
         template = Path(self.session['registry_template'])
-        if not template.is_file():
-            raise ReadFailure('template_missing')
-        try:
-            validate_template(template)
-        except TemplateError as exc:
-            raise ReadFailure('template_invalid') from exc
+        if not self.validated_template:
+            self._validate_template()
         if not self.registry.path.exists():
             if not create:
                 raise ReadFailure('registry_missing')
@@ -155,6 +151,16 @@ class EpisodeResources:
                 candidate.unlink(missing_ok=True)
         self.registry.validate()
 
+    def _validate_template(self):
+        template = Path(self.session['registry_template'])
+        if not template.is_file():
+            raise ReadFailure('template_missing')
+        try:
+            validate_template(template)
+        except TemplateError as exc:
+            raise ReadFailure('template_invalid') from exc
+        self.validated_template = True
+
     def observe_active(self):
         """Expensive public native/schema observation precedes the short gate."""
         if self.caller.native_session is None or self.authority is None:
@@ -166,12 +172,9 @@ class EpisodeResources:
             if any(word in cause.lower() for word in ('binding', 'association', 'installation')):
                 code = 'authority_mismatch'
             raise ReadFailure(code)
-        record = self.store.load()
-        if record is not None and record.get('episode') == observation['episode'] and record.get('phase') == 'active':
-            target = self._validate_owner(record)
-            self._activate(record, target)
-            self._ensure_registry(create=False)
-            self.validated_episode = observation['episode']
+        # Only the immutable template is inspected here. A live SQLite schema
+        # validation holds a read transaction and must share the writer gate.
+        self._validate_template()
         return observation
 
     def admit(self, observation, *, adopt=False):
@@ -187,13 +190,8 @@ class EpisodeResources:
             if target.exists():
                 raise ReadFailure('ownership_unknown')
             # Validate the prepared template before allocating a new episode root.
-            template = Path(self.session['registry_template'])
-            if not template.is_file():
-                raise ReadFailure('template_missing')
-            try:
-                validate_template(template)
-            except TemplateError as exc:
-                raise ReadFailure('template_invalid') from exc
+            if not self.validated_template:
+                self._validate_template()
             record = self._owner(episode, target) | {'phase': 'active'}
             target.mkdir(parents=True)
             atomic_write(target / self.session['ownership_filename'],
@@ -204,8 +202,7 @@ class EpisodeResources:
             if record.get('phase') != 'active':
                 raise ReadFailure('admission_dead')
         self._activate(record, target)
-        if self.validated_episode != episode:
-            self._ensure_registry()
+        self._ensure_registry(create=fresh)
         return self.scope
 
     def reserve_response(self):

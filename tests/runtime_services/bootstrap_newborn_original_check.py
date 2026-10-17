@@ -104,7 +104,7 @@ def observe(arguments, output, receipt):
     exact_case = (len(cases) == 1 and cases[0].get("name") == arguments.node
                   and cases[0].get("classname") == arguments.test_file[:-3].replace("/", "."))
     exact_failure = (len(failures) == 1
-                     and failures[0].get("message") == "KeyError: 'contract'")
+                     and failures[0].get("message") == "KeyError: 'version'")
     conserved = state_marker in captured and source_marker in captured
     receipt.update(collected=len(cases), failure_count=len(failures),
                    error_count=len(errors), skipped_count=len(skipped),
@@ -115,7 +115,7 @@ def observe(arguments, output, receipt):
                and not errors and not skipped and conserved)
     receipt["status"] = "intended_original_failure" if matched else "not_the_declared_red"
     if matched:
-        print("RED: original newborn bootstrap raises KeyError(contract); Task and ownership unchanged")
+        print("RED: original newborn bootstrap raises KeyError(version); Task and ownership unchanged")
         return 1
     print("NON_RED: historical pytest result does not match the declared failure and state proof")
     return 2

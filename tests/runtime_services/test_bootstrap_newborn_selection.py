@@ -1,5 +1,6 @@
 """The current-Task selector must understand newborn before executable stages."""
 
+import json
 from copy import deepcopy
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import poise
 import pytest
 
 from batch.helpers import configure, request, result, verify
-from conftest import WorkPoise, add_test
+from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import DomainError, PoiseError
 from runtime_services.test_task_version_projection import (
@@ -176,6 +177,15 @@ def test_active_verified_and_accepted_current_task_paths_are_preserved(project):
 
 def test_completed_task_is_terminal_and_current_selector_becomes_taskless(project):
     task = _configure_single_stage(project)
+    workflow_path = project["root"] / "config/workflows/development.json"
+    workflow = json.loads(workflow_path.read_text())
+    workflow["stages"][0].update(
+        purpose="execution", criteria_authority={"propose": [], "decide": []},
+    )
+    write_json(workflow_path, workflow)
+    task["stage_contracts"][0]["criteria"] = {
+        "requirements": [], "definition_of_ready": [], "definition_of_done": [],
+    }
     tools = WorkTools(WorkPoise(project["config_path"], "executor"))
     context = bootstrap(tools, task)
     assert verify(tools, _result(context))["status"] == "verified"

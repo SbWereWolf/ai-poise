@@ -4,7 +4,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from ...modules.project_checks.contracts import CheckFailure
+from ...modules.project_checks.contracts import CheckFailure, UnstartedCheck
+from ...execution import RegisteredLaunchFailure
 from ...modules.project_checks.parsers import parse_lines
 from ...modules.project_checks.profiles import resolved_selection
 from ...modules.project_checks.progress import ProgressTracker
@@ -68,13 +69,22 @@ class CheckExecution:
         mode = configuration.bound.config['batch']['file_mode']
         observer = ProgressObserver(profile['progress'], self.clock, addresses['progress'], mode)
         started = observation(self.clock.observe())
-        raw = self.runner.run(addresses['id'], invocation['argv'], Path(invocation['cwd']), environment,
-                              timeout['effective_seconds'], addresses['stdout'], addresses['stderr'],
-                              progress_gap_seconds=stall if profile['progress']['mode'] == 'regex' and stall else None,
-                              poll_seconds=configuration.policy['timing']['poll_seconds'],
-                              cleanup_seconds=configuration.policy['timing']['cleanup_seconds'],
-                              capture_observer=observer if profile['progress']['mode'] == 'regex' else None)
-        observer.finish()
+        try:
+            raw = self.runner.run(addresses['id'], invocation['argv'], Path(invocation['cwd']), environment,
+                                  timeout['effective_seconds'], addresses['stdout'], addresses['stderr'],
+                                  progress_gap_seconds=stall if profile['progress']['mode'] == 'regex' and stall else None,
+                                  poll_seconds=configuration.policy['timing']['poll_seconds'],
+                                  cleanup_seconds=configuration.policy['timing']['cleanup_seconds'],
+                                  capture_observer=observer if profile['progress']['mode'] == 'regex' else None)
+        except RegisteredLaunchFailure as exc:
+            raise UnstartedCheck('prerequisites_unavailable', step['field'] + '.argv[0]', str(exc),
+                                 'Укажите действительный исполняемый файл для выбранной среды.',
+                                 status='unavailable') from exc
+        observer_error = raw.get('observer_error')
+        try:
+            observer.finish()
+        except OSError as exc:
+            observer_error = str(exc)
         finished = observation(self.clock.observe())
         duration = elapsed(started, finished)
         error = None
@@ -98,21 +108,28 @@ class CheckExecution:
         if termination['capture_complete']:
             # Supplied full lines, independent of every agent preview.
             lines = []
-            for name in ('stdout', 'stderr'):
-                lines.extend(addresses[name].read_text(encoding='utf-8', errors='replace').splitlines())
-            parsed = parse_lines(lines, profile['parser'], profile['output']['max_failures'])
-            evidence_id = profile.get('evidence_id')
-            contract = None if evidence_id is None else configuration.profiles.evidence[evidence_id]
-            evidence = EvidenceCollector(mode).collect(addresses['evidence'], contract)
+            try:
+                for name in ('stdout', 'stderr'):
+                    lines.extend(addresses[name].read_text(encoding='utf-8', errors='replace').splitlines())
+                parsed = parse_lines(lines, profile['parser'], profile['output']['max_failures'])
+            except OSError:
+                termination['capture_complete'] = False
+            if termination['capture_complete']:
+                evidence_id = profile.get('evidence_id')
+                contract = None if evidence_id is None else configuration.profiles.evidence[evidence_id]
+                try:
+                    evidence = EvidenceCollector(mode).collect(addresses['evidence'], contract)
+                except OSError:
+                    evidence = {'status': 'invalid', 'manifest_path': None, 'files': []}
         try:
             self.subject_owner.recheck(subject)
         except CheckFailure as exc:
             error = exc
             if status == 'passed':
                 status = 'unconfirmed'
-        if not termination['capture_complete'] or 'observer_error' in raw:
+        if not termination['capture_complete'] or observer_error is not None:
             error = CheckFailure('capture_failed', 'run.capture',
-                                 raw.get('observer_error', 'Полнота сохранённого вывода не подтверждена.'),
+                                 observer_error if observer_error is not None else 'Полнота сохранённого вывода не подтверждена.',
                                  'Исправьте размещение материалов и выполните новую проверку.')
         elif duration is None or not observer.tracker.clock_comparable:
             error = CheckFailure('clock_incomparable', 'run.clock',

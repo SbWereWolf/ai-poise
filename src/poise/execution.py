@@ -120,6 +120,10 @@ def timeout_profile(argv: list[str], workload: str, env: dict[str, str]) -> dict
     }
 
 
+class RegisteredLaunchFailure(PoiseError):
+    """Popen failed before creating any owned child."""
+
+
 class RegisteredCheckRunner:
     """Own one Poise verification process from launch through cancellation.
 
@@ -239,7 +243,7 @@ class RegisteredCheckRunner:
                                 start_new_session=True,
                             )
                         except OSError as exc:
-                            raise PoiseError(f'Не удалось запустить точную команду {argv[0]}: {exc}') from exc
+                            raise RegisteredLaunchFailure(f'Не удалось запустить точную команду {argv[0]}: {exc}') from exc
                         state['child'] = child
                     streams = [child.stdout, child.stderr]
 

@@ -95,15 +95,16 @@ def test_generic_native_driver_arguments(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
     diamond(s)
     package = s.packages['packages'][0]
+    fixture_driver = deepcopy(s.policy['drivers'][0])
     for family in ['composer-program', 'phpunit-program', 'npm-program', 'optimizer-program']:
-        s.policy['drivers'] = [{**deepcopy(s.policy['drivers'][0]), 'id': family}]
+        s.policy['drivers'] = [deepcopy(fixture_driver), {**deepcopy(fixture_driver), 'id': family}]
         package['steps'][0]['driver'] = family
         package['steps'][0]['arguments'] = ['--marker', family, '--stdout', 'native fixture\n']
         result = s.run(selection=s.selection('base', kind='package'), fresh=True)
         assert result['steps'][0]['driver'] == family
         assert s.markers()[-1]['remaining'] == ['tests/base.py']
         assert s.markers()[-1]['marker'] == family
-        assert s.record(result)['argv'] == s.policy['drivers'][0]['argv_prefix'] + package['steps'][0]['arguments'] + ['tests/base.py']
+        assert s.record(result)['argv'] == fixture_driver['argv_prefix'] + package['steps'][0]['arguments'] + ['tests/base.py']
     assert len(s.markers()) == 4  # Real fixture programs, not PHP/npm/Composer execution proof.
 
 
@@ -228,10 +229,14 @@ def test_invalid_subject_schema_and_admission_effects(project, tmp_path, monkeyp
     s.documentation()
     s.save()
     s.error(s.request(), 'scope_required')
+    baseline_tree = git(s.checkout, 'rev-parse', declaration['baseline_commit'] + '^{tree}')
+    assert git(s.checkout, 'cat-file', '-t', baseline_tree) == 'tree'
+    assert baseline_tree != declaration['candidate_tree']
     for changes, code in [({'version': 2}, 'scope_version_unsupported'),
                           ({'repository_root': str(tmp_path)}, 'scope_root_mismatch'),
                           ({'candidate_commit': 'no-commit'}, 'scope_git_identity_invalid'),
-                          ({'candidate_tree': '0' * 40}, 'scope_candidate_mismatch'),
+                          ({'candidate_tree': '0' * 40}, 'scope_git_identity_invalid'),
+                          ({'candidate_tree': baseline_tree}, 'scope_candidate_mismatch'),
                           ({'paths': ['../outside.md']}, 'scope_path_invalid'),
                           ({'paths': []}, 'scope_targets_invalid'),
                           ({'extra': True}, 'scope_shape_invalid')]:

@@ -20,6 +20,10 @@ class CheckFailure(ValueError):
                     'stdout_paths': [], 'stderr_paths': []}}
 
 
+class UnstartedCheck(CheckFailure):
+    """The actual process owner proved that no child began this attempt."""
+
+
 def require(condition, field, cause, *, code='invalid_request', recovery=None):
     if not condition:
         raise CheckFailure(code, field, cause,

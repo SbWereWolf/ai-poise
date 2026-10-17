@@ -64,6 +64,8 @@ def execute(config_path, checkout, policy_path, stream, output, error_output, cl
         address = configuration.state / configuration.policy['storage']['response_directory'] / uuid.uuid4().hex / bound.config['paths']['response']
         saver = SavedResponse(address, bound.config['batch']['file_mode'])
         result['items'], result['status'] = service.execute(request)
+        if service.failure is not None:
+            result['error'] = service.failure.as_dict(references(service))
         result['warnings'] = service.warnings
     except CheckFailure as exc:
         result.update(status=exc.status, error=exc.as_dict(references(service)))

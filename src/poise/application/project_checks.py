@@ -1,7 +1,7 @@
 """Coordinate admitted project checks through their existing and specific owners."""
 from copy import deepcopy
 
-from ..modules.project_checks.contracts import CheckFailure
+from ..modules.project_checks.contracts import CheckFailure, UnstartedCheck
 from ..modules.project_checks.outcomes import aggregate, cache_metadata, item_status, not_executed, omitted_step
 from ..modules.project_checks.profiles import resolved_selection
 from ..modules.project_checks.timing import eligible
@@ -18,6 +18,7 @@ class ProjectChecks:
         self.provenance = None
         self.known_records = []
         self.establish_session = None
+        self.failure = None
 
     def catalogue(self, kind, field):
         value = getattr(self.configuration, kind)
@@ -195,27 +196,49 @@ class ProjectChecks:
         if plan.get('kind') == 'suite_selection':
             items, stopped = [], False
             for child in plan['items']:
-                item = not_executed(child['selection']) if stopped else self.run(child)
+                try:
+                    item = not_executed(child['selection']) if stopped else self.run(child)
+                except CheckFailure as exc:
+                    if not items:
+                        raise
+                    self.failure = exc
+                    item = not_executed(child['selection'])
+                    stopped = True
                 items.append(item)
                 stopped = stopped or item_status(item) not in ('passed', 'ready')
-            return {**plan, 'items': items, 'status': aggregate([v for v in items if v['kind'] != 'not_executed'])}
+            return {**plan, 'items': items,
+                    'status': (self.partial_status(self.failure) if self.failure is not None else
+                               aggregate([v for v in items if v['kind'] != 'not_executed']))}
         if plan['children'] is not None:
             steps, omitted, stopped = [], [], False
             for child in plan['children']:
                 if stopped:
-                    omitted.extend(omitted_step(len(steps) + len(omitted) + i + 1, child['selection'])
+                    offset = len(steps) + len(omitted)
+                    omitted.extend(omitted_step(offset + i + 1, child['selection'])
                                    for i in range(len(child['steps'])))
                     continue
-                child_result = self.run(child)
+                try:
+                    child_result = self.run(child)
+                except CheckFailure as exc:
+                    if not steps:
+                        raise
+                    self.failure = exc
+                    offset = len(steps) + len(omitted)
+                    omitted.extend(omitted_step(offset + i + 1, child['selection'])
+                                   for i in range(len(child['steps'])))
+                    stopped = True
+                    continue
                 execution = child_result['source'] if child_result['kind'] == 'reuse' else child_result
+                offset = len(steps)
                 steps.extend(execution['steps'])
-                omitted.extend(execution['not_executed'])
+                omitted.extend({**v, 'ordinal': offset + v['ordinal']} for v in execution['not_executed'])
                 stopped = execution['status'] != 'passed'
             for i, step in enumerate(steps):
                 step = deepcopy(step)
                 step['ordinal'] = i + 1
                 steps[i] = step
-            return self.save_execution(plan, steps, omitted, cache_metadata(False, None, 'composed_sources'))
+            return self.save_execution(plan, steps, omitted, cache_metadata(False, None, 'composed_sources'),
+                                       status=None if self.failure is None else self.partial_status(self.failure))
         profile = plan['steps'][0]['profile']
         eligible_cache = all(v['profile']['cache']['enabled'] for v in plan['steps']) and plan['options']['timeout_override'] is None
         key = None
@@ -235,12 +258,18 @@ class ProjectChecks:
             if stopped:
                 omitted.append(omitted_step(i + 1, step_selection))
                 continue
-            self.runtime.prerequisites(step['profile'], step['invocation'], step['environment'], step['field'])
-            addresses = self.ledger.allocate(process=True)
-            evidence_id = step['timeout']['evidence_run_id']
-            if evidence_id is not None:
-                self.ledger.reserve_diagnostic(evidence_id, addresses['id'])
-            record = self.execution.run(step, addresses, deepcopy(step['timeout']), step['stall'], metadata, step['subject'])
+            try:
+                record = self.execute_step(step, metadata)
+            except CheckFailure as exc:
+                if not steps:
+                    raise
+                self.failure = exc
+                for ordinal, pending in enumerate(plan['steps'][i:], start=i + 1):
+                    choice = ({'kind': 'package', 'id': pending['package_id']}
+                              if pending['package_id'] is not None else pending['selection'])
+                    omitted.append(omitted_step(ordinal, deepcopy(choice)))
+                metadata.update(stored=False, reason=exc.code)
+                return self.save_execution(plan, steps, omitted, metadata, status=self.partial_status(exc))
             self.known_records.append(record)
             self.ledger.save_run(record)
             steps.append({'ordinal': i + 1, 'package_id': step['package_id'], 'driver': step['driver'],
@@ -257,10 +286,28 @@ class ProjectChecks:
             self.cache.store(key, result)
         return result
 
-    def save_execution(self, plan, steps, omitted, metadata):
+    @staticmethod
+    def partial_status(failure):
+        return 'unconfirmed' if failure.status == 'invalid' else failure.status
+
+    def execute_step(self, step, metadata):
+        self.runtime.prerequisites(step['profile'], step['invocation'], step['environment'], step['field'])
+        addresses = self.ledger.allocate(process=True)
+        evidence_id = step['timeout']['evidence_run_id']
+        if evidence_id is not None:
+            self.ledger.reserve_diagnostic(evidence_id, addresses['id'])
+        try:
+            return self.execution.run(step, addresses, deepcopy(step['timeout']), step['stall'], metadata, step['subject'])
+        except UnstartedCheck:
+            if evidence_id is not None:
+                self.ledger.release_unstarted_diagnostic(evidence_id, addresses['id'])
+            raise
+
+    def save_execution(self, plan, steps, omitted, metadata, *, status=None):
         addresses = self.ledger.allocate(process=False)
         result = {'kind': 'execution', 'selection': deepcopy(plan['selection']),
-                  'status': aggregate([v['record'] for v in steps]), 'result_id': addresses['id'],
+                  'status': aggregate([v['record'] for v in steps]) if status is None else status,
+                  'result_id': addresses['id'],
                   'record_path': addresses['record_path'], 'provenance': self._provenance(),
                   'resolved_dependencies': list(plan['dependencies']), 'steps': steps,
                   'not_executed': omitted, 'cache': metadata}
@@ -287,7 +334,16 @@ class ProjectChecks:
             if stopped:
                 results.append(not_executed(plan['selection']))
                 continue
-            result = self.run(plan)
+            try:
+                result = self.run(plan)
+            except CheckFailure as exc:
+                if not results:
+                    raise
+                self.failure = exc
+                results.append(not_executed(plan['selection']))
+                stopped = True
+                continue
             results.append(result)
             stopped = item_status(result) not in ('passed', 'ready')
-        return results, aggregate([v for v in results if v['kind'] != 'not_executed'])
+        return results, (self.failure.status if self.failure is not None else
+                         aggregate([v for v in results if v['kind'] != 'not_executed']))

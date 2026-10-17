@@ -17,9 +17,10 @@ def hash_value(value):
 
 
 class InputSnapshot:
-    def __init__(self, checkout, git_seconds):
+    def __init__(self, checkout, git_seconds, packages):
         self.checkout = Path(checkout)
         self.git_seconds = git_seconds
+        self.packages = packages
 
     def git(self, *arguments):
         environment = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
@@ -115,8 +116,14 @@ class InputSnapshot:
         return {**material, 'sha256': hash_value(material)}
 
     def package(self, package):
-        patterns = [*package['source_paths'], *package['fixture_paths'],
-                    *[p for step in package['steps'] for p in step['test_paths']]]
+        if self.packages is None:
+            raise CheckFailure('packages_unavailable', 'policy.packages_path',
+                               'Каталог входов пакета отключён.',
+                               'Выберите настроенный каталог пакетов.', status='unavailable')
+        execution_packages = self.packages.order(package['package_id'])
+        patterns = [path for member in execution_packages
+                    for path in [*member['source_paths'], *member['fixture_paths'],
+                                 *[p for step in member['steps'] for p in step['test_paths']]]]
         entries = {}
         for pattern in patterns:
             for match in self.matches(pattern):

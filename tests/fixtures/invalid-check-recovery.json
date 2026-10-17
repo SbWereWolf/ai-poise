@@ -1,4 +1,10 @@
 {
+  "restart_stage_identities": [
+    ["test_implementation", "execution"],
+    ["test_inspection", "observation"],
+    ["test_remediation", "execution"],
+    ["implementation", "observation"]
+  ],
   "finding": {
     "id": "missing-green",
     "subject": "current registry",

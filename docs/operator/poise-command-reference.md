@@ -207,6 +207,9 @@ adapter](../configuration/runtime-services.md#один-существующий-
 catalog/v2](maintenance-profile-v2.md#развёртывание-из-примера).
 [Инструкция настройки команды и рабочего файла
 Bootstrap](bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла).
+[ERP-профиль](maintenance-profile-v2.md#профиль-erp) выбирается через
+`--profile-spec`: его подготовка, параметры, обслуживание и диагностика описаны
+отдельно от базового 14-ресурсного каталога и исторического requirements/v1.
 
 `poise_environment.profile` публикует выбранный профиль. Полная команда и [все аргументы
 материализатора](maintenance-profile-v2.md#аргументы-материализатора) находятся в инструкции.
@@ -302,3 +305,16 @@ bash "$native_launcher" --project "$project_id" < "$packet"
 Настройка, сообщения выбранного проекта и отказы описаны в
 [контракте выбора](../configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher).
 Без селектора сохраняется исходный проект.
+
+## Общее чтение частей файлов
+
+| Команда | Обязательные аргументы | Результат |
+| --- | --- | --- |
+| `content-read` | Абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--format json` либо `--format text`; JSON stdin. | Полный результат общего чтения без Task/Sprint; точные рамки и сохранённый JSON. |
+
+Используйте выбранный установленный Python: `python -I -B -m poise content-read` с указанными
+аргументами. Это пакет операций reader, без Work `input/messages`. Полные примеры и все поля —
+[в контракте](../configuration/project-file-reading.md#семь-операций), заполнение политики —
+[у её владельца](../configuration/project-file-reading.md#подготовка-политики-и-примеры), admission
+и actual End/recover — [в жизненном цикле](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+Специализированный `tools/source_read.py` с acknowledgement остаётся отдельным интерфейсом.

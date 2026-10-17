@@ -1,0 +1,15 @@
+{
+  "active": [
+    "stale",
+    "incomplete"
+  ],
+  "ended": [
+    "cleaned",
+    "already_absent"
+  ],
+  "unknown": [
+    "stale",
+    "incomplete"
+  ],
+  "failure": "incomplete"
+}

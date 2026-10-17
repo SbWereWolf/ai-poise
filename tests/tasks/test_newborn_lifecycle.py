@@ -257,6 +257,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
         "switch-type-and-remove-forbidden-field",
         ["executable_obligations"],
     )
+    before_replay = deepcopy(creator.runtime.task_queries.record("TYPE-CHANGE"))
     replay = edit(
         creator,
         "TYPE-CHANGE",
@@ -265,7 +266,8 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
         "switch-type-and-remove-forbidden-field",
         ["executable_obligations"],
     )
-    assert replay == changed
+    assert replay == {**changed, "replayed": True}
+    assert creator.runtime.task_queries.record("TYPE-CHANGE") == before_replay
     assert changed["task"] == "TYPE-CHANGE"
     assert changed["sprint"] == "TYPE-CHANGE-SPRINT"
     assert changed["claimed_by"] == "type-editor"

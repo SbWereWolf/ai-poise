@@ -257,6 +257,10 @@ Keep this English projection and its Russian source consistent in the same chang
 - Continue authorized work to its stated outcome, without expanding scope. Do not delegate to sub-agents without
   explicit user authorization in the current request. Ask only for a genuinely blocking decision; use existing
   authorization for routine work.
+- In paired executor/reviewer work, communicate only when handing the Task between participants. The executor
+  performs stage work, makes working decisions and applies corrections; the reviewer checks handed-over designs
+  and results. Include decisions and questions in the saved stage result and handoff, rather than sending separate
+  approval requests during execution. Follow [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 - For a user-started Task, known executor/reviewer counterparts continue autonomously within AI poise gates and user
   limits. In both directions, save results, confirm public Task release, then send the counterpart a direct handoff
   message; the recipient acquires before working. No per-review user command is required. Follow [direct role

@@ -1,4 +1,6 @@
 import json
+import os
+import shlex
 import subprocess
 import sys
 from copy import deepcopy
@@ -75,7 +77,7 @@ def test_session_launcher_is_quoted_and_executable(project,tmp_path):
     context=native_out['hookSpecificOutput']['additionalContext']
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);assert str(path) in context and path.is_file()
-    assert ' -B -m poise hook-work ' in path.read_text()
+    assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in path.read_text()
     p=subprocess.run([str(path)],input=json.dumps(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None})),text=True,capture_output=True,timeout=15)
     assert p.returncode==0,p.stderr
     assert json.loads(p.stdout)['status']=='read_only'
@@ -86,7 +88,11 @@ def test_existing_owned_launcher_is_upgraded_to_bytecode_safe_command(project,tm
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);current=path.read_text()
     # The historical entry neither used -B nor forwarded caller arguments.
-    legacy=current.replace(' -B -m poise ',' -m poise ').removesuffix(' "$@"\n')+'\n'
+    legacy='#!/bin/sh\nexec '+shlex.join([
+        'env','PYTHONPATH='+s.settings.raw['source_root'],s.settings.raw['python'],
+        '-m','poise','hook-work','--settings',str(s.settings.path),
+        '--binding',str(binding['binding_path']),
+    ])+'\n'
     assert legacy!=current
     path.write_text(legacy);path.chmod(s.settings.raw['executable_mode'])
     native(s,out)

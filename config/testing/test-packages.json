@@ -328,6 +328,7 @@
       ],
       "members": {
         "source": [
+          "src/poise/__main__.py",
           "src/poise/application/hook_transport.py",
           "src/poise/modules/hook_transport/**/*.py",
           "src/poise/infrastructure/hook_transport.py",
@@ -344,6 +345,46 @@
         ],
         "tests": [
           "tests/hook_transport/test_*.py"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
+      }
+    },
+    {
+      "id": "hooks-source-runtime",
+      "owner": "hook-transport",
+      "integration_boundaries": [
+        "runtime-services",
+        "verification-runner",
+        "evidence"
+      ],
+      "members": {
+        "source": [
+          "src/poise/__main__.py",
+          "src/poise/application/hook_transport.py",
+          "src/poise/modules/hook_transport/**/*.py",
+          "src/poise/infrastructure/hook_transport.py",
+          "src/poise/infrastructure/sqlite/hook_transport.py",
+          "src/poise/execution.py",
+          "src/poise/application/hook_diagnostics.py",
+          "src/poise/infrastructure/hook_diagnostics.py",
+          "src/poise/infrastructure/diagnostic_io.py",
+          "src/poise/interfaces/hook_transport.py",
+          "src/poise/infrastructure/source_reader.py",
+          "src/poise/infrastructure/sqlite/interactions.py",
+          "tests/hook_transport/helpers.py",
+          "tests/hook_transport/mcp_fixture.py",
+          "src/poise/application/capabilities.py",
+          "src/poise/application/work.py",
+          "src/poise/infrastructure/hook_reconfiguration.py",
+          "tests/hook_transport/test_setup.py"
+        ],
+        "tests": [
+          "tests/hook_transport/test_architecture.py",
+          "tests/hook_transport/test_runtime_recovery.py",
+          "tests/hook_transport/test_hooks.py",
+          "tests/hook_transport/test_installation_reconciliation.py"
         ],
         "fixtures": [
           "tests/conftest.py"

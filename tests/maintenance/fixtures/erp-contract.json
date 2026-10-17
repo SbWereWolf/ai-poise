@@ -1,0 +1,284 @@
+{
+  "reference": "0719cdf67fe789f54798f82775aae6597c316ade",
+  "groups": {
+    "git": [
+      "erp-git-repository"
+    ],
+    "service_tools": [
+      "erp-service-tools"
+    ],
+    "php": [
+      "erp-php-runtime"
+    ],
+    "php_extensions": [
+      "erp-php-extension-bcmath",
+      "erp-php-extension-ctype",
+      "erp-php-extension-curl",
+      "erp-php-extension-dom",
+      "erp-php-extension-fileinfo",
+      "erp-php-extension-filter",
+      "erp-php-extension-hash",
+      "erp-php-extension-iconv",
+      "erp-php-extension-intl",
+      "erp-php-extension-json",
+      "erp-php-extension-libxml",
+      "erp-php-extension-mbstring",
+      "erp-php-extension-openssl",
+      "erp-php-extension-pcntl",
+      "erp-php-extension-pdo",
+      "erp-php-extension-pdo_sqlite",
+      "erp-php-extension-posix",
+      "erp-php-extension-session",
+      "erp-php-extension-simplexml",
+      "erp-php-extension-sqlite3",
+      "erp-php-extension-tokenizer",
+      "erp-php-extension-xml",
+      "erp-php-extension-xmlreader",
+      "erp-php-extension-xmlwriter",
+      "erp-php-extension-zip"
+    ],
+    "node": [
+      "erp-node-runtime"
+    ],
+    "managers": [
+      "erp-composer",
+      "erp-npm"
+    ],
+    "local_settings": [
+      "erp-local-settings",
+      "erp-host-runtime-settings"
+    ],
+    "cjm_settings": [
+      "erp-cjm-settings"
+    ],
+    "environment": [
+      "erp-environment"
+    ],
+    "installation_units": [
+      "erp-installation-units"
+    ],
+    "directories": [
+      "erp-runtime-directories"
+    ],
+    "application_databases": [
+      "erp-application-databases"
+    ],
+    "queues": [
+      "erp-queue-schema"
+    ],
+    "composer_dependencies": [
+      "erp-composer-planning-workspace",
+      "erp-composer-calculation-service",
+      "erp-composer-system-admin"
+    ],
+    "mirrored_packages": [
+      "erp-mirrored-packages"
+    ],
+    "node_dependencies": [
+      "erp-node-document-ui",
+      "erp-node-playwright"
+    ],
+    "playwright": [
+      "erp-playwright"
+    ],
+    "artifacts": [
+      "erp-cli",
+      "erp-verifier",
+      "erp-xsd"
+    ],
+    "discovery": [
+      "erp-discovery-planning-workspace",
+      "erp-discovery-calculation-service",
+      "erp-discovery-system-admin"
+    ],
+    "initialization": [
+      "erp-migrations-planning-workspace",
+      "erp-migrations-system-admin",
+      "erp-bootstrap-settings"
+    ],
+    "readiness": [
+      "erp-readiness"
+    ]
+  },
+  "php_extensions": [
+    "bcmath",
+    "ctype",
+    "curl",
+    "dom",
+    "fileinfo",
+    "filter",
+    "hash",
+    "iconv",
+    "intl",
+    "json",
+    "libxml",
+    "mbstring",
+    "openssl",
+    "pcntl",
+    "pdo",
+    "pdo_sqlite",
+    "posix",
+    "session",
+    "simplexml",
+    "sqlite3",
+    "tokenizer",
+    "xml",
+    "xmlreader",
+    "xmlwriter",
+    "zip"
+  ],
+  "required_commands": [
+    "bash",
+    "git",
+    "php",
+    "composer",
+    "node",
+    "npm",
+    "jq",
+    "curl",
+    "ss",
+    "date",
+    "grep",
+    "install",
+    "kill",
+    "mkdir",
+    "mv",
+    "nohup",
+    "ps",
+    "readlink",
+    "sed",
+    "setsid",
+    "sleep",
+    "sort"
+  ],
+  "php_applications": [
+    "planning-workspace",
+    "calculation-service",
+    "system-admin"
+  ],
+  "node_applications": [
+    "document-ui",
+    "platform-infrastructure/tests/playwright"
+  ],
+  "runtime_directories": [
+    "database",
+    "bootstrap/cache",
+    "storage/app",
+    "storage/framework/cache/data",
+    "storage/framework/sessions",
+    "storage/framework/views",
+    "storage/logs"
+  ],
+  "root_directories": [
+    "var/local-development/browser-home"
+  ],
+  "application_databases": {
+    "PLANNING_WORKSPACE_DATABASE_PATH": "planning-workspace/database/acceptance.sqlite",
+    "SYSTEM_ADMIN_DATABASE_PATH": "system-admin/database/acceptance.sqlite"
+  },
+  "queue_databases": {
+    "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_DATABASE_PATH": "var/queues/planning-calculation.sqlite",
+    "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH": "var/queues/planning-planning.sqlite",
+    "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH": "var/queues/calculation-planning.sqlite"
+  },
+  "required_tables": {
+    "planning-workspace": [
+      "draft",
+      "plan",
+      "plan_calculation",
+      "terminal_operation_notifications",
+      "migrations",
+      "calculation_lifecycle_outbox",
+      "calculation_lifecycle_receipts",
+      "calculation_lifecycle_projection"
+    ],
+    "system-admin": [
+      "artifact_packages",
+      "artifact_package_upload_audits",
+      "sessions",
+      "migrations"
+    ]
+  },
+  "configuration_targets": [
+    {
+      "id": "local-settings",
+      "kind": "local-development",
+      "parameter": "local_settings_path",
+      "source_parameter": "local_settings_source",
+      "relative": "platform-infrastructure/config/dev/local-development.settings.json"
+    },
+    {
+      "id": "host-runtime-settings",
+      "kind": "local-development",
+      "parameter": "host_runtime_settings_path",
+      "source_parameter": "host_runtime_settings_source",
+      "relative": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.json"
+    },
+    {
+      "id": "cjm-settings",
+      "kind": "cjm",
+      "parameter": "cjm_settings_path",
+      "source_parameter": "cjm_settings_source",
+      "relative": "platform-infrastructure/tests/playwright/cjm.local-development.settings.json"
+    }
+  ],
+  "configured_parameters": [
+    "php_executable",
+    "node_executable",
+    "composer_executable",
+    "npm_entry_point",
+    "local_settings_path",
+    "host_runtime_settings_path",
+    "cjm_settings_path",
+    "local_settings_source",
+    "host_runtime_settings_source",
+    "cjm_settings_source",
+    "environment_file"
+  ],
+  "working_profile_files": [
+    "catalog.json",
+    "bootstrap.json",
+    "values.json",
+    "recommendations.json"
+  ],
+  "required_precedence": [
+    ["erp-runtime-directories", "erp-composer-planning-workspace"],
+    ["erp-runtime-directories", "erp-composer-calculation-service"],
+    ["erp-runtime-directories", "erp-composer-system-admin"],
+    ["erp-composer-planning-workspace", "erp-installation-units"],
+    ["erp-composer-calculation-service", "erp-installation-units"],
+    ["erp-composer-planning-workspace", "erp-discovery-planning-workspace"],
+    ["erp-composer-calculation-service", "erp-discovery-calculation-service"],
+    ["erp-composer-system-admin", "erp-discovery-system-admin"],
+    ["erp-application-databases", "erp-migrations-planning-workspace"],
+    ["erp-application-databases", "erp-migrations-system-admin"],
+    ["erp-migrations-planning-workspace", "erp-bootstrap-settings"],
+    ["erp-installation-units", "erp-readiness"],
+    ["erp-bootstrap-settings", "erp-readiness"]
+  ],
+  "unit_values": {
+    "QUANTITY_UNITS_LENGTH": "мм",
+    "QUANTITY_UNITS_WIDTH": "мм",
+    "QUANTITY_UNITS_HEIGHT": "мм",
+    "QUANTITY_UNITS_PIECES": "шт",
+    "QUANTITY_UNITS_CALENDAR_DAYS": "д",
+    "PRICE_UNITS_WIRE": "руб./м.",
+    "PRICE_UNITS_CONCRETE": "руб./куб.м.",
+    "PRICE_UNITS_SETUP": "руб./усл.",
+    "COST_UNITS": "руб"
+  },
+  "normal_cjm": {
+    "execution_configuration": "platform-infrastructure/test-execution.json",
+    "expected": {
+      "wirePrice": 15,
+      "setupPrice": 0,
+      "draftSlabCountLimit": 13
+    }
+  },
+  "supported_states": [
+    "satisfied",
+    "missing",
+    "invalid",
+    "unavailable"
+  ]
+}

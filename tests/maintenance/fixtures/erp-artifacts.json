@@ -1,0 +1,23 @@
+[
+  {
+    "id": "erp-cli",
+    "kind": "php",
+    "path": "planning-workspace/vendor/kv1me/erp-calendar-optimizer/bin/erp",
+    "source": "erp-calendar-optimizer/bin/erp",
+    "sha256": "073771ff18df061a1e3d9fd53b6df47003d2a6c218e78fc3d991953696c6da8b"
+  },
+  {
+    "id": "erp-verifier",
+    "kind": "php",
+    "path": "planning-workspace/vendor/kv1me/erp-calendar-optimizer/bin/verify",
+    "source": "erp-calendar-optimizer/bin/verify",
+    "sha256": "36b3b34822d8b3eb310373b403619597071c68cc5b6352c23ee11475d403128c"
+  },
+  {
+    "id": "erp-xsd",
+    "kind": "xsd",
+    "path": "planning-workspace/vendor/kv1me/erp-calendar-optimizer/config/schema/spec.xsd",
+    "source": "erp-calendar-optimizer/config/schema/spec.xsd",
+    "sha256": "c34ea0a78d80746a38ceb47178589b208c247a873f89377dc99186c8a2c4ce6b"
+  }
+]

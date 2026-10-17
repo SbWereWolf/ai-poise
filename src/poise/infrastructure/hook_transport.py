@@ -197,19 +197,37 @@ class HookSettings:
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
     def command(self,verb,*args):
-        return self._direct_command(['-B'],verb,*args)
+        guard=(
+            'source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; '
+            'case "$source_root" in *"$separator"*) valid=0;; *) valid=1;; esac; '
+            'if [ "$valid" = 0 ] || [ ! -f "$source_root/poise/__init__.py" ] '
+            '|| [ ! -f "$source_root/poise/__main__.py" ]; then '
+            'printf "%s\\n" '
+            '"Configured Poise source must be one directory containing poise/__init__.py and poise/__main__.py: $source_root" '
+            '"Recovery: restore that source directory or correct source_root in $settings, then retry." >&2; '
+            'exit "$rejected"; fi; exec "$@"'
+        )
+        prefix=shlex.join(['/bin/sh','-c',guard,'poise-source-check',
+                           self.raw['source_root'],str(self.path),
+                           str(self.raw['exit_codes']['rejected']),os.pathsep])
+        return prefix+' '+self._direct_command(
+            ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
 
     def launcher_bytes(self, binding_path):
         return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + ' "$@"\n').encode()
 
     def prior_launcher_commands(self,verb,*args):
         """Exact superseded forms accepted only for an owned launcher upgrade."""
+        previous=self._direct_command(
+            ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
         return (
             self._direct_command(['-B'],verb,*args),
             self._superseded_guarded_command(['-B'],verb,*args),
             self._superseded_guarded_command([],verb,*args),
             self._direct_command([],verb,*args),
-        )
+            previous,
+        ) + ((self._direct_command(['-B'],verb,*args)+' "$@"',
+              previous+' "$@"') if verb=='hook-work' else ())
 
 
 def _read_definition(settings,path):

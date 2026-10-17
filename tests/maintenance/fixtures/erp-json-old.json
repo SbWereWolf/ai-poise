@@ -1,0 +1,8 @@
+{
+  "version": "local-development.1.0.0",
+  "schemaVersion": 1,
+  "acceptanceMarker": "complete previous configuration",
+  "environmentFile": "fixture.env",
+  "planningWorkspaceEnvironmentFile": "planning-workspace/.env",
+  "executionConfiguration": "execution.json"
+}

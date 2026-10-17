@@ -307,6 +307,193 @@ Requirements по текущей явно заданной политике. С�
 формах, что в полной постановке шага 4; поля, которые вы передаёте, должны содержать
 значения своих объявленных типов. Общая ревизия перед созданием Task не запрашивается.
 
+## Текущее обязательство и будущая потребность
+
+Продолжите предыдущие шаги 1–7 в том же хранилище: общая ревизия — 4,
+Task `000001` имеет постановку 2 и цель «Подготовить отчёт.», а `000002` остаётся
+отдельным черновиком выбора периода. Сохраняйте цель и передавайте полную следующую
+постановку при её явном изменении. Для каждого нового изменения используйте новый
+`request_id` и актуальные номера ревизий.
+
+### 1. Сохранить отдельную будущую потребность
+
+Зарегистрируйте потребность и её System-основание:
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "report-future-details",
+    "expected_revision": 4,
+    "operations": [
+      {"kind":"put_requirement","requirement":{"id":"APP-DETAIL","level":"application","status":"future","text":"Приложение добавляет пояснения к отчёту."}},
+      {"kind":"link","system":"SYS-REPORT","application":"APP-DETAIL"}
+    ]
+  }
+}
+```
+
+Ответ: `status:"applied", revision:5, replayed:false`. Прочитайте результат:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"current","kind":"get_task","task_id":"000001"},
+      {"id":"future","kind":"application_tasks","application_id":"APP-DETAIL"},
+      {"id":"search","kind":"search_requirements","filter":{"level":"application","status":"future","text_contains":"пояснения"},"limit":64,"after_id":null}
+    ]
+  }
+}
+```
+
+На общей ревизии 5 Task сохраняет постановку 2 и единственный ключ `report`.
+`future` содержит созданный Application record и `tasks:[]`; поиск возвращает эту
+запись. Реестровая запись и верхняя связь сохраняют будущую потребность отдельно
+от состава текущей постановки.
+
+### 2. Явно включить обязательство в текущую Task
+
+Передайте полную следующую постановку. Здесь одновременно уточняется текст
+сохраняемого ключа `report` и добавляется ключ `details`:
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "report-include-details",
+    "expected_revision": 5,
+    "operations": [
+      {
+        "kind": "revise_task",
+        "task_id": "000001",
+        "expected_statement_revision": 2,
+        "statement": {
+          "goal": "Подготовить отчёт.",
+          "task_requirements": [
+            {"key":"report","status":"current","text":"Выдать отчёт с пояснениями.","applications":["APP-REPORT"]},
+            {"key":"details","status":"current","text":"Добавить пояснения.","applications":["APP-DETAIL"]}
+          ],
+          "definition_of_done": [
+            "Отчёт доступен.",
+            "Пояснения доступны."
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+Ответ имеет общую ревизию 6. Task `000001` получает постановку 3 при прежних ID
+и цели. Прочитайте текущий состав, обе редакции ключа и основания:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"current","kind":"get_task","task_id":"000001"},
+      {"id":"old","kind":"task_chain","task_id":"000001","key":"report","statement_revision":2},
+      {"id":"new","kind":"task_chain","task_id":"000001","key":"report","statement_revision":3},
+      {"id":"included","kind":"application_tasks","application_id":"APP-DETAIL"},
+      {"id":"basis","kind":"task_basis","task_id":"000001"},
+      {"id":"history","kind":"task_history","task_id":"000001"}
+    ]
+  }
+}
+```
+
+`old.task.text` равен «Выдать отчёт.», `new.task.text` — «Выдать отчёт с пояснениями.».
+`included.tasks` содержит `000001/details` редакции 3. `basis` возвращает общее
+`basis_ready:true` и отдельные `true/gaps:[]` для `report` и `details`.
+Содержательный `future` Application с полноценным System-основанием имеет полную
+структурную цепочку; включение обязательства произошло явным `revise_task`.
+`history.items` перечисляет редакции 1, 2 и 3 с их целями. Task `000002` прежняя.
+
+### 3. Читать исторический текст и актуальные верхние значения
+
+Уточните текст только Application-требования:
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "report-application-text",
+    "expected_revision": 6,
+    "operations": [
+      {"kind":"put_requirement","requirement":{"id":"APP-REPORT","level":"application","status":"current","text":"Приложение выдаёт отчёт с пояснениями."}}
+    ]
+  }
+}
+```
+
+На общей ревизии 7 прочитайте выбранную постановку:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"old-chain","kind":"task_chain","task_id":"000001","key":"report","statement_revision":2},
+      {"id":"current","kind":"get_task","task_id":"000001"}
+    ]
+  }
+}
+```
+
+У `old-chain.task` сохранены редакция 2, ключ, текст «Выдать отчёт.» и нижняя связь.
+Его `applications` показывает актуальный текст «Приложение выдаёт отчёт с пояснениями.».
+Текущая постановка остаётся редакцией 3. Историческая Task-связь и актуальное значение
+Application являются разными частями этой проекции.
+
+В этой новой последовательности `snapshot_revision:null`: сохранённого снимка ещё
+нет. Для Task с доступным снимком используйте его точный номер и прочитайте его
+собственную `statement_revision`, как в [подготовленном примере](#подготовленная-известная-task).
+`snapshot` возвращает отдельный сохранённый payload; изменение постановки или
+верхнего текста сохраняет его прежнее содержимое. Номер последнего снимка описывает
+историю; приёмка выполнения изменённого текста требует своего доказательства.
+
+### 4. Подготовить пустое будущее основание
+
+Пустой `future` placeholder позволяет сохранить ещё не уточнённую потребность:
+
+```json
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "report-future-placeholder",
+    "expected_revision": 7,
+    "operations": [
+      {"kind":"put_requirement","requirement":{"id":"APP-REPORT-PLACEHOLDER","level":"application","status":"future","text":""}},
+      {"kind":"link","system":"SYS-REPORT","application":"APP-REPORT-PLACEHOLDER"}
+    ]
+  }
+}
+```
+
+На общей ревизии 8 оцените предложенное основание и отдельно текущую Task:
+
+```json
+{
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id":"proposed","kind":"plan_task","task_requirements":[{"text":"Уточнить будущее основание.","status":"future","applications":["APP-REPORT-PLACEHOLDER"]}]},
+      {"id":"current-basis","kind":"task_basis","task_id":"000001"}
+    ]
+  }
+}
+```
+
+`proposed.status` равен `"gaps"`; его `gaps` содержит один
+`projected_placeholder` уровня `application` для `APP-REPORT-PLACEHOLDER` с
+`task_text:"Уточнить будущее основание."`. Это вычисленный предлагаемый контекст.
+Текущая Task сохраняет постановку 3 и `basis_ready:true`: placeholder хранится
+отдельно от её обязательств. Структурная полнота основания и факт выполненной
+работы учитываются каждый своим владельцем.
+
 ## Подготовленная известная Task
 
 Запросы Task принимают её существующий точный ID. Получите текущую постановку
@@ -346,10 +533,11 @@ Task `000007` с постановкой 2 и снимком 1, Task `000008` с 
 
 ### Добавление второго основания
 
-`revise_task` создаёт следующую полную постановку. Хранилище сохраняет прежние
-ключи, тексты, связи и порядок. Публичный `get_task` возвращает текущую полную
-постановку, `task_chain` — выбранный исторический key с его текстом и основаниями,
-`task_history` — номера постановок и goals. Полный опубликованный вариант читается
+`revise_task` создаёт следующую полную постановку. Хранилище сохраняет ключи,
+тексты, нижние связи и порядок прежних редакций. Публичный `get_task` возвращает текущую полную
+постановку, `task_chain` — выбранный исторический key с его текстом и нижними связями;
+значения связанных Application читаются актуальными. Запрос
+`task_history` возвращает номера постановок и цели. Полный сохранённый снимок читается
 через существующий `snapshot`. У демонстрационной Task `000008` снимков нет;
 её прежний полный упорядоченный список сохраняется в хранилище, а публичное
 историческое чтение показывает выбранные keys и заголовки. Для нового изменения

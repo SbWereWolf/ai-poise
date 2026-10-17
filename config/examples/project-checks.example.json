@@ -1,0 +1,52 @@
+{
+  "schema": "poise-project-checks-policy-1",
+  "profiles_path": "/absolute/path/operator/project-check-profiles.toml",
+  "packages_path": "/absolute/path/operator/project-check-packages.toml",
+  "suites_path": "/absolute/path/operator/project-check-suites.json",
+  "storage": {
+    "directory": "/absolute/path/project-state/named-checks",
+    "ledger_file": "named-runs.sqlite",
+    "lock_file": "named-runs.lock",
+    "runs_directory": "runs",
+    "cache_directory": "cache",
+    "response_directory": "responses"
+  },
+  "timing": {
+    "history_multiplier": 1.1,
+    "poll_seconds": 0.01,
+    "cleanup_seconds": 0.5,
+    "diagnostic_override_max_seconds": 60
+  },
+  "environment": {
+    "clear_keys": [
+      "POISE_CHECK_DOCUMENTATION_SCOPE_JSON",
+      "REPO_CHECK_DOCUMENTATION_SCOPE_JSON",
+      "REPO_CHECK_SCOPE_PATHS_JSON"
+    ]
+  },
+  "publication": {
+    "report_directory": "/absolute/path/operator/calibration-reports"
+  },
+  "runtime_adapters": [
+    {
+      "id": "python",
+      "platforms": [
+        "linux"
+      ],
+      "invocation": "exec",
+      "command_processor": null
+    }
+  ],
+  "drivers": [
+    {
+      "id": "python-unittest",
+      "argv_prefix": [
+        "/absolute/path/python",
+        "-m",
+        "unittest"
+      ],
+      "cwd": ".",
+      "path_prefix": "."
+    }
+  ]
+}

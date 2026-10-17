@@ -1,0 +1,209 @@
+[
+  {
+    "changed_paths": [
+      "src/core/model.py"
+    ],
+    "ids": [
+      "core"
+    ],
+    "matches": {
+      "core": [
+        {
+          "path": "src/core/model.py",
+          "relation": "source",
+          "pattern": "src/core/**"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "tests/ui/view.py"
+    ],
+    "ids": [
+      "ui"
+    ],
+    "matches": {
+      "ui": [
+        {
+          "path": "tests/ui/view.py",
+          "relation": "test",
+          "pattern": "tests/ui/*.py"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "fixtures/core/data.json"
+    ],
+    "ids": [
+      "core"
+    ],
+    "matches": {
+      "core": [
+        {
+          "path": "fixtures/core/data.json",
+          "relation": "fixture",
+          "pattern": "fixtures/core/**"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "contracts/in.json"
+    ],
+    "ids": [
+      "wire"
+    ],
+    "matches": {
+      "wire": [
+        {
+          "path": "contracts/in.json",
+          "relation": "input",
+          "pattern": "contracts/in.json"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "contracts/out.json"
+    ],
+    "ids": [
+      "wire"
+    ],
+    "matches": {
+      "wire": [
+        {
+          "path": "contracts/out.json",
+          "relation": "output",
+          "pattern": "contracts/out.json"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "lib/math/add.py"
+    ],
+    "ids": [
+      "core",
+      "wire"
+    ],
+    "matches": {
+      "core": [
+        {
+          "path": "lib/math/add.py",
+          "relation": "shared_library",
+          "pattern": "lib/math/**"
+        }
+      ],
+      "wire": [
+        {
+          "path": "lib/math/add.py",
+          "relation": "shared_library",
+          "pattern": "lib/math/**"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "database/schema.sql"
+    ],
+    "ids": [
+      "ui"
+    ],
+    "matches": {
+      "ui": [
+        {
+          "path": "database/schema.sql",
+          "relation": "shared_database",
+          "pattern": "database/schema.sql"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "src/core/deleted.py"
+    ],
+    "ids": [
+      "core"
+    ],
+    "arrangement": "This selected changed input is deleted from actual fixture checkout; declaration remains.",
+    "matches": {
+      "core": [
+        {
+          "path": "src/core/deleted.py",
+          "relation": "source",
+          "pattern": "src/core/**"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "docs/unrelated.md"
+    ],
+    "ids": [],
+    "unmapped_paths": [
+      "docs/unrelated.md"
+    ]
+  },
+  {
+    "changed_paths": [],
+    "ids": [],
+    "unmapped_paths": []
+  },
+  {
+    "changed_paths": [
+      "contracts/out.json",
+      "src/core/model.py",
+      "docs/unrelated.md"
+    ],
+    "ids": [
+      "core",
+      "wire"
+    ],
+    "unmapped_paths": [
+      "docs/unrelated.md"
+    ],
+    "matches": {
+      "core": [
+        {
+          "path": "src/core/model.py",
+          "relation": "source",
+          "pattern": "src/core/**"
+        }
+      ],
+      "wire": [
+        {
+          "path": "contracts/out.json",
+          "relation": "output",
+          "pattern": "contracts/out.json"
+        }
+      ]
+    }
+  },
+  {
+    "changed_paths": [
+      "tests/core/deep/unselected.py"
+    ],
+    "ids": [],
+    "unmapped_paths": [
+      "tests/core/deep/unselected.py"
+    ]
+  },
+  {
+    "changed_paths": [
+      "src/core-other/model.py"
+    ],
+    "ids": [],
+    "unmapped_paths": [
+      "src/core-other/model.py"
+    ]
+  }
+]

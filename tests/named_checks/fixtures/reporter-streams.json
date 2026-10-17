@@ -1,0 +1,4 @@
+{
+  "stdout": "raw timing 1.234s /different/path\nUTF-8: Иван\r\n",
+  "stderr": "original stderr 9.876s\n"
+}

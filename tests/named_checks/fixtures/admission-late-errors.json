@@ -1,0 +1,74 @@
+[
+  {
+    "request": {
+      "schema": "poise-project-checks-request-1",
+      "operation": "run",
+      "items": [
+        {
+          "selection": {
+            "kind": "profile",
+            "id": "sample",
+            "workload_class": "unit",
+            "runtime_class": "python"
+          },
+          "options": {
+            "fresh": false,
+            "scope_paths": null,
+            "timeout_override": null
+          }
+        },
+        {
+          "selection": {
+            "kind": "profile",
+            "id": "missing",
+            "workload_class": "unit",
+            "runtime_class": "python"
+          },
+          "options": {
+            "fresh": false,
+            "scope_paths": null,
+            "timeout_override": null
+          }
+        }
+      ]
+    },
+    "error_code": "selection_missing",
+    "field": null
+  },
+  {
+    "request": {
+      "schema": "poise-project-checks-request-1",
+      "operation": "run",
+      "items": [
+        {
+          "selection": {
+            "kind": "profile",
+            "id": "sample",
+            "workload_class": "unit",
+            "runtime_class": "python"
+          },
+          "options": {
+            "fresh": false,
+            "scope_paths": null,
+            "timeout_override": null
+          }
+        },
+        {
+          "selection": {
+            "kind": "profile",
+            "id": "core-1",
+            "workload_class": "unit",
+            "runtime_class": "python"
+          },
+          "options": {
+            "fresh": "yes",
+            "scope_paths": null,
+            "timeout_override": null
+          }
+        }
+      ]
+    },
+    "error_code": "invalid_request",
+    "field": "request.items[1].options.fresh"
+  }
+]

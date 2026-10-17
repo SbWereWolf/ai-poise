@@ -1,0 +1,300 @@
+{
+  "exit_code": 0,
+  "collection_errors": [],
+  "reports": [
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_actual_content_keys_and_separate_admission",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_actual_content_keys_and_separate_admission",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_actual_content_keys_and_separate_admission",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_cache_corruption_and_missing_retained_outputs",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_cache_corruption_and_missing_retained_outputs",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_cache_corruption_and_missing_retained_outputs",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_cache_hit_explicit_fresh_and_release_conditions",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_cache_hit_explicit_fresh_and_release_conditions",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_cache_hit_explicit_fresh_and_release_conditions",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_calibration_optimistic_conflict_has_no_write",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_calibration_optimistic_conflict_has_no_write",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_calibration_optimistic_conflict_has_no_write",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_calibration_partial_report_continuation",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_calibration_partial_report_continuation",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_calibration_partial_report_continuation",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_clock_domains_and_wall_regression",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_clock_domains_and_wall_regression",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_clock_domains_and_wall_regression",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_explicit_calibration_preserves_unknown_raw_values",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_explicit_calibration_preserves_unknown_raw_values",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_explicit_calibration_preserves_unknown_raw_values",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_failed_incomplete_or_mutated_inputs_are_not_reused",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_failed_incomplete_or_mutated_inputs_are_not_reused",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_failed_incomplete_or_mutated_inputs_are_not_reused",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_history_compatibility_and_verified_samples",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_history_compatibility_and_verified_samples",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_history_compatibility_and_verified_samples",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_initial_and_history_calibrated_limits",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_initial_and_history_calibrated_limits",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_initial_and_history_calibrated_limits",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_one_use_diagnostic_override",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_one_use_diagnostic_override",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_one_use_diagnostic_override",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_ordinary_runs_do_not_publish_configuration",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_ordinary_runs_do_not_publish_configuration",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_ordinary_runs_do_not_publish_configuration",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_override_rejects_chain_and_foreign_evidence",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_override_rejects_chain_and_foreign_evidence",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_override_rejects_chain_and_foreign_evidence",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_package_and_markdown_cache_scope",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_package_and_markdown_cache_scope",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_history.py::test_package_and_markdown_cache_scope",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    }
+  ]
+}

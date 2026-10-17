@@ -40,6 +40,25 @@ class InputSnapshot:
                 parent = parent.parent
         return files, directories
 
+    def package_inventory(self, catalogue):
+        candidates = []
+        for pattern in catalogue.candidate_globs:
+            candidates.extend(path.relative_to(self.checkout).as_posix()
+                              for path in self.matches(pattern) if path.is_file())
+        membership = {}
+        for package in catalogue.packages:
+            members = []
+            for step in package['steps']:
+                for pattern in step['test_paths']:
+                    for path in self.matches(pattern):
+                        if path.is_file():
+                            members.append(path.relative_to(self.checkout).as_posix())
+                        elif path.is_dir():
+                            members.extend(p.relative_to(self.checkout).as_posix()
+                                           for p in path.rglob('*') if p.is_file())
+            membership[package['package_id']] = members
+        return candidates, membership
+
     def matches(self, pattern):
         if any(c in pattern for c in '*?['):
             return sorted(self.checkout.glob(pattern), key=lambda v: v.as_posix())

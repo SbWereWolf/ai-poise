@@ -6,6 +6,7 @@ from pathlib import Path
 from ...modules.project_checks.contracts import CheckFailure
 from ..goal_config import atomic_write
 from .inputs import canonical
+from .evidence import file_reference
 
 
 def retained_file(reference):
@@ -35,6 +36,8 @@ class NamedResultCache:
                 return None
             if source['status'] != 'passed' or not source['steps']:
                 return None
+            if not all(retained_file(v) for v in payload['retained_records']):
+                return None
             for step in source['steps']:
                 record = step['record']
                 saved = self.ledger.run(record['run_id'])
@@ -53,6 +56,14 @@ class NamedResultCache:
             return None
 
     def store(self, key, result):
+        retained = [file_reference(Path(result['record_path']))]
+        for step in result['steps']:
+            record = step['record']
+            retained.append(file_reference(Path(record['record_path'])))
+            manifest = record['evidence']['manifest_path']
+            if manifest is not None:
+                retained.append(file_reference(Path(manifest)))
         payload = {'schema': 'named-check-cache-1', 'project': self.project, 'key': key,
-                   'result_id': result['result_id'], 'sha256': hashlib.sha256(canonical(result)).hexdigest()}
+                   'result_id': result['result_id'], 'sha256': hashlib.sha256(canonical(result)).hexdigest(),
+                   'retained_records': retained}
         atomic_write(self.root / (key + '.json'), canonical(payload) + b'\n', self.file_mode)

@@ -557,14 +557,21 @@
           "const": "poise-project-checks-result-1"
         },
         "operation": {
-          "enum": [
-            "list",
-            "describe",
-            "preview",
-            "run",
-            "result",
-            "calibrate",
-            "package_impact"
+          "anyOf": [
+            {
+              "enum": [
+                "list",
+                "describe",
+                "preview",
+                "run",
+                "result",
+                "calibrate",
+                "package_impact"
+              ]
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "status": {
@@ -8482,7 +8489,34 @@
         "warnings",
         "response_path"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "invalid",
+                  "unavailable"
+                ]
+              },
+              "error": {
+                "type": "object"
+              },
+              "items": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
     },
     "run_record": {
       "type": "object",
@@ -16496,7 +16530,8 @@
       "explanation": "For each selected package return normalized current known declaration (all owners/kind/contract/dependencies/steps/producer/consumer/bidirectional/declaredpaths). Nonintegration absent producer/consumer normalize to null; raw TOML omits absence. Matches ordered by request changed path then relation source/test/fixture/input/output/shared_library/shared_database then configured pattern order, dedup exact triples. Overlapping declared relations/packages all remain visible. Unmapped_paths retain request order. producer/consumer/bidirectional are returned semantics, not permission to invent a graph or extra matches.",
       "effects": "READ ONLY: no child, Task/Sprint/claim change, functionalledger/cache/history/sample/profile/report mutation; common saved diagnostic response allowed. Root response schema operation enum adds package_impact and items oneOf adds this DTO; existing error schema/classcodes and other operations unchanged. Direct ordinary package run/describe IDs remain. Existing common view/full machine transport applies.",
       "owner": "General named-check catalogue/selection owner computes declared package impact and composes public response through poise.interfaces.project_checks.execute. Existing runner is untouched and never invoked by package_impact. Specialized package-impact and cache APIs preserved; no caller-side filtering or use of a private future API."
-    }
+    },
+    "unadmitted_operation": "The response operation is null only when a known operation has not been obtained from readable request data, including unreadable/missing/unknown requests and rejection before request read. Null is restricted to pre-execution invalid/unavailable with a nonnull error and items[]. Once decoded, a known operation is echoed through subsequent refusals. Successful/planned/executed responses require a known operation. Request grammar remains strict; no default operation is fabricated."
   },
   "independent_oracles": {
     "literal_parser_cases": [

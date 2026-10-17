@@ -108,8 +108,8 @@ def selection(value, field):
         profile = value['profile']
         if profile not in ('fast', 'release'):
             raise CheckFailure('invalid_request', field + '.profile',
-                               f'Профиль {profile} не поддерживается для выбора наборов.',
-                               f'Укажите fast или release в {field}.profile.',
+                               f'Профиль {profile} не поддерживается; допустимы fast и release.',
+                               f'Передайте fast или release в {field}.profile.',
                                reason=f'{field}.profile должен быть fast или release; получено {profile}.')
         paths(value['changed_paths'], field + '.changed_paths', nullable=True)
     else:

@@ -79,22 +79,7 @@ class ProjectChecks:
                 'package_id': package_id, 'driver': driver, 'selection': chosen, 'field': field}
 
     def inventory(self, catalogue):
-        candidates = []
-        for pattern in catalogue.candidate_globs:
-            candidates.extend(path.relative_to(self.configuration.bound.checkout).as_posix()
-                              for path in self.inputs.matches(pattern) if path.is_file())
-        membership = {}
-        for package in catalogue.packages:
-            members = []
-            for step in package['steps']:
-                for pattern in step['test_paths']:
-                    for path in self.inputs.matches(pattern):
-                        if path.is_file():
-                            members.append(path.relative_to(self.configuration.bound.checkout).as_posix())
-                        elif path.is_dir():
-                            members.extend(p.relative_to(self.configuration.bound.checkout).as_posix()
-                                           for p in path.rglob('*') if p.is_file())
-            membership[package['package_id']] = members
+        candidates, membership = self.inputs.package_inventory(catalogue)
         catalogue.validate_inventory(candidates, membership)
 
     def plan(self, selected, options, field):

@@ -1169,6 +1169,85 @@
           },
           "expect": "S02-terminals-12-history",
           "unchanged": true
+        },
+        {
+          "id": "S02-first-positive-after-nonpositive",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S02-first-positive-after-nonpositive",
+              "expected_revision": 8,
+              "operations": [
+                {
+                  "kind": "record_outcome",
+                  "outcome": {
+                    "outcome_id": "o-b",
+                    "task_id": "000002",
+                    "snapshot_revision": 1,
+                    "kind": "positive",
+                    "satisfied_task_requirements": [
+                      "R1"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "expect": "S02-first-positive-after-nonpositive"
+        },
+        {
+          "id": "S02-completed-after-first-positive",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "current",
+                  "kind": "current_satisfaction"
+                }
+              ]
+            }
+          },
+          "expect": "S02-completed-after-first-positive",
+          "unchanged": true,
+          "sql_facts": "S02-completed-after-first-positive",
+          "owner_revision": 9
+        },
+        {
+          "id": "S02-positive-is-first-b-decision",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "history",
+                  "kind": "outcome_state",
+                  "task_id": "000002",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S02-positive-is-first-b-decision",
+          "unchanged": true
+        },
+        {
+          "id": "S02-a-choice-and-history-retained",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "history",
+                  "kind": "outcome_state",
+                  "task_id": "000001",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S02-a-choice-and-history-retained",
+          "unchanged": true
         }
       ]
     },
@@ -6283,6 +6362,389 @@
           "unchanged": true
         }
       ]
+    },
+    {
+      "id": "S05-initial-null",
+      "description": "First explicit null is a real decision; first later positive stays stored/unselected until a matching explicit positive choice. Other Task untouched.",
+      "steps": [
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-01-foundation",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S01-cross-task-foundation",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "SYS-A",
+                    "level": "system",
+                    "status": "current",
+                    "text": "Предоставить общий комплект."
+                  }
+                },
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "SYS-B",
+                    "level": "system",
+                    "status": "current",
+                    "text": "Предоставить полный результат."
+                  }
+                },
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "APP-X",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Предоставить полный результат."
+                  }
+                },
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "APP-Y",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Предоставить основную часть."
+                  }
+                },
+                {
+                  "kind": "link",
+                  "system": "SYS-A",
+                  "application": "APP-X"
+                },
+                {
+                  "kind": "link",
+                  "system": "SYS-A",
+                  "application": "APP-Y"
+                },
+                {
+                  "kind": "link",
+                  "system": "SYS-B",
+                  "application": "APP-X"
+                }
+              ]
+            }
+          },
+          "expect": "S01-cross-task-01-foundation"
+        },
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-02-create-000001",
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "S01-cross-task-create-000001",
+              "goal": "Подготовить основную часть."
+            }
+          },
+          "expect": "S01-cross-task-02-create-000001"
+        },
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-03-create-000002",
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "S01-cross-task-create-000002",
+              "goal": "Подготовить приложение."
+            }
+          },
+          "expect": "S01-cross-task-03-create-000002"
+        },
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-04-statements",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S01-cross-task-statements",
+              "expected_revision": 3,
+              "operations": [
+                {
+                  "kind": "revise_task",
+                  "task_id": "000001",
+                  "expected_statement_revision": 1,
+                  "statement": {
+                    "goal": "Подготовить основную часть.",
+                    "task_requirements": [
+                      {
+                        "key": "R1",
+                        "status": "current",
+                        "text": "Сформировать основную часть.",
+                        "applications": [
+                          "APP-X",
+                          "APP-Y"
+                        ]
+                      }
+                    ],
+                    "definition_of_done": [
+                      "Результат доступен."
+                    ]
+                  }
+                },
+                {
+                  "kind": "revise_task",
+                  "task_id": "000002",
+                  "expected_statement_revision": 1,
+                  "statement": {
+                    "goal": "Подготовить приложение.",
+                    "task_requirements": [
+                      {
+                        "key": "R1",
+                        "status": "current",
+                        "text": "Сформировать приложение.",
+                        "applications": [
+                          "APP-X"
+                        ]
+                      }
+                    ],
+                    "definition_of_done": [
+                      "Результат доступен."
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "expect": "S01-cross-task-04-statements"
+        },
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-05-publications",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S01-cross-task-publications",
+              "expected_revision": 4,
+              "operations": [
+                {
+                  "kind": "publish_task",
+                  "task_id": "000001",
+                  "statement_revision": 2
+                },
+                {
+                  "kind": "publish_task",
+                  "task_id": "000002",
+                  "statement_revision": 2
+                }
+              ]
+            }
+          },
+          "expect": "S01-cross-task-05-publications"
+        },
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-06-published-contexts",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "snapshot-0",
+                  "kind": "snapshot",
+                  "task_id": "000001",
+                  "snapshot_revision": 1
+                },
+                {
+                  "id": "snapshot-1",
+                  "kind": "snapshot",
+                  "task_id": "000002",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S01-cross-task-06-published-contexts",
+          "unchanged": true,
+          "sql_snapshots": "S01-cross-task-06-published-contexts"
+        },
+        {
+          "id": "S05-initial-null-prefix-S01-cross-task-07-current",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "current",
+                  "kind": "current_satisfaction"
+                }
+              ]
+            }
+          },
+          "expect": "S01-cross-task-07-current",
+          "unchanged": true
+        },
+        {
+          "id": "S05-first-explicit-null",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S05-first-explicit-null",
+              "expected_revision": 5,
+              "operations": [
+                {
+                  "kind": "select_confirmation",
+                  "task_id": "000001",
+                  "snapshot_revision": 1,
+                  "key": "R1",
+                  "outcome_id": null
+                }
+              ]
+            }
+          },
+          "expect": "S05-first-explicit-null"
+        },
+        {
+          "id": "S05-first-null-has-decision-one",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "history",
+                  "kind": "outcome_state",
+                  "task_id": "000001",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S05-first-null-has-decision-one",
+          "unchanged": true
+        },
+        {
+          "id": "S05-first-positive-after-initial-null",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S05-first-positive-after-initial-null",
+              "expected_revision": 6,
+              "operations": [
+                {
+                  "kind": "record_outcome",
+                  "outcome": {
+                    "outcome_id": "o-a",
+                    "task_id": "000001",
+                    "snapshot_revision": 1,
+                    "kind": "positive",
+                    "satisfied_task_requirements": [
+                      "R1"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "expect": "S05-first-positive-after-initial-null"
+        },
+        {
+          "id": "S05-initial-null-keeps-positive-unselected",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "current",
+                  "kind": "current_satisfaction"
+                }
+              ]
+            }
+          },
+          "expect": "S05-initial-null-keeps-positive-unselected",
+          "unchanged": true,
+          "sql_facts": "S05-initial-null-keeps-positive-unselected",
+          "owner_revision": 7
+        },
+        {
+          "id": "S05-positive-stored-with-null-choice",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "history",
+                  "kind": "outcome_state",
+                  "task_id": "000001",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S05-positive-stored-with-null-choice",
+          "unchanged": true
+        },
+        {
+          "id": "S05-explicit-matching-positive-after-null",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "S05-explicit-matching-positive-after-null",
+              "expected_revision": 7,
+              "operations": [
+                {
+                  "kind": "select_confirmation",
+                  "task_id": "000001",
+                  "snapshot_revision": 1,
+                  "key": "R1",
+                  "outcome_id": "o-a"
+                }
+              ]
+            }
+          },
+          "expect": "S05-explicit-matching-positive-after-null"
+        },
+        {
+          "id": "S05-explicit-positive-applies",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "current",
+                  "kind": "current_satisfaction"
+                }
+              ]
+            }
+          },
+          "expect": "S05-explicit-positive-applies",
+          "unchanged": true
+        },
+        {
+          "id": "S05-null-and-positive-decision-history",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "history",
+                  "kind": "outcome_state",
+                  "task_id": "000001",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S05-null-and-positive-decision-history",
+          "unchanged": true
+        },
+        {
+          "id": "S05-other-task-has-no-decisions",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "history",
+                  "kind": "outcome_state",
+                  "task_id": "000002",
+                  "snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expect": "S05-other-task-has-no-decisions",
+          "unchanged": true
+        }
+      ]
     }
   ],
   "responses": {
@@ -8412,6 +8874,134 @@
           }
         }
       ]
+    },
+    "S02-first-positive-after-nonpositive": {
+      "status": "applied",
+      "revision": 9,
+      "replayed": false
+    },
+    "S02-completed-after-first-positive": {
+      "status": "read_only",
+      "revision": 9,
+      "results": [
+        {
+          "id": "current",
+          "value": {
+            "$literal": "value-006"
+          }
+        }
+      ]
+    },
+    "S02-positive-is-first-b-decision": {
+      "status": "read_only",
+      "revision": 9,
+      "results": [
+        {
+          "id": "history",
+          "value": {
+            "$literal": "value-048"
+          }
+        }
+      ]
+    },
+    "S02-a-choice-and-history-retained": {
+      "status": "read_only",
+      "revision": 9,
+      "results": [
+        {
+          "id": "history",
+          "value": {
+            "$literal": "value-005"
+          }
+        }
+      ]
+    },
+    "S05-first-explicit-null": {
+      "status": "applied",
+      "revision": 6,
+      "replayed": false
+    },
+    "S05-first-null-has-decision-one": {
+      "status": "read_only",
+      "revision": 6,
+      "results": [
+        {
+          "id": "history",
+          "value": {
+            "$literal": "value-049"
+          }
+        }
+      ]
+    },
+    "S05-first-positive-after-initial-null": {
+      "status": "applied",
+      "revision": 7,
+      "replayed": false
+    },
+    "S05-initial-null-keeps-positive-unselected": {
+      "status": "read_only",
+      "revision": 7,
+      "results": [
+        {
+          "id": "current",
+          "value": {
+            "$literal": "value-003"
+          }
+        }
+      ]
+    },
+    "S05-positive-stored-with-null-choice": {
+      "status": "read_only",
+      "revision": 7,
+      "results": [
+        {
+          "id": "history",
+          "value": {
+            "$literal": "value-050"
+          }
+        }
+      ]
+    },
+    "S05-explicit-matching-positive-after-null": {
+      "status": "applied",
+      "revision": 8,
+      "replayed": false
+    },
+    "S05-explicit-positive-applies": {
+      "status": "read_only",
+      "revision": 8,
+      "results": [
+        {
+          "id": "current",
+          "value": {
+            "$literal": "value-004"
+          }
+        }
+      ]
+    },
+    "S05-null-and-positive-decision-history": {
+      "status": "read_only",
+      "revision": 8,
+      "results": [
+        {
+          "id": "history",
+          "value": {
+            "$literal": "value-051"
+          }
+        }
+      ]
+    },
+    "S05-other-task-has-no-decisions": {
+      "status": "read_only",
+      "revision": 8,
+      "results": [
+        {
+          "id": "history",
+          "value": {
+            "$literal": "value-052"
+          }
+        }
+      ]
     }
   },
   "sql_facts": {
@@ -9077,6 +9667,51 @@
       [
         "o-b",
         "000002",
+        1,
+        "positive",
+        [
+          "R1"
+        ]
+      ]
+    ],
+    "S02-completed-after-first-positive": [
+      [
+        "o-a",
+        "000001",
+        1,
+        "positive",
+        [
+          "R1"
+        ]
+      ],
+      [
+        "o-b",
+        "000002",
+        1,
+        "positive",
+        [
+          "R1"
+        ]
+      ],
+      [
+        "o-cancel",
+        "000002",
+        1,
+        "cancelled",
+        []
+      ],
+      [
+        "o-negative",
+        "000002",
+        1,
+        "negative",
+        []
+      ]
+    ],
+    "S05-initial-null-keeps-positive-unselected": [
+      [
+        "o-a",
+        "000001",
         1,
         "positive",
         [
@@ -12410,6 +13045,144 @@
           "outcome_id": "o-a-current-alt"
         }
       ]
+    },
+    "value-048": {
+      "task_id": "000002",
+      "snapshot_revision": 1,
+      "statement_revision": 2,
+      "outcomes": [
+        {
+          "outcome_id": "o-b",
+          "task_id": "000002",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_task_requirements": [
+            "R1"
+          ]
+        },
+        {
+          "outcome_id": "o-cancel",
+          "task_id": "000002",
+          "snapshot_revision": 1,
+          "kind": "cancelled",
+          "satisfied_task_requirements": []
+        },
+        {
+          "outcome_id": "o-negative",
+          "task_id": "000002",
+          "snapshot_revision": 1,
+          "kind": "negative",
+          "satisfied_task_requirements": []
+        }
+      ],
+      "confirmations": [
+        {
+          "key": "R1",
+          "outcome_id": "o-b"
+        }
+      ],
+      "decisions": [
+        {
+          "sequence": 1,
+          "key": "R1",
+          "outcome_id": "o-b"
+        }
+      ]
+    },
+    "value-049": {
+      "task_id": "000001",
+      "snapshot_revision": 1,
+      "statement_revision": 2,
+      "outcomes": [],
+      "confirmations": [
+        {
+          "key": "R1",
+          "outcome_id": null
+        }
+      ],
+      "decisions": [
+        {
+          "sequence": 1,
+          "key": "R1",
+          "outcome_id": null
+        }
+      ]
+    },
+    "value-050": {
+      "task_id": "000001",
+      "snapshot_revision": 1,
+      "statement_revision": 2,
+      "outcomes": [
+        {
+          "outcome_id": "o-a",
+          "task_id": "000001",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_task_requirements": [
+            "R1"
+          ]
+        }
+      ],
+      "confirmations": [
+        {
+          "key": "R1",
+          "outcome_id": null
+        }
+      ],
+      "decisions": [
+        {
+          "sequence": 1,
+          "key": "R1",
+          "outcome_id": null
+        }
+      ]
+    },
+    "value-051": {
+      "task_id": "000001",
+      "snapshot_revision": 1,
+      "statement_revision": 2,
+      "outcomes": [
+        {
+          "outcome_id": "o-a",
+          "task_id": "000001",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_task_requirements": [
+            "R1"
+          ]
+        }
+      ],
+      "confirmations": [
+        {
+          "key": "R1",
+          "outcome_id": "o-a"
+        }
+      ],
+      "decisions": [
+        {
+          "sequence": 1,
+          "key": "R1",
+          "outcome_id": null
+        },
+        {
+          "sequence": 2,
+          "key": "R1",
+          "outcome_id": "o-a"
+        }
+      ]
+    },
+    "value-052": {
+      "task_id": "000002",
+      "snapshot_revision": 1,
+      "statement_revision": 2,
+      "outcomes": [],
+      "confirmations": [
+        {
+          "key": "R1",
+          "outcome_id": null
+        }
+      ],
+      "decisions": []
     }
   }
 }

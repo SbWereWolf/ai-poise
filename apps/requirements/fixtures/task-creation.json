@@ -1,0 +1,483 @@
+{
+  "policy": {
+    "namespace": {
+      "minimum": 10,
+      "maximum": 12
+    },
+    "width": 3,
+    "progression": {
+      "first": 10,
+      "step": 2
+    }
+  },
+  "goal_only": {
+    "request_id": "draft",
+    "goal": "Подготовить отчёт."
+  },
+  "explicit": {
+    "request_id": "explicit",
+    "task_id": "010",
+    "goal": "Подготовить отчёт."
+  },
+  "next": {
+    "request_id": "next",
+    "goal": "Выбрать период."
+  },
+  "linked": {
+    "request_id": "linked",
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать отчёт.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Отчёт доступен."
+    ]
+  },
+  "unlinked": {
+    "request_id": "unlinked",
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать отчёт.",
+        "applications": []
+      }
+    ]
+  },
+  "foundation": [
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "SYS-REPORT",
+        "level": "system",
+        "status": "current",
+        "text": "Пользователь получает отчёт."
+      }
+    },
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-REPORT",
+        "level": "application",
+        "status": "current",
+        "text": "Приложение выдаёт отчёт."
+      }
+    },
+    {
+      "kind": "link",
+      "system": "SYS-REPORT",
+      "application": "APP-REPORT"
+    }
+  ],
+  "statement_linked": {
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать отчёт.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Отчёт доступен."
+    ]
+  },
+  "statement_edited": {
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать полный отчёт.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Полный отчёт доступен."
+    ]
+  },
+  "statement_empty": {
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [],
+    "definition_of_done": []
+  },
+  "statement_two": {
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать отчёт.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      },
+      {
+        "key": "extra",
+        "status": "current",
+        "text": "Сохранить отчёт.",
+        "applications": [
+          "APP-EXTRA"
+        ]
+      }
+    ],
+    "definition_of_done": []
+  },
+  "extra_foundation": [
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-EXTRA",
+        "level": "application",
+        "status": "current",
+        "text": "Приложение сохраняет отчёт."
+      }
+    },
+    {
+      "kind": "link",
+      "system": "SYS-REPORT",
+      "application": "APP-EXTRA"
+    }
+  ],
+  "obsolete_application": [
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-REPORT",
+        "level": "application",
+        "status": "obsolete",
+        "text": "Приложение выдаёт отчёт."
+      }
+    }
+  ],
+  "work_choices": [
+    {
+      "kind": "standalone"
+    },
+    {
+      "kind": "sequence",
+      "sequence_id": "SPRINT-REPORT"
+    }
+  ],
+  "mixed_nodes": [
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-ORPHAN",
+        "level": "application",
+        "status": "current",
+        "text": "Самостоятельный результат."
+      }
+    },
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-FUTURE",
+        "level": "application",
+        "status": "future",
+        "text": ""
+      }
+    },
+    {
+      "kind": "link",
+      "system": "SYS-REPORT",
+      "application": "APP-FUTURE"
+    },
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "SYS-FUTURE",
+        "level": "system",
+        "status": "future",
+        "text": ""
+      }
+    },
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-PROJECTED",
+        "level": "application",
+        "status": "current",
+        "text": "Будущий верхний смысл."
+      }
+    },
+    {
+      "kind": "link",
+      "system": "SYS-FUTURE",
+      "application": "APP-PROJECTED"
+    }
+  ],
+  "mixed_entries": [
+    {
+      "key": "complete",
+      "status": "current",
+      "text": "Полный результат.",
+      "applications": [
+        "APP-REPORT"
+      ]
+    },
+    {
+      "key": "orphan",
+      "status": "current",
+      "text": "Результат без верхнего смысла.",
+      "applications": [
+        "APP-ORPHAN"
+      ]
+    },
+    {
+      "key": "task-future",
+      "status": "future",
+      "text": "",
+      "applications": [
+        "APP-REPORT"
+      ]
+    },
+    {
+      "key": "app-future",
+      "status": "current",
+      "text": "Будущий прикладной смысл.",
+      "applications": [
+        "APP-FUTURE"
+      ]
+    },
+    {
+      "key": "system-future",
+      "status": "current",
+      "text": "Будущий системный смысл.",
+      "applications": [
+        "APP-PROJECTED"
+      ]
+    }
+  ],
+  "mixed_basis": {
+    "task_id": "010",
+    "statement_revision": 1,
+    "basis_ready": false,
+    "requirements": [
+      {
+        "key": "complete",
+        "basis_ready": true,
+        "gaps": []
+      },
+      {
+        "key": "orphan",
+        "basis_ready": false,
+        "gaps": [
+          {
+            "kind": "missing_system",
+            "task_text": "Результат без верхнего смысла.",
+            "application_text": "Самостоятельный результат.",
+            "proposal": {
+              "level": "system",
+              "text": "Самостоятельный результат."
+            }
+          }
+        ]
+      },
+      {
+        "key": "task-future",
+        "basis_ready": false,
+        "gaps": [
+          {
+            "kind": "projected_placeholder",
+            "level": "task",
+            "task_index": 0,
+            "task_text": ""
+          }
+        ]
+      },
+      {
+        "key": "app-future",
+        "basis_ready": false,
+        "gaps": [
+          {
+            "kind": "projected_placeholder",
+            "level": "application",
+            "requirement_id": "APP-FUTURE",
+            "task_text": "Будущий прикладной смысл."
+          }
+        ]
+      },
+      {
+        "key": "system-future",
+        "basis_ready": false,
+        "gaps": [
+          {
+            "kind": "projected_placeholder",
+            "level": "system",
+            "requirement_id": "SYS-FUTURE",
+            "task_text": "Будущий системный смысл."
+          }
+        ]
+      }
+    ]
+  },
+  "basis_empty": {
+    "task_id": "010",
+    "statement_revision": 1,
+    "basis_ready": false,
+    "requirements": []
+  },
+  "basis_linked": {
+    "task_id": "010",
+    "statement_revision": 1,
+    "basis_ready": true,
+    "requirements": [
+      {
+        "key": "report",
+        "basis_ready": true,
+        "gaps": []
+      }
+    ]
+  },
+  "basis_unlinked": {
+    "task_id": "010",
+    "statement_revision": 1,
+    "basis_ready": false,
+    "requirements": [
+      {
+        "key": "report",
+        "basis_ready": false,
+        "gaps": [
+          {
+            "kind": "missing_application",
+            "task_text": "Выдать отчёт.",
+            "proposal": {
+              "level": "application",
+              "text": "Выдать отчёт."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "basis_extra": {
+    "task_id": "010",
+    "statement_revision": 2,
+    "basis_ready": true,
+    "requirements": [
+      {
+        "key": "extra",
+        "basis_ready": true,
+        "gaps": []
+      }
+    ]
+  },
+  "empty_task": {
+    "task_id": "010",
+    "statement_revision": 1,
+    "snapshot_revision": null,
+    "goal": "Подготовить отчёт.",
+    "definition_of_done": [],
+    "task_requirements": []
+  },
+  "next_task": {
+    "task_id": "012",
+    "statement_revision": 1,
+    "snapshot_revision": null,
+    "goal": "Выбрать период.",
+    "definition_of_done": [],
+    "task_requirements": []
+  },
+  "created_010_1": {
+    "status": "created",
+    "task_id": "010",
+    "statement_revision": 1,
+    "revision": 1,
+    "replayed": false
+  },
+  "created_010_2": {
+    "status": "created",
+    "task_id": "010",
+    "statement_revision": 1,
+    "revision": 2,
+    "replayed": false
+  },
+  "created_012_2": {
+    "status": "created",
+    "task_id": "012",
+    "statement_revision": 1,
+    "revision": 2,
+    "replayed": false
+  },
+  "created_010_3": {
+    "status": "created",
+    "task_id": "010",
+    "statement_revision": 1,
+    "revision": 3,
+    "replayed": false
+  },
+  "linked_task": {
+    "task_id": "010",
+    "statement_revision": 1,
+    "snapshot_revision": null,
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать отчёт.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Отчёт доступен."
+    ]
+  },
+  "edited_task": {
+    "task_id": "010",
+    "statement_revision": 2,
+    "snapshot_revision": null,
+    "goal": "Подготовить отчёт.",
+    "task_requirements": [
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Выдать полный отчёт.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Полный отчёт доступен."
+    ]
+  },
+  "initial_query": {
+    "queries": [
+      {
+        "id": "empty",
+        "kind": "coverage"
+      }
+    ]
+  },
+  "initial_response": {
+    "status": "read_only",
+    "revision": 0,
+    "results": [
+      {
+        "id": "empty",
+        "value": {
+          "application_without_system": [],
+          "system_without_application": [],
+          "application_without_task": []
+        }
+      }
+    ]
+  }
+}

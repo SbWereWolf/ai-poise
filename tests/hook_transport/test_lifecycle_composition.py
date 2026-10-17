@@ -341,3 +341,40 @@ def test_public_retry_delivers_the_same_saved_receipt_without_replaying_native_e
     assert packet['deadline_monotonic'] > record['packet']['deadline_monotonic']
     assert native_rows(service) == before
 
+
+@pytest.mark.parametrize('changed', ['source', 'cwd'])
+def test_public_retry_rejects_metadata_different_from_committed_start(project, tmp_path, changed):
+    prefix = ('import os,sys;from pathlib import Path\n'
+              'marker=Path(os.environ["MARKER"])\n'
+              'if not marker.exists():\n'
+              ' marker.write_text("first attempt failed");sys.exit(7)\n')
+    service, installed = configured(project, tmp_path, prefix + RECEIVER)
+    with pytest.raises(PoiseError, match='consumer'):
+        deliver(service, installed)
+    paths = [path for path in service.settings.observations.rglob(service.settings.raw['response_file'])
+             if json.loads(path.read_text()).get('schema') == 'poise-hook-lifecycle-delivery-1']
+    assert len(paths) == 1
+    record = json.loads(paths[0].read_text())
+    assert record['status'] == 'incomplete' and record['reason'] == 'nonzero_exit'
+    assert record['packet']['native_event']['source'] == 'startup'
+    assert record['packet']['native_event']['cwd'] == str(service.settings.root)
+    (project['root'] / 'another-workspace').mkdir()
+    record['packet']['native_event'][changed] = ('clear' if changed == 'source'
+                                                else str(project['root'] / 'another-workspace'))
+    paths[0].write_text(json.dumps(record))
+    before = paths[0].read_bytes()
+    marker = (project['root'] / 'received.json').read_bytes()
+    with service.registry.read_transaction() as db:
+        rows = [tuple(row) for row in db.execute('SELECT * FROM hook_events ORDER BY id')]
+    retry = subprocess.run([sys.executable, '-P', '-s', '-B', '-m', 'poise', 'hook',
+        '--settings', str(service.settings.path), '--definition', installed['definition_path'],
+        '--retry', str(paths[0])], input='', capture_output=True, text=True, timeout=10)
+    assert retry.returncode != 0, retry.stdout + retry.stderr
+    assert 'retry' in retry.stdout + retry.stderr
+    assert 'committed' in retry.stdout + retry.stderr
+    assert ('source' if changed == 'source' else 'workspace') in retry.stdout + retry.stderr
+    assert paths[0].read_bytes() == before
+    assert (project['root'] / 'received.json').read_bytes() == marker
+    with service.registry.read_transaction() as db:
+        assert [tuple(row) for row in db.execute('SELECT * FROM hook_events ORDER BY id')] == rows
+

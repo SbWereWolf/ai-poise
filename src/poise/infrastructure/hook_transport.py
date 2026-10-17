@@ -327,6 +327,21 @@ class FileHookRepository:
             groups.append([e['event'],group])
         return groups
 
+    def require_lifecycle_publication(self, definition, path, document):
+        """Observe the selected producer while the caller holds native file/settings locks."""
+        installed = self.registry.observed_installation(definition.data['id'])
+        if (installed is None
+                or installed['receipt']['hooks_path'] != str(self.settings.hooks_file)
+                or not isinstance(document, dict) or not isinstance(document.get('hooks'), dict)):
+            raise PoiseError('Native lifecycle producer installation is unavailable; publish the configured native definition through its installation owner, then retry install-hooks')
+        desired = dict(self._groups(definition, path))
+        for event in ('SessionStart', 'SessionEnd'):
+            group = desired.get(event)
+            live = document['hooks'].get(event)
+            if (group is None or not isinstance(live, list) or live.count(group) != 1
+                    or installed['groups'].count([event, group]) != 1):
+                raise PoiseError(f'Native {event} producer is missing or differs from its configured publication; publish the configured native definition through its installation owner, then retry install-hooks')
+
     def _reject_unregistered_groups(self,document,previous,definition):
         """Recognize only exact commands of this settings/source installation."""
         if document is None:return
@@ -518,6 +533,20 @@ class HookService:
             raise PoiseError('Current definition selects another native installation; restore the matching installation through its public owner')
         return current
 
+    def require_lifecycle_publication(self, definition_path, document):
+        return self.repository.require_lifecycle_publication(
+            self.definition(definition_path), Path(definition_path).resolve(), document)
+
+    def require_lifecycle_event(self, definition_path, event_receipt, native_event):
+        definition=self.definition(definition_path)
+        native=parse_native_event(native_event,definition)
+        if (native['session_id']!=event_receipt.get('session_id') or native['event']!=event_receipt.get('event')
+                or not matches_repository_scope(self.settings,native['cwd'])):
+            raise PoiseError('Lifecycle delivery identifies another native operation/workspace; select its genuine saved receipt and retry')
+        metadata=({'source':native_event['source'],'workspace':native['cwd']}
+                  if native['event']=='SessionStart' else {'reason':native_event['reason']})
+        self.registry.require_lifecycle_metadata(event_receipt,metadata)
+
     def bind_lifecycle_receipt(self, definition_path, event_receipt, episode):
         definition=self.definition(definition_path)
         if not isinstance(event_receipt,dict) or not isinstance(event_receipt.get('binding_id'),str):
@@ -546,11 +575,9 @@ class HookService:
         episode={key:receipt[key] for key in ('project_id','session_id','binding_id')}
         episode['start_event_id']=receipt['native_start_event_id']
         self.bind_lifecycle_receipt(definition_path,receipt,episode)
+        self.require_lifecycle_event(definition_path,receipt,record['packet']['native_event'])
         definition=self.definition(definition_path)
         native=parse_native_event(record['packet']['native_event'],definition)
-        if (native['session_id']!=receipt['session_id'] or native['event']!=receipt['event']
-                or not matches_repository_scope(self.settings,native['cwd'])):
-            raise PoiseError('Saved lifecycle delivery identifies another native operation/workspace; select the matching saved receipt')
         options=self.settings.consumer
         record['packet']['deadline_monotonic']=time.monotonic()+sum(options[key] for key in
             ('timeout_seconds','cleanup_seconds','completion_reserve_seconds'))

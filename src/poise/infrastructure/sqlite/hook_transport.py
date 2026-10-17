@@ -1,6 +1,7 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
 import sqlite3
+from pathlib import Path
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded,load_config_limits
@@ -185,6 +186,20 @@ class HookRegistry:
         with self.read_transaction() as db:
             return db.execute("SELECT max(id) FROM hook_events WHERE binding=? AND event='SessionStart' AND id<=?",
                               (binding,event_id)).fetchone()[0]
+
+    def require_lifecycle_metadata(self, receipt, metadata):
+        with self.read_transaction() as db:
+            row=db.execute('SELECT data FROM hook_events WHERE binding=? AND id=? AND event=?',
+                           (receipt['binding_id'],receipt['event_id'],receipt['event'])).fetchone()
+            if row is None:
+                raise PoiseError('Committed lifecycle event is unavailable; select its genuine native delivery and retry recovery')
+            committed=json.loads(row[0])
+            for field, value in metadata.items():
+                observed=committed.get(field)
+                same=(isinstance(observed,str) and Path(observed).is_absolute() and Path(value).is_absolute()
+                      and Path(observed).resolve()==Path(value).resolve()) if field=='workspace' else observed==value
+                if not same:
+                    raise PoiseError(f'Lifecycle {field} differs from the committed event; select its genuine native delivery and retry recovery')
 
     def bind_lifecycle_receipt(self, receipt, episode, definition_id, project_id):
         fields=('project_id','session_id','binding_id')

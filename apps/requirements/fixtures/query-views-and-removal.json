@@ -3285,6 +3285,156 @@
           }
         }
       ]
+    },
+    "exact-padded-delete": {
+      "status": "applied",
+      "revision": 21,
+      "replayed": false
+    },
+    "exact-peer-registry": {
+      "status": "read_only",
+      "revision": 21,
+      "results": [
+        {
+          "id": "registry",
+          "value": {
+            "requirements": {
+              "APP-10": {
+                "id": "APP-10",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: справочник."
+              },
+              "APP-2": {
+                "id": "APP-2",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: операция."
+              },
+              "APP-EMPTY": {
+                "id": "APP-EMPTY",
+                "level": "application",
+                "status": "current",
+                "text": "Пустое текущее обязательство."
+              },
+              "APP-FUTURE": {
+                "id": "APP-FUTURE",
+                "level": "application",
+                "status": "future",
+                "text": "Будущий результат."
+              },
+              "APP-OLD": {
+                "id": "APP-OLD",
+                "level": "application",
+                "status": "obsolete",
+                "text": "Прежний отчёт."
+              },
+              "APP-PLACEHOLDER": {
+                "id": "APP-PLACEHOLDER",
+                "level": "application",
+                "status": "future",
+                "text": ""
+              },
+              "APP-PURPOSE": {
+                "id": "APP-PURPOSE",
+                "level": "application",
+                "status": "current",
+                "text": "Выбранное назначение."
+              },
+              "APP-X": {
+                "id": "APP-X",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: отчёт."
+              },
+              "APP-Y": {
+                "id": "APP-Y",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: приложение."
+              },
+              "SYS-A": {
+                "id": "SYS-A",
+                "level": "system",
+                "status": "current",
+                "text": "Результат: полный комплект."
+              },
+              "SYS-B": {
+                "id": "SYS-B",
+                "level": "system",
+                "status": "current",
+                "text": "Результат: проверенный комплект."
+              },
+              "SYS-EMPTY": {
+                "id": "SYS-EMPTY",
+                "level": "system",
+                "status": "current",
+                "text": "Нераспределённое обязательство."
+              },
+              "SYS-FUTURE": {
+                "id": "SYS-FUTURE",
+                "level": "system",
+                "status": "future",
+                "text": "Будущий смысл."
+              },
+              "SYS-OLD": {
+                "id": "SYS-OLD",
+                "level": "system",
+                "status": "obsolete",
+                "text": "Прежний смысл."
+              },
+              "SYS-PLACEHOLDER": {
+                "id": "SYS-PLACEHOLDER",
+                "level": "system",
+                "status": "future",
+                "text": ""
+              },
+              "SYS-SAVED": {
+                "id": "SYS-SAVED",
+                "level": "system",
+                "status": "current",
+                "text": "Смысл сохранённой публикации."
+              },
+              "EXACT-ID": {
+                "id": "EXACT-ID",
+                "level": "system",
+                "status": "current",
+                "text": "Точный сосед без пробелов."
+              }
+            },
+            "links": [
+              {
+                "system": "SYS-A",
+                "application": "APP-FUTURE"
+              },
+              {
+                "system": "SYS-A",
+                "application": "APP-X"
+              },
+              {
+                "system": "SYS-A",
+                "application": "APP-Y"
+              },
+              {
+                "system": "SYS-B",
+                "application": "APP-EMPTY"
+              },
+              {
+                "system": "SYS-B",
+                "application": "APP-X"
+              },
+              {
+                "system": "SYS-FUTURE",
+                "application": "APP-FUTURE"
+              },
+              {
+                "system": "SYS-PLACEHOLDER",
+                "application": "APP-PLACEHOLDER"
+              }
+            ]
+          }
+        }
+      ]
     }
   },
   "scenarios": [
@@ -7928,6 +8078,496 @@
             }
           },
           "expect": "d4-current-after-replay",
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "id": "Q3-type-satisfied-integer",
+      "seed": "base",
+      "extra_rows": {},
+      "steps": [
+        {
+          "id": "Q3-type-satisfied-integer",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "q",
+                  "kind": "search_requirements",
+                  "filter": {
+                    "satisfied": 1
+                  },
+                  "limit": 64,
+                  "after_id": null
+                }
+              ]
+            }
+          },
+          "rejected": true,
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "id": "Q3-type-applicable-null",
+      "seed": "base",
+      "extra_rows": {},
+      "steps": [
+        {
+          "id": "Q3-type-applicable-null",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "q",
+                  "kind": "search_requirements",
+                  "filter": {
+                    "applicable": null
+                  },
+                  "limit": 64,
+                  "after_id": null
+                }
+              ]
+            }
+          },
+          "rejected": true,
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "id": "D1-exact-padded-id",
+      "seed": "base",
+      "extra_rows": {
+        "requirements": [
+          [
+            " EXACT-ID ",
+            "system",
+            2
+          ],
+          [
+            "EXACT-ID",
+            "system",
+            1
+          ]
+        ],
+        "requirement_revisions": [
+          [
+            " EXACT-ID ",
+            1,
+            "current",
+            "Прежний собственный текст.",
+            1,
+            {
+              "type": "fixture"
+            }
+          ],
+          [
+            " EXACT-ID ",
+            2,
+            "current",
+            "Точная запись с пробелами.",
+            9,
+            {
+              "type": "fixture"
+            }
+          ],
+          [
+            "EXACT-ID",
+            1,
+            "current",
+            "Точный сосед без пробелов.",
+            1,
+            {
+              "type": "fixture"
+            }
+          ]
+        ]
+      },
+      "steps": [
+        {
+          "id": "exact-padded-delete",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "exact-padded-delete",
+              "expected_revision": 20,
+              "operations": [
+                {
+                  "kind": "delete_requirement",
+                  "requirement_id": " EXACT-ID "
+                }
+              ]
+            }
+          },
+          "expect": "exact-padded-delete",
+          "preserved_tables": [
+            "application_purposes",
+            "application_purpose_revisions",
+            "system_application_versions",
+            "task_identities",
+            "task_creation_requests",
+            "task_statements",
+            "task_requirement_keys",
+            "task_requirement_versions",
+            "application_task_links",
+            "task_snapshots",
+            "requirement_outcomes",
+            "domain_areas",
+            "domain_entities",
+            "domain_actions",
+            "requirement_entities",
+            "requirement_actions",
+            "requirement_confirmation_decisions"
+          ],
+          "sql": [
+            {
+              "query": "SELECT id,level,current_revision FROM requirements ORDER BY id",
+              "parameters": [],
+              "expected": [
+                [
+                  "APP-10",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-2",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-EMPTY",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-FUTURE",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-OLD",
+                  "application",
+                  2
+                ],
+                [
+                  "APP-PLACEHOLDER",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-PURPOSE",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-X",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-Y",
+                  "application",
+                  1
+                ],
+                [
+                  "EXACT-ID",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-A",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-B",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-EMPTY",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-FUTURE",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-OLD",
+                  "system",
+                  2
+                ],
+                [
+                  "SYS-PLACEHOLDER",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-SAVED",
+                  "system",
+                  1
+                ]
+              ]
+            },
+            {
+              "query": "SELECT id,revision,status,text,owner_revision,origin FROM requirement_revisions ORDER BY id,revision",
+              "parameters": [],
+              "expected": [
+                [
+                  "APP-10",
+                  1,
+                  "current",
+                  "Результат: справочник.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-2",
+                  1,
+                  "current",
+                  "Результат: операция.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-EMPTY",
+                  1,
+                  "current",
+                  "Пустое текущее обязательство.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-FUTURE",
+                  1,
+                  "future",
+                  "Будущий результат.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-OLD",
+                  1,
+                  "current",
+                  "Прежний отчёт.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-OLD",
+                  2,
+                  "obsolete",
+                  "Прежний отчёт.",
+                  12,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-PLACEHOLDER",
+                  1,
+                  "future",
+                  "",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-PURPOSE",
+                  1,
+                  "current",
+                  "Выбранное назначение.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-X",
+                  1,
+                  "current",
+                  "Результат: отчёт.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-Y",
+                  1,
+                  "current",
+                  "Результат: приложение.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "EXACT-ID",
+                  1,
+                  "current",
+                  "Точный сосед без пробелов.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-A",
+                  1,
+                  "current",
+                  "Результат: полный комплект.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-B",
+                  1,
+                  "current",
+                  "Результат: проверенный комплект.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-EMPTY",
+                  1,
+                  "current",
+                  "Нераспределённое обязательство.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-FUTURE",
+                  1,
+                  "future",
+                  "Будущий смысл.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-OLD",
+                  1,
+                  "current",
+                  "Прежний смысл.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-OLD",
+                  2,
+                  "obsolete",
+                  "Прежний смысл.",
+                  12,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-PLACEHOLDER",
+                  1,
+                  "future",
+                  "",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-SAVED",
+                  1,
+                  "current",
+                  "Смысл сохранённой публикации.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ]
+              ],
+              "json_indexes": [
+                5
+              ]
+            },
+            {
+              "query": "SELECT revision,schema_version FROM requirements_meta",
+              "parameters": [],
+              "expected": [
+                [
+                  21,
+                  1
+                ]
+              ]
+            },
+            {
+              "query": "SELECT protocol_namespace,request_id,intent,response FROM requirement_requests ORDER BY protocol_namespace,request_id",
+              "parameters": [],
+              "expected": [
+                [
+                  "registry.apply",
+                  "exact-padded-delete",
+                  {
+                    "request_id": "exact-padded-delete",
+                    "expected_revision": 20,
+                    "operations": [
+                      {
+                        "kind": "delete_requirement",
+                        "requirement_id": " EXACT-ID "
+                      }
+                    ]
+                  },
+                  {
+                    "revision": 21,
+                    "replayed": false
+                  }
+                ]
+              ],
+              "json_indexes": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "exact-peer-registry",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "registry",
+                  "kind": "registry"
+                }
+              ]
+            }
+          },
+          "expect": "exact-peer-registry",
           "unchanged": true
         }
       ]

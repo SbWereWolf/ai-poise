@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from pathlib import Path
 import io
+import stat
 import json
 import os
 import shutil
@@ -15,6 +16,11 @@ import pytest
 from tests.content_reader.helpers import (
     Scenario, FIXTURES, SOURCE, canonical, files, fixture, other_project,
     sha, storage_snapshot, strict_json, text_frames, typed_equal,
+)
+
+from tests.content_reader.contract_checks import (
+    complete_expected, assert_complete_read, assert_text, render_text,
+    address_shape, read_root, PrefixFailure, assert_template,
 )
 
 
@@ -94,56 +100,57 @@ def test_complete_and_bounded_limits(s):
 def test_full_output_budgets_before_registration(s):
     s.ready()
     used = False
-    for fmt in ['json', 'text']:
-        for dimension in ['max_bytes', 'max_lines']:
+    for fmt in ['json','text']:
+        for dimension in ['max_bytes','max_lines']:
             if used:
-                s.event('SessionEnd')
-                assert s.invoke({'operation': 'recover'})[0] == 0
-                s.event(); s.ready()
+                s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+                s.event();s.ready()
             used = True
-            # Only paths, native IDs and own policy hash are dynamic inputs.
-            candidate = deepcopy(fixture()['first_response'])
-            observed = s.context()
-            for key in ['project', 'checkout', 'policy_sha256', 'context', 'response_path']:
-                candidate[key] = observed[key]
-            candidate['items'][0]['classification'] = 'new_context_generation'
-            if fmt == 'json':
-                encoded = canonical(candidate)
-            else:
-                encoded = canonical(dict({k: v for k, v in candidate.items() if k != 'items'},
-                                        item={k: v for k, v in candidate['items'][0].items() if k != 'content'})) + 'βeta\nlast'
-            n = len(encoded.encode()) if dimension == 'max_bytes' else len(encoded.splitlines())
+            calibrated = s.read()
+            s.row(calibrated,text='βeta\nlast',selection='lines:2-3',classification='first_read',
+                  summary=fixture('context-sequences.json')['first'])
+            calibration = calibrated['response_path']
+            address_shape(calibration,read_root(s))
+            assert s.advance('exact-budget')['context']['generation']==1
+            item = deepcopy(fixture()['first_response']['items'][0])
+            item.update(classification='new_context_generation',context_generation=1)
+            summary = fixture('context-sequences.json')['second_generation_content']
+            candidate = complete_expected(s,items=[item],summary=summary,generation=1,path=calibration)
+            encoded = canonical(candidate) if fmt=='json' else render_text(candidate)
+            n = len(encoded.encode()) if dimension=='max_bytes' else len(encoded.splitlines())
             original = s.data['output'][dimension]
-            if n > 1:
-                s.data['output'][dimension] = n - 1; s.save_policy()
-                before = s.metadata()
-                code, out, err = s.raw(s.request(), fmt)
-                assert err == ''
-                s.error((code, strict_json(out)), 'output_limit')
-                assert s.metadata() == before
-            s.data['output'][dimension] = n; s.save_policy()
-            assert s.raw(s.request(), fmt)[0] == 0
-            # JSON has one physical line; zero is an invalid positive policy.
-            if n == 1:
-                s.data['output'][dimension] = 0; s.save_policy()
-                s.error(s.invoke(s.request()), 'invalid_policy', field='policy:output.' + dimension)
+            before = s.metadata()
+            if n>1:
+                s.data['output'][dimension]=n-1;s.save_policy()
+                code,out,err=s.raw(s.request(),fmt);assert err==''
+                s.error((code,strict_json(out)),'output_limit');assert s.metadata()==before
+            s.data['output'][dimension]=n;s.save_policy()
+            candidate = complete_expected(s,items=[item],summary=summary,generation=1,path=calibration)
+            code,out,err=s.raw(s.request(),fmt);assert code==0 and err==''
+            if fmt=='json':
+                assert_complete_read(s,strict_json(out),candidate,calibration=calibration)
             else:
-                s.data['output'][dimension] = 1; s.save_policy()
-                before = s.metadata()
-                code, out, err = s.raw(s.request(), fmt)
-                assert err == ''
-                s.error((code, strict_json(out)), 'output_limit')
-                assert s.metadata() == before
-            s.data['output'][dimension] = original; s.save_policy()
+                assert_text(s,out,candidate,calibration=calibration)
+            assert (len(out.encode()) if dimension=='max_bytes' else len(out.splitlines()))==n
+            assert len(s.metadata()[0])==len(before[0])+1 and len(s.metadata()[1])==len(before[1])+1
+            s.data['output'][dimension]=0 if n==1 else 1;s.save_policy()
+            unchanged=s.metadata()
+            if n==1:
+                s.error(s.invoke(s.request()),'invalid_policy',field='policy:output.'+dimension)
+            else:
+                code,out,err=s.raw(s.request(),fmt);assert err==''
+                s.error((code,strict_json(out)),'output_limit')
+            assert s.metadata()==unchanged
+            s.data['output'][dimension]=original;s.save_policy()
 
 
 def test_first_and_exact_repeat_contract(s):
     s.ready()
     first = s.read()
-    s.row(first, text='βeta\nlast', selection='lines:2-3', classification='first_read')
+    s.row(first, text='βeta\nlast', selection='lines:2-3', classification='first_read', summary=fixture('context-sequences.json')['first'])
     typed_equal(first['summary'], fixture('context-sequences.json')['first'])
     second = s.read()
-    s.row(second, text='βeta\nlast', selection='lines:2-3', classification='exact_repeat', status='unchanged')
+    s.row(second, text='βeta\nlast', selection='lines:2-3', classification='exact_repeat', status='unchanged', summary=fixture('context-sequences.json')['repeat'])
     typed_equal(second['summary'], fixture('context-sequences.json')['repeat'])
     assert first['context'] == second['context']
 
@@ -343,15 +350,39 @@ def test_registry_read_and_connection_failure(s,monkeypatch):
 
 def test_writer_failure_preserves_registered_availability(s,monkeypatch):
     s.ready()
-    class Broken(io.StringIO):
-        def write(self,value):raise OSError('fixture sink failed')
-    code,out,err=s.transport(monkeypatch,s.request(),sink=Broken())
-    assert code==1 and out==''
-    error=strict_json(err);assert error['error']['code']=='output_write'
-    assert error['response_path'] is not None and Path(error['response_path']).is_file()
-    s.row(s.read(),text='βeta\nlast',selection='lines:2-3',classification='exact_repeat',status='unchanged')
-    s.advance('after-output-failure')
-    assert s.read()['items'][0]['status']=='content'
+    used=False
+    for fmt in ['json','text']:
+        for prefix in [False,True]:
+            if used:
+                s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+                s.event();s.ready()
+            used=True
+            first=s.read();s.row(first,text='βeta\nlast',selection='lines:2-3',classification='first_read',summary=fixture('context-sequences.json')['first'])
+            calibration=first['response_path'];s.advance('output-fault')
+            item=deepcopy(fixture()['first_response']['items'][0]);item.update(classification='new_context_generation',context_generation=1)
+            candidate=complete_expected(s,items=[item],summary=fixture('context-sequences.json')['second_generation_content'],generation=1,path=calibration)
+            rendered=canonical(candidate) if fmt=='json' else render_text(candidate)
+            limit=0 if not prefix else (17 if fmt=='json' else len(rendered)-len(item['content'])+1)
+            sink=PrefixFailure(limit);before=s.metadata()
+            code,out,err=s.transport(monkeypatch,s.request(),fmt=fmt,sink=sink)
+            assert code==1 and sink.failed and len(out)==limit
+            late=strict_json(err)
+            wanted=next(v for v in fixture()['errors'] if v['code']=='output_write')
+            typed_equal(late['error'],{k:wanted[k] for k in ['code','field','message','action']}|{'key':None})
+            typed_equal(late['status'],'failed')
+            saved_path=late['response_path'];address_shape(saved_path,read_root(s))
+            assert address_shape(saved_path,read_root(s))==address_shape(calibration,read_root(s))
+            expected=deepcopy(candidate);expected['response_path']=saved_path
+            assert_complete_read(s,strict_json(Path(saved_path).read_bytes()),expected,calibration=calibration)
+            s.envelope(late,operation='read',exit_code=1,saved_value=expected)
+            wire=canonical(expected) if fmt=='json' else render_text(expected)
+            typed_equal(out,wire[:limit])
+            cache,events=s.metadata()
+            assert len(cache)==len(before[0])+1 and len(events)==len(before[1])+1
+            assert events[-1][1:]==(1,'docs/sample.txt',fixture()['selected_sha256_literals']['range_2_3'],'lines:2-3','repository-content-read','content','new_context_generation',10,2,10)
+            repeated=s.read();s.row(repeated,text='βeta\nlast',selection='lines:2-3',classification='exact_repeat',status='unchanged',generation=1)
+            s.advance('after-output-failure')
+            s.row(s.read(),text='βeta\nlast',selection='lines:2-3',classification='new_context_generation',generation=2)
 
 
 def test_both_complete_representation_consumers(s):
@@ -360,19 +391,21 @@ def test_both_complete_representation_consumers(s):
         with pytest.raises(AssertionError):strict_json(raw)
     for actual,expected in [(True,1),(1.0,1),(0,False),(None,'')]:
         with pytest.raises(AssertionError):typed_equal(actual,expected)
+    first=deepcopy(fixture()['first_response']['items'][0])
     code,out,err=s.raw(s.request(),'text');assert code==0 and err==''
-    frames=text_frames(out);assert len(frames)==1
-    assert frames[0][1]=='βeta\nlast'.encode()
-    assert set(frames[0][0])==TOP_TEXT_KEYS
-    expected = deepcopy(fixture()['first_response']['items'][0]); del expected['content']
-    typed_equal(frames[0][0]['item'], expected)
-    assert 'content' not in frames[0][0]['item']
+    path=text_frames(out)[0][0]['response_path']
+    wanted=complete_expected(s,items=[first],summary=fixture('context-sequences.json')['first'],generation=0,path=path)
+    assert_text(s,out,wanted)
+    repeated=deepcopy(first);repeated.update(status='unchanged',classification='exact_repeat',content_follows=False,previous_read_available=True);del repeated['content']
     code,out,err=s.raw(s.request(),'text');assert code==0 and err==''
-    assert text_frames(out)[0][1]==b''
+    wanted=complete_expected(s,items=[repeated],summary=fixture('context-sequences.json')['repeat'],generation=0,path=path)
+    assert_text(s,out,wanted,calibration=path)
     s.advance('multiple-frames');request=s.request();request['reads']=[dict(request['reads'][0],key='z'),dict(request['reads'][0],key='a')]
     code,out,err=s.raw(request,'text');assert code==0 and err==''
-    frames=text_frames(out);assert [x[0]['item']['key'] for x in frames]==['z','a']
-    assert [x[1] for x in frames]==['βeta\nlast'.encode(),b'']
+    one=deepcopy(first);one.update(key='z',classification='new_context_generation',context_generation=1)
+    two=deepcopy(repeated);two.update(key='a',context_generation=1)
+    wanted=complete_expected(s,items=[one,two],summary=fixture('context-sequences.json')['two_generation_batch'],generation=1,path=path)
+    assert_text(s,out,wanted,calibration=path)
 
 
 TOP_TEXT_KEYS={'schema','status','operation','project','checkout','policy_sha256','context','item','summary','details','error','response_path'}
@@ -432,34 +465,75 @@ def test_taskless_reader_preserves_specialized_owners(s):
     assert foreign.read_bytes()==b'foreign immutable specialized receipt' and files(s.checkout)==checkout
 
 
-def test_template_preparation_is_non_overwriting_and_install_owned(s):
-    s.prove();s.template();template=Path(s.data['session']['registry_template']);before=template.read_bytes()
-    s.error(s.invoke({'operation':'prepare_template'}),'template_exists');assert template.read_bytes()==before
-    with sqlite3.connect(template.as_uri()+'?mode=ro',uri=True) as db:
-        assert db.execute('SELECT singleton,schema_version FROM registry_schema').fetchall()==[(1,2)]
-        tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        assert set(fixture('schema2-shape.json')['tables'])<=tables
-        assert db.execute('SELECT session_id,epoch FROM content_read_cache').fetchall()==[]
-        assert db.execute('SELECT session_id,epoch FROM content_read_events').fetchall()==[]
-    s.active();s.ready();assert s.db.read_bytes()==before
-    template.write_bytes(b'invalid template marker');preserved=template.read_bytes()
+def test_template_preparation_is_non_overwriting_and_install_owned(s,monkeypatch):
+    s.prove();s.template()
+    original=Path(s.data['session']['registry_template']);before=original.read_bytes()
+    assert_template(original)
+    s.error(s.invoke({'operation':'prepare_template'}),'template_exists');assert original.read_bytes()==before
+    target=s.root/'prepublication-template.sqlite'
+    s.data['session']['registry_template']=str(target);s.save_policy()
+    real_link=os.link;injected=[]
+    def no_link(source,destination,*args,**kwargs):
+        if Path(destination)==target:
+            injected.append(str(destination));raise PermissionError('fixture link refused before publication')
+        return real_link(source,destination,*args,**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(os,'link',no_link);code,out,err=s.transport(patch,{'operation':'prepare_template'})
+    assert injected and err=='' and not target.exists() and original.read_bytes()==before
+    v=strict_json(out);s.envelope(v,operation='prepare_template',exit_code=code)
+    s.error((code,v),'template_preparation_failed')
+    typed_equal(v['status'],'failed');assert v['details'] is None
+    s.template();assert_template(target)
+    successful=target.read_bytes()
+    published=s.root/'durability-unconfirmed-template.sqlite'
+    s.data['session']['registry_template']=str(published);s.save_policy()
+    real_open,real_fsync=os.open,os.fsync;directories={};durability=[]
+    def observe_open(path,flags,*args,**kwargs):
+        fd=real_open(path,flags,*args,**kwargs)
+        directories[fd]=Path(os.fsdecode(path)).absolute()
+        return fd
+    def no_directory_sync(fd):
+        if directories.get(fd)==published.parent and published.exists() and stat.S_ISDIR(os.fstat(fd).st_mode):
+            durability.append(True);raise OSError('fixture published-directory sync refused')
+        return real_fsync(fd)
+    with monkeypatch.context() as patch:
+        patch.setattr(os,'open',observe_open);patch.setattr(os,'fsync',no_directory_sync)
+        code,out,err=s.transport(patch,{'operation':'prepare_template'})
+    assert durability and err=='' and published.exists()
+    v=strict_json(out);s.envelope(v,operation='prepare_template',exit_code=code)
+    s.error((code,v),'template_publication_unconfirmed');typed_equal(v['status'],'unconfirmed')
+    assert_template(published);published_bytes=published.read_bytes()
+    typed_equal(v['details'],{'path':str(published),'schema_version':2,'sha256':sha(published_bytes),'status':'published_durability_unconfirmed'})
+    s.error(s.invoke({'operation':'prepare_template'}),'template_exists')
+    assert published.read_bytes()==published_bytes and target.read_bytes()==successful and original.read_bytes()==before
+    recovery=s.root/'confirmed-recovery-template.sqlite'
+    s.data['session']['registry_template']=str(recovery);s.save_policy();s.template();assert_template(recovery)
+    s.active();s.ready();assert_template(s.db)
+    recovery.write_bytes(b'invalid existing template');preserved=recovery.read_bytes()
     s.native_identity('fresh-invalid-template');s.event()
-    s.error(s.invoke({'operation':'prepare'}),'template_invalid');assert template.read_bytes()==preserved
+    s.error(s.invoke({'operation':'prepare'}),'template_invalid');assert recovery.read_bytes()==preserved
 
 
-def test_session_resources_require_exact_owner_and_explicit_adoption(s):
-    s.ready();s.read();before=files(s.resource)
+def test_session_resources_require_exact_owner_and_explicit_adoption(s,project,tmp_path):
+    s.ready();s.read()
     code,value=s.invoke({'operation':'adopt'});assert code==0 and value['details']['episode']==s.episode
-    assert s.metadata()[0]
-    owner=list(s.resource.rglob(s.data['session']['ownership_filename']))
-    assert len(owner)==1
-    original=owner[0].read_bytes();owner[0].write_bytes(b'{"foreign":"do not replace"}')
+    foreign=other_project(project,tmp_path);foreign.ready();foreign.read()
+    own_record=list(s.resource.rglob(s.data['session']['ownership_filename']))
+    foreign_record=list(foreign.resource.rglob(foreign.data['session']['ownership_filename']))
+    assert len(own_record)==len(foreign_record)==1
+    original=own_record[0].read_bytes();valid_foreign=foreign_record[0].read_bytes()
+    assert strict_json(valid_foreign)!=strict_json(original) and s.episode!=foreign.episode
+    foreign_bytes=files(foreign.resource);before=s.metadata()
+    own_record[0].write_bytes(valid_foreign)  # Explicit owned negative fixture, no SQLite/native rewrite.
     snapshot=files(s.resource)
-    for req in [s.request(),{'operation':'prepare'},{'operation':'adopt'}]:
-        result=s.invoke(req);assert result[0]==1
-        assert result[1]['error']['code'] in ['ownership_unknown','episode_mismatch','authority_mismatch']
-        assert files(s.resource)==snapshot
-    owner[0].write_bytes(original)
+    try:
+        for req in [s.request(),{'operation':'prepare'},{'operation':'adopt'},{'operation':'recover'}]:
+            code,value=s.invoke(req);assert code==1
+            assert value['error']['code'] in ['ownership_unknown','episode_mismatch','authority_mismatch']
+            assert files(s.resource)==snapshot and s.metadata()==before
+            assert files(foreign.resource)==foreign_bytes
+    finally:
+        own_record[0].write_bytes(original)
     assert s.read()['items'][0]['status']=='unchanged'
 
 
@@ -488,42 +562,77 @@ def test_cleanup_incomplete_preserves_diagnostics_and_recovery(s,monkeypatch):
     assert s.invoke({'operation':'recover'})[1]['status']=='already_absent'
 
 
-def test_unknown_or_active_native_authority_preserves_owned_tree(s,monkeypatch):
-    s.ready();s.read();before=files(s.resource)
-    code,value=s.invoke({'operation':'recover'});assert code==1 and value['status'] in ['stale','incomplete']
-    assert files(s.resource)==before
+def test_unknown_or_active_native_authority_preserves_owned_tree(s,monkeypatch,project,tmp_path):
+    s.ready();s.read();s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+    diagnostic=Path(s.data['session']['diagnostic_file']);prefix=diagnostic.read_bytes();assert prefix
+    s.event();s.ready();s.read();before=files(s.resource)
+    foreign=other_project(project,tmp_path);foreign.ready();foreign.read();foreign_bytes=files(foreign.resource)
+    control=Path(s.data['session']['coordination_root']);control.mkdir(parents=True,exist_ok=True)
+    sentinel=control/'unrelated-owned-data.txt';sentinel.write_bytes(b'preserve external data')
+    def preserved():
+        assert files(s.resource)==before and files(foreign.resource)==foreign_bytes
+        assert sentinel.read_bytes()==b'preserve external data'
+        assert diagnostic.read_bytes().startswith(prefix)
+    code,value=s.invoke({'operation':'recover'});assert code==1 and value['status'] in ['stale','incomplete'];preserved()
     from poise.infrastructure.hook_transport import HookService
     def unknown(*args,**kwargs):raise OSError('fixture authority transport unavailable')
     with monkeypatch.context() as patch:
         patch.setattr(HookService,'diagnose',unknown);code,out,err=s.transport(patch,{'operation':'recover'})
-    assert code==1 and strict_json(out)['status'] in ['stale','incomplete']
-    assert files(s.resource)==before
-    s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+    assert code==1 and strict_json(out)['status'] in ['stale','incomplete'];preserved()
+    old=s.resource;s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+    assert not old.exists() and files(foreign.resource)==foreign_bytes
+    assert sentinel.read_bytes()==b'preserve external data' and diagnostic.read_bytes().startswith(prefix)
 
 
-def test_native_settings_revision_preserves_valid_binding_context(s):
+def test_native_settings_revision_preserves_valid_binding_context(s,project,tmp_path):
     s.ready();s.read();episode=s.episode.copy()
     settings=s.root/'hook-settings.json';doc=json.loads(settings.read_text());doc['output_chars']+=1
     settings.write_text(json.dumps(doc,ensure_ascii=False,indent=2)+'\n')
     assert s.read()['items'][0]['status']=='unchanged' and s.context()['context']['native_episode']==episode
-    # An unregistered settings copy is not a benign revision of the selected installation.
-    foreign=s.root/'foreign-hook-settings.json';foreign.write_bytes(settings.read_bytes())
-    s.data['admission']['hook_settings']=str(foreign);s.save_policy()
+    foreign=other_project(project,tmp_path);foreign.ready();foreign.read()
+    own=files(s.resource);other=files(foreign.resource);metadata=s.metadata()
+    selected=deepcopy(s.data['admission'])
+    s.data['admission']=deepcopy(foreign.data['admission']);s.save_policy()
+    try:
+        code,value=s.invoke(s.request());assert code==1
+        assert value['error']['code'] in ['admission_unavailable','authority_mismatch']
+        assert files(s.resource)==own and files(foreign.resource)==other and s.metadata()==metadata
+    finally:
+        s.data['admission']=selected;s.save_policy()
+    assert s.read()['items'][0]['status']=='unchanged'
+    unregistered=s.root/'unregistered-hook-settings.json';unregistered.write_bytes(settings.read_bytes())
+    s.data['admission']['hook_settings']=str(unregistered);s.save_policy()
     code,value=s.invoke(s.request());assert code==1
     assert value['error']['code'] in ['admission_unavailable','authority_mismatch']
 
 
-def test_session_end_receipt_is_exact_and_replay_safe(s):
-    s.ready();s.read();old=s.resource;old_episode=s.episode.copy()
-    # Caller-provided receipts cannot authorize deletion.
+def test_session_end_receipt_is_exact_and_replay_safe(s,project,tmp_path):
+    s.ready();s.read();s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+    s.event();s.ready();s.read();old=s.resource;old_episode=s.episode.copy()
+    foreign=other_project(project,tmp_path);foreign.ready();foreign.read()
+    foreign_bytes=files(foreign.resource);foreign_metadata=foreign.metadata()
+    coordination=Path(s.data['session']['coordination_root']);coordination.mkdir(parents=True,exist_ok=True)
+    coordination_sentinel=coordination/'unrelated-control-owner.txt';coordination_sentinel.write_bytes(b'preserve unrelated control owner')
+    outside=s.root/'unrelated-runtime-data.txt';outside.write_bytes(b'preserve unrelated runtime data')
+    diagnostic=Path(s.data['session']['diagnostic_file']);diagnostic.parent.mkdir(parents=True,exist_ok=True)
+    diagnostic_prefix=diagnostic.read_bytes();assert diagnostic_prefix
+    def preserved():
+        assert files(foreign.resource)==foreign_bytes and foreign.metadata()==foreign_metadata
+        assert coordination.is_dir() and not coordination.is_relative_to(old)
+        assert coordination_sentinel.read_bytes()==b'preserve unrelated control owner'
+        assert outside.read_bytes()==b'preserve unrelated runtime data'
+        assert diagnostic.is_file() and not diagnostic.is_relative_to(old)
+        assert diagnostic.read_bytes().startswith(diagnostic_prefix)
     s.error(s.invoke({'operation':'recover','receipt':{'event':'SessionEnd','event_id':999999,'episode':old_episode}}),'invalid_request')
-    assert old.exists();s.event('SessionEnd')
-    assert s.invoke({'operation':'recover'})[1]['status']=='cleaned'
-    assert s.invoke({'operation':'recover'})[1]['status']=='already_absent'
+    assert old.exists();preserved()
+    assert s.invoke({'operation':'recover'})[0]==1 and old.exists();preserved()
+    s.event('SessionEnd')
+    assert s.invoke({'operation':'recover'})[1]['status']=='cleaned' and not old.exists();preserved()
+    assert s.invoke({'operation':'recover'})[1]['status']=='already_absent';preserved()
     s.event();s.ready();s.read();new=s.resource
     assert new!=old and s.episode['start_event_id']>old_episode['start_event_id']
     snapshot=files(new)
-    assert s.invoke({'operation':'recover'})[0]==1 and files(new)==snapshot
+    assert s.invoke({'operation':'recover'})[0]==1 and files(new)==snapshot;preserved()
 
 
 def test_installed_package_reader_template_and_text_consumer(s,tmp_path):

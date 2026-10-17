@@ -69,3 +69,6 @@ def test_missing_reader_entry_is_distinguished_from_arbitrary_failure(tmp_path, 
             assert not thread.is_alive() and not errors and completed.is_set()
         with sqlite3.connect(database) as db:
             assert db.execute('SELECT value FROM diagnostic').fetchall() == [(7,)]
+
+    from tests.content_reader.consumer_guards import check_consumers
+    check_consumers(tmp_path)

@@ -33,5 +33,428 @@
     "content_bytes",
     "content_lines",
     "model_content_bytes"
-  ]
+  ],
+  "columns": {
+    "registry_schema": [
+      [
+        "singleton",
+        "INTEGER",
+        0,
+        1
+      ],
+      [
+        "schema_version",
+        "INTEGER",
+        1,
+        0
+      ]
+    ],
+    "pending_calls": [
+      [
+        "session_id",
+        "TEXT",
+        1,
+        1
+      ],
+      [
+        "turn_id",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "tool_use_id",
+        "TEXT",
+        1,
+        2
+      ],
+      [
+        "epoch",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "plan_hash",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "plans_json",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "created_at",
+        "TEXT",
+        1,
+        0
+      ]
+    ],
+    "read_events": [
+      [
+        "id",
+        "INTEGER",
+        0,
+        1
+      ],
+      [
+        "session_id",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "turn_id",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "tool_use_id",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "epoch",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "committed_at",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "path_label",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "version_key",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "plan_json",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "operation_key",
+        "TEXT",
+        1,
+        0
+      ]
+    ],
+    "compactions": [
+      [
+        "session_id",
+        "TEXT",
+        1,
+        1
+      ],
+      [
+        "turn_id",
+        "TEXT",
+        1,
+        2
+      ],
+      [
+        "epoch",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "trigger",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "created_at",
+        "TEXT",
+        1,
+        0
+      ]
+    ],
+    "content_read_cache": [
+      [
+        "session_id",
+        "TEXT",
+        1,
+        1
+      ],
+      [
+        "epoch",
+        "INTEGER",
+        1,
+        2
+      ],
+      [
+        "path_label",
+        "TEXT",
+        1,
+        3
+      ],
+      [
+        "content_sha256",
+        "TEXT",
+        1,
+        4
+      ],
+      [
+        "normalized_range",
+        "TEXT",
+        1,
+        5
+      ],
+      [
+        "reader_kind",
+        "TEXT",
+        1,
+        6
+      ],
+      [
+        "content_bytes",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "content_lines",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "first_read_at",
+        "TEXT",
+        1,
+        0
+      ]
+    ],
+    "content_read_events": [
+      [
+        "id",
+        "INTEGER",
+        0,
+        1
+      ],
+      [
+        "session_id",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "epoch",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "occurred_at",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "path_label",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "content_sha256",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "normalized_range",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "reader_kind",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "status",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "classification",
+        "TEXT",
+        1,
+        0
+      ],
+      [
+        "content_bytes",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "content_lines",
+        "INTEGER",
+        1,
+        0
+      ],
+      [
+        "model_content_bytes",
+        "INTEGER",
+        1,
+        0
+      ]
+    ]
+  },
+  "valid_rows": {
+    "pending_calls": {
+      "session_id": "fixture-session",
+      "turn_id": "turn",
+      "tool_use_id": "tool",
+      "epoch": 0,
+      "plan_hash": "hash",
+      "plans_json": "[]",
+      "created_at": "2026-01-01T00:00:00Z"
+    },
+    "read_events": {
+      "id": 1,
+      "session_id": "fixture-session",
+      "turn_id": "turn",
+      "tool_use_id": "tool",
+      "epoch": 0,
+      "committed_at": "2026-01-01T00:00:00Z",
+      "path_label": "docs/sample.txt",
+      "version_key": "hash",
+      "plan_json": "{}",
+      "operation_key": "read"
+    },
+    "compactions": {
+      "session_id": "fixture-session",
+      "turn_id": "turn",
+      "epoch": 1,
+      "trigger": "manual",
+      "created_at": "2026-01-01T00:00:00Z"
+    },
+    "content_read_cache": {
+      "session_id": "fixture-session",
+      "epoch": 0,
+      "path_label": "docs/sample.txt",
+      "content_sha256": "hash",
+      "normalized_range": "lines:2-3",
+      "reader_kind": "repository-content-read",
+      "content_bytes": 10,
+      "content_lines": 2,
+      "first_read_at": "2026-01-01T00:00:00Z"
+    },
+    "content_read_events": {
+      "id": 1,
+      "session_id": "fixture-session",
+      "epoch": 0,
+      "occurred_at": "2026-01-01T00:00:00Z",
+      "path_label": "docs/sample.txt",
+      "content_sha256": "hash",
+      "normalized_range": "lines:2-3",
+      "reader_kind": "repository-content-read",
+      "status": "content",
+      "classification": "first_read",
+      "content_bytes": 10,
+      "content_lines": 2,
+      "model_content_bytes": 10
+    }
+  },
+  "duplicate_id_only_tables": [
+    "content_read_events"
+  ],
+  "indexes": {
+    "registry_schema": [],
+    "pending_calls": [
+      {
+        "unique": true,
+        "columns": [
+          "session_id",
+          "tool_use_id"
+        ]
+      }
+    ],
+    "read_events": [
+      {
+        "unique": true,
+        "columns": [
+          "session_id",
+          "tool_use_id",
+          "path_label",
+          "operation_key"
+        ]
+      },
+      {
+        "unique": false,
+        "columns": [
+          "session_id",
+          "path_label",
+          "version_key",
+          "epoch"
+        ]
+      }
+    ],
+    "compactions": [
+      {
+        "unique": true,
+        "columns": [
+          "session_id",
+          "turn_id"
+        ]
+      }
+    ],
+    "content_read_cache": [
+      {
+        "unique": true,
+        "columns": [
+          "session_id",
+          "epoch",
+          "path_label",
+          "content_sha256",
+          "normalized_range",
+          "reader_kind"
+        ]
+      },
+      {
+        "unique": false,
+        "columns": [
+          "session_id",
+          "path_label",
+          "normalized_range",
+          "reader_kind",
+          "epoch"
+        ]
+      }
+    ],
+    "content_read_events": [
+      {
+        "unique": false,
+        "columns": [
+          "session_id",
+          "epoch",
+          "id"
+        ]
+      }
+    ]
+  }
 }

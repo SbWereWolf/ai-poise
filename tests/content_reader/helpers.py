@@ -107,6 +107,7 @@ class Scenario:
         self.hooks = None
         self.episode = None
         self.resource = None
+        self.checkout_keys = {}
         self.registry_path = None
         self.diagnostics_out, self.diagnostics_err = sys.stdout, sys.stderr
 
@@ -162,34 +163,123 @@ class Scenario:
         code, out, err = self.raw(request, **kwargs)
         value = decoded(code, out, err)
         assert err == ''
-        self.envelope(value[1])
+        operation = request.get("operation") if isinstance(request, dict) else None
+        self.envelope(value[1], operation=operation, exit_code=code)
         return value
 
-    def envelope(self, value):
-        assert set(value) == TOP
-        assert value['schema'] == 'poise-content-read-result-1'
+    def envelope(self, value, *, operation=None, exit_code=None, saved_value=None):
+        assert type(value) is dict and set(value) == TOP
+        typed_equal(value['schema'], 'poise-content-read-result-1')
+        operations = {'prepare_template','prepare','read','context','advance_context','recover','adopt'}
+        if operation is not None:
+            typed_equal(value['operation'], operation if operation in operations else None)
+        else:
+            assert value['operation'] is None or type(value['operation']) is str and value['operation'] in operations
+        statuses = {'ready','rejected','partial','failed','cleaned','already_absent','incomplete','stale','unconfirmed'}
+        assert type(value['status']) is str and value['status'] in statuses
+        if exit_code == 0:
+            assert value['status'] in ({'cleaned','already_absent'} if operation == 'recover' else {'ready'})
+        success = value['status'] in {'ready','cleaned','already_absent'}
+        assert value['details'] is None or type(value['details']) is dict
+        error = value['error']
+        errors = {v['code']: v for v in fixture()['errors']}
+        def check_error(e):
+            assert type(e) is dict and set(e) == {'code','key','field','message','action'}
+            assert type(e['code']) is str and e['code'] in errors
+            assert e['key'] is None or type(e['key']) is str and e['key']
+            assert type(e['field']) is str and e['field']
+            typed_equal(e['message'], errors[e['code']]['message'])
+            typed_equal(e['action'], errors[e['code']]['action'])
+        if error is not None:
+            check_error(error)
+        if success:
+            assert error is None
+        unresolved = {'invalid_request','invalid_project','invalid_caller'}
+        code = None if error is None else error['code']
+        from tests.content_reader.contract_checks import read_root, address_shape
+        for key, wanted in [('project',self.project),('checkout',str(self.checkout)),
+                            ('policy_sha256',sha(self.policy.read_bytes()))]:
+            nullable = code in unresolved or key == 'policy_sha256' and code in {'policy_missing','invalid_policy'}
+            if value[key] is None:
+                assert nullable
+            else:
+                typed_equal(value[key],wanted)
         assert type(value['items']) is list
+        for item in value['items']:
+            assert type(item) is dict and type(item['status']) is str
+            if item['status'] == 'failed':
+                assert set(item) == {'key','status','error'}
+                assert type(item['key']) is str and item['key']
+                check_error(item['error']);typed_equal(item['error']['key'],item['key'])
+            else:
+                assert item['status'] in {'content','unchanged'}
+                assert type(item['content_follows']) is bool
+                assert set(item) == ITEM | ({'content'} if item['content_follows'] else set())
+                for k in ['schema_version','context_generation','content_bytes','content_lines']:
+                    assert type(item[k]) is int and item[k] >= 0
+                typed_equal(item['schema_version'],1)
+                typed_equal(item['reader_kind'],'repository-content-read')
+                assert type(item['previous_read_available']) is bool
+                for k in ['key','path','hash','range','classification']:
+                    assert type(item[k]) is str and item[k]
+                assert item['classification'] in {'first_read','new_range','content_changed','new_context_generation','exact_repeat'}
+                assert len(item['hash']) == 64 and all(c in '0123456789abcdef' for c in item['hash'])
+                assert item['content_follows'] == (item['status']=='content')
+                if item['content_follows']:
+                    assert type(item['content']) is str
+                    assert len(item['content'].encode()) == item['content_bytes']
+                    assert len(item['content'].splitlines()) == item['content_lines']
+                    assert sha(item['content'].encode()) == item['hash']
+        if operation == 'read' and success:
+            assert value['items'] and all(v['status'] != 'failed' for v in value['items'])
+        if value['status'] == 'partial':
+            assert any(v['status']=='failed' for v in value['items'])
+            assert any(v['status'] in {'content','unchanged'} for v in value['items'])
+        if value['status']=='rejected':
+            assert error is not None and value['items']==[]
+        if operation != 'read' and operation is not None:
+            assert value['items'] == []
         if value['summary'] is not None:
-            assert set(value['summary']) == SUMMARY
+            assert type(value['summary']) is dict and set(value['summary']) == SUMMARY
             assert all(type(n) is int and n >= 0 for n in value['summary'].values())
+        if value['status']=='ready' and operation in {'read','context','advance_context','prepare','adopt'}:
+            assert value['context'] is not None and value['summary'] is not None
+        if operation=='prepare_template':
+            assert value['context'] is None and value['summary'] is None
         if value['context'] is not None:
             c = value['context']
-            assert set(c) == {'caller_key', 'generation', 'admission_mode',
-                              'native_episode', 'checkout_key'}
+            assert type(c) is dict and set(c) == {'caller_key','generation','admission_mode','native_episode','checkout_key'}
             assert type(c['generation']) is int and c['generation'] >= 0
-            assert c['admission_mode'] == 'native_hook'
+            typed_equal(c['admission_mode'],'native_hook')
+            typed_equal(c['caller_key'],self.caller_key)
             assert type(c['checkout_key']) is str and c['checkout_key']
+            episode = c['native_episode']
+            assert type(episode) is dict and set(episode)=={'project_id','session_id','binding_id','start_event_id'}
+            assert all(type(episode[k]) is str and episode[k] for k in ['project_id','session_id','binding_id'])
+            assert type(episode['start_event_id']) is int and episode['start_event_id']>0
             if self.episode is not None:
-                typed_equal(c['native_episode'], self.episode)
-                assert c['caller_key'] == self.caller_key
+                typed_equal(episode,self.episode)
+            if str(self.checkout) in self.checkout_keys:
+                typed_equal(c['checkout_key'],self.checkout_keys[str(self.checkout)])
+            else:
+                assert c['checkout_key'] not in self.checkout_keys.values()
+                self.checkout_keys[str(self.checkout)] = c['checkout_key']
+        if operation in {'read','context'}:
+            assert value['details'] is None
         path = value['response_path']
-        if path is not None:
+        if path is None:
+            assert not success
+        else:
             assert type(path) is str and Path(path).is_absolute()
-            allowed = (Path(self.data['session']['temporary_root']),
-                       Path(self.data['storage']['control_response_root']))
-            assert any(Path(path).is_relative_to(root) for root in allowed)
-            saved = strict_json(Path(path).read_bytes())
-            typed_equal(saved, value)
+            control = Path(self.data['storage']['control_response_root'])
+            if operation == 'read' and success and self.resource is not None:
+                address_shape(path,read_root(self))
+            else:
+                assert any(Path(path).is_relative_to(root) for root in
+                           (Path(self.data['session']['temporary_root']),control))
+            if operation == 'prepare_template':
+                assert Path(path).is_relative_to(control)
+            typed_equal(strict_json(Path(path).read_bytes()), value if saved_value is None else saved_value)
         return value
 
     def prove(self):
@@ -302,7 +392,8 @@ class Scenario:
             typed_equal(value['error'], expected)
         return value
 
-    def row(self, value, *, text, selection, classification, status='content', generation=0, key='sample'):
+    def row(self, value, *, text, selection, classification, status='content', generation=0, key='sample', summary=None):
+        self.envelope(value, operation='read', exit_code=0)
         expected = deepcopy(fixture()['first_response']['items'][0])
         expected.update(key=key, hash=sha(text.encode()), range=selection, classification=classification,
                         status=status, context_generation=generation, content_bytes=len(text.encode()),
@@ -316,6 +407,10 @@ class Scenario:
         assert set(value['items'][0]) == ITEM | ({'content'} if status == 'content' else set())
         assert value['context']['generation'] == generation
         assert value['details'] is None and value['error'] is None
+        if summary is not None:
+            from tests.content_reader.contract_checks import complete_expected, assert_complete_read
+            wanted = complete_expected(self, items=[expected], summary=summary, generation=generation, path=value['response_path'])
+            assert_complete_read(self,value,wanted)
         return expected
 
     @contextmanager
@@ -328,15 +423,23 @@ class Scenario:
                     patch.setenv(key, value)
             yield
 
-    def transport(self, monkeypatch, request, *, sink=None, clock=None):
+    def transport(self, monkeypatch, request, *, sink=None, clock=None, fmt='json'):
         assert self.proved, 'Prove the genuine CLI before importing a future port'
         from poise.interfaces.content_reader import execute
         from poise.infrastructure.clock import SystemClock
         out, err = io.StringIO() if sink is None else sink, io.StringIO()
         with self.environment(monkeypatch):
-            code = execute(self.config, self.checkout, self.policy,
-                           io.BytesIO(canonical(request).encode()), out, err,
-                           SystemClock() if clock is None else clock)
+            if fmt == 'text':
+                from poise import __main__
+                with monkeypatch.context() as patch:
+                    patch.setattr(sys,'argv',['poise']+self.argv(fmt)[4:])
+                    patch.setattr(sys,'stdin',io.TextIOWrapper(io.BytesIO(canonical(request).encode())))
+                    patch.setattr(sys,'stdout',out);patch.setattr(sys,'stderr',err)
+                    code = __main__.main()
+            else:
+                code = execute(self.config, self.checkout, self.policy,
+                               io.BytesIO(canonical(request).encode()), out, err,
+                               SystemClock() if clock is None else clock)
         return code, out.getvalue(), err.getvalue()
 
     def metadata(self):

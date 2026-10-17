@@ -8,7 +8,8 @@ import subprocess
 import sys
 import tomllib
 
-from tests.content_reader.helpers import SOURCE, canonical, sha, strict_json, text_frames
+from tests.content_reader.helpers import SOURCE, canonical, sha, strict_json, text_frames, fixture
+from tests.content_reader.contract_checks import assert_template, complete_expected, assert_text, equal
 
 
 NATIVE_CHILD = '''
@@ -96,18 +97,33 @@ def verify_installed(s, tmp_path, *, label="installed-reader"):
         return cp.stdout
     template=strict_json(reader({'operation':'prepare_template'}))
     assert template['details']['schema_version']==2
+    assert_template(template['details']['path'])
+    s.envelope(template,operation='prepare_template',exit_code=0)
     prepared=strict_json(reader({'operation':'prepare'}))
     assert prepared['details']['episode']==episode
+    s.resource=Path(prepared['details']['path']);s.registry_path=Path(prepared['details']['registry_path'])
+    s.envelope(prepared,operation='prepare',exit_code=0)
     first=strict_json(reader(s.request()))
-    s.row(first,text='βeta\nlast',selection='lines:2-3',classification='first_read')
-    repeat=strict_json(reader(s.request()));assert repeat['items'][0]['status']=='unchanged'
+    s.row(first,text='βeta\nlast',selection='lines:2-3',classification='first_read',summary=fixture('context-sequences.json')['first'])
+    repeat=strict_json(reader(s.request()))
+    s.row(repeat,text='βeta\nlast',selection='lines:2-3',classification='exact_repeat',status='unchanged',summary=fixture('context-sequences.json')['repeat'])
     advance=strict_json(reader({'operation':'advance_context','request_id':'installed-text','reason':'manual'}))
+    s.envelope(advance,operation='advance_context',exit_code=0)
+    equal(advance['details'],{'request_id':'installed-text','reason':'manual'})
     assert advance['context']['generation']==1
-    frames=text_frames(reader(s.request(),'text').decode())
+    text_wire=reader(s.request(),'text').decode()
+    item=json.loads(json.dumps(fixture()['first_response']['items'][0]));item.update(classification='new_context_generation',context_generation=1)
+    wanted=complete_expected(s,items=[item],summary=fixture('context-sequences.json')['installed_text'],generation=1,path=first['response_path'])
+    frames=assert_text(s,text_wire,wanted,calibration=first['response_path'])
     assert frames[0][1]=='βeta\nlast'.encode()
-    context=strict_json(reader({'operation':'context'}));assert context['context']['native_episode']==episode
+    context=strict_json(reader({'operation':'context'}))
+    s.envelope(context,operation='context',exit_code=0)
+    equal(context['summary'],fixture('context-sequences.json')['installed_text'])
+    assert context['context']['native_episode']==episode and context['context']['generation']==1
     observed('SessionEnd')
     recovered=strict_json(reader({'operation':'recover'}))
+    s.envelope(recovered,operation='recover',exit_code=0)
+    equal(recovered['details']['episode'],episode)
     assert recovered['status']=='cleaned' and not Path(prepared['details']['path']).exists()
     commit=subprocess.check_output(['git','-C',str(SOURCE.parent),'rev-parse','HEAD'],text=True).strip()
     tree=subprocess.check_output(['git','-C',str(SOURCE.parent),'rev-parse','HEAD^{tree}'],text=True).strip()

@@ -14,7 +14,7 @@ def project_checks_tools(bound, policy_path, environment, clock):
     from .infrastructure.session_establishment import establish_project_check_session
     configuration = CheckConfiguration.load(bound, policy_path)
     inputs = InputSnapshot(bound.checkout, bound.config['limits']['git_seconds'], configuration.packages)
-    runtime = RuntimeAdapter(bound.checkout, configuration.policy['runtime_adapters'], environment)
+    runtime = RuntimeAdapter(bound.checkout, configuration.policy['runtime_adapters'])
     ledger = NamedRunLedger(configuration)
     cache = NamedResultCache(configuration, ledger)
     subject = SubjectAdmission(inputs)

@@ -27,11 +27,17 @@ class ProjectChecks:
                                f'Выберите настроенный каталог {kind}.', status='unavailable')
         return value
 
+    def execution_environment(self):
+        environment = dict(self.environment)
+        for key in self.configuration.policy['environment']['clear_keys']:
+            environment.pop(key, None)
+        return environment
+
     def describe(self, selected, field):
         kind = selected['kind']
         if kind == 'profile':
             profile = self.configuration.profiles.select(selected, field, self.warnings)
-            invocation = self.runtime.resolve(profile)
+            invocation = self.runtime.resolve(profile, environment=self.execution_environment())
             return {'kind': 'profile', 'value': {'selection': resolved_selection(profile),
                     'platforms': list(profile['platforms']), 'invocation': profile['invocation'],
                     'profile': deepcopy(profile), 'profile_sha256': self.configuration.profiles_sha256,
@@ -55,10 +61,8 @@ class ProjectChecks:
                 'unmatched_paths': unmatched, 'reason': reason, 'items': items}
 
     def profile_step(self, profile, options, field, *, package_id=None, driver=None, argv=None, cwd=None):
-        invocation = self.runtime.resolve(profile, argv=argv, cwd=cwd)
-        environment = dict(self.environment)
-        for key in self.configuration.policy['environment']['clear_keys']:
-            environment.pop(key, None)
+        environment = self.execution_environment()
+        invocation = self.runtime.resolve(profile, argv=argv, cwd=cwd, environment=environment)
         subject = self.subject.admit(profile, options)
         chosen = resolved_selection(profile)
         expected_identity = (self.configuration.bound.config['project'], chosen['id'],
@@ -281,9 +285,16 @@ class ProjectChecks:
                 metadata['reason'] = 'declared_inputs_changed_during_run'
             else:
                 metadata.update(stored=True, reason='fresh_stored' if plan['options']['fresh'] else 'miss_stored')
-        result = self.save_execution(plan, steps, omitted, metadata)
+        result = self.build_execution(plan, steps, omitted, metadata)
         if metadata['stored']:
-            self.cache.store(key, result)
+            try:
+                self.cache.store(key, result)
+            except CheckFailure as exc:
+                if exc.code != 'cache_store_failed':
+                    raise
+                metadata.update(stored=False, reason=exc.code)
+                self.warnings.append(f'{exc.code}: {exc.cause} {exc.recovery}')
+        self.ledger.save_result(result)
         return result
 
     @staticmethod
@@ -303,7 +314,7 @@ class ProjectChecks:
                 self.ledger.release_unstarted_diagnostic(evidence_id, addresses['id'])
             raise
 
-    def save_execution(self, plan, steps, omitted, metadata, *, status=None):
+    def build_execution(self, plan, steps, omitted, metadata, *, status=None):
         addresses = self.ledger.allocate(process=False)
         result = {'kind': 'execution', 'selection': deepcopy(plan['selection']),
                   'status': aggregate([v['record'] for v in steps]) if status is None else status,
@@ -311,6 +322,10 @@ class ProjectChecks:
                   'record_path': addresses['record_path'], 'provenance': self._provenance(),
                   'resolved_dependencies': list(plan['dependencies']), 'steps': steps,
                   'not_executed': omitted, 'cache': metadata}
+        return result
+
+    def save_execution(self, plan, steps, omitted, metadata, *, status=None):
+        result = self.build_execution(plan, steps, omitted, metadata, status=status)
         self.ledger.save_result(result)
         return result
 

@@ -56,7 +56,21 @@ class NamedResultCache:
             return None
 
     def store(self, key, result):
-        retained = [file_reference(Path(result['record_path']))]
+        try:
+            self._store(key, result)
+        except OSError as exc:
+            raise CheckFailure('cache_store_failed', 'policy.storage.cache_directory',
+                               f'Не удалось сохранить необязательный кэш {self.root}: {exc}',
+                               'Исправьте размещение кэша либо явно отключите повторное использование; '
+                               'известный результат выполнения сохранён отдельно.') from exc
+
+    def _store(self, key, result):
+        # A payload is reusable only after lookup confirms the authoritative
+        # ledger result AND its retained bytes. Preparing it before that commit
+        # permits one final truthful result without overwriting saved outcomes.
+        result_bytes = canonical(result) + b'\n'
+        retained = [{'path': result['record_path'], 'bytes': len(result_bytes),
+                     'sha256': hashlib.sha256(result_bytes).hexdigest()}]
         for step in result['steps']:
             record = step['record']
             retained.append(file_reference(Path(record['record_path'])))

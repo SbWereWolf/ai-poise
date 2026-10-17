@@ -9,10 +9,22 @@ from ...modules.project_checks.contracts import CheckFailure
 
 
 class RuntimeAdapter:
-    def __init__(self, checkout, adapters, environment):
-        self.checkout, self.adapters, self.environment = Path(checkout), adapters, environment
+    def __init__(self, checkout, adapters):
+        self.checkout, self.adapters = Path(checkout), adapters
 
-    def resolve(self, profile, *, argv=None, cwd=None):
+    @staticmethod
+    def executable(name, cwd, environment):
+        """Observe the same path search that the child performs after chdir."""
+        if os.path.dirname(name):
+            candidate = Path(name)
+            if not candidate.is_absolute():
+                candidate = Path(cwd) / candidate
+            return shutil.which(str(candidate))
+        search = [str(Path(entry) if os.path.isabs(entry) else Path(cwd) / entry)
+                  for entry in os.get_exec_path(environment)]
+        return shutil.which(name, path=os.pathsep.join(search))
+
+    def resolve(self, profile, *, argv=None, cwd=None, environment):
         candidates = [v for v in self.adapters if v['id'] == profile['runtime_class']
                       and v['invocation'] == profile['invocation']
                       and set(v['platforms']) & set(profile['platforms'])]
@@ -33,7 +45,7 @@ class RuntimeAdapter:
                      and actual_platform in adapter['platforms']
                      and actual_platform in profile['platforms'])
         return {'argv': resolved, 'cwd': str(target.resolve()),
-                'runtime': {'executable': shutil.which(resolved[0], path=self.environment.get('PATH')),
+                'runtime': {'executable': self.executable(resolved[0], target.resolve(), environment),
                             'platform': actual_platform,
                             'invocation': profile['invocation']}, 'available': available}
 
@@ -44,7 +56,7 @@ class RuntimeAdapter:
                                'Выберите доступную платформу и исполняемый runtime.', status='unavailable')
         missing = []
         for index, executable in enumerate([invocation['argv'][0], *profile['prerequisites']['executables']]):
-            if shutil.which(executable, path=environment.get('PATH')) is None:
+            if self.executable(executable, invocation['cwd'], environment) is None:
                 target = field + '.argv[0]' if index == 0 else f'{field}.prerequisites.executables[{index - 1}]'
                 missing.append((target, 'executable:' + executable))
         for index, path in enumerate(profile['prerequisites']['files']):

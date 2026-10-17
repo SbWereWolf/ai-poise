@@ -5,7 +5,8 @@ from pathlib import Path
 import sqlite3
 import uuid
 
-from ...modules.project_checks.contracts import CheckFailure
+from ...modules.project_checks.contracts import CheckFailure, require
+from ...modules.project_checks.records import process_run, execution_item
 from ...modules.project_checks.timing import eligible
 from ..goal_config import atomic_write
 from ..locking import exclusive_lock
@@ -58,6 +59,20 @@ class NamedRunLedger:
         with self.read():
             pass
 
+    def decode(self, raw, table, identity):
+        """Authoritative payload errors retain their row and field context."""
+        field = 'run' if table == 'runs' else 'result'
+        try:
+            value = json.loads(raw)
+            validate = process_run if table == 'runs' else execution_item
+            validate(value, self.project, field)
+            key = 'run_id' if table == 'runs' else 'result_id'
+            require(value[key] == identity, field + '.' + key,
+                    'Идентификатор payload не соответствует сохранённой записи.')
+        except (ValueError, TypeError) as exc:
+            raise self.invalid(f'{table}[{identity}]: {exc}') from exc
+        return value
+
     def allocate(self, *, process):
         identity = uuid.uuid4().hex
         root = self.configuration.state / self.configuration.policy['storage']['runs_directory'] / identity
@@ -101,24 +116,25 @@ class NamedRunLedger:
         with self.read() as connection:
             row = None if connection is None else connection.execute(
                 'SELECT record_json FROM runs WHERE run_id=?', (run_id,)).fetchone()
-            return None if row is None else json.loads(row[0])
+            return None if row is None else self.decode(row[0], 'runs', run_id)
 
     def result(self, result_id, field):
         with self.read() as connection:
             row = None if connection is None else connection.execute(
                 'SELECT result_json FROM results WHERE result_id=?', (result_id,)).fetchone()
-        if row is None:
-            raise CheckFailure('result_missing', field,
-                               f'Сохранённый результат {result_id} не найден в выбранном проекте.',
-                               'Передайте result_id существующего сохранённого результата выбранного проекта.',
-                               reason=f'Запрошенный result_id {result_id} отсутствует.')
-        return json.loads(row[0])
+            if row is None:
+                raise CheckFailure('result_missing', field,
+                                   f'Сохранённый результат {result_id} не найден в выбранном проекте.',
+                                   'Передайте result_id существующего сохранённого результата выбранного проекта.',
+                                   reason=f'Запрошенный result_id {result_id} отсутствует.')
+            return self.decode(row[0], 'results', result_id)
 
     def samples(self, expected_identity):
         with self.read() as connection:
-            rows = [] if connection is None else connection.execute('SELECT record_json FROM runs ORDER BY rowid').fetchall()
-        records = [json.loads(row[0]) for row in rows]
-        return [record for record in records if eligible(record, expected_identity)]
+            rows = [] if connection is None else connection.execute(
+                'SELECT run_id,record_json FROM runs ORDER BY rowid').fetchall()
+            records = [self.decode(raw, 'runs', identity) for identity, raw in rows]
+            return [record for record in records if eligible(record, expected_identity)]
 
     def consumed(self, evidence_run_id):
         with self.read() as connection:

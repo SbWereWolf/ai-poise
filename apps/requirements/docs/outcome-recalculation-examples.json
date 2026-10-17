@@ -1,0 +1,5325 @@
+{
+  "status": "Согласованный предметный проект; примеры не являются новым CLI/API или результатом исполнения приложения.",
+  "reference_format": "Task-A/1/R1 обозначает Task-A, statement_revision1, keyR1; snapshot_revision указан отдельно в exact подтверждении.",
+  "examples": [
+    {
+      "id": "C01",
+      "class": "confirmation",
+      "title": "Подтверждена только первая Task",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [],
+        "selected_confirmations": []
+      },
+      "event": {
+        "kind": "positive_fact",
+        "fact": {
+          "outcome_id": "o-A",
+          "task_id": "Task-A",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_keys": [
+            "R1"
+          ]
+        }
+      },
+      "owner_decision": "Допустить o-A для exact Task-A/snapshot1/R1.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "APP-X требует A.R1 и B.R1; отсутствует B. APP-Y требует только A и выполнен; оба System всё ещё требуют APP-X."
+    },
+    {
+      "id": "C02",
+      "class": "confirmation",
+      "title": "Подтверждена вторая Task с тем же local key",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "event": {
+        "kind": "positive_fact",
+        "fact": {
+          "outcome_id": "o-B",
+          "task_id": "Task-B",
+          "snapshot_revision": 2,
+          "kind": "positive",
+          "satisfied_keys": [
+            "R1"
+          ]
+        }
+      },
+      "owner_decision": "Допустить o-B для exact Task-B/snapshot2/R1.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Оба разных R1 выполнены; APP-X и APP-Y выполнены. Пересчитаны оба System родителя APP-X."
+    },
+    {
+      "id": "C03",
+      "class": "repeat",
+      "title": "Повтор уже принятого факта",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "repeat_fact",
+        "fact": {
+          "outcome_id": "o-A",
+          "task_id": "Task-A",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_keys": [
+            "R1"
+          ]
+        }
+      },
+      "owner_decision": "Оставить прежний факт и текущий выбор подтверждений.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "affected_systems": [],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Повтор не создаёт второй o-A и не меняет текущий выбор или результат."
+    },
+    {
+      "id": "C04",
+      "class": "terminal",
+      "title": "Отменённый исход второй Task",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "event": {
+        "kind": "cancelled_fact",
+        "fact": {
+          "outcome_id": "o-B-cancel",
+          "task_id": "Task-B",
+          "snapshot_revision": 2,
+          "kind": "cancelled",
+          "satisfied_keys": []
+        }
+      },
+      "owner_decision": "Записать штатный факт отмены; положительное подтверждение B отсутствует.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B-cancel",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "cancelled",
+            "satisfied_keys": []
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [],
+      "historical_preservation": {
+        "facts": [
+          "o-A"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Отмена не выполняет B.R1, APP-X или System; подтверждённая A не теряется."
+    },
+    {
+      "id": "C05",
+      "class": "restart",
+      "title": "Restart с прежней постановкой и публикацией",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "restart",
+        "task_id": "Task-A",
+        "new_generation": 2
+      },
+      "owner_decision": "Сохранить основание Task-A и оба текущих подтверждения.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 2,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "affected_systems": [],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Generation исполнения изменилась, exact Requirements основания и выбранные подтверждения A/B прежние."
+    },
+    {
+      "id": "C06",
+      "class": "restart",
+      "title": "Новое основание только первой Task",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "select_new_statement_and_publication",
+        "task_id": "Task-A",
+        "statement_revision": 2,
+        "snapshot_revision": 3
+      },
+      "owner_decision": "Выбрать новое основание A; старый o-A к нему не допущен. Оставить B/snapshot2/o-B.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 2,
+            "snapshot_revision": 3,
+            "execution_generation": 2,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить уточнённую основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 2,
+            "snapshot_revision": 3,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/2/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/2/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "A.R1 теперь относится к постановке2/снимку3 и не подтверждён. B.R1 остаётся выполненным. Оба AR требуют невыполненный A; история старого снимка A сохранена."
+    },
+    {
+      "id": "C07",
+      "class": "restart",
+      "title": "Текущая постановка ожидает публикации",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "select_new_statement",
+        "task_id": "Task-A",
+        "statement_revision": 2
+      },
+      "owner_decision": "Учесть current обязательство A без опубликованного подтверждения; B сохранить.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 2,
+            "snapshot_revision": null,
+            "execution_generation": 2,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить уточнённую основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 2,
+            "snapshot_revision": null,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/2/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/2/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Ожидание публикации A не удаляет A.R1 из полного child set APP-X и не создаёт vacuous успех из одной B."
+    },
+    {
+      "id": "C08",
+      "class": "links",
+      "title": "Новый обязательный Application без Task детей",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "accept_registry_change",
+        "registry_revision": 2
+      },
+      "owner_decision": "Оценить новое current верхнее основание, сохранив A/B подтверждения.",
+      "after": {
+        "registry_revision": 2,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          },
+          {
+            "id": "APP-Z",
+            "status": "current",
+            "text": "Предоставить дополнительный результат."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-Z"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Z",
+            "children": [],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X",
+              "APP-Z"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "APP-Z содержательный current ребёнок SYS-B, но его TR множество пусто. APP-Z и SYS-B невыполнены, SYS-A выполнен. Исторический граф и результат прежние."
+    },
+    {
+      "id": "C09",
+      "class": "replacement",
+      "title": "Отрицательная альтернативная попытка без решения о замене",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "alternative_attempt_outcome",
+        "fact": {
+          "outcome_id": "o-A-negative",
+          "task_id": "Task-A",
+          "snapshot_revision": 1,
+          "kind": "negative",
+          "satisfied_keys": []
+        }
+      },
+      "owner_decision": "Записать историю новой попытки; оставить выбранный o-A.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-A-negative",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "negative",
+            "satisfied_keys": []
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "affected_systems": [],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Факт отрицательной альтернативы сам не отзывает ранее допущенный положительный результат."
+    },
+    {
+      "id": "C10",
+      "class": "replacement",
+      "title": "Явно выбрано новое положительное подтверждение",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "explicit_owner_replacement",
+        "task_id": "Task-A",
+        "key": "R1",
+        "fact": {
+          "outcome_id": "o-A-new",
+          "task_id": "Task-A",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_keys": [
+            "R1"
+          ]
+        }
+      },
+      "owner_decision": "Requirements допускает o-A-new взамен текущего o-A для A/snapshot1/R1.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-A-new",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A-new"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A-new"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Текущий выбранный положительный факт изменился; все дети выполнены. Старый o-A исторически сохранён."
+    },
+    {
+      "id": "C11",
+      "class": "replacement",
+      "title": "Явное решение о замене без положительного подтверждения",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-A-negative",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "negative",
+            "satisfied_keys": []
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "explicit_owner_replacement",
+        "task_id": "Task-A",
+        "key": "R1",
+        "replacement_confirmation": null
+      },
+      "owner_decision": "Requirements явно устанавливает отсутствие положительного подтверждения A в текущем решении.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-A-negative",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "negative",
+            "satisfied_keys": []
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B",
+          "o-A-negative"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "A.R1 невыполнен по явному решению владельца, B.R1 выполнен. APP-X/APP-Y и оба SR невыполнены. Это не автоматический отзыв из-за negative event; o-A сохранён."
+    },
+    {
+      "id": "C12",
+      "class": "repeat",
+      "title": "Старый факт повторён после явной смены выбора",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-A-negative",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "negative",
+            "satisfied_keys": []
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "event": {
+        "kind": "repeat_fact",
+        "fact": {
+          "outcome_id": "o-A",
+          "task_id": "Task-A",
+          "snapshot_revision": 1,
+          "kind": "positive",
+          "satisfied_keys": [
+            "R1"
+          ]
+        }
+      },
+      "owner_decision": "Подтвердить уже известный факт, сохранить текущий owner choice без A подтверждения.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X",
+                  "APP-Y"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-A",
+            "application": "APP-Y"
+          },
+          {
+            "system": "SYS-B",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-B",
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          },
+          {
+            "outcome_id": "o-A-negative",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "negative",
+            "satisfied_keys": []
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2,
+            "key": "R1",
+            "outcome_id": "o-B"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-B"
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1",
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [],
+      "historical_preservation": {
+        "facts": [
+          "o-A",
+          "o-B",
+          "o-A-negative"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Exact replay истории не переустанавливает старый текущий выбор; текущая оценка остаётся невыполненной."
+    },
+    {
+      "id": "C13",
+      "class": "empty",
+      "title": "Пустые Task и Application child sets",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [],
+        "selected_confirmations": []
+      },
+      "event": {
+        "kind": "evaluate_current_requirements"
+      },
+      "owner_decision": "Оценить содержательные current узлы по явным пустым наборам.",
+      "after": {
+        "registry_revision": 1,
+        "tasks": [],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "status": "current",
+            "text": "Предоставить общий комплект."
+          },
+          {
+            "id": "SYS-B",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-A",
+            "application": "APP-X"
+          }
+        ],
+        "facts": [],
+        "selected_confirmations": []
+      },
+      "expected_before": {
+        "task_requirements": [],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-A",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-B",
+            "children": [],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-A",
+        "SYS-B"
+      ],
+      "historical_preservation": {
+        "facts": [],
+        "published_bases": [],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "APP-X не выполнен без TR. SYS-A не выполнен из-за APP-X. SYS-B не выполнен при пустом AR наборе. Все эти узлы applicable=true, satisfaction=false."
+    },
+    {
+      "id": "C14",
+      "class": "links",
+      "title": "Перенос ребра с опустевшим прежним родителем",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-Y"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "status": "current",
+            "text": "Предоставить первый комплект."
+          },
+          {
+            "id": "SYS-NEW",
+            "status": "current",
+            "text": "Предоставить второй комплект."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-OLD",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-NEW",
+            "application": "APP-Y"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "event": {
+        "kind": "transfer_current_parent",
+        "application": "APP-X",
+        "from": "SYS-OLD",
+        "to": "SYS-NEW"
+      },
+      "owner_decision": "Requirements пересчитывает объединение старых и новых родителей: SYS-OLD/SYS-NEW.",
+      "after": {
+        "registry_revision": 2,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-Y"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "status": "current",
+            "text": "Предоставить первый комплект."
+          },
+          {
+            "id": "SYS-NEW",
+            "status": "current",
+            "text": "Предоставить второй комплект."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-NEW",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-NEW",
+            "application": "APP-Y"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-NEW",
+            "children": [
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "children": [],
+            "applicable": true,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-NEW",
+            "children": [
+              "APP-X",
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-OLD",
+        "SYS-NEW"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "Это отдельный нижний граф: APP-X зависит только от подтверждённого A; APP-Y только от неподтверждённого B. У OLD больше нет детей — false; NEW требует X и Y — false. Историческое OLD=true сохранено."
+    },
+    {
+      "id": "C15",
+      "class": "links",
+      "title": "Прежний родитель вышел из current applicability",
+      "before": {
+        "registry_revision": 1,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-Y"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "status": "current",
+            "text": "Предоставить первый комплект."
+          },
+          {
+            "id": "SYS-NEW",
+            "status": "current",
+            "text": "Предоставить второй комплект."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-OLD",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-NEW",
+            "application": "APP-Y"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "event": {
+        "kind": "retire_current_system",
+        "system": "SYS-OLD"
+      },
+      "owner_decision": "Отразить OLD как затронутый прежний родитель с отсутствующей current applicability.",
+      "after": {
+        "registry_revision": 2,
+        "tasks": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить основную часть.",
+                "applications": [
+                  "APP-X"
+                ]
+              }
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "execution_generation": 1,
+            "requirements": [
+              {
+                "key": "R1",
+                "status": "current",
+                "text": "Подготовить приложение.",
+                "applications": [
+                  "APP-Y"
+                ]
+              }
+            ]
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "status": "current",
+            "text": "Предоставить полный результат."
+          },
+          {
+            "id": "APP-Y",
+            "status": "current",
+            "text": "Предоставить основную часть."
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "status": "obsolete",
+            "text": "Предоставить первый комплект."
+          },
+          {
+            "id": "SYS-NEW",
+            "status": "current",
+            "text": "Предоставить второй комплект."
+          }
+        ],
+        "system_application": [
+          {
+            "system": "SYS-OLD",
+            "application": "APP-X"
+          },
+          {
+            "system": "SYS-NEW",
+            "application": "APP-Y"
+          }
+        ],
+        "facts": [
+          {
+            "outcome_id": "o-A",
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "kind": "positive",
+            "satisfied_keys": [
+              "R1"
+            ]
+          }
+        ],
+        "selected_confirmations": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1,
+            "key": "R1",
+            "outcome_id": "o-A"
+          }
+        ]
+      },
+      "expected_before": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "children": [
+              "APP-X"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "SYS-NEW",
+            "children": [
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "expected_after": {
+        "task_requirements": [
+          {
+            "task_id": "Task-A",
+            "statement_revision": 1,
+            "snapshot_revision": 1,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": true,
+            "evidence_outcome_ids": [
+              "o-A"
+            ]
+          },
+          {
+            "task_id": "Task-B",
+            "statement_revision": 1,
+            "snapshot_revision": 2,
+            "key": "R1",
+            "applicable": true,
+            "satisfied": false,
+            "evidence_outcome_ids": []
+          }
+        ],
+        "applications": [
+          {
+            "id": "APP-X",
+            "children": [
+              "Task-A/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": true
+          },
+          {
+            "id": "APP-Y",
+            "children": [
+              "Task-B/1/R1"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ],
+        "systems": [
+          {
+            "id": "SYS-OLD",
+            "children": [],
+            "applicable": false,
+            "satisfied": false
+          },
+          {
+            "id": "SYS-NEW",
+            "children": [
+              "APP-Y"
+            ],
+            "applicable": true,
+            "satisfied": false
+          }
+        ]
+      },
+      "affected_systems": [
+        "SYS-OLD"
+      ],
+      "historical_preservation": {
+        "facts": [
+          "o-A"
+        ],
+        "published_bases": [
+          {
+            "task_id": "Task-A",
+            "snapshot_revision": 1
+          },
+          {
+            "task_id": "Task-B",
+            "snapshot_revision": 2
+          }
+        ],
+        "prior_assessment": "expected_before остаётся историческим результатом своего before-контекста."
+      },
+      "reasoning": "OLD имеет status obsolete: current applicability=false/satisfaction=false. Его прежний результат true остаётся историческим. Current NEW и обе Task unchanged."
+    }
+  ]
+}

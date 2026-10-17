@@ -194,22 +194,28 @@ Requirements не читает Execution DB:
 2. Для `negative` и `cancelled` список `satisfied_task_requirements` обязан быть
    пустым. Terminal сам по себе не означает completion.
 3. Каждый указанный key обязан существовать в конкретном immutable snapshot.
-4. Task requirement считается satisfied после хотя бы одного принятого positive
-   outcome для этого exact `{task_id, snapshot_revision, key}`.
-5. Application requirement считается satisfied для данного snapshot только когда
-   существует хотя бы один applicable Task requirement и satisfied **все**
-   applicable Task requirements, связанные с ним в snapshot.
-6. System requirement считается satisfied для данного snapshot только когда
-   существует хотя бы один applicable Application requirement и satisfied **все**
-   applicable Application requirements, связанные с ним в snapshot.
+4. Task requirement считается satisfied при положительном подтверждении, явно
+   допущенном Requirements к его текущему exact `{task_id, snapshot_revision, key}`.
+   Исторический факт и выбранное текущее подтверждение различаются; попытки
+   не объединяются скрытым OR и exact replay не перематывает текущий выбор.
+5. Глобальное выполнение Application требует непустого полного набора связанных
+   текущих Task requirements из **всех** Task и выполнения каждого. Локальная
+   полнота одного Task snapshot не является глобальным решением об Application.
+6. Глобальное выполнение System требует непустого полного набора связанных
+   текущих Application requirements и выполнения каждого. При изменении связей
+   пересчитываются все затронутые прежние и новые родители.
 7. Пустое множество детей не даёт vacuous satisfaction. `future` placeholder и
    `obsolete` не используются как положительное evidence.
 8. `applicability` и `satisfaction` — разные поля query result; отсутствие
    applicability не кодируется как `satisfied: true`.
 
-Полная политика повторных attempts/restart/recalculation и physical auxiliary schema
-не определяется T010. Запрос, требующий ещё не определённой политики T031/T037,
-отклоняется `unsupported_policy`, а не угадывается.
+Предметная [политика пересчёта](outcome-recalculation.md) определяет повторы, restart,
+замену подтверждения, полный набор всех Task и изменение старых/новых родителей.
+Она согласована как проект; автономный CLI ещё не реализует outcomes/satisfaction.
+Точный transport выбора подтверждений и physical storage принадлежат будущей
+реализации. `unsupported_policy` ниже относится к проектному интерфейсу, когда
+запрошенная операция требует ещё не реализованной политики; текущий shell
+сохраняет собственный [формат отказа](shell-req.md#ошибки-и-продолжение-работы).
 
 ## 5. Mutation batch: `apply`
 
@@ -430,6 +436,9 @@ Result item:
 
 `outcome_id` immutable по payload. Exact повтор не создаёт второй факт. Другой payload
 с тем же ID получает `outcome_conflict`. Requirements не вызывает Execution в ответ.
+Exact replay факта не восстанавливает прежний выбор после явного решения о замене.
+Порядок допуска текущего подтверждения и отличия альтернативной attempt от явной
+замены определяет [политика выбора](outcome-recalculation.md#факты-текущий-выбор-и-история).
 
 ### 5.8 `import_slice`
 
@@ -515,7 +524,10 @@ owner state.
 - `task_history`: `{id, kind, task_id}` → все statement revision headers.
 - `snapshot`: `{id, kind, task_id, snapshot_revision}` → immutable full snapshot.
 - `satisfaction`: `{id, kind, task_id, snapshot_revision}` → per Task/Application/System
-  `{applicable, satisfied, evidence_outcome_ids}`.
+  `{applicable, satisfied, evidence_outcome_ids}`. Это локальная проекция выбранного
+  Task snapshot; глобальное решение по всем связанным Task и всем System parents
+  имеет [отдельную предметную область](outcome-recalculation.md#основание-текущего-решения)
+  и не выводится из одной такой проекции.
 - `export_slice`: `{id, kind, task_id}` → canonical
   `stride-requirements-slice/v1`; это owner read, без foreign state.
 
@@ -563,7 +575,7 @@ owner state.
 | `unresolved_gaps` | publication не имеет полной applicable chain | нет |
 | `id_namespace_exhausted` | allocator не имеет свободного ID | нет |
 | `outcome_conflict` | outcome ID повторён с другим payload | нет |
-| `unsupported_policy` | требуется политика T031/T037, ещё не определённая v1 | нет |
+| `unsupported_policy` | требуется ещё не реализованная политика проектного интерфейса | нет |
 | `store_busy` | owner-local store не получен в configured bounded timeout | нет |
 | `store_incompatible` | schema/migration owner store неизвестна | нет |
 
@@ -614,7 +626,9 @@ Given Task `0042`, statement 1 и published snapshot 1. `revise_task` with
 
 ### F4 — positive outcome требует все applicable Task requirements
 
-Snapshot 2 has `R1` and `R2`, both linked to `APP-X`.
+В этом изолированном примере snapshot 2 содержит `R1` и `R2`, связанные с `APP-X`;
+других текущих Task требований у `APP-X` нет. [Примеры нескольких Task](outcome-recalculation.md#независимые-проверяемые-примеры)
+показывают полный глобальный набор и одинаковые local keys разных Task.
 
 1. Positive outcome `o1` satisfying only `R1` → `R1.satisfied=true`,
    `R2.satisfied=false`, `APP-X.satisfied=false`.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import shutil
 import shlex
@@ -79,12 +80,14 @@ def _guarded_command(service, binding_path):
 def test_managed_command_invokes_configured_interpreter_directly(project, tmp_path):
     service, selected = _service_with_selected_interpreter(project, tmp_path)
     binding = tmp_path / "binding.json"
+    fixture_code_root = Path(__file__).resolve().parents[2]
+    expected_python_path = os.pathsep.join((str(fixture_code_root / "src"), str(fixture_code_root)))
 
     command = service.settings.command("hook-work", "--binding", str(binding))
 
     assert shlex.split(command) == [
         "env",
-        f"PYTHONPATH={service.settings.raw['source_root']}",
+        f"PYTHONPATH={expected_python_path}",
         str(selected),
         "-B",
         "-m",

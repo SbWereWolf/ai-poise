@@ -1,0 +1,8 @@
+{
+  "description": "Independent foreign group",
+  "hooks": {
+    "SessionStart": [
+      {"matcher": "startup", "hooks": [{"type": "command", "command": "echo foreign"}]}
+    ]
+  }
+}

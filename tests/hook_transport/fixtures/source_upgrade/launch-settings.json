@@ -1,0 +1,10 @@
+{
+  "schema": "stride-launcher-1",
+  "poise_root": "BOUND_BY_FIXTURE",
+  "data_root": "BOUND_BY_FIXTURE",
+  "project_id": "unused-default",
+  "project_setup": "BOUND_BY_FIXTURE",
+  "command": ["BOUND_BY_FIXTURE"],
+  "overrides": {},
+  "exit_codes": {"rejected": 2}
+}

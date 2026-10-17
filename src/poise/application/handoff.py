@@ -49,6 +49,67 @@ class HandoffCommands:
     def latest(self,task_id):
         with self.uow() as uow:return uow.handoffs.latest(task_id)
 
+    @staticmethod
+    def _newborn_events(events):
+        return all(isinstance(data, dict) and data.get('stage') == 'newborn'
+                   and data.get('event') in {
+                       'newborn_edited', 'newborn_ready',
+                       'ownership_acquired', 'ownership_released',
+                   } for _, data in events)
+
+    @classmethod
+    def newborn_candidate_in(cls, uow, task_id, expected_revision):
+        """Resolve the current preparation generation without rewriting history."""
+        newborn = uow.tasks.load_newborn(task_id)
+        if type(expected_revision) is not int or newborn.version != expected_revision:
+            raise PoiseError('Newborn Task changed before acquisition')
+        record = uow.handoffs.latest_entry(task_id)
+        if record is None or record['state'] == 'recovered':
+            return None
+
+        for audit in reversed(newborn.restart_history):
+            before = audit['from_version']
+            if before < record['version']:
+                continue
+            suffix = uow.tasks.versioned_event_suffix(task_id, before, newborn.version)
+            if not suffix:
+                raise PoiseError('Newborn restart history is incomplete; Task retained')
+            version, event = suffix[0]
+            if (version != before + 1 or event.get('event') != 'restarted_newborn'
+                    or event.get('stage') != 'newborn'
+                    or event.get('reason') != audit['reason']
+                    or event.get('authorization') != audit['authorization']
+                    or not cls._newborn_events(suffix[1:])):
+                raise PoiseError('Newborn restart history changed; Task retained')
+            return None
+
+        if record['state'] not in ('released', 'resumed'):
+            raise PoiseError('Unfinished or unknown newborn handoff; Task retained')
+        suffix = uow.tasks.versioned_event_suffix(
+            task_id, record['version'], newborn.version)
+        if (not suffix or not cls._newborn_events(suffix)
+                or suffix[0][1]['event'] != 'ownership_released'):
+            raise PoiseError('Newborn handoff history changed; Task retained')
+        events = tuple(data['event'] for _, data in suffix)
+        if record['state'] == 'resumed':
+            if events[:2] != ('ownership_released', 'ownership_acquired'):
+                raise PoiseError('Newborn resumed handoff history changed; Task retained')
+            return None
+        if len(events) == 1:
+            return record
+        if 'newborn_edited' in events:
+            return None
+        raise PoiseError('Task changed after preserved handoff')
+
+    def newborn_candidate(self, task_id, expected_revision):
+        with self.uow() as uow:
+            return self.newborn_candidate_in(uow, task_id, expected_revision)
+
+    @classmethod
+    def require_newborn_acquisition_in(cls, uow, task_id, expected_revision):
+        if cls.newborn_candidate_in(uow, task_id, expected_revision) is not None:
+            raise PoiseError('Current newborn handoff must be validated before acquisition')
+
     def prepare(self,actor,request_id,digest,task_id,version,plan):
         with self.uow() as uow:
             old=uow.handoffs.get(actor,request_id)
@@ -88,15 +149,20 @@ class HandoffCommands:
             release_task_in(uow, actor, record['task_id'], record['plan']['reason'])
             uow.handoffs.replace({**record,'state':'released','receipt':receipt})
 
-    def resume(self,task_id,actor,request_actor,request_id, *, force_duplicate_start=False):
+    def resume(self,task_id,actor,request_actor,request_id, *, force_duplicate_start=False,
+               expected_newborn_revision=None):
         with self.uow() as uow:
             record=uow.handoffs.get(request_actor,request_id)
             if record is None or record['state']!='released' or record['task_id']!=task_id:
                 raise PoiseError('No released handoff for this task')
             if uow.tasks.is_newborn(task_id):
                 newborn=uow.tasks.load_newborn(task_id)
-                if newborn.version!=record['version']+1:
+                if (newborn.version!=record['version']+1
+                        or (expected_newborn_revision is not None
+                            and newborn.version != expected_newborn_revision)):
                     raise PoiseError('Task changed after preserved handoff')
+                if self.newborn_candidate_in(uow, task_id, newborn.version) != record:
+                    raise PoiseError('Current newborn handoff identity changed')
                 from .ownership import release_task_in
                 before=uow.ownership.snapshot(actor)
                 if before.task_id not in (None,task_id):

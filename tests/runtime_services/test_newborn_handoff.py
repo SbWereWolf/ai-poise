@@ -12,8 +12,18 @@ from poise.common import PoiseError
 from runtime_services.test_task_restart import restart
 
 
-def draft(project, kind):
+def configure_handoff(project):
+    # This fixture exercises explicit saved-file preservation, not the optional
+    # defaults of the shared runtime example.
+    project['cfg']['runtime_services']['handoff'] = {
+        'directory': 'handoffs', 'preserved_directory': 'preserved',
+        'file_mode': 384, 'bundle': 'source.bundle', 'receipt': 'receipt.json',
+    }
     configure(project)
+
+
+def draft(project, kind):
+    configure_handoff(project)
     h = WorkPoise(project['config_path'], 'owner')
     tools = WorkTools(h)
     if kind == 'restarted':
@@ -201,6 +211,7 @@ def test_restarted_draft_requires_wip_message_and_preserves_index_on_rejection(p
 def test_verified_history_survives_restart_inspection_and_draft_handoff(project):
     from batch.helpers import result, verify
     from conftest import add_test
+    configure_handoff(project)
     h = WorkPoise(project['config_path'], 'owner'); tools = WorkTools(h)
     context = bootstrap(tools, project); add_test(context['worktree'])
     assert verify(tools, result(context))['status'] == 'verified'

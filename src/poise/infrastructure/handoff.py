@@ -192,7 +192,9 @@ class LocalHandoff:
 
     def validate_resume(self, data):
         """Check preserved handoff bytes without acquiring or executing the Task."""
-        h=self.h;record=self.commands.latest(data['id'])
+        h=self.h
+        record = (self.commands.newborn_candidate(data['id'], data['revision'])
+                  if data['status'] == 'newborn' else self.commands.latest(data['id']))
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
         with h.store.unit_of_work() as uow:
@@ -249,7 +251,11 @@ class LocalHandoff:
         h = self.h
         record = self.validate_resume(data)
         receipt = record['receipt']
-        self.commands.resume(data['id'],h.session,record['actor'],record['request_id'],force_duplicate_start=force_duplicate_start)
+        admission = {}
+        if data['status'] == 'newborn':
+            admission['expected_newborn_revision'] = data['revision']
+        self.commands.resume(data['id'],h.session,record['actor'],record['request_id'],
+                             force_duplicate_start=force_duplicate_start, **admission)
         h.store.event(h.session,data['id'],'handoff.resumed',{'from_session':record['actor'],'commit':receipt['commit']})
 
     @staticmethod

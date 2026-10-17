@@ -1,0 +1,8 @@
+{
+  "schema": "fixture/configuration-state/v1",
+  "id": "cjm-settings",
+  "kind": "cjm",
+  "state": "present",
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "cause": ""
+}

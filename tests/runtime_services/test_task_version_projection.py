@@ -10,6 +10,8 @@ def _configure_single_stage(project):
     stage = {
         "id": "write",
         "instruction": "Produce one read-only result.",
+        "purpose": "observation",
+        "criteria_authority": {"propose": [], "decide": []},
         "read_only": True,
         "allowed_paths": [],
         "normalization": "strip",
@@ -51,6 +53,11 @@ def _configure_single_stage(project):
             "allowed_paths": [],
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {
+                "requirements": [],
+                "definition_of_ready": [],
+                "definition_of_done": [],
+            },
         }],
     }
     task["decomposition"] = {"kind": "ordinary", "phases": [

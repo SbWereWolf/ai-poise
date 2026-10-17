@@ -4,28 +4,16 @@ import json
 import os
 from pathlib import Path
 import shutil
-from string import Template
 import sys
 import tempfile
 
 from poise.common import PoiseError
 from poise.modules.projects.domain import ProjectBlueprint
+from .shared.templates import render_data
 
 
 def read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def render(value, parameters):
-    """Walk declared data; string.Template owns substitution syntax."""
-    if isinstance(value, str):
-        return Template(value).substitute(parameters)
-    if isinstance(value, list):
-        return [render(item, parameters) for item in value]
-    if isinstance(value, dict):
-        return {key: render(item, parameters) for key, item in
-                value.items()}
-    return value
 
 
 def load_inputs(args, source):
@@ -75,20 +63,26 @@ def prepare_documents(specification, source, values):
             parent = document
             for part in edit["path"][:-1]:
                 parent = parent[part]
-            parent[edit["path"][-1]] = render(edit["value"], values)
+            parent[edit["path"][-1]] = render_data(edit["value"],
+                                                   values)
         documents.append((projection["destination"], document))
     return documents
 
 
-def copy_assets(specification, source, stage):
+def copy_assets(specification, source, stage, values):
     for asset in specification["asset_directories"]:
+        asset = render_data({key: asset[key] for key in
+                             ("source", "destination", "patterns")},
+                            values)
         origin = source / asset["source"]
         for pattern in asset["patterns"]:
             matches = list(origin.glob(pattern))
             if not matches:
-                raise ValueError(f"Required asset pattern is empty: {pattern}")
+                raise ValueError(
+                    f"Required asset pattern is empty: {pattern}")
             for selected in matches:
-                destination = stage / asset["destination"] / selected.relative_to(origin)
+                destination = stage / asset[
+                    "destination"] / selected.relative_to(origin)
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(selected, destination)
 
@@ -96,10 +90,10 @@ def copy_assets(specification, source, stage):
 def prepare_profile(stage, source, output, args, inputs):
     spec, catalog, settings, template_path, blueprint, advice = inputs
     values = bind_parameters(args, catalog, output)
-    outputs = render(spec["outputs"], values)
+    outputs = render_data(spec["outputs"], values)
     if outputs["catalog"] != "catalog.json":
         raise ValueError("The selected consumer reads catalog.json")
-    edits = render(spec["project_edits"], values)
+    edits = render_data(spec["project_edits"], values)
     projected_documents = prepare_documents(spec, source, values)
     ProjectBlueprint.parse(blueprint).build(edits,
                                             settings["max_edits"])
@@ -114,7 +108,7 @@ def prepare_profile(stage, source, output, args, inputs):
                         encoding="utf-8")
         path.chmod(settings["file_mode"])
 
-    copy_assets(spec, source, stage)
+    copy_assets(spec, source, stage, values)
     prefix = spec["workflow_source_prefix"]
     for reference in blueprint["workflow_sources"].values():
         if not reference["path"].startswith(prefix):
@@ -125,7 +119,7 @@ def prepare_profile(stage, source, output, args, inputs):
         reference["path"] = relative
         write(relative, document)
     write(template_path, blueprint)
-    settings.update(render(spec["settings_overrides"], values))
+    settings.update(render_data(spec["settings_overrides"], values))
     settings["templates"] = {args.template: {"path": template_path}}
     for destination, document in projected_documents:
         write(destination, document)

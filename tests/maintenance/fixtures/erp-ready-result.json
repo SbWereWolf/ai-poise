@@ -1,0 +1,28 @@
+{
+  "schema": "environment-maintenance/result/v2",
+  "operation": "check",
+  "dry_run": false,
+  "status": "ready",
+  "exit_code": 0,
+  "parameters": {},
+  "parameter_sources": {},
+  "requirements": [
+    {
+      "id": "wire-fixture",
+      "initial_state": "satisfied",
+      "state": "satisfied",
+      "status": "ready",
+      "initial_check": {
+        "status": "passed",
+        "invocation": {"argv": ["wire-fixture"], "cwd": "/fixture", "env": {}},
+        "exit_code": 0,
+        "stdout": "{\"schema\":\"fixture/action/v1\",\"requirement_id\":\"wire-fixture\",\"action\":\"check\",\"state\":\"satisfied\"}",
+        "stderr": "",
+        "capture_complete": true,
+        "timed_out": false,
+        "error": null,
+        "response": {"schema": "fixture/action/v1", "requirement_id": "wire-fixture", "action": "check", "state": "satisfied"}
+      }
+    }
+  ]
+}

@@ -27,7 +27,7 @@ def release(tools, task_id, version, request_id):
 def test_next_actor_advances_in_existing_worktree_without_material_transport(project, keep_unused_tripwire):
     configure_progression(project)
     if keep_unused_tripwire:
-        project["cfg"]["runtime_services"]["transfer"] = "unused retired setting"
+        project["cfg"]["runtime_services"]["transfer"] = {"future_option": True}
     configure(project)
     assert "handoff" not in project["cfg"]["runtime_services"]
     assert ("transfer" in project["cfg"]["runtime_services"]) is keep_unused_tripwire
@@ -61,7 +61,7 @@ def test_next_actor_advances_in_existing_worktree_without_material_transport(pro
 
     progressed = advance(reviewer)
 
-    assert progressed["status"] == "progression_target_reached"
+    assert progressed["status"] == "progression_target_reached", "ORDINARY_RELEASE_MUST_ALLOW_ROLE_CONTINUATION"
     assert progressed["stage"] == "code_review"
     assert reviewer.runtime.current_task()["claimed_by"] == "reviewer"
     assert git(root, "rev-parse", "HEAD") == head
@@ -122,7 +122,7 @@ def test_cancelled_untyped_draft_removes_working_material_without_another_agreem
     cancelled = tools.invoke(request("cancel", {"reason": "Discard the unfinished draft."}))
 
     assert cancelled["status"] == "cancelled"
-    assert not root.exists()
+    assert not root.exists(), "CANCELLED_TASK_ROOT_RETAINED"
     assert unrelated.read_bytes() == b"unrelated working material\n"
     assert tools.runtime.task_queries.record("DRAFT")["status"] == "cancelled"
 

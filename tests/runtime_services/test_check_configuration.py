@@ -5,12 +5,20 @@ import pytest
 
 from batch.helpers import bootstrap, result, verify
 from conftest import WorkPoise, add_test, git, write_json
+from check_configuration_helpers import prepare_check_systems
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 
 
+def configure_companions(project):
+    project['cfg']['runtime_services']['check_runner']['systems'] = prepare_check_systems(
+        project['root'], project['app'], project['config_path'])
+    write_json(project['config_path'], project['cfg'])
+
+
 @pytest.mark.parametrize('retired', [None, {}, {'future_option': True}, {'systems': None}])
 def test_current_checks_ignore_retired_settings_and_replay_the_same_receipt(project, retired):
+    configure_companions(project)
     project['cfg']['runtime_services']['transfer'] = retired
     write_json(project['config_path'], project['cfg'])
     tools = WorkTools(WorkPoise(project['config_path'], 'current-checks'))
@@ -28,7 +36,7 @@ def test_current_checks_ignore_retired_settings_and_replay_the_same_receipt(proj
 
 
 def test_absent_optional_check_companions_are_explicitly_supported(project):
-    del project['cfg']['runtime_services']['check_runner']['systems']
+    assert 'systems' not in project['cfg']['runtime_services']['check_runner']
     write_json(project['config_path'], project['cfg'])
     tools = WorkTools(WorkPoise(project['config_path'], 'without-companions'))
     context = bootstrap(tools, project)
@@ -39,6 +47,7 @@ def test_absent_optional_check_companions_are_explicitly_supported(project):
 
 
 def test_current_systems_capture_config_order_and_ignore_unknown_keys(project):
+    configure_companions(project)
     systems = project['cfg']['runtime_services']['check_runner']['systems']
     systems['future_option'] = None
     for owner in ('poise', 'project'):
@@ -62,6 +71,7 @@ def test_current_systems_capture_config_order_and_ignore_unknown_keys(project):
 
 @pytest.mark.parametrize('owner', ['poise', 'project'])
 def test_missing_check_config_refuses_before_subject_command_or_receipt(project, owner):
+    configure_companions(project)
     counter = project['root'] / 'subject-effects.txt'
     for method in project['task']['methods']:
         method['environment']['CHECK_STAGE_COUNTER'] = str(counter)

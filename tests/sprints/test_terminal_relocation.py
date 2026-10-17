@@ -7,7 +7,7 @@ import sqlite3
 import pytest
 
 from batch.helpers import configure, request
-from conftest import WorkPoise, seed_fixture_requirements
+from conftest import WorkPoise, seed_fixture_requirements, git
 from poise.application.work import WorkTools
 from poise.common import load_config
 from poise.modules.foundation.errors import PoiseError
@@ -15,7 +15,7 @@ from projects.test_update import (
     installed_project, project_revision, relocation, update_request, update_tools,
 )
 from sprints.helpers import draft, publish, setup, task
-from sprints.test_terminal_integration import prepared_receipt, set_execution, snapshot
+from sprints.test_terminal_integration import deliver_member, set_execution, snapshot
 from sprints.test_unpublish import (
     git_state, intent, invoke, prepare_member,
 )
@@ -46,9 +46,23 @@ def delivered(project, tmp_path):
         {'predecessor': 'A', 'successor': 'B', 'kind': 'completion'},
     ])
     published = publish(planner, born['revision'])
-    prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner, project)
-    set_execution(planner, 'A', receipt)
+    context, receipt = deliver_member(project)
+    worker = WorkTools(WorkPoise(config_path, 'unfinished-B'))
+    current = worker.invoke(request('bootstrap', {
+        'task': {'id': 'B'}, 'decision': None, 'feedback': None, 'rework_stage': None}))
+    unfinished = Path(current['worktree']) / 'src/unfinished.note'
+    unfinished.write_bytes(b'staged unfinished material\n')
+    git(Path(current['worktree']), 'add', '--', 'src/unfinished.note')
+    unfinished.write_bytes(b'unstaged unfinished material\x00\xff\n')
+    project['unfinished_worktree'] = current['worktree']
+    worker.invoke(request('artifacts', {'items': [{
+        'scope': 'task', 'path': 'unfinished-note.txt',
+        'source': {'kind': 'text', 'text': 'unfinished B material\n'},
+    }]}))
+    from runtime_services.test_participant_continuity import release_packet
+    assert worker.invoke(release_packet(worker))['status'] == 'ownership_released'
+    assert not Path(context['task_root']).exists()
+    assert Path(current['worktree']).is_dir()
     return project, settings, planner, published, receipt
 
 
@@ -99,13 +113,17 @@ def test_relocated_terminal_delivery_preserves_history_and_replay(delivered, tmp
     original = immutable(planner)
     original_state = planner.runtime.state
     proof = materials(planner)
-    assert proof, 'The completed member must retain actual registered material'
+    assert proof, 'The unfinished member must retain its actual registered material'
+    assert {item[0] for item in proof.values()} == {'B'}
     repository = git_state(project['app'])
+    unfinished = Path(project['unfinished_worktree'])
+    working_material = ((unfinished / 'src/unfinished.note').read_bytes(), git_state(unfinished))
     revision = published['revision']
     for number in (1, 2):
         planner = move(project, settings, planner, tmp_path / f'relocated-state-{number}', number)
         assert immutable(planner) == original
         assert git_state(project['app']) == repository
+        assert ((unfinished / 'src/unfinished.note').read_bytes(), git_state(unfinished)) == working_material
         expected = {}
         for identifier, (owner, scope, path, digest, content) in proof.items():
             prior = Path(path)
@@ -138,7 +156,7 @@ def test_relocated_terminal_delivery_preserves_history_and_replay(delivered, tmp
     assert json.loads(execution)['pending'] == receipt
 
 
-def test_relocated_terminal_foreign_root_refuses_atomically(delivered, tmp_path):
+def test_relocated_terminal_ignores_inert_foreign_backup_reference(delivered, tmp_path):
     project, settings, planner, published, receipt = delivered
     original_runtime = planner.runtime.state / planner.runtime.paths['runtime']
     suffix = Path(receipt['temporary_backup_directory']).relative_to(original_runtime)
@@ -146,9 +164,9 @@ def test_relocated_terminal_foreign_root_refuses_atomically(delivered, tmp_path)
     foreign = deepcopy(receipt)
     foreign['temporary_backup_directory'] = str(tmp_path / 'foreign-runtime' / suffix)
     set_execution(planner, 'A', foreign)
-    before = snapshot(planner)
+    before = immutable(planner)
     repository = git_state(project['app'])
-    with pytest.raises(PoiseError, match='Member has an unresolved pending external publication: A'):
-        invoke(planner, intent(published['revision']))
-    assert snapshot(planner) == before
+    reopened = invoke(planner, intent(published['revision']))
+    assert reopened['status'] == 'draft' and reopened['revision'] == published['revision'] + 1
+    assert immutable(planner) == before
     assert git_state(project['app']) == repository

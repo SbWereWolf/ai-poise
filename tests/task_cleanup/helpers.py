@@ -35,7 +35,16 @@ def prepare_cancelled_task(project, *, task_id="T1", durable_artifact=False):
                 "digest": hashlib.sha256(b"durable task evidence\n").hexdigest(),
             }]},
         }))
-    cancelled = tools.invoke(request("cancel", {"reason": "User cancelled this exact Task."}))
+    # Arrange the genuine stopped cancellation boundary owned by this unit.
+    # Public WorkTools.cancel separately proves automatic end-to-end cleanup.
+    current = tools.runtime.current_task()
+    reason = 'User cancelled this exact Task.'
+    run = tools.runtime.cleanup_tools.prepare_terminal(task_id, f"cancel-{current['_version']}", reason)
+    state = tools.runtime.task_commands.cancel(
+        task_id, tools.runtime.session, reason, tools.runtime.cleanup_tools.pending(run))
+    assert state.status == 'cancelled'
+    cancelled = {'status': state.status.value, 'task': task_id,
+                 'cleanup': tools.runtime.cleanup_tools.terminal_result(run)}
     return tools, Path(worktree), commit, cancelled
 
 

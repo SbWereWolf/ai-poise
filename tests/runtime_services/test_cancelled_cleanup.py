@@ -144,7 +144,7 @@ def test_cancelled_no_result_task_releases_allocated_worktree_branch_and_service
     cancelled = tools.invoke(request("cancel", {"reason": "Discard this Task and its unrequested work."}))
 
     assert cancelled["status"] == "cancelled"
-    assert not root.exists()
+    assert not root.exists(), "CANCELLED_TASK_ROOT_RETAINED"
     assert not worktree.exists()
     assert not service_root.exists()
     assert branch not in git(project["app"], "for-each-ref", "--format=%(refname:short)", "refs/heads").splitlines()
@@ -154,7 +154,7 @@ def test_cancelled_no_result_task_releases_allocated_worktree_branch_and_service
     assert foreign_rows(tools) == unrelated
 
 
-@pytest.mark.parametrize("fault", ["version", "owner", "missing"])
+@pytest.mark.parametrize("fault", ["version", "owner", "missing", "status"])
 def test_cancelled_cleanup_rechecks_current_metadata_before_material_retirement(project, monkeypatch, fault):
     owner, tools = draft(project, "fresh")
     root = owner.state / owner.paths["standalone_tasks"] / "DRAFT"
@@ -178,13 +178,16 @@ def test_cancelled_cleanup_rechecks_current_metadata_before_material_retirement(
             elif fault == "owner":
                 db.execute("INSERT INTO sessions(id,task_id) VALUES('race-owner',NULL)")
                 db.execute("UPDATE tasks SET claimed_by='race-owner' WHERE id='DRAFT'")
+            elif fault == "status":
+                db.execute("UPDATE tasks SET status='newborn' WHERE id='DRAFT'")
             else:
                 db.execute("DELETE FROM tasks WHERE id='DRAFT'")
         return prepared
 
     monkeypatch.setattr(owner.delivery_effects, "prepare", race_after_observation)
-    expected = ("Задача не найдена: DRAFT" if fault == "missing"
-                else "Delivery Task owner/version changed before agreement")
+    expected = ("Задача не найдена: DRAFT" if fault == "missing" else
+                "Delivery Task state changed before agreement" if fault == "status" else
+                "Delivery Task owner/version changed before agreement")
     with pytest.raises(PoiseError, match="^" + expected + "$"):
         tools.invoke(request("cancel", {"reason": "Discard this Task without a customer result."}))
 
@@ -199,6 +202,9 @@ def test_cancelled_cleanup_rechecks_current_metadata_before_material_retirement(
         elif fault == "owner":
             assert actual == (observed[0][0], "race-owner")
             assert db.execute("SELECT task_id FROM sessions WHERE id='race-owner'").fetchone() == (None,)
+        elif fault == "status":
+            assert actual == observed[0]
+            assert db.execute("SELECT status FROM tasks WHERE id='DRAFT'").fetchone() == ("newborn",)
         else:
             assert actual is None
         assert db.execute("SELECT COUNT(*) FROM journal WHERE task_id='DRAFT' AND event='task_delivery.state'").fetchone()[0] == 0

@@ -8,7 +8,6 @@ import pytest
 from conftest import WorkPoise
 from poise.application.duplicate_reuse import reusable_contract
 from poise.application.work import WorkTools
-from poise.infrastructure.sqlite.transfers import SqliteTransferRepository
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.requirements_registry.service import TaskRequirementsGate
 from sprints.helpers import draft, publish, setup, task as sprint_task
@@ -308,15 +307,12 @@ def test_invalid_sprint_member_preserves_the_complete_prepublication_state(proje
 
 
 @pytest.mark.parametrize('mode', ['absent', 'approved'])
-def test_real_transfer_snapshot_preserves_optional_facts(project, tmp_path, mode):
+def test_reopened_current_store_preserves_optional_ready_facts(project, tmp_path, mode):
     client, filled = prepare_newborn(project, mode)
     ready(client, filled['revision'])
-    owner = SqliteTransferRepository(client.runtime.store.database)
-    captured = owner.capture(['T1'], None, client.runtime.cfg['project'], 1)
-    snapshot = tmp_path / 'transfer.sqlite'
-    owner.write_snapshot(snapshot, captured)
-    restored = owner.read_snapshot(snapshot)
-    assert len(restored['tasks']) == 1
-    metadata = json.loads(restored['tasks'][0]['metadata'])
-    assert metadata['requirements_snapshot'] == DATA['snapshot']
-    assert metadata['requirements_agreement'] == (None if mode == 'absent' else DATA['approval'])
+    before = client.runtime.task_queries.record('T1')
+    reopened = WorkPoise(project['config_path'], 'ready-facts-reader')
+    observed = reopened.task_queries.record('T1')
+    assert observed == before
+    assert observed['requirements_snapshot'] == DATA['snapshot']
+    assert observed['requirements_agreement'] == (None if mode == 'absent' else DATA['approval'])

@@ -319,13 +319,11 @@ def test_legacy_task_requires_explicit_stage_contract_initialization(project):
     tools, _, task = _bootstrap(project)
     runtime = tools.runtime
     _legacy(runtime)
-    runtime.handoff({
+    tools.invoke(request('release', {
         "request_id": "legacy-release",
         "reason": "exercise legacy reload",
-        "result": None,
-        "commit_message": "WIP: legacy fixture",
-        "artifact_paths": [],
-    })
+        'task_id': 'T1', 'expected_version': runtime.task_queries.record('T1')['_version'],
+    }))
     resumed = WorkTools(Poise(project["config_path"], "next"))
     with pytest.raises(PoiseError, match="stage_contract_transition_required"):
         resumed.invoke(request("bootstrap", {
@@ -651,13 +649,11 @@ def test_reopen_preserves_initialized_stage_contract(project):
     version = runtime.task_queries.record("T1")["version"]
     _transition(runtime, "initialize", request_id="init-reopen", expected_version=version,
                 contracts=task["stage_contracts"])
-    runtime.handoff({
+    tools.invoke(request('release', {
         "request_id": "reopen-release",
         "reason": "Reload initialized contracts",
-        "result": None,
-        "commit_message": "WIP: contract persistence",
-        "artifact_paths": [],
-    })
+        'task_id': 'T1', 'expected_version': runtime.task_queries.record('T1')['_version'],
+    }))
     restarted = Poise(project["config_path"], "reopener")
     WorkTools(restarted).invoke(request("bootstrap", {
         "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,

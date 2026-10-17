@@ -219,11 +219,7 @@ def project(tmp_path, monkeypatch):
             {'path': 'docs/**', 'responsibility': 'documentation'},
         ],
     }
-    # Check companions belong to the existing check runner, independently of transport.
-    from check_configuration_helpers import prepare_check_systems
     cfg_path = poise_root / 'project.json'
-    cfg['runtime_services']['check_runner']['systems'] = prepare_check_systems(
-        poise_root, app, cfg_path)
     write_json(cfg_path, cfg)
     # Ordinary runtime fixtures explicitly establish real project authority.
     # Constructors never manufacture missing associations or registry entries.

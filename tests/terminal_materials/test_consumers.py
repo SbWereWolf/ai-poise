@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from batch.helpers import request
-from conftest import WorkPoise
+from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from sprints.helpers import setup
@@ -32,25 +32,22 @@ def test_newborn_cancel_with_explicit_no_result_retires_materials(project):
     assert tools.runtime.task_queries.record("T1")["status"] == "cancelled"
 
 
-def test_no_result_does_not_authorize_discarding_a_unique_git_commit(project):
+def test_cancellation_discards_unrequested_own_commit_without_another_approval(project):
     tools, root, _, commit = arrange(project)
-    agree(tools, {"disposition": "no_result", "outputs": []})
-    tools.invoke(request("cancel", {"reason": "Cancel without delivered result."}))
-    assert settle(fresh(project))["status"] == "delivery_blocked"
-    assert root.is_dir()
-    # Explicit commit disposition is a separate authorization, never inferred.
-    cancel_result = tools.invoke(request("cleanup", {
-        "task_id": "T1", "request_id": "discard-exact-commit",
-        "authorization": "The fixture customer explicitly discards this exact unique commit.",
-        "commit_disposition": {"kind": "discard_authorized", "expected_commit": commit},
-    }))
-    assert cancel_result["status"] == "cleanup_complete"
+    worktree = Path(tools.runtime.current_task()['worktree'])
+    branch = tools.runtime.current_task()['branch']
+    assert commit != git(project['app'], 'rev-parse', 'main')
+    cancelled = tools.invoke(request("cancel", {"reason": "Discard this Task and its unrequested work."}))
+    assert cancelled['status'] == 'cancelled'
+    assert not worktree.exists(), 'CANCELLED_TASK_WORKTREE_RETAINED'
+    assert cancelled['delivery']['status'] == 'delivery_complete'
+    assert branch not in git(project['app'], 'for-each-ref', '--format=%(refname:short)', 'refs/heads').splitlines()
     absent(root)
 
 
-def test_open_registered_draft_has_truthful_block_and_public_owner_continuation(project):
+@pytest.mark.parametrize('ordered_result', [False, True])
+def test_cancel_retires_own_service_draft_after_delivering_only_ordered_result(project, monkeypatch, ordered_result):
     from batch.helpers import text_artifact
-    from artifact_drafts.test_lifecycle import decide
     artifact_ids = []
     def declare_draft(client, _context):
         value = client.invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))["results"][0]["value"]
@@ -66,42 +63,29 @@ def test_open_registered_draft_has_truthful_block_and_public_owner_continuation(
     artifact = tools.runtime.store.artifact_records("T1")[0]
     assert artifact["id"] == artifact_ids[0]
     assert Path(artifact["path"]).read_bytes() == b"registered acceptance result\n"
-    agree(tools, declaration([file_output(source, project["root"] / "result.txt")]))
-    # R4 permits prevention of an unresumable terminal state OR a supported
-    # terminal consumer continuation. Either route must use the public owner.
-    try:
-        first = tools.invoke(request("cancel", {"reason": "Cancel with a pending acceptance draft."}))
-    except PoiseError as error:
-        assert "draft" in str(error).lower()
-    else:
-        assert first["status"] in ("cancelled", "cancel_blocked")
-    status = tools.runtime.task_queries.record("T1")["status"]
-    assert status in ("verified", "cancelled")
-    assert root.is_dir() and Path(artifact["path"]).is_file()
-    if status == "cancelled":
-        result = settle(fresh(project))
-        assert result["status"] == "delivery_blocked" and result["reason"] == "artifact_draft_open"
-    else:
-        assert tools.invoke(release_packet(tools, "draft-to-independent-owner"))["status"] == "ownership_released"
-    reviewer = WorkTools(WorkPoise(project["config_path"], "draft-reviewer"))
-    reviewed = decide(reviewer, reviewer.runtime, "review", artifact["id"], "review-before-retirement")
-    assert reviewed["status"] == "artifact_drafts_reviewed"
-    assert Path(reviewed["snapshots"][0]["snapshot_path"]).read_bytes() == b"registered acceptance result\n"
-    closed = decide(reviewer, reviewer.runtime, "finalize", artifact["id"], "finalize-before-retirement")
-    assert closed["status"] == "artifact_drafts_finalized"
-    if status == "verified":
-        receiver = fresh(project)
-        receiver.invoke(request("bootstrap", {
-            "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None}))
-        cancel_and_discard(receiver, commit)
-    else:
-        tools.invoke(request("cleanup", {
-            "task_id": "T1", "request_id": "discard-after-draft-finalization",
-            "authorization": "The fixture customer explicitly discards this exact unique commit.",
-            "commit_disposition": {"kind": "discard_authorized", "expected_commit": commit},
-        }))
+    destination = project['root'] / 'result.txt'
+    if ordered_result:
+        agree(tools, declaration([file_output(source, destination)]))
+    worktree = Path(tools.runtime.current_task()['worktree'])
+    remove_resource = tools.runtime.cleanup_tools.adapter.remove
+    observed = []
+    def remove_after_delivery(task_id, resource):
+        if ordered_result:
+            assert destination.read_bytes() == b'customer result\n'
+        observed.append(resource.kind)
+        return remove_resource(task_id, resource)
+    monkeypatch.setattr(tools.runtime.cleanup_tools.adapter, 'remove', remove_after_delivery)
+    cancelled = tools.invoke(request('cancel', {'reason': 'Discard all own service materials; retain only the ordered result.'}))
+    assert cancelled['status'] == 'cancelled'
+    assert cancelled['delivery']['status'] == 'delivery_complete'
+    assert {'worktree', 'branch'} <= set(observed)
     absent(root)
-    assert (project["root"] / "result.txt").read_bytes() == b"customer result\n"
+    assert not worktree.exists()
+    assert not Path(artifact['path']).exists()
+    if ordered_result:
+        assert destination.read_bytes() == b'customer result\n'
+    else:
+        assert not destination.exists()
 
 
 def test_unknown_check_outcome_blocks_cleanup_without_erasing_saved_output(project, monkeypatch):

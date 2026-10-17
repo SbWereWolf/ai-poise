@@ -50,7 +50,7 @@ Backend приложения реализует пять методов:
 | Метод | Вход и результат |
 | --- | --- |
 | `initialize(connection)` | Подготовить новую схему или прочитать обязательную metadata своего формата. Вернуть `None`. |
-| `registry_rows(connection)` | Вернуть именованные входы выбранной модели. Для RequirementsGraph: `requirements`, `links`, `task_identities`, `task_requirement_versions`, `application_task_links`, `revisions`, `owner_revision`, `outcomes`, `decisions`. |
+| `registry_rows(connection)` | Вернуть именованные входы выбранной модели. Для RequirementsGraph: `requirements`, `links`, `task_identities`, `task_requirement_versions`, `application_task_links`, `revisions`, `owner_revision`, `outcomes`, `decisions`, `reference_ids`. |
 | `prepare_queries(connection)` | Подготовить TEMP-представления `requirements(id,level,status,text)` и `requirement_links(system_id,application_id)` для общего SQL-владельца. Вернуть `None`. |
 | `previous_request(connection,namespace,request_id)` | Вернуть `None` либо dict с декодированными JSON objects `intent` и `response`. Ошибка необходимых сохранённых данных описывается как `PoiseError`. |
 | `persist_apply(connection,before,after,revision,request_id,intent,response)` | Сохранить итоговые значения, следующую общую ревизию и точный запрос/ответ. Вернуть `None`. |
@@ -59,13 +59,24 @@ Backend приложения реализует пять методов:
 `system/application`. Входы Task содержат известные IDs/текущие указатели,
 упорядоченные версии keys/status/text и их Application IDs. `revisions` —
 отсоединённый порт сохранённых значений: `has_statement`, `statement`, `task_history`,
-`requirement_history`, `latest_snapshot_revision`, `snapshot_for_statement`, `snapshot`, `task_creation`. Адаптер `SavedRevisions`
+`requirement_history`, `latest_snapshot_revision`, `snapshot_for_statement`, `snapshot`,
+`task_creation`, `references_requirement(requirement_id)`. Последний метод возвращает
+bool по структурному членству ID в `requirements` сохранённых полных снимков,
+декодируя необходимые данные при обращении. `reference_ids` содержит отсоединённые
+IDs всех периодов верхних связей, назначений и их истории, а также присутствующих
+связей предметного каталога. Нижние исторические и новые ссылки принадлежат входам
+Task; новые замороженные ссылки — подготовленным публикациям. Адаптер `SavedRevisions`
 владеет чтением выбранного JSON и переводом его ошибок в `PoiseError`; домен
 работает со значениями без SQL, файловой системы и конкретного backend.
 
 `apply` формирует отдельное предполагаемое состояние. Для backend `before/after`
 содержат `requirements`, `links` и новые полные `statements` с `task_id` и
-`statement_revision`, а также новые `publications`, `outcomes`, `decisions`.
+`statement_revision`, а также новые `publications`, `outcomes`, `decisions` и
+отсортированный `deleted_requirements` — явные разрешённые завершения записей.
+Этот временный список сохраняет смысл удаления и нового создания одного ключа,
+даже когда конечные поля совпадают. Backend удаляет прежние собственные версии и
+identity; итоговый record того же ключа вставляется заново с выбранным уровнем и
+версией 1/новым origin. Для остальных записей действует прежнее добавление версии.
 Backend дописывает версии/ключи/связи и текущий указатель,
 закрывает снятые периоды и сохраняет ответ в переданной транзакции. Это обычные
 входы сохранения; отдельного mutable журнала модели нет. Публичный запрос

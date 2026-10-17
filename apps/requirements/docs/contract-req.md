@@ -16,6 +16,9 @@ Requirements после разделения монолита. Контракт 
 в [текущем профиле исходов](outcome-operations.md). Описанный ниже расширенный
 envelope, purpose-aware правила и дополнительные операции остаются проектом
 будущего интерфейса; используйте пакет из действующей инструкции CLI.
+Поиск по применимости/выполнению и удаление неиспользуемого требования уже доступны
+через действующий `operation/input`; точные пакеты и жизненный цикл новой записи
+того же ID определяет [профиль графа](graph-req.md#удаление-неиспользуемого-требования).
 
 ## 1. Граница владельца
 
@@ -287,6 +290,13 @@ Create или replace mutable fields существующего System/Applicati
 Удаление разрешено только если ID не участвует в live links и не нужен для
 сохранения immutable history/snapshots. Иначе весь batch получает
 `referential_conflict`. Исторические snapshots никогда не переписываются.
+Собственные версии свободной записи удаляются вместе с её identity. Последующий
+`put_requirement` того же ключа создаёт новую запись с локальной версией 1 и новым
+origin, включая явный выбор другого уровня после разрешённого удаления. Полное
+равенство прежних и конечных полей сохраняет этот смысл последовательности.
+В текущем CLI операция удаления содержит только `kind/requirement_id`, а описанный отказ
+использует `status:"rejected"/reason`; расширенные `id` и код причины в этом разделе
+относятся к целевому протоколу.
 
 ### 5.3 `link` / `unlink`
 
@@ -505,7 +515,10 @@ owner state.
 
 - `get_requirement`: `{id, kind, requirement_id}` → exact current record.
 - `search_requirements`: `{id, kind, filter, limit, after_id}` → sorted records;
-  `filter` может содержать только `level`, `status`, `text_contains`; `limit` positive
+  `filter` может содержать `level`, `status`, `text_contains`, `applicable`, `satisfied`;
+  последние два значения — JSON booleans, пропущенные поля свободны. Условия
+  объединяются одновременно, полная текущая оценка берётся из `current_satisfaction`.
+  Отбор предшествует выделению страницы по точному ID. `limit` positive
   и не больше configured max; `after_id` string или `null`.
 - `registry`: `{id, kind}` → current requirements + System/Application links.
 - `history_requirement`: `{id, kind, requirement_id}` → ordered immutable revisions.

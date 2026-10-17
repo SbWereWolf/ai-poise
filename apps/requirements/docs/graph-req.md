@@ -78,12 +78,104 @@ placeholders остаются пробелами, а структурная св
 `projected_placeholder` с уровнем `system`, `application` или `task`.
 
 В `filter` поиска используйте выбранные поля `level` (`system/application`),
-`status` и `text_contains`. Поиск подстроки чувствителен к регистру и поддерживает
+`status`, `text_contains`, `applicable` и `satisfied`. Последние два поля задавайте
+JSON-значениями `true` или `false`; пропущенное поле оставляет выборку по этому
+признаку свободной. Все заданные условия применяются одновременно.
+`applicable` означает содержательное текущее требование; `satisfied` использует
+полную текущую оценку из `current_satisfaction`, включая все применимые дочерние
+обязательства и явные подтверждения. У пустого текущего родителя выполнение равно
+`false`; будущие и снятые с применения записи имеют оба признака `false`.
+Поиск возвращает прежние records `id/level/status/text`; признаки служат условиями
+отбора. Поиск подстроки чувствителен к регистру и поддерживает
 Unicode. Пустой фильтр выбирает все записи. Задавайте целый `limit` от 1 до
 `batch.max_items`; для первой страницы — `after_id:null`, для следующей —
 возвращённый `next`. Результат содержит `rows` и `next`, равный последнему ID
-страницы при наличии продолжения, иначе `null`. Порядок — по точному ID.
+страницы при наличии продолжения, иначе `null`. Порядок — по точному ID,
+страница выделяется после применения всех условий.
 Каждый следующий пакет читает актуальную ревизию хранилища.
+
+## Удаление неиспользуемого требования
+
+В `apply.input.operations` передавайте
+`{"kind":"delete_requirement","requirement_id":"SYS-FREE"}`. Используйте точный
+известный ID, сохраняя его символы. Для любого статуса удаляется неиспользуемая
+идентичность вместе с её собственными редакциями. Использование определяется
+текущими и завершёнными верхними связями, всеми сохранёнными и новыми постановками
+Task, назначениями Application, связями предметного каталога, сохранёнными и
+подготовленными в этом пакете снимками. Полный сохранённый snapshot сохраняет своё
+основание, включая System ID после завершения периода связи. Для снятия используемого
+требования с применения задавайте `status:"obsolete"` через `put_requirement`.
+
+Операции пакета выполняются по порядку. После разрешённого `delete_requirement`
+следующий `put_requirement` того же ID создаёт новую самостоятельную запись:
+локальная редакция начинается с 1, история содержит новую редакцию с происхождением
+этого запроса. Можно явно выбрать другой уровень новой записи. Это действует и при
+полном равенстве конечных значений прежним. Для существующей записи уровень
+сохраняется неизменным. Журнал запросов сохраняется; точный повтор возвращает
+первоначальную ревизию и `replayed:true`, сохраняя актуальное состояние.
+
+### Поиск и новая история записи
+
+Подготовьте отдельную новую конфигурацию и пустую базу по
+[инструкции запуска](shell-req.md#создание-и-повторное-открытие). Выполните следующие
+пакеты в одной установке по порядку; `batch.max_items` задайте равным 64.
+Каждый JSON-блок — полный вход CLI.
+
+1. Создайте два Application и отдельный System. Ответ: `revision:1`, `replayed:false`.
+
+```json
+{"operation":"apply","input":{"request_id":"guide-create","expected_revision":0,"operations":[{"kind":"put_requirement","requirement":{"id":"APP-C","level":"application","status":"current","text":"Текущий результат."}},{"kind":"put_requirement","requirement":{"id":"APP-F","level":"application","status":"future","text":"Будущий результат."}},{"kind":"put_requirement","requirement":{"id":"FREE","level":"system","status":"current","text":"Первый смысл."}}]}}
+```
+
+2. Уточните свободный System. Ответ: `revision:2`; его локальная редакция — 2.
+
+```json
+{"operation":"apply","input":{"request_id":"guide-edit","expected_revision":1,"operations":[{"kind":"put_requirement","requirement":{"id":"FREE","level":"system","status":"current","text":"Отдельный результат."}}]}}
+```
+
+3. Прочитайте применимые невыполненные требования. При `revision:2` первая
+страница содержит только `APP-C` и `next:"APP-C"`.
+
+```json
+{"operation":"query","input":{"queries":[{"id":"page","kind":"search_requirements","filter":{"applicable":true,"satisfied":false},"limit":1,"after_id":null}]}}
+```
+
+4. Следующая страница содержит только `FREE`, `next:null`, ту же `revision:2`.
+
+```json
+{"operation":"query","input":{"queries":[{"id":"page","kind":"search_requirements","filter":{"applicable":true,"satisfied":false},"limit":1,"after_id":"APP-C"}]}}
+```
+
+5. Явно завершите прежнюю запись и создайте новую с теми же значениями.
+Ответ: `revision:3`.
+
+```json
+{"operation":"apply","input":{"request_id":"guide-fresh","expected_revision":2,"operations":[{"kind":"delete_requirement","requirement_id":"FREE"},{"kind":"put_requirement","requirement":{"id":"FREE","level":"system","status":"current","text":"Отдельный результат."}}]}}
+```
+
+6. История `FREE` теперь содержит одну редакцию: `revision:1`, `owner_revision:3`,
+`status:"current"`, текст «Отдельный результат.»,
+`origin:{"type":"explicit","request_id":"guide-fresh"}`.
+
+```json
+{"operation":"query","input":{"queries":[{"id":"history","kind":"history_requirement","requirement_id":"FREE"}]}}
+```
+
+7. Завершите эту свободную запись и создайте самостоятельный Application под тем
+же ключом. Ответ: `revision:4`.
+
+```json
+{"operation":"apply","input":{"request_id":"guide-application","expected_revision":3,"operations":[{"kind":"delete_requirement","requirement_id":"FREE"},{"kind":"put_requirement","requirement":{"id":"FREE","level":"application","status":"current","text":"Новый результат приложения."}}]}}
+```
+
+8. При `revision:4` история содержит одну новую редакцию 1 с `owner_revision:4` и
+`origin.request_id:"guide-application"`. Поиск возвращает `APP-C`, затем `FREE`,
+`next:null`. Будущий `APP-F` остаётся в хранилище и доступен поиску с
+`filter:{"status":"future"}`.
+
+```json
+{"operation":"query","input":{"queries":[{"id":"history","kind":"history_requirement","requirement_id":"FREE"},{"id":"applications","kind":"search_requirements","filter":{"level":"application","applicable":true},"limit":64,"after_id":null}]}}
+```
 
 ## Новое пустое хранилище
 

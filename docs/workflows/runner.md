@@ -58,6 +58,20 @@ route в явно заданный changes_requested edge. Исправлени�
 проверяется; старые revisions/decisions не теряются. Командные и логические evidence не подменяют
 друг друга.
 
+## Именованные проверки проекта
+
+Обычный `poise checks` использует общий `RegisteredCheckRunner` для реального
+spawn/capture/cleanup и общий `SavedResponse` для полного ответа/представлений.
+Его opt-in semantic observer наблюдает распознанный прогресс; существующий
+Task runner без observer сохраняет byte-policy. Публичный Clock named history
+и реальные внутренние deadline наблюдения процесса имеют разные назначения.
+
+Generic ProcessRun/ExecutionItem/reuse и operational history не являются
+Task receipts и не заменяют источники проверки конкретного commit. Схемы,
+caller, cwd/environment, калибровка и восстановление принадлежат
+[каноническому справочнику](../configuration/named-project-checks.md).
+Три представления и чтение сохранённого полного результата ниже остаются общими.
+
 ## Нативное завершение сессии и зарегистрированные проверки
 
 C020 использует существующую цепочку `hook → HookRegistry → RegisteredCheckRunner`.

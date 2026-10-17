@@ -56,10 +56,36 @@ Task лишь ссылается на то же наблюдение. Перед
 Task применяет переход только после этих проверок. Это разделение не создаёт второго writer,
 совместимого ключа или миграции evidence.
 
-Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw
-capture синхронный,
-адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы
-EvidenceBook.
+Универсальный перехват вывода произвольных инструментов, async parser integrations
+и MCP-перехват остаются отдельными срезами. Явный named-check API уже использует
+общий сохранённый output owner и выбранные семантические парсеры; это не реализация
+универсального перехвата. В DDD-04 capture адресуемый и durable у задачи;
+сама форма EvidenceBook не доказывает дополнительные runtime integrations.
+
+## Именованные проверки проекта
+
+`modules.project_checks` владеет чистыми контрактами запросов, профилей, пакетов,
+наборов, исходов, сохранённых DTO, парсеров, прогресса и пригодности истории.
+`application.project_checks.ProjectChecks` координирует допуск, выполнение и чтение.
+`infrastructure.project_checks` реализует файловую конфигурацию, Git inputs и subject,
+наблюдение executable/cwd/environment, отдельный ledger/cache, capture adapter,
+материалы и optimistic publication. JSON/SQLite остаются в infrastructure;
+ClockObservation и строгие типы сохранённых run/result проверяются чистым владельцем.
+
+`NamedRunLedger` — авторитетные operational run/result rows. Непригодная consumed
+запись даёт contextual `registry_invalid` и сохраняется. `NamedResultCache` —
+необязательные payloads: подготовленный payload становится reuse только после
+проверки действительного ledger result, original run и retained bytes. Отказ store
+не меняет известный исход процесса. Application сохраняет единственный окончательный
+execution result с фактическим stored metadata.
+
+Повторно используются `RegisteredCheckRunner` и общий `SavedResponse`. Смысловой
+progress observer не меняет byte-policy существующих потребителей. Operational
+history/calibration используют сравнимый публичный Clock, а реальные deadline/cleanup
+остаются у процесса. Task/C018/CheckRegistry/evidence не читают generic payloads
+как собственные receipts и не получают новых lifecycle writers.
+Полный [пользовательский контракт](../configuration/named-project-checks.md#назначение-и-границы)
+владеет настройкой и процедурами; этот раздел фиксирует направление зависимостей.
 
 
 ## WorkOwnership

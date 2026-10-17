@@ -1,0 +1,39 @@
+schema_version = 1
+shared_tests = []
+
+[inventory]
+candidate_globs = [
+  "tests/test_example.py",
+]
+ignored_paths = []
+
+[[packages]]
+package_id = "unit-example"
+kind = "unit"
+description = "Один настоящий unittest выбранного проекта."
+contract = "Тест проверяет объявленное поведение приложения."
+owners = [
+  "example-maintainers",
+]
+dependencies = []
+source_paths = [
+  "src/**",
+]
+fixture_paths = [
+  "tests/fixtures/**",
+]
+triggering_input_changes = []
+triggering_output_changes = []
+triggering_input_paths = []
+triggering_output_paths = []
+shared_libraries = []
+shared_databases = []
+shared_library_paths = []
+shared_database_paths = []
+bidirectional = false
+[[packages.steps]]
+driver = "python-unittest"
+test_paths = [
+  "tests/test_example.py",
+]
+arguments = []

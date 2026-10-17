@@ -36,8 +36,25 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
 | `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
+| `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
 
-Обычная работа использует launcher, выданный нативным hook для этой сессии:
+### Именованные проверки проекта
+
+```bash
+"${poise[@]}" checks --config "$project_json" --checkout "$checkout" \
+  --policy "$checks_policy" --view expanded < "$packet"
+```
+
+`checks_policy` — заполненный абсолютный путь отдельной политики обычных проверок.
+Семь JSON-операций: `list`, `describe`, `preview`, `run`, `result`, `calibrate`,
+`package_impact`. Их selectors/options и схемы, заполнение четырёх примеров,
+подлинный native/generated caller, предпосылки и восстановление принадлежат
+[каноническому справочнику](../configuration/named-project-checks.md#запросы-и-выбор).
+`preview.available` не подтверждает executable или исполнение. `--view full`
+обращает к сохранённому полному ответу; чтение не повторяет ребёнка.
+Команда `check` ниже относится к обслуживанию окружения и не является этим API.
+
+Работа над Task использует launcher, выданный нативным hook для этой сессии:
 
 ```bash
 bash "${AI_POISE_WORK:?Путь родного session work.sh}" < "$packet"

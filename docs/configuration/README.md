@@ -4,6 +4,7 @@
 
 - [catalogue-stage-map.md](catalogue-stage-map.md)
 - [check-runner-timeouts.md](check-runner-timeouts.md)
+- [named-project-checks.md](named-project-checks.md)
 - [development-routing.md](development-routing.md)
 - [goal-config.md](goal-config.md)
 - [local-assets.md](local-assets.md)

@@ -43,7 +43,7 @@ def selected_shared_source(repository, destination):
 
 
 def assert_ready_engine_and_inputs(case, response, desired):
-    report = receipt(response)
+    report = receipt(response, case['preparation'])
     assert report['status'] == 'ready'
     assert [operation['name'] for operation in report['operations']] == ['infra', 'deps', 'check']
     assert_registered_materials(case['preparation'], report)
@@ -125,6 +125,7 @@ def test_fresh_managed_erp_workspace_reaches_real_ready_and_keeps_history(projec
         {'source': str(shared), 'destination': 'platform-infrastructure/config/dev/local-development.env'},
         {'source': str(execution), 'destination': CONTRACT['normal_cjm']['execution_configuration']},
     ]
+    preparation['fixture_streams'] = False
     write_json(preparation['configuration'], configured)
     desired = {target['id']: (case['profile'] / 'documents' / (target['id'] + '.json')).read_bytes()
                for target in targets(case)}

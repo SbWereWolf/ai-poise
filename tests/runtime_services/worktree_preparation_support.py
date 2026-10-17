@@ -41,15 +41,54 @@ def arrange(project, monkeypatch):
     runtime = WorkPoise(project['config_path'], 'P004-EXECUTOR')
     return {'project': project, 'runtime': runtime, 'tools': WorkTools(runtime),
             'configuration': path, 'source': source, 'control': control, 'events': events,
-            'base': git(project['app'], 'rev-parse', 'HEAD')}
+            'base': git(project['app'], 'rev-parse', 'HEAD'), 'attempt_origins': {},
+            'fixture_streams': True}
+
+
+def capture_origin(case):
+    """Capture selected input bytes and real allocation/Git facts BEFORE invocation."""
+    project = case['project']
+    identifier = project['task']['id']
+    with sqlite3.connect(case['runtime'].store.path) as connection:
+        row = connection.execute('SELECT data FROM task_execution WHERE task_id=?', (identifier,)).fetchone()
+    if row is None:
+        assert project['cfg']['paths']['worktrees'] == 'worktrees'
+        worktree = str(case['runtime'].state / 'worktrees' / identifier)
+        branch = 'tasks/' + identifier
+        base = git(project['app'], 'rev-parse', project['cfg']['git']['base_ref'] + '^{commit}')
+    else:
+        allocated = json.loads(row[0])
+        worktree, branch, base = (allocated[name] for name in ('worktree', 'branch', 'base'))
+        if worktree is not None:
+            assert git(Path(worktree), 'symbolic-ref', '--short', 'HEAD') == branch
+    try:
+        content = case['configuration'].read_bytes()
+    except FileNotFoundError:
+        content = None
+    return {'task_id': identifier, 'project_id': project['cfg']['project'],
+            'worktree': worktree, 'branch': branch, 'base': base,
+            'configuration_path': str(case['configuration']), 'configuration_bytes': content,
+            'fixture_streams': case['fixture_streams'],
+            'control': read_json(case['control']) if case['fixture_streams'] else None,
+            'event_start': len(events(case))}
+
+
+def observe_reply(case, expected, reply):
+    preparation = reply.get('preparation')
+    if preparation is not None:
+        expected['event_end'] = len(events(case))
+        case['attempt_origins'].setdefault(preparation['attempt_id'], expected)
+    return reply
 
 
 def boot(case, *, again=False, request_id=None, tools=None):
+    expected = capture_origin(case)
     body = read_json(FIXTURES / 'bootstrap-input.json')
     body['task'] = {'id': case['project']['task']['id']} if again else deepcopy(case['project']['task'])
     if request_id is not None:
         body['preparation_request_id'] = request_id
-    return (tools or case['tools']).invoke(request('bootstrap', body))
+    reply = (tools or case['tools']).invoke(request('bootstrap', body))
+    return observe_reply(case, expected, reply)
 
 
 def events(case):
@@ -67,13 +106,35 @@ def set_decision(case, operation, *, status='not_ready', code=17, malformed=Fals
     write_json(case['control'], control)
 
 
-def receipt(reply):
+def assert_origin(report, expected):
+    for field in ('task_id', 'project_id', 'worktree', 'branch', 'base'):
+        assert report[field] == expected[field], field
+    configuration = report['configuration']
+    assert configuration['path'] == expected['configuration_path']
+    assert Path(configuration['snapshot_path']).read_bytes() == expected['configuration_bytes']
+    assert configuration['sha256'] == hashlib.sha256(expected['configuration_bytes']).hexdigest()
+
+
+def assert_captured_stdout(command, expected_bytes):
+    assert Path(command['stdout_path']).read_bytes() == expected_bytes
+
+
+def expected_stdout(control, operation):
+    decision = control['operations'].get(operation, control['default'])
+    if decision.get('malformed'):
+        return 'unrecognized external reply Ω\n'.encode()
+    assert decision['status'] in ('ready', 'not_ready')
+    return (FIXTURES / (decision['status'] + '.stdout')).read_bytes()
+
+
+def receipt(reply, case):
     declaration = reply['preparation']
     path = Path(declaration['receipt_path'])
     assert hashlib.sha256(path.read_bytes()).hexdigest() == declaration['receipt_sha256']
     result = read_json(path)
     assert result['schema'] == 'poise/worktree-preparation/v1'
     assert result['attempt_id'] == declaration['attempt_id']
+    assert_origin(result, case['attempt_origins'][result['attempt_id']])
     return result
 
 
@@ -97,6 +158,8 @@ def material_bytes(case):
 
 
 def assert_registered_materials(case, report):
+    origin = case['attempt_origins'][report['attempt_id']]
+    assert_origin(report, origin)
     records = dict(registered(case))
     required = [report['configuration']['snapshot_path']]
     for operation in report['operations']:
@@ -111,6 +174,15 @@ def assert_registered_materials(case, report):
     assert all(path in records for path in required)
     snapshot = Path(report['configuration']['snapshot_path']).read_bytes()
     assert hashlib.sha256(snapshot).hexdigest() == report['configuration']['sha256']
+    if origin['fixture_streams']:
+        observed = events(case)[origin['event_start']:origin['event_end']]
+        commands = [command for operation in report['operations'] for command in operation['commands']]
+        assert len(commands) == len(observed)
+        for command, observation in zip(commands, observed, strict=True):
+            assert command['name'] == observation['operation']
+            assert command['argv'][2:] == observation['argv']
+            assert command['cwd'] == observation['cwd']
+            assert_captured_stdout(command, expected_stdout(origin['control'], observation['operation']))
 
 
 def use_environment_handler(case):

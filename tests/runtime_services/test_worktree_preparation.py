@@ -14,8 +14,9 @@ from poise.application.work import WorkTools
 from poise.infrastructure.artifact_factory import FileArtifactFactory
 from poise.interfaces.work import execute
 from runtime_services.worktree_preparation_support import (
-    FIXTURES, arrange, assert_registered_materials, boot, events, material_bytes,
-    operations, read_json, receipt, registered, set_decision, task_row, use_environment_handler,
+    FIXTURES, arrange, assert_captured_stdout, assert_origin, assert_registered_materials,
+    boot, capture_origin, events, material_bytes, observe_reply, operations,
+    read_json, receipt, registered, set_decision, task_row, use_environment_handler,
 )
 
 
@@ -25,6 +26,8 @@ def test_new_task_prepares_physical_worktree_in_order(project, monkeypatch, scop
     if scope == 'sprint':
         from sprints.helpers import publish_existing_contract
         case['project']['task'] = publish_existing_contract(case['runtime'], project['task'], 'S')
+    selected = read_json(case['configuration'])
+    case['configuration'].write_text(' \n' + json.dumps(selected, ensure_ascii=False, separators=(',', ':')) + '\t\n', encoding='utf-8')
     response = boot(case)
     root = Path(response['worktree'])
     assert root.is_dir()
@@ -37,13 +40,16 @@ def test_new_task_prepares_physical_worktree_in_order(project, monkeypatch, scop
         assert row['project'] == 'demo'
         assert row['branch'] == 'tasks/T1'
         assert row['head'] == case['base']
-    report = receipt(response)
+    report = receipt(response, case)
     assert report['status'] == response['preparation']['status'] == 'ready'
     assert [item['name'] for item in report['operations']] == ['infra', 'deps', 'check']
+    assert_registered_materials(case, report)
 
 
-def test_external_fixture_observes_real_inputs_and_full_streams(project, monkeypatch):
+@pytest.mark.parametrize('status,exit_code', [('ready', 0), ('not_ready', 17)])
+def test_external_fixture_observes_real_inputs_and_full_streams(project, monkeypatch, status, exit_code):
     case = arrange(project, monkeypatch)
+    set_decision(case, 'check', status=status, code=exit_code)
     root = project['app']
     (root / 'selected').mkdir()
     (root / 'selected/input.txt').write_bytes(case['source'].read_bytes())
@@ -51,8 +57,8 @@ def test_external_fixture_observes_real_inputs_and_full_streams(project, monkeyp
                str(root), 'T1', 'demo', 'literal Ω $VALUE with spaces']
     result = subprocess.run([sys.executable, *command],
                             cwd=root, capture_output=True, check=False)
-    assert result.returncode == 0
-    assert json.loads(result.stdout)['payload'] == 'full stream Ω value\n' * 256
+    assert result.returncode == exit_code
+    assert result.stdout == (FIXTURES / (status + '.stdout')).read_bytes()
     assert result.stderr.decode() == 'full diagnostic π\n' * 256
     row, = events(case)
     assert row['input'] == 'selected input Ω\n'
@@ -66,7 +72,7 @@ def test_declared_inputs_are_published_before_first_operation(project, monkeypat
     root = Path(response['worktree'])
     assert (root / 'selected/input.txt').read_bytes() == b'selected input \xce\xa9\n'
     assert [row['input'] for row in events(case)] == ['selected input Ω\n'] * 3
-    report = receipt(response)
+    report = receipt(response, case)
     entry, = report['inputs']
     assert entry['source'] == str(case['source'])
     assert entry['destination'] == str(root / 'selected/input.txt')
@@ -89,11 +95,11 @@ def test_failure_preserves_task_workspace_and_complete_receipt(project, monkeypa
     assert task_row(case)[0] == 'T1'
     assert task_row(case)[1] == response['task_status']
     assert task_row(case)[1] not in ('cancelled', 'completed')
-    report = receipt(response)
+    report = receipt(response, case)
     assert_registered_materials(case, report)
     command = report['operations'][-1]['commands'][0]
     assert command['returncode'] == 17
-    assert json.loads(Path(command['stdout_path']).read_bytes())['payload'] == 'full stream Ω value\n' * 256
+    assert Path(command['stdout_path']).read_bytes() == (FIXTURES / 'not_ready.stdout').read_bytes()
     assert Path(command['stderr_path']).read_text() == 'full diagnostic π\n' * 256
     assert dict(registered(case))[response['preparation']['receipt_path']] == response['preparation']['receipt_sha256']
 
@@ -102,16 +108,17 @@ def test_new_attempt_reads_changed_bytes_and_retains_prior_failure(project, monk
     case = arrange(project, monkeypatch)
     set_decision(case, 'deps')
     first = boot(case)
-    first_report = receipt(first)
+    first_report = receipt(first, case)
     before = material_bytes(case)
     root = Path(first['worktree'])
     (root / 'retained Ω.txt').write_text('user work', encoding='utf-8')
     config = read_json(case['configuration'])
     config['parameters']['label'] = 'new Ω $LITERAL value'
-    write_json(case['configuration'], config)
+    case['configuration'].write_text('\t\n' + json.dumps(config, ensure_ascii=True, indent=1) + '\n \n', encoding='utf-8')
     set_decision(case, 'deps', status='ready', code=0)
     second = boot(case, again=True, request_id='fixed-1')
-    second_report = receipt(second)
+    second_report = receipt(second, case)
+    assert_registered_materials(case, second_report)
     assert second['worktree'] == first['worktree']
     assert second['preparation']['status'] == 'ready'
     assert second_report['attempt_id'] != first_report['attempt_id']
@@ -137,6 +144,7 @@ def test_completed_request_replay_does_not_run_again(project, monkeypatch, outco
     write_json(case['configuration'], config)
     again = boot(case, again=True, request_id='completed-1')
     assert again['preparation'] == first['preparation']
+    receipt(again, case)
     assert (material_bytes(case), events(case), task_row(case)) == before
     assert again['worktree'] == initial['worktree']
 
@@ -165,7 +173,7 @@ def test_selected_handler_is_replaceable_and_receives_complete_process(project, 
     write_json(case['configuration'], config)
     response = boot(case)
     assert response['preparation']['status'] == 'ready'
-    report = receipt(response)
+    report = receipt(response, case)
     assert_registered_materials(case, report)
     for operation in report['operations']:
         result = operation['result']
@@ -175,7 +183,7 @@ def test_selected_handler_is_replaceable_and_receives_complete_process(project, 
         assert result['options']['workspace'] == response['worktree']
         assert result['context']['operation'] == operation['name']
         if handler == 'accept':
-            assert json.loads(result['stdout'])['payload'] == 'full stream Ω value\n' * 256
+            assert result['stdout'].encode('utf-8') == (FIXTURES / 'ready.stdout').read_bytes()
             assert result['stderr'] == 'full diagnostic π\n' * 256
 
 
@@ -190,7 +198,7 @@ def test_unknown_or_second_error_returns_without_outer_repair(project, monkeypat
     assert response['status'] == 'action_failed'
     assert response['preparation']['status'] == 'error'
     assert operations(case) == (['infra'] if mode == 'unknown' else ['infra', 'repair', 'verification'])
-    report = receipt(response)
+    report = receipt(response, case)
     assert_registered_materials(case, report)
     assert len(report['operations']) == 1
     assert len(report['operations'][0]['commands']) == (1 if mode == 'unknown' else 3)
@@ -243,13 +251,15 @@ def test_work_interface_reports_preparation_failure_as_incomplete(project, monke
     body = read_json(FIXTURES / 'bootstrap-input.json')
     body['task'] = deepcopy(project['task'])
     output = io.StringIO()
+    expected = capture_origin(case)
     code = execute(case['runtime'], io.BytesIO(json.dumps(request('bootstrap', body)).encode()), output)
     envelope = json.loads(output.getvalue())
     full = read_json(envelope['response_path'])
+    observe_reply(case, expected, full)
     assert code == (1 if failure else 0)
     assert full['status'] == ('action_failed' if failure else 'active')
     assert full['preparation']['status'] == ('error' if failure else 'ready')
-    assert receipt(full)['task_id'] == 'T1'
+    assert receipt(full, case)['task_id'] == 'T1'
     assert len(events(case)) == (1 if failure else 3)
 
 
@@ -324,8 +334,62 @@ def test_unconfirmed_receipt_is_observed_before_same_or_new_request(project, mon
         assert final['preparation']['reason']
     else:
         assert final['preparation']['status'] == 'ready'
+        receipt(final, case)
         assert Path(fault['path']).is_file()
         assert fault['path'] in dict(registered(case))
+        assert_origin(read_json(fault['path']), case['attempt_origins'][first['preparation']['attempt_id']])
         assert operations(case) == ['infra', 'deps', 'check'] * (1 if continuation == 'same' else 2)
         assert len(reconciled_before_launch) == (0 if continuation == 'same' else 3)
         assert all(read_bytes(Path(path)) == content for path, content in captures.items())
+
+
+def test_origin_oracle_rejects_consistent_but_unrelated_materials(tmp_path):
+    """Check the assertion itself, not a synthetic product preparation PASS."""
+    selected = tmp_path / 'selected.json'
+    original_bytes = b' \n{"value":"selected"}\t\n'
+    selected.write_bytes(original_bytes)
+    expected = read_json(FIXTURES / 'origin.json')
+    expected.update(configuration_path=str(selected), configuration_bytes=original_bytes)
+    snapshot = tmp_path / 'snapshot.json'
+    snapshot.write_bytes(original_bytes)
+    report = read_json(FIXTURES / 'origin.json')
+    report['configuration'] = {'path': str(selected), 'snapshot_path': str(snapshot),
+                               'sha256': hashlib.sha256(original_bytes).hexdigest()}
+    assert_origin(report, expected)
+    for field in ('task_id', 'project_id', 'worktree', 'branch', 'base'):
+        wrong = deepcopy(report)
+        wrong[field] += '-wrong'
+        with pytest.raises(AssertionError):
+            assert_origin(wrong, expected)
+    wrong = deepcopy(report)
+    wrong['configuration']['path'] = str(tmp_path / 'another-selection.json')
+    with pytest.raises(AssertionError):
+        assert_origin(wrong, expected)
+    # Internally consistent snapshot/hash still does not match the selected raw input.
+    unrelated = b'{"value":"unrelated"}\n'
+    snapshot.write_bytes(unrelated)
+    report['configuration']['sha256'] = hashlib.sha256(unrelated).hexdigest()
+    with pytest.raises(AssertionError):
+        assert_origin(report, expected)
+    # Even semantically equivalent reserialization violates the raw snapshot contract.
+    normalized = b'{"value":"selected"}'
+    assert json.loads(normalized) == json.loads(original_bytes)
+    snapshot.write_bytes(normalized)
+    report['configuration']['sha256'] = hashlib.sha256(normalized).hexdigest()
+    with pytest.raises(AssertionError):
+        assert_origin(report, expected)
+
+
+def test_stdout_oracle_rejects_reencoding_and_lost_final_newline(tmp_path):
+    """Keep exact-byte sensitivity independent of the production command serializer."""
+    expected = (FIXTURES / 'not_ready.stdout').read_bytes()
+    target = tmp_path / 'capture.stdout'
+    command = {'stdout_path': str(target)}
+    target.write_bytes(expected)
+    assert_captured_stdout(command, expected)
+    for altered in (expected.replace('Ω'.encode(), b'\\u03a9'), expected[:-1]):
+        assert altered != expected
+        assert json.loads(altered) == json.loads(expected)
+        target.write_bytes(altered)
+        with pytest.raises(AssertionError):
+            assert_captured_stdout(command, expected)

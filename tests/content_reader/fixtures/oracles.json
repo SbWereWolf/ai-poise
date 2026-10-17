@@ -439,10 +439,10 @@
       "definition_path": "@ROOT@/definition-pending.json"
     },
     "coordination": {
-      "wait_seconds": 0.15,
+      "wait_seconds": 2.0,
       "poll_seconds": 0.01,
-      "recovery_budget_seconds": 0.3,
-      "host_event_budget_seconds": 0.3,
+      "recovery_budget_seconds": 2.0,
+      "host_event_budget_seconds": 2.0,
       "end_observation_poll_seconds": 0.01
     },
     "storage": {

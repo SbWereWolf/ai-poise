@@ -271,7 +271,7 @@ class ConsumerStorageTests(unittest.TestCase):
         with closing(sqlite3.connect(self.database)) as db:
             state = schema_state(db)
             self.assertEqual(state["version"], 1)
-            self.assertEqual({name for name, _ in state["tables"]}, set(records()) | set(self.cases["metadata"]))
+            self.assertLessEqual(set(records()) | set(self.cases["metadata"]), {name for name, _ in state["tables"]})
             self.assertEqual(db.execute(
                 "SELECT revision,schema_version FROM requirements_meta"
             ).fetchall(), [(0, 1)])

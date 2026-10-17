@@ -89,7 +89,10 @@ def test_one_cleanup_owner_is_shared_by_terminal_and_integration_paths():
 def test_cleanup_implementation_contains_no_force_or_transport_owned_deletion():
     infrastructure = source("src/poise/infrastructure/task_cleanup.py")
     transport = source("src/poise/application/work.py")
-    forbidden = ("--force", "branch\", \"-D", "reset\", \"--hard", "git clean", "git push")
+    # Dirty cancelled work may be discarded only by its explicit cleanup intent.
+    # The behavioural boundary tests observe that flag and its refusal cases.
+    forbidden = ("branch\", \"-D", "branch\", \"--force", "branch\", \"-f",
+                 "reset\", \"--hard", "git clean", "git push")
 
     assert not any(token in infrastructure for token in forbidden)
     assert "worktree\", \"remove" not in transport

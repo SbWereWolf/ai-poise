@@ -203,25 +203,22 @@ def test_cleanup_blocks_when_the_registered_branch_commit_has_drifted(project):
 
 
 def test_dirty_standalone_worktree_remains_blocked_after_disposition_replay(project):
-    tools, worktree, commit = prepare_completed_task(
-        project,
-        lambda root: (root / "src" / "cancelled.py").write_text(
-            "VALUE = 'cancelled task commit'\n", encoding="utf-8"
-        ),
-        accept=False,
-    )
-    marker = Path(worktree) / "unfinished.txt"
-    marker.write_text("uncommitted user work\n", encoding="utf-8")
+    # A preservation intent grants no permission to discard unfinished bytes.
+    # Authorized discard is covered separately through the real cancel path.
+    tools, worktree, commit, _ = prepare_cancelled_task(project)
+    marker = worktree / "unfinished.txt"
+    marker.write_bytes(b"uncommitted user work\n")
+    packet = request("cleanup", cleanup_input(commit, kind="preserved"))
 
-    cancelled = tools.invoke(request("cancel", {"reason": "User cancelled this dirty Task."}))
-    assert cancelled["cleanup"]["status"] == "cleanup_blocked"
-    assert cancelled["cleanup"]["blocker"]["reason"] == "dirty_worktree_requires_decision"
+    blocked = tools.invoke(packet)
+    assert blocked["status"] == "cleanup_blocked"
+    assert blocked["blocker"]["reason"] == "dirty_worktree_requires_decision"
 
-    replay = tools.invoke(request("cleanup", cleanup_input(commit)))
+    replay = tools.invoke(packet)
     assert replay["status"] == "cleanup_blocked"
     assert replay["blocker"]["reason"] == "dirty_worktree_requires_decision"
-    assert marker.read_text(encoding="utf-8") == "uncommitted user work\n"
-    assert Path(worktree).is_dir() and branch_exists(project)
+    assert marker.read_bytes() == b"uncommitted user work\n"
+    assert worktree.is_dir() and branch_exists(project)
 
 
 def test_registered_temporary_resources_flow_through_public_cleanup(project):

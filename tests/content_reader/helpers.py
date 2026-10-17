@@ -479,17 +479,49 @@ def before_final_guard(monkeypatch, scenario, lock):
 
 
 def text_frames(raw):
-    """Independent byte-framed consumer, including concatenated no-final-LF."""
+    """Consume exact byte frames; failed items have no content metadata/body."""
     remaining, frames = raw.encode(), []
     while remaining:
         header, separator, remaining = remaining.partition(b'\n')
         assert separator
         value = strict_json(header)
         item = value['item']
-        count = item['content_bytes'] if item['content_follows'] else 0
+        assert type(item) is dict and 'status' in item and type(item['status']) is str
+        if item['status'] == 'failed':
+            assert set(item) == {'key','status','error'}
+            assert type(item['key']) is str and item['key']
+            error = item['error']
+            assert type(error) is dict and set(error) == {'code','key','field','message','action'}
+            typed_equal(error['key'],item['key'])
+            for field in ['code','field','message','action']:
+                assert type(error[field]) is str and error[field]
+            vocabulary = {v['code']:v for v in fixture()['errors']}
+            assert error['code'] in vocabulary
+            for field in ['message','action']:
+                typed_equal(error[field],vocabulary[error['code']][field])
+            count, follows = 0, False
+        else:
+            assert item['status'] in {'content','unchanged'}
+            assert set(item) == ITEM
+            typed_equal(item['schema_version'],1)
+            for field in ['content_bytes','content_lines','context_generation']:
+                assert type(item[field]) is int and item[field] >= 0
+            for field in ['content_follows','previous_read_available']:
+                assert type(item[field]) is bool
+            typed_equal(item['content_follows'],item['status']=='content')
+            typed_equal(item['previous_read_available'],item['status']=='unchanged')
+            for field in ['key','path','hash','range','reader_kind','classification']:
+                assert type(item[field]) is str and item[field]
+            typed_equal(item['reader_kind'],'repository-content-read')
+            assert item['classification'] in {'first_read','new_range','content_changed','new_context_generation','exact_repeat'}
+            assert len(item['hash'])==64 and all(c in '0123456789abcdef' for c in item['hash'])
+            follows = item['content_follows']
+            count = item['content_bytes'] if follows else 0
         assert len(remaining) >= count
         content, remaining = remaining[:count], remaining[count:]
-        assert not item['content_follows'] or sha(content) == item['hash']
+        if follows:
+            assert sha(content) == item['hash']
+            assert len(content.decode('utf-8').splitlines()) == item['content_lines']
         frames.append((value, content))
     return frames
 

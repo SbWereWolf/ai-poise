@@ -38,6 +38,35 @@ def check_consumers(tmp_path):
     save(good)
     s.envelope(good,operation='read',exit_code=0); row(good)
     assert_complete_read(s,good,good);assert_text(s,render_text(good),good)
+    # Legitimate error frames have no content metadata and exactly zero body.
+    error_spec=fixture('error-frame-cases.json')
+    error_result=complete_expected(s,items=[error_spec['failed_item']],summary=error_spec['empty_summary'],
+                                   generation=0,path=str(path),status='failed')
+    save(error_result);s.envelope(error_result,operation='read',exit_code=3)
+    frames=assert_text(s,render_text(error_result),error_result)
+    assert len(frames)==1 and frames[0][1]==b''
+    equal_item=deepcopy(good['items'][0]);equal_item['key']='z'
+    repeat_item=deepcopy(equal_item);repeat_item.update(key='a',status='unchanged',classification='exact_repeat',
+               content_follows=False,previous_read_available=True);del repeat_item['content']
+    mixed=complete_expected(s,items=[error_spec['failed_item'],equal_item,repeat_item],
+                            summary=error_spec['mixed_summary'],generation=0,path=str(path),status='partial')
+    save(mixed);s.envelope(mixed,operation='read',exit_code=1)
+    frames=assert_text(s,render_text(mixed),mixed)
+    assert [v[0]['item']['key'] for v in frames]==error_spec['mixed_keys']
+    assert [v[1] for v in frames]==[b'','βeta\nlast'.encode(),b'']
+    from tests.content_reader.helpers import text_frames
+    for item in [equal_item,repeat_item]:
+        for missing in ['content_follows','content_bytes','content_lines','context_generation','hash']:
+            bad_item={k:v for k,v in item.items() if k not in {'content',missing}}
+            with pytest.raises(AssertionError):text_frames(canonical(header_expected(good,bad_item)))
+        for name,value in [('content_follows',0),('content_bytes',True),('content_lines',2.0),('context_generation',False)]:
+            bad_item={k:v for k,v in item.items() if k!='content'};bad_item[name]=value
+            with pytest.raises(AssertionError):text_frames(canonical(header_expected(good,bad_item)))
+    bad_error=dict(error_spec['failed_item'],content_follows=False)
+    with pytest.raises(AssertionError):text_frames(canonical(header_expected(error_result,bad_error)))
+    bad_error=deepcopy(error_spec['failed_item']);bad_error['error']['key']='foreign-key'
+    with pytest.raises(AssertionError):text_frames(canonical(header_expected(error_result,bad_error)))
+    save(good)
     cases = fixture('consumer-invalid.json')
     for case in cases:
         bad = deepcopy(good); target = bad

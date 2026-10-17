@@ -408,6 +408,36 @@ def test_both_complete_representation_consumers(s):
     assert_text(s,out,wanted,calibration=path)
 
 
+    # Fresh real episode isolates failed-source and mixed per-item outcomes.
+    s.event('SessionEnd');assert s.invoke({'operation':'recover'})[0]==0
+    s.event();s.ready()
+    error_spec=fixture('error-frame-cases.json');before=s.metadata()
+    missing=s.request(key='missing',path='docs/missing.txt')
+    code,out,err=s.raw(missing,'text');assert code==3 and err==''
+    path=text_frames(out)[0][0]['response_path']
+    wanted=complete_expected(s,items=[error_spec['failed_item']],summary=error_spec['empty_summary'],
+                             generation=0,path=path,status='failed')
+    frames=assert_text(s,out,wanted)
+    typed_equal(frames[0][0]['item'],error_spec['failed_item']);typed_equal(frames[0][1],b'')
+    s.envelope(strict_json(Path(path).read_bytes()),operation='read',exit_code=3)
+    assert s.metadata()==before
+    one=deepcopy(fixture()['first_response']['items'][0]);one['key']='z'
+    two=deepcopy(one);two.update(key='a',status='unchanged',classification='exact_repeat',
+                                content_follows=False,previous_read_available=True);del two['content']
+    request={'operation':'read','reads':[missing['reads'][0],s.request(key='z')['reads'][0],s.request(key='a')['reads'][0]]}
+    code,out,err=s.raw(request,'text');assert code==1 and err==''
+    wanted=complete_expected(s,items=[error_spec['failed_item'],one,two],summary=error_spec['mixed_summary'],
+                             generation=0,path=path,status='partial')
+    frames=assert_text(s,out,wanted,calibration=path)
+    assert [v[0]['item']['key'] for v in frames]==error_spec['mixed_keys']
+    assert [v[0]['item']['status'] for v in frames]==error_spec['mixed_statuses']
+    assert [v[1] for v in frames]==[b'','βeta\nlast'.encode(),b'']
+    s.envelope(strict_json(Path(frames[0][0]['response_path']).read_bytes()),operation='read',exit_code=1)
+    cache,events=s.metadata();assert len(cache)==1 and len(events)==2
+    assert [v[6] for v in events]==['content','unchanged']
+    typed_equal(s.context()['summary'],error_spec['mixed_summary'])
+
+
 TOP_TEXT_KEYS={'schema','status','operation','project','checkout','policy_sha256','context','item','summary','details','error','response_path'}
 
 

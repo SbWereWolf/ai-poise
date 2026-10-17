@@ -167,3 +167,42 @@ class HookRegistry:
                 "SELECT 1 FROM hook_events WHERE binding=? AND event='SessionStart' AND id=? AND id<?",
                 (session, start_id, end_id),
             ).fetchone() is not None
+
+    def preceding_start(self, binding, event_id):
+        with self.read_transaction() as db:
+            return db.execute("SELECT max(id) FROM hook_events WHERE binding=? AND event='SessionStart' AND id<=?",
+                              (binding,event_id)).fetchone()[0]
+
+    def bind_lifecycle_receipt(self, receipt, episode, definition_id, project_id):
+        fields=('project_id','session_id','binding_id')
+        if (not isinstance(receipt,dict) or not isinstance(episode,dict)
+                or type(receipt.get('schema_version')) is not int or receipt['schema_version']!=1
+                or receipt.get('event') not in ('SessionStart','SessionEnd')
+                or any(not isinstance(item.get(key),str) or not item[key]
+                       for item in (receipt,episode) for key in fields)
+                or any(type(value) is not int or value<=0 for value in
+                       (receipt.get('event_id'),receipt.get('native_start_event_id'),episode.get('start_event_id')))):
+            raise PoiseError('Invalid lifecycle event receipt or episode; select a genuine SessionStart and retry recovery')
+        if any(receipt[key]!=episode[key] for key in fields) or receipt['project_id']!=project_id:
+            raise PoiseError('Lifecycle receipt identifies another episode')
+        binding,event_id,start_id=receipt['binding_id'],receipt['event_id'],episode['start_event_id']
+        with self.read_transaction() as db:
+            installed=db.execute('SELECT 1 FROM installations WHERE id=?',(definition_id,)).fetchone()
+            row=db.execute('SELECT data FROM bindings WHERE id=?',(binding,)).fetchone()
+            if installed is None or row is None:
+                raise PoiseError('Lifecycle installation/binding is unavailable; restore its configured native owner')
+            data=json.loads(row[0])
+            if data['project']!=project_id or data['external_session']!=receipt['session_id']:
+                raise PoiseError('Lifecycle binding identifies another episode')
+            actual=db.execute('SELECT event FROM hook_events WHERE binding=? AND id=?',(binding,event_id)).fetchone()
+            anchor=db.execute("SELECT 1 FROM hook_events WHERE binding=? AND id=? AND event='SessionStart'",
+                              (binding,start_id)).fetchone()
+            preceding=db.execute("SELECT max(id) FROM hook_events WHERE binding=? AND event='SessionStart' AND id<=?",
+                                 (binding,event_id)).fetchone()[0]
+            interrupted=db.execute("SELECT 1 FROM hook_events WHERE binding=? AND event='SessionEnd' AND id>=? AND id<? LIMIT 1",
+                                   (binding,start_id,event_id)).fetchone()
+            if (actual is None or actual[0]!=receipt['event'] or anchor is None
+                    or preceding!=receipt['native_start_event_id'] or start_id>preceding or interrupted is not None):
+                raise PoiseError('Lifecycle event does not belong to the selected episode; verify native delivery and retry recovery')
+        return {'schema_version':1,'event':receipt['event'],'event_id':event_id,
+                'episode':{key:episode[key] for key in (*fields,'start_event_id')}}

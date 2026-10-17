@@ -66,6 +66,7 @@ def parser():
     hook=sub.add_parser('hook',help='Codex native command-hook event (adapter, not a task API)')
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
+    hook.add_argument('--retry',type=Path,help='Retry one saved committed lifecycle delivery without replaying a native event')
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
     bound.add_argument('--settings',type=Path,required=True,action=SingleArgument)
     bound.add_argument('--binding',type=Path,required=True,action=SingleArgument)

@@ -24,10 +24,28 @@ def _write(service,result,output):
     output.write(bounded_envelope(result,path,settings.raw['output_chars'],{}, {}, []))
 
 
+def _write_native(service,result,definition_path,output):
+    cfg=service.settings.raw
+    if 'systemMessage' in result and 'hookSpecificOutput' in result:
+        path=_save_response(service,result)
+        notice=service.definition(definition_path).data['unknown_outcome_message']
+        text=native_context_view(result,path,cfg['output_chars'],notice)
+    else:
+        text=utf8_json_text(result)+'\n'
+        if len(text)>cfg['output_chars']:
+            raise PoiseError('Configured hook context cannot fit output limit')
+    output.write(text)
+
+
 def execute(command,args,stream,output,error):
     service=None
     try:
         settings=HookSettings(args.settings);cfg=settings.raw
+        if command=='hook' and getattr(args,'retry',None) is not None:
+            service=HookService(args.settings)
+            result=service.retry_lifecycle(args.definition,args.retry)
+            _write_native(service,result,args.definition,output)
+            return cfg['exit_codes']['success']
         raw=stream.read(cfg['max_input_bytes']+1)
         if len(raw)>cfg['max_input_bytes']:raise PoiseError('Hook/adapter packet exceeds configured input limit')
         packet=strict_json(raw.decode('utf-8'))
@@ -39,15 +57,7 @@ def execute(command,args,stream,output,error):
         service=HookService(args.settings)
         if command=='hook':
             result=service.event(args.definition,packet)
-            if 'systemMessage' in result and 'hookSpecificOutput' in result:
-                path=_save_response(service,result)
-                notice=service.definition(args.definition).data['unknown_outcome_message']
-                text=native_context_view(result,path,cfg['output_chars'],notice)
-            else:
-                text=utf8_json_text(result)+'\n'
-                if len(text)>cfg['output_chars']:
-                    raise PoiseError('Configured hook context cannot fit output limit')
-            output.write(text)
+            _write_native(service,result,args.definition,output)
             return cfg['exit_codes']['success']
         if command=='hook-work':
             require_result_budget('',cfg['output_chars'],'rejected')

@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from pathlib import Path
+import fcntl
 import io
 import stat
 import json
@@ -217,12 +218,41 @@ def test_context_generation_event_replay_is_scoped(s, project, tmp_path):
 
 
 def test_concurrent_exact_reads(s):
+    s.data['coordination']['wait_seconds'] = 2.0
+    s.save_policy()
     s.ready()
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = [f.result(timeout=10) for f in [pool.submit(s.read), pool.submit(s.read)]]
     assert sorted(v['items'][0]['status'] for v in results) == ['content', 'unchanged']
     typed_equal(s.context()['summary'], fixture('context-sequences.json')['repeat'])
     assert len(s.metadata()[0]) == 1 and len(s.metadata()[1]) == 2
+
+    before = s.metadata()
+    gate = Path(s.data['session']['coordination_root']) / s.caller_key / 'gate.lock'
+    with gate.open('a+b') as held:
+        fcntl.flock(held.fileno(), fcntl.LOCK_EX)
+        try:
+            s.data['coordination']['wait_seconds'] = 0.15
+            s.save_policy()
+            code, refused = s.invoke(s.request())
+            assert code == 1 and refused['status'] == 'incomplete'
+            assert refused['error']['code'] == 'cleanup_incomplete'
+            assert refused['error']['field'] == 'session' and refused['error']['key'] is None
+            assert refused['context'] is None and refused['summary'] is None
+            assert refused['details'] is None and refused['items'] == []
+            assert s.metadata() == before
+        finally:
+            fcntl.flock(held.fileno(), fcntl.LOCK_UN)
+            s.data['coordination']['wait_seconds'] = 2.0
+            s.save_policy()
+
+    continued = s.read()
+    assert continued['items'][0]['status'] == 'unchanged'
+    assert continued['items'][0]['classification'] == 'exact_repeat'
+    cache, events = s.metadata()
+    assert cache == before[0] and events[:-1] == before[1]
+    assert len(events) == len(before[1]) + 1
+    assert events[-1][6:8] == ('unchanged', 'exact_repeat')
 
 
 def test_batch_preflight_and_per_item_registration_outcomes(s):

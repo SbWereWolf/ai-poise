@@ -48,9 +48,7 @@ def _binding_change(service, proposed, key, raw, definition_path, installation_i
         raise PoiseError('Binding belongs to another installation: ' + key)
     source = service.settings
     launcher = Path(record['launcher'])
-    allowed = [source.launcher_bytes(record['binding_path'])] + [
-        ('#!/bin/sh\nexec ' + command + '\n').encode()
-        for command in source.prior_launcher_commands('hook-work', '--binding', record['binding_path'])]
+    allowed = [source.launcher_bytes(record['binding_path']), *source.prior_launcher_bytes(record['binding_path'])]
     if launcher.read_bytes() not in allowed:
         raise PoiseError('Foreign launcher content before reconfiguration: ' + key)
     after = {**record, 'settings_digest': digest(proposed.raw), 'definition_path': str(definition_path)}

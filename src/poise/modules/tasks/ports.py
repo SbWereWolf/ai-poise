@@ -7,6 +7,7 @@ from ..verification.domain import CheckRegistry
 from ..evidence.domain import EvidenceBook
 from .lifecycle import TaskLifecycle
 from ..result_integration.ports import IntegrationScopeRepository
+from ..worktree_preparation.ports import PreparationRepository
 
 
 class TaskRepository(Protocol):
@@ -122,6 +123,7 @@ class TransferContextRepository(Protocol):
 
 
 class TaskUnitOfWork(Protocol):
+    preparation: PreparationRepository
     transfers: TransferContextRepository
     handoffs: "HandoffRepository"
     sprints: "SprintRepository"

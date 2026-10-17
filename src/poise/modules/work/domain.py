@@ -71,6 +71,13 @@ def parse_request(value, config):
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
+    if op == 'bootstrap' and isinstance(value['input'], dict) and 'preparation_request_id' in value['input']:
+        preparation = value['input']['preparation_request_id']
+        if not isinstance(preparation, str) or not preparation.strip():
+            raise DomainError('preparation_request_id must be a nonempty string')
+        if value['input'].get('decision') is not None or value['input'].get('rework_stage') is not None:
+            raise DomainError('preparation_request_id requires bootstrap without a stage decision')
+        shapes[op] = shapes[op] | {'preparation_request_id'}
     if op == 'recover_ownership' and isinstance(value['input'], dict) and 'mode' in value['input']:
         from ..ownership.domain import CRASH_RECOVERY_FIELDS
         shapes[op] = set(CRASH_RECOVERY_FIELDS)

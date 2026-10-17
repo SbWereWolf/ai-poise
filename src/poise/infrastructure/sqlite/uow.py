@@ -10,6 +10,7 @@ from .work_packets import SqliteWorkPacketRepository
 from .artifacts import SqliteArtifactRepository
 from .task_delivery import SqliteTaskDeliveryRepository
 from .integration_scopes import SqliteIntegrationScopeRepository
+from .worktree_preparation import SqlitePreparationRepository
 
 
 class SqliteUnitOfWork:
@@ -34,6 +35,7 @@ class SqliteUnitOfWork:
         self.artifacts = SqliteArtifactRepository(connection)
         self.task_delivery = SqliteTaskDeliveryRepository(connection)
         self.integration_scopes = SqliteIntegrationScopeRepository(connection)
+        self.preparation = SqlitePreparationRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

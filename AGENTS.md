@@ -2,7 +2,7 @@ In Russian for humans, in English for AI
 
 ## Shared Task execution rules
 
-Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение). Registration requires the stated goal only; existing requirements and criteria are optional source material. Develop requirements and achievable DoD when beginning authorized work, after successful local prerequisites. Freeze requirements at the stage after ready. A Sprint may start with one ready root while other members remain newborn. The executor writes plans, results and fixes; the reviewer approves plans and accepts results. These rules apply independently of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers from hypothetical implementation choices.
+Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение). Registration requires the stated goal only; existing requirements and criteria are optional source material. Develop requirements and achievable DoD when beginning authorized work, after successful local prerequisites. Preserve the registered goal; agree revisions to other conditions as facts evolve. Design only the imminent stage immediately before execution, independently review its design and execution, and do not restart a Task for ordinary refinement of an unstarted stage. Follow [just-in-time stage design](docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом). A Sprint may start with one ready root while other members remain newborn. The executor writes plans, results and fixes; the reviewer approves plans and accepts results. These rules apply independently of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers from hypothetical implementation choices.
 
 Do not give the final answer until every result has been verified
 -Eliminate: filler, hype, soft asks, conversational transitions, call-to-action appendixes.
@@ -36,7 +36,7 @@ and [launcher contract](docs/configuration/stride-launcher.md#имена-и-вл
 
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
-When beginning actual execution, establish the refined goal, requirements, achievable definition of done and how completion will be demonstrated. Registration requires only the stated goal and optional existing materials; do not perform execution preparation to register a Task. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; the normative requirement-freezing boundary is the following stage, equally for standalone and Sprint Tasks. Preserve tool integrity without treating that implementation limit as permission to perform future stages.
+Initial formulation records the goal, draft DoR/DoD and a feasible overall path from available facts; bounded source inspection is allowed, prototype implementation is not. The registration API may accept only the stated goal and existing material. When beginning execution, preserve that goal and establish the current agreed requirements, achievable definition of done and how completion will be demonstrated. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; future unstarted-stage criteria have their own proposal/decision owner. That storage limitation does not require routine Task restarts or premature future-stage work; use the existing recovery contract for an inadequate tool route.
 Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
 target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
 and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
@@ -45,12 +45,9 @@ were inventoried. Design exact future test methods and provenance at their ownin
 
 Separate Sprint graph planning, bounded Task formulation and detailed execution
 design. Do not implement a prototype merely to approve a Task formulation or demand
-future test names at creation. Before the first substantive Task result is confirmed
-by an independent reviewer, an inadequate goal may be clarified during review through
-an authorized restart. After that confirmation, do not change the same Task's goal,
-even if restart returns it to newborn and the API permits the edit. Ready, start,
-baseline observations, plans and unconfirmed results do not by themselves establish
-this boundary. Follow the
+future test names at creation. Preserve the registered Task goal throughout its lifetime, including after restart,
+even when the API permits goal edits. Agree the necessary stage sequence before
+Task execution; design only the imminent stage immediately before doing it. Follow the
 [canonical goal rule](docs/governance/development-rules.md#task-goal-preservation).
 Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
@@ -126,6 +123,8 @@ For changed documentation or rule targets, follow [local links and exact
 headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to
 changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.
 
+
+Follow [supported use and sufficient design](docs/workflows/task-execution-contract.md#поддерживаемое-использование-и-достаточность-решения): implement the agreed behavior under documented proper use; do not invent hostile-administrator or universal misuse obligations, or automatic application self-repair. Preserve actual data and authority obligations. Documentation teaches correct procedures and uses correct examples.
 
 Deliver the working path rather than delaying it for speculative combinations of conditions. Handle the ordinary routes
 and failures implied by the rules; resolve uncertain edge cases using actual usage and measurements. State current

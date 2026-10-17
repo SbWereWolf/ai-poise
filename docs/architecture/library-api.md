@@ -1,6 +1,6 @@
 # Библиотечный API — DDD-04B
 
-Обновлено: **2026-10-08**. Исходный срез **POISE-DDD-04B** и последующие API.
+Обновлено: **2026-10-17**. Исходный срез **POISE-DDD-04B** и последующие API.
 
 ## Локальные assets — 2026-10-04
 
@@ -59,7 +59,7 @@ Backend приложения реализует пять методов:
 `system/application`. Входы Task содержат известные IDs/текущие указатели,
 упорядоченные версии keys/status/text и их Application IDs. `revisions` —
 отсоединённый порт сохранённых значений: `has_statement`, `statement`, `task_history`,
-`requirement_history`, `latest_snapshot_revision`, `snapshot`. Адаптер `SavedRevisions`
+`requirement_history`, `latest_snapshot_revision`, `snapshot`, `task_creation`. Адаптер `SavedRevisions`
 владеет чтением выбранного JSON и переводом его ошибок в `PoiseError`; домен
 работает со значениями без SQL, файловой системы и конкретного backend.
 
@@ -84,7 +84,7 @@ Backend содержит единственную `requirements_meta.revision`, 
 этой операции; startup-проверки подмены или контрольных сумм отсутствуют.
 
 Самостоятельная композиция использует `revision`, `registry`, `read`, `query`,
-`apply`, `read_bootstrap`. `RequirementsCommands` предоставляет shell операции
+`apply`, `read_bootstrap`, `task_drafts`. `RequirementsCommands` предоставляет shell операции
 `apply/query/import_bootstrap`. `command` и `migrate` принадлежат другому формату.
 
 [Requirements](../../apps/requirements/docs/storage-req.md) владеет собственной
@@ -92,6 +92,44 @@ Backend содержит единственную `requirements_meta.revision`, 
 реализованные команды. Примеры относятся к текущему checkout. Потребитель общего
 пакета выбирает и обновляет версию отдельно; исходники не подтверждают публикацию
 пакета.
+
+### Создание самостоятельного черновика Task — 2026-10-17
+
+`RequirementsStore.task_drafts()` — публичная owner-local UoW-граница явного
+standalone backend. Она открывает существующую короткую транзакцию и передаёт
+узкий repository через `backend.task_drafts(connection)`; прикладной клиент
+работает с портом создания, а SQL остаётся в adapter. В другой композиции
+эта возможность требует явно выбранного соответствующего backend.
+
+`apps.requirements.commands.DraftTaskCommands.create_task(request)` начинает
+эту границу, использует чистый `DraftTask`, проверяет прежнее намерение запроса
+и выбирает identity через явно переданный `TaskIdPolicy`. `DraftTask` сохраняет
+полный исходный input, различает переданные и отсутствующие поля, проверяет явный
+выбор формы; `allocate` выбирает свободный ID. Общая конфигурация читается заново
+при каждом вызове shell, включая replay.
+
+`TaskDraftRepository` реализует `creation(request_id)`, `identifiers()` и
+`create(task_id,draft,max_items)`. Создание переиспользует
+`RequirementsGraph.validate_statement/create_draft` и существующий
+`StandaloneBackend._persist_statement`. Identity, statement, ключи/версии/связи,
+owner revision и первоначальный receipt сохраняются одной транзакцией. Возврат
+наружу происходит после её успешного завершения. Новых таблиц или миграции для
+этого пути нет. Пространство `task_creation_requests` независимо от `registry.apply`.
+
+`RequirementsGraph.task_basis` читает текущие `current/future` entries, исключает
+obsolete и вызывает исходный `RequirementsRegistry.plan_task` для каждого
+применимого требования. Значение строится из `status:ready/gaps` и исходных gaps;
+общее `basis_ready` требует непустого набора и полноты каждого основания.
+Оценка принадлежит домену, не SQL или сериализатору. `SavedRevisions.task_creation`
+читает исходные intent/receipt; текущие statement/history сохраняют своих владельцев.
+`work_choice` остаётся декларацией создания в исходном intent. Соседние membership,
+claim и execution записи создают их отдельные публичные владельцы.
+
+Полные [текущие CLI-пакеты](../../apps/requirements/docs/graph-req.md#создание-task-и-канонический-id)
+показывают оригинальное создание и последующую постановку. Shell компонует новый
+app use case для `create_task`; общий `RequirementsCommands` продолжает обслуживать
+`apply/query/import_bootstrap`. Расширенный schema-envelope и publication относятся
+к отдельно обозначенному целевому интерфейсу.
 
 ## Остальные доменные библиотеки
 

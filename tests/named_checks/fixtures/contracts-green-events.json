@@ -1,0 +1,300 @@
+{
+  "exit_code": 0,
+  "collection_errors": [],
+  "reports": [
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_common_views_preserve_full_machine_result",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_common_views_preserve_full_machine_result",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_common_views_preserve_full_machine_result",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_conditional_runtime_selection_and_preview",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_conditional_runtime_selection_and_preview",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_conditional_runtime_selection_and_preview",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_configuration_root_and_checkout_are_independent",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_configuration_root_and_checkout_are_independent",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_configuration_root_and_checkout_are_independent",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_explicit_roots_and_source_binding",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_explicit_roots_and_source_binding",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_explicit_roots_and_source_binding",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_foreign_project_and_checkout_rejected",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_foreign_project_and_checkout_rejected",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_foreign_project_and_checkout_rejected",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_functional_store_identity_and_corruption",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_functional_store_identity_and_corruption",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_functional_store_identity_and_corruption",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_list_describe_preview",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_list_describe_preview",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_list_describe_preview",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_policy_known_fields_and_unknown_raw_values",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_policy_known_fields_and_unknown_raw_values",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_policy_known_fields_and_unknown_raw_values",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_prerequisites_are_checked_truthfully",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_prerequisites_are_checked_truthfully",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_prerequisites_are_checked_truthfully",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_python_port_and_cli_consumer_agree",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_python_port_and_cli_consumer_agree",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_python_port_and_cli_consumer_agree",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_saved_result_readback_has_no_execution",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_saved_result_readback_has_no_execution",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_saved_result_readback_has_no_execution",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_selection_ambiguity_and_optional_warnings",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_selection_ambiguity_and_optional_warnings",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_selection_ambiguity_and_optional_warnings",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_strict_request_and_atomic_batch_preflight",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_strict_request_and_atomic_batch_preflight",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_strict_request_and_atomic_batch_preflight",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_taskless_native_and_generated_callers",
+      "phase": "call",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_taskless_native_and_generated_callers",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_contracts.py::test_taskless_native_and_generated_callers",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    }
+  ]
+}

@@ -12,6 +12,13 @@ class MissingHookBinding(PoiseError):
     """No genuine binding exists for the requested native identity."""
 
 
+def binding_context(record):
+    """Required binding identity, excluding the diagnostic settings revision."""
+    if not isinstance(record, dict):
+        raise PoiseError('Binding must be an object; restore the registered binding file')
+    return {key: value for key, value in record.items() if key != 'settings_digest'}
+
+
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 SESSION_START_SOURCES=('startup','resume','clear','compact','fork')

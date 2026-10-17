@@ -43,6 +43,17 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
 | `placement` | Prepare/check explicit working-result placement without requiring a Task. | `"${poise[@]}" placement --config "$project_json" --checkout "$checkout" --policy "$placement_policy" < "$packet"` |
 | `skills` | Read metadata, validate decomposition, or prepare file-scoped instructions without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+| `checks` | Run/read configured named checks without a Task. | `"${poise[@]}" checks --config "$project_json" --checkout "$checkout" --policy "$checks_policy" --view expanded < "$packet"` |
+
+Named-check setup, exact operations, effective cwd/PATH, saved results and recovery
+belong to the [operator contract](../../../docs/configuration/named-project-checks.md).
+Retain the genuine native caller and omit `POISE_CALLER_BINDING`, or use an explicit
+persistent binding in a separate direct process without native session variables.
+Do not combine those identities or change the session launcher to prepare a check.
+For independently reviewing test-only RED in an unfinished `revise` stage, use the
+existing [partial-material handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
+save immutable materials through public artifacts, then public null-result handoff.
+Do not invent resolution proposals or native stage completion before actual fixes.
 
 ### Project and workflow configuration
 
@@ -290,12 +301,14 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
-Apply the [accepted-goal
+Apply the [registered-goal
 rule](../../../docs/governance/development-rules.md#task-goal-preservation):
-review may clarify an inadequate goal until an independent reviewer confirms the first
-substantive result. After that confirmation, agents must keep the goal unchanged even
-when a lawful restart returns the Task to newborn. The API's newborn edit capability
-does not enforce this historical agent rule.
+keep the registered Task goal unchanged throughout its lifetime, including after
+a lawful restart. The API can edit the newborn goal field; that capability does
+not grant agent authority to change it. Agree the stage sequence first and design
+only the imminent stage immediately before execution, with independent design and
+result review. Ordinary refinement of an unstarted stage uses its criteria owner
+and does not restart the Task; follow [the shared contract](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом).
 
 Read task_decomposition from the selected project's project-specific routing. Declare every workflow
 phase before an

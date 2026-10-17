@@ -1,0 +1,40 @@
+{
+  "schema": "environment-maintenance/catalog/v2",
+  "parameters": {},
+  "inherit_env": [],
+  "requirements": [
+    {
+      "id": "resource",
+      "check": {
+        "argv": [],
+        "cwd": "",
+        "env": {},
+        "output": {
+          "schema": "environment-maintenance/action-result/v2"
+        },
+        "max_output_bytes": 4096,
+        "execution_bound_seconds": 5
+      },
+      "install": {
+        "argv": [],
+        "cwd": "",
+        "env": {},
+        "output": {
+          "schema": "environment-maintenance/action-result/v2"
+        },
+        "max_output_bytes": 4096,
+        "execution_bound_seconds": 5
+      },
+      "repair": {
+        "argv": [],
+        "cwd": "",
+        "env": {},
+        "output": {
+          "schema": "environment-maintenance/action-result/v2"
+        },
+        "max_output_bytes": 4096,
+        "execution_bound_seconds": 5
+      }
+    }
+  ]
+}

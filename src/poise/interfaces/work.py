@@ -6,7 +6,7 @@ from ..common import PoiseError,configured_root,descendant
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..infrastructure.task_paths import sprint_root
-from ..infrastructure.result_views import task_response_root, preflight_work_result
+from ..infrastructure.result_views import task_response_root, preflight_work_result, SavedResponse
 from ..modules.result_views.domain import bounded_envelope
 
 
@@ -65,6 +65,6 @@ def write_rejection(config_root,config,reason,output):
 def _write_response(config,root,presented,output,metadata,command_views,required):
     paths=config['paths']
     response=descendant(root,paths['runs'])/str(uuid.uuid4())/paths['response']
-    atomic_write(response,(json.dumps(presented,ensure_ascii=False,indent=2)+'\n').encode(),config['batch']['file_mode'])
+    SavedResponse(response, config['batch']['file_mode']).save(presented, canonical=False)
     output.write(bounded_envelope(presented,response,config['limits']['output_chars'],
                                   metadata,{},command_views,required_fields=required))

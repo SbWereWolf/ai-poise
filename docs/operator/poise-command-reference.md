@@ -36,8 +36,25 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
 | `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
+| `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
 
-Обычная работа использует launcher, выданный нативным hook для этой сессии:
+### Именованные проверки проекта
+
+```bash
+"${poise[@]}" checks --config "$project_json" --checkout "$checkout" \
+  --policy "$checks_policy" --view expanded < "$packet"
+```
+
+`checks_policy` — заполненный абсолютный путь отдельной политики обычных проверок.
+Семь JSON-операций: `list`, `describe`, `preview`, `run`, `result`, `calibrate`,
+`package_impact`. Их selectors/options и схемы, заполнение четырёх примеров,
+подлинный native/generated caller, предпосылки и восстановление принадлежат
+[каноническому справочнику](../configuration/named-project-checks.md#запросы-и-выбор).
+`preview.available` не подтверждает executable или исполнение. `--view full`
+обращает к сохранённому полному ответу; чтение не повторяет ребёнка.
+Команда `check` ниже относится к обслуживанию окружения и не является этим API.
+
+Работа над Task использует launcher, выданный нативным hook для этой сессии:
 
 ```bash
 bash "${AI_POISE_WORK:?Путь родного session work.sh}" < "$packet"
@@ -127,12 +144,11 @@ review/trust hooks в Codex. Поля, повтор после частично�
 startup/fork описаны в [общей
 установке](../configuration/runtime-hooks.md#общая-установка-для-рабочих-деревьев).
 Целевые settings содержат обязательную `capability_summary`; её проверка выполняется
-до intent и побочных эффектов публикации. `reconfigure` меняет только `hooks_file`,
-`hooks_lock`, `repository_scope`, `source_root`, сохраняя остальные значения.
-Добавление или изменение настроек сводки этой операцией не поддерживается;
-[граница
-публикации](../operations/known-bugs.md#hook-settings-continuity-001--изменение-settings-нарушает-согласованность-привязок)
-остаётся отдельной операторской обязанностью.
+до intent и побочных эффектов публикации. `reconfigure` меняет `hooks_file`,
+`hooks_lock`, `repository_scope`, `source_root`, `project_launcher` и `capability_summary`,
+сохраняя остальные значения. Добавление секции сводки передаётся явно полным целевым
+объектом settings. На прежнем пути native hooks локальная установка не требует
+`repository_scope`/`hooks_lock`; перенос в другой файл требует общей области и lock.
 
 После сбоя повторяйте тот же пакет: проверенные новые native-сессии включаются
 в незавершённый перенос с сохранением их сообщений и истории.

@@ -1,0 +1,19 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {},
+  "requirements": [
+    {
+      "id": "poison",
+      "check": {
+        "argv": [
+          "poison"
+        ]
+      },
+      "apply": {
+        "argv": [
+          "poison"
+        ]
+      }
+    }
+  ]
+}

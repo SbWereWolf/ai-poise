@@ -1,0 +1,38 @@
+[
+  {
+    "request_changed_paths": [
+      "../outside.py"
+    ],
+    "code": "invalid_options",
+    "field": "request.items[0].changed_paths[0]",
+    "cause": "Путь ../outside.py выходит за корень выбранной рабочей копии.",
+    "recovery": "Передайте канонический относительный путь внутри выбранной рабочей копии без сегмента .. в request.items[0].changed_paths[0]."
+  },
+  {
+    "request_changed_paths": [
+      "/outside.py"
+    ],
+    "code": "invalid_options",
+    "field": "request.items[0].changed_paths[0]",
+    "cause": "Абсолютный путь /outside.py не является путём внутри выбранной рабочей копии.",
+    "recovery": "Передайте относительный путь в request.items[0].changed_paths[0]."
+  },
+  {
+    "request_changed_paths": [
+      "fixtures/*.json"
+    ],
+    "code": "invalid_options",
+    "field": "request.items[0].changed_paths[0]",
+    "cause": "Изменённый путь fixtures/*.json содержит шаблон вместо конкретного пути.",
+    "recovery": "Передайте конкретный изменённый путь в request.items[0].changed_paths[0]."
+  },
+  {
+    "configuration_mutation": {
+      "remove": "packages.packages[0].source_paths"
+    },
+    "code": "invalid_packages",
+    "field": "packages.packages[0].source_paths",
+    "cause": "Обязательное поле source_paths отсутствует.",
+    "recovery": "Укажите явный список source_paths для packages.packages[0], включая пустой список при отсутствии таких входов."
+  }
+]

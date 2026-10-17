@@ -1,0 +1,202 @@
+# Замените абсолютные пути и условия под выбранный проект.
+# Нулевые наблюдения обозначают начальную настройку, а не измеренный успех.
+schema_version = 1
+
+[[evidence_contracts]]
+evidence_id = "example-artifacts"
+required_globs = [
+  "report.json",
+]
+optional_globs = [
+  "details/*.txt",
+]
+max_files = 20
+max_total_bytes = 1048576
+retention_class = "diagnostic"
+
+[[commands]]
+command_id = "example-python"
+workload_class = "example"
+runtime_class = "python"
+platforms = [
+  "linux",
+]
+invocation = "exec"
+argv = [
+  "/absolute/path/python",
+  "-c",
+  "print('named-check example')",
+]
+cwd = "."
+parser = "generic"
+require_parser_confirmation = true
+execution_timeout_seconds = 10
+observed_max_success_seconds = 0.0
+observed_max_progress_gap_seconds = 0.0
+stall_timeout_seconds = 0
+initial_limit_reason = "Начальный предел примера; измерения ещё не выполнены."
+last_calibrated_at = "2026-01-01T00:00:00+00:00"
+[commands.progress]
+mode = "unavailable"
+[commands.output]
+success_bytes = 1000
+failure_bytes = 2000
+timeout_bytes = 1000
+max_failures = 10
+[commands.prerequisites]
+executables = []
+files = []
+environment = []
+[commands.cache]
+enabled = true
+input_paths = [
+  "src/**",
+]
+environment = []
+input_selection = "filesystem-glob"
+
+[[commands]]
+command_id = "test-package"
+workload_class = "unit-example"
+runtime_class = "python"
+platforms = [
+  "linux",
+]
+invocation = "exec"
+argv = [
+  "/absolute/path/python",
+  "-m",
+  "unittest",
+  "tests/test_example.py",
+]
+cwd = "."
+parser = "generic"
+require_parser_confirmation = true
+execution_timeout_seconds = 10
+observed_max_success_seconds = 0.0
+observed_max_progress_gap_seconds = 0.0
+stall_timeout_seconds = 0
+initial_limit_reason = "Начальный предел примера пакета; требуется настоящий тест проекта."
+last_calibrated_at = "2026-01-01T00:00:00+00:00"
+[commands.progress]
+mode = "unavailable"
+[commands.output]
+success_bytes = 1000
+failure_bytes = 2000
+timeout_bytes = 1000
+max_failures = 10
+[commands.prerequisites]
+executables = []
+files = [
+  "tests/test_example.py",
+]
+environment = []
+[commands.cache]
+enabled = true
+input_paths = [
+  "src/**",
+  "tests/test_example.py",
+]
+environment = []
+input_selection = "filesystem-glob"
+
+# Эти два профиля требуют отдельного проверяющего инструмента проекта,
+# который принимает --mode и документированный транспорт области.
+# tools/check_documentation.py самой Poise такого --mode не принимает.
+[[commands]]
+command_id = "example-docs-working"
+workload_class = "documentation"
+runtime_class = "python"
+platforms = [
+  "linux",
+]
+invocation = "exec"
+argv = [
+  "/absolute/path/project/bin/check-documents",
+  "--mode",
+  "working",
+]
+cwd = "."
+parser = "generic"
+require_parser_confirmation = true
+execution_timeout_seconds = 10
+observed_max_success_seconds = 0.0
+observed_max_progress_gap_seconds = 0.0
+stall_timeout_seconds = 0
+initial_limit_reason = "Начальная настройка; проверяющий инструмент выбирает оператор."
+last_calibrated_at = "2026-01-01T00:00:00+00:00"
+[commands.progress]
+mode = "unavailable"
+[commands.output]
+success_bytes = 1000
+failure_bytes = 2000
+timeout_bytes = 1000
+max_failures = 10
+[commands.prerequisites]
+executables = []
+files = [
+  "bin/check-documents",
+]
+environment = []
+[commands.cache]
+enabled = false
+input_paths = []
+environment = []
+input_selection = "git-tracked-markdown"
+max_input_files = 128
+max_input_bytes = 1048576
+[commands.subject]
+kind = "documentation"
+version = 1
+mode = "working"
+mode_argument = "--mode"
+environment_key = "POISE_CHECK_DOCUMENTATION_SCOPE_JSON"
+
+[[commands]]
+command_id = "example-docs-committed"
+workload_class = "documentation"
+runtime_class = "python"
+platforms = [
+  "linux",
+]
+invocation = "exec"
+argv = [
+  "/absolute/path/project/bin/check-documents",
+  "--mode",
+  "committed",
+]
+cwd = "."
+parser = "generic"
+require_parser_confirmation = true
+execution_timeout_seconds = 10
+observed_max_success_seconds = 0.0
+observed_max_progress_gap_seconds = 0.0
+stall_timeout_seconds = 0
+initial_limit_reason = "Начальная настройка; проверяющий инструмент выбирает оператор."
+last_calibrated_at = "2026-01-01T00:00:00+00:00"
+[commands.progress]
+mode = "unavailable"
+[commands.output]
+success_bytes = 1000
+failure_bytes = 2000
+timeout_bytes = 1000
+max_failures = 10
+[commands.prerequisites]
+executables = []
+files = [
+  "bin/check-documents",
+]
+environment = []
+[commands.cache]
+enabled = false
+input_paths = []
+environment = []
+input_selection = "git-tracked-markdown"
+max_input_files = 128
+max_input_bytes = 1048576
+[commands.subject]
+kind = "documentation"
+version = 1
+mode = "committed"
+mode_argument = "--mode"
+environment_key = "POISE_CHECK_DOCUMENTATION_SCOPE_JSON"

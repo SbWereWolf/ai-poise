@@ -53,7 +53,8 @@ class HandoffCommands:
     def _newborn_events(events):
         return all(isinstance(data, dict) and data.get('stage') == 'newborn'
                    and data.get('event') in {
-                       'newborn_edited', 'ownership_acquired', 'ownership_released',
+                       'newborn_edited', 'newborn_ready',
+                       'ownership_acquired', 'ownership_released',
                    } for _, data in events)
 
     @classmethod

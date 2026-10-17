@@ -129,8 +129,9 @@ claim и execution записи создают их отдельные публ�
 Полные [текущие CLI-пакеты](../../apps/requirements/docs/graph-req.md#создание-task-и-канонический-id)
 показывают оригинальное создание и последующую постановку. Shell компонует новый
 app use case для `create_task`; общий `RequirementsCommands` продолжает обслуживать
-`apply/query/import_bootstrap`. Расширенный schema-envelope и publication относятся
-к отдельно обозначенному целевому интерфейсу.
+`apply/query/import_bootstrap`, включая реализованную `publish_task` внутри `apply`.
+Расширенный schema-envelope и purpose-aware правила относятся к отдельно
+обозначенному целевому интерфейсу.
 
 ### Исходы и полный текущий каскад — 2026-10-18
 

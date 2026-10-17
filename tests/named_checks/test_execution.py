@@ -4,14 +4,11 @@ import io
 import json
 import os
 from pathlib import Path
-import signal
 import sqlite3
 import subprocess
 import sys
 import threading
 import time
-
-import pytest
 
 from .support import Scene, digest, literal, snapshot
 
@@ -137,8 +134,11 @@ def test_regex_progress_and_unavailable_progress(project, tmp_path, monkeypatch)
     record = s.record(s.run(fresh=True))
     assert record['progress']['observed'] and record['progress']['completed'] == 2
     assert record['progress']['total'] == 2 and record['progress']['max_gap_seconds'] >= 0
-    s.child('--stdout', 'noise\n', '--sleep', '5')
-    record = s.record(s.run(status='stalled', fresh=True))
+    # A separate identity has the configured10s initial hard limit, so a
+    # previous fast success cannot calibrate it down to the1s stall boundary.
+    s.child('--stdout', 'noise\n', '--sleep', '5', name='stall',
+            execution_timeout_seconds=10)
+    record = s.record(s.run(selection=s.selection('stall'), status='stalled', fresh=True))
     assert record['termination']['timeout_reason'] == 'progress_gap'
     s.child(progress={'mode': 'unavailable'}, stall_timeout_seconds=0)
     record = s.record(s.run(fresh=True))
@@ -225,21 +225,15 @@ def test_ledger_save_failure_keeps_full_streams(project, tmp_path, monkeypatch):
         completed.append(result)
         return result
 
-    class FailingConnection(sqlite3.Connection):
-        def execute(self, sql, *args, **kwargs):
-            if completed and sql.lstrip().upper().startswith(('INSERT', 'UPDATE', 'REPLACE')):
-                raise sqlite3.OperationalError('fixture ledger write denied')
-            return super().execute(sql, *args, **kwargs)
-
-        def commit(self):
-            if completed:
-                raise sqlite3.OperationalError('fixture ledger commit denied')
-            return super().commit()
-
     def connect(database, *args, **kwargs):
-        if str(database).endswith('named-runs.sqlite'):
-            kwargs['factory'] = FailingConnection
-        return real_connect(database, *args, **kwargs)
+        connection = real_connect(database, *args, **kwargs)
+        if str(database).split('?', 1)[0].endswith('named-runs.sqlite'):
+            def authorize(action, arg1, arg2, database_name, trigger):
+                if completed and action in (sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
+                    return sqlite3.SQLITE_DENY
+                return sqlite3.SQLITE_OK
+            connection.set_authorizer(authorize)
+        return connection
     monkeypatch.setattr(RegisteredCheckRunner, 'run', observed)
     monkeypatch.setattr(sqlite3, 'connect', connect)
     code, result, _ = s.invoke()
@@ -253,32 +247,47 @@ def test_ledger_save_failure_keeps_full_streams(project, tmp_path, monkeypatch):
 
 def test_diagnostic_sinks_survive_transport_failure(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
-    from tests.skills.record_instruction_red import run
+    expected = literal('reporter-streams.json')
+    s.child('--stdout', expected['stdout'], '--stderr', expected['stderr'])
+    s.save()
     original_out, original_err = sys.stdout, sys.stderr
     with monkeypatch.context() as patch:
         patch.setattr(sys, 'stdout', BrokenOutput())
         code, _, diagnostic = s.invoke(output=BrokenOutput())
     assert sys.stdout is original_out and sys.stderr is original_err
     assert code == 1 and 'output_write' in diagnostic and len(s.markers()) == 1
-    # The actual reporter's durable sinks remain intact after the consumer fault.
-    assert callable(run)
+    error = json.loads(diagnostic)
+    saved = json.loads(Path(error['references']['response_path']).read_text())
+    assert saved['status'] == 'passed'
+    assert s.outputs(s.record(saved['items'][0])) == [expected['stdout'].encode(), expected['stderr'].encode()]
 
 
 def test_presentation_error_does_not_change_run_truth(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
-    from poise.modules.result_views.domain import result_view
-    import poise.modules.result_views.domain as views
+    from poise.interfaces.result_views import execute
+    import poise.infrastructure.result_views as views
+    code, full, _ = s.invoke()
+    assert code == 0 and full['status'] == 'passed'
+    saved = Path(full['response_path'])
+    original = saved.read_bytes()
+    calls = []
 
     def fail(*args, **kwargs):
+        calls.append(True)
         raise OSError('fixture presentation unavailable')
     with monkeypatch.context() as patch:
         patch.setattr(views, 'result_view', fail)
-        # Raw transport uses complete machine result, never the broken display.
-        code, value, _ = s.invoke()
-    assert code == 0 and value['status'] == 'passed'
-    record = s.record(value['items'][0])
+        shown, diagnostic = io.StringIO(), io.StringIO()
+        view_code = execute(saved, 'brief', 1000, shown, diagnostic)
+    # Existing common saved-view transport owns this error/exit2, separate from
+    # the named producer's successful record and its output_write/exit1 contract.
+    assert calls == [True] and view_code == 2 and shown.getvalue() == ''
+    assert diagnostic.getvalue() == 'fixture presentation unavailable\n'
+    assert saved.read_bytes() == original
+    record = s.record(full['items'][0])
     assert record['actual_exit_code'] == 0 and s.outputs(record) == [b'work done\n', b'']
-    assert views.result_view is result_view and len(s.markers()) == 1
+    code, read, _ = s.invoke(s.request('result', items=[{'result_id': full['items'][0]['result_id']}]))
+    assert code == 0 and read['items'] == full['items'] and len(s.markers()) == 1
 
 
 def test_partial_interruption_never_creates_success_sample(project, tmp_path, monkeypatch):

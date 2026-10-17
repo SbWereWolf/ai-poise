@@ -510,6 +510,43 @@
             "items"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "operation",
+            "items"
+          ],
+          "properties": {
+            "schema": {
+              "const": "poise-project-checks-request-1"
+            },
+            "operation": {
+              "const": "package_impact"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "changed_paths"
+                ],
+                "properties": {
+                  "changed_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -526,7 +563,8 @@
             "preview",
             "run",
             "result",
-            "calibrate"
+            "calibrate",
+            "package_impact"
           ]
         },
         "status": {
@@ -1006,10 +1044,191 @@
                 "type": "object",
                 "properties": {
                   "kind": {
-                    "enum": [
-                      "package",
-                      "suite"
-                    ]
+                    "const": "package"
+                  },
+                  "value": {
+                    "type": "object",
+                    "properties": {
+                      "package_id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "unit",
+                          "component",
+                          "integration",
+                          "acceptance"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "owners": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "contract": {
+                        "type": "string"
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "producer": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "consumer": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "bidirectional": {
+                        "type": "boolean"
+                      },
+                      "triggering_input_changes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "triggering_output_changes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "triggering_input_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "triggering_output_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_libraries": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_databases": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_library_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_database_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "driver": {
+                              "type": "string"
+                            },
+                            "test_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "arguments": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "driver",
+                            "test_paths",
+                            "arguments"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "source_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "uniqueItems": true
+                      },
+                      "fixture_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "uniqueItems": true
+                      }
+                    },
+                    "required": [
+                      "package_id",
+                      "kind",
+                      "description",
+                      "owners",
+                      "contract",
+                      "dependencies",
+                      "producer",
+                      "consumer",
+                      "bidirectional",
+                      "triggering_input_changes",
+                      "triggering_output_changes",
+                      "triggering_input_paths",
+                      "triggering_output_paths",
+                      "shared_libraries",
+                      "shared_databases",
+                      "shared_library_paths",
+                      "shared_database_paths",
+                      "steps",
+                      "source_paths",
+                      "fixture_paths"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "suite"
                   },
                   "value": {
                     "oneOf": [
@@ -4530,10 +4749,191 @@
                           "type": "object",
                           "properties": {
                             "kind": {
-                              "enum": [
-                                "package",
-                                "suite"
-                              ]
+                              "const": "package"
+                            },
+                            "value": {
+                              "type": "object",
+                              "properties": {
+                                "package_id": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "enum": [
+                                    "unit",
+                                    "component",
+                                    "integration",
+                                    "acceptance"
+                                  ]
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "owners": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "contract": {
+                                  "type": "string"
+                                },
+                                "dependencies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "producer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "consumer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "bidirectional": {
+                                  "type": "boolean"
+                                },
+                                "triggering_input_changes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "triggering_output_changes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "triggering_input_paths": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "triggering_output_paths": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "shared_libraries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "shared_databases": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "shared_library_paths": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "shared_database_paths": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "steps": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "driver": {
+                                        "type": "string"
+                                      },
+                                      "test_paths": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "arguments": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "driver",
+                                      "test_paths",
+                                      "arguments"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "source_paths": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "uniqueItems": true
+                                },
+                                "fixture_paths": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "uniqueItems": true
+                                }
+                              },
+                              "required": [
+                                "package_id",
+                                "kind",
+                                "description",
+                                "owners",
+                                "contract",
+                                "dependencies",
+                                "producer",
+                                "consumer",
+                                "bidirectional",
+                                "triggering_input_changes",
+                                "triggering_output_changes",
+                                "triggering_input_paths",
+                                "triggering_output_paths",
+                                "shared_libraries",
+                                "shared_databases",
+                                "shared_library_paths",
+                                "shared_database_paths",
+                                "steps",
+                                "source_paths",
+                                "fixture_paths"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "value"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "const": "suite"
                             },
                             "value": {
                               "oneOf": [
@@ -7685,6 +8085,251 @@
                     }
                   }
                 }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "changed_paths",
+                  "packages",
+                  "unmapped_paths"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "package_impact"
+                  },
+                  "changed_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "packages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "package",
+                        "matches"
+                      ],
+                      "properties": {
+                        "package": {
+                          "type": "object",
+                          "properties": {
+                            "package_id": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "enum": [
+                                "unit",
+                                "component",
+                                "integration",
+                                "acceptance"
+                              ]
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "owners": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "contract": {
+                              "type": "string"
+                            },
+                            "dependencies": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "producer": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "consumer": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "bidirectional": {
+                              "type": "boolean"
+                            },
+                            "triggering_input_changes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "triggering_output_changes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "triggering_input_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "triggering_output_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "shared_libraries": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "shared_databases": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "shared_library_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "shared_database_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "steps": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "driver": {
+                                    "type": "string"
+                                  },
+                                  "test_paths": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "arguments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "driver",
+                                  "test_paths",
+                                  "arguments"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "source_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "uniqueItems": true
+                            },
+                            "fixture_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "uniqueItems": true
+                            }
+                          },
+                          "required": [
+                            "package_id",
+                            "kind",
+                            "description",
+                            "owners",
+                            "contract",
+                            "dependencies",
+                            "producer",
+                            "consumer",
+                            "bidirectional",
+                            "triggering_input_changes",
+                            "triggering_output_changes",
+                            "triggering_input_paths",
+                            "triggering_output_paths",
+                            "shared_libraries",
+                            "shared_databases",
+                            "shared_library_paths",
+                            "shared_database_paths",
+                            "steps",
+                            "source_paths",
+                            "fixture_paths"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "matches": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "path",
+                              "relation",
+                              "pattern"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "relation": {
+                                "enum": [
+                                  "source",
+                                  "test",
+                                  "fixture",
+                                  "input",
+                                  "output",
+                                  "shared_library",
+                                  "shared_database"
+                                ]
+                              },
+                              "pattern": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "unmapped_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  }
+                }
               }
             ]
           }
@@ -9481,6 +10126,20 @@
                     ],
                     "additionalProperties": true
                   }
+                },
+                "source_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                "fixture_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
                 }
               },
               "required": [
@@ -9499,7 +10158,9 @@
                 "shared_databases",
                 "shared_library_paths",
                 "shared_database_paths",
-                "steps"
+                "steps",
+                "source_paths",
+                "fixture_paths"
               ],
               "additionalProperties": true,
               "allOf": [
@@ -11971,10 +12632,191 @@
                 "type": "object",
                 "properties": {
                   "kind": {
-                    "enum": [
-                      "package",
-                      "suite"
-                    ]
+                    "const": "package"
+                  },
+                  "value": {
+                    "type": "object",
+                    "properties": {
+                      "package_id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "unit",
+                          "component",
+                          "integration",
+                          "acceptance"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "owners": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "contract": {
+                        "type": "string"
+                      },
+                      "dependencies": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "producer": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "consumer": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "bidirectional": {
+                        "type": "boolean"
+                      },
+                      "triggering_input_changes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "triggering_output_changes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "triggering_input_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "triggering_output_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_libraries": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_databases": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_library_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "shared_database_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "driver": {
+                              "type": "string"
+                            },
+                            "test_paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "arguments": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "driver",
+                            "test_paths",
+                            "arguments"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "source_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "uniqueItems": true
+                      },
+                      "fixture_paths": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "uniqueItems": true
+                      }
+                    },
+                    "required": [
+                      "package_id",
+                      "kind",
+                      "description",
+                      "owners",
+                      "contract",
+                      "dependencies",
+                      "producer",
+                      "consumer",
+                      "bidirectional",
+                      "triggering_input_changes",
+                      "triggering_output_changes",
+                      "triggering_input_paths",
+                      "triggering_output_paths",
+                      "shared_libraries",
+                      "shared_databases",
+                      "shared_library_paths",
+                      "shared_database_paths",
+                      "steps",
+                      "source_paths",
+                      "fixture_paths"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "suite"
                   },
                   "value": {
                     "oneOf": [
@@ -15126,6 +15968,459 @@
           }
         }
       }
+    },
+    "package_impact_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "operation",
+        "items"
+      ],
+      "properties": {
+        "schema": {
+          "const": "poise-project-checks-request-1"
+        },
+        "operation": {
+          "const": "package_impact"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "changed_paths"
+            ],
+            "properties": {
+              "changed_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "package_impact_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "changed_paths",
+        "packages",
+        "unmapped_paths"
+      ],
+      "properties": {
+        "kind": {
+          "const": "package_impact"
+        },
+        "changed_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "packages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "package",
+              "matches"
+            ],
+            "properties": {
+              "package": {
+                "type": "object",
+                "properties": {
+                  "package_id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "unit",
+                      "component",
+                      "integration",
+                      "acceptance"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "owners": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "contract": {
+                    "type": "string"
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "producer": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "consumer": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "bidirectional": {
+                    "type": "boolean"
+                  },
+                  "triggering_input_changes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "triggering_output_changes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "triggering_input_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "triggering_output_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "shared_libraries": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "shared_databases": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "shared_library_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "shared_database_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "driver": {
+                          "type": "string"
+                        },
+                        "test_paths": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "arguments": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "driver",
+                        "test_paths",
+                        "arguments"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "source_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "fixture_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "package_id",
+                  "kind",
+                  "description",
+                  "owners",
+                  "contract",
+                  "dependencies",
+                  "producer",
+                  "consumer",
+                  "bidirectional",
+                  "triggering_input_changes",
+                  "triggering_output_changes",
+                  "triggering_input_paths",
+                  "triggering_output_paths",
+                  "shared_libraries",
+                  "shared_databases",
+                  "shared_library_paths",
+                  "shared_database_paths",
+                  "steps",
+                  "source_paths",
+                  "fixture_paths"
+                ],
+                "additionalProperties": false
+              },
+              "matches": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "relation",
+                    "pattern"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "relation": {
+                      "enum": [
+                        "source",
+                        "test",
+                        "fixture",
+                        "input",
+                        "output",
+                        "shared_library",
+                        "shared_database"
+                      ]
+                    },
+                    "pattern": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "unmapped_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "package_declaration": {
+      "type": "object",
+      "properties": {
+        "package_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "unit",
+            "component",
+            "integration",
+            "acceptance"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contract": {
+          "type": "string"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "producer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "consumer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bidirectional": {
+          "type": "boolean"
+        },
+        "triggering_input_changes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "triggering_output_changes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "triggering_input_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "triggering_output_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shared_libraries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shared_databases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shared_library_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shared_database_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "driver": {
+                "type": "string"
+              },
+              "test_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "arguments": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "driver",
+              "test_paths",
+              "arguments"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "source_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "fixture_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "package_id",
+        "kind",
+        "description",
+        "owners",
+        "contract",
+        "dependencies",
+        "producer",
+        "consumer",
+        "bidirectional",
+        "triggering_input_changes",
+        "triggering_output_changes",
+        "triggering_input_paths",
+        "triggering_output_paths",
+        "shared_libraries",
+        "shared_databases",
+        "shared_library_paths",
+        "shared_database_paths",
+        "steps",
+        "source_paths",
+        "fixture_paths"
+      ],
+      "additionalProperties": false
     }
   },
   "semantics": {
@@ -15142,7 +16437,7 @@
     },
     "normalization": "Request and receipt root/known schemas strict, duplicate JSON keys rejected, bool is not int. Nonempty bounded IDs/selectors; unknown optional text selector values may warn-and-ignore only as documented donor selection rule, then require unique candidate; unknown request fields rejected. Known malformed typed options rejected. Unknown configuration keys ignored with raw values retained for publication. Explicit options are required; no hidden defaults/legacy alias or executable/root fallback.",
     "profile_config": "TOML retains schema1 and source profile axes/fields; adopted explicit input_selection and nullable cache limits remove hidden defaults. IDs max96 donor syntax. Correct configured profile has executable argv/nonempty platform set/relative cwd; known numeric values finite and correct bounds. Evidence references exist. Unknown known-field enums rejected. Subject capability is explicit and not conditioned on an ERP command ID. Both working and committed documentation profiles require cache.enabled=false and exactly one configured mode_argument followed by matching mode.",
-    "package_config": "Existing ERP TOML semantics retained with generic policy-configured driver IDs replacing ERP application-name switches. Native argv prefix plus explicit arguments/test paths; relative paths stay inside selected declared application prefix. Stable owners/kinds/contracts/dependencies/producer-consumer/bidirectional/triggers/shared boundaries retained; no native worker or repository parallel fields invented. Inventory covers actual tests; duplicates need exact shared_tests package set/reason; cycles/missing dependency/unknown drivers fail before execution. Suite fast/release/source scopes ordered; ambiguity/unmapped scope never silently selects full suite.",
+    "package_config": "Existing ERP TOML semantics retained with generic policy-configured driver IDs replacing ERP application-name switches. Native argv prefix plus explicit arguments/test paths; relative paths stay inside selected declared application prefix. Stable owners/kinds/contracts/dependencies/producer-consumer/bidirectional/triggers/shared boundaries retained; no native worker or repository parallel fields invented. Inventory covers actual tests; duplicates need exact shared_tests package set/reason; cycles/missing dependency/unknown drivers fail before execution. Suite fast/release/source scopes ordered; ambiguity/unmapped scope never silently selects full suite. Required source_paths/fixture_paths arrays explicitly declare general package source and fixture matching; package_impact is read-only, directly declared matching only. Test paths and existing boundary *_paths are reused; specialized ai-poise catalogue unchanged.",
     "profile_dto_unknown_values": "Description may retain unknown profile values via original raw document; normalized known DTO type may be evaluated independently. No renderer deletes raw keys. Tests compare typed known result fields and whole original unknown nested values after publication.",
     "progress": "Actual donor input modes are regex and unavailable. A durable progress file is output, not an invented new file-input mode. Regex groups/monotonic completed values observed through sole process owner; unavailable means no progress sample or invented stall. Execution/stall limits follow explicit profile/policy values. No per-method Task timeout added.",
     "parser_confirmation": "confirmed means recognized summary, as actual donor. Preserve all14 literal parser outputs/counts/failure items. Nonzero actual exit remains failed; zero exit missing REQUIRED recognition is unconfirmed; incomplete declared evidence unconfirmed. Zero exit with recognized failure/error summary follows donor passed/verified_success rules even with require_parser_confirmation:true; expose exact counts/items, never call recognition independent all-tests-passed proof. No universal new failure-count/status predicate.",
@@ -15193,6 +16488,14 @@
       "classes": "independent_oracles.error_classes provides only stable status/exit/classification, NOT fixed text/prefixes/default errors. independent_oracles.error_cases are complete exact field/cause/reason/recovery expectations for arranged cases; dynamic references are independently checked for actual files and full bytes. Additional supplied cases use similarly independent exact test-owned input/output fixtures rather than product template/enum generation. Generic root field is used only when the entire root cannot be parsed, never when a concrete bad field is known.",
       "readback": "Result operation names request.items[N].result_id, never run_id. Missing selected result explains the requested ID and action to list/use a real saved result. Actual execution IDs remain process record fields only.",
       "failure_references": "references retain only genuinely saved response/records/streams from the exact request. Empty/no-ready storage uses null/empty addresses. Transport/presentation failures link already persisted successful result without overwriting it. Fixed human error text and actual contextual fields are tested separately from opaque arranged path substitutions."
+    },
+    "package_impact": {
+      "admission": "Existing selected config/registered checkout/external policy binding; strict request/version/types/unique paths and configured batch max_items/inputbytes. Read/validate general catalogue declarations and configured driver references, not actual child prerequisites. Future/deleted declared test/source paths can still be observed; this operation does not certify current test inventory/executability. Run/preview owners retain their actual validation. Disabled catalogue => packages_unavailable; bad declaration => invalid_packages with exact field/cause/recovery.",
+      "path_matching": "Changed paths are canonical repository-relative concrete paths (no absolute, backslash, colon, controls, empty/dot/traversal/glob components); existence is not required so deletions are representable. Config patterns use existing component-glob semantics: * or ? and character groups match within one component, ** zero/more components; a literal pattern matches itself; a subtree is explicitly declared with /**. Reuse existing matches_component_path owner in poise.modules.foundation.paths, no new scanner or symlink investigation. No string-substring matching. Match only declared source_paths, each step.test_paths, fixture_paths, triggering_input_paths, triggering_output_paths, shared_library_paths, shared_database_paths.",
+      "selection": "Return every directly matching package once in catalogue order. No transitive dependency expansion, integration-neighbor inference, autoexecution or fullsuite. Empty/unrelated paths return packages[]/unmapped_paths; rootstatusready/exit0 explains absence, no process/history/cache proof.",
+      "explanation": "For each selected package return normalized current known declaration (all owners/kind/contract/dependencies/steps/producer/consumer/bidirectional/declaredpaths). Nonintegration absent producer/consumer normalize to null; raw TOML omits absence. Matches ordered by request changed path then relation source/test/fixture/input/output/shared_library/shared_database then configured pattern order, dedup exact triples. Overlapping declared relations/packages all remain visible. Unmapped_paths retain request order. producer/consumer/bidirectional are returned semantics, not permission to invent a graph or extra matches.",
+      "effects": "READ ONLY: no child, Task/Sprint/claim change, functionalledger/cache/history/sample/profile/report mutation; common saved diagnostic response allowed. Root response schema operation enum adds package_impact and items oneOf adds this DTO; existing error schema/classcodes and other operations unchanged. Direct ordinary package run/describe IDs remain. Existing common view/full machine transport applies.",
+      "owner": "General named-check catalogue/selection owner computes declared package impact and composes public response through poise.interfaces.project_checks.execute. Existing runner is untouched and never invoked by package_impact. Specialized package-impact and cache APIs preserved; no caller-side filtering or use of a private future API."
     }
   },
   "independent_oracles": {
@@ -16437,8 +17740,432 @@
         "direct_effect": "No child/functional ledger-cache-profile publication; preserve arranged selected and foreign bytes. Only actually saved diagnostic response may exist.",
         "references_assertion": "Exact actual arranged response path if one was saved; otherwise null. No fake record/stream paths. Read actual bytes through saved owner."
       }
-    ]
+    ],
+    "package_impact_cases": [
+      {
+        "changed_paths": [
+          "src/core/model.py"
+        ],
+        "ids": [
+          "core"
+        ],
+        "matches": {
+          "core": [
+            {
+              "path": "src/core/model.py",
+              "relation": "source",
+              "pattern": "src/core/**"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "tests/ui/view.py"
+        ],
+        "ids": [
+          "ui"
+        ],
+        "matches": {
+          "ui": [
+            {
+              "path": "tests/ui/view.py",
+              "relation": "test",
+              "pattern": "tests/ui/*.py"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "fixtures/core/data.json"
+        ],
+        "ids": [
+          "core"
+        ],
+        "matches": {
+          "core": [
+            {
+              "path": "fixtures/core/data.json",
+              "relation": "fixture",
+              "pattern": "fixtures/core/**"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "contracts/in.json"
+        ],
+        "ids": [
+          "wire"
+        ],
+        "matches": {
+          "wire": [
+            {
+              "path": "contracts/in.json",
+              "relation": "input",
+              "pattern": "contracts/in.json"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "contracts/out.json"
+        ],
+        "ids": [
+          "wire"
+        ],
+        "matches": {
+          "wire": [
+            {
+              "path": "contracts/out.json",
+              "relation": "output",
+              "pattern": "contracts/out.json"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "lib/math/add.py"
+        ],
+        "ids": [
+          "core",
+          "wire"
+        ],
+        "matches": {
+          "core": [
+            {
+              "path": "lib/math/add.py",
+              "relation": "shared_library",
+              "pattern": "lib/math/**"
+            }
+          ],
+          "wire": [
+            {
+              "path": "lib/math/add.py",
+              "relation": "shared_library",
+              "pattern": "lib/math/**"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "database/schema.sql"
+        ],
+        "ids": [
+          "ui"
+        ],
+        "matches": {
+          "ui": [
+            {
+              "path": "database/schema.sql",
+              "relation": "shared_database",
+              "pattern": "database/schema.sql"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "src/core/deleted.py"
+        ],
+        "ids": [
+          "core"
+        ],
+        "arrangement": "This selected changed input is deleted from actual fixture checkout; declaration remains.",
+        "matches": {
+          "core": [
+            {
+              "path": "src/core/deleted.py",
+              "relation": "source",
+              "pattern": "src/core/**"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "docs/unrelated.md"
+        ],
+        "ids": [],
+        "unmapped_paths": [
+          "docs/unrelated.md"
+        ]
+      },
+      {
+        "changed_paths": [],
+        "ids": [],
+        "unmapped_paths": []
+      },
+      {
+        "changed_paths": [
+          "contracts/out.json",
+          "src/core/model.py",
+          "docs/unrelated.md"
+        ],
+        "ids": [
+          "core",
+          "wire"
+        ],
+        "unmapped_paths": [
+          "docs/unrelated.md"
+        ],
+        "matches": {
+          "core": [
+            {
+              "path": "src/core/model.py",
+              "relation": "source",
+              "pattern": "src/core/**"
+            }
+          ],
+          "wire": [
+            {
+              "path": "contracts/out.json",
+              "relation": "output",
+              "pattern": "contracts/out.json"
+            }
+          ]
+        }
+      },
+      {
+        "changed_paths": [
+          "tests/core/deep/unselected.py"
+        ],
+        "ids": [],
+        "unmapped_paths": [
+          "tests/core/deep/unselected.py"
+        ]
+      },
+      {
+        "changed_paths": [
+          "src/core-other/model.py"
+        ],
+        "ids": [],
+        "unmapped_paths": [
+          "src/core-other/model.py"
+        ]
+      }
+    ],
+    "package_impact_errors": [
+      {
+        "request_changed_paths": [
+          "../outside.py"
+        ],
+        "code": "invalid_options",
+        "field": "request.items[0].changed_paths[0]",
+        "cause": "Путь ../outside.py выходит за корень выбранной рабочей копии.",
+        "recovery": "Передайте канонический относительный путь внутри выбранной рабочей копии без сегмента .. в request.items[0].changed_paths[0]."
+      },
+      {
+        "request_changed_paths": [
+          "/outside.py"
+        ],
+        "code": "invalid_options",
+        "field": "request.items[0].changed_paths[0]",
+        "cause": "Абсолютный путь /outside.py не является путём внутри выбранной рабочей копии.",
+        "recovery": "Передайте относительный путь в request.items[0].changed_paths[0]."
+      },
+      {
+        "request_changed_paths": [
+          "fixtures/*.json"
+        ],
+        "code": "invalid_options",
+        "field": "request.items[0].changed_paths[0]",
+        "cause": "Изменённый путь fixtures/*.json содержит шаблон вместо конкретного пути.",
+        "recovery": "Передайте конкретный изменённый путь в request.items[0].changed_paths[0]."
+      },
+      {
+        "configuration_mutation": {
+          "remove": "packages.packages[0].source_paths"
+        },
+        "code": "invalid_packages",
+        "field": "packages.packages[0].source_paths",
+        "cause": "Обязательное поле source_paths отсутствует.",
+        "recovery": "Укажите явный список source_paths для packages.packages[0], включая пустой список при отсутствии таких входов."
+      }
+    ],
+    "package_impact_catalogue": {
+      "schema_version": 1,
+      "inventory": {
+        "candidate_globs": [
+          "tests/**/*.py"
+        ],
+        "ignored_paths": []
+      },
+      "packages": [
+        {
+          "package_id": "core",
+          "kind": "unit",
+          "description": "Independent core declaration.",
+          "owners": [
+            "core-owner"
+          ],
+          "contract": "Declared core boundary.",
+          "dependencies": [],
+          "bidirectional": false,
+          "source_paths": [
+            "src/core/**"
+          ],
+          "fixture_paths": [
+            "fixtures/core/**"
+          ],
+          "triggering_input_changes": [],
+          "triggering_output_changes": [],
+          "triggering_input_paths": [],
+          "triggering_output_paths": [],
+          "shared_libraries": [
+            "common-math"
+          ],
+          "shared_databases": [],
+          "shared_library_paths": [
+            "lib/math/**"
+          ],
+          "shared_database_paths": [],
+          "steps": [
+            {
+              "driver": "fixture",
+              "test_paths": [
+                "tests/core/*.py"
+              ],
+              "arguments": [
+                "--marker",
+                "core:1"
+              ]
+            }
+          ]
+        },
+        {
+          "package_id": "ui",
+          "kind": "unit",
+          "description": "Independent ui declaration.",
+          "owners": [
+            "ui-owner"
+          ],
+          "contract": "Declared ui boundary.",
+          "dependencies": [],
+          "bidirectional": false,
+          "source_paths": [
+            "src/ui/**"
+          ],
+          "fixture_paths": [
+            "fixtures/ui/**"
+          ],
+          "triggering_input_changes": [],
+          "triggering_output_changes": [],
+          "triggering_input_paths": [],
+          "triggering_output_paths": [],
+          "shared_libraries": [],
+          "shared_databases": [
+            "app-state"
+          ],
+          "shared_library_paths": [],
+          "shared_database_paths": [
+            "database/schema.sql"
+          ],
+          "steps": [
+            {
+              "driver": "fixture",
+              "test_paths": [
+                "tests/ui/*.py"
+              ],
+              "arguments": [
+                "--marker",
+                "ui:1"
+              ]
+            }
+          ]
+        },
+        {
+          "package_id": "wire",
+          "kind": "integration",
+          "description": "Independent wire declaration.",
+          "owners": [
+            "wire-owner"
+          ],
+          "contract": "Declared wire boundary.",
+          "dependencies": [
+            "core",
+            "ui"
+          ],
+          "bidirectional": true,
+          "source_paths": [
+            "src/wire/**"
+          ],
+          "fixture_paths": [],
+          "triggering_input_changes": [],
+          "triggering_output_changes": [],
+          "triggering_input_paths": [
+            "contracts/in.json"
+          ],
+          "triggering_output_paths": [
+            "contracts/out.json"
+          ],
+          "shared_libraries": [
+            "common-math"
+          ],
+          "shared_databases": [],
+          "shared_library_paths": [
+            "lib/math/**"
+          ],
+          "shared_database_paths": [],
+          "steps": [
+            {
+              "driver": "fixture",
+              "test_paths": [
+                "tests/wire/*.py"
+              ],
+              "arguments": [
+                "--marker",
+                "wire:1"
+              ]
+            }
+          ],
+          "producer": "core-port",
+          "consumer": "ui-port"
+        },
+        {
+          "package_id": "unrelated",
+          "kind": "unit",
+          "description": "Independent unrelated declaration.",
+          "owners": [
+            "unrelated-owner"
+          ],
+          "contract": "Declared unrelated boundary.",
+          "dependencies": [],
+          "bidirectional": false,
+          "source_paths": [
+            "src/other/**"
+          ],
+          "fixture_paths": [],
+          "triggering_input_changes": [],
+          "triggering_output_changes": [],
+          "triggering_input_paths": [],
+          "triggering_output_paths": [],
+          "shared_libraries": [],
+          "shared_databases": [],
+          "shared_library_paths": [],
+          "shared_database_paths": [],
+          "steps": [
+            {
+              "driver": "fixture",
+              "test_paths": [
+                "tests/other/*.py"
+              ],
+              "arguments": [
+                "--marker",
+                "unrelated:1"
+              ]
+            }
+          ]
+        }
+      ],
+      "shared_tests": []
+    }
   },
-  "status": "Proposed exact public interfaces and independent fixtures in current verification plan; independent approval pending.",
+  "status": "Independent contract including Architect-approved scoped package-impact amendment35143519; test data, not implementation evidence.",
   "source_authority": "Current ERP503c9f1a owners; independently accepted corrected solution1502/5b6dae19 and baseline1499/0f3f6d54. Old draft is input only."
 }

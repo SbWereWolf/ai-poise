@@ -1,7 +1,5 @@
 """Actual successful history, content reuse, explicit freshness and publication."""
 from copy import deepcopy
-import json
-import os
 from pathlib import Path
 import tomllib
 
@@ -146,7 +144,9 @@ def test_actual_content_keys_and_separate_admission(project, tmp_path, monkeypat
         assert changed['kind'] == 'execution' and changed['cache']['key'] != original_key
     finally:
         target.chmod(before_mode)
-    assert len(s.markers()) == 2
+    scoped = s.run(selection=s.selection(runtime='python-other'), scope_paths=['src/double.py'])
+    assert scoped['kind'] == 'execution' and scoped['cache']['key'] != original_key
+    assert len(s.markers()) == 3
 
 
 def test_cache_corruption_and_missing_retained_outputs(project, tmp_path, monkeypatch):
@@ -186,6 +186,12 @@ def test_package_and_markdown_cache_scope(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
     from .test_packages import diamond
     diamond(s)
+    fixture = s.checkout / 'fixtures/base/data.json'
+    fixture.parent.mkdir(parents=True)
+    fixture.write_text('{"independent":1}\n')
+    s.packages['packages'][0]['fixture_paths'] = ['fixtures/base/**']
+    git(s.checkout, 'add', 'fixtures/base/data.json')
+    git(s.checkout, 'commit', '-m', 'Declare package fixture membership')
     original = s.run(selection=s.selection('base', kind='package'))
     path = s.checkout / 'tests/base.py'
     mode = path.stat().st_mode & 0o777
@@ -195,6 +201,15 @@ def test_package_and_markdown_cache_scope(project, tmp_path, monkeypatch):
     finally:
         path.chmod(mode)
     path.write_text('# changed package test bytes\n')
+    newest = s.run(selection=s.selection('base', kind='package'))
+    assert newest['kind'] == 'execution'
+    git(s.checkout, 'add', 'src/core/a.py', 'tests/base.py', 'fixtures/base/data.json')
+    git(s.checkout, 'commit', '-m', 'Commit unchanged package cache content')
+    monkeypatch.setenv('F07_PACKAGE_UNUSED_ENV', 'different')
+    assert s.run(selection=s.selection('base', kind='package'))['source'] == newest
+    fixture.write_text('{"independent":2}\n')
+    assert s.run(selection=s.selection('base', kind='package'))['kind'] == 'execution'
+    (s.checkout / 'src/core/a.py').write_text('# changed package source bytes\n')
     assert s.run(selection=s.selection('base', kind='package'))['kind'] == 'execution'
     docs = s.checkout / 'docs'
     docs.mkdir()

@@ -16,7 +16,7 @@ observed_max_success_seconds = 0.0
 observed_max_progress_gap_seconds = 0.0
 stall_timeout_seconds = 0
 initial_limit_reason = "Independent fixture initial budget."
-last_calibrated_at = ""
+last_calibrated_at = "2026-10-17T00:00:00+00:00"
 [commands.progress]
 mode = "unavailable"
 [commands.output]

@@ -1,13 +1,10 @@
 """Package ownership/order and actual configured documentation/suite subjects."""
 from copy import deepcopy
 import json
-import os
-from pathlib import Path
-import shutil
 import threading
 import time
 
-from .support import Scene, git, literal, snapshot, task_projection, write_json
+from .support import Scene, beta_project, digest, git, literal, snapshot, task_projection
 
 
 def diamond(s):
@@ -51,7 +48,10 @@ def test_package_dependency_order_and_deduplication(project, tmp_path, monkeypat
     selection = s.selection('consumer', kind='package')
     code, preview, _ = s.invoke(s.request('preview', selection))
     assert code == 0 and not s.markers()
-    assert [v['package_id'] for v in preview['items'][0]['steps']] == ['base', 'left', 'right', 'consumer']
+    planned = preview['items'][0]
+    assert planned['resolved_dependencies'] == ['base', 'left', 'right']
+    assert [v['argv'][v['argv'].index('--marker') + 1] for v in planned['steps']] == [
+        'base:1', 'left:1', 'right:1', 'consumer:1']
     actual = s.run(selection=selection, fresh=True)
     assert [v['marker'] for v in s.markers()] == ['base:1', 'left:1', 'right:1', 'consumer:1']
     assert [v['package_id'] for v in actual['steps']] == ['base', 'left', 'right', 'consumer']
@@ -105,6 +105,55 @@ def test_generic_native_driver_arguments(project, tmp_path, monkeypatch):
         assert s.markers()[-1]['marker'] == family
         assert s.record(result)['argv'] == s.policy['drivers'][0]['argv_prefix'] + package['steps'][0]['arguments'] + ['tests/base.py']
     assert len(s.markers()) == 4  # Real fixture programs, not PHP/npm/Composer execution proof.
+
+
+def test_change_scope_and_integration_boundaries(project, tmp_path, monkeypatch):
+    s = Scene(project, tmp_path, monkeypatch)
+    s.packages = literal('package-impact-catalogue.json')
+    expected = {v['package_id']: v for v in literal('package-impact-expected-declarations.json')}
+    s.save()
+    from poise.execution import RegisteredCheckRunner
+
+    def forbidden_execution(*args, **kwargs):
+        raise AssertionError('Read-only package impact must never invoke a process owner')
+    monkeypatch.setattr(RegisteredCheckRunner, 'run', forbidden_execution)
+    before = (task_projection(project), s.profiles_path.read_bytes(), snapshot(s.state / 'cache'))
+    for case in literal('package-impact-cases.json'):
+        if case.get('arrangement'):
+            deleted = s.checkout / 'src/core/deleted.py'
+            deleted.write_text('# real previously present input\n')
+            git(s.checkout, 'add', 'src/core/deleted.py')
+            git(s.checkout, 'commit', '-m', 'Arrange deleted package impact input')
+            deleted.unlink()
+        request = s.request('package_impact', items=[{'changed_paths': case['changed_paths']}])
+        code, response, _ = s.invoke(request)
+        assert code == 0 and response['status'] == 'ready'
+        item = response['items'][0]
+        assert item['kind'] == 'package_impact' and item['changed_paths'] == case['changed_paths']
+        assert [v['package']['package_id'] for v in item['packages']] == case['ids']
+        assert item['unmapped_paths'] == case.get('unmapped_paths', [])
+        for selected in item['packages']:
+            package_id = selected['package']['package_id']
+            assert selected['package'] == expected[package_id]
+            assert selected['matches'] == case['matches'][package_id]
+        assert not s.markers() and not (s.state / 'named-runs.sqlite').exists()
+        assert (task_projection(project), s.profiles_path.read_bytes(), snapshot(s.state / 'cache')) == before
+        if case.get('arrangement'):
+            assert not deleted.exists()
+    original = deepcopy(s.packages)
+    for case in literal('package-impact-errors.json'):
+        s.packages = deepcopy(original)
+        if 'configuration_mutation' in case:
+            del s.packages['packages'][0]['source_paths']
+            changed = []
+        else:
+            changed = case['request_changed_paths']
+        s.save()
+        error = s.error(s.request('package_impact', items=[{'changed_paths': changed}]),
+                        case['code'], field=case['field'])
+        assert error['cause'] == case['cause'] and error['recovery'] == case['recovery']
+        assert case['field'] in error['reason'] or changed and changed[0] in error['reason']
+    assert not s.markers()
 
 
 def test_suite_profile_and_order_no_full_fallback(project, tmp_path, monkeypatch):
@@ -290,28 +339,13 @@ def test_task_state_and_specialized_checks_are_preserved(project, tmp_path, monk
 def test_run_history_and_calibration_project_isolation(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
     original = s.run()
-    from tests.projects.helpers import setup_case
-    from poise.composition import project_tools
-    beta_root = tmp_path / 'beta'
-    beta_root.mkdir()
-    checkout = beta_root / 'checkout'
-    shutil.copytree(project['app'], checkout)
-    cfg = deepcopy(project['cfg'])
-    cfg['project'] = 'beta'
-    cfg['git']['repository'] = str(checkout)
-    write_json(beta_root / 'config/workflows/development.json', project['workflow'])
-    base = {**project, 'root': beta_root, 'app': checkout, 'cfg': cfg}
-    setup, _, packet = setup_case(base)
-    packet['edits'][0]['value'] = 'beta'
-    created = project_tools(setup).apply(packet)
-    base['config_path'] = Path(created['config_path'])
-    base['root'] = base['config_path'].parent
+    base, beta_root = beta_project(project, tmp_path)
     beta = Scene(base, beta_root, monkeypatch)
     beta.run()
     before = snapshot(s.state)
     beta.error(beta.request('result', items=[{'result_id': original['result_id']}]), 'result_missing')
     record = s.record(original)
     beta.error(beta.request('calibrate', items=[{'profile': beta.selection(), 'evidence_run_ids': [record['run_id']],
-                                               'expected_profile_sha256': __import__('hashlib').sha256(beta.profiles_path.read_bytes()).hexdigest()}]),
+                                               'expected_profile_sha256': digest(beta.profiles_path.read_bytes())}]),
                'invalid_history')
     assert snapshot(s.state) == before

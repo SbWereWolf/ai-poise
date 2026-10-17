@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import sqlite3
+import shutil
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -176,7 +177,8 @@ def task_projection(project):
     database = project['root'] / project['cfg']['paths']['state'] / project['cfg']['paths']['database']
     queries = {'tasks': 'SELECT id,status,stage_index,iteration,claimed_by,version,metadata FROM tasks ORDER BY id',
                'sprints': 'SELECT id,project,state,revision,data FROM sprints ORDER BY id',
-               'session_sprints': 'SELECT session_id,sprint_id FROM session_sprints ORDER BY session_id'}
+               'session_sprints': 'SELECT session_id,sprint_id FROM session_sprints ORDER BY session_id',
+               'sessions': 'SELECT id,task_id FROM sessions WHERE task_id IS NOT NULL ORDER BY id'}
     result = {key: [] for key in queries}
     if database.exists():
         with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
@@ -185,6 +187,27 @@ def task_projection(project):
                 if table in names:
                     result[table] = connection.execute(query).fetchall()
     return result
+
+
+def beta_project(project, tmp_path):
+    """Create a second actual configured project through the existing public owner."""
+    from tests.projects.helpers import setup_case
+    from poise.composition import project_tools
+    beta_root = tmp_path / 'beta'
+    beta_root.mkdir()
+    checkout = beta_root / 'checkout'
+    shutil.copytree(project['app'], checkout)
+    cfg = deepcopy(project['cfg'])
+    cfg['project'] = 'beta'
+    cfg['git']['repository'] = str(checkout)
+    write_json(beta_root / 'config/workflows/development.json', project['workflow'])
+    base = {**project, 'root': beta_root, 'app': checkout, 'cfg': cfg}
+    setup, _, packet = setup_case(base)
+    packet['edits'][0]['value'] = 'beta'
+    created = project_tools(setup).apply(packet)
+    base['config_path'] = Path(created['config_path'])
+    base['root'] = base['config_path'].parent
+    return base, beta_root
 
 
 class FakeClock:
@@ -247,7 +270,8 @@ class Scene:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text('# independent fixture input\n')
         git(self.checkout, 'add', '.')
-        git(self.checkout, 'commit', '-m', 'Arrange named-check input membership')
+        if git(self.checkout, 'diff', '--cached', '--name-only'):
+            git(self.checkout, 'commit', '-m', 'Arrange named-check input membership')
         self.save()
         self.contract = literal('contract.json')
 

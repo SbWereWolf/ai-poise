@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "inventory": {
+    "candidate_globs": [
+      "tests/**/*.py"
+    ],
+    "ignored_paths": []
+  },
+  "packages": [
+    {
+      "package_id": "core",
+      "kind": "unit",
+      "description": "Independent core declaration.",
+      "owners": [
+        "core-owner"
+      ],
+      "contract": "Declared core boundary.",
+      "dependencies": [],
+      "bidirectional": false,
+      "source_paths": [
+        "src/core/**"
+      ],
+      "fixture_paths": [
+        "fixtures/core/**"
+      ],
+      "triggering_input_changes": [],
+      "triggering_output_changes": [],
+      "triggering_input_paths": [],
+      "triggering_output_paths": [],
+      "shared_libraries": [
+        "common-math"
+      ],
+      "shared_databases": [],
+      "shared_library_paths": [
+        "lib/math/**"
+      ],
+      "shared_database_paths": [],
+      "steps": [
+        {
+          "driver": "fixture",
+          "test_paths": [
+            "tests/core/*.py"
+          ],
+          "arguments": [
+            "--marker",
+            "core:1"
+          ]
+        }
+      ]
+    },
+    {
+      "package_id": "ui",
+      "kind": "unit",
+      "description": "Independent ui declaration.",
+      "owners": [
+        "ui-owner"
+      ],
+      "contract": "Declared ui boundary.",
+      "dependencies": [],
+      "bidirectional": false,
+      "source_paths": [
+        "src/ui/**"
+      ],
+      "fixture_paths": [
+        "fixtures/ui/**"
+      ],
+      "triggering_input_changes": [],
+      "triggering_output_changes": [],
+      "triggering_input_paths": [],
+      "triggering_output_paths": [],
+      "shared_libraries": [],
+      "shared_databases": [
+        "app-state"
+      ],
+      "shared_library_paths": [],
+      "shared_database_paths": [
+        "database/schema.sql"
+      ],
+      "steps": [
+        {
+          "driver": "fixture",
+          "test_paths": [
+            "tests/ui/*.py"
+          ],
+          "arguments": [
+            "--marker",
+            "ui:1"
+          ]
+        }
+      ]
+    },
+    {
+      "package_id": "wire",
+      "kind": "integration",
+      "description": "Independent wire declaration.",
+      "owners": [
+        "wire-owner"
+      ],
+      "contract": "Declared wire boundary.",
+      "dependencies": [
+        "core",
+        "ui"
+      ],
+      "bidirectional": true,
+      "source_paths": [
+        "src/wire/**"
+      ],
+      "fixture_paths": [],
+      "triggering_input_changes": [],
+      "triggering_output_changes": [],
+      "triggering_input_paths": [
+        "contracts/in.json"
+      ],
+      "triggering_output_paths": [
+        "contracts/out.json"
+      ],
+      "shared_libraries": [
+        "common-math"
+      ],
+      "shared_databases": [],
+      "shared_library_paths": [
+        "lib/math/**"
+      ],
+      "shared_database_paths": [],
+      "steps": [
+        {
+          "driver": "fixture",
+          "test_paths": [
+            "tests/wire/*.py"
+          ],
+          "arguments": [
+            "--marker",
+            "wire:1"
+          ]
+        }
+      ],
+      "producer": "core-port",
+      "consumer": "ui-port"
+    },
+    {
+      "package_id": "unrelated",
+      "kind": "unit",
+      "description": "Independent unrelated declaration.",
+      "owners": [
+        "unrelated-owner"
+      ],
+      "contract": "Declared unrelated boundary.",
+      "dependencies": [],
+      "bidirectional": false,
+      "source_paths": [
+        "src/other/**"
+      ],
+      "fixture_paths": [],
+      "triggering_input_changes": [],
+      "triggering_output_changes": [],
+      "triggering_input_paths": [],
+      "triggering_output_paths": [],
+      "shared_libraries": [],
+      "shared_databases": [],
+      "shared_library_paths": [],
+      "shared_database_paths": [],
+      "steps": [
+        {
+          "driver": "fixture",
+          "test_paths": [
+            "tests/other/*.py"
+          ],
+          "arguments": [
+            "--marker",
+            "unrelated:1"
+          ]
+        }
+      ]
+    }
+  ],
+  "shared_tests": []
+}

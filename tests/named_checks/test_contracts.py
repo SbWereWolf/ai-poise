@@ -1,14 +1,12 @@
 """Public requests, selection, roots and consumers; exact independent effects."""
 from copy import deepcopy
-import io
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 
-from .support import ROOT, Scene, canonical, digest, git, literal, schema, snapshot, write_json
+from .support import ROOT, Scene, beta_project, canonical, digest, git, literal, schema, snapshot
 
 
 def test_list_describe_preview(project, tmp_path, monkeypatch):
@@ -35,6 +33,7 @@ def test_selection_ambiguity_and_optional_warnings(project, tmp_path, monkeypatc
     small = s.profile('unit', marker='small', workload_class='small')
     large = deepcopy(small)
     large['workload_class'] = 'large'
+    large['argv'] = [*large['argv'][:-1], 'large']
     s.profiles['commands'].append(large)
     s.save()
     request = s.request(selection=s.selection('unit', workload=None, runtime=None))
@@ -43,6 +42,9 @@ def test_selection_ambiguity_and_optional_warnings(project, tmp_path, monkeypatc
     assert 'small' in error['reason'] + error['cause'] and 'large' in error['recovery']
     selected = s.run(selection=s.selection('unit', workload='small', runtime=None))
     assert s.record(selected)['selection']['workload_class'] == 'small'
+    other = s.run(selection=s.selection('unit', workload='large', runtime=None))
+    assert other['kind'] == 'execution' and other['cache']['key'] != selected['cache']['key']
+    assert [v['marker'] for v in s.markers()] == ['small', 'large']
     warning = s.request('describe', s.selection('sample', workload='unknown-optional', runtime=None))
     code, value, _ = s.invoke(warning)
     assert code == 0 and value['warnings']
@@ -204,6 +206,17 @@ def test_functional_store_identity_and_corruption(project, tmp_path, monkeypatch
     s.run()
     ledger = s.state / 'named-runs.sqlite'
     assert ledger.exists()
+    original = ledger.read_bytes()
+    other_project, other_root = beta_project(project, tmp_path)
+    beta = Scene(other_project, other_root, monkeypatch)
+    beta.run()
+    foreign = (beta.state / 'named-runs.sqlite').read_bytes()
+    assert beta.state != s.state and foreign != original
+    ledger.write_bytes(foreign)
+    s.error(s.request(fresh=True), 'registry_invalid')
+    assert ledger.read_bytes() == foreign and len(beta.markers()) == 1
+    assert (beta.state / 'named-runs.sqlite').read_bytes() == foreign
+    ledger.write_bytes(original)
     sentinel = b'not a database, preserve this original\n'
     ledger.write_bytes(sentinel)
     s.error(s.request(fresh=True), 'registry_invalid')

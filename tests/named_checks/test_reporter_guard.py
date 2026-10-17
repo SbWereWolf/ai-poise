@@ -1,11 +1,10 @@
 """GREEN guard: expected missing entry cannot conceal an unexpected failure."""
 from copy import deepcopy
-import json
 from types import SimpleNamespace
 
 import pytest
 
-from .support import NamedChecksUnavailable, entry_result, literal, schema
+from .support import NamedChecksUnavailable, Scene, beta_project, entry_result, literal, schema
 from tests.skills.record_instruction_red import canonical
 
 
@@ -58,3 +57,26 @@ def test_contract_assertions_reject_type_field_and_union_mistakes():
         schema(True, {'type': 'integer'})
     with pytest.raises(AssertionError):
         schema('ambiguous', {'oneOf': [{'type': 'string'}, {'type': 'string'}]})
+
+
+def test_fixture_arrangement_roundtrips_before_future_behavior(project, tmp_path, monkeypatch):
+    # This GREEN guard checks test inputs only. It never calls or simulates the
+    # missing named-check producer and is not evidence of any product behavior.
+    calls = []
+    from . import support
+    monkeypatch.setattr(support, 'entry', lambda: calls.append('entry'))
+    arranged = Scene(project, tmp_path, monkeypatch)
+    contracts = literal('contract.json')['schemas']
+    schema(arranged.policy, contracts['configuration']['policy'])
+    schema(arranged.profiles, contracts['configuration']['profiles_toml'])
+    schema(arranged.packages, contracts['configuration']['packages_toml'])
+    schema(arranged.suites, contracts['configuration']['suites_json'])
+    schema(literal('package-impact-catalogue.json'), contracts['configuration']['packages_toml'])
+    for declaration in literal('package-impact-expected-declarations.json'):
+        schema(declaration, contracts['package_declaration'])
+    schema(arranged.request(), contracts['request'])
+    schema(arranged.request('package_impact', items=[{'changed_paths': []}]), contracts['request'])
+    other, other_root = beta_project(project, tmp_path)
+    beta = Scene(other, other_root, monkeypatch)
+    assert arranged.config != beta.config and arranged.checkout != beta.checkout
+    assert arranged.state != beta.state and calls == ['entry', 'entry']

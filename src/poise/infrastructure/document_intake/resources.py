@@ -23,11 +23,14 @@ class CoordinationStore:
 
     def load(self):
         try:
-            return json.loads((self.root / self.filename).read_bytes())
+            record = json.loads((self.root / self.filename).read_bytes())
         except FileNotFoundError:
             return None
         except (OSError, ValueError, UnicodeError) as exc:
             raise ReadFailure('ownership_unknown') from exc
+        if not isinstance(record, dict):
+            raise ReadFailure('ownership_unknown')
+        return record
 
     def save(self, record):
         atomic_write(self.root / self.filename, (json.dumps(record, ensure_ascii=False, sort_keys=True) + '\n').encode(), self.file_mode)
@@ -180,6 +183,8 @@ class EpisodeResources:
     def admit(self, observation, *, adopt=False):
         episode = observation['episode']
         record = self.store.load()
+        if record is not None:
+            self._validate_owner(record, require_tree=False)
         if record is not None and record.get('episode') != episode and record.get('phase') != 'ended':
             raise ReadFailure('episode_mismatch')
         fresh = record is None or record.get('episode') != episode
@@ -226,6 +231,15 @@ class EpisodeResources:
         deadline = self.store.deadline(self.policy['coordination']['recovery_budget_seconds'])
         try:
             with self.store.locked(deadline):
+                # A prior recovery may have ended this episode and admitted a
+                # new owner while this request was waiting for the gate.
+                current = self.store.load()
+                if current is None:
+                    raise ReadFailure('ownership_unknown')
+                self._validate_owner(current, require_tree=False)
+                if current['episode'] != episode:
+                    raise ReadFailure('episode_mismatch', details=details, status='stale')
+                record = current
                 host_deadline = self.store.deadline(self.policy['coordination']['host_event_budget_seconds'])
                 while True:
                     observed = self.authority.observe(episode)
@@ -267,6 +281,8 @@ class EpisodeResources:
                     raise ReadFailure('cleanup_incomplete', details=details, status='incomplete')
                 return 'cleaned', details
         except (OSError, ReadFailure) as exc:
+            if isinstance(exc, ReadFailure) and exc.code != 'cleanup_incomplete':
+                raise
             try:
                 self.log.append('incomplete', episode, str(exc))
             except OSError:

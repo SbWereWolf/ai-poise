@@ -11,7 +11,7 @@ def factory(tmp_path):
     cfg=batch_config()
     roots={s:tmp_path/s for s in ('runtime','task','sprint')}
     for r in roots.values(): r.mkdir()
-    return FileArtifactFactory(roots,cfg,tmp_path/'factory.lock',2.0,0.01),roots
+    return FileArtifactFactory(roots,cfg),roots
 
 
 def test_render_text_and_explicit_template_without_default():

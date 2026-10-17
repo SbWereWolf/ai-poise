@@ -8,11 +8,12 @@ import pytest
 from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
-from .helpers import bootstrap, request, result, verify
+from .helpers import bootstrap, configure, request, result, verify
 
 
 @pytest.fixture
 def legacy(project):
+    configure(project)
     first = WorkPoise(project['config_path'], 'A')
     tools = WorkTools(first)
     context = bootstrap(tools, project)
@@ -258,7 +259,7 @@ def test_factory_rejects_destination_scope_change_before_publication(tmp_path):
            'scope':'sprint','owner':'S1','path':str(source),
            'digest':hashlib.sha256(b'original').hexdigest()}
     new = tmp_path/'new'
-    factory = FileArtifactFactory({'sprint':new,'task':new/'task/T1'},batch_config(),tmp_path/'lock',1,.01)
+    factory = FileArtifactFactory({'sprint':new,'task':new/'task/T1'},batch_config())
     with pytest.raises(PoiseError, match='scope/owner identity'):
         factory.recover_registered([row],{'sprint':str(old)},{'sprint':'S1','task':'T1'})
     assert not new.exists()

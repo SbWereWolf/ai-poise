@@ -222,9 +222,7 @@ def test_required_permanent_material_remains_guarded_after_relocation(project, t
     sentinel = consumer / 'operator.txt'
     sentinel.write_bytes(b'existing consumer work\n')
     cfg = moved.runtime.cfg
-    factory = FileArtifactFactory(
-        {'task': consumer}, cfg['batch'], tmp_path / 'material-consumer.lock',
-        cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'])
+    factory = FileArtifactFactory({'task': consumer}, cfg['batch'])
 
     def consume():
         materials = ArtifactMaterialResolver(moved.runtime.delivery_tools).resolve('T1', [record])

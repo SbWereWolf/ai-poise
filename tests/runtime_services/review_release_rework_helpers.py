@@ -156,7 +156,8 @@ def assert_current_correction(case, context, iteration):
         context["status"], context["stage"], context["iteration"],
     )
     assert context["iteration"] == iteration
-    assert context["status"] == "active"
+    assert context["status"] == "progression_work_required"
+    assert case["executor"].runtime.task_queries.record("T1")["status"] == "active"
     actual = context["workflow"]["feedback"]["open_findings"]
     expected = {**case["data"]["finding"], "stage": "audit", "iteration": 1}
     assert actual == [expected]

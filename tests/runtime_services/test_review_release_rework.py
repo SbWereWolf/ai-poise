@@ -10,7 +10,7 @@ from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runtime_services.review_release_rework_helpers import (
     acquire, add_held_wip, advance, assert_current_correction, call,
-    current_correction, fixture, prepare, preserve, release, review,
+    current_correction, prepare, preserve, release, review,
     saved_results, seed_older_handoff, snapshot,
 )
 from ownership.test_public_release import preserve_unknown_attempt, start
@@ -131,7 +131,7 @@ def test_unknown_attempt_allows_context_without_rerun(project, monkeypatch):
     with owner.runtime.store.unit_of_work() as unit:
         pending = deepcopy(unit.execution.load("T1")[0]["pending"])
     assert pending["kind"] == "check_attempt"
-    unfinished = Path(context["worktree"]) / "unfinished.note"
+    unfinished = Path(context["worktree"]) / "tests/unfinished.note"
     unfinished.write_bytes(b"keep unknown-attempt work\n")
     release(owner, "unknown-to-receiver")
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))

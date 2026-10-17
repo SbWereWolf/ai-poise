@@ -1,0 +1,47 @@
+{
+  "body": "01 A\n02 A\n",
+  "known_success": [
+    {
+      "output": "01 A\n02 A\n",
+      "exit_code": 0
+    },
+    {
+      "stdout": "01 A\n02 A\n",
+      "stderr": "",
+      "exit_code": 0
+    },
+    {
+      "output": "01 A\n02 A\n",
+      "exitCode": 0
+    }
+  ],
+  "invalid": [
+    null,
+    {},
+    {
+      "output": null,
+      "exit_code": 0
+    },
+    {
+      "output": 17,
+      "exit_code": 0
+    },
+    {
+      "output": "",
+      "exit_code": 0
+    },
+    {
+      "output": "01 A\n02 A",
+      "exit_code": 0
+    },
+    {
+      "output": "01 A\n02 A\n",
+      "exit_code": true
+    },
+    {
+      "output": "01 A\n02 A\n",
+      "exit_code": 0,
+      "exitCode": 1
+    }
+  ]
+}

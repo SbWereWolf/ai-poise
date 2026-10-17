@@ -1,0 +1,968 @@
+{
+  "C01": [
+    {
+      "command": "cat docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_bytes": 64,
+        "classifier.complete_reads.small_bundle_max_lines": 12
+      },
+      "run": true
+    },
+    {
+      "command": "nl -ba docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_bytes": 64,
+        "classifier.complete_reads.small_bundle_max_lines": 12
+      },
+      "run": true
+    },
+    {
+      "command": "tac docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_bytes": 64,
+        "classifier.complete_reads.small_bundle_max_lines": 12
+      },
+      "run": true
+    },
+    {
+      "command": "bat --style=plain --paging=never docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_bytes": 64,
+        "classifier.complete_reads.small_bundle_max_lines": 12
+      },
+      "run": false,
+      "simulated_response_from": "A"
+    },
+    {
+      "command": "batcat --style=plain --paging=never docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_bytes": 64,
+        "classifier.complete_reads.small_bundle_max_lines": 12
+      },
+      "run": false,
+      "simulated_response_from": "A"
+    }
+  ],
+  "C02": [
+    {
+      "command": "cat docs/A.txt docs/B.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "cat docs/A.txt docs/B.txt docs/C.txt",
+      "reason": "multiple_complete_documents",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat docs/A.txt docs/B.txt",
+      "reason": "multiple_complete_documents",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_bytes": 199
+      },
+      "run": false
+    },
+    {
+      "command": "cat docs/A.txt docs/B.txt",
+      "reason": "multiple_complete_documents",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_lines": 39
+      },
+      "run": false
+    }
+  ],
+  "C03": [
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": true
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": "bounded_per_file_line_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 3,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": false
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": true
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": "bounded_total_line_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 7,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": false
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": true
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 19,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": false
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": true
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": "bounded_total_byte_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 39
+      },
+      "run": false
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 2,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": true
+    },
+    {
+      "command": "head -n4 docs/A.txt docs/B.txt",
+      "reason": "bounded_file_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 1,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 8,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": false
+    }
+  ],
+  "C04": [
+    {
+      "command": "head -n 2 docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          2
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "head --lines=2 docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          2
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "head -c10 docs/A.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "head --bytes=10 docs/A.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "tail -n2 docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          19,
+          20
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "tail --lines=2 docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          19,
+          20
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "tail -c10 docs/A.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "tail --bytes=10 docs/A.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "head -n5 docs/C.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          1
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "tail -n2 docs/long.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_lines": 4,
+        "classifier.bounded_reads.max_lines_per_file": 4,
+        "classifier.bounded_reads.max_total_lines": 4
+      },
+      "run": true
+    }
+  ],
+  "C05": [
+    {
+      "command": "sed -n '2,4p' docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          2,
+          4
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "sed -ne '2,4p' docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          2,
+          4
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "sed -n -e '1,2p' -e '5,6p' docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          2
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "sed -i 's/A/Z/' docs/A.txt",
+      "reason": null,
+      "kind": "none",
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "sed -f docs/program.sed docs/A.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    }
+  ],
+  "C06": [
+    {
+      "command": "awk '1' docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "awk '{print}' docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "perl -ne 'print' docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "awk 'NR==2 {print}' docs/A.txt",
+      "reason": null,
+      "kind": "operation",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    }
+  ],
+  "C07": [
+    {
+      "command": "cat -- 'docs/имя с пробелом.txt'",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "env LANG=C cat docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "command cat docs/A.txt",
+      "reason": null,
+      "kind": "complete",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "cat < /dev/null",
+      "reason": null,
+      "kind": "none",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    }
+  ],
+  "C08": [
+    {
+      "command": "cat docs/A.txt | head -n5",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          5
+        ]
+      ],
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "printf marker | head -n1",
+      "reason": null,
+      "kind": "none",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    }
+  ],
+  "C09": [
+    {
+      "command": "cat docs/*.txt",
+      "reason": "unbounded_file_expansion",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat docs/*.txt",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit",
+        "classifier.unknown_expansion.deny_globs": false
+      },
+      "run": false
+    },
+    {
+      "command": "cat docs/{A,B}.txt",
+      "reason": "unbounded_file_expansion",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat docs/{A,B}.txt",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit",
+        "classifier.unknown_expansion.deny_globs": false
+      },
+      "run": false
+    },
+    {
+      "command": "cat \"$F05_UNKNOWN\"",
+      "reason": "unbounded_file_expansion",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat \"$F05_UNKNOWN\"",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit",
+        "classifier.unknown_expansion.deny_globs": false
+      },
+      "run": false
+    }
+  ],
+  "C10": [
+    {
+      "command": "cat docs/missing.txt",
+      "reason": "dynamic_single_file_read",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat docs/missing.txt docs/absent.txt",
+      "reason": "unresolved_multi_file_read",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    }
+  ],
+  "C11": [
+    {
+      "command": "for f in docs/A.txt; do cat \"$f\"; done",
+      "reason": "reader_loop",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "while true; do cat docs/A.txt; break; done",
+      "reason": "reader_loop",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "until false; do cat docs/A.txt; break; done",
+      "reason": "reader_loop",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "find docs -exec cat {} \\;",
+      "reason": "find_exec_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "printf docs/A.txt | xargs cat",
+      "reason": "xargs_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "for f in docs/A.txt; do cat \"$f\"; done",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_reader_loops": false,
+        "classifier.unknown_expansion.deny_globs": false,
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit"
+      },
+      "run": false
+    },
+    {
+      "command": "while true; do cat docs/A.txt; break; done",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_reader_loops": false,
+        "classifier.unknown_expansion.deny_globs": false,
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit"
+      },
+      "run": false
+    },
+    {
+      "command": "until false; do cat docs/A.txt; break; done",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_reader_loops": false,
+        "classifier.unknown_expansion.deny_globs": false,
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit"
+      },
+      "run": false
+    },
+    {
+      "command": "find docs -exec cat {} \\;",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_find_exec_readers": false,
+        "classifier.unknown_expansion.deny_globs": false,
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit"
+      },
+      "run": false
+    },
+    {
+      "command": "printf docs/A.txt | xargs cat",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_xargs_readers": false,
+        "classifier.unknown_expansion.deny_globs": false,
+        "classifier.unknown_expansion.unclassified_behavior": "allow_with_audit"
+      },
+      "run": false
+    }
+  ],
+  "C12": [
+    {
+      "command": "bash -c 'cat docs/A.txt'",
+      "reason": "nested_shell_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "sh -lc 'cat docs/A.txt'",
+      "reason": "nested_shell_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "bash -cl 'cat docs/A.txt'",
+      "reason": "nested_shell_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "bash -c 'printf metadata'",
+      "reason": null,
+      "kind": "none",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "bash -c \"sh -c 'bash -c cat'\"",
+      "reason": "nested_shell_depth_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_nested_shell_readers": false
+      },
+      "run": false
+    },
+    {
+      "command": "bash -c 'head -n2 docs/A.txt'",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          2
+        ]
+      ],
+      "policy": {
+        "classifier.unknown_expansion.deny_nested_shell_readers": false
+      },
+      "run": true
+    },
+    {
+      "command": "bash -c \"sh -c 'head -n2 docs/A.txt'\"",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          2
+        ]
+      ],
+      "policy": {
+        "classifier.unknown_expansion.deny_nested_shell_readers": false
+      },
+      "run": true
+    },
+    {
+      "command": "dash -c 'cat docs/A.txt'",
+      "reason": "nested_shell_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "ksh -c 'cat docs/A.txt'",
+      "reason": "nested_shell_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "zsh -c 'cat docs/A.txt'",
+      "reason": "nested_shell_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    }
+  ],
+  "C13": [
+    {
+      "command": "echo $(cat docs/A.txt)",
+      "reason": "reader_command_substitution",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "echo `cat docs/A.txt`",
+      "reason": "reader_command_substitution",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "cat <(cat docs/A.txt)",
+      "reason": "reader_command_substitution",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "eval 'cat docs/A.txt'",
+      "reason": "eval_reader",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "echo $(cat docs/A.txt)",
+      "reason": null,
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.unknown_expansion.deny_command_substitutions": false
+      },
+      "run": false
+    }
+  ],
+  "C14": [
+    {
+      "command": "python3 -c 'print(open(\"docs/A.txt\").read())'",
+      "reason": "unsupported_interpreter_read_output",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    },
+    {
+      "command": "python3 -c 'import os; print(os.stat(\"docs/A.txt\"))'",
+      "reason": null,
+      "kind": "none",
+      "ranges": null,
+      "policy": {},
+      "run": true
+    },
+    {
+      "command": "python3 -c 'import os; print(os.stat(\"docs/A.txt\"))'",
+      "reason": null,
+      "kind": "none",
+      "ranges": null,
+      "policy": {
+        "classifier.readers.interpreter_bypass_patterns": [
+          "stat\\("
+        ],
+        "classifier.readers.interpreter_metadata_patterns": [
+          ".*os\\.stat\\(.*"
+        ]
+      },
+      "run": true
+    },
+    {
+      "command": "python3 -c 'import os; print(os.stat(\"docs/A.txt\"))'",
+      "reason": "unsupported_interpreter_read_output",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.readers.interpreter_bypass_patterns": [
+          "stat\\("
+        ],
+        "classifier.readers.interpreter_metadata_patterns": []
+      },
+      "run": false
+    }
+  ],
+  "C15": [
+    {
+      "command": "head -n1 docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          1
+        ]
+      ],
+      "policy": {
+        "classifier.parser.max_reader_arguments_per_invocation": 2
+      },
+      "run": true
+    },
+    {
+      "command": "head -n1 -- docs/A.txt",
+      "reason": "reader_argument_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.parser.max_reader_arguments_per_invocation": 2
+      },
+      "run": false
+    },
+    {
+      "command": "head -n1 docs/A.txt && head -n1 docs/B.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          1
+        ]
+      ],
+      "policy": {
+        "classifier.parser.max_reader_invocations_per_call": 2
+      },
+      "run": true
+    },
+    {
+      "command": "head -n1 docs/A.txt && head -n1 docs/B.txt",
+      "reason": "reader_invocation_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.parser.max_reader_invocations_per_call": 1
+      },
+      "run": false
+    },
+    {
+      "command": "cat 'docs/A.txt",
+      "reason": "shell_parse_failed",
+      "kind": null,
+      "ranges": null,
+      "policy": {},
+      "run": false
+    }
+  ],
+  "C16": [
+    {
+      "command": "cat docs/A.txt docs/B.txt",
+      "reason": "multiple_complete_documents",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.complete_reads.small_bundle_max_files": 1
+      },
+      "run": false
+    }
+  ]
+}

@@ -1,0 +1,1247 @@
+{
+  "schema": "f05-verification-design-1",
+  "status": "design-only; no target tests or fixtures written",
+  "groups": {
+    "classifier": [
+      {
+        "id": "C01-complete_single_early_allow",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C01-complete_single_early_allow]",
+        "contract": "Один complete reader разрешён при max_files_per_call=1, даже если A=100bytes/20lines превышает small_bundle отдельные64bytes/12lines условия; projected_files1, без ложного universal bytecap.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C02-small_bundle_boundaries",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C02-small_bundle_boundaries]",
+        "contract": "A+B по100bytes/20lines: bundle max_files3/max_bytes200/max_lines40 =>allow на границах; добавление C или уменьшение одного предела =>multiple_complete_documents.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C03-bounded_multifile_limits",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C03-bounded_multifile_limits]",
+        "contract": "Проверить per-file и total file/line/UTF8byte пределы: exact limit допустим, превышение на1 даёт свой bounded budget reason без pending/coverage.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C04-head_tail_units_eof",
+        "requirements": [
+          "R1",
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C04-head_tail_units_eof]",
+        "contract": "head/tail -n/-c, --lines/--bytes, EOF и короткий файл дают independent projected/range literals; unknown suffix при недостаточном linecount не превращается в точное покрытие.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C05-sed_program_forms",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C05-sed_program_forms]",
+        "contract": "-n/-e/combinedflags/несмежные print ranges; inplace не read, external script conservative; exact known ranges и unknown outcomes различаются.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C06-awk_perl_conservative",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C06-awk_perl_conservative]",
+        "contract": "awk 1/{print} и Perl print/everyrecord complete; иные программы operation/unknown, не выдуманные bounded ranges.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C07-quotes_wrappers_redirection",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C07-quotes_wrappers_redirection]",
+        "contract": "Имена с пробелами/UTF8, --, env/prefix wrappers и stdin redirects: file labels/reader types exact, stdin/external не repository coverage.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C08-bounded_pipeline",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C08-bounded_pipeline]",
+        "contract": "cat A | head -n5 =>единственный plan A[1,5] c pipeline source; unrelated pipeline не подменяет источник.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C09-unknown_dynamic_glob",
+        "requirements": [
+          "R3",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C09-unknown_dynamic_glob]",
+        "contract": "glob/brace/dynamic operands под deny и allow_with_audit: native decision/reason/action и отсутствие выдуманных paths/coverage.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C10-unresolved_missing_multiple",
+        "requirements": [
+          "R3",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C10-unresolved_missing_multiple]",
+        "contract": "Single missing/unreadable/dynamic distinct unclassified; several unresolved =>unresolved_multi_file_read, данные до/после неизменны.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C11-loop_find_xargs",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C11-loop_find_xargs]",
+        "contract": "for/while/until, find-exec, xargs readers под явными flags; detection bounded и reason/decision exact.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C12-nested_shell_depth",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C12-nested_shell_depth]",
+        "contract": "bash/sh -c/-lc/-cl reader и configured nesteddepth: допустимый nonreader отдельно; hidden readers/depth limit дают named refusal.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C13-substitution_eval",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C13-substitution_eval]",
+        "contract": "command/process substitution/backticks/eval: configured deny toggles, никакого выполнения command ради классификации.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C14-interpreter_patterns",
+        "requirements": [
+          "R3"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C14-interpreter_patterns]",
+        "contract": "Configured open/read+print bypass patterns против metadata exemption regex; неподдержанный interpreterinput не считается безопасным reader.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C15-parser_invocation_argument_limits",
+        "requirements": [
+          "R3",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C15-parser_invocation_argument_limits]",
+        "contract": "max_reader_invocations и max_arguments точная граница/plus1, malformed quoting; нет partial pending после parse/budget failure.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C16-classifier_audit_enforce",
+        "requirements": [
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C16-classifier_audit_enforce]",
+        "contract": "Один и тот же semantic deny: audit nativeallows+woulddeny, enforce nativepermissiondeny; actual readjournal различим.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C17-effective_cwd_explicit_cd",
+        "requirements": [
+          "R3",
+          "R7"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C17-effective_cwd_explicit_cd]",
+        "contract": "Sessioncwd=A, hiddenactualworkdir=C, command cd -- ABS_B && sed -n1,4p relative.txt: B[1,4], boundregisteredcheckoutB, A/C coverage0; absoluteCD quotedspaces и dominated pipeline/multiple reader path.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "C18-effective_cwd_unknown_native",
+        "requirements": [
+          "R3",
+          "R7",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_classifier.py::test_classifier_contract[C18-effective_cwd_unknown_native]",
+        "contract": "Native command-only+relative operands без доказанного effectivebase: unresolved_execution_cwd audit/enforce, coverage0. Fake tool_input.workdir alias не создаёт authority; absolute operand и ambiguous cd/semicolon/OR различимы.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      }
+    ],
+    "coverage": [
+      {
+        "id": "V01-union_adjacent_disjoint",
+        "requirements": [
+          "R1"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V01-union_adjacent_disjoint]",
+        "contract": "Сохранённые[1,4],[4,7],[9,10] =>union[[1,7],[9,10]]; requested[5,12] =>new[[8,8],[11,12]],new_lines3/total8.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V02-overlap_subtraction",
+        "requirements": [
+          "R1",
+          "R2"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V02-overlap_subtraction]",
+        "contract": "После[1,10] запрос[8,20]: new[11,20],10new/13=76percent, allow и exact finalunion[1,20].",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V03-complete_covers_range",
+        "requirements": [
+          "R1",
+          "R2"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V03-complete_covers_range]",
+        "contract": "Успешный complete→range текущейверсии: duplicate_document_range; complete repeat =>duplicate_complete_document; no new events whenenforced.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V04-fully_covered_policy_toggle",
+        "requirements": [
+          "R2",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V04-fully_covered_policy_toggle]",
+        "contract": "Предварительно[2,8], запрос[3,6]: new0; deny_fully_covered true deny, false explicitallow/audit semantics; счетчики актуального originatingcall exact.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V05-mostly_both_below",
+        "requirements": [
+          "R2"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V05-mostly_both_below]",
+        "contract": "Покрыто[1,35], запрос[1,40], thresholds8lines/20percent:5new/12percent =>mostly_redundant_document_range.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V06-novelty_line_equality",
+        "requirements": [
+          "R2"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V06-novelty_line_equality]",
+        "contract": "Покрыто[1,92], запрос[1,100]:8new/8percent, line threshold8 equality =>allow, хотя fraction<20.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V07-novelty_fraction_equality",
+        "requirements": [
+          "R2"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V07-novelty_fraction_equality]",
+        "contract": "Покрыто[1,16], запрос[1,20]:4new/20percent, fraction threshold20 equality =>allow, хотя lines<8.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V08-duplicates_single_call",
+        "requirements": [
+          "R1",
+          "R2"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V08-duplicates_single_call]",
+        "contract": "Два одинаковых ranges в одном plan учитываются последовательно какsamecallcandidate; enforce deny без pending всейотказаннойcall, audit warns иactualonecall settles unionбездвойногоintervalcount.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V09-operation_repeat",
+        "requirements": [
+          "R2",
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V09-operation_repeat]",
+        "contract": "Одинаковая unknown operation_key denied вcurrentg; инаяоперация allow; postgeneration неизвестныйrepeat follows explicitallow_with_audit/deny.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V10-small_version_touch_change",
+        "requirements": [
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V10-small_version_touch_change]",
+        "contract": "Smallsize+SHA: utimeonly coverageсохранено; actualbytechange =>newversion,староеcoverage stale и неblock.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V11-large_version_stat",
+        "requirements": [
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V11-large_version_stat]",
+        "contract": "Above configuredhashthreshold: size/mtime identity; explicitmtime orsizechange invalidates oldversion, неclaimкриптографическуютождественность.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V12-direct_general_interop",
+        "requirements": [
+          "R1",
+          "R4",
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V12-direct_general_interop]",
+        "contract": "Direct[1,5]→Bashcoveredrange иBash[6,10]→directexact/newrange:одинschema/ledger/generation,selectedhashvswholeversion различимы, нет duplicate origin/linecount; failedselection0coverage, unchangedcurrentfragment/latepartialeffects F04 сохранены.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V13-post_generation_targeted_toggle",
+        "requirements": [
+          "R1",
+          "R2",
+          "R5",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V13-post_generation_targeted_toggle]",
+        "contract": "Завершить настоящий ordinary complete A либо range A[1,12] с usable Post в поколении0. Вызвать существующий public advance_context reason=manual ровно один раз, проверить generation1 и сохранённое prior evidence; запросить известный A[1,4] при allow_targeted_reread true/false и обоих mode. В enforce true — bounded reread разрешён с reason targeted reread, pending не coverage до usable Post, после Post только A[1,4] в generation1; false — отказ и action включить policy либо выбрать новые строки, без нового pending/coverage. В audit запрещённый policy случай пропускается с диагностикой нарушения и учитывается только после успешного результата. Независимый контроль нового диапазона A[13,16] после prior range допускается при false: это новое содержимое, не восстановление. Сохранить прежние V09/S13 и не подменять обычный маршрут direct guard.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V14-post_generation_complete_toggle",
+        "requirements": [
+          "R2",
+          "R5",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V14-post_generation_complete_toggle]",
+        "contract": "Завершить complete A в generation0, реально advance_context в1, затем complete A при deny_complete_reread true/false, оба mode. В enforce true — complete reread denied с действием выбрать ограниченный диапазон; false — allow, pending затем complete coverage generation1 только после actual usable Post. В audit true — violation diagnostic и пропуск, полный usable результат учитывается как complete generation1. До результата state различает старое завершённое чтение и новое ожидание. Отдельный контроль: prior range A[1,4] не превращается в prior complete, поэтому deny_complete_reread сам по себе не запрещает первый complete A.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V15-post_generation_per_file_boundary",
+        "requirements": [
+          "R1",
+          "R2",
+          "R5",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V15-post_generation_per_file_boundary]",
+        "contract": "В отдельных окружениях complete A в0 → настоящий manual advance_context →1; allow_targeted_reread=true, post_generation.max_lines_per_file=4,max_total_lines=8. Обычный A[1,4] (4 строки) допустим, A[1,5] (5 строк) превышает ровно на1 и в enforce отказывает с per-file reason и действием уменьшить диапазон. Оба mode, audit превышения сообщает нарушение и учитывает только usable actual output. Classifier bounds заведомо выше (20/40 lines,1000/2000 bytes), same-generation overlap не мешает. Denied enforce не создаёт pending/current coverage; exact case после Post создаёт только [1,4] generation1; audit plus-one создаёт только [1,5].",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "V16-post_generation_total_boundary",
+        "requirements": [
+          "R1",
+          "R2",
+          "R5",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_coverage.py::test_coverage_contract[V16-post_generation_total_boundary]",
+        "contract": "Завершить complete A и B в0 → public manual advance_context →1. post_generation per-file4,total8; classifier bounds20/40 и1000/2000. Два известных диапазона A[1,4]+B[1,4] дают8строк и допустимы. Для независимой plus-one строки настроить per-file5,total8: A[1,4]+B[1,5] дают9 при допустимых per-file и запрещаются только combined limit в enforce; оба mode. Literal ожидания: combined8,9; bounded source plans2; coverage generation1 отсутствует до Post и имеет ровно заявленные диапазоны после usable Post. Denied enforce не частично регистрирует первый файл; audit9 сообщает total-budget violation и учитывает оба только после actual success. Каждый случай/политика изолирован, нет накопления предыдущей строки таблицы.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      }
+    ],
+    "settlement": [
+      {
+        "id": "S01-pending_not_coverage",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S01-pending_not_coverage]",
+        "contract": "Preallow создаёт1pending,read_events0; usablePostзакрываетpending идаётexactrows.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S02-pre_replay_immutable",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S02-pre_replay_immutable]",
+        "contract": "Повтор exactPre послеfilechange возвращаетсохранённыйplan/decision; не пересчитываетrequest какновое намерение.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S03-pre_conflict",
+        "requirements": [
+          "R4",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S03-pre_conflict]",
+        "contract": "Тотжеcallid сдругимcommand/исходнымturn/tool =>conflict, исходныйpending/planunchanged.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S04-post_known_success",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S04-post_known_success]",
+        "contract": "Supported string/object output+knownexit0+minimumbytes exact =>settled,orderedrows oneperactualplan.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S05-post_known_nonzero",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S05-post_known_nonzero]",
+        "contract": "Knownexit1 несмотрянаbody =>discard, pending0, coverage0,reasonknownfailure.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S06-post_insufficient_invalid",
+        "requirements": [
+          "R4",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S06-post_insufficient_invalid]",
+        "contract": "Empty/threshold-1/null/{}/badfieldtypes/conflictingexitfields/booleanexit =>insufficient/invalid; неJSON-nullфиктивныйтекст.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S07-post_unknown_exit_policy",
+        "requirements": [
+          "R4",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S07-post_unknown_exit_policy]",
+        "contract": "Непустойsupportedbody+отсутствующийexit: truepolicysettles, falsepolicydiscard; выходнекодируетсяфиктивным0.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S08-post_replay_conflict",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S08-post_replay_conflict]",
+        "contract": "SamePostfingerprint returnssavedoutcome/0newrows;changedresponseunderidentitywarnsconflict/nooverwrite.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S09-late_post_turn",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S09-late_post_turn]",
+        "contract": "Preturn1,Postturn2,originalcallid/command same =>singlecallsettled; write_stdin transport неновыйPre,duplicatepoll no secondread.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S10-pending_expiry_boundary",
+        "requirements": [
+          "R4"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S10-pending_expiry_boundary]",
+        "contract": "FakeClock sameD:TTL2s,age2s stillpending;age2s+1ns expiredwithoutcoverage;latePost no resurrection.",
+        "ports": [
+          "python-sdk-with-injected-Clock"
+        ]
+      },
+      {
+        "id": "S11-clock_domain_regression",
+        "requirements": [
+          "R4",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S11-clock_domain_regression]",
+        "contract": "DifferentClockdomain либоmonotonicregression =>incomparable_clock, no inventedage/clamp/UTCduration, pending preserved diagnostic.",
+        "ports": [
+          "python-sdk-with-injected-Clock"
+        ]
+      },
+      {
+        "id": "S12-post_file_change_partial",
+        "requirements": [
+          "R4",
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S12-post_file_change_partial]",
+        "contract": "Twofileplan A/B; AbetweenPrePostchanged, Bsame: A skippedstaleversion, B settled, outcome/countspartial andnonewversionattribution.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S13-post_generation_change",
+        "requirements": [
+          "R4",
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S13-post_generation_change]",
+        "contract": "Pre g0,publicmanualadvanceg1,Postusable =>generation_changedwithoutg1coverage, pendingclosed; generationownerone.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "S14-end_new_episode_delayed_post",
+        "requirements": [
+          "R4",
+          "R7"
+        ],
+        "nodeid": "tests/command_intake/test_settlement.py::test_settlement_contract[S14-end_new_episode_delayed_post]",
+        "contract": "TrueisolatedSDKEnd+F04recover→newSDKStart B→oldPost A: oldwarning no newroot/rebinding/newBrecord; Bcontinuedread remainsvalid.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      }
+    ],
+    "native": [
+      {
+        "id": "N01-six_event_install_reconcile",
+        "requirements": [
+          "R3",
+          "R7"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N01-six_event_install_reconcile]",
+        "contract": "RealSDKinstall6events, render/parser/publicCLI/Python/reconcile repeated: oneownedPre/Post each,foreigngroupunchanged; old4eventsunchanged.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N02-binding_required",
+        "requirements": [
+          "R7",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N02-binding_required]",
+        "contract": "ToolPrewithoutconfirmedStart/binding/activeepisode =>refusal, no launcher/binding/nativeStart fabricated; existingactive actualidentityworks.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N03-taskless_context_isolation",
+        "requirements": [
+          "R7"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N03-taskless_context_isolation]",
+        "contract": "Samesession/2registeredcheckouts;2sessions/samecheckout;2projects:separatecoverage/generation; TaskDBrows/statusunchanged byreading.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N04-cwd_repository_mismatch",
+        "requirements": [
+          "R7",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N04-cwd_repository_mismatch]",
+        "contract": "Invalidselectedrepo/unregistered/foreigncheckout/CWD mismatch =>diagnosticbeforemetadatawrites; correctstaticCDregisteredW path succeeds.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N05-malformed_unrelated_events",
+        "requirements": [
+          "R3",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N05-malformed_unrelated_events]",
+        "contract": "MissingIDs/command/response/invalidknownfields/ambiguousagent =>definedpre-refusal/postwarning;unrelatednonreader ignoredwithoutcoverage.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N06-pre_storage_failure",
+        "requirements": [
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N06-pre_storage_failure]",
+        "contract": "Ownedregistryunavailable/locked underconfigurednegativebudget: controlledpre-denial,nocompletedcoverage,nodamagedtemplate/owner.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N07-post_storage_warning",
+        "requirements": [
+          "R4",
+          "R8"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N07-post_storage_warning]",
+        "contract": "Alreadyexecutedrealreader thenrealaccountstoragefailure: nativewarning/transportcompletion, no block/rewind/doublecommand, savedcontroltruthful.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N08-bounded_coverage_snapshot",
+        "requirements": [
+          "R9"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N08-bounded_coverage_snapshot]",
+        "contract": "Current/stalefiles/pending/settled>document/range/bytes caps:validboundedJSON,exacttotal/omittedcounts, nosourcebodies;beforeafterregistryequal.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N09-metadata_privacy",
+        "requirements": [
+          "R4",
+          "R9"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N09-metadata_privacy]",
+        "contract": "Uniquecommand/bodymarker present inexecutedfixture; persistedmetadata/audit/controlwhitelist omitrawmarker/sourcebody,retainversion/range/reasondigests.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N10-concurrent_settle_direct_reset",
+        "requirements": [
+          "R1",
+          "R4",
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N10-concurrent_settle_direct_reset]",
+        "contract": "Deterministicbarriers:twopublicsettlers/sameid =>oneevent;direct+nativeunion;generation/Endorderingundercommonowner; no blindtimer/testworkerpool.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N11-command_profile_links",
+        "requirements": [
+          "R8",
+          "R6",
+          "R7"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N11-command_profile_links]",
+        "contract": "Через настоящий public install/reconfigure и CLI/SDK tool event проверить действующую цепочку hook settings → reader profile → command policy; отдельные literal строки: отсутствующий tool_intake.reader_policy, неверный тип ссылки, несуществующий/нечитаемый profile, legacy direct profile без command_intake, отсутствующая/неверного типа/нечитаемая command_intake.policy. Valid controls проходят direct и ordinary read; старый profile остаётся допустим для direct-only, но не подменяет активацию tool events. Invalid install/reconfigure отказывает до публикации; действующий binding/settings и существующее покрытие сохранены. Runtime Pre отказывает с причиной и действием, без pending/coverage/generation advance; runtime Post после actual command показывает warning, сохраняет реальный результат и не заявляет новое покрытие. Проверить обе runtime фазы отдельно после valid capability gate.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N12-command_policy_validation",
+        "requirements": [
+          "R8",
+          "R6"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N12-command_policy_validation]",
+        "contract": "Literal positive complete policy и независимые single-mutation cases через public install/reconfigure и runtime: неверная schema; отсутствующий version/registry.post_result; bool вместо положительного classifier.bounded_reads.max_lines_per_file; строка вместо registry.post_generation.allow_targeted_reread; неразрешённый registry.mode; per-file limit больше total. Проверить точный offending key/field, смысл причины и выполнимое действие исправления настройки. Unknown raw option — положительный контроль: игнорируется, сохраняется owner raw revision. Ни invalid install, ни Pre failure не сбрасывают binding/счётчики/покрытие/поколение; Post после valid Pre и реального успешного процесса даёт accounting warning с полным реальным output, не фиктивный отказ выполнить уже выполненную команду. Каждая строка использует отдельное временное окружение, корректную исходную цепочку и сравнение owned state до/после.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      },
+      {
+        "id": "N13-command_registry_corruption",
+        "requirements": [
+          "R8",
+          "R4",
+          "R5"
+        ],
+        "nodeid": "tests/command_intake/test_native.py::test_native_contract[N13-command_registry_corruption]",
+        "contract": "После valid public setup/успешного ordinary read или valid Pre создать test-owned повреждения actual registry/template: not-a-SQLite registry, unsupported schema metadata, некорректная форма command pending/read row, schema2 template с отсутствующим обязательным полем/неверным типом. Контрольный valid schema2 template и registry работают через тот же owner. Ошибка создания из template проверяется в свежем runtime; испорченный существующий registry проверяется в существующем episode. Pre отказ и Post accounting warning различаются; повреждённые bytes/неповреждённые прежние записи/поколение не заменяются чистой БД. Нет fabricated settlement/coverage, скрытого reset или автоматической миграции. Corruption делается только в subject-owned test temporary data, не в Task/Requirements DB.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      }
+    ],
+    "installed": [
+      {
+        "id": "I01-offline_installed_consumer",
+        "requirements": [
+          "R3",
+          "R7"
+        ],
+        "nodeid": "tests/command_intake/test_installed.py::test_installed_contract[I01-offline_installed_consumer]",
+        "contract": "Buildcurrentwheel offline/no-deps/noneditable;isolatedPython-I actualmoduleoutsidecheckout;actualSDK6events+CLI/Pythonconsumer+runtimepolicy;recordwheel/sourcehashes/commands/fulloutputs/trueEndcleanup, no livehostdeliveryclaim.",
+        "ports": [
+          "public-cli",
+          "public-python-sdk"
+        ]
+      }
+    ]
+  },
+  "common_vectors": {
+    "range_union": {
+      "covered": [
+        [
+          1,
+          4
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "union": [
+        [
+          1,
+          7
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "request": [
+        [
+          5,
+          12
+        ]
+      ],
+      "new": [
+        [
+          8,
+          8
+        ],
+        [
+          11,
+          12
+        ]
+      ],
+      "new_lines": 3,
+      "requested_lines": 8
+    },
+    "novelty": [
+      {
+        "covered": [
+          [
+            1,
+            35
+          ]
+        ],
+        "request": [
+          [
+            1,
+            40
+          ]
+        ],
+        "new_lines": 5,
+        "fraction_floor": 12,
+        "decision": "deny"
+      },
+      {
+        "covered": [
+          [
+            1,
+            92
+          ]
+        ],
+        "request": [
+          [
+            1,
+            100
+          ]
+        ],
+        "new_lines": 8,
+        "fraction_floor": 8,
+        "decision": "allow"
+      },
+      {
+        "covered": [
+          [
+            1,
+            16
+          ]
+        ],
+        "request": [
+          [
+            1,
+            20
+          ]
+        ],
+        "new_lines": 4,
+        "fraction_floor": 20,
+        "decision": "allow"
+      }
+    ],
+    "pending_clock": {
+      "domain": "fixture-boot-A",
+      "created_ns": 10000000000,
+      "ttl_ns": 2000000000,
+      "at_limit_ns": 12000000000,
+      "expired_ns": 12000000001
+    },
+    "files": {
+      "A": "01 A\n02 A\n03 A\n04 A\n05 A\n06 A\n07 A\n08 A\n09 A\n10 A\n11 A\n12 A\n13 A\n14 A\n15 A\n16 A\n17 A\n18 A\n19 A\n20 A\n",
+      "B": "01 B\n02 B\n03 B\n04 B\n05 B\n06 B\n07 B\n08 B\n09 B\n10 B\n11 B\n12 B\n13 B\n14 B\n15 B\n16 B\n17 B\n18 B\n19 B\n20 B\n",
+      "C": "C\n",
+      "long": "001 L\n002 L\n003 L\n004 L\n005 L\n006 L\n007 L\n008 L\n009 L\n010 L\n011 L\n012 L\n013 L\n014 L\n015 L\n016 L\n017 L\n018 L\n019 L\n020 L\n021 L\n022 L\n023 L\n024 L\n025 L\n026 L\n027 L\n028 L\n029 L\n030 L\n031 L\n032 L\n033 L\n034 L\n035 L\n036 L\n037 L\n038 L\n039 L\n040 L\n041 L\n042 L\n043 L\n044 L\n045 L\n046 L\n047 L\n048 L\n049 L\n050 L\n051 L\n052 L\n053 L\n054 L\n055 L\n056 L\n057 L\n058 L\n059 L\n060 L\n061 L\n062 L\n063 L\n064 L\n065 L\n066 L\n067 L\n068 L\n069 L\n070 L\n071 L\n072 L\n073 L\n074 L\n075 L\n076 L\n077 L\n078 L\n079 L\n080 L\n081 L\n082 L\n083 L\n084 L\n085 L\n086 L\n087 L\n088 L\n089 L\n090 L\n091 L\n092 L\n093 L\n094 L\n095 L\n096 L\n097 L\n098 L\n099 L\n100 L\n",
+      "unicode": "Я01\nЯ02\nЯ03\nЯ04\nЯ05\nЯ06\nЯ07\nЯ08\nЯ09\nЯ10\n"
+    },
+    "post_generation": {
+      "initial_generation": 0,
+      "advanced_generation": 1,
+      "advance": {
+        "operation": "advance_context",
+        "reason": "manual"
+      },
+      "literal_policy": {
+        "allow_targeted_reread": true,
+        "deny_complete_reread": true,
+        "max_lines_per_file": 4,
+        "max_total_lines": 8
+      },
+      "classifier_bounds": {
+        "max_lines_per_file": 20,
+        "max_total_lines": 40,
+        "max_bytes_per_file": 1000,
+        "max_total_bytes": 2000
+      },
+      "rows": [
+        {
+          "case": "V13-enabled",
+          "prior": {
+            "A": "complete"
+          },
+          "requested": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ]
+          },
+          "targeted": true,
+          "decision": "allow_with_targeted_reread_diagnostic",
+          "after_usable": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ]
+          }
+        },
+        {
+          "case": "V13-disabled",
+          "prior": {
+            "A": [
+              [
+                1,
+                12
+              ]
+            ]
+          },
+          "requested": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ]
+          },
+          "targeted": false,
+          "decision": "deny_targeted_reread_disabled",
+          "after_usable": {}
+        },
+        {
+          "case": "V13-new-range-control",
+          "prior": {
+            "A": [
+              [
+                1,
+                12
+              ]
+            ]
+          },
+          "requested": {
+            "A": [
+              [
+                13,
+                16
+              ]
+            ]
+          },
+          "targeted": false,
+          "decision": "allow_new_coverage",
+          "after_usable": {
+            "A": [
+              [
+                13,
+                16
+              ]
+            ]
+          }
+        },
+        {
+          "case": "V14-deny",
+          "prior": {
+            "A": "complete"
+          },
+          "requested": {
+            "A": "complete"
+          },
+          "deny_complete": true,
+          "decision": "deny_complete_reread",
+          "after_usable": {}
+        },
+        {
+          "case": "V14-allow",
+          "prior": {
+            "A": "complete"
+          },
+          "requested": {
+            "A": "complete"
+          },
+          "deny_complete": false,
+          "decision": "allow",
+          "after_usable": {
+            "A": "complete"
+          }
+        },
+        {
+          "case": "V14-first-complete-control",
+          "prior": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ]
+          },
+          "requested": {
+            "A": "complete"
+          },
+          "deny_complete": true,
+          "decision": "allow",
+          "after_usable": {
+            "A": "complete"
+          }
+        },
+        {
+          "case": "V15-exact",
+          "prior": {
+            "A": "complete"
+          },
+          "requested": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ]
+          },
+          "requested_lines": 4,
+          "per_file_limit": 4,
+          "total_limit": 8,
+          "decision": "allow_with_targeted_reread_diagnostic",
+          "after_usable": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ]
+          }
+        },
+        {
+          "case": "V15-plus-one",
+          "prior": {
+            "A": "complete"
+          },
+          "requested": {
+            "A": [
+              [
+                1,
+                5
+              ]
+            ]
+          },
+          "requested_lines": 5,
+          "per_file_limit": 4,
+          "total_limit": 8,
+          "decision": "deny_post_generation_file_budget",
+          "after_usable": {}
+        },
+        {
+          "case": "V16-exact",
+          "prior": {
+            "A": "complete",
+            "B": "complete"
+          },
+          "requested": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ],
+            "B": [
+              [
+                1,
+                4
+              ]
+            ]
+          },
+          "requested_lines": 8,
+          "per_file_limit": 4,
+          "total_limit": 8,
+          "decision": "allow_with_targeted_reread_diagnostic",
+          "after_usable": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ],
+            "B": [
+              [
+                1,
+                4
+              ]
+            ]
+          }
+        },
+        {
+          "case": "V16-plus-one",
+          "prior": {
+            "A": "complete",
+            "B": "complete"
+          },
+          "requested": {
+            "A": [
+              [
+                1,
+                4
+              ]
+            ],
+            "B": [
+              [
+                1,
+                5
+              ]
+            ]
+          },
+          "requested_lines": 9,
+          "per_file_limit": 5,
+          "total_limit": 8,
+          "decision": "deny_post_generation_total_budget",
+          "after_usable": {}
+        }
+      ],
+      "decision_labels": "Design semantic oracle labels, not prescribed producer identifiers. Assert the literal field/message/action from the independently accepted adapter contract at test stage; do not derive expected values from production constants.",
+      "audit_denied_rows": "Repeat every enforce-denied row under audit: diagnostic violation, command allowed, no current coverage until usable Post, then only requested coverage. Enforce denial does not run the reader; do not fabricate a Post.",
+      "state_oracle": "Independent SQL selects episode/scope/generation/version/ranges/pending and literal public coverage output. Never update generation with SQL. Prior generation stays retained separately; exact request replay must not advance again."
+    },
+    "configuration_failures": {
+      "valid_control": "Literal full command-enabled profile, full valid poise-command-intake-policy-1, six-event definition and hook settings from accepted solution schema; one real complete and bounded result establishes baseline.",
+      "N11_rows": [
+        "missing tool_intake.reader_policy",
+        "reader_policy=17",
+        "profile path missing",
+        "profile file unreadable",
+        "legacy direct-only profile referenced by tool settings",
+        "missing command_intake.policy",
+        "command_intake.policy=[]",
+        "policy file unreadable"
+      ],
+      "N12_rows": [
+        {
+          "field": "schema",
+          "value": "unknown-command-policy",
+          "expected": "unsupported schema"
+        },
+        {
+          "field": "version",
+          "mutation": "delete",
+          "expected": "required field"
+        },
+        {
+          "field": "registry.post_result",
+          "mutation": "delete",
+          "expected": "required group"
+        },
+        {
+          "field": "classifier.bounded_reads.max_lines_per_file",
+          "value": true,
+          "expected": "positive integer, bool rejected"
+        },
+        {
+          "field": "registry.post_generation.allow_targeted_reread",
+          "value": "true",
+          "expected": "boolean required"
+        },
+        {
+          "field": "registry.mode",
+          "value": "automatic",
+          "expected": "unsupported mode"
+        },
+        {
+          "field": "registry.post_generation.max_lines_per_file",
+          "value": 9,
+          "total_limit": 8,
+          "expected": "per-file exceeds total"
+        }
+      ],
+      "N13_rows": [
+        "existing registry non-SQLite bytes",
+        "existing unsupported registry schema metadata",
+        "existing malformed command pending row",
+        "existing malformed read-event row",
+        "fresh runtime missing required template field",
+        "fresh runtime template known field wrong type"
+      ],
+      "boundary_matrix": [
+        "public install/reconfigure invalid input before publication",
+        "public Pre with invalid runtime state before command",
+        "valid Pre then real command then invalid runtime state at public Post"
+      ],
+      "expected_pre": "Reason and actionable field/path diagnosis; native refusal before execution, no pending/current coverage/reset/generation increment.",
+      "expected_post": "Accounting warning distinct from pre-refusal, actual successful command/output preserved in full, no false confirmed coverage or implicit reset.",
+      "snapshot_rule": "For corrupt registry compare raw bytes immediately AFTER injected corruption; for valid prior data compare unaffected rows. Failed template creation preserves template bytes. Public refusal may write diagnostics via existing owner, but must not repair/reset accounting or replace working configuration.",
+      "unreadable_arrangement": "Use explicit test-owned ownership/permission arrangements that truly fail for the test identity; assert the setup control read fails. Do not assume chmod alone makes a file unreadable for a privileged identity.",
+      "scope": "Only subject-owned temporary configuration/registry/template. No live files or Task/Requirements DB. Invalid controls run after valid six-event capability gate within CALL; setup keeps existing valid foundation."
+    }
+  },
+  "proof_limits": [
+    "No live host callback observed",
+    "Public producer source pin is not asserted equal to installedCLI",
+    "One actualpytestcall percase; port substeps are not extra testcall counts",
+    "Initial RED may fail at known actual missingtool-events boundary; full raw reason must match, deeper oracle sensitivity independently inspected"
+  ]
+}

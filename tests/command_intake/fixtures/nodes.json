@@ -1,0 +1,17 @@
+{
+  "classifier": [
+    "tests/command_intake/test_classifier.py::test_classifier_contract"
+  ],
+  "coverage": [
+    "tests/command_intake/test_coverage.py::test_coverage_contract"
+  ],
+  "settlement": [
+    "tests/command_intake/test_settlement.py::test_settlement_contract"
+  ],
+  "native": [
+    "tests/command_intake/test_native.py::test_native_contract"
+  ],
+  "installed": [
+    "tests/command_intake/test_installed.py::test_installed_contract"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "absent": "Unknown or duplicate hook event",
+  "unrelated": [
+    "Invalid policy",
+    "Unknown hook event",
+    "Unknown or duplicate hook event: extra",
+    "ModuleNotFoundError: poise"
+  ]
+}

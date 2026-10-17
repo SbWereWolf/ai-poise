@@ -1,0 +1,18 @@
+[
+  {
+    "event": "PreToolUse",
+    "matcher": "Bash",
+    "timeout_seconds": 15,
+    "async": false,
+    "context_limit": 2000,
+    "status_message": "Observe ordinary read"
+  },
+  {
+    "event": "PostToolUse",
+    "matcher": "Bash",
+    "timeout_seconds": 15,
+    "async": false,
+    "context_limit": 2000,
+    "status_message": "Observe ordinary read"
+  }
+]

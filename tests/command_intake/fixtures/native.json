@@ -1,0 +1,74 @@
+{
+  "links": [
+    {
+      "target": "settings",
+      "field": "tool_intake.reader_policy",
+      "mutation": "delete"
+    },
+    {
+      "target": "settings",
+      "field": "tool_intake.reader_policy",
+      "value": 17
+    },
+    {
+      "target": "settings",
+      "field": "tool_intake.reader_policy",
+      "value": "@MISSING@"
+    },
+    {
+      "target": "profile",
+      "field": "command_intake",
+      "mutation": "delete"
+    },
+    {
+      "target": "profile",
+      "field": "command_intake.policy",
+      "mutation": "delete"
+    },
+    {
+      "target": "profile",
+      "field": "command_intake.policy",
+      "value": []
+    },
+    {
+      "target": "profile",
+      "field": "command_intake.policy",
+      "value": "@MISSING@"
+    },
+    {
+      "target": "profile",
+      "field": null,
+      "mutation": "unreadable"
+    },
+    {
+      "target": "policy",
+      "field": null,
+      "mutation": "unreadable"
+    }
+  ],
+  "malformed_events": [
+    {
+      "mutation": "delete",
+      "field": "tool_use_id"
+    },
+    {
+      "mutation": "delete",
+      "field": "turn_id"
+    },
+    {
+      "mutation": "delete",
+      "field": "tool_input"
+    },
+    {
+      "field": "tool_use_id",
+      "value": 17
+    },
+    {
+      "field": "tool_input",
+      "value": {
+        "command": false
+      }
+    }
+  ],
+  "privacy_marker": "F05_PRIVATE_BODY_4d935978"
+}

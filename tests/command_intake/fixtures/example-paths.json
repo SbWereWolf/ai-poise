@@ -1,0 +1,6 @@
+{
+  "policy": "config/examples/command-intake-policy.example.json",
+  "profile": "config/examples/command-intake-reader.example.json",
+  "definition": "config/examples/command-intake-hooks.example.json",
+  "settings": "config/examples/command-intake-settings.example.json"
+}

@@ -3435,6 +3435,342 @@
           }
         }
       ]
+    },
+    "recreate-equal-values": {
+      "status": "applied",
+      "revision": 21,
+      "replayed": false
+    },
+    "recreate-equal-values-reopened": {
+      "status": "read_only",
+      "revision": 21,
+      "results": [
+        {
+          "id": "registry",
+          "value": {
+            "requirements": {
+              "APP-10": {
+                "id": "APP-10",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: справочник."
+              },
+              "APP-2": {
+                "id": "APP-2",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: операция."
+              },
+              "APP-EMPTY": {
+                "id": "APP-EMPTY",
+                "level": "application",
+                "status": "current",
+                "text": "Пустое текущее обязательство."
+              },
+              "APP-FUTURE": {
+                "id": "APP-FUTURE",
+                "level": "application",
+                "status": "future",
+                "text": "Будущий результат."
+              },
+              "APP-OLD": {
+                "id": "APP-OLD",
+                "level": "application",
+                "status": "obsolete",
+                "text": "Прежний отчёт."
+              },
+              "APP-PLACEHOLDER": {
+                "id": "APP-PLACEHOLDER",
+                "level": "application",
+                "status": "future",
+                "text": ""
+              },
+              "APP-PURPOSE": {
+                "id": "APP-PURPOSE",
+                "level": "application",
+                "status": "current",
+                "text": "Выбранное назначение."
+              },
+              "APP-X": {
+                "id": "APP-X",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: отчёт."
+              },
+              "APP-Y": {
+                "id": "APP-Y",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: приложение."
+              },
+              "SYS-A": {
+                "id": "SYS-A",
+                "level": "system",
+                "status": "current",
+                "text": "Результат: полный комплект."
+              },
+              "SYS-B": {
+                "id": "SYS-B",
+                "level": "system",
+                "status": "current",
+                "text": "Результат: проверенный комплект."
+              },
+              "SYS-EMPTY": {
+                "id": "SYS-EMPTY",
+                "level": "system",
+                "status": "current",
+                "text": "Нераспределённое обязательство."
+              },
+              "SYS-FUTURE": {
+                "id": "SYS-FUTURE",
+                "level": "system",
+                "status": "future",
+                "text": "Будущий смысл."
+              },
+              "SYS-OLD": {
+                "id": "SYS-OLD",
+                "level": "system",
+                "status": "obsolete",
+                "text": "Прежний смысл."
+              },
+              "SYS-PLACEHOLDER": {
+                "id": "SYS-PLACEHOLDER",
+                "level": "system",
+                "status": "future",
+                "text": ""
+              },
+              "SYS-SAVED": {
+                "id": "SYS-SAVED",
+                "level": "system",
+                "status": "current",
+                "text": "Смысл сохранённой публикации."
+              },
+              "LIFETIME-equal-values": {
+                "id": "LIFETIME-equal-values",
+                "level": "system",
+                "status": "current",
+                "text": "Самостоятельный результат."
+              }
+            },
+            "links": [
+              {
+                "system": "SYS-A",
+                "application": "APP-FUTURE"
+              },
+              {
+                "system": "SYS-A",
+                "application": "APP-X"
+              },
+              {
+                "system": "SYS-A",
+                "application": "APP-Y"
+              },
+              {
+                "system": "SYS-B",
+                "application": "APP-EMPTY"
+              },
+              {
+                "system": "SYS-B",
+                "application": "APP-X"
+              },
+              {
+                "system": "SYS-FUTURE",
+                "application": "APP-FUTURE"
+              },
+              {
+                "system": "SYS-PLACEHOLDER",
+                "application": "APP-PLACEHOLDER"
+              }
+            ]
+          }
+        },
+        {
+          "id": "history",
+          "value": {
+            "requirement_id": "LIFETIME-equal-values",
+            "items": [
+              {
+                "revision": 1,
+                "status": "current",
+                "text": "Самостоятельный результат.",
+                "owner_revision": 21,
+                "origin": {
+                  "type": "explicit",
+                  "request_id": "recreate-equal-values"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "recreate-fresh-level": {
+      "status": "applied",
+      "revision": 21,
+      "replayed": false
+    },
+    "recreate-fresh-level-reopened": {
+      "status": "read_only",
+      "revision": 21,
+      "results": [
+        {
+          "id": "registry",
+          "value": {
+            "requirements": {
+              "APP-10": {
+                "id": "APP-10",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: справочник."
+              },
+              "APP-2": {
+                "id": "APP-2",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: операция."
+              },
+              "APP-EMPTY": {
+                "id": "APP-EMPTY",
+                "level": "application",
+                "status": "current",
+                "text": "Пустое текущее обязательство."
+              },
+              "APP-FUTURE": {
+                "id": "APP-FUTURE",
+                "level": "application",
+                "status": "future",
+                "text": "Будущий результат."
+              },
+              "APP-OLD": {
+                "id": "APP-OLD",
+                "level": "application",
+                "status": "obsolete",
+                "text": "Прежний отчёт."
+              },
+              "APP-PLACEHOLDER": {
+                "id": "APP-PLACEHOLDER",
+                "level": "application",
+                "status": "future",
+                "text": ""
+              },
+              "APP-PURPOSE": {
+                "id": "APP-PURPOSE",
+                "level": "application",
+                "status": "current",
+                "text": "Выбранное назначение."
+              },
+              "APP-X": {
+                "id": "APP-X",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: отчёт."
+              },
+              "APP-Y": {
+                "id": "APP-Y",
+                "level": "application",
+                "status": "current",
+                "text": "Результат: приложение."
+              },
+              "SYS-A": {
+                "id": "SYS-A",
+                "level": "system",
+                "status": "current",
+                "text": "Результат: полный комплект."
+              },
+              "SYS-B": {
+                "id": "SYS-B",
+                "level": "system",
+                "status": "current",
+                "text": "Результат: проверенный комплект."
+              },
+              "SYS-EMPTY": {
+                "id": "SYS-EMPTY",
+                "level": "system",
+                "status": "current",
+                "text": "Нераспределённое обязательство."
+              },
+              "SYS-FUTURE": {
+                "id": "SYS-FUTURE",
+                "level": "system",
+                "status": "future",
+                "text": "Будущий смысл."
+              },
+              "SYS-OLD": {
+                "id": "SYS-OLD",
+                "level": "system",
+                "status": "obsolete",
+                "text": "Прежний смысл."
+              },
+              "SYS-PLACEHOLDER": {
+                "id": "SYS-PLACEHOLDER",
+                "level": "system",
+                "status": "future",
+                "text": ""
+              },
+              "SYS-SAVED": {
+                "id": "SYS-SAVED",
+                "level": "system",
+                "status": "current",
+                "text": "Смысл сохранённой публикации."
+              },
+              "LIFETIME-fresh-level": {
+                "id": "LIFETIME-fresh-level",
+                "level": "application",
+                "status": "current",
+                "text": "Самостоятельный результат."
+              }
+            },
+            "links": [
+              {
+                "system": "SYS-A",
+                "application": "APP-FUTURE"
+              },
+              {
+                "system": "SYS-A",
+                "application": "APP-X"
+              },
+              {
+                "system": "SYS-A",
+                "application": "APP-Y"
+              },
+              {
+                "system": "SYS-B",
+                "application": "APP-EMPTY"
+              },
+              {
+                "system": "SYS-B",
+                "application": "APP-X"
+              },
+              {
+                "system": "SYS-FUTURE",
+                "application": "APP-FUTURE"
+              },
+              {
+                "system": "SYS-PLACEHOLDER",
+                "application": "APP-PLACEHOLDER"
+              }
+            ]
+          }
+        },
+        {
+          "id": "history",
+          "value": {
+            "requirement_id": "LIFETIME-fresh-level",
+            "items": [
+              {
+                "revision": 1,
+                "status": "current",
+                "text": "Самостоятельный результат.",
+                "owner_revision": 21,
+                "origin": {
+                  "type": "explicit",
+                  "request_id": "recreate-fresh-level"
+                }
+              }
+            ]
+          }
+        }
+      ]
     }
   },
   "scenarios": [
@@ -8568,6 +8904,915 @@
             }
           },
           "expect": "exact-peer-registry",
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "id": "D5-recreate-equal-values",
+      "seed": "base",
+      "extra_rows": {
+        "requirements": [
+          [
+            "LIFETIME-equal-values",
+            "system",
+            2
+          ]
+        ],
+        "requirement_revisions": [
+          [
+            "LIFETIME-equal-values",
+            1,
+            "future",
+            "Первоначальный смысл.",
+            1,
+            {
+              "type": "fixture"
+            }
+          ],
+          [
+            "LIFETIME-equal-values",
+            2,
+            "current",
+            "Самостоятельный результат.",
+            9,
+            {
+              "type": "fixture"
+            }
+          ]
+        ]
+      },
+      "steps": [
+        {
+          "id": "recreate-equal-values",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "recreate-equal-values",
+              "expected_revision": 20,
+              "operations": [
+                {
+                  "kind": "delete_requirement",
+                  "requirement_id": "LIFETIME-equal-values"
+                },
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "LIFETIME-equal-values",
+                    "level": "system",
+                    "status": "current",
+                    "text": "Самостоятельный результат."
+                  }
+                }
+              ]
+            }
+          },
+          "expect": "recreate-equal-values",
+          "preserved_tables": [
+            "application_purposes",
+            "application_purpose_revisions",
+            "system_application_versions",
+            "task_identities",
+            "task_creation_requests",
+            "task_statements",
+            "task_requirement_keys",
+            "task_requirement_versions",
+            "application_task_links",
+            "task_snapshots",
+            "requirement_outcomes",
+            "domain_areas",
+            "domain_entities",
+            "domain_actions",
+            "requirement_entities",
+            "requirement_actions",
+            "requirement_confirmation_decisions"
+          ],
+          "sql": [
+            {
+              "query": "SELECT id,level,current_revision FROM requirements ORDER BY id",
+              "parameters": [],
+              "expected": [
+                [
+                  "APP-10",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-2",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-EMPTY",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-FUTURE",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-OLD",
+                  "application",
+                  2
+                ],
+                [
+                  "APP-PLACEHOLDER",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-PURPOSE",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-X",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-Y",
+                  "application",
+                  1
+                ],
+                [
+                  "LIFETIME-equal-values",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-A",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-B",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-EMPTY",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-FUTURE",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-OLD",
+                  "system",
+                  2
+                ],
+                [
+                  "SYS-PLACEHOLDER",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-SAVED",
+                  "system",
+                  1
+                ]
+              ]
+            },
+            {
+              "query": "SELECT id,revision,status,text,owner_revision,origin FROM requirement_revisions ORDER BY id,revision",
+              "parameters": [],
+              "expected": [
+                [
+                  "APP-10",
+                  1,
+                  "current",
+                  "Результат: справочник.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-2",
+                  1,
+                  "current",
+                  "Результат: операция.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-EMPTY",
+                  1,
+                  "current",
+                  "Пустое текущее обязательство.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-FUTURE",
+                  1,
+                  "future",
+                  "Будущий результат.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-OLD",
+                  1,
+                  "current",
+                  "Прежний отчёт.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-OLD",
+                  2,
+                  "obsolete",
+                  "Прежний отчёт.",
+                  12,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-PLACEHOLDER",
+                  1,
+                  "future",
+                  "",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-PURPOSE",
+                  1,
+                  "current",
+                  "Выбранное назначение.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-X",
+                  1,
+                  "current",
+                  "Результат: отчёт.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-Y",
+                  1,
+                  "current",
+                  "Результат: приложение.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "LIFETIME-equal-values",
+                  1,
+                  "current",
+                  "Самостоятельный результат.",
+                  21,
+                  {
+                    "type": "explicit",
+                    "request_id": "recreate-equal-values"
+                  }
+                ],
+                [
+                  "SYS-A",
+                  1,
+                  "current",
+                  "Результат: полный комплект.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-B",
+                  1,
+                  "current",
+                  "Результат: проверенный комплект.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-EMPTY",
+                  1,
+                  "current",
+                  "Нераспределённое обязательство.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-FUTURE",
+                  1,
+                  "future",
+                  "Будущий смысл.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-OLD",
+                  1,
+                  "current",
+                  "Прежний смысл.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-OLD",
+                  2,
+                  "obsolete",
+                  "Прежний смысл.",
+                  12,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-PLACEHOLDER",
+                  1,
+                  "future",
+                  "",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-SAVED",
+                  1,
+                  "current",
+                  "Смысл сохранённой публикации.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ]
+              ],
+              "json_indexes": [
+                5
+              ]
+            },
+            {
+              "query": "SELECT revision,schema_version FROM requirements_meta",
+              "parameters": [],
+              "expected": [
+                [
+                  21,
+                  1
+                ]
+              ]
+            },
+            {
+              "query": "SELECT protocol_namespace,request_id,intent,response FROM requirement_requests ORDER BY protocol_namespace,request_id",
+              "parameters": [],
+              "expected": [
+                [
+                  "registry.apply",
+                  "recreate-equal-values",
+                  {
+                    "request_id": "recreate-equal-values",
+                    "expected_revision": 20,
+                    "operations": [
+                      {
+                        "kind": "delete_requirement",
+                        "requirement_id": "LIFETIME-equal-values"
+                      },
+                      {
+                        "kind": "put_requirement",
+                        "requirement": {
+                          "id": "LIFETIME-equal-values",
+                          "level": "system",
+                          "status": "current",
+                          "text": "Самостоятельный результат."
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "revision": 21,
+                    "replayed": false
+                  }
+                ]
+              ],
+              "json_indexes": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "recreate-equal-values-reopened",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "registry",
+                  "kind": "registry"
+                },
+                {
+                  "id": "history",
+                  "kind": "history_requirement",
+                  "requirement_id": "LIFETIME-equal-values"
+                }
+              ]
+            }
+          },
+          "expect": "recreate-equal-values-reopened",
+          "unchanged": true
+        }
+      ]
+    },
+    {
+      "id": "D5-recreate-fresh-level",
+      "seed": "base",
+      "extra_rows": {
+        "requirements": [
+          [
+            "LIFETIME-fresh-level",
+            "system",
+            2
+          ]
+        ],
+        "requirement_revisions": [
+          [
+            "LIFETIME-fresh-level",
+            1,
+            "future",
+            "Первоначальный смысл.",
+            1,
+            {
+              "type": "fixture"
+            }
+          ],
+          [
+            "LIFETIME-fresh-level",
+            2,
+            "current",
+            "Самостоятельный результат.",
+            9,
+            {
+              "type": "fixture"
+            }
+          ]
+        ]
+      },
+      "steps": [
+        {
+          "id": "ordinary-level-change",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "ordinary-level-change",
+              "expected_revision": 20,
+              "operations": [
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "LIFETIME-fresh-level",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Самостоятельный результат."
+                  }
+                }
+              ]
+            }
+          },
+          "rejected": true,
+          "unchanged": true
+        },
+        {
+          "id": "recreate-fresh-level",
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "recreate-fresh-level",
+              "expected_revision": 20,
+              "operations": [
+                {
+                  "kind": "delete_requirement",
+                  "requirement_id": "LIFETIME-fresh-level"
+                },
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "LIFETIME-fresh-level",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Самостоятельный результат."
+                  }
+                }
+              ]
+            }
+          },
+          "expect": "recreate-fresh-level",
+          "preserved_tables": [
+            "application_purposes",
+            "application_purpose_revisions",
+            "system_application_versions",
+            "task_identities",
+            "task_creation_requests",
+            "task_statements",
+            "task_requirement_keys",
+            "task_requirement_versions",
+            "application_task_links",
+            "task_snapshots",
+            "requirement_outcomes",
+            "domain_areas",
+            "domain_entities",
+            "domain_actions",
+            "requirement_entities",
+            "requirement_actions",
+            "requirement_confirmation_decisions"
+          ],
+          "sql": [
+            {
+              "query": "SELECT id,level,current_revision FROM requirements ORDER BY id",
+              "parameters": [],
+              "expected": [
+                [
+                  "APP-10",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-2",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-EMPTY",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-FUTURE",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-OLD",
+                  "application",
+                  2
+                ],
+                [
+                  "APP-PLACEHOLDER",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-PURPOSE",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-X",
+                  "application",
+                  1
+                ],
+                [
+                  "APP-Y",
+                  "application",
+                  1
+                ],
+                [
+                  "LIFETIME-fresh-level",
+                  "application",
+                  1
+                ],
+                [
+                  "SYS-A",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-B",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-EMPTY",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-FUTURE",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-OLD",
+                  "system",
+                  2
+                ],
+                [
+                  "SYS-PLACEHOLDER",
+                  "system",
+                  1
+                ],
+                [
+                  "SYS-SAVED",
+                  "system",
+                  1
+                ]
+              ]
+            },
+            {
+              "query": "SELECT id,revision,status,text,owner_revision,origin FROM requirement_revisions ORDER BY id,revision",
+              "parameters": [],
+              "expected": [
+                [
+                  "APP-10",
+                  1,
+                  "current",
+                  "Результат: справочник.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-2",
+                  1,
+                  "current",
+                  "Результат: операция.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-EMPTY",
+                  1,
+                  "current",
+                  "Пустое текущее обязательство.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-FUTURE",
+                  1,
+                  "future",
+                  "Будущий результат.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-OLD",
+                  1,
+                  "current",
+                  "Прежний отчёт.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-OLD",
+                  2,
+                  "obsolete",
+                  "Прежний отчёт.",
+                  12,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-PLACEHOLDER",
+                  1,
+                  "future",
+                  "",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-PURPOSE",
+                  1,
+                  "current",
+                  "Выбранное назначение.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-X",
+                  1,
+                  "current",
+                  "Результат: отчёт.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "APP-Y",
+                  1,
+                  "current",
+                  "Результат: приложение.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "LIFETIME-fresh-level",
+                  1,
+                  "current",
+                  "Самостоятельный результат.",
+                  21,
+                  {
+                    "type": "explicit",
+                    "request_id": "recreate-fresh-level"
+                  }
+                ],
+                [
+                  "SYS-A",
+                  1,
+                  "current",
+                  "Результат: полный комплект.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-B",
+                  1,
+                  "current",
+                  "Результат: проверенный комплект.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-EMPTY",
+                  1,
+                  "current",
+                  "Нераспределённое обязательство.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-FUTURE",
+                  1,
+                  "future",
+                  "Будущий смысл.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-OLD",
+                  1,
+                  "current",
+                  "Прежний смысл.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-OLD",
+                  2,
+                  "obsolete",
+                  "Прежний смысл.",
+                  12,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-PLACEHOLDER",
+                  1,
+                  "future",
+                  "",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ],
+                [
+                  "SYS-SAVED",
+                  1,
+                  "current",
+                  "Смысл сохранённой публикации.",
+                  1,
+                  {
+                    "type": "fixture"
+                  }
+                ]
+              ],
+              "json_indexes": [
+                5
+              ]
+            },
+            {
+              "query": "SELECT revision,schema_version FROM requirements_meta",
+              "parameters": [],
+              "expected": [
+                [
+                  21,
+                  1
+                ]
+              ]
+            },
+            {
+              "query": "SELECT protocol_namespace,request_id,intent,response FROM requirement_requests ORDER BY protocol_namespace,request_id",
+              "parameters": [],
+              "expected": [
+                [
+                  "registry.apply",
+                  "recreate-fresh-level",
+                  {
+                    "request_id": "recreate-fresh-level",
+                    "expected_revision": 20,
+                    "operations": [
+                      {
+                        "kind": "delete_requirement",
+                        "requirement_id": "LIFETIME-fresh-level"
+                      },
+                      {
+                        "kind": "put_requirement",
+                        "requirement": {
+                          "id": "LIFETIME-fresh-level",
+                          "level": "application",
+                          "status": "current",
+                          "text": "Самостоятельный результат."
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "revision": 21,
+                    "replayed": false
+                  }
+                ]
+              ],
+              "json_indexes": [
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "id": "recreate-fresh-level-reopened",
+          "packet": {
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "registry",
+                  "kind": "registry"
+                },
+                {
+                  "id": "history",
+                  "kind": "history_requirement",
+                  "requirement_id": "LIFETIME-fresh-level"
+                }
+              ]
+            }
+          },
+          "expect": "recreate-fresh-level-reopened",
           "unchanged": true
         }
       ]

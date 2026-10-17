@@ -65,16 +65,6 @@ def runtime(project, *, stage="apply"):
     return client, start(client, task)
 
 
-def transfer(client, suffix):
-    return call(client, "handoff", {
-        "request_id": "lifecycle-handoff-" + suffix,
-        "reason": "Independent fixture actor continues the same Task.",
-        "result": None,
-        "commit_message": "Preserve lifecycle fixture state",
-        "artifact_paths": [],
-    })
-
-
 def release_current(client, context, suffix):
     return call(client, "release", {
         "request_id": "lifecycle-release-" + suffix,
@@ -85,13 +75,8 @@ def release_current(client, context, suffix):
 
 
 def restart_current(client, context, *, suffix="1", edit=False, newborn_again=False):
-    action = client.plan_actions.snapshot(client.current_task())
-    if action is not None and action["status"] != "complete":
-        # Handoff correctly refuses an unfinished external plan. Public release
-        # preserves a prepared, effect-free action for the independent actor.
-        release_current(client, context, "to-review-" + suffix)
-    else:
-        transfer(client, "to-review-" + suffix)
+    # Ordinary release preserves both prepared and completed native actions.
+    release_current(client, context, "to-review-" + suffix)
     reviewer = WorkPoise(client.config_path, "LIFECYCLE-REVIEWER-" + suffix)
     acquired = start(reviewer, {"id": context["task"]})
     contract = reviewer.task_queries.record(context["task"])["contract"]

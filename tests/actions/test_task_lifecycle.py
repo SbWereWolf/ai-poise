@@ -13,7 +13,7 @@ from poise.modules.foundation.errors import PoiseError
 from .helpers import advance, call, inspect, result, setup, start, verify
 from .lifecycle_helpers import (
     assert_preserved, command_plan, git_state, prepare, refusal_snapshot, restart_current,
-    rows, runtime, transfer,
+    rows, runtime, release_current,
 )
 
 
@@ -188,7 +188,7 @@ def test_current_run_survives_handoff_reacquisition_and_exact_replay(project, tm
     current = command_plan(marker, "two")
     done = verify_current(client, context, current)
     before = rows(client, context["task"])
-    transfer(client, "current-complete")
+    release_current(client, context, "current-complete")
     receiver = WorkPoise(project["config_path"], "CURRENT-RECEIVER")
     resumed = start(receiver, {"id": context["task"]})
     assert resumed["action"]["plan"] == current
@@ -230,7 +230,7 @@ def test_public_cli_after_restart_does_not_return_completed_historical_action(pr
     if restarted:
         verify(client, prepare(context, command_plan(marker, "old")))
         client, context = restart_current(client, context)
-    transfer(client, "cli")
+    release_current(client, context, "cli")
     binding_parent = tmp_path / "cli-caller"
     binding_parent.mkdir()
     env = {key: value for key, value in os.environ.items()

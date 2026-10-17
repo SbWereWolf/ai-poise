@@ -126,6 +126,33 @@ def saved_results(client):
         )]
 
 
+FIRST_REVIEW_EVENTS = [
+    ("verified", "draft", 1),
+    ("stage_progressed", "draft", 1),
+    ("verified", "audit", 1),
+]
+FIRST_CORRECTION_EVENTS = [*FIRST_REVIEW_EVENTS, ("stage_progressed", "audit", 1)]
+SECOND_REVIEW_EVENTS = [
+    *FIRST_CORRECTION_EVENTS,
+    ("verified", "amend", 1),
+    ("stage_progressed", "amend", 1),
+    ("verified", "follow_up", 1),
+]
+SECOND_CORRECTION_EVENTS = [*SECOND_REVIEW_EVENTS, ("stage_progressed", "follow_up", 1)]
+
+
+def task_history(client):
+    return deepcopy(client.runtime.task_queries.history("T1"))
+
+
+def assert_history(client, prefix, expected_events):
+    actual = task_history(client)
+    assert actual[:len(prefix)] == prefix
+    # Stage progression events identify the source stage and its visit number.
+    assert [(event["event"], event["stage"], event["iteration"])
+            for event in actual if event["event"] in ("verified", "stage_progressed")] == expected_events
+
+
 def review(case):
     executor, reviewer = case["executor"], case["reviewer"]
     completed = verify(executor, result(case["initial"], case["data"]["first_report"]))
@@ -147,6 +174,8 @@ def review(case):
     assert outcome["next_stage"] == "amend"
     case["reviewed_results"] = saved_results(reviewer)
     case["review_outcome"] = outcome
+    case["review_history"] = task_history(reviewer)
+    assert_history(reviewer, case["review_history"], FIRST_REVIEW_EVENTS)
     return outcome
 
 
@@ -172,8 +201,11 @@ def assert_current_correction(case, context, iteration):
 
 def current_correction(case):
     assert acquire(case["executor"])["status"] == "verified"
+    assert_history(case["executor"], case["review_history"], FIRST_REVIEW_EVENTS)
     context = advance(case["executor"])
+    assert task_history(case["executor"])[:len(case["review_history"])] == case["review_history"]
     assert_current_correction(case, context, 1)
+    assert_history(case["executor"], case["review_history"], FIRST_CORRECTION_EVENTS)
     return context
 
 

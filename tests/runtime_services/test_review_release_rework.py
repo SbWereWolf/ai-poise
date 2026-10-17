@@ -9,9 +9,11 @@ from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runtime_services.review_release_rework_helpers import (
-    acquire, add_held_wip, advance, assert_current_correction, call,
+    FIRST_CORRECTION_EVENTS, FIRST_REVIEW_EVENTS, SECOND_CORRECTION_EVENTS,
+    SECOND_REVIEW_EVENTS, acquire, add_held_wip, advance, assert_current_correction,
+    assert_history,
     current_correction, prepare, preserve, release, review,
-    saved_results, seed_older_handoff, snapshot,
+    saved_results, seed_older_handoff, snapshot, task_history,
 )
 from ownership.test_public_release import preserve_unknown_attempt, start
 
@@ -43,6 +45,7 @@ def test_review_release_current_history(project, history):
     else:
         packet, receipt = release(reviewer, "review-to-executor")
         assert receipt["replayed"] is False
+    assert_history(reviewer, case["review_history"], FIRST_REVIEW_EVENTS)
     if history == "older-released-newer-resumed":
         with executor.runtime.store.unit_of_work() as unit:
             seed = case["synthetic_handoff"]
@@ -56,7 +59,19 @@ def test_review_release_current_history(project, history):
         assert saved_results(executor) == case["reviewed_results"]
         assert git(case["worktree"], "rev-parse", "HEAD") == case["source"][0]
     try:
-        context = current_correction(case)
+        if history in ("fresh", "repeated"):
+            assert acquire(executor)["status"] == "verified"
+            assert_history(executor, case["review_history"], FIRST_REVIEW_EVENTS)
+            context = advance(executor)
+            if (context["status"], context["stage"], context["iteration"]) == (
+                "role_handoff_required", "audit", 1,
+            ):
+                assert_history(executor, case["review_history"], FIRST_REVIEW_EVENTS)
+                pytest.fail("RR-TARGET-ROLE-CONTINUATION: current owner cannot enter the reviewed correction", pytrace=False)
+            assert_current_correction(case, context, 1)
+            assert_history(executor, case["review_history"], FIRST_CORRECTION_EVENTS)
+        else:
+            context = current_correction(case)
     except PoiseError as error:
         if history == "older-released-newer-resumed" and str(error) == "Task changed after preserved handoff":
             pytest.fail("RR-TARGET-CURRENT-HISTORY: superseded transfer blocks current reviewed work", pytrace=False)
@@ -89,10 +104,15 @@ def test_review_release_current_history(project, history):
         payload["stage_work"] = {"coverage": case["data"]["review_coverage"], "findings": [],
                                  "resolution_decisions": [deepcopy(case["data"]["rejected_resolution"])]}
         assert verify(reviewer, payload)["stage_outcome"] == "changes_requested"
+        second_review_history = task_history(reviewer)
+        assert_history(reviewer, case["review_history"], SECOND_REVIEW_EVENTS)
         release(reviewer, "second-review-to-executor")
+        assert_history(reviewer, second_review_history, SECOND_REVIEW_EVENTS)
         acquire(executor)
+        assert_history(executor, second_review_history, SECOND_REVIEW_EVENTS)
         second = advance(executor)
         assert_current_correction(case, second, 2)
+        assert_history(executor, second_review_history, SECOND_CORRECTION_EVENTS)
         decisions = second["workflow"]["feedback"]["decisions"]
         assert decisions[-1]["resolution_id"] == "RR-RESOLUTION-1"
         assert decisions[-1]["decision"] == "rejected"
@@ -158,7 +178,10 @@ def test_unknown_attempt_allows_context_without_rerun(project, monkeypatch):
 def test_receiving_bootstrap_refuses_foreign_ownership(project, claim):
     case = prepare(project)
     review(case)
-    release(case["reviewer"], "reviewed-owner-guard")
+    if claim == "task-claim":
+        assert preserve(case["reviewer"], "reviewed-owner-guard")["verified"] is True
+    else:
+        release(case["reviewer"], "reviewed-owner-guard")
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
     if claim == "task-claim":
         current_correction(case)

@@ -1163,9 +1163,13 @@ class Poise:
                 raise PoiseError(FileProjectContext(Path(__file__).resolve().parents[1]).lookup_failure(
                     self.config_path, self.cfg, task['id']))
             if selected['status']=='newborn':
-                if selected['claimed_by'] is None and self.handoff_tools.commands.latest(selected['id']) is not None:
+                if (selected['claimed_by'] is None
+                        and self.handoff_tools.commands.newborn_candidate(
+                            selected['id'], selected['revision']) is not None):
                     self.handoff_tools.resume(selected)
-                self.ownership.acquire_task(selected['id'])
+                    selected = self.task_queries.record(selected['id'])
+                self.ownership.acquire_task(selected['id'],
+                                           expected_newborn_revision=selected['revision'])
                 return self.task_queries.record(selected['id'])
             if not is_terminal_task_status(selected['status']):
                 self.task_commands.execution_preflight(selected['id'])

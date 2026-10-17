@@ -132,12 +132,14 @@ def test_relocated_release_uses_same_task_and_registered_material(project, tmp_p
         'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None,
     }))
     current = moved.runtime.current_task()
+    report_before_release = deepcopy(moved.runtime.task_queries.record('T1')['last_report'])
+    assert report_before_release['commit'] == case['done']['commit']
     released = required(moved.invoke, request('release', {
         'request_id': 'after-relocation', 'reason': 'Continue the same Task with its registered evidence.',
         'task_id': current['id'], 'expected_version': current['_version'],
     }))
     assert released['status'] == 'ownership_released'
-    assert moved.runtime.task_queries.record('T1')['verified'] is True
+    assert moved.runtime.task_queries.record('T1')['last_report'] == report_before_release
     assert moved.runtime.evidence_commands.list_for('T1')[0] == original
     assert not case['source'].exists()
 

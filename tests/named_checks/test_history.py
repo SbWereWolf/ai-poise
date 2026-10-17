@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import sys
 from pathlib import Path
+import sqlite3
 import tomllib
 import threading
 import time
@@ -231,6 +232,62 @@ def test_cache_corruption_and_missing_retained_outputs(project, tmp_path, monkey
     third = s.run()
     assert third['kind'] == 'execution' and len(s.markers()) == 3
     assert Path(second['record_path']).exists()
+
+    # Optional payload storage cannot erase a known successful execution.
+    arrangement = tmp_path / 'cache-write-failure'
+    arrangement.mkdir()
+    s = Scene(project, arrangement, monkeypatch)
+    s.state = s.state.parent / 'optional-cache-write'
+    s.policy['storage']['directory'] = str(s.state)
+    cache = s.state / s.policy['storage']['cache_directory']
+    cache.parent.mkdir(parents=True)
+    cache.write_bytes(b'ordinary file blocks optional cache directory\n')
+    blocked_bytes = cache.read_bytes()
+    from .support import task_projection
+    tasks_before = task_projection(project)
+    successes = []
+    for count in (1, 2):
+        s.save()
+        code, response, diagnostic = s.invoke()
+        assert code == 0 and response['status'] == 'passed', response
+        assert response['error'] is None and not diagnostic
+        assert len(response['items']) == 1 and len(s.markers()) == count
+        item = response['items'][0]
+        record = s.record(item)
+        assert item['kind'] == 'execution' and item['status'] == 'passed'
+        assert record['actual_exit_code'] == 0 and record['verified_success']
+        assert s.outputs(record) == [b'work done\n', b'']
+        assert record['termination']['capture_complete']
+        assert item['cache']['eligible'] and not item['cache']['hit'] and not item['cache']['stored']
+        assert item['cache']['reason'] == 'cache_store_failed'
+        warning = '\n'.join(response['warnings'])
+        assert str(cache) in warning and 'cache_store_failed' in warning
+        assert 'Not a directory' in warning or 'File exists' in warning
+        assert 'кэш' in warning.lower() and ('исправ' in warning.lower() or 'восстанов' in warning.lower())
+        assert json.loads(Path(item['record_path']).read_text()) == item
+        assert json.loads(Path(response['response_path']).read_text()) == response
+        read_code, read, _ = s.invoke(s.request('result', items=[{'result_id': item['result_id']}]))
+        assert read_code == 0 and read['items'] == [item] and len(s.markers()) == count
+        with sqlite3.connect((s.state / 'named-runs.sqlite').as_uri() + '?mode=ro', uri=True) as connection:
+            rows = connection.execute('SELECT record_json FROM runs ORDER BY rowid').fetchall()
+            result_rows = connection.execute('SELECT result_json FROM results ORDER BY rowid').fetchall()
+        assert len(rows) == len(result_rows) == count
+        actual_runs = [json.loads(row[0]) for row in rows]
+        assert all(row['verified_success'] and row['status'] == 'passed' for row in actual_runs)
+        assert actual_runs[-1] == record
+        assert json.loads(result_rows[-1][0]) == item
+        assert cache.read_bytes() == blocked_bytes and task_projection(project) == tasks_before
+        successes.append(item)
+    assert successes[0]['result_id'] != successes[1]['result_id']
+    cache.unlink()  # Repair only the isolated test fixture; never repeat either completed child.
+    cache.mkdir()
+    fresh = s.run(fresh=True)
+    assert fresh['cache']['stored'] and len(s.markers()) == 3
+    reused = s.run()
+    assert reused['kind'] == 'reuse' and reused['source'] == fresh
+    assert len(s.markers()) == 3 and task_projection(project) == tasks_before
+    for item in successes:
+        assert json.loads(Path(item['record_path']).read_text()) == item
 
 
 def test_failed_incomplete_or_mutated_inputs_are_not_reused(project, tmp_path, monkeypatch):

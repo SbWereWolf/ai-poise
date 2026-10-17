@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 import pytest
@@ -251,6 +252,80 @@ def test_functional_store_identity_and_corruption(project, tmp_path, monkeypatch
     s.error(s.request(fresh=True), 'registry_invalid')
     assert ledger.read_bytes() == sentinel and len(s.markers()) == 1
 
+    # Corrupt only test-owned rows originally produced by real successful children.
+    # An authoritative row is different from an optional malformed cache payload.
+    def corruptions():
+        yield 'runs', 'json', None
+        yield 'runs', 'selection', []
+        yield 'runs', 'verified_success', 'true'
+        yield 'runs', 'duration_seconds', '2'
+        yield 'runs', 'clock', True
+        yield 'results', 'json', None
+        yield 'results', 'object', []
+        yield 'results', 'step', '0'
+        yield 'results', 'identity', 'different-result'
+    from .support import task_projection
+    for index, (table, field, replacement) in enumerate(corruptions()):
+        arrangement = tmp_path / ('row-' + str(index))
+        arrangement.mkdir()
+        with monkeypatch.context() as patch:
+            row_scene = Scene(project, arrangement, patch)
+            row_scene.state = s.state.parent / ('corrupt-row-' + str(index))
+            row_scene.policy['storage']['directory'] = str(row_scene.state)
+            item = row_scene.run(fresh=True)
+            record = row_scene.record(item)
+            row_path = row_scene.state / 'named-runs.sqlite'
+            original_value = record if table == 'runs' else item
+            changed = deepcopy(original_value)
+            if field == 'json':
+                body = '{'
+            else:
+                if field == 'object':
+                    changed = replacement
+                elif field == 'clock':
+                    changed['started']['monotonic_ns'] = replacement
+                elif field == 'step':
+                    changed['steps'][0]['record']['actual_exit_code'] = replacement
+                elif field == 'identity':
+                    changed['result_id'] = replacement
+                else:
+                    changed[field] = replacement
+                body = canonical(changed)
+            identifier = record['run_id'] if table == 'runs' else item['result_id']
+            statement = ('UPDATE runs SET record_json=? WHERE run_id=?' if table == 'runs'
+                         else 'UPDATE results SET result_json=? WHERE result_id=?')
+            with sqlite3.connect(row_path) as connection:
+                cursor = connection.execute(statement, (body, identifier))
+                assert cursor.rowcount == 1
+            bad_bytes = row_path.read_bytes()
+            functional_before = row_scene.functional_state()
+            retained = (Path(item['record_path']).read_bytes(),
+                        Path(record['record_path']).read_bytes(), row_scene.outputs(record))
+            tasks_before = task_projection(project)
+            requests = [row_scene.request(fresh=True)] if table == 'runs' else [
+                row_scene.request('result', items=[{'result_id': item['result_id']}]),
+                row_scene.request()]  # A cache source must not hide authoritative corruption.
+            for request in requests:
+                code, response, diagnostic = row_scene.invoke(request)
+                assert code == 2 and response['status'] == 'invalid', (table, field, response)
+                error = response['error']
+                assert error['code'] == 'registry_invalid' and response['items'] == []
+                assert error['field'] == 'policy.storage.ledger_file'
+                assert table in error['cause'] and identifier in error['cause']
+                if field not in ('json', 'object'):
+                    expected_field = ('started.monotonic_ns' if field == 'clock' else
+                                      'steps[0].record.actual_exit_code' if field == 'step' else
+                                      'result_id' if field == 'identity' else field)
+                    assert expected_field in error['cause'] + error['reason']
+                assert error['recovery'] and not diagnostic
+                saved = json.loads(Path(response['response_path']).read_text())
+                assert saved == response
+                assert row_path.read_bytes() == bad_bytes
+                assert row_scene.functional_state() == functional_before
+                assert len(row_scene.markers()) == 1 and task_projection(project) == tasks_before
+                assert (Path(item['record_path']).read_bytes(),
+                        Path(record['record_path']).read_bytes(), row_scene.outputs(record)) == retained
+
 
 def test_prerequisites_are_checked_truthfully(project, tmp_path, monkeypatch):
     s = Scene(project, tmp_path, monkeypatch)
@@ -263,6 +338,74 @@ def test_prerequisites_are_checked_truthfully(project, tmp_path, monkeypatch):
         assert error['field'].endswith('.' + kind + '[0]')
         assert value in error['cause'] + error['reason'] + error['recovery']
     assert not s.markers()
+
+    fixture_child = Path(__file__).with_name('fixture_child.py')
+    root_command = s.checkout / 'local-check'
+    subdirectory = s.checkout / 'selected-cwd'
+    subdirectory.mkdir()
+    nested_command = subdirectory / 'local-check'
+    script = ('#!' + sys.executable + '\nimport runpy\nrunpy.run_path('
+              + repr(str(fixture_child)) + ", run_name='__main__')\n")
+    for command in (root_command, nested_command):
+        command.write_text(script)
+        command.chmod(0o700)
+    original_path = os.environ['PATH']
+    cases = [('.', './local-check', original_path, root_command),
+             ('selected-cwd', './local-check', original_path, nested_command),
+             ('selected-cwd', str(nested_command), original_path, nested_command),
+             ('selected-cwd', 'local-check', str(subdirectory) + os.pathsep + original_path, nested_command),
+             ('selected-cwd', 'local-check', '.' + os.pathsep + original_path, nested_command),
+             ('selected-cwd', 'local-check', os.pathsep + original_path, nested_command)]
+    for index, (cwd, executable, path, expected_executable) in enumerate(cases):
+        with monkeypatch.context() as patch:
+            patch.setenv('PATH', path)
+            profile = s.profile(cwd=cwd, argv=[executable, '--marker', 'cwd-' + str(index)])
+            profile['prerequisites'] = {'executables': ['./local-check'], 'files': [], 'environment': []}
+            s.save()
+            code, preview, diagnostic = s.invoke(s.request('preview', fresh=True))
+            assert code == 0 and not diagnostic
+            step = preview['items'][0]['steps'][0]
+            assert step['argv'] == profile['argv'] and step['cwd'] == str(expected_executable.parent)
+            assert step['status'] == 'planned' and step['available'] is True
+            assert Path.cwd() != expected_executable.parent
+            control_root = s.events / ('control-' + str(index))
+            control_root.mkdir()
+            control = subprocess.run(profile['argv'], cwd=expected_executable.parent,
+                                     env={**os.environ, 'F07_FIXTURE_EVENTS': str(control_root)},
+                                     capture_output=True, timeout=5)
+            assert control.returncode == 0 and control.stdout == b'work done\n' and not control.stderr
+            control_marker = json.loads((control_root / 'markers.jsonl').read_text())
+            assert control_marker['cwd'] == str(expected_executable.parent)
+            assert len(s.markers()) == index
+            item = s.run(fresh=True)
+            record = s.record(item)
+            assert record['actual_exit_code'] == 0 and record['verified_success']
+            assert record['argv'] == profile['argv'] and record['cwd'] == str(expected_executable.parent)
+            assert record['runtime']['executable'] == str(expected_executable)
+            assert s.outputs(record) == [b'work done\n', b'']
+            assert s.markers()[-1]['cwd'] == record['cwd']
+            assert s.markers()[-1]['argv'] == ['--marker', 'cwd-' + str(index)]
+            assert len(s.markers()) == index + 1
+    with monkeypatch.context() as patch:
+        patch.setenv('PATH', str(subdirectory) + os.pathsep + original_path)
+        s.profile(cwd='selected-cwd', argv=['local-check', '--marker', 'must-not-start'])
+        s.profile()['prerequisites']['executables'] = []
+        s.policy['environment']['clear_keys'].append('PATH')
+        s.save()
+        code, preview, _ = s.invoke(s.request('preview'))
+        step = preview['items'][0]['steps'][0]
+        assert code == 0 and step['argv'] == ['local-check', '--marker', 'must-not-start']
+        assert step['cwd'] == str(subdirectory) and step['status'] == 'planned'
+        s.error(s.request(fresh=True), 'prerequisites_unavailable', field='request.items[0].argv[0]')
+    s.policy['environment']['clear_keys'].remove('PATH')
+    for executable in ['./absent-local-check', './nonexecutable-local-check']:
+        (subdirectory / 'nonexecutable-local-check').write_text(script)
+        (subdirectory / 'nonexecutable-local-check').chmod(0o600)
+        s.profile(cwd='selected-cwd', argv=[executable, '--marker', 'must-not-start'])
+        s.profile()['prerequisites']['executables'] = []
+        s.save()
+        s.error(s.request(fresh=True), 'prerequisites_unavailable', field='request.items[0].argv[0]')
+    assert len(s.markers()) == len(cases)
 
 
 def test_saved_result_readback_has_no_execution(project, tmp_path, monkeypatch):

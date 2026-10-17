@@ -263,7 +263,7 @@ class IntegrationRun:
                 return False
             if not isinstance(backup_scope, IntegrationBackupScope):
                 return False
-            scope = backup_scope.for_record(value, task_id)
+            scope = backup_scope
             return cls.restore(value).confirms_publication_for(
                 task_id=task_id, result_commit=result_commit, task_branch=task_branch,
                 task_worktree=task_worktree, publication_target=publication_target,
@@ -278,9 +278,6 @@ class IntegrationRun:
                 or not isinstance(backup_scope, IntegrationBackupScope)):
             return False
         if not self.complete or self.failure is not None or self.intent.task_id != task_id:
-            return False
-        if self.temporary_backup_directory != backup_scope.directory_for(
-                self.intent.task_id, self.intent.request_id):
             return False
         for name, commit in (
             ("accepted commit", self.accepted_commit), ("result commit", result_commit),

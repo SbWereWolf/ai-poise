@@ -1,5 +1,3 @@
-from .transfers import SqliteTransferContext
-from .handoff import SqliteHandoffRepository
 from .actions import SqliteActionRepository
 from .sprints import SqliteSprintRepository
 from .evidence import SqliteEvidenceRepository
@@ -21,8 +19,6 @@ class SqliteUnitOfWork:
     def __enter__(self):
         self._transaction = self.database.transaction()
         connection = self._transaction.__enter__()
-        self.transfers = SqliteTransferContext(connection)
-        self.handoffs = SqliteHandoffRepository(connection)
         self.sprints = SqliteSprintRepository(connection)
         self.tasks = SqliteTaskRepository(connection)
         self.actions = SqliteActionRepository(connection,self.tasks)

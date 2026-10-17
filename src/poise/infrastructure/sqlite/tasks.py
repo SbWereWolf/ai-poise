@@ -110,14 +110,6 @@ class SqliteTaskRepository:
             'event': 'ownership_released', 'actor': actor, 'recovery': recovery,
             'previous_owner': owner, 'request_id': request_id, 'reason': reason})
 
-    def restore_snapshot(self, tables: dict, binding: dict) -> None:
-        """Controlled same-format import into absent identities; not a lifecycle edit."""
-        from .transfer_records import restore_tasks
-        for row in tables["tasks"]:
-            TaskStatus.parse(row["status"])
-        if any(self.exists(row['id']) for row in tables['tasks']):
-            raise PoiseError('Task snapshot cannot overwrite an existing aggregate')
-        restore_tasks(self.db,tables,binding)
 
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None

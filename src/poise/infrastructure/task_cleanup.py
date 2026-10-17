@@ -128,7 +128,7 @@ class RuntimeTaskResourceCleanup:
             if not uow.execution.exists(task_id):
                 return None
             data, _ = uow.execution.load(task_id)
-            return data["pending"]
+            return data.get("pending")
 
     def save(self, task_id, pending):
         with self.h.store.unit_of_work() as uow:
@@ -210,7 +210,8 @@ class RuntimeTaskResourceCleanup:
                 "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
             }
             raise error
-        if self._git(path, "status", "--porcelain", "--untracked-files=all"):
+        if (not (run.disposition is not None and run.disposition.kind == "discard_authorized")
+                and self._git(path, "status", "--porcelain", "--untracked-files=all")):
             error = PoiseError("owned worktree contains uncommitted changes")
             error.cleanup_resource = worktree
             error.cleanup_details = {
@@ -305,7 +306,9 @@ class RuntimeTaskResourceCleanup:
                 raise PoiseError("worktree path is not the exact task-owned path")
             actual = str(Path(self._git(path, "rev-parse", "--git-dir")).resolve())
             if actual != resource.identity: raise PoiseError("worktree owner identity changed")
-            receipt = self._run(repository, "worktree", "remove", str(path))
+            run = CleanupRun.restore(self.load(task_id))
+            flags = ("--force",) if run.disposition.kind == "discard_authorized" else ()
+            receipt = self._run(repository, "worktree", "remove", *flags, str(path))
         else:
             receipt = self._run(repository, "update-ref", "-d", f"refs/heads/{resource.name}", resource.commit)
         if receipt["actual_exit_code"]:

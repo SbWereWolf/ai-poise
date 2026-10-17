@@ -36,10 +36,8 @@ class WorkTools:
             if op=='delivery':out=h.delivery_tools.apply(args)
             elif op=='task':out=h.task_action(args)
             elif op=='sprint':out=h.sprint_tools.apply(args)
-            elif op=='transfer':out=h.transfer_tools.apply(args)
             elif op=='bootstrap':
                 out=h.bootstrap(**args)
-            elif op=='handoff':out=h.handoff(args)
             elif op=='release':out=h.ownership.release(args)
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)

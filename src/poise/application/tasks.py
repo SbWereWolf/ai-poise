@@ -1325,21 +1325,12 @@ class TaskCommands:
                 cursor['phase'] = 'preserved'
                 uow.tasks.remember_replay_progress(task_id, actor, replay_request, cursor)
                 return {'kind': kind, 'following': following, 'cursor': cursor}
-            handoff = uow.handoffs.latest_recovery_candidate(task_id)
-            ownership_suffix = (
-                ()
-                if handoff is None
-                else uow.tasks.ownership_event_suffix(
-                    task_id, handoff["version"], task.state.version
-                )
-            )
-            resumed_boundary = bool(
-                handoff is not None
-                and handoff["state"] == "resumed"
-                and handoff["receipt"]["stage"] == task.stage.stage_id
-                and ownership_suffix[:2] == ("handed_off", "handoff_resumed")
-            )
-            crossed = resumed_boundary and handoff["actor"] != actor
+            released = uow.ownership.latest_ordinary_release(task_id)
+            ownership_suffix = (() if released is None else uow.tasks.ownership_event_suffix(
+                task_id, released['request']['expected_version'], task.state.version))
+            resumed_boundary = bool(released is not None and
+                ownership_suffix[:2] == ('ownership_released', 'ownership_acquired'))
+            crossed = resumed_boundary and released['actor'] != actor
             require_reviewer_identity_in(uow, task, actor)
             if resumed_boundary and task.progress.outcome is not None:
                 following = task.route.node(task.stage.stage_id).target(task.progress.outcome)
@@ -1440,7 +1431,6 @@ class TaskCommands:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
-            handoff = uow.handoffs.latest_recovery_candidate(task_id)
             point = uow.tasks.empty_rework_recovery_point(
                 task_id, task.state.version, execution["last_report"], transition_event
             )
@@ -1464,13 +1454,6 @@ class TaskCommands:
                     task_id,
                     {"last_report": {**execution["last_report"], "status": "verified"}},
                 )
-            if (handoff is not None
-                    and task.state.version >= handoff["version"] + 1
-                    and handoff["receipt"]["verified"] is False
-                    and handoff["receipt"]["stage"] == task.stage.stage_id
-                    and handoff["receipt"]["iteration"] == task.state.iteration
-                    and handoff["receipt"]["tree"] == tree):
-                uow.handoffs.replace({**handoff, "state": "recovered"})
             return {
                 "status": "recovered",
                 "task": task_id,

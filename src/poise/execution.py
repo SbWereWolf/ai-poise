@@ -23,9 +23,9 @@ class RunnerTimeoutPolicy:
 
     @classmethod
     def parse(cls, raw: dict) -> "RunnerTimeoutPolicy":
-        if not isinstance(raw, dict) or set(raw) != cls.REQUIRED:
+        if not isinstance(raw, dict) or not cls.REQUIRED.issubset(raw):
             raise PoiseError('check_runner timeout policy must define exactly the required fields')
-        data = dict(raw)
+        data = {key: raw[key] for key in cls.REQUIRED}
         for key in ('initial_seconds', 'history_multiplier', 'progress_gap_seconds', 'poll_seconds', 'diagnostic_override_max_seconds'):
             value = data[key]
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:

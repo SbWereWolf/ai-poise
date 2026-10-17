@@ -388,7 +388,7 @@ class Sprint:
     def work_overview(self, facts):
         """The shared dependency/result gate for work and taskless discovery."""
         resumable = tuple(i for i, f in facts.items()
-                          if f['claimed_by'] is None and f['handoff_available']
+                          if f['claimed_by'] is None
                           and f['status'] in ('active', 'verified', 'accepted'))
         out = self.overview({i: f['status'] for i, f in facts.items()}, resumable)
         waived = {(d['predecessor'], d['successor']) for d in self.waivers}

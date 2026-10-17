@@ -59,6 +59,8 @@ class TaskDeliveryCommands:
                 state = DeliveryState({**state.data, 'revision': old.data['revision'] + 1})
             with self.uow() as uow:
                 current = uow.tasks.load_state(args['task_id'])
+                if current.status.value != record['status']:
+                    raise PoiseError('Delivery Task state changed before agreement')
                 if current.version != args['expected_version'] or current.claimed_by not in (None,self.actor):
                     raise PoiseError('Delivery Task owner/version changed before agreement')
                 uow.task_delivery.save(self.actor,state,state.data['revision']-1)
@@ -85,11 +87,9 @@ class TaskDeliveryCommands:
                 reason = self.effects.validate_sources(state)
                 if reason:
                     return self._blocked(state, reason)
-                self.effects.ensure_resources(record, state)
             record = self.effects.admission(task_id, self.actor)
-            reason = self.effects.blocker(record, state)
-            if reason:
-                return self._blocked(state, reason)
+            if record['status'] not in ('completed', 'cancelled'):
+                return self._blocked(state, 'task_not_terminal')
             if not state.data['retirement_started']:
                 reason = self.effects.validate_sources(state)
                 if reason:
@@ -102,6 +102,7 @@ class TaskDeliveryCommands:
                         return self._blocked(state, reason)
                     confirmed = [r for r in confirmed if r['id'] != receipt['id']] + [receipt]
                     state = self._save(state.evolve(confirmed=confirmed))
+                self.effects.ensure_resources(self.effects.admission(task_id, self.actor), state)
                 # Refresh every consumer and owner before durable deletion permission.
                 reason = self.effects.blocker(self.effects.admission(task_id, self.actor), state)
                 if reason:
@@ -127,12 +128,10 @@ class TaskDeliveryCommands:
         The caller holds the shared material scope. This grants no Task claim.
         Reuse of retired input is separately resolved through agreed delivery.
         """
-        if purpose not in {'bootstrap', 'handoff', 'draft', 'reuse', 'reuse_source', 'export'}:
+        if purpose not in {'bootstrap', 'draft', 'reuse', 'reuse_source'}:
             raise PoiseError('Unknown material consumer purpose')
         if self.unavailable(task_id) and purpose != 'reuse_source':
             raise PoiseError('Task working material has been retired')
-        if purpose != 'export' and self.effects.preparing_consumer(task_id):
-            raise PoiseError('transfer_preparing: finish the original export preparation first')
 
     def resource_gate(self, task_id):
         """Called inside the shared material scope before resource effects."""

@@ -41,7 +41,7 @@ def parser():
     for name in ('template','destination','request-id'):
         wizard.add_argument('--'+name,required=True)
     wizard.add_argument('--probe-repository',choices=('yes','no'),required=True)
-    sub.add_parser('work',help='work, sprint, handoff, transfer: один декларативный JSON-пакет')
+    sub.add_parser('work',help='work, sprint, release: один декларативный JSON-пакет')
     runtime=sub.add_parser('runtime',help='Explicit identity/capabilities/transcript plus one work packet')
     runtime.add_argument('--settings',type=Path,required=True)
     editor=sub.add_parser('goal-config',help='Создать/изменить workflow одним JSON-пакетом')

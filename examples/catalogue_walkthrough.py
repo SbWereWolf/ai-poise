@@ -379,11 +379,11 @@ def _run(directory,goal,scenario,feedback_edge=None):
         receiver={'executor': executor, 'reviewer': reviewer}[next_stage['role']]
         if receiver is not h:
             handoffs+=1
-            out=invoke('handoff',{'request_id':f'catalogue-handoff-{handoffs}',
-                'reason':'Transfer between synthetic catalogue participants.',
-                'result':None,'commit_message':'Preserve catalogue fixture',
-                'artifact_paths':[]})
-            assert out['status']=='handed_off'
+            state=invoke('show',{'queries':[{'id':'task','kind':'task'}]})['results'][0]['value']
+            out=invoke('release',{'request_id':f'catalogue-release-{handoffs}',
+                'task_id':task['id'],'expected_version':state['version'],
+                'reason':'Continue between synthetic catalogue participants in the same working area.'})
+            assert out['status']=='ownership_released'
             h=receiver;tool=WorkTools(h)
             invoke('bootstrap',{'task':{'id':task['id']},'decision':None,
                 'feedback':None,'rework_stage':None})

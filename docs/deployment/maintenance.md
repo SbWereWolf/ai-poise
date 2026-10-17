@@ -10,6 +10,9 @@ catalog/v2](../operator/maintenance-profile-v2.md#развёртывание-и�
 Команда, плагин, диагностика и одна попытка исправления принадлежат
 [корневому Bootstrap](../operator/bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла).
 Публикация профиля и переключение эксплуатационного оператора — отдельные действия.
+[ERP-вариант](../operator/maintenance-profile-v2.md#профиль-erp) содержит 56 ресурсов
+в 21 группе; его отдельная спецификация, рабочие параметры и диагностика
+описаны там же. Выбор этого профиля не переключает live-оператора.
 
 <a id="действующий-маршрут-requirementsv1"></a>
 
@@ -77,6 +80,13 @@ catalog/v2](../operator/maintenance-profile-v2.md#развёртывание-и�
 Рабочие установки и версии пакетов определяются операторской конфигурацией.
 
 ## Граница приёмки
+
+ERP-вариант проверяют адресные `tests/maintenance/test_erp_catalog_profile.py`,
+`test_erp_actions.py`, `test_erp_configuration_publication.py`,
+`test_erp_environment_acceptance.py` и `test_erp_delivery.py`; регрессии имеют
+отдельные `test_erp_regressions.py` и `test_erp_orphan_regression.py` в той же папке.
+Проверки документации и проверка готовности реального изолированного окружения —
+разные доказательства; используйте результаты для точной принимаемой ревизии.
 
 Текущий маршрут проверяют `tests/maintenance/test_catalog_v2_profile.py` и
 `test_catalog_v2_delivery.py`: публичная материализация, настоящий v2 consumer,

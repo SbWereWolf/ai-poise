@@ -124,18 +124,20 @@ def test_bad_confirmed_material_blocks_real_consumer(project, tmp_path, kind, fa
     assert decoy.read_bytes() == trusted
 
 
-def test_relocated_handoff_uses_same_task_and_registered_material(project, tmp_path):
+def test_relocated_release_uses_same_task_and_registered_material(project, tmp_path):
     case = prepare(project, tmp_path)
     original = deepcopy(case['receipt'])
     moved = relocate(case)
     required(moved.invoke, request('bootstrap', {
         'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None,
     }))
-    handoff = required(moved.invoke, request('handoff', {
-        'request_id': 'after-relocation', 'reason': 'Read retained evidence and transfer ownership.',
-        'result': None, 'commit_message': 'Preserve relocated evidence', 'artifact_paths': [],
+    current = moved.runtime.current_task()
+    released = required(moved.invoke, request('release', {
+        'request_id': 'after-relocation', 'reason': 'Continue the same Task with its registered evidence.',
+        'task_id': current['id'], 'expected_version': current['_version'],
     }))
-    assert handoff['status'] == 'handed_off' and handoff['verified'] is True
+    assert released['status'] == 'ownership_released'
+    assert moved.runtime.task_queries.record('T1')['verified'] is True
     assert moved.runtime.evidence_commands.list_for('T1')[0] == original
     assert not case['source'].exists()
 

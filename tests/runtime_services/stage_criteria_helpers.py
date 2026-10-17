@@ -184,12 +184,12 @@ def assert_unstarted(execution):
 
 
 def handoff(tools, identifier):
-    response = tools.invoke(request("handoff", {
+    current = tools.runtime.current_task()
+    response = tools.invoke(request("release", {
         "request_id": identifier, "reason": "Transfer the real fixture Task to its next configured actor.",
-        "result": None, "commit_message": "Preserve fixture task handoff",
-        "artifact_paths": [],
+        "task_id": current['id'], "expected_version": current['_version'],
     }))
-    assert response["status"] == "handed_off"
+    assert response["status"] == "ownership_released"
     return response
 
 

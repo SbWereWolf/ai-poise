@@ -6,8 +6,6 @@ import pytest
 
 from poise.common import load_config
 from poise.modules.foundation.errors import PoiseError
-from poise.modules.transfers.domain import TransferPolicy, TransferRequest
-from poise.infrastructure.transfers import RuntimeTransfers
 from tests.conftest import write_json
 from .test_update import installed_project, update_request, update_tools, work_tools
 
@@ -26,6 +24,8 @@ def test_unknown_manifest_options_are_preserved_but_do_not_block_loading(project
     _, config_path, _ = installed_project(project)
     original = json.loads(config_path.read_text())
     candidate = deepcopy(original)
+    if path in (('runtime_services', 'transfer'), ('runtime_services', 'handoff')):
+        candidate['runtime_services'][path[1]] = {}
     target = candidate
     for key in path:
         target = target[key]
@@ -39,41 +39,9 @@ def test_unknown_manifest_options_are_preserved_but_do_not_block_loading(project
     assert config_path.read_bytes() == before
 
 
-def test_transfer_ignores_obsolete_bundle_option_without_removing_it(project):
-    _, config_path, _ = installed_project(project)
-    config = json.loads(config_path.read_text())
-    transfer = config['runtime_services']['transfer']
-    transfer['bundles_directory'] = {'not': 'a supported setting'}
-    write_json(config_path, config)
-    _, loaded, _ = load_config(config_path)
-    assert loaded == config
-    policy = TransferPolicy.parse(transfer).data
-    assert 'bundles_directory' not in policy
-    request = {'action': 'export', 'request_id': 'selected-task',
-               'task_ids': ['T1'], 'sprint_id': None, 'handoff': None}
-    assert TransferRequest.parse(request, policy).data == request
-    with pytest.raises(PoiseError):
-        TransferRequest.parse({**request, 'unexpected': True}, policy)
-
-
-def test_backup_contract_is_checked_only_when_backup_is_requested(project):
-    _, config_path, _ = installed_project(project)
-    config = json.loads(config_path.read_text())
-    config['runtime_services']['transfer']['recovery'] = {'future_option': True}
-    write_json(config_path, config)
-    work = work_tools(config_path, 'backup-observer')
-    result = work.invoke({'operation': 'bootstrap', 'input': {
-        'task': None, 'decision': None, 'feedback': None, 'rework_stage': None},
-        'messages': []})
-    assert result['task'] is None
-    assert work.runtime._check_configuration_systems() == {}
-    with pytest.raises(PoiseError, match='recovery'):
-        RuntimeTransfers(work.runtime)._require_recovery()
-
-
 def test_public_edit_preserves_unknown_options_and_replays_exact_revision(project):
     project['cfg']['future_option'] = {'nested': [None, 'arbitrary']}
-    project['cfg']['runtime_services']['transfer']['bundles_directory'] = 'bundles'
+    project['cfg']['runtime_services']['transfer'] = {'bundles_directory': 'unused operator value'}
     settings, path, created = installed_project(project)
     before = load_config(path)[1]
     packet = update_request(path, created['revision'], manifest_edits=[

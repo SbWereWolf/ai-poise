@@ -1,7 +1,0 @@
-{
-  "directory": "handoffs",
-  "preserved_directory": "preserved",
-  "file_mode": 384,
-  "bundle": "handoff.tar.gz",
-  "receipt": "receipt.json"
-}

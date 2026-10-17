@@ -295,12 +295,12 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
             "target_stage": following,
         }))
         if context["status"] == "role_handoff_required":
-            release = client.invoke(request("handoff", {
+            release = client.invoke(request("release", {
                 "request_id": f"historical-release-{index}",
                 "reason": "Historical participants transfer their own stage result.",
-                "result": None, "commit_message": None, "artifact_paths": [],
+                "task_id": "T1", "expected_version": client.runtime.current_task()['_version'],
             }))
-            assert release["status"] == "handed_off"
+            assert release["status"] == "ownership_released"
             client = WorkTools(WorkPoise(project["config_path"], f"historical-owner-{index}"))
             bootstrap(client, {"id": "T1"})
             context = client.invoke(request("advance", {

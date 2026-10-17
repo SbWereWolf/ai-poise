@@ -1,4 +1,4 @@
-"""A real-source verification can stop and survive disappearance of its first store."""
+"""A real-source verification stops and resumes in the same assigned working area."""
 import json
 from pathlib import Path
 import shutil
@@ -32,58 +32,33 @@ def snapshot_source(tmp_path):
     return repo
 
 
-def setup_destination(repo, destination, requirements_root):
-    setup = json.loads((repo / 'config/project-setup.json').read_text())
-    selected = setup['templates']['linux-reference']
-    template = json.loads((repo / selected['path']).read_text())
-    values = {'project': 'poise-pilot', 'repository': str(repo), 'base': 'main',
-              'remote': 'not-configured', 'author_name': 'Poise pilot',
-              'author_email': 'pilot@example.invalid', 'push': False,
-              'state': 'state', 'environment': ['PATH', 'HOME']}
-    return project_tools(repo / 'config/project-setup.json').apply({
-        'schema': 'project-setup-1', 'request_id': 'receiving-project',
-        'destination': destination,
-        'template': {'id': 'linux-reference', 'version': selected['version'], 'digest': selected['digest']},
-        'edits': [{'path': q['path'], 'value': values[q['id']]} for q in template['questions']] + [
-            {'path':['paths','requirements_database'],'value':str(requirements_root/'requirements.sqlite')},
-            {'path':['paths','requirements_lock'],'value':str(requirements_root/'requirements.lock')}],
-        'probe_repository': True})
-
-
-def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(tmp_path):
+def test_real_execution_is_not_accepted_and_resumes_in_the_same_working_area(tmp_path):
     repo = snapshot_source(tmp_path)
     base = git(repo, 'rev-parse', 'HEAD')
     first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE', requirements_root=tmp_path/'requirements-planned')
     # User decision is an explicit fixture. The test does not simulate a human reviewer.
     result = continue_execution(config_path=Path(first['setup']['config_path']),
                                session='VERIFY-SOURCE', task_id='VERIFY-SOURCE',
-                               user_decision='continue', export_request_id='saved-execution')
+                               user_decision='continue', release_request_id='saved-execution')
     assert result['status'] == 'verified'
     assert result['stage'] == 'execution' and result['execution_accepted'] is False
     assert result['next_stage_started'] is False and result['target_changed'] is False
     assert result['repeat_replayed'] is True and result['target_revision'] == base
     observations = [o for o in result['report']['evidence']['observations'] if o['method'] == 'VERIFY']
     assert len(observations) == 1 and observations[0]['actual_exit_code'] == 0
-    assert result['transfer']['status'] == 'exported'
-    incoming = tmp_path / 'execution.zip'
-    shutil.copy2(result['transfer']['package_path'], incoming)
-    receiving_repo = tmp_path / 'receiving-source'
-    subprocess.run(['git', 'clone', str(repo), str(receiving_repo)], check=True, capture_output=True)
-    setup = setup_destination(receiving_repo, 'state/received',tmp_path/'requirements-received')
-    # Remove access to the original operational store before importing/reading evidence.
-    (repo / 'state/planned').rename(repo / 'state/offline')
-    h = Poise(setup['config_path'], 'next-agent')
+    assert result['release']['status'] == 'ownership_released'
+    saved = Poise(first['setup']['config_path'], 'observing-session').task_queries.record('VERIFY-SOURCE')
+    original_worktree = saved['worktree']
+    h = Poise(first['setup']['config_path'], 'next-agent')
     client = WorkTools(h)
     def call(op, args):
         return client.invoke({'operation': op, 'input': args, 'messages': []})
-    imported = call('transfer', {'action': 'import', 'request_id': 'restore-execution',
-                                'package_path': str(incoming), 'package_digest': result['transfer']['package_digest']})
-    assert imported['status'] == 'imported'
     context = call('bootstrap', {'task': {'id': 'VERIFY-SOURCE'}, 'decision': None,
                                 'feedback': None, 'rework_stage': None})
     assert context['stage'] == 'execution' and context['status'] == 'verified'
     assert context['iteration'] == 1
-    assert Path(context['worktree']).is_relative_to(receiving_repo)
+    assert context['worktree'] == original_worktree
+    assert Path(context['worktree']).is_relative_to(repo)
     replay = call('verify', {'result': None, 'artifacts': []})
     assert replay['replayed']
     check = next(c for c in replay['checks'] if c['method'] == 'VERIFY')
@@ -96,4 +71,4 @@ def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(
 def test_execution_requires_explicit_continue_before_opening_store(tmp_path):
     with pytest.raises(ValueError, match='continue'):
         continue_execution(config_path=tmp_path/'missing.json', session='S', task_id='T',
-                           user_decision='accepted-but-stop', export_request_id='export')
+                           user_decision='accepted-but-stop', release_request_id='release')

@@ -201,8 +201,8 @@ def test_base_observation_is_fixed_before_durable_sprint_start(project, monkeypa
     assert execution(runtime, "B")["base"] == moved["base"]
 
 
-def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
-    runtime = Poise(project["config_path"], "handoff-owner")
+def test_next_participant_preserves_existing_worktree_when_base_moves(project):
+    runtime = Poise(project["config_path"], "workspace-owner")
     tools = WorkTools(runtime)
     context = tools.invoke(request("bootstrap", {
         "task": deepcopy(project["task"]),
@@ -211,13 +211,11 @@ def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
         "rework_stage": None,
     }))
     add_test(context["worktree"])
-    payload = result(context, "Preserve this worktree")
-    handed_off = tools.invoke(request("handoff", {
-        "request_id": "branch-base-handoff",
+    released = tools.invoke(request("release", {
+        "request_id": "branch-base-release",
         "reason": "Resume with another owner",
-        "result": payload,
-        "commit_message": "WIP: preserve worktree base",
-        "artifact_paths": [],
+        "task_id": "T1",
+        "expected_version": runtime.current_task()['version'],
     }))
     worktree = Path(context["worktree"])
     saved_head = git(worktree, "rev-parse", "HEAD")
@@ -228,8 +226,8 @@ def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
     sentinel = worktree / ".resume-sentinel"
     sentinel_bytes = b"existing worktree must survive resume\n"
     sentinel.write_bytes(sentinel_bytes)
-    later_base = advance_base(project, "handoff-later-base")
-    next_tools = WorkTools(Poise(project["config_path"], "handoff-resumer"))
+    later_base = advance_base(project, "later-base")
+    next_tools = WorkTools(Poise(project["config_path"], "next-participant"))
 
     resumed = next_tools.invoke(request("bootstrap", {
         "task": {"id": "T1"},
@@ -238,7 +236,7 @@ def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
         "rework_stage": None,
     }))
 
-    assert handed_off["status"] == "handed_off"
+    assert released["status"] == "ownership_released"
     assert saved_head != later_base
     assert resumed["worktree"] == str(worktree)
     assert git(worktree, "rev-parse", "HEAD") == saved_head

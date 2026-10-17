@@ -187,15 +187,14 @@ def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomi
             return dict(db.execute("SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL", (runtime.session,)).fetchone())
 
     before = row()
-    packet = request("handoff", {
+    packet = request("release", {
         "request_id": "atomic-cycle-release",
         "reason": "verify ownership and authoritative accounting atomicity",
-        "result": None,
-        "commit_message": "test: preserve authoritative ownership cycle",
-        "artifact_paths": [],
+        "task_id": runtime.current_task()['id'],
+        "expected_version": runtime.current_task()['_version'],
     })
     with runtime.store.transaction() as db:
-        db.execute("CREATE TRIGGER fail_handoff BEFORE UPDATE ON handoffs BEGIN SELECT RAISE(ABORT,'test-fault'); END")
+        db.execute("CREATE TRIGGER fail_release BEFORE UPDATE ON tasks WHEN NEW.claimed_by IS NULL BEGIN SELECT RAISE(ABORT,'test-fault'); END")
     try:
         with pytest.raises(sqlite3.IntegrityError, match="test-fault"):
             work.invoke(packet)
@@ -203,14 +202,14 @@ def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomi
         with runtime.store.transaction() as db:
             after = dict(db.execute("SELECT * FROM accounting_cycles WHERE id=?", (before["id"],)).fetchone())
         if after != before:
-            raise NonAtomicRelease("failed handoff changed the authoritative accounting row")
+            raise NonAtomicRelease("failed release changed the authoritative accounting row")
     finally:
         with runtime.store.transaction() as db:
-            db.execute("DROP TRIGGER fail_handoff")
+            db.execute("DROP TRIGGER fail_release")
         runtime.telemetry.flush()
 
     result = work.invoke(packet)
-    assert result["status"] == "handed_off"
+    assert result["status"] == "ownership_released"
     assert runtime.current_task() is None
     with runtime.store.transaction() as db:
         after = dict(db.execute("SELECT * FROM accounting_cycles WHERE id=?", (before["id"],)).fetchone())

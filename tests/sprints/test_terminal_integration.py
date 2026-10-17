@@ -11,7 +11,7 @@ from batch.helpers import request, text_artifact
 from poise.modules.foundation.errors import PoiseError
 from sprints.helpers import bootstrap
 from sprints.test_unpublish import (
-    client, git_state, handoff, intent, invoke, planned, prepare_member,
+    client, git_state, release_member, intent, invoke, planned, prepare_member,
     reopen, sprint_rows, task_rows, unchanged,
 )
 
@@ -98,7 +98,7 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
     set_execution(planner, 'A', receipt)
 
     # B owns retained work and evidence; A's delivery may legitimately remove A's tree.
-    worker = client(project, 'retained-worker', file_handoff=True)
+    worker = client(project, 'retained-worker')
     context = bootstrap(worker, 'B')
     payload = deepcopy(context['result_template'])
     payload['sections']['report'] = 'Retained participant evidence.'
@@ -106,8 +106,8 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
     verified = worker.invoke(request('verify', {'result': payload, 'artifacts': [
         text_artifact('task', 'retained-proof.txt', 'independent retained artifact\n'),
     ]}))
-    released = handoff(worker, 'retained-B')
-    outputs = [Path(released['receipt_path'])]
+    release_member(worker, 'retained-B')
+    outputs = []
     for check in verified['checks']:
         outputs.extend([Path(check['stdout']), Path(check['stderr'])])
     outputs.extend(Path(item['path']) for item in verified['artifacts'])

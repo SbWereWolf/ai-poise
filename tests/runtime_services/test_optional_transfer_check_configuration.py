@@ -11,7 +11,7 @@ from runtime_services.test_failed_check_rework import (
 
 
 def _without_transfer(project, tools):
-    project['cfg']['runtime_services'].pop('transfer')
+    project['cfg']['runtime_services'].pop('transfer', None)
     write_json(project['config_path'], project['cfg'])
     return WorkTools(WorkPoise(project['config_path'], tools.runtime.session))
 
@@ -19,6 +19,8 @@ def _without_transfer(project, tools):
 @pytest.mark.parametrize('transfer', [True, False])
 def test_failed_check_executes_without_optional_transfer(project, transfer):
     tools, context = _scenario(project)
+    project['cfg']['runtime_services']['transfer'] = 'unused retired setting'
+    write_json(project['config_path'], project['cfg'])
     if not transfer:
         tools = _without_transfer(project, tools)
     failed = _fail_current_stage(tools, context)
@@ -35,9 +37,8 @@ def test_failed_check_executes_without_optional_transfer(project, transfer):
 @pytest.mark.parametrize('transfer', [True, False])
 def test_existing_failed_check_reworks_without_optional_transfer(project, transfer):
     tools, context = _scenario(project, closed_revise_target=True)
-    # The batch and its rework must observe the same declared companions.
-    # Removing actual companions would correctly invalidate execution identity.
-    project['cfg']['runtime_services']['transfer'].pop('recovery')
+    # Changing an unused retired key does not change declared check companions.
+    project['cfg']['runtime_services']['transfer'] = 'unused retired setting'
     write_json(project['config_path'], project['cfg'])
     tools = WorkTools(WorkPoise(project['config_path'], tools.runtime.session))
     _fail_current_stage(tools, context)

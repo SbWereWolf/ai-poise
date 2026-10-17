@@ -103,19 +103,19 @@ def test_accept_and_rework_ignore_whole_config_digest(project):
     assert revised["iteration"] == 2
 
 
-def test_handoff_and_resume_ignore_whole_config_digest(project):
+def test_release_and_resume_ignore_whole_config_digest(project):
     source = WorkTools(Poise(project["config_path"], "source-session"))
     context = bootstrap_task(source, project)
     add_test(context["worktree"])
     payload = result(context, "Preserve this exact WIP submission")
-    first = source.invoke(request("handoff", {
+    source.runtime.runner.submit(source.runtime.current_task(), payload)
+    current = source.runtime.current_task()
+    first = source.invoke(request("release", {
         "request_id": "release-before-change",
-        "reason": "Move to another agent",
-        "result": payload,
-        "commit_message": "test: preserve live-config WIP",
-        "artifact_paths": [],
+        "reason": "Continue in the existing working area",
+        "task_id": current["id"], "expected_version": current["_version"],
     }))
-    assert first["status"] == "handed_off"
+    assert first["status"] == "ownership_released"
 
     change_limit(project)
     receiver = WorkTools(Poise(project["config_path"], "receiver-session"))
@@ -131,14 +131,13 @@ def test_handoff_and_resume_ignore_whole_config_digest(project):
 
     change_limit(project)
     current = WorkTools(Poise(project["config_path"], "receiver-session"))
-    second = current.invoke(request("handoff", {
+    task = current.runtime.current_task()
+    second = current.invoke(request("release", {
         "request_id": "release-after-change",
         "reason": "Release after another valid config change",
-        "result": resumed["result_template"],
-        "commit_message": "test: preserve resumed live-config WIP",
-        "artifact_paths": [],
+        "task_id": task["id"], "expected_version": task["_version"],
     }))
-    assert second["status"] == "handed_off"
+    assert second["status"] == "ownership_released"
     assert current.runtime.task_queries.record("T1")["claimed_by"] is None
 
 

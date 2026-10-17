@@ -14,7 +14,7 @@ from poise.interfaces.work import execute
 from batch.helpers import bootstrap,result,verify,request
 from conftest import add_test,write_json,git
 from .test_adapter import settings,packet,boot,logline
-from .test_handoff import transfer
+from .test_participant_continuity import release_packet
 
 
 def test_real_verify_result_views_can_be_read_after_runtime_cleanup(project):
@@ -39,35 +39,39 @@ def test_failed_check_still_materializes_and_successful_retry_new_result(project
     assert good['status']=='verified' and good['checks'][0]['id']!=bad['checks'][0]['id']
 
 
-def test_handoff_release_transaction_rolls_back_with_receipt_available_for_retry(project):
-    h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project);add_test(c['worktree']);p=result(c)
-    with h.store.transaction() as db:
-        db.execute("CREATE TRIGGER fail_handoff BEFORE UPDATE ON handoffs BEGIN SELECT RAISE(ABORT,'test-fault'); END")
-    with pytest.raises(sqlite3.IntegrityError,match='test-fault'):transfer(t,p)
-    assert h.current_task()['claimed_by']=='A'
+def test_ordinary_release_transaction_rolls_back_and_retries_without_committing_wip(project):
+    h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project);add_test(c['worktree'])
+    packet_ = release_packet(t)
     commit=git(Path(c['worktree']),'rev-parse','HEAD')
-    with h.store.transaction() as db:db.execute('DROP TRIGGER fail_handoff')
-    out=transfer(t,p)
-    assert out['commit']==commit and h.current_task() is None
+    with h.store.transaction() as db:
+        db.execute("CREATE TRIGGER fail_release BEFORE UPDATE ON tasks WHEN NEW.claimed_by IS NULL BEGIN SELECT RAISE(ABORT,'test-fault'); END")
+    with pytest.raises(sqlite3.IntegrityError,match='test-fault'):t.invoke(packet_)
+    assert h.current_task()['claimed_by']=='A'
+    assert git(Path(c['worktree']),'rev-parse','HEAD') == commit
+    with h.store.transaction() as db:db.execute('DROP TRIGGER fail_release')
+    assert t.invoke(packet_)['status'] == 'ownership_released'
+    assert h.current_task() is None
+    assert git(Path(c['worktree']),'rev-parse','HEAD') == commit
 
 
-def test_handoff_replay_does_not_clear_new_task_binding(project):
-    h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project);add_test(c['worktree']);p=result(c)
-    first=transfer(t,p)
+def test_ordinary_release_replay_does_not_clear_new_task_binding(project):
+    h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project);add_test(c['worktree'])
+    packet_ = release_packet(t)
+    first=t.invoke(packet_)
     other=deepcopy(project['task']);other['id']='T2'
     t.invoke(request('bootstrap',{'task':other,'decision':None,'feedback':None,'rework_stage':None}))
-    again=transfer(t,p)
-    assert again['commit']==first['commit'] and again['replayed']
+    again=t.invoke(packet_)
+    assert again['status']==first['status']=='ownership_released' and again['replayed']
     assert h.current_task()['id']=='T2'
 
 
-def test_cli_handoff_keeps_returned_response_outside_deleted_runtime(project):
-    h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project);add_test(c['worktree']);p=result(c)
-    inp=request('handoff',{'request_id':'cli','reason':'switch actor','result':p,'commit_message':'WIP: cli','artifact_paths':[]})
+def test_cli_release_keeps_a_readable_native_response(project):
+    h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project);add_test(c['worktree'])
+    inp=release_packet(t, 'cli')
     out=io.StringIO();assert execute(h,io.BytesIO(json.dumps(inp).encode()),out)==0
     reply=json.loads(out.getvalue())
     assert Path(reply['response_path']).is_file()
-    assert not h.runtime.exists()
+    assert json.loads(Path(reply['response_path']).read_text())['status'] == 'ownership_released'
 
 
 def test_runtime_cli_without_poise_session_env_and_real_transcript(project,tmp_path):
@@ -118,15 +122,15 @@ def test_parser_incident_is_preserved_in_verified_report_after_restart(project,m
     assert replay['incidents']==out['incidents']
 
 
-def test_handoff_automatically_preserves_registered_runtime_paths(project):
+def test_participant_uses_already_registered_task_working_material(project):
     h=Poise(project['config_path'],'A');t=WorkTools(h);c=bootstrap(t,project)
-    paths=t.invoke(request('artifacts',{'items':[{'scope':'runtime','path':'notes.txt','source':{'kind':'text','text':'Keep already registered work'}}]}))['artifact_paths']
+    paths=t.invoke(request('artifacts',{'items':[{'scope':'task','path':'notes.txt','source':{'kind':'text','text':'Keep already registered work'}}]}))['artifact_paths']
     p=result(c);p['artifact_paths']=paths;h.runner.submit('T1','A',p)
-    out=transfer(t,None,message_=None)
-    assert out['preserved_artifacts'] and not h.runtime.exists()
+    assert t.invoke(release_packet(t))['status'] == 'ownership_released'
     b=WorkTools(Poise(project['config_path'],'B'))
     next_=b.invoke(request('bootstrap',{'task':{'id':'T1'},'decision':None,'feedback':None,'rework_stage':None}))
-    assert all(Path(x).is_file() for x in next_['result_template']['artifact_paths'])
+    assert next_['worktree'] == c['worktree']
+    assert all(Path(x).read_text() == 'Keep already registered work' for x in paths)
 
 
 def test_view_storage_failure_does_not_erase_command_evidence(project,monkeypatch):
@@ -153,14 +157,13 @@ def test_large_result_read_does_not_load_whole_file(project,monkeypatch):
     assert res['results'][0]['value']['returned_lines']==[1,1]
 
 
-def test_sprint_exposes_explicit_handoff_as_resumable_without_rebasing(project):
+def test_sprint_exposes_released_work_as_resumable_without_rebasing(project):
     from sprints.helpers import setup,task,draft,publish,bootstrap as select
     setup(project)
     a=WorkTools(Poise(project['config_path'],'A'))
     d=draft(a,[task(project)]);publish(a,d['revision']);c=select(a,'A')
     Path(c['worktree'],'src/double.py').write_text('def double(n):\n    return n * 7\n')
-    p=deepcopy(c['result_template']);p['sections']['report']='Unfinished work preserved'
-    transfer(a,p)
+    assert a.invoke(release_packet(a))['status'] == 'ownership_released'
     b=WorkTools(Poise(project['config_path'],'B'))
     overview=select(b,'S')
     assert overview['eligible']==['A'] and overview['active']==[]

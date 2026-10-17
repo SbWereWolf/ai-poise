@@ -256,12 +256,12 @@ def test_registration_rollback_preserves_files_and_reuses_own_checks(project, mo
     assert c.invoke(request('accept', {}))['status'] == 'completed'
 
 
-def test_artifact_reuse_handoff_keeps_local_delivery_and_explicit_accept(project):
+def test_artifact_reuse_participant_change_keeps_local_delivery_and_explicit_accept(project):
     h, _ = artifact_family(project)
     c = WorkTools(h)
     first = reuse(c)
-    c.invoke(request('handoff', {'request_id': 'artifact-handoff', 'reason': 'Continue local acceptance',
-        'result': None, 'commit_message': None, 'artifact_paths': []}))
+    c.invoke(request('release', {'request_id': 'artifact-release', 'reason': 'Continue local acceptance',
+        'task_id': h.current_task()['id'], 'expected_version': h.current_task()['_version']}))
     other = WorkPoise(project['config_path'], 'receiver')
     resumed = WorkTools(other).invoke(request('reuse', first['request']))
     assert resumed['artifacts'] == first['artifacts'] and resumed['checks'] == first['checks']

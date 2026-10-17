@@ -219,13 +219,11 @@ def project(tmp_path, monkeypatch):
             {'path': 'docs/**', 'responsibility': 'documentation'},
         ],
     }
-    # Every ordinary check receives explicit, disposable system/config identities.
-    # Actual transfer tests replace the tripwire with their explicit external tool.
-    from recovery_helpers import prepare_recovery_files, recovery_settings
+    # Check companions belong to the existing check runner, independently of transport.
+    from check_configuration_helpers import prepare_check_systems
     cfg_path = poise_root / 'project.json'
-    prepare_recovery_files(poise_root)
-    cfg['runtime_services']['transfer'] = recovery_settings(
-        poise_root, app, cfg_path, [sys.executable, str(poise_root / 'unexpected_flow.py')])
+    cfg['runtime_services']['check_runner']['systems'] = prepare_check_systems(
+        poise_root, app, cfg_path)
     write_json(cfg_path, cfg)
     # Ordinary runtime fixtures explicitly establish real project authority.
     # Constructors never manufacture missing associations or registry entries.

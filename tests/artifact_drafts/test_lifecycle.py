@@ -145,12 +145,11 @@ def rework(tools) -> dict:
 
 
 def release(tools, request_id: str) -> dict:
-    return tools.invoke(request("handoff", {
+    return tools.invoke(request("release", {
         "request_id": request_id,
         "reason": "Release the verified Task for an independent artifact decision.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": tools.runtime.current_task()['id'],
+        "expected_version": tools.runtime.current_task()['_version'],
     }))
 
 

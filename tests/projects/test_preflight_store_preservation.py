@@ -81,6 +81,9 @@ def selected_stores(case):
                    ('EXISTS-HERE', 'preserved-artifact'))
     (project['app'] / 'untracked-wip.txt').write_text('Uncommitted operator material\n')
     (project['app'] / 'src/double.py').write_text('def double(n):\n    return n + 7\n')
+    # Complete fixture-owned accounting before any byte/inode snapshot.
+    first.telemetry.dispatcher.flush()
+    other.telemetry.dispatcher.flush()
     return first, other, second
 
 
@@ -213,7 +216,7 @@ def test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, 
                 db.execute('UPDATE tasks SET claimed_by=? WHERE id=?', ('another-owner', 'OWNED'))
             else:
                 # Explicit pending metadata on this fixture's nonterminal row;
-                # active-work refusal must precede any publication or cleanup.
+                # configuration edits preserve interrupted Task execution.
                 db.execute('INSERT OR REPLACE INTO task_execution(task_id,data,version) VALUES(?,?,?)',
                            ('OWNED', '{"pending":{"kind":"checks","request_id":"preserved"}}', 0))
     packet = update_request(config, '0' * 64 if condition == 'stale' else created['revision'],
@@ -228,11 +231,40 @@ def test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, 
         lock.write_bytes(b'Preserve existing lock bytes\n')
         lock.chmod(0o640)
     before = snapshot(project['root'].parent)
-    with pytest.raises(PoiseError):
-        update_tools(settings).apply(packet)
+    if condition == 'stale':
+        with pytest.raises(PoiseError):
+            update_tools(settings).apply(packet)
+        assert snapshot(project['root'].parent) == before
+        assert json.loads(config.read_text())['git']['base_ref'] == 'main'
+        return
+    # A claim/pending record permits edits; a held resource lock still fences them.
+    import fcntl
+    with (config.parent / 'state/state.lock').open('a+b') as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(PoiseError):
+            update_tools(settings).apply(packet)
+        assert snapshot(project['root'].parent) == before
+    database_bytes = db_path.read_bytes()
+    state_before = snapshot(config.parent / 'state')
+    worktree_before = snapshot(project['app'])
+    locks = [path for path in config.parent.rglob('*.lock')]
+    lock_snapshots = {path: (path.read_bytes(), path.stat().st_mode, path.stat().st_ino)
+                      for path in locks}
+    result = update_tools(settings).apply(packet)
+    assert result['status'] == 'updated'
+    assert json.loads(config.read_text())['git']['base_ref'] == 'corrected-branch'
+    assert db_path.read_bytes() == database_bytes
+    assert snapshot(config.parent / 'state') == state_before
+    assert snapshot(project['app']) == worktree_before
+    assert set(config.parent.rglob('*.lock')) == set(locks)
+    assert {path: (path.read_bytes(), path.stat().st_mode, path.stat().st_ino)
+            for path in locks} == lock_snapshots
+    # A permitted edit still obeys optimistic revision, without touching Task data.
+    stale = {**packet, 'request_id': 'stale-after-permitted-edit'}
     after = snapshot(project['root'].parent)
-    assert after == before
-    assert json.loads(config.read_text())['git']['base_ref'] == 'main'
+    with pytest.raises(PoiseError):
+        update_tools(settings).apply(stale)
+    assert snapshot(project['root'].parent) == after
 
 
 @pytest.mark.parametrize('damage', ['corrupt', 'delete', 'unexpected-path'])

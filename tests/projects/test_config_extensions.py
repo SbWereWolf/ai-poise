@@ -147,9 +147,17 @@ def test_runtime_adapter_settings_ignore_unknown_options(project, tmp_path):
 
 
 def test_catalogue_settings_ignore_unknown_options(tmp_path):
-    from tests.catalogue.test_catalogue_tools import prepare
+    from tests.goal_config.helpers import settings
     from poise.infrastructure.catalogue import FileCatalogue
-    _, catalogue, _, _ = prepare(tmp_path)
+    editor, _ = settings(tmp_path)
+    catalogue_path = tmp_path / 'catalogue.json'
+    write_json(catalogue_path, {
+        'schema': 'workflow-catalogue-1', 'editor': editor.name,
+        'max_items': 10, 'task_templates': {
+            'writing-v1': {'path': 'templates/writing.json', 'goal_type': 'writing'},
+        },
+    })
+    catalogue = FileCatalogue(catalogue_path)
     raw = json.loads(catalogue.path.read_text())
     raw['future_option'] = None
     for entry in raw['task_templates'].values():
@@ -164,6 +172,10 @@ def test_state_relocation_holds_all_store_locks_during_copy(project, monkeypatch
     import poise.infrastructure.project_config as owner
     from .test_update import relocation
     settings, path, created = installed_project(project)
+    runtime = work_tools(path, 'relocation-lock-fixture')
+    runtime.invoke({'operation': 'bootstrap', 'input': {
+        'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}, 'messages': []})
+    runtime.runtime.telemetry.dispatcher.flush()
     root, cfg, _ = load_config(path)
     state = configured_root(root, cfg['paths']['state'])
     state.mkdir(parents=True, exist_ok=True)
@@ -182,6 +194,7 @@ def test_state_relocation_holds_all_store_locks_during_copy(project, monkeypatch
     monkeypatch.setattr(owner, 'copy_state_tree', copy_under_locks)
     packet = update_request(path, created['revision'], state_relocation=relocation(
         path, project['root'].parent / 'locked-relocation'))
+    packet['state_relocation'].update(schema='project-state-relocation-1', hook_destinations=[])
     assert update_tools(settings).apply(packet)['status'] == 'updated'
     assert observed == expected
 

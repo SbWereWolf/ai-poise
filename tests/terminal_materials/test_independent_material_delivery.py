@@ -61,6 +61,66 @@ def require_success(value, marker):
     return value[1]
 
 
+def source_read_boundary(source, refusal=False):
+    """Pause the real file reader; retain the actual admission and DB owners."""
+    def intercept(patch, pause):
+        original_fd, original_path = os.open, Path.open
+        def selected():
+            pause()
+            if refusal:
+                raise PoiseError("INJECTED-SOURCE-CONSUMER-REFUSAL")
+        def opened(path, *args, **kwargs):
+            if not isinstance(path, int) and Path(path) == source:
+                selected()
+            return original_fd(path, *args, **kwargs)
+        def opened_path(path, *args, **kwargs):
+            if path == source:
+                selected()
+            return original_path(path, *args, **kwargs)
+        patch.setattr(os, "open", opened)
+        patch.setattr(Path, "open", opened_path)
+    return intercept
+
+
+def recovery_packet(tools, saved, identity):
+    return request("recover_artifacts", {
+        "request_id": identity, "task_id": "P",
+        "expected_version": tools.runtime.task_queries.record("P")["version"],
+        "artifact_ids": [saved["record"]["id"]],
+        "source_roots": {"task": str(saved["root"])},
+        "reason": "Use the exact released registered source while its owned root is live.",
+        "authorization": "The fixture owner authorized this exact registered source operation.",
+    })
+
+
+def ready_source_retirement(project, monkeypatch):
+    """Complete real Git cleanup but stop delivery before retirement admission."""
+    saved, consumer, report = family(project)
+    producer = saved["producer"]
+    tree = Path(producer.runtime.task_queries.record("P")["worktree"])
+    destination = project["root"] / "permanent-family-input.txt"
+    original = os.link
+    fired = False
+    def obstruct(source, target, *args, **kwargs):
+        nonlocal fired
+        if Path(target) == destination:
+            fired = True
+            raise OSError("INJECTED-SOURCE-DELIVERY-STOP")
+        return original(source, target, *args, **kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "link", obstruct)
+        try:
+            producer.invoke(request("integrate", integration_input(
+                project, report["commit"], task_id="P", request_id="prepare-live-source")))
+        except (OSError, PoiseError) as exc:
+            assert "INJECTED-SOURCE-DELIVERY-STOP" in str(exc)
+    assert fired, "ARRANGEMENT: source delivery did not reach its file publication"
+    assert not tree.exists(), "ARRANGEMENT: source Git resources are still present"
+    assert saved["root"].is_dir() and not destination.exists()
+    assert Path(saved["record"]["path"]).read_bytes() == b"accepted family result\n"
+    return saved, consumer, report
+
+
 @pytest.mark.parametrize("operation", [
     "agree", "integrate-settle", "reuse-preparation", "bootstrap", "handoff", "cleanup",
     "export-preparation",
@@ -219,6 +279,108 @@ def test_definitive_material_refusal_releases_only_its_own_consumer(project, mon
     integration = request("integrate", integration_input(project, report["commit"], task_id="P"))
     assert saved["producer"].invoke(integration)["status"] == "integrated"
     assert not saved["root"].exists()
+
+
+@pytest.mark.parametrize("operation", ["export", "recovery"])
+def test_delayed_source_operation_protects_its_root(project, monkeypatch, operation):
+    if operation == "export":
+        project["cfg"]["runtime_services"]["transfer"]["recovery"]["mapping"]["materials"] += [
+            {"id": "accepted-result", "role": "task-material", "source": "artifacts/result.txt",
+             "destination": "artifacts/result.txt", "include": True},
+            {"id": "check-runs", "role": "task-material", "source": "runs",
+             "destination": "runs", "include": True},
+        ]
+        write_json(project["config_path"], project["cfg"])
+        saved, _consumer, report = family(project)
+    else:
+        saved, _consumer, report = ready_source_retirement(project, monkeypatch)
+    source = Path(saved["record"]["path"])
+    caller = WorkTools(WorkPoise(project["config_path"], "held-" + operation))
+    b = unrelated(project)
+    if operation == "export":
+        packet = request("transfer", {"action": "export", "request_id": "held-source-export",
+                                     "task_ids": ["P"], "sprint_id": None, "handoff": None})
+    else:
+        packet = recovery_packet(caller, saved, "held-source-recovery")
+    observer = WorkTools(WorkPoise(project["config_path"], "source-retirement-observer"))
+    def retire_and_progress():
+        if operation == "export":
+            saved["producer"].invoke(request("integrate", integration_input(
+                project, report["commit"], task_id="P", request_id="retire-export-source")))
+            state = delivery_status(observer, identifier="P")
+        else:
+            state = settle(observer, identifier="P", request_id="retire-held-source")
+        return state, source.read_bytes(), saved["root"].is_dir(), publish(b)
+    left, right = paused_overlap(lambda: caller.invoke(packet), retire_and_progress,
+                                 source_read_boundary(source, refusal=operation == "export"))
+    state, source_bytes, root_exists, independent = require_success(right, "HELD-SOURCE-RETIREMENT-BLOCKED")
+    assert state["status"] == "delivery_blocked"
+    assert state["reason"] == {"export": "transfer_pending", "recovery": "artifact_consumer_pending"}[operation]
+    assert source_bytes == b"accepted family result\n" and root_exists is True
+    assert independent["status"] == "artifacts_created"
+    independent_path = Path(independent["artifact_paths"][0])
+    assert independent_path.read_bytes() == b"B material\n"
+    if operation == "recovery":
+        assert require_success(left, "HELD-RECOVERY-FAILED")["status"] == "artifacts_recovered"
+        assert caller.invoke(deepcopy(packet))["status"] == "artifacts_recovered"
+        assert settle(observer, identifier="P", request_id="retire-held-source")["status"] == "delivery_complete"
+        assert not saved["root"].exists()
+        assert (project["root"] / "permanent-family-input.txt").read_bytes() == b"accepted family result\n"
+    else:
+        assert left[0] == "error" and left[4] is True
+        assert "INJECTED-SOURCE-CONSUMER-REFUSAL" in left[2]
+        # A known preparation failure does not fabricate export completion.
+        # Repeating the original request may reject changed captured inputs;
+        # otherwise the same source fault stops before any external command.
+        with monkeypatch.context() as patch:
+            source_read_boundary(source, refusal=True)(patch, lambda: None)
+            with pytest.raises(PoiseError) as error:
+                caller.invoke(deepcopy(packet))
+        assert any(message in str(error.value) for message in (
+            "INJECTED-SOURCE-CONSUMER-REFUSAL", "Original export inputs changed before preparation completed"))
+        blocked = settle(observer, identifier="P", request_id="retire-held-source")
+        assert blocked["reason"] == "transfer_pending" and saved["root"].is_dir()
+        assert source.read_bytes() == b"accepted family result\n"
+    assert independent_path.read_bytes() == b"B material\n"
+
+
+def test_one_refusal_preserves_another_unfinished_consumer(project, monkeypatch):
+    saved, consumer, _report = ready_source_retirement(project, monkeypatch)
+    source = Path(saved["record"]["path"])
+    b = unrelated(project)
+    foreign_file = Path(publish(b)["artifact_paths"][0])
+    foreign_inode = foreign_file.stat().st_ino
+    packet = request("reuse", {"task_id": "D", "source_task_id": "P",
+                              "expected_version": consumer.runtime.task_queries.record("D")["version"],
+                              "request_id": "surviving-source-consumer"})
+    def stop():
+        raise SystemExit("INJECTED-SURVIVING-CONSUMER-INTERRUPTION")
+    def interrupted_first_consumer():
+        with pytest.MonkeyPatch.context() as patch:
+            source_read_boundary(source)(patch, stop)
+            return consumer.invoke(packet)
+    stopped = isolated_result(interrupted_first_consumer)
+    assert stopped[0:2] == ("error", "SystemExit")
+    assert stopped[2] == "INJECTED-SURVIVING-CONSUMER-INTERRUPTION"
+    second = WorkTools(WorkPoise(project["config_path"], "refused-second-source-user"))
+    second_packet = recovery_packet(second, saved, "refused-second-source-use")
+    with monkeypatch.context() as patch:
+        source_read_boundary(source, refusal=True)(patch, lambda: None)
+        with pytest.raises(PoiseError, match="INJECTED-SOURCE-CONSUMER-REFUSAL"):
+            second.invoke(second_packet)
+    observer = WorkTools(WorkPoise(project["config_path"], "survivor-retirement-observer"))
+    state = settle(observer, identifier="P", request_id="retire-with-survivor")
+    if state.get("reason") != "artifact_consumer_pending":
+        pytest.fail("FOREIGN-CONSUMER-LOST: one refusal released a different unfinished source use", pytrace=False)
+    assert saved["root"].is_dir() and source.read_bytes() == b"accepted family result\n"
+    assert foreign_file.read_bytes() == b"B material\n" and foreign_file.stat().st_ino == foreign_inode
+    resumer = WorkTools(WorkPoise(project["config_path"], "consumer"))
+    resumed = resumer.invoke(deepcopy(packet))
+    assert resumed["status"] == "reuse_verified" and len(resumed["checks"]) == 1
+    assert settle(observer, identifier="P", request_id="retire-with-survivor")["status"] == "delivery_complete"
+    assert not saved["root"].exists()
+    assert (project["root"] / "permanent-family-input.txt").read_bytes() == b"accepted family result\n"
+    assert foreign_file.read_bytes() == b"B material\n" and foreign_file.stat().st_ino == foreign_inode
 
 
 def test_retirement_closes_new_live_material_admission(project):

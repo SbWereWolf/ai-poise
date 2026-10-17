@@ -1,0 +1,35 @@
+schema_version = 1
+evidence_contracts = []
+
+[[commands]]
+command_id = "sample"
+workload_class = "unit"
+runtime_class = "python"
+platforms = ["linux"]
+invocation = "exec"
+argv = ["@PYTHON@", "@CHILD@", "--marker", "sample"]
+cwd = "."
+parser = "generic"
+require_parser_confirmation = true
+execution_timeout_seconds = 10
+observed_max_success_seconds = 0.0
+observed_max_progress_gap_seconds = 0.0
+stall_timeout_seconds = 0
+initial_limit_reason = "Independent fixture initial budget."
+last_calibrated_at = ""
+[commands.progress]
+mode = "unavailable"
+[commands.output]
+success_bytes = 1000
+failure_bytes = 2000
+timeout_bytes = 1000
+max_failures = 10
+[commands.prerequisites]
+executables = []
+files = []
+environment = []
+[commands.cache]
+enabled = true
+input_paths = ["src/double.py"]
+environment = []
+input_selection = "filesystem-glob"

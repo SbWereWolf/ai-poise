@@ -1,0 +1,25 @@
+schema_version = 1
+shared_tests = []
+[inventory]
+candidate_globs = ["tests/*.py"]
+ignored_paths = []
+[[packages]]
+package_id = "base"
+kind = "unit"
+description = "Independent fixture package."
+owners = ["fixture-owner"]
+contract = "Selected tests execute once in the configured native driver."
+dependencies = []
+bidirectional = false
+triggering_input_changes = []
+triggering_output_changes = []
+triggering_input_paths = ["src/core"]
+triggering_output_paths = []
+shared_libraries = []
+shared_databases = []
+shared_library_paths = []
+shared_database_paths = []
+[[packages.steps]]
+driver = "fixture"
+test_paths = ["tests/base.py"]
+arguments = ["--marker", "base:1"]

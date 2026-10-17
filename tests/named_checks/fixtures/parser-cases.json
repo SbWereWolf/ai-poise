@@ -1,0 +1,228 @@
+[
+  {
+    "parser": "generic",
+    "body": "work done\n",
+    "expected": {
+      "name": "generic",
+      "confirmed": true,
+      "summary": "work done",
+      "counts": {},
+      "failures": []
+    }
+  },
+  {
+    "parser": "generic",
+    "body": "ERROR fixture\n",
+    "expected": {
+      "name": "generic",
+      "confirmed": true,
+      "summary": "ERROR fixture",
+      "counts": {},
+      "failures": [
+        {
+          "name": "command-output",
+          "message": "ERROR fixture",
+          "source": null
+        }
+      ]
+    }
+  },
+  {
+    "parser": "phpunit",
+    "body": "Tests: 2, Assertions: 3, Errors: 0, Failures: 0\n",
+    "expected": {
+      "name": "phpunit",
+      "confirmed": true,
+      "summary": "Tests: 2, Assertions: 3, Errors: 0, Failures: 0",
+      "counts": {
+        "tests": 2,
+        "assertions": 3,
+        "errors": 0,
+        "failures": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "parser": "phpunit",
+    "body": "1) Example::broken\nExpected blue\nTests: 2, Assertions: 3, Failures: 1\n",
+    "expected": {
+      "name": "phpunit",
+      "confirmed": true,
+      "summary": "Tests: 2, Assertions: 3, Failures: 1",
+      "counts": {
+        "tests": 2,
+        "assertions": 3,
+        "failures": 1
+      },
+      "failures": [
+        {
+          "name": "Example::broken",
+          "message": "Expected blue",
+          "source": null
+        }
+      ]
+    }
+  },
+  {
+    "parser": "vitest",
+    "body": "Tests 2 passed | 1 skipped\n",
+    "expected": {
+      "name": "vitest",
+      "confirmed": true,
+      "summary": "Tests 2 passed | 1 skipped",
+      "counts": {
+        "passed": 2,
+        "skipped": 1
+      },
+      "failures": []
+    }
+  },
+  {
+    "parser": "vitest",
+    "body": "FAIL sample > broken\nTests 1 failed | 2 passed\n",
+    "expected": {
+      "name": "vitest",
+      "confirmed": true,
+      "summary": "Tests 1 failed | 2 passed",
+      "counts": {
+        "failed": 1,
+        "passed": 2
+      },
+      "failures": [
+        {
+          "name": "sample > broken",
+          "message": "FAIL sample > broken",
+          "source": null
+        }
+      ]
+    }
+  },
+  {
+    "parser": "playwright",
+    "body": "2 passed (1s)\n",
+    "expected": {
+      "name": "playwright",
+      "confirmed": true,
+      "summary": "2 passed (1s)",
+      "counts": {
+        "passed": 2
+      },
+      "failures": []
+    }
+  },
+  {
+    "parser": "playwright",
+    "body": "1) sample.spec.ts:4:1 › broken\n1 failed\n",
+    "expected": {
+      "name": "playwright",
+      "confirmed": true,
+      "summary": "1 failed",
+      "counts": {
+        "failed": 1
+      },
+      "failures": [
+        {
+          "name": "sample.spec.ts:4:1 › broken",
+          "message": "1) sample.spec.ts:4:1 › broken",
+          "source": "sample.spec.ts:4"
+        }
+      ]
+    }
+  },
+  {
+    "parser": "phpstan",
+    "body": "[OK] No errors\n",
+    "expected": {
+      "name": "phpstan",
+      "confirmed": true,
+      "summary": "[OK] No errors",
+      "counts": {
+        "errors": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "parser": "phpstan",
+    "body": "src/Example.php:7 Wrong type\nFound 1 error\n",
+    "expected": {
+      "name": "phpstan",
+      "confirmed": true,
+      "summary": "Found 1 error",
+      "counts": {
+        "errors": 1
+      },
+      "failures": [
+        {
+          "name": "phpstan",
+          "message": "Wrong type",
+          "source": "src/Example.php:7"
+        }
+      ]
+    }
+  },
+  {
+    "parser": "deptrac",
+    "body": "Violations: 0 Errors: 0 Allowed: 3\n",
+    "expected": {
+      "name": "deptrac",
+      "confirmed": true,
+      "summary": "Violations: 0 Errors: 0 Allowed: 3",
+      "counts": {
+        "violations": 0,
+        "errors": 0,
+        "allowed": 3
+      },
+      "failures": []
+    }
+  },
+  {
+    "parser": "deptrac",
+    "body": "violation sample\nViolations: 1 Errors: 0\n",
+    "expected": {
+      "name": "deptrac",
+      "confirmed": true,
+      "summary": "Violations: 1 Errors: 0",
+      "counts": {
+        "violations": 1,
+        "errors": 0
+      },
+      "failures": [
+        {
+          "name": "deptrac-violation",
+          "message": "violation sample",
+          "source": null
+        }
+      ]
+    }
+  },
+  {
+    "parser": "build",
+    "body": "build completed successfully\n",
+    "expected": {
+      "name": "build",
+      "confirmed": true,
+      "summary": "build completed successfully",
+      "counts": {},
+      "failures": []
+    }
+  },
+  {
+    "parser": "build",
+    "body": "build failed\n",
+    "expected": {
+      "name": "build",
+      "confirmed": false,
+      "summary": "Build success summary not found",
+      "counts": {},
+      "failures": [
+        {
+          "name": "build",
+          "message": "build failed",
+          "source": null
+        }
+      ]
+    }
+  }
+]

@@ -127,6 +127,15 @@ def test_committed_end_survives_unavailable_subject_task_runtime(project, tmp_pa
     assert output == {}
 
 
+def test_end_without_observed_start_preserves_fact_without_inventing_episode(project, tmp_path):
+    service, installed = configured(project, tmp_path)
+    with pytest.raises(PoiseError, match='SessionStart'):
+        deliver(service, installed, 'SessionEnd')
+    rows = native_rows(service)
+    assert len(rows) == 1 and rows[0][1:] == ('conversation', 'SessionEnd')
+    assert not (project['root'] / 'received.json').exists()
+
+
 def test_old_end_receipt_cannot_bind_to_new_active_episode(project, tmp_path):
     service, installed = configured(project, tmp_path)
     deliver(service, installed)

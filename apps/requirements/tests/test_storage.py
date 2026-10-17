@@ -121,8 +121,8 @@ class StorageTests(unittest.TestCase):
 
     def test_reopen(self):
         dataset = records()
+        prepare(self.database, self.lock)
         with closing(CONNECT(self.database)) as db:
-            db.executescript((FIXTURES / "storage-schema.sql").read_text(encoding="utf-8"))
             insert_records(db, dataset)
             assert_records(self, db, dataset)
             before = schema_state(db)

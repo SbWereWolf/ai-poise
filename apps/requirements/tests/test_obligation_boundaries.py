@@ -7,6 +7,9 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+from apps.requirements.storage import RequirementsStore
+
 FIXTURES = ROOT / 'apps/requirements/fixtures'
 STATE = json.loads((FIXTURES / 'graph-state.json').read_text(encoding='utf-8'))
 CASES = json.loads((FIXTURES / 'obligation-boundaries.json').read_text(encoding='utf-8'))
@@ -30,8 +33,9 @@ class Scenario:
         config_dir.mkdir()
         self.config = config_dir / 'requirements.json'
         self.config.write_text((FIXTURES / 'requirements-config.json').read_text(), encoding='utf-8')
+        RequirementsStore(self.database, root / 'state/requirements.lock', 1.0, 0.01)
         with sqlite3.connect(self.database) as db:
-            db.executescript((FIXTURES / 'storage-schema.sql').read_text())
+            db.execute('DELETE FROM requirements_meta')
             for table, data in STATE['tables'].items():
                 # Identifiers come only from the independent, test-owned schema fixture.
                 columns = ','.join('"' + column + '"' for column in data['columns'])

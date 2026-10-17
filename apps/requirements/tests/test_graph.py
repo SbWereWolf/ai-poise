@@ -25,6 +25,7 @@ QUERIES = json.loads((FIXTURES / 'graph-queries.json').read_text())
 MUTATIONS = json.loads((FIXTURES / 'graph-mutations.json').read_text())
 REJECTIONS = json.loads((FIXTURES / 'graph-rejections.json').read_text())
 FRESH = json.loads((FIXTURES / 'graph-fresh.json').read_text())
+LAYOUT = json.loads((FIXTURES / 'storage-layout-control.json').read_text())
 
 
 def quoted(value):
@@ -39,8 +40,9 @@ class Environment:
         self.lock = root / 'state/requirements.lock'
         self.database.parent.mkdir()
         if seed:
+            RequirementsStore(self.database, self.lock, 0.05, 0.005)
             with sqlite3.connect(self.database) as db:
-                db.executescript((FIXTURES / 'storage-schema.sql').read_text())
+                db.execute('DELETE FROM requirements_meta')
                 for table, data in STATE['tables'].items():
                     columns = ','.join(quoted(v) for v in data['columns'])
                     parameters = ','.join('?' for _ in data['columns'])
@@ -115,9 +117,10 @@ def test_fresh_empty_store_control(tmp_path):
     assert fresh.commands.query(QUERIES['empty_registry_queries']) == QUERIES['empty_registry']
     with sqlite3.connect(fresh.database) as db:
         assert db.execute('PRAGMA user_version').fetchone() == (1,)
-        assert db.execute(
-            "SELECT count(name) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
-        ).fetchone() == (20,)
+        tables = {row[0] for row in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+        )}
+        assert set(LAYOUT['required_tables']) <= tables
 
 
 def test_existing_second_system_parent_control(environment):

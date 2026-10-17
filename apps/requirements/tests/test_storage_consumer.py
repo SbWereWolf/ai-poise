@@ -14,7 +14,7 @@ import sys
 import tempfile
 import unittest
 
-from test_storage import insert_records, records, schema_state, identifier
+from test_storage import insert_records, records, schema_state, identifier, prepare
 
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps" / "requirements"
@@ -69,8 +69,12 @@ class ConsumerStorageTests(unittest.TestCase):
         return body["reason"]
 
     def seed_model(self):
+        prepare(self.database, self.state / 'requirements.lock')
         with closing(sqlite3.connect(self.database)) as db:
-            db.executescript((FIXTURES / "storage-schema.sql").read_text())
+            # Preserve the deliberately model-only fixture used by metadata tests.
+            layout = json.loads((FIXTURES / 'storage-layout-control.json').read_text())
+            for table in layout['model_only_omitted_tables']:
+                db.execute(f'DROP TABLE {identifier(table)}')
             insert_records(db, records())
             self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(), [])
 

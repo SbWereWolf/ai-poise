@@ -1,0 +1,31 @@
+{
+  "required_tables": [
+    "requirements_meta",
+    "requirements",
+    "requirement_revisions",
+    "application_purposes",
+    "application_purpose_revisions",
+    "system_application_versions",
+    "task_identities",
+    "task_creation_requests",
+    "task_statements",
+    "task_requirement_keys",
+    "task_requirement_versions",
+    "application_task_links",
+    "task_snapshots",
+    "requirement_outcomes",
+    "requirement_requests",
+    "domain_areas",
+    "domain_entities",
+    "domain_actions",
+    "requirement_entities",
+    "requirement_actions"
+  ],
+  "model_only_omitted_tables": [
+    "requirement_actions",
+    "requirement_entities",
+    "domain_actions",
+    "domain_entities",
+    "domain_areas"
+  ]
+}

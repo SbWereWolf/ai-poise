@@ -1185,6 +1185,7 @@ class Poise:
                 blocked = self._require_entry(data)
                 if blocked is not None:
                     return blocked
+                self.retention.validate_bundle(data, data['last_report'])
                 self._reconcile_task_worktree(data)
                 data=self.task_queries.record(data['id'])
             else:

@@ -1179,7 +1179,8 @@ class SqliteTaskRepository:
         if change.task.criteria_book is None:
             raise PoiseError('stage criteria migration required')
         metadata['stage_criteria'] = change.task.criteria_book.data
-        metadata['contract']['stage_contracts'] = change.task.stage_contracts.to_list()
+        if change.task.stage_contracts is not None:
+            metadata['contract']['stage_contracts'] = change.task.stage_contracts.to_list()
         if change.submission is not None:
             _, intent = split_work(json.loads(change.submission.stage_work))
             metadata.pop('criteria_pending', None)

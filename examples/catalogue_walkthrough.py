@@ -32,7 +32,8 @@ def _stage_contracts(workflow):
              'entry_requirements':[rule['id'] for rule in requirements
                  if stage['id'] in rule['stages'] and rule['phase']=='pre'],
              'exit_requirements':[rule['id'] for rule in requirements
-                 if stage['id'] in rule['stages'] and rule['phase']=='post']}
+                 if stage['id'] in rule['stages'] and rule['phase']=='post'],
+             'criteria':{'requirements':[],'definition_of_ready':[],'definition_of_done':[]}}
             for stage in workflow['stages']]
 
 

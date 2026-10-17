@@ -32,7 +32,8 @@ def run(directory: Path, scenario: str):
     # matching evidence requirements through the existing registry owner.
     task['stage_contracts'] = [
         {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
-         'entry_requirements': [], 'exit_requirements': []}
+         'entry_requirements': [], 'exit_requirements': [],
+         'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
         for stage in workflow['stages']
     ]
     task['decomposition'] = {

@@ -80,6 +80,7 @@ def require_project_association(settings, config_path, config, resources):
 def observe_hook_association(item, config_path):
     """Observe a historical installation without initializing its registry."""
     from .hook_transport import HookSettings, _read_definition
+    from .hook_diagnostics import observe_published_installation
     settings = HookSettings(item['settings_path'])
     if settings.project_config != config_path:
         raise PoiseError('Hook installation project binding differs from selected project')
@@ -95,10 +96,7 @@ def observe_hook_association(item, config_path):
     definition = _read_definition(settings, receipt['definition_path'])
     if definition.data['id'] != item['installation_id'] or record.get('migrated_to') is not None:
         raise PoiseError('Hook definition installation identity differs from association')
-    if receipt['hooks_path'] != str(settings.hooks_file):
-        raise PoiseError('Hook installation native file differs from settings')
-    groups = record['groups']
-    native = read_document(settings.hooks_file)
-    if any(native.get('hooks', {}).get(event, []).count(group) != 1 for event, group in groups):
-        raise PoiseError('Hook installation native group changed')
+    observed = observe_published_installation(settings, record, definition, receipt['definition_path'])
+    if observed['status'] != 'configured':
+        raise PoiseError('Hook installation native publication differs from its saved record; republish the selected installation through runtime-config, then retry project-config')
     return settings, record

@@ -20,6 +20,33 @@ def _unavailable(exc):
     return {'status': 'unavailable', 'error': type(exc).__name__}
 
 
+def observe_published_installation(settings, saved, definition, path):
+    """Observe saved publication facts independently of the current command generator."""
+    if saved is None:
+        return {'status': 'not_observed'}
+    if not isinstance(saved, dict):
+        raise PoiseError('Invalid installation observation')
+    expected = saved.get('groups')
+    if not isinstance(expected, list):
+        raise PoiseError('Invalid installation groups; republish the selected hook installation through runtime-config, then retry observation')
+    receipt = saved.get('receipt', {})
+    if not isinstance(receipt, dict):
+        raise PoiseError('Invalid installation receipt')
+    if (receipt.get('definition_path') != path
+            or receipt.get('hooks_path') != str(settings.hooks_file)):
+        return {'status': 'changed'}
+    actual = json_file(settings.hooks_file, settings.raw['max_input_bytes'])
+    hooks = actual.get('hooks', {})
+    if not isinstance(hooks, dict):
+        return {'status': 'changed'}
+    for event, group in expected:
+        groups = hooks.get(event, [])
+        if not isinstance(groups, list) or groups.count(group) != 1:
+            return {'status': 'changed'}
+    return {'status': 'configured', 'definition_id': definition.data['id'],
+            'definition_path': path, 'host_trust': 'not_observed'}
+
+
 class HookObservationPort:
     def __init__(self, service):
         self.service, self.settings = service, service.settings
@@ -47,29 +74,6 @@ class HookObservationPort:
             return self.service.probes(req['definition_path'], str(Path(req['probe_cwd']).resolve(strict=True)))
         except _ERRORS as exc:
             return {**_unavailable(exc), 'ready': False}
-
-    def _installation(self, saved, definition, path):
-        if saved is None:
-            return {'status': 'not_observed'}
-        if not isinstance(saved, dict):
-            raise PoiseError('Invalid installation observation')
-        expected = self.service.repository._groups(definition, Path(path))
-        receipt = saved.get('receipt', {})
-        if not isinstance(receipt, dict):
-            raise PoiseError('Invalid installation receipt')
-        if (saved.get('groups') != expected or receipt.get('definition_path') != path
-                or receipt.get('hooks_path') != str(self.settings.hooks_file)):
-            return {'status': 'changed'}
-        actual = json_file(self.settings.hooks_file, self.settings.raw['max_input_bytes'])
-        hooks = actual.get('hooks', {})
-        if not isinstance(hooks, dict):
-            return {'status': 'changed'}
-        for event, group in expected:
-            groups = hooks.get(event, [])
-            if not isinstance(groups, list) or groups.count(group) != 1:
-                return {'status': 'changed'}
-        return {'status': 'configured', 'definition_id': definition.data['id'],
-                'definition_path': path, 'host_trust': 'not_observed'}
 
     def _binding(self, saved, definition, req, cfg):
         if saved is None:
@@ -156,7 +160,8 @@ class HookObservationPort:
             result['native_event'] = _unavailable(exc)
             return result
         try:
-            result['installation'] = self._installation(snapshot['installation'], definition, req['definition_path'])
+            result['installation'] = observe_published_installation(
+                self.settings, snapshot['installation'], definition, req['definition_path'])
             result['binding'] = self._binding(snapshot['binding'], definition, req, cfg)
         except _ERRORS as exc:
             result['binding'] = _unavailable(exc)

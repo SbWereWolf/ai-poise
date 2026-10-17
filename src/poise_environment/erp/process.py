@@ -33,10 +33,15 @@ def execute(argv: list[str], cwd: str, environment: dict[str, str],
                             failures.append(error)
             except runtime_errors as error:
                 failures.append(error)
-            out.seek(0)
-            stdout = out.read()
-            err.seek(0)
-            stderr = err.read()
+            captured = []
+            for stream in (out, err):
+                try:
+                    stream.seek(0)
+                    captured.append(stream.read())
+                except runtime_errors as error:
+                    failures.append(error)
+                    captured.append(b"")
+            stdout, stderr = captured
     except runtime_errors as error:
         failures.append(error)
     if failures:

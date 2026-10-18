@@ -213,8 +213,25 @@ class PublicQueryCase(TaskCase):
         self.assertEqual(json.loads(state)['registry'], self.inputs['registry_new'])
         self.assertEqual(rows(self.path, 'SELECT version FROM tasks WHERE id=?', ('A',)), [(1,)])
 
-    def make_newborn(self, *, restarted=False):
+    def write_registered_content(self):
+        with self.store.transaction() as db:
+            db.execute('UPDATE content_contracts SET data=? WHERE task_id=?',
+                       (encoded(self.inputs['content_registered']), 'A'))
+            db.execute('INSERT INTO section_layers(submission_id,task_id,section_id,content,'
+                       'content_state) VALUES(41,?,?,?,?)',
+                       ('A', 'analysis', 'Prepared facts.', 'populated'))
+            db.execute('INSERT INTO trace_point_layers(submission_id,task_id,route_id,'
+                       'point_id,data) VALUES(41,?,?,?,?)',
+                       ('A', 'route', 'point', encoded('Trace facts.')))
+
+    def make_newborn(self, *, restarted=False, typed=False):
         metadata = fixture('tasks', 'newborn_metadata.json')
+        if typed:
+            metadata['newborn']['draft'].update(
+                goal_type='development',
+                methods=[deepcopy(self.inputs['registry_entry']['method'])],
+            )
+            metadata['workflow'] = deepcopy(self.metadata['workflow'])
         if restarted:
             metadata['contract'] = deepcopy(self.metadata['contract'])
             metadata['newborn']['draft'] = {

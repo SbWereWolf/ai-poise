@@ -1210,5 +1210,118 @@
         "data": "{\"event\": \"submitted\", \"iteration\": 1, \"stage\": \"work\", \"submission\": 41}"
       }
     ]
+  },
+  "content_registered": {
+    "sections": [
+      {
+        "id": "analysis",
+        "template": "Explain.",
+        "writable": true
+      }
+    ],
+    "routes": [
+      {
+        "id": "route",
+        "requirements": [
+          "Save the report."
+        ],
+        "points": [
+          {
+            "id": "point",
+            "kind": "text",
+            "fields": {},
+            "writable": true
+          }
+        ]
+      }
+    ],
+    "due": [],
+    "trace": {
+      "route": {
+        "point": "Trace facts."
+      }
+    },
+    "sections_current": {
+      "analysis": "Prepared facts."
+    }
+  },
+  "analysis_section": {
+    "task": "A",
+    "stage": "work",
+    "section": "analysis",
+    "submission": 41,
+    "iteration": 1,
+    "content": "Prepared facts.",
+    "state": "populated"
+  },
+  "typed_newborn_registry": {
+    "status": "read_only",
+    "task": "A",
+    "task_status": "newborn",
+    "active_contract": false,
+    "revision": null,
+    "current": [],
+    "executable_obligations": [],
+    "draft_methods": [
+      {
+        "id": "M",
+        "argv": [
+          "fixture-check"
+        ],
+        "cwd": ".",
+        "environment": {},
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": []
+      }
+    ],
+    "historical_registry": null,
+    "notice": "Draft methods and historical registry are not an active verification contract"
+  },
+  "populated_restarted_registry": {
+    "status": "read_only",
+    "task": "A",
+    "task_status": "newborn",
+    "active_contract": false,
+    "revision": null,
+    "current": [],
+    "executable_obligations": [],
+    "draft_methods": [],
+    "historical_registry": {
+      "revision": 1,
+      "history": [
+        {
+          "revision": 0,
+          "entries": []
+        }
+      ],
+      "requests": [
+        {
+          "request_id": "registry-new",
+          "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "revision": 1
+        }
+      ],
+      "executable_obligations": [],
+      "entries": [
+        {
+          "method": {
+            "id": "M",
+            "argv": [
+              "fixture-check"
+            ],
+            "cwd": ".",
+            "environment": {},
+            "expected_exit_code": 0,
+            "stdout_contains": [],
+            "stderr_contains": []
+          },
+          "stages": [
+            "work"
+          ]
+        }
+      ]
+    },
+    "notice": "Draft methods and historical registry are not an active verification contract"
   }
 }

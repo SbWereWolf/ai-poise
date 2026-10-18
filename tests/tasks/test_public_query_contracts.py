@@ -16,6 +16,11 @@ class PublicQueryContracts(PublicQueryCase):
         self.assert_projection('content')
         query = self.store.queries
         self.assertEqual(query.section('A', 'work', 'report', 41), self.expected['section'])
+        with self.subTest(state='registered_content'):
+            self.write_registered_content()
+            self.assertEqual(query.content('A'), self.expected['content_registered'])
+            self.assertEqual(query.section('A', 'work', 'analysis', 41),
+                             self.expected['analysis_section'])
 
     def test_active_evidence_dto(self):
         self.assert_projection('evidence')
@@ -34,15 +39,32 @@ class PublicQueryContracts(PublicQueryCase):
 
     def test_newborn_registry_is_inactive(self):
         self.arrange_public()
-        self.make_newborn()
-        self.assertEqual(self.store.queries.verification_registry('A'),
-                         self.expected['newborn_registry'])
+        with self.subTest(state='untyped'):
+            self.make_newborn()
+            self.assertEqual(self.store.queries.verification_registry('A'),
+                             self.expected['newborn_registry'])
+        with self.subTest(state='typed_with_draft_methods'):
+            self.make_newborn(typed=True)
+            self.assertEqual(self.store.queries.verification_registry('A'),
+                             self.expected['typed_newborn_registry'])
 
     def test_restarted_registry_preserves_history(self):
         self.arrange_public()
-        self.make_newborn(restarted=True)
-        self.assertEqual(self.store.queries.verification_registry('A'),
-                         self.expected['restarted_registry'])
+        with self.subTest(state='empty_historical_registry'):
+            self.make_newborn(restarted=True)
+            self.assertEqual(self.store.queries.verification_registry('A'),
+                             self.expected['restarted_registry'])
+        with self.subTest(state='populated_historical_registry'):
+            case = PublicQueryCase()
+            case.setUp()
+            try:
+                case.arrange_public()
+                case.write_related_registry()
+                case.make_newborn(restarted=True)
+                self.assertEqual(case.store.queries.verification_registry('A'),
+                                 self.expected['populated_restarted_registry'])
+            finally:
+                case.doCleanups()
 
     def test_terminal_record_preserves_history(self):
         self.arrange_public('terminal')
@@ -98,17 +120,28 @@ class PublicQueryContracts(PublicQueryCase):
 
     def protected_state(self):
         state = self.snapshot()
-        for table in ('content_contracts', 'task_workflows', 'task_proofs', 'task_methods',
-                      'transfer_locations'):
-            state[table] = rows(self.path, f'SELECT task_id,data FROM {table} ORDER BY task_id')
+        columns = {
+            'content_contracts': 'task_id,version,data',
+            'task_workflows': 'task_id,data',
+            'task_proofs': 'task_id,data',
+            'task_methods': 'task_id,method_id,version,data',
+            'transfer_locations': 'task_id,data',
+            'trace_point_layers': 'task_id,submission_id,route_id,point_id,data',
+            'task_results': 'task_id,submission_id,data',
+        }
+        for table, fields in columns.items():
+            state[table] = rows(self.path, f'SELECT {fields} FROM {table} ORDER BY task_id')
         return state
 
-    def assert_restore_error(self, error_type, message):
+    def assert_restore_error(self, error_type, message, *, exact=False):
         before = self.protected_state()
         for name in ('content', 'evidence_view', 'verification_registry'):
             with self.subTest(entry=name):
-                with self.assertRaisesRegex(error_type, message):
+                with self.assertRaisesRegex(error_type, message) as raised:
                     getattr(self.store.queries, name)('A')
+                if exact:
+                    self.assertIs(type(raised.exception), error_type)
+                    self.assertEqual(str(raised.exception), message)
                 self.assertEqual(self.protected_state(), before)
 
     def remove_row(self, table):
@@ -122,8 +155,14 @@ class PublicQueryContracts(PublicQueryCase):
 
     def test_missing_content_is_rejected(self):
         self.arrange_public()
-        self.remove_row('content_contracts')
-        self.assert_restore_error(PoiseError, 'Нет зарегистрированного контракта содержимого')
+        with self.subTest(state='missing_content_row'):
+            self.remove_row('content_contracts')
+            self.assert_restore_error(PoiseError, 'Нет зарегистрированного контракта содержимого')
+        with self.subTest(state='corrupt_goal_sections'):
+            with self.store.transaction() as db:
+                db.execute('INSERT INTO content_contracts(task_id,version,data) VALUES(?,0,?)',
+                           ('A', encoded(self.inputs['content_corrupt'])))
+            self.assert_restore_error(DomainError, 'goal.sections: требуется список', exact=True)
 
     def test_missing_workflow_is_rejected(self):
         self.arrange_public()

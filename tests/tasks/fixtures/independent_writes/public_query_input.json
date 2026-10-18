@@ -296,5 +296,55 @@
       "phase": "prepare",
       "observation_methods": []
     }
-  ]
+  ],
+  "content_registered": {
+    "goal": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "task": {
+      "sections": [
+        {
+          "id": "analysis",
+          "template": "Explain.",
+          "normalization": "strip",
+          "write_stages": [
+            "work"
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "id": "route",
+          "requirements": [
+            "Save the report."
+          ],
+          "points": [
+            {
+              "id": "point",
+              "kind": "text",
+              "fields": {},
+              "write_stages": [
+                "work"
+              ]
+            }
+          ]
+        }
+      ],
+      "requirements": []
+    }
+  },
+  "content_corrupt": {
+    "goal": {
+      "sections": "bad",
+      "routes": [],
+      "requirements": []
+    },
+    "task": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  }
 }

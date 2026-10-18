@@ -1,5 +1,6 @@
 """Transparent test inputs and direct observations, not launcher producers."""
 from copy import deepcopy
+from contextlib import nullcontext
 from datetime import datetime
 import hashlib
 import io
@@ -13,10 +14,11 @@ import sqlite3
 import subprocess
 import sys
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from conftest import write_json
 from poise.common import digest, file_digest
-from poise.infrastructure.hook_transport import HookService
+from poise.infrastructure.hook_transport import HookService, HookSettings
 from poise.interfaces.hook_transport import execute
 from hook_transport.helpers import definition, event, install, settings
 
@@ -37,6 +39,7 @@ def fixture_script(form, coordinates):
     values = dict(coordinates, source_root=source,
                   source_python_path='PYTHONPATH=' + source,
                   current_python_path='PYTHONPATH=' + os.pathsep.join((source, str(code))),
+                  source_guard=(FIXTURES / 'source-guard.txt').read_text().removesuffix('\n'),
                   guard=(FIXTURES / 'guard.txt').read_text().removesuffix('\n'))
     values['recovery_command'] = shlex.join([
         'bash', str(code / 'src/poise/recover_runtime.sh'), '--settings', coordinates['settings'],
@@ -67,7 +70,18 @@ def source_inventory(root):
             for p in sorted(paths)}
 
 
-def arrange_hooks(project, tmp_path, code_root=ROOT, *, probe=None):
+def target_publisher_command(selected, verb, *args):
+    """Frozen old publisher input; never an expected-output production serializer."""
+    values = {'source_guard': (FIXTURES / 'source-guard.txt').read_text().removesuffix('\n'),
+              'source_root': selected.raw['source_root'], 'settings': str(selected.path),
+              'source_python_path': 'PYTHONPATH=' + selected.raw['source_root'],
+              'python': selected.raw['python'], 'verb': verb}
+    rendered = {key: shlex.quote(value) for key, value in values.items()}
+    rendered['arguments'] = shlex.join(args)
+    return (FIXTURES / 'target-hook.command.in').read_text().removesuffix('\n').format_map(rendered)
+
+
+def arrange_hooks(project, tmp_path, code_root=ROOT, *, probe=None, target_issuer=False):
     path = settings(project, tmp_path)
     raw = read_json(path)
     raw['source_root'] = str(code_root / 'src')
@@ -79,11 +93,16 @@ def arrange_hooks(project, tmp_path, code_root=ROOT, *, probe=None):
     selected = definition()
     if probe is not None:
         selected['probes'] = [probe]
-    installed = install(service, d=selected, revision=service.revision())
-    for kind in ('SessionStart', 'UserPromptSubmit'):
-        native = event(kind, session=SESSION)
-        native['cwd'] = str(project['app'])
-        service.event(installed['definition_path'], native)
+    # Model the real previous publisher only while constructing its installation.
+    # The patch has ended before the actual new-version consumer under test runs.
+    publication = (patch.object(HookSettings, 'command', target_publisher_command)
+                   if target_issuer else nullcontext())
+    with publication:
+        installed = install(service, d=selected, revision=service.revision())
+        for kind in ('SessionStart', 'UserPromptSubmit'):
+            native = event(kind, session=SESSION)
+            native['cwd'] = str(project['app'])
+            service.event(installed['definition_path'], native)
     # Read actual allocation identity independently, never a command serializer.
     database = path.parent / raw['state'] / raw['database']
     with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
@@ -91,6 +110,9 @@ def arrange_hooks(project, tmp_path, code_root=ROOT, *, probe=None):
     binding = json.loads(binding_raw)
     coordinates = {'code_root': str(code_root), 'python': sys.executable,
                    'settings': str(path), 'binding': binding['binding_path']}
+    if target_issuer:
+        assert Path(binding['launcher']).read_bytes() == fixture_script('target-issuer', coordinates)
+        assert HookSettings.command is not target_publisher_command
     return {'project': project, 'service': service, 'settings_path': path, 'settings': raw,
             'database': database, 'installed': installed, 'binding': binding,
             'coordinates': coordinates, 'foreign': foreign}
@@ -106,7 +128,13 @@ def snapshot(case):
         }
     paths = [case['settings_path'], case['settings_path'].parent / case['settings']['hooks_file'],
              Path(case['binding']['binding_path']), Path(case['binding']['launcher'])]
-    return {'rows': rows, 'files': {str(p): p.read_bytes() for p in paths}}
+    for _, raw, _ in rows['bindings']:
+        binding = json.loads(raw)
+        paths.extend((Path(binding['binding_path']), Path(binding['launcher']),
+                      Path(binding['binding_path']).parent / case['settings']['capability_summary']['file']))
+    paths = sorted({path for path in paths if path.is_file()})
+    return {'rows': rows, 'files': {str(p): p.read_bytes() for p in paths},
+            'modes': {str(p): p.stat().st_mode & 0o777 for p in paths}}
 
 
 def lifecycle(rows):
@@ -286,7 +314,7 @@ def save_replay_proof(case, packet, before, first_state, replay_state, captures,
 
 def assert_current(case):
     path = Path(case['binding']['launcher'])
-    assert path.read_bytes() == fixture_script('current', case['coordinates'])
+    assert path.read_bytes() == fixture_script('current-output', case['coordinates'])
     assert path.stat().st_mode & 0o777 == case['settings']['executable_mode']
 
 

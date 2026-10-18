@@ -29,6 +29,23 @@ def test_literal_launcher_matches_full_independent_sample(sample, form):
     assert (syntax.returncode, syntax.stdout, syntax.stderr) == (0, b'', b'')
 
 
+@pytest.mark.parametrize('sample', ['plain', 'unicode'])
+@pytest.mark.parametrize('form', ['target-issuer', 'current-output'])
+def test_guarded_literal_matches_independent_whole_frame(sample, form):
+    selected = read_json(FIXTURES / 'guarded-fixed-samples.json')[sample]
+    golden = selected['forms'][form]
+    expected = ('#!/bin/sh\nexec ' + shlex.join(golden['argv']) + ' "$@"\n').encode()
+    observed = fixture_script(form, selected['coordinates'])
+    assert observed == expected
+    arguments = shlex.split(observed.decode().splitlines()[1])
+    assert arguments[5] == selected['coordinates']['code_root'] + '/src'
+    assert arguments[arguments.index('env') + 1] == golden['argv'][9]
+    other = 'current-output' if form == 'target-issuer' else 'target-issuer'
+    assert observed != fixture_script(other, selected['coordinates'])
+    syntax = subprocess.run(['sh', '-n'], input=observed, capture_output=True)
+    assert (syntax.returncode, syntax.stdout, syntax.stderr) == (0, b'', b'')
+
+
 @pytest.mark.parametrize('mutation', ['lost-forwarding', 'lost-LF', 'changed-roots', 'extra-argv'])
 def test_exact_fixture_oracle_rejects_near_matches(mutation):
     coordinates = read_json(FIXTURES / 'fixed-samples.json')['plain']['coordinates']

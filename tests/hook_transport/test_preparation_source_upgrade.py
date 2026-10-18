@@ -23,6 +23,8 @@ from hook_transport.preparation_source_upgrade_support import (
     operation_result, public_reconfigure, read_json, ready_handler_result, reconfigure_packet, resume, snapshot, write_launcher,
 )
 from poise.common import PoiseError
+from poise.infrastructure.hook_transport import HookService
+from hook_transport.helpers import event
 from runtime_services.worktree_preparation_support import (
     FIXTURES as PREPARATION_FIXTURES, arrange, capture_origin, use_environment_handler,
 )
@@ -116,6 +118,117 @@ def test_current_literal_launcher_keeps_its_binding(project, tmp_path, route):
         assert snapshot(case) == after
         assert_captures_preserved(first_captures)
     assert_current(case)
+
+
+def prepare_ended_release(case):
+    """Create another real binding and commit the selected end before the baseline."""
+    native = event(session='unselected-source-session')
+    native['cwd'] = str(case['project']['app'])
+    case['service'].event(case['installed']['definition_path'], native)
+    return case['service'].registry.record_event(SESSION, 'SessionEnd', 'target-issued-end', None)
+
+
+@pytest.mark.parametrize('path_kind', ['plain', 'unicode'])
+@pytest.mark.parametrize('consumer', ['native', 'reconfigure', 'release'])
+def test_target_guarded_issuer_is_consumed_without_losing_owned_state(
+        project, tmp_path, source_copies, path_kind, consumer):
+    # Earliest GREEN: the separate integration compatibility implementation.
+    case = arrange_hooks(project, tmp_path, source_copies[path_kind], target_issuer=True)
+    service = HookService(case['settings_path'])
+    if consumer == 'release':
+        end = prepare_ended_release(case)
+    before = snapshot(case)
+    if consumer == 'native':
+        result = resume(case)
+        assert result['hookSpecificOutput']['hookEventName'] == 'SessionStart'
+        assert_current(case)
+        after = snapshot(case)
+        assert_session_preserved(before, after)
+        added = after['rows']['events'][len(before['rows']['events']):]
+        assert len(added) == 1 and added[0][2:4] == (SESSION, 'SessionStart')
+        assert json.loads(added[0][4]) == {
+            'turn_id': None, 'source': 'resume', 'workspace': str(project['app'])}
+        for field in ('installations', 'operations'):
+            assert after['rows'][field] == before['rows'][field]
+        hooks = str(service.settings.hooks_file)
+        assert after['files'][hooks] == before['files'][hooks]
+        # Diagnosis must recognize actual old publisher groups, without modifying them.
+        diagnosed = service.diagnose({'definition_path': case['installed']['definition_path'],
+            'session_id': SESSION, 'event': 'SessionStart', 'event_id': None,
+            'run_ids': [], 'probe_cwd': None})
+        assert diagnosed['installation']['status'] == 'configured'
+        assert diagnosed['binding']['status'] == 'valid'
+        assert diagnosed['native_event']['status'] == 'observed'
+        assert diagnosed['native_event']['id'] == added[0][0]
+        assert diagnosed['native_event']['source'] == 'resume'
+        assert snapshot(case) == after
+    elif consumer == 'reconfigure':
+        packet = reconfigure_packet(case)
+        code, reply = public_reconfigure(case, packet)
+        assert code == 0, reply
+        captures = assert_reconfiguration_reply(case, packet, reply)
+        assert_current(case)
+        after = snapshot(case)
+        assert_reconfigured_state(case, packet, before, after)
+        again_code, again = public_reconfigure(case, packet)
+        assert again_code == 0, again
+        assert_reconfiguration_reply(case, packet, again)
+        assert operation_result(again) == operation_result(reply)
+        assert snapshot(case) == after
+        assert_captures_preserved(captures)
+        result = resume(case, reply['definition_path'])
+        assert_target_summary(case, packet, result)
+        assert_session_preserved(after, snapshot(case))
+        assert_captures_preserved(captures)
+    else:
+        root = Path(case['binding']['binding_path']).parent
+        removed = [case['binding']['binding_path'], case['binding']['launcher'],
+                   str(root / case['settings']['capability_summary']['file'])]
+        result = service.release_ended_binding(case['binding'], end)
+        assert result == {'status': 'released', 'session_id': SESSION, 'removed_files': removed}
+        assert not root.exists()
+        assert service.registry.liveness(SESSION).value == 'dead'
+        after = snapshot(case)
+        assert after['rows']['bindings'] == [row for row in before['rows']['bindings'] if row[0] != SESSION]
+        for field in ('installations', 'operations', 'events'):
+            assert after['rows'][field] == before['rows'][field]
+        for field in ('files', 'modes'):
+            assert after[field] == {key: value for key, value in before[field].items() if key not in removed}
+        assert service.release_ended_binding(case['binding'], end) == {
+            'status': 'already_released', 'session_id': SESSION}
+        assert snapshot(case) == after
+
+
+@pytest.mark.parametrize('path_kind', ['plain', 'unicode'])
+@pytest.mark.parametrize('consumer', ['native', 'reconfigure', 'release'])
+@pytest.mark.parametrize('mutation', ['foreign', 'guard-body', 'extra-argv'])
+def test_target_guarded_near_match_keeps_all_owned_material(
+        project, tmp_path, source_copies, path_kind, consumer, mutation):
+    # Earliest GREEN: test construction, before the separate product correction.
+    case = arrange_hooks(project, tmp_path, source_copies[path_kind], target_issuer=True)
+    if consumer == 'release':
+        end = prepare_ended_release(case)
+    launcher = Path(case['binding']['launcher'])
+    original = launcher.read_bytes()
+    changed = {
+        'foreign': b'#!/bin/sh\nexit 23\n',
+        'guard-body': original.replace(b'valid=0', b'valid=1'),
+        'extra-argv': original.replace(b' "$@"', b' --foreign "$@"'),
+    }[mutation]
+    assert changed != original
+    launcher.write_bytes(changed)
+    before = snapshot(case)
+    if consumer == 'native':
+        with pytest.raises(PoiseError, match='Launcher was changed externally'):
+            resume(case)
+    elif consumer == 'reconfigure':
+        code, reply = public_reconfigure(case, reconfigure_packet(case))
+        assert code == 2 and reply['status'] == 'rejected'
+        assert 'Foreign launcher content before reconfiguration' in reply['reason']
+    else:
+        with pytest.raises(PoiseError, match='Foreign launcher content before release'):
+            HookService(case['settings_path']).release_ended_binding(case['binding'], end)
+    assert snapshot(case) == before
 
 
 def test_real_stride_loads_selected_handler_outside_source_cwd(project, tmp_path, source_copies):

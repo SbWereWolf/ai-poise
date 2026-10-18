@@ -8,7 +8,7 @@ import pytest
 
 from batch.helpers import request
 from poise.common import PoiseError
-from runtime_services.test_duplicate_reuse_artifacts import artifact_family
+from runtime_services.test_duplicate_reuse_artifacts import accepted_payload, artifact_family
 from runtime_services.test_duplicate_reuse import reuse
 from poise.application.work import WorkTools
 from result_integration.helpers import integration_input
@@ -99,7 +99,7 @@ def test_new_post_retirement_artifact_consumption_uses_agreed_permanent_input(pr
     assert verified["status"] == "reuse_verified"
     assert len(verified["checks"]) == 1 and verified["checks"][0]["passed"]
     assert verified["checks"][0]["id"] != report["checks"][0]["id"]
-    artifact = consumer.runtime.store.artifact_records("D")[0]
+    artifact = accepted_payload(consumer.runtime, "D")
     assert artifact["id"] != saved["record"]["id"]
     assert artifact["digest"] == saved["record"]["digest"] == hashlib.sha256(b"accepted family result\n").hexdigest()
     assert Path(artifact["path"]).read_bytes() == b"accepted family result\n"
@@ -146,7 +146,7 @@ def test_accept_after_source_retirement_still_validates_local_required_bytes(pro
     saved, consumer, _, permanent = retired_family(project)
     verified = reuse(consumer)
     assert verified["status"] == "reuse_verified"
-    local = consumer.runtime.store.artifact_records("D")[0]
+    local = accepted_payload(consumer.runtime, "D")
     assert local["id"] != saved["record"]["id"]
     assert local["digest"] == saved["record"]["digest"] == hashlib.sha256(b"accepted family result\n").hexdigest()
     path = Path(local["path"])

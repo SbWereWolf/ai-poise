@@ -12,13 +12,14 @@ from .helpers import bootstrap, configure, request, result, verify
 
 
 @pytest.fixture
-def legacy(project):
+def legacy(project, request):
+    from .helpers import request as work_request
     configure(project)
     first = WorkPoise(project['config_path'], 'A')
     tools = WorkTools(first)
     context = bootstrap(tools, project)
     add_test(context['worktree'])
-    handoff = tools.invoke(request('handoff', {
+    handoff = tools.invoke(work_request('handoff', {
         'request_id': 'legacy-handoff', 'reason': 'save incomplete work',
         'result': result(context), 'commit_message': 'Preserve incomplete task work',
         'artifact_paths': [],
@@ -27,6 +28,9 @@ def legacy(project):
     records = first.store.artifact_records('T1')
     assert any(Path(row['path']).name == 'source.bundle' for row in records)
     original_bytes = {row['id']: Path(row['path']).read_bytes() for row in records}
+    claiming = getattr(getattr(request.node, 'callspec', None), 'params', {}).get('case') == 'claimed'
+    if claiming:
+        first.bootstrap({'id': 'T1'})
     project['cfg']['paths']['standalone_tasks'] = 'relocated'
     write_json(project['config_path'], project['cfg'])
     current = WorkPoise(project['config_path'], 'B')
@@ -137,8 +141,7 @@ def test_rejects_unsafe_or_stale_recovery_before_reference_changes(legacy, case,
         with h.store.transaction() as db:
             db.execute('UPDATE artifacts SET owner=? WHERE id=?', ('foreign-task', row['id']))
     elif case == 'claimed':
-        legacy['tools'].invoke(request('bootstrap', {
-            'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None}))
+        assert h.task_queries.record('T1')['claimed_by'] == 'A'
         args['expected_version'] = h.task_queries.record('T1')['_version']
     elif case == 'authorization': args['authorization'] = ''
     before, registered = history(h), h.store.artifact_records('T1')
@@ -192,6 +195,7 @@ def test_ordinary_validation_remains_strict_after_recovery(legacy):
 
 
 def test_public_recovery_preserves_sprint_and_task_scope(project):
+    configure(project)
     from sprints.helpers import publish_existing_contract
     from .helpers import text_artifact
     from poise.infrastructure.task_paths import task_root, sprint_root

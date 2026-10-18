@@ -14,6 +14,13 @@ operator documentation, not this skill.
 
 ## Design boundaries
 
+Make operations atomic and idempotent: the same request and inputs return the same
+business result; retries preserve completed effects and safely finish missing steps.
+Every refusal identifies the concrete obstacle and an executable remedy/retry route;
+unknown outcomes must have an owner-managed public continuation, never a dead-end
+lock or a demand to investigate internals. Preserve truthful evidence and authority.
+Follow [atomicity, idempotency and actionable refusals](../../../docs/governance/development-rules.md#атомарность-идемпотентность-и-понятный-отказ).
+
 Keep every tool response complete for internal composition: stdout, stderr and structured data cannot depend on
 agent display budgets. Shorten only at agent delivery through the common configured presentation owner; preserve
 raw receipts and execution truth. Follow [full output](../../../docs/workflows/runner.md#полный-вывод-и-preview)

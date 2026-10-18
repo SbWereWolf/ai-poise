@@ -261,6 +261,81 @@
         "classifier.bounded_reads.max_total_bytes": 40
       },
       "run": false
+    },
+    {
+      "command": "head -n4 docs/unicode.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 4,
+        "classifier.bounded_reads.max_lines_per_file": 20,
+        "classifier.bounded_reads.max_total_lines": 40,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
+        "classifier.bounded_reads.max_total_bytes": 8192
+      },
+      "run": true,
+      "expected_stdout": "Я01\nЯ02\nЯ03\nЯ04\n",
+      "expected_documents": [
+        "docs/unicode.txt"
+      ]
+    },
+    {
+      "command": "head -n4 docs/unicode.txt",
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 4,
+        "classifier.bounded_reads.max_lines_per_file": 20,
+        "classifier.bounded_reads.max_total_lines": 40,
+        "classifier.bounded_reads.max_bytes_per_file": 19,
+        "classifier.bounded_reads.max_total_bytes": 8192
+      },
+      "run": false
+    },
+    {
+      "command": "head -n4 docs/unicode.txt docs/A.txt",
+      "reason": null,
+      "kind": "lines",
+      "ranges": [
+        [
+          1,
+          4
+        ]
+      ],
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 4,
+        "classifier.bounded_reads.max_lines_per_file": 20,
+        "classifier.bounded_reads.max_total_lines": 40,
+        "classifier.bounded_reads.max_bytes_per_file": 4096,
+        "classifier.bounded_reads.max_total_bytes": 40
+      },
+      "run": true,
+      "expected_stdout": "==> docs/unicode.txt <==\nЯ01\nЯ02\nЯ03\nЯ04\n\n==> docs/A.txt <==\n01 A\n02 A\n03 A\n04 A\n",
+      "expected_documents": [
+        "docs/unicode.txt",
+        "docs/A.txt"
+      ]
+    },
+    {
+      "command": "head -n4 docs/unicode.txt docs/A.txt",
+      "reason": "bounded_total_byte_budget_exceeded",
+      "kind": null,
+      "ranges": null,
+      "policy": {
+        "classifier.bounded_reads.max_files_per_call": 4,
+        "classifier.bounded_reads.max_lines_per_file": 20,
+        "classifier.bounded_reads.max_total_lines": 40,
+        "classifier.bounded_reads.max_bytes_per_file": 4096,
+        "classifier.bounded_reads.max_total_bytes": 39
+      },
+      "run": false
     }
   ],
   "C04": [
@@ -994,7 +1069,12 @@
       "policy": {
         "classifier.complete_reads.small_bundle_max_files": 1
       },
-      "run": false
+      "run": false,
+      "expected_stdout": "01 A\n02 A\n03 A\n04 A\n05 A\n06 A\n07 A\n08 A\n09 A\n10 A\n11 A\n12 A\n13 A\n14 A\n15 A\n16 A\n17 A\n18 A\n19 A\n20 A\n01 B\n02 B\n03 B\n04 B\n05 B\n06 B\n07 B\n08 B\n09 B\n10 B\n11 B\n12 B\n13 B\n14 B\n15 B\n16 B\n17 B\n18 B\n19 B\n20 B\n",
+      "expected_documents": [
+        "docs/A.txt",
+        "docs/B.txt"
+      ]
     }
   ]
 }

@@ -1,0 +1,5 @@
+[
+  {"min_lines": 8, "min_percent": 20, "action": "allow"},
+  {"min_lines": 3, "min_percent": 38, "action": "allow"},
+  {"min_lines": 4, "min_percent": 38, "action": "deny"}
+]

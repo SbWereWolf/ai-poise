@@ -305,6 +305,15 @@ class Intake:
                 (call_id,)).fetchall()
         return [(epoch, path, version, strict_json(plan)) for epoch, path, version, plan in rows]
 
+    def general_snapshot(self):
+        """Observe agreed ledger data and call identities, not private metadata."""
+        with sqlite3.connect(self.s.db.as_uri() + '?mode=ro', uri=True) as db:
+            events = db.execute(
+                'SELECT epoch,path_label,version_key,plan_json FROM read_events ORDER BY id').fetchall()
+            calls = db.execute(
+                'SELECT tool_use_id FROM pending_calls ORDER BY tool_use_id').fetchall()
+        return {'events': events, 'calls': calls}
+
 
 def each_port(project, tmp_path, monkeypatch):
     """Use independent native sessions, never the live agent's caller."""

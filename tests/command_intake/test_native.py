@@ -289,6 +289,11 @@ def configuration_row(i,row):
         call=None
         if phase=='post':
             call,_,_=i.pre('head -n2 docs/A.txt');response=i.actual(call)
+            i.counts(pending=1,current=1)
+        else:
+            i.counts(pending=0,current=1)
+        # Post starts with a valid pending intent; refused install/Pre do not.
+        general=i.general_snapshot()
         mutate_file(target,row)
         try:
             if phase=='install':
@@ -317,6 +322,15 @@ def configuration_row(i,row):
             for key,path in paths.items():
                 path.chmod(0o600);path.write_bytes(saved[key])
         assert i.data_snapshot()==state
+        after=i.general_snapshot()
+        assert after['events']==general['events']
+        if phase=='post':
+            # Failure may retain or discard the existing intent. No new call
+            # may be invented; separate diagnostic metadata is not compared.
+            assert set(after['calls']).issubset(general['calls'])
+        else:
+            assert after['calls']==general['calls']
+            i.counts(pending=0,current=1)
         assert i.coverage()['context']['generation']==0
         i.ranges([[1,2]],'B')
         if call is not None:assert i.plans(call)==[]
@@ -344,7 +358,8 @@ def policy_validation(i):
     value['future_raw_option']={'retained':[123,'opaque']};write_json(i.policy_path,value)
     expected=i.policy_path.read_bytes()
     try:
-        i.read('head -n2 docs/B.txt')
+        i.read("sed -n '3,4p' docs/B.txt")
+        i.ranges([[1,4]],'B')
         assert i.policy_path.read_bytes()==expected
     finally:i.policy_path.write_bytes(raw)
 

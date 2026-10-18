@@ -25,8 +25,12 @@ def test_classifier_contract(case, project, tmp_path, monkeypatch):
                 i.s.write('docs/program.sed', b'1,2p\n')
                 modes = ['audit','enforce'] if number == 'C16' else ['enforce']
                 for mode in modes:
+                    if number == 'C16':
+                        i.restart_episode()
                     i.configure(**{'classifier.mode':mode})
-                    prior = i.coverage()['details']['counts']['pending']
+                    before = i.coverage()['details']
+                    general = i.general_snapshot() if number == 'C16' else None
+                    prior = before['counts']['pending']
                     call, native, pre = i.pre(row['command'])
                     assert not (i.s.checkout/'classification-executed').exists()
                     forbidden = row['reason'] is not None
@@ -37,9 +41,14 @@ def test_classifier_contract(case, project, tmp_path, monkeypatch):
                         if mode == 'enforce':
                             assert native['hookSpecificOutput']['permissionDecision'] == 'deny'
                             assert i.coverage()['details']['counts']['pending'] == prior
+                            assert i.coverage()['details'] == before
+                            if general is not None:
+                                assert i.general_snapshot() == general
                             assert i.plans(call) == []
                         else:
                             assert native.get('hookSpecificOutput', {}).get('permissionDecision') != 'deny'
+                            assert number == 'C16'
+                            audit_settlement(i, call, pre, row)
                     else:
                         assert pre['decision']['action'] in {'allow','audit','none'}, pre
                         if (row['run'] or 'simulated_response_from' in row) and row['kind'] not in {'none', None}:
@@ -51,6 +60,8 @@ def test_classifier_contract(case, project, tmp_path, monkeypatch):
                             else:
                                 response = i.actual(call)
                             assert response['exit_code'] == 0
+                            if 'expected_stdout' in row:
+                                assert response['stdout'] == row['expected_stdout']
                             _, post = i.post(call, response)
                             assert post['status'] == 'settled', post
                             plans = i.plans(call)
@@ -59,11 +70,33 @@ def test_classifier_contract(case, project, tmp_path, monkeypatch):
                                 assert plan['coverage_kind'] == row['kind']
                                 if row['ranges'] is not None:
                                     assert plan['line_ranges'] == row['ranges']
+                            if 'expected_documents' in row:
+                                assert {path for _,path,_,_ in plans} == set(row['expected_documents'])
+                                for path in row['expected_documents']:
+                                    i.ranges(row['ranges'],path.removeprefix('docs/').removesuffix('.txt'))
                         elif row['kind'] == 'none':
                             assert pre['status'] == 'ignored' and i.plans(call) == []
                         elif row['reason'] is None:
                             # Classification-only unknown shape is not executed.
                             assert i.plans(call) == []
+
+
+def audit_settlement(i, call, pre, row):
+    assert pre['status']=='pending' and pre['counts']['registered']==0
+    i.counts(pending=1,current=0)
+    assert i.plans(call)==[]
+    response=i.actual(call)
+    assert response['exit_code']==0 and response['stderr']==''
+    assert response['stdout']==row['expected_stdout']
+    _,post=i.post(call,response)
+    assert post['status']=='settled' and post['counts']['registered']==2
+    i.counts(pending=0,current=2)
+    plans=i.plans(call)
+    assert len(plans)==2
+    assert {path for _,path,_,_ in plans}==set(row['expected_documents'])
+    for epoch,path,_,plan in plans:
+        assert epoch==0 and plan['coverage_kind']=='complete'
+        assert i.document(path.removeprefix('docs/').removesuffix('.txt'))['complete'] is True
 
 
 def explicit_checkout(i, root):

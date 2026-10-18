@@ -40,13 +40,24 @@ def test_coverage_contract(case, project, tmp_path, monkeypatch):
 
 
 def union_ranges(i):
-    range_read(i,1,4); range_read(i,4,7); range_read(i,9,10)
-    i.ranges([[1,7],[9,10]])
-    call, _, result = i.pre("sed -n '5,12p' docs/A.txt")
-    assert result['decision']['action'] == 'allow'
-    i.ranges([[1,7],[9,10]])  # Pre is not delivered content.
-    i.post(call, i.actual(call))
-    i.ranges([[1,12]])
+    for probe in fixture('disjoint-novelty.json'):
+        i.restart_episode()
+        i.configure(**{'registry.same_generation.min_new_lines':probe['min_lines'],
+                       'registry.same_generation.min_new_fraction_percent':probe['min_percent']})
+        range_read(i,1,4); range_read(i,4,7); range_read(i,9,10)
+        i.ranges([[1,7],[9,10]])
+        if probe['action']=='deny':
+            denied(i,"sed -n '5,12p' docs/A.txt",'mostly_redundant_document_range')
+            i.counts(pending=0,current=1)
+        else:
+            call, _, result = i.pre("sed -n '5,12p' docs/A.txt")
+            assert result['decision']['action'] == 'allow'
+            i.ranges([[1,7],[9,10]])  # Pre is not delivered content.
+            i.counts(pending=1,current=1)
+            _,post=i.post(call, i.actual(call))
+            assert post['status']=='settled' and post['counts']['registered']==1
+            i.counts(pending=0,current=1)
+            i.ranges([[1,12]])
 
 
 def subtract_overlap(i):

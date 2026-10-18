@@ -44,6 +44,7 @@ def immutable_pre(i):
 
 
 def conflicting_pre(i):
+    i.configure(**{'registry.retention.max_pending_age_seconds':60})
     call,_,_=i.pre('head -n2 docs/A.txt')
     initial=deepcopy(i.calls[call])
     for changes in [{'tool_input':{'command':i.command('head -n3 docs/A.txt')}},

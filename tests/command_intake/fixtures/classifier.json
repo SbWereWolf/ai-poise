@@ -313,7 +313,7 @@
         "classifier.bounded_reads.max_files_per_call": 4,
         "classifier.bounded_reads.max_lines_per_file": 20,
         "classifier.bounded_reads.max_total_lines": 40,
-        "classifier.bounded_reads.max_bytes_per_file": 4096,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
         "classifier.bounded_reads.max_total_bytes": 40
       },
       "run": true,
@@ -332,7 +332,7 @@
         "classifier.bounded_reads.max_files_per_call": 4,
         "classifier.bounded_reads.max_lines_per_file": 20,
         "classifier.bounded_reads.max_total_lines": 40,
-        "classifier.bounded_reads.max_bytes_per_file": 4096,
+        "classifier.bounded_reads.max_bytes_per_file": 20,
         "classifier.bounded_reads.max_total_bytes": 39
       },
       "run": false

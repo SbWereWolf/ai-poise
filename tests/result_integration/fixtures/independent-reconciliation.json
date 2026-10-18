@@ -1,0 +1,26 @@
+{
+  "create": {
+    "operation": "task",
+    "input": {
+      "action": "create",
+      "request_id": "independent-create",
+      "task_id": "T2",
+      "sprint_id": null
+    },
+    "messages": []
+  },
+  "edit": {
+    "operation": "task",
+    "input": {
+      "action": "edit",
+      "request_id": "independent-edit",
+      "task_id": "T2",
+      "expected_revision": 0,
+      "patch": {
+        "goal": "Независимое сохранение завершено."
+      },
+      "remove": []
+    },
+    "messages": []
+  }
+}

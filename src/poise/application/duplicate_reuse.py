@@ -93,10 +93,12 @@ class DuplicateReuseCommands:
                   'request_id': request_id, 'expected_version': expected_version}
         intent_digest = fingerprint(intent)
         token = None
+        saved_on_entry = False
         try:
             with self.uow() as uow:
                 task = uow.tasks.load(task_id)
                 saved = None if task.duplicate_reuse is None else json.loads(task.duplicate_reuse)
+                saved_on_entry = saved is not None
                 if saved is None:
                     if task.state.version != expected_version:
                         raise VersionConflict('Reuse Task version changed')
@@ -167,7 +169,7 @@ class DuplicateReuseCommands:
                 accepted = candidate is not None and candidate['intent_digest'] == intent_digest
                 if token is not None:
                     self.workspace.complete_use_in(uow, token, accepted=accepted)
-            if accepted:
+            if accepted and not saved_on_entry:
                 raise VersionConflict('Original reuse candidate is already reserved; repeat the original request') from exc
             raise
         self.workspace.reconcile(task_id)

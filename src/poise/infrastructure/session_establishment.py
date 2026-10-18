@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import os
+import shutil
 from pathlib import Path
 import uuid
 from typing import TYPE_CHECKING
@@ -14,6 +15,21 @@ from ..modules.session_establishment.domain import CallerIdentity, EstablishedSe
 if TYPE_CHECKING:
     from ..runtime import Poise
     from .sqlite.runtime_adapter import RuntimeRegistry
+
+
+def remove_session_runtime(runtime):
+    """Remove the configured session's transient runtime, including on retry."""
+    try:
+        shutil.rmtree(runtime)
+    except FileNotFoundError:
+        pass
+
+
+def cleanup_project_session_runtime(config_path, session_id):
+    """Retire session files without establishing or restoring a Task runtime."""
+    root, cfg, _ = load_config(Path(config_path).resolve())
+    state = configured_root(root, cfg['paths']['state'])
+    remove_session_runtime(descendant(state, cfg['paths']['runtime']) / session_id)
 
 
 @dataclass(frozen=True)

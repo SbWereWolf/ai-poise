@@ -72,7 +72,33 @@ class HookRegistry:
     def record_event(self,binding,kind,turn,message,metadata=None):
         with self.transaction() as db:
             if message is not None:db.execute('UPDATE bindings SET latest_message=? WHERE id=?',(encoded(message),binding))
-            return self.event_in(db,binding,kind,{'turn_id':turn, **({} if metadata is None else metadata)})
+            data={'turn_id':turn, **({} if metadata is None else metadata)}
+            if kind == 'SessionEnd':
+                row=db.execute('SELECT data FROM bindings WHERE id=?',(binding,)).fetchone()
+                if row is None:raise PoiseError('Cannot commit End without its observed native binding')
+                data['binding_record']=json.loads(row[0])
+            return self.event_in(db,binding,kind,data)
+
+    @staticmethod
+    def _lifecycle_binding(db, receipt):
+        if receipt.get('event') == 'SessionEnd':
+            row=db.execute("SELECT data FROM hook_events WHERE binding=? AND id=? AND event='SessionEnd'",
+                           (receipt['binding_id'],receipt['event_id'])).fetchone()
+            data=None if row is None else json.loads(row[0]).get('binding_record')
+        else:
+            row=db.execute('SELECT data FROM bindings WHERE id=?',(receipt['binding_id'],)).fetchone()
+            data=None if row is None else json.loads(row[0])
+        if not isinstance(data,dict):
+            raise PoiseError('Lifecycle binding is unavailable; select its genuine committed native delivery')
+        return data
+
+    def lifecycle_binding(self, receipt):
+        if (not isinstance(receipt,dict) or not isinstance(receipt.get('binding_id'),str)
+                or receipt.get('event') not in ('SessionStart','SessionEnd')
+                or type(receipt.get('event_id')) is not int or receipt['event_id']<=0):
+            raise PoiseError('Invalid lifecycle receipt; select its genuine committed native delivery')
+        with self.read_transaction() as db:
+            return self._lifecycle_binding(db,receipt)
 
     def get(self,session):
         with self.read_transaction() as db:
@@ -253,10 +279,9 @@ class HookRegistry:
         binding,event_id,start_id=receipt['binding_id'],receipt['event_id'],episode['start_event_id']
         with self.read_transaction() as db:
             installed=db.execute('SELECT 1 FROM installations WHERE id=?',(definition_id,)).fetchone()
-            row=db.execute('SELECT data FROM bindings WHERE id=?',(binding,)).fetchone()
-            if installed is None or row is None:
-                raise PoiseError('Lifecycle installation/binding is unavailable; restore its configured native owner')
-            data=json.loads(row[0])
+            if installed is None:
+                raise PoiseError('Lifecycle installation is unavailable; restore its configured native owner')
+            data=self._lifecycle_binding(db,receipt)
             if data['project']!=project_id or data['external_session']!=receipt['session_id']:
                 raise PoiseError('Lifecycle binding identifies another episode')
             actual=db.execute('SELECT event FROM hook_events WHERE binding=? AND id=?',(binding,event_id)).fetchone()

@@ -569,8 +569,11 @@ class HookService:
         definition=self.definition(definition_path)
         if not isinstance(event_receipt,dict) or not isinstance(event_receipt.get('binding_id'),str):
             raise PoiseError('Invalid lifecycle event receipt; use a genuine native episode')
-        record,_=self.registry.get(event_receipt['binding_id'])
-        bound,_=self._binding_record(Path(record['binding_path']))
+        record=self.registry.lifecycle_binding(event_receipt)
+        if event_receipt.get('event') == 'SessionEnd':
+            bound=record
+        else:
+            bound,_=self._binding_record(Path(record['binding_path']))
         bound_definition=self.definition(bound['definition_path'])
         if bound_definition.data['id']!=definition.data['id']:
             raise PoiseError('Lifecycle receipt selects another native installation; select its matching episode configuration')
@@ -603,9 +606,11 @@ class HookService:
         record.pop('subject_context',None)
         save(self.settings,path,record)
         output=deliver(self.settings,path,record)
-        binding,_=self.registry.get(receipt['binding_id'])
+        binding=self.registry.lifecycle_binding(receipt)
         if native['event']=='SessionStart':
             output=self._delivered_start(definition,native,binding,record['packet']['native_event'],receipt['event_id'],path,output)
+        else:
+            self.release_ended_binding(binding,receipt['event_id'])
         return self._complete_native_result(output,definition,native,binding,
             deadline=record['packet']['deadline_monotonic'])
 
@@ -713,6 +718,8 @@ class HookService:
                              '; Recovery: preserve the edited launcher and exclude its binding from cleanup '
                              'until its ownership is resolved')
         summary = self._readiness(record).store.path
+        from .session_establishment import cleanup_project_session_runtime
+        cleanup_project_session_runtime(self.settings.project_config,record['session_id'])
         return {path: path.read_bytes() if path.exists() else None for path in (binding, launcher, summary)}
 
     def release_ended_binding(self, record, end_event_id):
@@ -726,6 +733,11 @@ class HookService:
         with self.project_fence.locked():
             if self.settings.consumer is not None and isinstance(event,dict) and event.get('hook_event_name') in ('SessionStart','SessionEnd'):
                 from .hook_lifecycle import prepare
+                if event['hook_event_name']=='SessionEnd':
+                    selected=self.definition(definition_path)
+                    observed=parse_native_event(event,selected)
+                    if self.registry.liveness(observed['session_id']).value == 'dead':
+                        return {}
                 definition,native,binding=self._bind(definition_path,event)
                 deadline=started+next(item['timeout_seconds'] for item in definition.data['events'] if item['event']==native['event'])
                 event_id=self.registry.record_event(binding['session_id'],native['event'],native['turn_id'],None,
@@ -743,6 +755,8 @@ class HookService:
             result=deliver(self.settings,path,record)
             if native['event']=='SessionStart':
                 result=self._delivered_start(definition,native,binding,event,event_id,path,result)
+            else:
+                self.release_ended_binding(binding,event_id)
         return self._complete_native_result(result,definition,native,binding,
             deadline=None if delivery is None else deadline)
 
@@ -811,7 +825,8 @@ class HookService:
                 result=self._native_start_context(definition,native,binding,event)
                 result['systemMessage']=str(exc)
         elif native['event']=='SessionEnd':
-            self.registry.record_event(binding['session_id'],native['event'],native['turn_id'],None,{'reason':event['reason']})
+            event_id=self.registry.record_event(binding['session_id'],native['event'],native['turn_id'],None,{'reason':event['reason']})
+            self.release_ended_binding(binding,event_id)
             result={}
         else:
             result = self._runtime_event(definition, native, binding, event, None)
@@ -834,7 +849,6 @@ class HookService:
         if native['event'] != 'SessionStart':
             event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message)
         if native['event'] == 'SessionEnd':
-            h._cleanup_runtime()
             self.release_ended_binding(binding, event_id)
         recovery = None
         if native['event'] == 'SessionStart' and h.context_reader is not None:

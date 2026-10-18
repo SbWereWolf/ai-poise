@@ -1345,10 +1345,8 @@ class Poise:
 
     def _cleanup_runtime(self):
         self.result_views.finish()
-        try:
-            shutil.rmtree(self.runtime)
-        except FileNotFoundError:
-            pass
+        from .infrastructure.session_establishment import remove_session_runtime
+        remove_session_runtime(self.runtime)
 
     def _select_checks(self, data: dict, changed: list[str]) -> list[dict]:
         stage_id = self._stage(data)['id']

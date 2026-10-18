@@ -141,6 +141,13 @@ Use the existing owning workflow; no ERP commit wrapper or new validator is inst
 The [telemetry pre-persistence loss window](../../../docs/operations/telemetry-delivery.md#принятый-риск-до-сохранения-события)
 is an accepted deferred risk, not a current blocker or authorization to repair it.
 
+Before cancellation, integration or retirement, finish current writes and requests using
+that Task's working materials; start no new working-material writes afterward. Independent
+Tasks have no shared artifact lock. The reproduced same-intent recovery/retirement overlap
+remains unfixed and was explicitly excluded by the user; do not claim it safe or reopen
+its repair as a delivery gate. Follow the canonical
+[material completion order](../../../docs/workflows/terminal-materials.md#порядок-завершения-операций-с-материалами).
+
 ## Verification and delivery
 
 An idle reviewer starts on a received handoff. If several handoffs arrive, finish the review already started, save its result, release the Task and notify its executor, then immediately take the next already-received actionable Task in the same turn. Incoming handoffs do not interrupt the current review. Follow the canonical [direct-handoff rule](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).

@@ -101,6 +101,7 @@ def test_fresh_managed_erp_workspace_reaches_real_ready_and_keeps_history(projec
         return popen(process, args, *more, **kwargs)
 
     monkeypatch.setattr(subprocess.Popen, '__init__', observe_process)
+    project['cfg']['batch']['max_artifact_bytes'] = 4 * 1024 * 1024
     preparation = arrange(project, monkeypatch)
     origin = {'repository': project['app']}
     export_erp_source(origin)

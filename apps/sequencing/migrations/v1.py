@@ -22,9 +22,27 @@ _PRECURSOR = {
 }
 
 _ASCII_CASE = str.maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')
+_SOURCE_IDENTIFIERS = frozenset((
+    'meta',
+    'key',
+    'value',
+    'tasks',
+    'task_id',
+    'requirements_snapshot_revision',
+    'state',
+    'sprint_id',
+    'claim_json',
+    'workspace_json',
+    'terminal_json',
+    'requests',
+    'request_id',
+    'digest',
+    'response_json',
+))
+# SQLite whitespace excludes Unicode separators such as NBSP.
 _SQL_TOKENS = re.compile(
     r'--[^\n]*(?:\n|$)|/\*[\s\S]*?\*/|"(?:[^"]|"")*"|`(?:[^`]|``)*`|'
-    r"'(?:[^']|'')*'|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|[^\s]"
+    r"'(?:[^']|'')*'|\[[^\]]*\]|[A-Za-z_][A-Za-z_0-9]*|[^ \t\r\n\f]"
 )
 
 
@@ -34,11 +52,16 @@ def _schema_tokens(statement):
         token = match.group()
         if token.startswith(('--', '/*')):
             continue
+        # Quoted constraint keywords are type text, not source identifiers.
         if token[0] in ('"', '`'):
             quote = token[0]
-            token = token[1:-1].replace(quote + quote, quote)
+            identifier = token[1:-1].replace(quote + quote, quote).translate(_ASCII_CASE)
+            if identifier in _SOURCE_IDENTIFIERS:
+                token = identifier
         elif token[0] == '[':
-            token = token[1:-1]
+            identifier = token[1:-1].translate(_ASCII_CASE)
+            if identifier in _SOURCE_IDENTIFIERS:
+                token = identifier
         tokens.append(token.translate(_ASCII_CASE))
     if tokens and tokens[-1] == ';':
         tokens.pop()

@@ -1,0 +1,1964 @@
+{
+  "coordinates": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP02-complete-reverse]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP02-complete-reverse]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP02-complete-reverse]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP02-forward-pipeline]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP02-forward-pipeline]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP02-forward-pipeline]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP03-default-sed-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP03-default-sed-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP03-default-sed-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP03-default-sed-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP03-default-sed-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP03-default-sed-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP04-cross-file-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP04-cross-file-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP04-cross-file-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP04-cross-file-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP04-cross-file-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP04-cross-file-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-explicit-script]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-explicit-script]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-explicit-script]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-multiple-ranges]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-multiple-ranges]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-multiple-ranges]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-multiple-scripts]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-multiple-scripts]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-multiple-scripts]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-separate---separate]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-separate---separate]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-separate---separate]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-separate--s]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-separate--s]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-separate--s]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-single]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-single]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP05-single]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP01-reverse-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP01-reverse-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP01-reverse-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP01-reverse-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP01-reverse-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP01-reverse-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP02-complete-reverse]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP02-complete-reverse]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP02-complete-reverse]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP02-forward-pipeline]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP02-forward-pipeline]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP02-forward-pipeline]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP03-default-sed-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP03-default-sed-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP03-default-sed-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP03-default-sed-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP03-default-sed-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP03-default-sed-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP04-cross-file-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP04-cross-file-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP04-cross-file-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP04-cross-file-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP04-cross-file-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP04-cross-file-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-explicit-script]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-explicit-script]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-explicit-script]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-multiple-ranges]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-multiple-ranges]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-multiple-ranges]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-multiple-scripts]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-multiple-scripts]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-multiple-scripts]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-separate---separate]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-separate---separate]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-separate---separate]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-separate--s]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-separate--s]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-separate--s]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-single]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-single]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[sdk-RP05-single]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[cli-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[cli-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[cli-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[cli-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[cli-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[cli-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[sdk-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[sdk-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[sdk-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[sdk-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[sdk-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates[sdk-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  },
+  "cwd": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[cli-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[cli-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[cli-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[cli-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[cli-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[cli-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[sdk-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[sdk-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[sdk-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[sdk-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[sdk-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root[sdk-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-absolute-after-cd]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-absolute-after-cd]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-absolute-after-cd]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-absolute]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-absolute]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-absolute]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-leading-cd]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-leading-cd]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[cli-leading-cd]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-absolute-after-cd]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-absolute-after-cd]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-absolute-after-cd]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-absolute]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-absolute]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-absolute]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-leading-cd]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-leading-cd]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_proven_cwd_controls[sdk-leading-cd]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_registered_checkout_control[cli]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_registered_checkout_control[cli]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_registered_checkout_control[cli]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_registered_checkout_control[sdk]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_registered_checkout_control[sdk]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_registered_checkout_control[sdk]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  },
+  "cache-pre": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-bool-count]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-bool-count]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-bool-count]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-context-type]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-context-type]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-context-type]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-empty-post]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-empty-post]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-empty-post]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-empty-pre]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-empty-pre]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-empty-pre]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-missing-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-missing-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-missing-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-call]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-call]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-call]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-phase]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-phase]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-phase]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-status]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-status]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP09-pre_result-wrong-status]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-bool-count]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-bool-count]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-bool-count]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-context-type]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-context-type]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-context-type]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-empty-post]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-empty-post]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-empty-post]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-empty-pre]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-empty-pre]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-empty-pre]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-missing-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-missing-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-missing-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-call]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-call]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-call]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-phase]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-phase]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-phase]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-status]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-status]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP09-pre_result-wrong-status]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  },
+  "cache-post": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-bool-count]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-bool-count]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-bool-count]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-context-type]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-context-type]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-context-type]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-empty-post]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-empty-post]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-empty-post]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-empty-pre]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-empty-pre]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-empty-pre]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-missing-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-missing-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-missing-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-call]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-call]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-call]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-phase]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-phase]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-phase]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-status]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-status]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[cli-RP10-post_result-wrong-status]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-bool-count]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-bool-count]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-bool-count]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-context-type]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-context-type]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-context-type]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-empty-post]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-empty-post]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-empty-post]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-empty-pre]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-empty-pre]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-empty-pre]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-missing-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-missing-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-missing-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-call]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-call]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-call]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-path]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-path]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-path]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-phase]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-phase]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-phase]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-status]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-status]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_cached_control_validation[sdk-RP10-post_result-wrong-status]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  },
+  "cache-controls": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[cli-post]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[cli-post]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[cli-post]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[cli-pre]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[cli-pre]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[cli-pre]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[sdk-post]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[sdk-post]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[sdk-post]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[sdk-pre]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[sdk-pre]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control[sdk-pre]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-deduplicated]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-deduplicated]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-deduplicated]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-discarded]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-discarded]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-discarded]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-later-generation]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-later-generation]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-later-generation]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-settled]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-settled]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[cli-settled]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-deduplicated]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-deduplicated]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-deduplicated]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-discarded]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-discarded]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-discarded]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-later-generation]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-later-generation]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-later-generation]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-settled]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-settled]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls[sdk-settled]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  }
+}

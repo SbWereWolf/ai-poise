@@ -582,3 +582,20 @@ python examples/project_execution.py \
 для новых методов и выполняют раннюю route-проверку. `from_items` восстанавливает
 исторические снимки без плана; автоматическая migration и двойная запись не
 вводятся.
+
+
+## Самостоятельное хранилище Sequencing
+
+`apps.sequencing.migrations.v1.migrate(connection)` владеет историческим переходом
+пустого либо поддержанного исходного хранилища к формату 1. Схема и семантика
+миграции заданы локальными литералами; текущие модели монолита ей не нужны.
+`apps.sequencing.shell.Store.connect` включает foreign keys и вызывает этот
+переход перед работой с собственным store. `Store.query` собирает Task reference,
+Sprint membership, active claim, текущий Workspace, упорядоченные roots,
+независимую Workspace binding и terminal value только из своих таблиц.
+
+Публичные команды текущего CLI — `register_task` и Task query; изменение Sprint,
+claim и Workspace остаётся последующим срезом. Подробные предусловия, ограничения
+SQL, поведение отката и правильные примеры принадлежат
+[каноническому руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
+запуск и рабочие параметры — [руководству CLI](../../apps/sequencing/docs/shell-seq.md).

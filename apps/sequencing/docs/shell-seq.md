@@ -1,20 +1,30 @@
-# Sequencing standalone CLI
+# Самостоятельный CLI Sequencing
 
-## Entry point
+## Запуск
 
-Sequencing is launched through its app-owned provider:
+Из корня выбранной рабочей копии с настроенным Python 3.13:
 
-```text
-apps/sequencing/bin/sequencing --config <path-to-sequencing.json>
+```sh
+apps/sequencing/bin/sequencing --config /absolute/path/sequencing.json
 ```
 
-The executable resolves its repository-relative Python location from its own file. The caller supplies the Sequencing configuration explicitly with `--config`; the command does not load the shared project configuration.
+Команда получает один UTF-8 JSON request с завершающим переводом строки через stdin
+и возвращает один JSON response через stdout. Wire schema — `stride-sequencing/v1`.
+Провайдер находит код относительно собственного файла; `--config` задаётся явно.
 
-The provider accepts one newline-terminated UTF-8 JSON request on stdin and writes one newline-terminated JSON result on stdout. The wire schema is `stride-sequencing/v1`. This implementation slice exposes `apply` with `register_task` and `query` with `kind: "task"`; the broader owner contract remains defined by [Sequencing public contract](contract-seq.md).
+Реализованы `apply` с `register_task` и `query` с `kind: "task"`. Запись создаёт
+ссылку на каноническую Task и её Requirements snapshot; чтение собирает текущее
+состояние из собственного нормализованного хранилища. Команды управления Sprint,
+claims, физическими Workspace и transfer описаны в
+[целевом контракте](contract-seq.md); их реализация относится к следующим срезам.
+Точный реализованный формат, миграция и исполняемые примеры находятся в
+[руководстве по хранилищу](storage-seq.md).
 
-## Sequencing-owned config
+## Конфигурация владельца
 
-The standalone config schema is `stride-sequencing-config/v1`. Its top-level object is exact: every field is required and unknown fields are rejected.
+Скопируйте `apps/sequencing/config/sequencing.example.json` в рабочий файл.
+Укажите собственный `paths.state`, repository и worktree пути. Все поля схемы
+`stride-sequencing-config/v1` обязательны:
 
 ```json
 {
@@ -60,46 +70,54 @@ The standalone config schema is `stride-sequencing-config/v1`. Its top-level obj
 }
 ```
 
-`paths.state` may be absolute or relative to the config directory. `paths.database` and `paths.lock` are relative to the resolved Sequencing state root, must remain inside it, and must be distinct. The `database` and `lock` are therefore Sequencing-owned and move with the configured state root.
+| Поле | Назначение |
+| --- | --- |
+| `paths.state` | Абсолютный путь либо путь относительно каталога config |
+| `paths.database`, `paths.lock` | Разные относительные пути внутри state |
+| `batch.max_input_bytes`, `batch.max_items` | Положительные целые пределы запроса и операций |
+| `read.max_queries` | Положительный целый предел запросов чтения |
+| `lock.seconds`, `lock.poll_seconds` | Положительные конечные timeout и интервал повторного захвата локального lock |
+| `repository.id`, `repository.path`, `repository.base_ref` | Идентичность repository, его путь и ветка будущих Workspace |
+| `worktree.root`, `worktree.branch_prefix` | Каталог и префикс веток будущих рабочих деревьев |
+| `worktree.fs_timeout_seconds`, `worktree.git_timeout_seconds` | Положительные конечные пределы файловых и Git операций |
+| `transfer.root`, `transfer.max_package_bytes`, `transfer.max_files`, `transfer.max_file_bytes`, `transfer.file_mode` | Каталог, положительные лимиты и режим файлов будущего transfer (целое 0–511) |
+| `identifiers.task.pattern`, `identifiers.sprint.pattern` | Регулярные выражения идентификаторов |
 
-`batch.max_input_bytes`, `batch.max_items`, and `read.max_queries` are required positive integers. `lock.seconds` and `lock.poll_seconds` are required positive finite numbers and control the actual nonblocking lock acquisition deadline and retry interval; there is no hidden blocking-lock default. Repository, worktree, transfer, and `identifiers` policies are required and validated even when the current operation does not consume every configured capability.
+Repository, worktree и transfer пути разрешаются относительно каталога config.
+Их параметры проверяются при запуске, даже когда текущая команда их не использует.
+Рабочая конфигурация принадлежит конкретной установке; в Git хранится пример.
 
-## Ownership and isolation
+## Изоляция и результат
 
-The standalone Sequencing shell opens only its configured Sequencing `database` and `lock`. It does not load Requirements or Execution configuration and does not read or mutate their databases. A poisoned neighboring `config/processes/analysis.json`, Requirements database, or Execution database is outside this provider boundary and does not affect a valid Sequencing request.
+Sequencing использует только свой `database` и `lock`. Requirements и Execution
+передают идентичности через публичные договоры; их конфигурации и БД этим CLI
+не читаются. Разные state roots дают независимые хранилища. Lock принадлежит
+одному Sequencing state и удерживается на время текущей операции.
 
-A second invocation with another Sequencing config resolves a different state root and therefore uses an independent Sequencing database and lock. The provider does not instantiate the shared Runtime to obtain those paths.
+Перед обращением к данным `Store.connect` включает foreign keys и вызывает
+[историческую миграцию](storage-seq.md#переход-к-формату-1). Пустая БД получает
+формат 1; поддержанный предшественник обновляется одной транзакцией. Чтение
+поэтому тоже может впервые подготовить схему. Существующий формат 1 сохраняется.
 
-`task_id` is a foreign canonical identity supplied by the caller. `register_task` validates it against the configured `identifiers.task.pattern`, stores the same value, and never allocates or rewrites a Task identity. A task query returns the preserved canonical `task_id` and its explicit Requirements snapshot provenance.
+Успешный новый `apply` увеличивает локальную revision на один и сохраняет receipt.
+Точное повторение `request_id` и всего пакета возвращает сохранённый результат с
+`replayed: true`; revision остаётся прежней. Следующий новый пакет использует
+текущую `expected_revision`. Канонический `task_id` сохраняется без перенумерации.
 
-## Failure behavior
+Для обычного отказа CLI возвращает `status: "rejected"`, конкретный `reason` и
+exit 2; stderr остаётся пустым. Конфигурация и пакет проверяются до создания
+state. Условия поддержанного исходного хранилища и поведение отката описаны
+в каноническом руководстве. Исправление рабочей конфигурации выполняет оператор.
 
-Configuration and packet validation are fail-closed. A rejected request writes a JSON result with `"status": "rejected"` and exits with `exit 2`; stderr remains empty for ordinary contract rejections.
+## Проверка
 
-Examples include a missing required config field, unsupported config schema, path escape outside the Sequencing state root, invalid limits, invalid `identifiers`, oversized stdin beyond `max_input_bytes`, invalid wire JSON/shape, unsupported operation/query kind, or lock acquisition exceeding configured `lock.seconds`.
+Команды из корня рабочей копии:
 
-Config validation happens before Sequencing state is created. Missing required values therefore do not fall back to the shared project configuration or silently open a neighboring database.
-
-## Replay and revision behavior
-
-A new successful `apply` request stores a replay receipt and advances the owner-local revision. Repeating the exact same `request_id` and payload returns the saved result with `"replayed": true` without another mutation or revision increase. Reusing the same request ID with different content is rejected.
-
-The implemented `register_task` operation creates only the Sequencing record required by this slice; it does not create Requirements or Execution records, claims, worktrees, or Sprint membership.
-
-## Verification
-
-Behavior and isolation are verified through the real standalone executable:
-
-```text
+```sh
 python -B apps/sequencing/tests/test_shell.py --suite behavior
-```
-
-The behavior suite covers provider discovery, isolated storage with poisoned neighboring Requirements/Execution state, independent configs, fail-closed required fields, configured input limits, required `identifiers`, canonical `task_id` preservation, and exact replay behavior.
-
-Documentation literals are checked with:
-
-```text
 python -B apps/sequencing/tests/test_shell.py --suite documentation
+python -B -m pytest -q apps/sequencing/tests/test_store_migration.py
 ```
 
-These checks map the standalone Sequencing boundary to GEN-03, GEN-04, and SEQ-01 and preserve the task DoD: independent configuration/state plus co-delivered command/config documentation.
+Проверки выполняют реальные CLI/SQLite операции, проверяют независимые значения,
+идентичности, типы, ownership, сохранность WIP и откат транзакций.

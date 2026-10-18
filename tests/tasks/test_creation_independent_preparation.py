@@ -9,7 +9,7 @@ class IndependentCreationPreparation(CreationCase):
         self.assertEqual(result.receipt(), {
             'request_id': 'create-a', 'task_id': '0001', 'replayed': False})
         self.assertEqual((counts['git'], counts['prepare']), (1, 1))
-        self.assert_children([('0001', 'available', None, 1, 'First child result.', 'create-a')])
+        self.assert_children('direct', sprint_id=None)
 
     def test_reviewed_tasks_creation_allows_independent_commit(self):
         self.seed_parent()
@@ -36,14 +36,13 @@ class IndependentCreationPreparation(CreationCase):
                 'request_id': 'create-b', 'task_id': '0001', 'replayed': False})
 
         def observe():
-            self.assert_children([
-                ('0001', 'available', None, 1, 'Second child result.', 'create-b')])
+            self.assert_children('competitor', sprint_id=None)
 
         result, counts = self.creation_overlap(self.create, write, observe)
         self.assertEqual(result.receipt(), {
             'request_id': 'create-a', 'task_id': '0002', 'replayed': False})
         self.assertEqual((counts['git'], counts['prepare']), (1, 1))
-        self.assert_children('collision')
+        self.assert_children('collision', sprint_id=None)
 
     def test_completed_creation_request_replays_after_preparation(self):
         def write():
@@ -52,8 +51,7 @@ class IndependentCreationPreparation(CreationCase):
                 'request_id': 'create-a', 'task_id': '0001', 'replayed': False})
 
         def observe():
-            self.assert_children([
-                ('0001', 'available', None, 1, 'First child result.', 'create-a')])
+            self.assert_children('direct', sprint_id=None)
 
         result, counts = self.creation_overlap(self.create, write, observe)
         self.assertEqual(result.receipt(), {

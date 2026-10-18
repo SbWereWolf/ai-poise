@@ -220,23 +220,27 @@ class CreationCase(TaskCase):
             raise RuntimeError('ARRANGEMENT: A creation failed after release') from result[1]
         return result[1], counts
 
-    def persisted_children(self):
+    def persisted_children(self, identifiers=None):
+        where = ('id NOT IN (?,?)' if identifiers is None else
+                 'id IN (' + ','.join('?' for _ in identifiers) + ')')
+        selected = ('B', 'PLAN') if identifiers is None else tuple(identifiers)
         return rows(self.path, 'SELECT id,status,claimed_by,version,'
-                    'json_extract(metadata,?),json_extract(metadata,?) FROM tasks '
-                    'WHERE id NOT IN (?,?) ORDER BY id',
-                    ('$.goal', '$.creation_request.request_id', 'B', 'PLAN'))
+                    'json_extract(metadata,?),json_extract(metadata,?),stage_index,iteration '
+                    f'FROM tasks WHERE {where} ORDER BY id',
+                    ('$.goal', '$.creation_request.request_id', *selected))
 
-    def assert_children(self, expected):
-        if isinstance(expected, str):
-            expected = [tuple(row) for row in self.expected['rows'][expected]]
-        self.assertEqual(self.persisted_children(), expected)
-        for identifier, _, _, version, goal, _ in expected:
+    def assert_children(self, scenario, *, sprint_id, identifiers=None):
+        expected = [tuple(row) for row in self.expected['rows'][scenario]]
+        self.assertEqual(self.persisted_children(identifiers), expected)
+        for identifier, _, _, version, goal, _, _, _ in expected:
             self.assertEqual(rows(self.path, 'SELECT task_id FROM task_workflows WHERE task_id=?',
                                   (identifier,)), [(identifier,)])
             self.assertEqual(rows(self.path, 'SELECT task_id FROM task_proofs WHERE task_id=?',
                                   (identifier,)), [(identifier,)])
             metadata = json.loads(rows(self.path, 'SELECT metadata FROM tasks WHERE id=?',
                                        (identifier,))[0][0])
+            self.assertIn('sprint_id', metadata)
+            self.assertEqual(metadata['sprint_id'], sprint_id)
             self.assertEqual(metadata['requirements_snapshot'],
                              self.data['contract']['requirements_snapshot'])
             self.assertEqual(metadata['requirements_agreement'],
@@ -244,8 +248,7 @@ class CreationCase(TaskCase):
             self.assertEqual(metadata['stage_criteria']['stages']['work']['criteria'],
                              self.data['contract']['stage_contracts'][0]['criteria'])
             contract = deepcopy(self.expected['child_contract'])
-            contract.update(id=identifier, goal=goal,
-                            sprint_id='S' if metadata.get('sprint_id') == 'S' else None)
+            contract.update(id=identifier, goal=goal, sprint_id=sprint_id)
             contract['methods'][0]['argv'][0] = sys.executable
             self.assertEqual(metadata['contract'], contract)
             methods = rows(self.path, 'SELECT method_id,version,data FROM task_methods '
@@ -274,13 +277,14 @@ class CreationCase(TaskCase):
         if kind == 'sprint':
             expected['steps'][0]['result']['sprint_id'] = 'S'
         self.assertEqual(result.to_dict(), expected)
-        self.assert_children('publication')
+        self.assert_children('publication', sprint_id='S' if kind == 'sprint' else None)
         self.assertEqual(rows(self.path, 'SELECT task_id,stage,iteration,version FROM action_runs'),
                          [('PLAN', 'publish', 1, 2)])
         self.assertEqual(rows(self.path, 'SELECT task_id,version FROM action_events ORDER BY version'),
                          [('PLAN', 0), ('PLAN', 1), ('PLAN', 2)])
-        self.assertEqual(rows(self.path, 'SELECT status,version,claimed_by FROM tasks WHERE id=?',
-                              ('PLAN',)), [('active', 0, 'actor-a')])
+        self.assertEqual(rows(self.path, 'SELECT status,version,claimed_by,stage_index,iteration '
+                              'FROM tasks WHERE id=?', ('PLAN',)),
+                         [('active', 0, 'actor-a', 2, 1)])
         if kind == 'sprint':
             record = json.loads(rows(self.path, 'SELECT data FROM sprints WHERE id=?', ('S',))[0][0])
             expected_plan = deepcopy(self.data['sprint_plan'])
@@ -301,7 +305,7 @@ class CreationCase(TaskCase):
 
     def assert_sprint(self, result):
         self.assertEqual(result, self.expected['sprint'])
-        self.assert_children('promotion')
+        self.assert_children('promotion', sprint_id='S')
         self.assert_members()
         self.assertEqual(rows(self.path, 'SELECT id,state,revision FROM sprints'), [('S', 'published', 2)])
         self.assertEqual(rows(self.path, 'SELECT sprint_id,request_id FROM sprint_requests'),
@@ -310,6 +314,8 @@ class CreationCase(TaskCase):
     def owned_snapshot(self):
         snapshot = self.snapshot()
         for table, columns, order in [
+            ('tasks', 'id,status,stage_index,iteration,claimed_by,version,'
+                      'current_submission_id,metadata', 'id'),
             ('content_contracts', 'task_id,version,data', 'task_id,version'),
             ('task_methods', 'task_id,method_id,version,data', 'task_id,method_id'),
             ('action_runs', 'task_id,stage,iteration,version,data', 'task_id,stage,iteration'),

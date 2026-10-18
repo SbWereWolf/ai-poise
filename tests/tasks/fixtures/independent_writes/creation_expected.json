@@ -235,7 +235,9 @@
         null,
         1,
         "First child result.",
-        "create-a"
+        "create-a",
+        0,
+        1
       ]
     ],
     "competitor": [
@@ -245,7 +247,9 @@
         null,
         1,
         "Second child result.",
-        "create-b"
+        "create-b",
+        0,
+        1
       ]
     ],
     "collision": [
@@ -255,7 +259,9 @@
         null,
         1,
         "Second child result.",
-        "create-b"
+        "create-b",
+        0,
+        1
       ],
       [
         "0002",
@@ -263,7 +269,9 @@
         null,
         1,
         "First child result.",
-        "create-a"
+        "create-a",
+        0,
+        1
       ]
     ],
     "publication": [
@@ -273,7 +281,9 @@
         null,
         0,
         "First child result.",
-        "child-a"
+        "child-a",
+        0,
+        1
       ],
       [
         "0002",
@@ -281,7 +291,9 @@
         null,
         0,
         "Second child result.",
-        "child-b"
+        "child-b",
+        0,
+        1
       ]
     ],
     "promotion": [
@@ -291,7 +303,9 @@
         null,
         1,
         "First child result.",
-        null
+        null,
+        0,
+        1
       ],
       [
         "0002",
@@ -299,7 +313,41 @@
         null,
         1,
         "Second child result.",
-        null
+        null,
+        0,
+        1
+      ]
+    ],
+    "batch": [
+      [
+        "0002",
+        "available",
+        null,
+        0,
+        "Explicit child result.",
+        null,
+        0,
+        1
+      ],
+      [
+        "0003",
+        "available",
+        null,
+        0,
+        "First child result.",
+        "child-a",
+        0,
+        1
+      ],
+      [
+        "0004",
+        "available",
+        null,
+        0,
+        "Second child result.",
+        "child-b",
+        0,
+        1
       ]
     ]
   },

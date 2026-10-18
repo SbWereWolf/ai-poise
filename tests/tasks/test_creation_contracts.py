@@ -40,7 +40,7 @@ class CreationContracts(CreationCase):
                         if kind == 'direct':
                             self.assertEqual(result.receipt(), {
                                 'task_id': '0001', 'request_id': 'create-a', 'replayed': False})
-                            case.assert_children('direct')
+                            case.assert_children('direct', sprint_id=None)
                             # A second genuine build cannot arm the first-call gate again.
                             if owner:
                                 case.create(case.intent('next-child', goal='Second child result.'))
@@ -69,8 +69,7 @@ class CreationContracts(CreationCase):
             "BEGIN SELECT RAISE(ABORT,'injected creation failure'); END")
         self.assertEqual(self.create().receipt(), {
             'request_id': 'create-a', 'task_id': '0001', 'replayed': False})
-        self.assert_children([
-            ('0001', 'available', None, 1, 'First child result.', 'create-a')])
+        self.assert_children('direct', sprint_id=None)
         before = self.owned_snapshot()
         self.assertEqual(self.create().receipt(), {
             'request_id': 'create-a', 'task_id': '0001', 'replayed': True})
@@ -174,6 +173,7 @@ class CreationContracts(CreationCase):
             allocations=self.expected['batch_allocations'], task_ids=['0002', '0003', '0004'],
             sprint_id='S')
         self.assertEqual(result, expected)
+        self.assert_children('batch', sprint_id='S', identifiers=('0002', '0003', '0004'))
         receipt = result['steps'][0]['result']
         self.assertEqual(receipt['allocations'], self.expected['batch_allocations'])
         self.assertEqual(receipt['task_ids'], ['0002', '0003', '0004'])

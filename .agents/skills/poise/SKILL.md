@@ -848,9 +848,10 @@ is a concrete dependency for the owning Poise work, not a reason to invent a par
 
 ## Output boundary for migrated skills
 
-Persist the current skill's result through the existing Task/content/evidence/artifact owners and
-release via public
-handoff. Saving remains distinct from acceptance. Universal phase recovery remains
+Persist the current skill's result through the existing Task/content/evidence/artifact owners.
+After saving, use ordinary public release and directly notify the counterpart for bootstrap of
+the same Task and existing working area. Saving remains distinct from acceptance.
+Universal phase recovery remains
 capability-dependent. The implemented
 [cross-project next
 overview](../../../docs/configuration/project-setup.md#доступные-задачи-во-всех-проектах) is

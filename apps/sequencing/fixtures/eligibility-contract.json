@@ -2782,7 +2782,7 @@
                   "claimant": "SESSION-A"
                 },
                 {
-                  "id": "eligible-000017",
+                  "id": "eligible-000017-foreign",
                   "kind": "eligibility",
                   "task_id": "000017",
                   "claimant": "SESSION-B"
@@ -2831,7 +2831,7 @@
                 }
               },
               {
-                "id": "eligible-000017",
+                "id": "eligible-000017-foreign",
                 "value": {
                   "task_id": "000017",
                   "eligible": false,

@@ -1,14 +1,40 @@
 """Integration subject: RequirementsStore.apply's exact replay and atomic result."""
 from copy import deepcopy
 import sqlite3
+from threading import current_thread
 from unittest.mock import patch
 
-from independent_write_support import RequirementCase, concurrent_pair, execute, rows
+from independent_write_support import (
+    RequirementCase, PreparationGate, concurrent_pair, execute, fixture,
+    pause_requirement_preparation, rows,
+)
 from poise.modules.foundation.errors import DomainError, VersionConflict
 from poise.modules.requirements_registry.domain import RequirementsRegistry
 
 
 class RequirementWriteContracts(RequirementCase):
+    def test_a_gate_selects_its_mutation_once_and_excludes_its_own_restore(self):
+        gate = PreparationGate()
+        gate.owner = current_thread()
+        gate.resume.set()
+        with pause_requirement_preparation(gate, self.request):
+            self.apply()
+        self.assertEqual(gate.calls, 1)
+        self.assert_expected('expected_after_a.json')
+
+    def test_b_only_restore_never_enters_the_a_preparation_gate(self):
+        gate = PreparationGate()
+        # The same designated thread can execute a different operation. Both
+        # worker and complete operation identity must isolate A's preparation.
+        gate.owner = current_thread()
+        gate.resume.set()  # Detect an erroneous entry without intentionally hanging B.
+        with pause_requirement_preparation(gate, self.request):
+            result = self.apply(fixture('requirements_registry', 'apply_b.json'))
+        self.assertEqual(gate.calls, 0)
+        self.assertFalse(gate.entered.is_set())
+        self.assertEqual(result, {'revision': 1, 'replayed': False})
+        self.assert_expected('expected_after_b.json')
+
     def test_concurrent_exact_intents_return_one_saved_business_result(self):
         results = concurrent_pair(self.apply)
         self.assertEqual(sorted(item['replayed'] for item in results), [False, True])

@@ -1,17 +1,19 @@
 """Test-owned SQL arrangements and overlap protocol; no subject-generated oracle."""
-from contextlib import closing
+from contextlib import closing, contextmanager
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
-from threading import Barrier, Event, Thread
+from threading import Barrier, Event, Thread, current_thread
 import unittest
+from unittest.mock import patch
 
 from poise.application.tasks import TaskCommands
 from poise.infrastructure.requirements_registry import RequirementsStore
 from poise.modules.foundation.errors import LockUnavailable, SQLiteBoundaryUnavailable
+from poise.modules.requirements_registry.domain import RequirementsRegistry
 from poise.storage import Store
 
 
@@ -39,6 +41,7 @@ class PreparationGate:
         self.entered = Event()
         self.resume = Event()
         self.calls = 0
+        self.owner = None
 
     def pause(self):
         self.calls += 1
@@ -47,12 +50,30 @@ class PreparationGate:
             raise RuntimeError('ARRANGEMENT: coordinator did not release preparation')
 
 
+@contextmanager
+def pause_requirement_preparation(gate, request):
+    original = RequirementsRegistry.apply
+    selected_operations = deepcopy(request['operations'])
+
+    def prepare(registry, operations, max_items):
+        # Registry hydration also calls apply. Match the exact mutation AND
+        # the designated A worker rather than a shared first requirement row.
+        if current_thread() is gate.owner and operations == selected_operations:
+            gate.pause()
+        return original(registry, operations, max_items)
+
+    with patch.object(RequirementsRegistry, 'apply', prepare):
+        yield
+
+
 def overlap(gate, prepare_a, write_b, observe_b):
     """Return B's actual outcome before A resumes, with guaranteed worker cleanup."""
     outcomes = {}
 
     def worker(name, operation):
         try:
+            if name == 'a':
+                gate.owner = current_thread()
             outcomes[name] = ('ok', operation())
         except BaseException as error:
             outcomes[name] = ('error', error)

@@ -213,9 +213,17 @@ def test_target_guarded_near_match_keeps_all_owned_material(
     changed = {
         'foreign': b'#!/bin/sh\nexit 23\n',
         'guard-body': original.replace(b'valid=0', b'valid=1'),
-        'extra-argv': original.replace(b' "$@"', b' --foreign "$@"'),
+        'extra-argv': original.removesuffix(b' "$@"\n') + b' --foreign "$@"\n',
     }[mutation]
     assert changed != original
+    if mutation == 'extra-argv':
+        assert original.endswith(b' "$@"\n')
+        assert changed.endswith(b' --foreign "$@"\n')
+        assert changed.removesuffix(b' --foreign "$@"\n') == original.removesuffix(b' "$@"\n')
+        original_argv = shlex.split(original.decode().splitlines()[1])
+        changed_argv = shlex.split(changed.decode().splitlines()[1])
+        assert changed_argv[3] == original_argv[3]
+        assert changed_argv == [*original_argv[:-1], '--foreign', original_argv[-1]]
     launcher.write_bytes(changed)
     before = snapshot(case)
     if consumer == 'native':

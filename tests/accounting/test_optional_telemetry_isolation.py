@@ -262,6 +262,9 @@ def _configure_production_accounting(project):
     project["cfg"]["schema"] = "ddd-accounting-12"
     project["cfg"]["accounting"] = policy()
     project["cfg"]["automatic_checks"] = []
+    project["cfg"]["batch"]["message_source"] = {
+        "id": "chat-visible", "mode": "agent_reported",
+    }
     write_json(project["root"] / "config/workflows/development.json", process)
     write_json(project["config_path"], project["cfg"])
     task = deepcopy(project["task"])

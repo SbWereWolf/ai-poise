@@ -9,7 +9,7 @@ from conftest import WorkPoise, write_json
 from poise.application.work import WorkTools
 from poise.common import load_config
 from tests.projects.test_update import installed_project, update_request, update_tools
-from .helpers import configure
+from .helpers import configure, request, text_artifact
 from .test_independent_material_operations import publish, start_task
 
 
@@ -38,7 +38,9 @@ def test_obsolete_artifact_lock_value_survives_managed_editor(project):
     assert json.loads(path.read_text()) == expected
     assert load_config(path)[1] == expected
     client = WorkTools(WorkPoise(path, "unknown-lock-observer"))
-    assert publish(client)["status"] == "artifacts_created"
+    assert client.invoke(request("artifacts", {"items": [
+        text_artifact(scope="runtime", path="independent.txt", text="B material\n"),
+    ]}))["status"] == "artifacts_created"
 
 
 @pytest.mark.parametrize("relative", [

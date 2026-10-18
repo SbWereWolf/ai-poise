@@ -51,9 +51,10 @@ class WorktreePreparation:
         return self.reconcile(attempt).projection()
 
     def reconcile(self, attempt):
-        if attempt.phase != 'captured':
-            return attempt.unconfirmed(attempt.reason or 'Подготовка начата, но полный результат ещё не подтверждён; исследуйте сохранённые материалы')
         try:
+            if attempt.phase == 'begun':
+                capture = self.effects.recover_capture(attempt)
+                attempt = self._save(attempt.captured(capture))
             report = self.effects.confirm_capture(attempt.capture)
             receipt, records = self.effects.publish_receipt(report)
         except Exception as exc:

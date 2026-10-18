@@ -92,10 +92,14 @@ class FilePreparationEffects:
         relative = f'worktree-preparation/{attempt}/{name}'
         source = self.runtime.runtime / relative
         atomic_write(source, content, self.runtime.cfg['batch']['file_mode'])
+        return self._publish_source(material, name, source, checksum(content), register=register)
+
+    def _publish_source(self, material, name, source, digest, *, register=True):
+        relative = f"worktree-preparation/{material['report']['attempt_id']}/{name}"
         prepared = self.factory.prepare([{'scope': 'task', 'path': relative,
-            'source': {'kind': 'file', 'path': str(source), 'digest': checksum(content)}}])
+            'source': {'kind': 'file', 'path': str(source), 'digest': digest}}])
         paths = self.factory.materialize(prepared)
-        record = {'path': paths[0], 'sha256': checksum(content)}
+        record = {'path': paths[0], 'sha256': digest}
         if register:
             self.runtime.register_artifact_paths(paths, self.task)
             material['materials'].append(record)
@@ -168,21 +172,70 @@ class FilePreparationEffects:
     def save_capture(self, material):
         body = {'schema': 'poise/worktree-preparation-capture/v1',
                 'report': material['report'], 'materials': list(material['materials'])}
-        capture = self._publish(material, 'capture.json',
-                                (json.dumps(body, ensure_ascii=False, indent=2) + '\n').encode())
-        return capture
+        raw = json.dumps(body, ensure_ascii=False, indent=2) + '\n'
+        relative = f"worktree-preparation/{material['report']['attempt_id']}/capture.pending.json"
+        pending = self.factory.prepare([{'scope': 'task', 'path': relative,
+                                        'source': {'kind': 'text', 'text': raw}}])[0].path
+        atomic_write(pending, raw.encode(), self.runtime.cfg['batch']['file_mode'])
+        try:
+            return self._publish_source(material, 'capture.json', pending, checksum(raw.encode()))
+        except Exception as exc:
+            raise PoiseError(f'{exc}; полный результат сохранён в {pending}; '
+                             'устраните причину публикации и повторите bootstrap') from exc
+
+    def recover_capture(self, attempt):
+        prefix = self.factory.config['artifact_directories']['task']
+        directory = self.factory.observe_directory(
+            'task', f'{prefix}/worktree-preparation/{attempt.attempt_id}')
+        pending = directory / 'capture.pending.json'
+        try:
+            raw = pending.read_bytes()
+            body = self._read_capture(raw)
+            report = body['report']
+            expected = {**attempt.coordinates, 'attempt_id': attempt.attempt_id,
+                        'request_id': attempt.request_id}
+            if any(report[key] != value for key, value in expected.items()):
+                raise PoiseError('Полный результат относится к другой попытке подготовки')
+            return self._publish_source({'report': report, 'materials': []},
+                                        'capture.json', pending, checksum(raw))
+        except Exception as exc:
+            raise PoiseError(f'Подготовка не подтверждена: {exc}; полный результат: {pending}; '
+                             'восстановите доступ к полному результату и повторите bootstrap') from exc
 
     def confirm_capture(self, capture):
         raw = Path(capture['path']).read_bytes()
         if checksum(raw) != capture['sha256']:
             raise PoiseError('Подтверждение результата подготовки: изменён capture')
+        return self._read_capture(raw)['report']
+
+    def _read_capture(self, raw):
         body = json.loads(raw)
         if body['schema'] != 'poise/worktree-preparation-capture/v1':
             raise PoiseError('Неизвестный сохранённый capture подготовки')
+        report = body['report']
+        if report['schema'] != 'poise/worktree-preparation/v1':
+            raise PoiseError('Неизвестный сохранённый результат подготовки')
+        references = []
+        for item in (report['configuration'], *report['inputs']):
+            if item['snapshot_path'] is not None:
+                references.append((item['snapshot_path'], item['sha256']))
+        for operation in report['operations']:
+            for command in operation['commands']:
+                for stream in ('stdout', 'stderr'):
+                    references.append((command[stream + '_path'], command[stream + '_sha256']))
+        materials = {(item['path'], item['sha256']) for item in body['materials']}
+        if any(reference not in materials for reference in references):
+            raise PoiseError('Полный capture подготовки не содержит обязательные материалы')
+        registered = {(item['path'], item['digest'])
+                      for item in self.runtime.store.artifact_records(self.task['id'])
+                      if item['scope'] == 'task' and item['owner'] == self.task['id']}
+        if not materials <= registered:
+            raise PoiseError('Материалы подготовки не зарегистрированы у задачи')
+        self.runtime.validate_artifact_paths([item['path'] for item in body['materials']], self.task)
         for record in body['materials']:
             if checksum(Path(record['path']).read_bytes()) != record['sha256']:
                 raise PoiseError('Подтверждение результата подготовки: изменён материал ' + record['path'])
-        return body['report']
+        return body
 
     def publish_receipt(self, report):
         material = {'report': report, 'materials': []}

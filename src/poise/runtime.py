@@ -1484,7 +1484,7 @@ class Poise:
                     delivery = self.transfer_repository.delivery_for_task(data['id'])
                     delivery_loaded = True
                 current = self._inspect_artifacts([prior['path']], roots, owners, delivery)[0]
-            except PoiseError:
+            except (PoiseError, OSError):
                 continue
             if current['digest'] != prior['digest']:
                 continue

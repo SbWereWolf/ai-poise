@@ -223,7 +223,8 @@ class HookSettings:
         scripts = tuple(('#!/bin/sh\nexec ' + command + '\n').encode()
                         for command in self.prior_launcher_commands(*args))
         forwarded = ('#!/bin/sh\nexec ' + self._superseded_direct_command(['-B'], *args) + ' "$@"\n').encode()
-        return (*scripts, forwarded)
+        pre_bytecode = ('#!/bin/sh\nexec ' + self._direct_command([], *args) + '\n').encode()
+        return (*scripts, forwarded, pre_bytecode)
 
 
 def _read_definition(settings,path):

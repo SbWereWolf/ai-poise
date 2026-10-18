@@ -5,7 +5,13 @@
     "docs/sed-B.txt": "B01\nB02\nB03\nB04\nB05\nB06\n",
     "same.txt": "ROOT01\nROOT02\nROOT03\n",
     "sub/same.txt": "SUB01\nSUB02\nSUB03\n",
-    "docs/long.txt": "L001\nL002\nL003\nL004\nL005\nL006\nL007\nL008\nL009\nL010\nL011\nL012\nL013\nL014\nL015\nL016\nL017\nL018\nL019\nL020\nL021\nL022\nL023\nL024\nL025\nL026\nL027\nL028\nL029\nL030\nL031\nL032\nL033\nL034\nL035\nL036\nL037\nL038\nL039\nL040\nL041\nL042\nL043\nL044\nL045\nL046\nL047\nL048\nL049\nL050\nL051\nL052\nL053\nL054\nL055\nL056\nL057\nL058\nL059\nL060\nL061\nL062\nL063\nL064\nL065\nL066\nL067\nL068\nL069\nL070\nL071\nL072\nL073\nL074\nL075\nL076\nL077\nL078\nL079\nL080\nL081\nL082\nL083\nL084\nL085\nL086\nL087\nL088\nL089\nL090\nL091\nL092\nL093\nL094\nL095\nL096\nL097\nL098\nL099\nL100\nL101\nL102\nL103\nL104\nL105\nL106\nL107\nL108\nL109\nL110\nL111\nL112\nL113\nL114\nL115\nL116\nL117\nL118\nL119\nL120\nL121\nL122\nL123\nL124\nL125\nL126\nL127\nL128\nL129\nL130\nL131\nL132\nL133\nL134\nL135\nL136\nL137\nL138\nL139\nL140\nL141\nL142\nL143\nL144\nL145\nL146\nL147\nL148\nL149\nL150\nL151\nL152\nL153\nL154\nL155\nL156\nL157\nL158\nL159\nL160\nL161\nL162\nL163\nL164\nL165\nL166\nL167\nL168\nL169\nL170\nL171\nL172\nL173\nL174\nL175\nL176\nL177\nL178\nL179\nL180\nL181\nL182\nL183\nL184\nL185\nL186\nL187\nL188\nL189\nL190\nL191\nL192\nL193\nL194\nL195\nL196\nL197\nL198\nL199\nL200\nL201\nL202\nL203\nL204\nL205\nL206\nL207\nL208\nL209\nL210\nL211\nL212\nL213\nL214\nL215\nL216\nL217\nL218\nL219\nL220\nL221\nL222\nL223\nL224\nL225\nL226\nL227\nL228\nL229\nL230\nL231\nL232\nL233\nL234\nL235\nL236\nL237\nL238\nL239\nL240\nL241\nL242\nL243\nL244\nL245\nL246\nL247\nL248\nL249\nL250\nL251\nL252\nL253\nL254\nL255\nL256\nL257\nL258\nL259\nL260\nL261\nL262\nL263\nL264\nL265\nL266\nL267\nL268\nL269\nL270\nL271\nL272\nL273\nL274\nL275\nL276\nL277\nL278\nL279\nL280\nL281\nL282\nL283\nL284\nL285\nL286\nL287\nL288\nL289\nL290\nL291\nL292\nL293\nL294\nL295\nL296\nL297\nL298\nL299\nL300\nL301\nL302\nL303\nL304\nL305\nL306\nL307\nL308\nL309\nL310\nL311\nL312\nL313\nL314\nL315\nL316\nL317\nL318\nL319\nL320\nL321\nL322\nL323\nL324\nL325\nL326\nL327\nL328\nL329\nL330\nL331\nL332\nL333\nL334\nL335\nL336\nL337\nL338\nL339\nL340\nL341\nL342\nL343\nL344\nL345\nL346\nL347\nL348\nL349\nL350\nL351\nL352\nL353\nL354\nL355\nL356\nL357\nL358\nL359\nL360\nL361\nL362\nL363\nL364\nL365\nL366\nL367\nL368\nL369\nL370\nL371\nL372\nL373\nL374\nL375\nL376\nL377\nL378\nL379\nL380\nL381\nL382\nL383\nL384\nL385\nL386\nL387\nL388\nL389\nL390\nL391\nL392\nL393\nL394\nL395\nL396\nL397\nL398\nL399\nL400\nL401\nL402\nL403\nL404\nL405\nL406\nL407\nL408\nL409\nL410\nL411\nL412\nL413\nL414\nL415\nL416\nL417\nL418\nL419\nL420\nL421\nL422\nL423\nL424\nL425\nL426\nL427\nL428\nL429\nL430\nL431\nL432\nL433\nL434\nL435\nL436\nL437\nL438\nL439\nL440\nL441\nL442\nL443\nL444\nL445\nL446\nL447\nL448\nL449\nL450\nL451\nL452\nL453\nL454\nL455\nL456\nL457\nL458\nL459\nL460\nL461\nL462\nL463\nL464\nL465\nL466\nL467\nL468\nL469\nL470\nL471\nL472\nL473\nL474\nL475\nL476\nL477\nL478\nL479\nL480\nL481\nL482\nL483\nL484\nL485\nL486\nL487\nL488\nL489\nL490\nL491\nL492\nL493\nL494\nL495\nL496\nL497\nL498\nL499\nL500\n"
+    "docs/long.txt": "L001\nL002\nL003\nL004\nL005\nL006\nL007\nL008\nL009\nL010\nL011\nL012\nL013\nL014\nL015\nL016\nL017\nL018\nL019\nL020\nL021\nL022\nL023\nL024\nL025\nL026\nL027\nL028\nL029\nL030\nL031\nL032\nL033\nL034\nL035\nL036\nL037\nL038\nL039\nL040\nL041\nL042\nL043\nL044\nL045\nL046\nL047\nL048\nL049\nL050\nL051\nL052\nL053\nL054\nL055\nL056\nL057\nL058\nL059\nL060\nL061\nL062\nL063\nL064\nL065\nL066\nL067\nL068\nL069\nL070\nL071\nL072\nL073\nL074\nL075\nL076\nL077\nL078\nL079\nL080\nL081\nL082\nL083\nL084\nL085\nL086\nL087\nL088\nL089\nL090\nL091\nL092\nL093\nL094\nL095\nL096\nL097\nL098\nL099\nL100\nL101\nL102\nL103\nL104\nL105\nL106\nL107\nL108\nL109\nL110\nL111\nL112\nL113\nL114\nL115\nL116\nL117\nL118\nL119\nL120\nL121\nL122\nL123\nL124\nL125\nL126\nL127\nL128\nL129\nL130\nL131\nL132\nL133\nL134\nL135\nL136\nL137\nL138\nL139\nL140\nL141\nL142\nL143\nL144\nL145\nL146\nL147\nL148\nL149\nL150\nL151\nL152\nL153\nL154\nL155\nL156\nL157\nL158\nL159\nL160\nL161\nL162\nL163\nL164\nL165\nL166\nL167\nL168\nL169\nL170\nL171\nL172\nL173\nL174\nL175\nL176\nL177\nL178\nL179\nL180\nL181\nL182\nL183\nL184\nL185\nL186\nL187\nL188\nL189\nL190\nL191\nL192\nL193\nL194\nL195\nL196\nL197\nL198\nL199\nL200\nL201\nL202\nL203\nL204\nL205\nL206\nL207\nL208\nL209\nL210\nL211\nL212\nL213\nL214\nL215\nL216\nL217\nL218\nL219\nL220\nL221\nL222\nL223\nL224\nL225\nL226\nL227\nL228\nL229\nL230\nL231\nL232\nL233\nL234\nL235\nL236\nL237\nL238\nL239\nL240\nL241\nL242\nL243\nL244\nL245\nL246\nL247\nL248\nL249\nL250\nL251\nL252\nL253\nL254\nL255\nL256\nL257\nL258\nL259\nL260\nL261\nL262\nL263\nL264\nL265\nL266\nL267\nL268\nL269\nL270\nL271\nL272\nL273\nL274\nL275\nL276\nL277\nL278\nL279\nL280\nL281\nL282\nL283\nL284\nL285\nL286\nL287\nL288\nL289\nL290\nL291\nL292\nL293\nL294\nL295\nL296\nL297\nL298\nL299\nL300\nL301\nL302\nL303\nL304\nL305\nL306\nL307\nL308\nL309\nL310\nL311\nL312\nL313\nL314\nL315\nL316\nL317\nL318\nL319\nL320\nL321\nL322\nL323\nL324\nL325\nL326\nL327\nL328\nL329\nL330\nL331\nL332\nL333\nL334\nL335\nL336\nL337\nL338\nL339\nL340\nL341\nL342\nL343\nL344\nL345\nL346\nL347\nL348\nL349\nL350\nL351\nL352\nL353\nL354\nL355\nL356\nL357\nL358\nL359\nL360\nL361\nL362\nL363\nL364\nL365\nL366\nL367\nL368\nL369\nL370\nL371\nL372\nL373\nL374\nL375\nL376\nL377\nL378\nL379\nL380\nL381\nL382\nL383\nL384\nL385\nL386\nL387\nL388\nL389\nL390\nL391\nL392\nL393\nL394\nL395\nL396\nL397\nL398\nL399\nL400\nL401\nL402\nL403\nL404\nL405\nL406\nL407\nL408\nL409\nL410\nL411\nL412\nL413\nL414\nL415\nL416\nL417\nL418\nL419\nL420\nL421\nL422\nL423\nL424\nL425\nL426\nL427\nL428\nL429\nL430\nL431\nL432\nL433\nL434\nL435\nL436\nL437\nL438\nL439\nL440\nL441\nL442\nL443\nL444\nL445\nL446\nL447\nL448\nL449\nL450\nL451\nL452\nL453\nL454\nL455\nL456\nL457\nL458\nL459\nL460\nL461\nL462\nL463\nL464\nL465\nL466\nL467\nL468\nL469\nL470\nL471\nL472\nL473\nL474\nL475\nL476\nL477\nL478\nL479\nL480\nL481\nL482\nL483\nL484\nL485\nL486\nL487\nL488\nL489\nL490\nL491\nL492\nL493\nL494\nL495\nL496\nL497\nL498\nL499\nL500\n",
+    "docs/byte-small.txt": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\nC\nD\nv\nw\n",
+    "docs/byte-large.txt": "a\nb\nC\nD\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\nWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n",
+    "docs/byte-A.txt": "A\nA\nA\nA\nA\nA\n",
+    "docs/byte-B.txt": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\nB\nB\nB\nB\n",
+    "docs/byte-short.txt": "u\nv\nx\ny\n",
+    "docs/byte-other-short.txt": "p\nq\nr\ns\n"
   },
   "coordinates": [
     {
@@ -383,7 +389,8 @@
   "nodes": {
     "coordinates": [
       "tests/command_intake/test_projection_regressions.py::test_source_coordinates",
-      "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates"
+      "tests/command_intake/test_projection_regressions.py::test_unproved_reverse_coordinates",
+      "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets"
     ],
     "cwd": [
       "tests/command_intake/test_projection_regressions.py::test_changed_cwd_does_not_credit_root",
@@ -434,5 +441,485 @@
       "tests/command_intake/test_projection_regressions.py::test_healthy_cached_controls",
       "tests/command_intake/test_projection_regressions.py::test_corrupt_json_control"
     ]
-  }
+  },
+  "byte_budgets": [
+    {
+      "id": "BP01-small-exact-enforce",
+      "command": "tac docs/byte-small.txt | head -n2",
+      "stdout": "w\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-small.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 4,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP01-small-exact-audit",
+      "command": "tac docs/byte-small.txt | head -n2",
+      "stdout": "w\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-small.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 4,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP02-small-over-enforce",
+      "command": "tac docs/byte-small.txt | head -n2",
+      "stdout": "w\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-small.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 3,
+      "total": 4,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP02-small-over-audit",
+      "command": "tac docs/byte-small.txt | head -n2",
+      "stdout": "w\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-small.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 3,
+      "total": 4,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP03-large-exact-enforce",
+      "command": "tac docs/byte-large.txt | head -n2",
+      "stdout": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n",
+      "bytes": 72,
+      "coverage": {
+        "docs/byte-large.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 72,
+      "total": 72,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP03-large-exact-audit",
+      "command": "tac docs/byte-large.txt | head -n2",
+      "stdout": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n",
+      "bytes": 72,
+      "coverage": {
+        "docs/byte-large.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 72,
+      "total": 72,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP04-large-over-enforce",
+      "command": "tac docs/byte-large.txt | head -n2",
+      "stdout": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n",
+      "bytes": 72,
+      "coverage": {
+        "docs/byte-large.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 71,
+      "total": 72,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP04-large-over-audit",
+      "command": "tac docs/byte-large.txt | head -n2",
+      "stdout": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n",
+      "bytes": 72,
+      "coverage": {
+        "docs/byte-large.txt": [
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "per_file": 71,
+      "total": 72,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP05-sed-exact-enforce",
+      "command": "sed -n '5,8p' docs/byte-A.txt docs/byte-B.txt",
+      "stdout": "A\nA\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\n",
+      "bytes": 76,
+      "coverage": {
+        "docs/byte-A.txt": [
+          [
+            5,
+            6
+          ]
+        ],
+        "docs/byte-B.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 72,
+      "total": 76,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP05-sed-exact-audit",
+      "command": "sed -n '5,8p' docs/byte-A.txt docs/byte-B.txt",
+      "stdout": "A\nA\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\n",
+      "bytes": 76,
+      "coverage": {
+        "docs/byte-A.txt": [
+          [
+            5,
+            6
+          ]
+        ],
+        "docs/byte-B.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 72,
+      "total": 76,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP06-sed-per-file-over-enforce",
+      "command": "sed -n '5,8p' docs/byte-A.txt docs/byte-B.txt",
+      "stdout": "A\nA\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\n",
+      "bytes": 76,
+      "coverage": {
+        "docs/byte-A.txt": [
+          [
+            5,
+            6
+          ]
+        ],
+        "docs/byte-B.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 71,
+      "total": 76,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP06-sed-per-file-over-audit",
+      "command": "sed -n '5,8p' docs/byte-A.txt docs/byte-B.txt",
+      "stdout": "A\nA\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\n",
+      "bytes": 76,
+      "coverage": {
+        "docs/byte-A.txt": [
+          [
+            5,
+            6
+          ]
+        ],
+        "docs/byte-B.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 71,
+      "total": 76,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP07-sed-total-over-enforce",
+      "command": "sed -n '5,8p' docs/byte-A.txt docs/byte-B.txt",
+      "stdout": "A\nA\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\n",
+      "bytes": 76,
+      "coverage": {
+        "docs/byte-A.txt": [
+          [
+            5,
+            6
+          ]
+        ],
+        "docs/byte-B.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 72,
+      "total": 75,
+      "reason": "bounded_total_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP07-sed-total-over-audit",
+      "command": "sed -n '5,8p' docs/byte-A.txt docs/byte-B.txt",
+      "stdout": "A\nA\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY\n",
+      "bytes": 76,
+      "coverage": {
+        "docs/byte-A.txt": [
+          [
+            5,
+            6
+          ]
+        ],
+        "docs/byte-B.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 72,
+      "total": 75,
+      "reason": "bounded_total_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "BP08-direct-exact-enforce",
+      "command": "head -n2 docs/byte-short.txt",
+      "stdout": "u\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 4,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP08-direct-exact-audit",
+      "command": "head -n2 docs/byte-short.txt",
+      "stdout": "u\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 4,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP09-direct-over-enforce",
+      "command": "head -n2 docs/byte-short.txt",
+      "stdout": "u\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 3,
+      "total": 4,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP09-direct-over-audit",
+      "command": "head -n2 docs/byte-short.txt",
+      "stdout": "u\nv\n",
+      "bytes": 4,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 3,
+      "total": 4,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP10-total-control-exact-enforce",
+      "command": "sed -n -s '1,2p' docs/byte-short.txt docs/byte-other-short.txt",
+      "stdout": "u\nv\np\nq\n",
+      "bytes": 8,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/byte-other-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 8,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP10-total-control-exact-audit",
+      "command": "sed -n -s '1,2p' docs/byte-short.txt docs/byte-other-short.txt",
+      "stdout": "u\nv\np\nq\n",
+      "bytes": 8,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/byte-other-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 8,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP11-total-control-over-enforce",
+      "command": "sed -n -s '1,2p' docs/byte-short.txt docs/byte-other-short.txt",
+      "stdout": "u\nv\np\nq\n",
+      "bytes": 8,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/byte-other-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 7,
+      "reason": "bounded_total_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "BP11-total-control-over-audit",
+      "command": "sed -n -s '1,2p' docs/byte-short.txt docs/byte-other-short.txt",
+      "stdout": "u\nv\np\nq\n",
+      "bytes": 8,
+      "coverage": {
+        "docs/byte-short.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/byte-other-short.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file": 4,
+      "total": 7,
+      "reason": "bounded_total_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": false
+    }
+  ]
 }

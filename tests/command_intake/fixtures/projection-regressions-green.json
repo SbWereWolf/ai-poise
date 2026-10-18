@@ -4,6 +4,930 @@
     "collection_errors": [],
     "reports": [
       {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP01-small-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP01-small-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP01-small-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP01-small-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP01-small-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP01-small-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP02-small-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP02-small-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP02-small-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP02-small-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP02-small-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP02-small-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP03-large-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP03-large-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP03-large-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP03-large-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP03-large-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP03-large-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP04-large-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP04-large-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP04-large-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP04-large-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP04-large-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP04-large-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP05-sed-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP05-sed-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP05-sed-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP05-sed-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP05-sed-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP05-sed-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP06-sed-per-file-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP06-sed-per-file-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP06-sed-per-file-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP06-sed-per-file-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP06-sed-per-file-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP06-sed-per-file-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP07-sed-total-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP07-sed-total-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP07-sed-total-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP07-sed-total-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP07-sed-total-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP07-sed-total-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP08-direct-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP08-direct-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP08-direct-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP08-direct-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP08-direct-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP08-direct-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP09-direct-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP09-direct-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP09-direct-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP09-direct-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP09-direct-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP09-direct-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP10-total-control-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP10-total-control-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP10-total-control-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP10-total-control-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP10-total-control-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP10-total-control-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP11-total-control-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP11-total-control-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP11-total-control-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP11-total-control-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP11-total-control-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[cli-BP11-total-control-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP01-small-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP01-small-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP01-small-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP01-small-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP01-small-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP01-small-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP02-small-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP02-small-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP02-small-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP02-small-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP02-small-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP02-small-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP03-large-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP03-large-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP03-large-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP03-large-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP03-large-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP03-large-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP04-large-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP04-large-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP04-large-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP04-large-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP04-large-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP04-large-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP05-sed-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP05-sed-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP05-sed-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP05-sed-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP05-sed-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP05-sed-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP06-sed-per-file-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP06-sed-per-file-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP06-sed-per-file-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP06-sed-per-file-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP06-sed-per-file-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP06-sed-per-file-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP07-sed-total-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP07-sed-total-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP07-sed-total-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP07-sed-total-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP07-sed-total-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP07-sed-total-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP08-direct-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP08-direct-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP08-direct-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP08-direct-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP08-direct-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP08-direct-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP09-direct-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP09-direct-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP09-direct-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP09-direct-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP09-direct-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP09-direct-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP10-total-control-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP10-total-control-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP10-total-control-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP10-total-control-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP10-total-control-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP10-total-control-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP11-total-control-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP11-total-control-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP11-total-control-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP11-total-control-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP11-total-control-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_projection_regressions.py::test_projected_byte_budgets[sdk-BP11-total-control-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
         "nodeid": "tests/command_intake/test_projection_regressions.py::test_source_coordinates[cli-RP01-reverse-audit]",
         "phase": "call",
         "outcome": "passed",

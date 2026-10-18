@@ -76,6 +76,36 @@ def test_source_coordinates(row, intake):
         assert i.post(follow, response)[1]['status'] == 'settled'
 
 
+@pytest.mark.parametrize('row', DATA['byte_budgets'], ids=lambda row: row['id'])
+def test_projected_byte_budgets(row, intake):
+    """Unequal literal lines expose budgeting against untransformed positions."""
+    i = intake
+    i.mode(row['mode'])
+    i.configure(**{'classifier.bounded_reads.max_bytes_per_file': row['per_file'],
+                   'classifier.bounded_reads.max_total_bytes': row['total']})
+    call, native, pre = i.pre(row['command'])
+    if row['reason'] is None:
+        assert pre['decision']['action'] == 'allow', pre
+        assert native['hookSpecificOutput']['permissionDecision'] == 'allow'
+    else:
+        assert pre['decision']['reason_code'] == row['reason'], pre
+        assert pre['decision']['action'] == ('deny' if row['mode'] == 'enforce' else 'audit')
+        if row['mode'] == 'enforce':
+            assert pre['status'] == 'denied'
+            assert native['hookSpecificOutput']['permissionDecision'] == 'deny'
+            assert i.general_snapshot() == {'events': [], 'calls': []}
+            i.counts(pending=0, current=0)
+            assert i.coverage()['details']['documents'] == []
+            return
+        assert native['hookSpecificOutput']['permissionDecision'] == 'allow'
+    response = actual(i, call, row['stdout'])
+    assert len(response['stdout'].encode('utf-8')) == row['bytes']
+    _, post = i.post(call, response)
+    assert post['status'] == 'settled'
+    assert post['counts']['registered'] == len(row['coverage'])
+    exact_coverage(i, call, row['coverage'])
+
+
 @pytest.mark.parametrize('mode', ['enforce', 'audit'])
 def test_unproved_reverse_coordinates(mode, intake):
     """RP06: a bounded observation cannot prove a 500-line file's end."""

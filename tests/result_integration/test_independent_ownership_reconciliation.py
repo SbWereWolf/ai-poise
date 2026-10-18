@@ -6,6 +6,7 @@ from copy import deepcopy
 import fcntl
 import json
 from pathlib import Path
+import re
 from threading import Event
 
 import pytest
@@ -18,6 +19,56 @@ from poise.modules.foundation.errors import LockUnavailable, PoiseError
 from .helpers import integration_input, prepare_completed_task, request, source_change
 
 
+def inputs():
+    return json.loads(Path(__file__).with_name("fixtures").joinpath(
+        "independent-reconciliation.json").read_text(encoding="utf-8"))
+
+
+def assert_relevant_refusal(observed, cause):
+    """Require this operation's freshness conflict and saved-request continuation."""
+    error = observed.get("refusal")
+    assert isinstance(error, PoiseError), "expected a domain refusal"
+    message = str(error).casefold()
+    controls = inputs()["refusal_controls"]
+    for pattern in controls["scope_patterns"]:
+        assert re.search(pattern, message), "refusal belongs to another operation"
+    assert re.search(controls["conflict_pattern"], message), "refusal is not a freshness conflict"
+    assert (
+        re.search(controls["causes"][cause]["pattern"], message)
+        or (
+            re.search(controls["generic_basis_pattern"], message)
+            and re.search(controls["generic_conflict_pattern"], message)
+        )
+    ), "refusal does not explain the changed basis in this scenario"
+    for pattern in controls["continuation_patterns"]:
+        assert re.search(pattern, message), "refusal lacks the saved integration continuation"
+
+
+def check_refusal_oracle(cause):
+    """Independent literal controls run before the blocked integration assertions."""
+    controls = inputs()["refusal_controls"]
+    specific = controls["causes"][cause]
+    for message in (
+        specific["intended"], controls["generic_intended"], specific["existing_style"],
+    ):
+        assert_relevant_refusal({"refusal": PoiseError(message)}, cause)
+    invalid = [
+        None,
+        PoiseError(""),
+        ValueError(specific["intended"]),
+        PoiseError(controls["unrelated"]),
+        PoiseError(controls["contextual_unrelated"]),
+        PoiseError(controls["generic_unrelated"]),
+        PoiseError(specific["wrong_scenario"]),
+        PoiseError(specific["intended"].split(";")[0] + "; cancel another task."),
+        PoiseError(controls["unchanged_basis"]),
+    ]
+    for error in invalid:
+        with pytest.raises(AssertionError):
+            assert_relevant_refusal({"refusal": error}, cause)
+    return {"accepted": 3, "rejected": len(invalid)}
+
+
 def scenario(project, mode="replay"):
     tools, _, source = prepare_completed_task(project, source_change)
     packet = request("integrate", integration_input(project, source))
@@ -25,8 +76,7 @@ def scenario(project, mode="replay"):
     writer = WorkTools(WorkPoise(project["config_path"], "independent-writer"))
     predecessor = WorkPoise(project["config_path"], "predecessor")
     replacement = WorkPoise(project["config_path"], "replacement-owner")
-    fixture = json.loads(Path(__file__).with_name("fixtures").joinpath(
-        "independent-reconciliation.json").read_text(encoding="utf-8"))
+    fixture = inputs()
     created = writer.invoke(fixture["create"])
     edit = deepcopy(fixture["edit"])
     edit["input"]["expected_revision"] = created["revision"]
@@ -181,6 +231,7 @@ def test_terminal_proof_preserves_moved_independent_binding(project, monkeypatch
 
 
 def test_terminal_proof_rejects_replaced_dependent_owner(project, monkeypatch):
+    check_refusal_oracle("owner")
     tools, packet, _, _, _, predecessor, replacement = scenario(project)
 
     def replace():
@@ -188,8 +239,7 @@ def test_terminal_proof_rejects_replaced_dependent_owner(project, monkeypatch):
         replacement.ownership.acquire_worktree("T1")
 
     observed = pause_and_change(project, monkeypatch, tools, packet, replace)
-    assert isinstance(observed.get("refusal"), PoiseError)
-    assert str(observed["refusal"]).strip()
+    assert_relevant_refusal(observed, "owner")
     after = rows(tools.runtime)
     assert after == observed["after_change"]
     assert after[2] == {"predecessor": "T2", "replacement-owner": "T1"}
@@ -198,6 +248,8 @@ def test_terminal_proof_rejects_replaced_dependent_owner(project, monkeypatch):
 
 @pytest.mark.parametrize("drift", ["claimed", "status", "pending", "report", "independent"])
 def test_terminal_proof_rechecks_related_state(project, monkeypatch, drift):
+    if drift != "independent":
+        check_refusal_oracle(drift)
     tools, packet, result, _, _, _, _ = scenario(project)
 
     def inject_related_state():
@@ -230,8 +282,7 @@ def test_terminal_proof_rechecks_related_state(project, monkeypatch, drift):
         assert "refusal" not in observed
         assert observed["result"] == {**result, "replayed": True}
     else:
-        assert isinstance(observed.get("refusal"), PoiseError)
-        assert str(observed["refusal"]).strip()
+        assert_relevant_refusal(observed, drift)
     after = rows(tools.runtime)
     assert after == observed["after_change"]
     assert after[2] == {"predecessor": "T1", "replacement-owner": None}

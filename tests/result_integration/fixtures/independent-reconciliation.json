@@ -1,4 +1,55 @@
 {
+  "refusal_controls": {
+    "scope_patterns": [
+      "\\b(?:reconciliation|proof)\\b",
+      "\\b(?:terminal|ownership|worktree)\\b"
+    ],
+    "conflict_pattern": "\\b(?:changed|conflict|mismatch|stale|cannot|requires|does not match)\\b",
+    "generic_basis_pattern": "\\b(?:basis|snapshot|revision|version)\\b",
+    "generic_conflict_pattern": "\\b(?:changed|conflict|mismatch|stale)\\b",
+    "continuation_patterns": [
+      "\\b(?:repeat|retry|replay)\\b",
+      "\\b(?:saved|original)\\b",
+      "\\bintegrat(?:e|ion)\\b"
+    ],
+    "generic_intended": "Terminal ownership reconciliation basis changed; repeat the saved integrate request.",
+    "unrelated": "unrelated fixture initialization failed",
+    "contextual_unrelated": "Terminal ownership reconciliation fixture initialization failed; repeat the saved integrate request.",
+    "generic_unrelated": "Terminal ownership reconciliation snapshot cannot initialize fixture; repeat the saved integrate request.",
+    "unchanged_basis": "Terminal ownership reconciliation basis preserved; repeat the saved integrate request.",
+    "causes": {
+      "owner": {
+        "pattern": "\\b(?:owner|binding)\\b",
+        "intended": "Terminal ownership reconciliation owner changed; repeat the saved integrate request.",
+        "existing_style": "Terminal ownership reconciliation binding changed; replay the original integration request.",
+        "wrong_scenario": "Terminal ownership reconciliation task claim changed; repeat the saved integrate request."
+      },
+      "claimed": {
+        "pattern": "\\b(?:claim|claimed)\\b",
+        "intended": "Terminal ownership reconciliation task claim changed; repeat the saved integrate request.",
+        "existing_style": "Terminal ownership reconciliation cannot release a claimed Task; repeat the saved integrate request.",
+        "wrong_scenario": "Terminal ownership reconciliation task status changed; repeat the saved integrate request."
+      },
+      "status": {
+        "pattern": "\\b(?:status|completed)\\b",
+        "intended": "Terminal ownership reconciliation task status changed; repeat the saved integrate request.",
+        "existing_style": "Terminal ownership reconciliation requires an unclaimed completed Task; repeat the saved integrate request.",
+        "wrong_scenario": "Terminal ownership reconciliation pending publication changed; repeat the saved integrate request."
+      },
+      "pending": {
+        "pattern": "\\b(?:pending|publication|cleanup proof)\\b",
+        "intended": "Terminal ownership reconciliation pending publication changed; repeat the saved integrate request.",
+        "existing_style": "Cleanup proof changed during ownership reconciliation; repeat the saved integrate request.",
+        "wrong_scenario": "Terminal ownership reconciliation accepted result changed; repeat the saved integrate request."
+      },
+      "report": {
+        "pattern": "\\b(?:accepted result|accepted commit|report)\\b",
+        "intended": "Terminal ownership reconciliation accepted result changed; repeat the saved integrate request.",
+        "existing_style": "Terminal ownership proof does not match the accepted result; repeat the saved integrate request.",
+        "wrong_scenario": "Terminal ownership reconciliation owner changed; repeat the saved integrate request."
+      }
+    }
+  },
   "create": {
     "operation": "task",
     "input": {

@@ -216,7 +216,7 @@ def test_unrelated_task_edit_commits_during_terminal_proof(project, monkeypatch,
     assert replay == {**observed["result"], "replayed": True}
     assert rows(tools.runtime) == after
     # Exact edit retry keeps the already committed value and original revision.
-    assert writer.invoke(edit) == observed["change"]
+    assert writer.invoke(edit) == {**observed["change"], "replayed": True}
 
 
 def test_terminal_proof_preserves_moved_independent_binding(project, monkeypatch):

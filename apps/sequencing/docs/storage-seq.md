@@ -1,4 +1,4 @@
-# Хранилище Sequencing: формат 1
+# Хранилище Sequencing: формат 2
 
 ## Реализованная граница
 
@@ -7,8 +7,11 @@ Workspace roots и историю в собственной SQLite БД. Кан�
 от Requirements и сохраняется как строка. Содержимое Requirements и состояние
 этапов Execution остаются у своих владельцев.
 
-Текущий CLI записывает `register_task` и читает `query` с `kind: "task"`.
-Чтение уже собирает полное значение из таблиц формата 1. Команды изменения Sprint,
+Текущий CLI записывает `register_task`, `register_sprint` и читает `query` с
+`kind: "task"` либо `kind: "sprint"`. Текущий формат — 2. Зарегистрированная Task
+сохраняет ровно одну исходную ссылку: редакцию постановки либо опубликованного
+снимка Requirements. Независимая работа и работа в Sprint используют одну
+идентичность; membership задаётся явно. Последующее изменение Sprint,
 eligibility, claim/release/resume, физического Workspace и terminal/transfer
 остаются будущими возможностями [целевого контракта](contract-seq.md).
 [Конфигурация и запуск](shell-seq.md) используют прежние обязательные параметры;
@@ -19,7 +22,7 @@ eligibility, claim/release/resume, физического Workspace и terminal/
 | Таблица | Содержимое и основные ограничения |
 | --- | --- |
 | `meta` | Локальная revision владельца, ключ `revision` |
-| `tasks` | Канонический `task_id`, Requirements snapshot revision, state, terminal JSON |
+| `tasks` | Канонический `task_id`, ровно одна Requirements statement/snapshot revision, state, terminal JSON |
 | `requests` | Request ID и сохранённый replay receipt с прежним fingerprint |
 | `sprints` | Текущие revision и state Sprint |
 | `sprint_revisions` | История: составной ключ Sprint/revision, FK на Sprint |
@@ -31,7 +34,7 @@ eligibility, claim/release/resume, физического Workspace и terminal/
 | `workspace_bindings` | Одна session binding на Workspace, одна Workspace binding на session |
 | `sequencing_history` | Порядковый `seq`, ссылки на Task/Sprint/Workspace, actor, event, data и at |
 
-Requirements snapshot revision, текущая и историческая Sprint revision имеют
+Заполненная Requirements statement/snapshot revision, текущая и историческая Sprint revision имеют
 SQLite storage class `integer` и значение больше нуля. Position root имеет
 storage class `integer` и значение от нуля. Применяется обычная INTEGER affinity
 SQLite: значение, которое SQLite точно преобразует в целое, хранится как целое.
@@ -51,9 +54,10 @@ Workspace той же либо другой Task; каждая отдельна�
 ## Переход к формату 1
 
 Исторический владелец — `apps.sequencing.migrations.v1.migrate(connection)`.
-Он принимает SQLite connection с включённым `PRAGMA foreign_keys=ON` и без
-открытой транзакции вызывающей стороны. `Store.connect` выполняет эти условия
-перед каждой CLI операцией. Самостоятельный вызов возвращает `None`.
+Этот исторический шаг принимает SQLite connection с включённым
+`PRAGMA foreign_keys=ON` и без открытой транзакции вызывающей стороны.
+Самостоятельный вызов возвращает `None`. Текущий `Store.connect` выполняет шаг
+для источника версии 0, затем подготавливает текущий формат 2 следующим шагом.
 
 Поддержаны следующие исходные состояния:
 
@@ -95,10 +99,50 @@ Workspace той же либо другой Task; каждая отдельна�
 сохраняются. Литералы схемы и данных принадлежат историческому модулю; он
 самодостаточен относительно текущих моделей и конфигурации приложения.
 
+## Переход к формату 2
+
+Исторический владелец — `apps.sequencing.migrations.v2.migrate(connection)`.
+Вызов принимает действительное собственное хранилище формата 1, idle connection
+и включённые foreign keys. Формат 2 возвращается без изменения схемы и данных.
+`Store.connect` подготавливает свой connection и последовательно вызывает
+нужные исторические шаги; моделей и конфигурации приложения внутри миграций нет.
+
+Шаг 1 → 2 перестраивает только `tasks`. Существующий
+`requirements_snapshot_revision` сохраняется точно; новый
+`requirements_statement_revision` для этих строк содержит SQL NULL. Для новой
+ссылки на постановку заполнен statement-столбец, snapshot-столбец содержит NULL.
+CHECK требует ровно один заполненный столбец с положительным SQLite integer.
+Task ID, state и terminal JSON сохраняются. Остальные 11 таблиц, членство,
+зависимости, claims, Workspace, roots, bindings, история, owner revision и
+сохранённые bytes receipts остаются прежними. Номер постановки из номера снимка
+не вычисляется.
+
+Перед транзакцией миграция временно отключает foreign keys только на своём
+connection. Внутри `BEGIN IMMEDIATE` создаёт новую таблицу, переносит явные
+столбцы, удаляет прежнюю `tasks` и переименовывает замену в `tasks`. Исходная
+таблица перед переносом не переименовывается, поэтому имена ссылок дочерних
+таблиц сохраняются. Затем проверяются итоговые FK, последним записывается
+`user_version=2`, выполняется commit. Foreign keys включаются при выходе.
+
+Ошибка шага 1 → 2 откатывает его DDL и данные до исходного формата 1, закрывает
+транзакцию; CLI закрывает свой connection и возвращает обычный `reason`.
+Для источника версии 0 шаги 0 → 1 и 1 → 2 имеют отдельные commit: успешно
+созданный формат 1 остаётся после отказа следующего шага. Оператор устраняет
+указанную причину и повторяет обычную команду; последующий вызов продолжает
+с действительного промежуточного формата. Прямой вызов требует сначала
+завершить транзакцию вызывающей стороны и включить foreign keys.
+
+Миграция меняет собственную БД: физические рабочие деревья, файлы WIP и каталоги
+roots сохраняются. Проверки включают заполненный формат 1, реальные отказы SQLite
+после изменения схемы перед последним маркером, откат, закрытие connection и
+успешный повтор после удаления причины отказа.
+
 ## Текущее значение Task
 
-`query` возвращает `task_id`, `requirements_snapshot_revision`, `state`,
-`sprint_id`, `claim`, `workspace`, `terminal`. Membership берётся из
+`query` возвращает `task_id`, ровно одно поле `requirements_statement_revision`
+либо `requirements_snapshot_revision`, а также `state`, `sprint_id`, `claim`,
+`workspace`, `terminal`. Вид и номер ссылки совпадают с исходной регистрацией.
+Прежняя ссылка на снимок сохраняет прежнюю полную форму ответа. Membership берётся из
 `sprint_members`, claim — только active. Workspace выбирается из всех состояний,
 кроме `released`; при его отсутствии возвращается null.
 
@@ -109,6 +153,14 @@ Claim содержит `claim_id`, `task_id`, `claimant`, `status`. Workspace с
 равно первому code-root в этом порядке, либо null у зарезервированного Workspace
 без code-root. `owner_session_id` берётся из независимой Workspace binding,
 либо равен null. Terminal возвращается как сохранённое JSON значение, либо null.
+
+## Текущее значение Sprint
+
+Чтение возвращает `sprint_id`, `sprint_revision`, `members`, `dependencies`.
+Members отсортированы лексикографически; зависимости — по predecessor,
+successor, kind. Первая регистрация создаёт revision 1 и её запись в
+`sprint_revisions`. Новый пакет с тем же составом и рёбрами возвращает
+`changed: false`; порядок входных списков не меняет desired set.
 
 ## Правильный запуск на отдельном state
 
@@ -168,8 +220,8 @@ with tempfile.TemporaryDirectory(prefix='sequencing-guide-') as directory:
 
 ## Прямой вызов на поддержанном предшественнике
 
-Следующий пример из корня рабочей копии создаёт только временную SQLite БД
-с опубликованной исходной схемой. Независимые SQL значения показывают сохранение
+Следующий исторический пример вызывает только шаг 0 → 1, а не текущий CLI.
+Из корня рабочей копии он создаёт временную SQLite БД с опубликованной исходной схемой. Независимые SQL значения показывают сохранение
 Task, provenance, revision и receipt, затем повторный вызов.
 
 ```python
@@ -206,3 +258,7 @@ with tempfile.TemporaryDirectory(prefix='sequencing-precursor-guide-') as direct
 Проверки новых схем, заполненного формата 1, независимого ownership, полных
 CLI проекций, SQL типов/уникальностей/FK, частичного отказа и сохранности WIP
 находятся в [60 проверках хранилища](../tests/test_store_migration.py).
+[31 проверка регистрации](../tests/test_registration.py) дополнительно проверяет
+реальный Requirements producer, оба вида ссылок, членство, граф, повтор и
+переход к формату 2. Процедура работы по выданным ID находится в
+[руководстве CLI](shell-seq.md#регистрация-выданной-работы).

@@ -586,16 +586,25 @@ python examples/project_execution.py \
 
 ## Самостоятельное хранилище Sequencing
 
-`apps.sequencing.migrations.v1.migrate(connection)` владеет историческим переходом
-пустого либо поддержанного исходного хранилища к формату 1. Схема и семантика
-миграции заданы локальными литералами; текущие модели монолита ей не нужны.
-`apps.sequencing.shell.Store.connect` включает foreign keys и вызывает этот
-переход перед работой с собственным store. `Store.query` собирает Task reference,
-Sprint membership, active claim, текущий Workspace, упорядоченные roots,
-независимую Workspace binding и terminal value только из своих таблиц.
+`apps.sequencing.migrations.v1.migrate(connection)` владеет историческим шагом
+пустого либо поддержанного исходного хранилища к формату 1;
+`apps.sequencing.migrations.v2.migrate(connection)` — шагом 1 → 2 с точным
+сохранением прежних Snapshot references и отдельными Statement references.
+Каждый исторический модуль самодостаточен. Текущий `Store.connect` последовательно
+подготавливает собственную БД до формата 2. Каждый шаг имеет отдельную транзакцию.
 
-Публичные команды текущего CLI — `register_task` и Task query; изменение Sprint,
-claim и Workspace остаётся последующим срезом. Подробные предусловия, ограничения
-SQL, поведение отката и правильные примеры принадлежат
-[каноническому руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
+`apps.sequencing.domain.registration` владеет равенством происхождения и
+правилами первоначального графа Sprint. SQLite adapter
+`apps.sequencing.infrastructure.registration_store` читает и сохраняет факты
+в транзакции существующего `Store.apply`; он сам не фиксирует транзакцию.
+Requirements выдаёт канонический ID и сохраняет постановку/снимки; Sequencing
+сохраняет переданный ID и точный вид/номер ссылки. Execution сохраняет свой процесс.
+
+Текущий CLI выполняет `register_task`, `register_sprint` и Task/Sprint query.
+Independent и явное Sprint membership используют одну Task identity. `Store.query`
+собирает происхождение, членство, active claim, текущий Workspace, упорядоченные
+roots, независимую binding и terminal value только из своих таблиц. Изменение
+Sprint, eligibility, claim и физического Workspace остаётся последующим срезом.
+Подробные предусловия, ограничения SQL, пошаговый откат и правильные примеры
+принадлежат [руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
 запуск и рабочие параметры — [руководству CLI](../../apps/sequencing/docs/shell-seq.md).

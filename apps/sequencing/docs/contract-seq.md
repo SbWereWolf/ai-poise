@@ -2,12 +2,20 @@
 
 Статус: целевой публичный контракт самостоятельного Sequencing.
 
-Реализованный срез включает собственный CLI/config, хранилище формата 1,
-регистрацию ссылки Task и чтение полного текущего значения Task из своих таблиц.
-Его фактические процедуры описаны в [руководстве CLI](shell-seq.md) и
-[руководстве хранилища](storage-seq.md). Последующие разделы задают также будущие
-команды Sprint, eligibility, claims, Workspace, terminal и transfer; наличие их
-описания не означает наличия соответствующей команды в текущем CLI.
+Реализованный срез включает собственный CLI/config, хранилище формата 2,
+`register_task`, `register_sprint` и чтение полного текущего значения Task/Sprint.
+Процедуры описаны в [руководстве CLI](shell-seq.md) и
+[руководстве хранилища](storage-seq.md). Независимая работа — Task вне Sprint;
+Sprint использует ту же выданную identity с явно зарегистрированным membership.
+
+Текущий отказ CLI содержит `schema`, `status: "rejected"`, строку `reason` и
+exit 2. Обычные смысловые конфликты используют `identity_conflict`,
+`already_exists`, `dependency_conflict`, `request_reuse_conflict`,
+`revision_conflict`; диагностика формы и типов содержит причину.
+Последующие разделы описывают также целевые команды revise, eligibility, claims,
+Workspace, terminal и transfer, а также расширенный профиль структурированных
+ошибок. Этот целевой профиль и будущие команды не заявлены как реализованные
+нынешним CLI. Правила уже доступных вариантов уточнены ниже.
 
 ## 1. Граница владельца
 
@@ -111,7 +119,7 @@ Receipt exact replay — исторический результат, а не с
 
 | kind | Дополнительные поля результата |
 | --- | --- |
-| `register_task` | `task_id`, `requirements_snapshot_revision` |
+| `register_task` | `task_id` и ровно одно из `requirements_statement_revision`, `requirements_snapshot_revision` |
 | `register_sprint`, `revise_sprint` | `sprint_id`, `sprint_revision` |
 | `claim_task`, `resume_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed` |
 | `release_claim` | `task_id`, `claim_id`, `handoff_id` |
@@ -161,7 +169,14 @@ Requirements/Execution DB и не знает их config. Repository/worktree pa
 
 `task_id` — foreign canonical identity, уже выданная Requirements. Sequencing проверяет
 синтаксическую допустимость/уникальность, но не меняет namespace/width и не выделяет новый ID.
-`requirements_snapshot_revision` — explicit provenance reference; Sequencing не копирует
+Ссылка содержит ровно один вид происхождения: `requirements_statement_revision`
+для текущей постановки либо `requirements_snapshot_revision` для опубликованного
+снимка. Оба номера — положительные integer; они принадлежат разным счётчикам.
+Для StatementRef в показанной форме вместо snapshot-поля возвращается только
+statement-поле с переданной редакцией. Requirements выдаёт ID и statement revision
+уже для постановки только с целью, с `snapshot_revision: null`; такая работа
+регистрируется до публикации снимка. Caller передаёт фактически выбранный вид и
+номер ссылки. Sequencing сохраняет исходную ссылку неизменной и не копирует
 Requirements statement как второй canonical store.
 
 Sequencing task state v1:
@@ -342,9 +357,19 @@ ID с другим payload получает `request_reuse_conflict`.
 }
 ```
 
-Создаёт только Sequencing record. Не пишет Requirements/Execution, не создаёт claim,
-Workspace или Sprint membership. Exact already-present identity с теми же immutable refs
-возвращает `changed: false`; conflicting canonical provenance — `identity_conflict`.
+Для постановки до публикации снимка вместо `requirements_snapshot_revision`
+передаётся ровно одно поле `requirements_statement_revision` с фактической
+положительной редакцией постановки. Goal-only постановка уже пригодна для такой
+регистрации. ID передаётся точно, включая ведущие нули; configured identifier policy
+согласуется с политикой выдачи Requirements.
+
+Создаёт только Sequencing record. Requirements сохраняет постановку, Execution —
+свой процесс; регистрация этих объектов не создаёт. Новая Task доступна как
+Independent вне Sprint. Повтор с тем же видом и номером ссылки даёт
+`changed: false`; другой вид или номер — `identity_conflict`. Имеющееся членство
+в Sprint при таком повторе сохраняется. Для нового успешного outer request
+owner revision увеличивается и при `changed: false`; точный повтор исходного
+outer request возвращает сохранённый receipt и revision с `replayed: true`.
 
 ### 5.2 `register_sprint`
 
@@ -360,9 +385,20 @@ Workspace или Sprint membership. Exact already-present identity с теми �
 }
 ```
 
-Все members уже зарегистрированы Sequencing. Operation задаёт полный desired membership и
-dependency graph новой Sprint identity. Existing Sprint изменяется только через
-`revise_sprint`; implicit replace запрещён.
+Все members уже зарегистрированы Sequencing, в том числе предыдущими operations
+того же атомарного пакета. Operation задаёт полный desired membership и dependency
+graph новой Sprint identity. Одна Task входит в один Sprint; другая одновременно
+может оставаться Independent. Первая регистрация создаёт `sprint_revision: 1`
+и её историю. Members и dependencies сравниваются как упорядоченные канонические
+множества: новый outer request с тем же составом и рёбрами даёт `changed: false`.
+Чтение сортирует members лексикографически, рёбра — по predecessor/successor/kind.
+
+Другой состав или граф под существующим Sprint ID даёт `already_exists`.
+Ссылка на незарегистрированную Task, чужое членство, ребро вне состава,
+повтор направленной пары или цикл дают `dependency_conflict`. Несколько корней
+и пустой список рёбер допустимы при первоначальной регистрации. Отказ откатывает
+весь пакет, включая предшествующую регистрацию Task, revision и receipt.
+Последующее изменение существующего Sprint относится к целевому `revise_sprint`.
 
 ### 5.3 `revise_sprint`
 

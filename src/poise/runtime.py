@@ -1141,6 +1141,8 @@ class Poise:
         selected = self.task_queries.record(selected_id) if selected_id is not None else self.store.current(self.session)
         if selected is not None and is_terminal_task_status(selected['status']):
             return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        if preparation_request_id is not None and self.cfg.get('worktree_preparation') is None:
+            raise PoiseError('worktree_preparation is not configured for this project')
         with self.delivery_effects.locked():
             if selected is not None:
                 self.delivery_tools.material_admission(selected['id'], 'bootstrap')
@@ -1150,8 +1152,6 @@ class Poise:
     def _prepare_worktree(self, result, request_id):
         configured = self.cfg.get('worktree_preparation')
         if configured is None:
-            if request_id is not None:
-                raise PoiseError('worktree_preparation is not configured for this project')
             return result
         task = self.store.current(self.session)
         if (task is None or task['status'] == 'newborn' or is_terminal_task_status(task['status'])

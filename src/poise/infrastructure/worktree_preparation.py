@@ -60,8 +60,8 @@ class PreparationConfiguration:
 
 
 class CapturedCommands:
-    def __init__(self, executor, material, publish):
-        self.executor, self.material, self.publish = executor, material, publish
+    def __init__(self, executor, material, capture):
+        self.executor, self.material, self.capture = executor, material, capture
         self.commands = []
         self.sequence = 0
 
@@ -71,12 +71,8 @@ class CapturedCommands:
         self.sequence += 1
         command = {'name': name, 'argv': list(process.args), 'cwd': str(self.executor.cwd),
                    'returncode': process.returncode}
-        for stream in ('stdout', 'stderr'):
-            raw = getattr(process, stream)
-            record = self.publish(self.material, f'commands/{number}.{stream}', raw)
-            command[stream + '_path'] = record['path']
-            command[stream + '_sha256'] = record['sha256']
         self.commands.append(command)
+        self.capture(self.material, number, process, command)
         return process
 
 
@@ -104,6 +100,45 @@ class FilePreparationEffects:
             self.runtime.register_artifact_paths(paths, self.task)
             material['materials'].append(record)
         return record
+
+    def _command_directory(self, report):
+        prefix = self.factory.config['artifact_directories']['task']
+        return self.factory.observe_directory(
+            'task', f"{prefix}/worktree-preparation/{report['attempt_id']}/commands")
+
+    def _capture_command(self, material, number, process, command):
+        directory = self._command_directory(material['report'])
+        for stream in ('stdout', 'stderr'):
+            raw = getattr(process, stream)
+            atomic_write(directory / f'{number}.{stream}.pending', raw,
+                         self.runtime.cfg['batch']['file_mode'])
+            record = {'path': str(directory / f'{number}.{stream}'), 'sha256': checksum(raw)}
+            command[stream + '_path'] = record['path']
+            command[stream + '_sha256'] = record['sha256']
+            material['materials'].append(record)
+        self._publish_command_streams(material['report'], [(number, command)])
+
+    def _publish_command_streams(self, report, numbered_commands):
+        registered = {(item['path'], item['digest'])
+                      for item in self.runtime.store.artifact_records(self.task['id'])
+                      if item['scope'] == 'task' and item['owner'] == self.task['id']}
+        directory = self._command_directory(report)
+        items = []
+        for number, command in numbered_commands:
+            for stream in ('stdout', 'stderr'):
+                path, digest = command[stream + '_path'], command[stream + '_sha256']
+                if (path, digest) in registered:
+                    continue
+                if path != str(directory / f'{number}.{stream}'):
+                    raise PoiseError('Публикация потока не соответствует исходной команде')
+                items.append({'scope': 'task',
+                    'path': f"worktree-preparation/{report['attempt_id']}/commands/{number}.{stream}",
+                    'source': {'kind': 'file', 'path': str(directory / f'{number}.{stream}.pending'),
+                               'digest': digest}})
+        if items:
+            prepared = self.factory.prepare(items)
+            paths = self.factory.materialize(prepared)
+            self.runtime.register_artifact_paths(paths, self.task)
 
     @staticmethod
     def _failure(material, exc):
@@ -148,7 +183,7 @@ class FilePreparationEffects:
             return
         selected = material['selected']
         captured = CapturedCommands(CommandExecutor(selected['commands'], [], Path(material['report']['worktree'])),
-                                    material, self._publish)
+                                    material, self._capture_command)
         try:
             handler = load_handler(selected['handler'])
             for name in selected['operations']:
@@ -190,12 +225,15 @@ class FilePreparationEffects:
         pending = directory / 'capture.pending.json'
         try:
             raw = pending.read_bytes()
-            body = self._read_capture(raw)
+            body = self._capture_body(raw)
             report = body['report']
             expected = {**attempt.coordinates, 'attempt_id': attempt.attempt_id,
                         'request_id': attempt.request_id}
             if any(report[key] != value for key, value in expected.items()):
                 raise PoiseError('Полный результат относится к другой попытке подготовки')
+            self._publish_command_streams(report, enumerate(
+                command for operation in report['operations'] for command in operation['commands']))
+            self._read_capture(raw)
             return self._publish_source({'report': report, 'materials': []},
                                         'capture.json', pending, checksum(raw))
         except Exception as exc:
@@ -206,9 +244,13 @@ class FilePreparationEffects:
         raw = Path(capture['path']).read_bytes()
         if checksum(raw) != capture['sha256']:
             raise PoiseError('Подтверждение результата подготовки: изменён capture')
+        body = self._capture_body(raw)
+        self._publish_command_streams(body['report'], enumerate(
+            command for operation in body['report']['operations'] for command in operation['commands']))
         return self._read_capture(raw)['report']
 
-    def _read_capture(self, raw):
+    @staticmethod
+    def _capture_body(raw):
         body = json.loads(raw)
         if body['schema'] != 'poise/worktree-preparation-capture/v1':
             raise PoiseError('Неизвестный сохранённый capture подготовки')
@@ -226,6 +268,11 @@ class FilePreparationEffects:
         materials = {(item['path'], item['sha256']) for item in body['materials']}
         if any(reference not in materials for reference in references):
             raise PoiseError('Полный capture подготовки не содержит обязательные материалы')
+        return body
+
+    def _read_capture(self, raw):
+        body = self._capture_body(raw)
+        materials = {(item['path'], item['sha256']) for item in body['materials']}
         registered = {(item['path'], item['digest'])
                       for item in self.runtime.store.artifact_records(self.task['id'])
                       if item['scope'] == 'task' and item['owner'] == self.task['id']}

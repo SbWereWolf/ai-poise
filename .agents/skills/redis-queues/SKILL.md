@@ -21,4 +21,4 @@ Work that actually uses Redis or a queue: affected message/use case, schema/vers
 
 ## Output
 
-The actual delivery/idempotency/lock contract, focused positive/failure/concurrency observations, forbidden-effect assertions and remaining environment assumptions in existing Poise Task/evidence owners. Public handoff retains incomplete results honestly; no additional infrastructure or deployment authority is implied.
+The actual delivery/idempotency/lock contract, focused positive/failure/concurrency observations, forbidden-effect assertions and remaining environment assumptions in existing Poise Task/evidence owners. Ordinary public release retains incomplete results honestly; no additional infrastructure or deployment authority is implied.

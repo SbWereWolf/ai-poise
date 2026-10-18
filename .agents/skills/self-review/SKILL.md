@@ -21,7 +21,7 @@ The current role's result, requirements/DoD, all Task-related diff, applicable l
 5. During remediation, map every correction to its original finding and criterion; confirm tests were not weakened and the targeted plus fast smoke checks describe the current revision.
 6. As reviewer, inspect your own findings for a confirmed obligation, reproducible condition/consequence, source accuracy, evidence, severity, correction criterion and false-positive risk. A preference is not a defect.
 7. Resolve in-scope self-review defects before handoff. Otherwise preserve an explicit blocker/limitation rather than a success assertion. Use [checkpoint guidance](../../references/self-review-gates.md) only for the active work.
-8. Save a compact scope/findings/fixes/evidence/limitations result in existing Task sections and artifacts with the current `verify` packet. Follow [public handoff](../../../docs/workflows/local-handoff.md#передача-между-исполнителем-и-ревьюером) when the route reaches a role boundary; no separate report registry or per-item calls are needed.
+8. Save a compact scope/findings/fixes/evidence/limitations result in existing Task sections and artifacts with the current `verify` packet. Follow [ordinary public release](../../../docs/workflows/local-handoff.md#передача-между-исполнителем-и-ревьюером) when the route reaches a role boundary; no separate report registry or per-item calls are needed.
 
 ## Output
 

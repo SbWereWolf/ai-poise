@@ -24,4 +24,4 @@ Current Poise Task/stage/scope and release authorization, exact candidate source
 
 ## Output
 
-Exact candidate identity, required-gate coverage, fresh check and immutable evidence references, failure/skip/exception details, remaining risks and an explicit ready/not-ready/unproven assessment. Transfer through public handoff. No deployment, publication, Task acceptance, independent review or automatic routing is implied by this skill or its report.
+Exact candidate identity, required-gate coverage, fresh check and immutable evidence references, failure/skip/exception details, remaining risks and an explicit ready/not-ready/unproven assessment. Transfer through ordinary public release. No deployment, publication, Task acceptance, independent review or automatic routing is implied by this skill or its report.

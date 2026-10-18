@@ -21,4 +21,4 @@ The intended style/behavior, actual installed Tailwind version, CSS entry point,
 
 ## Output
 
-Changed styles/components and ownership, actual version/build/browser inputs, confirmed gap reason if custom CSS is used, class-discovery/rendered-state evidence and focused check results in existing Poise Task/evidence owners. Report target-browser/build checks not run. Public handoff and skill discovery are not automatic routing or publication authority.
+Changed styles/components and ownership, actual version/build/browser inputs, confirmed gap reason if custom CSS is used, class-discovery/rendered-state evidence and focused check results in existing Poise Task/evidence owners. Report target-browser/build checks not run. Ordinary public release and skill discovery are not automatic routing or publication authority.

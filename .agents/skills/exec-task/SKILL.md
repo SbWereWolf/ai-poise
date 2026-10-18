@@ -96,7 +96,7 @@ current Task graph; existing frozen snapshots need their own authorized migratio
    availability and own
    checks; reuse_verified still needs explicitly authorized accept. Keep the original packet on
    retry or handoff resume;
-   the preserved native handoff bundle is validated before reacquisition. A completed replay is
+   the saved result provenance is validated before reacquisition in the same working area. A completed replay is
    historical, not a new
    run. Reuse delivers accepted permanent Task/Sprint files through the existing artifact owner with
    new local identities,

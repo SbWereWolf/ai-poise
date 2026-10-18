@@ -140,8 +140,7 @@ state/runtime/config-путей. Рабочие конфиги не помеща
 | `task_not_terminal` | Завершить либо санкционированно отменить Task |
 | `integration_required`, `resource_cleanup_pending` | Завершить разрешённую интеграцию либо cleanup с явной судьбой коммитов |
 | `checks_pending`, `external_operation_pending` | Разрешить исходную незавершённую внешнюю операцию |
-| `artifact_draft_open`, `handoff_pending`, `artifact_consumer_pending` | Закрыть исходный draft/передачу/потребителя через его API |
-| `transfer_pending` | Продолжить исходный export с теми же actor/request до независимого пакета |
+| `artifact_draft_open`, `artifact_consumer_pending` | Закрыть исходный draft/потребителя через его API |
 | `source_integrity_failed` | Восстановить согласованный исходник до начала удаления |
 | `destination_unavailable`, `destination_conflict` | Восстановить согласованное назначение/доступ/ignore-контракт, не перезаписывая чужие байты |
 | `customer_acknowledgement_required`, `customer_acknowledgement_invalid` | Получить действительное подтверждение и согласованные полученные байты |
@@ -226,6 +225,6 @@ Lifecycle Task, ресурсный cleanup, интеграция, export и пу
 исполнения. Финальная проверка версии и владельца выполняется в той же
 DB-транзакции, что и запись согласования в журнал.
 
-Checkpoint, экспорт или handoff не являются неявным бессрочным резервом папки
+Checkpoint или прежние исторические экспорт/handoff не являются неявным бессрочным резервом папки
 Task. Если архив нужен как самостоятельный результат, его назначение согласуется
 и подтверждается до удаления; локально архив без отдельного поручения не создаётся.

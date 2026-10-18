@@ -21,4 +21,4 @@ The accepted language/design change, observable behavior, actual supported PHP v
 
 ## Output
 
-The scoped PHP change and placement rationale, supported-version assumptions, exact independent tests/fixtures, actual commands/source/runtime identity and focused results in existing Poise Task/evidence owners. State unresolved target environment checks honestly, then public handoff; self-review is not independent review or acceptance.
+The scoped PHP change and placement rationale, supported-version assumptions, exact independent tests/fixtures, actual commands/source/runtime identity and focused results in existing Poise Task/evidence owners. State unresolved target environment checks honestly, then ordinary public release; self-review is not independent review or acceptance.

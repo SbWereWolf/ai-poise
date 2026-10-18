@@ -84,15 +84,15 @@ preflight, liveness и повторную проверку в UoW. SQLite adapte
 Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
 
 Workflow snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork
-и handoff компонуют API владельца, не реализуют отдельные алгоритмы захвата. Native hook
+компонуют API владельца, не реализуют отдельные алгоритмы захвата. Native hook
 registry предоставляет подтверждённые события liveness: `SessionEnd` означает DEAD,
 незавершённая наблюдаемая сессия — LIVE, недостающая запись — UNCERTAIN. Runtime без
 наблюдателя не получает скрытого разрешения на перехват. Сами claims не выполняют Git,
 filesystem cleanup, chdir или смену launch root.
 
 Для Task без worktree runtime использует настроенный repository как среду проверок,
-сохраняет закреплённую базу и результат без ветки. Handoff receipt имеет null worktree
-и bundle; resume проверяет сохранённые факты, не создаёт искусственное дерево.
+сохраняет закреплённую базу и результат без ветки. Обычное освобождение не создаёт
+worktree или bundle; bootstrap читает сохранённые факты, не создаёт искусственное дерево.
 Accounting не измеряет несуществующий Git delta, но продолжает измерять объявленные
 полезные секции относительно их baseline. Это не изменение Clock или полноты телеметрии.
 
@@ -371,13 +371,10 @@ lifecycle у
 остаётся единым
 прикладным входом. CLI `runtime` только получает packet, вызывает adapter и общий presenter.
 
-RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands меняет жизненный цикл только через
-Task API и UoW.
-LocalHandoff — инфраструктурная последовательность Git/files с receipts; session release согласован
-с Task и receipt в
-одной короткой транзакции. Sprint читает подтверждённое release через Repository и вычисляет
-resumable как часть
-собственного overview.
+RuntimeRegistry владеет binding/cursor, не Task. OwnershipCommands.release проверяет
+собственный claim и expected_version, закрывает accounting cycle и снимает зависимое владение
+в одной UoW с receipt. Существующий WIP остаётся на месте; Git/files transport удалён.
+Sprint вычисляет доступность участников через существующий repository/overview.
 
 Парсер не исполняет исходную команду повторно и не записывает бизнес-таблицы. Async worker создаёт
 лишь представления;
@@ -387,21 +384,17 @@ Task verdict и Incident имеют разные источники. Разде�
 
 
 ## DDD-07B — scoped Transfer
-Обновлено: **2026-09-07T00:25:38+05:00**. Transfer владеет протоколом пакета, выбором владельцев,
-локальными receipts и
-location mapping. Он не выбирает следующий этап и не подтверждает evidence. Application
-TransferCommands зависит от
-порта, не SQLite/файлов. Rehydration существующего same-schema snapshot проходит через специальные
-Task/Sprint
-repository методы и валидируется существующей доменной моделью. Совпадающие owner IDs не
-перезаписываются. Короткая
-транзакция публикует весь выбранный набор, внешние файлы/Git подготавливаются заранее.
 
-Тексты секций и исходные evidence неизменны; machine paths читаются через location adapter. Artifact
-ID основан на
-owner-relative location и переживает перенос. Runtime sessions/cursors источника не переносятся.
-Подробно:
-[transfer](../workflows/transfer.md) и [библиотечный API](library-api.md).
+Scoped transport удалён: нет текущих TransferCommands, snapshot export/import или
+копирования рабочей области при смене участника. Обычный ownership owner освобождает
+свой Task и зависимый binding в одной UoW, сохраняя существующие WIP и историю;
+получатель захватывает ту же область через bootstrap.
+
+`CheckConfigurationSystems` владеет явным необязательным `check_runner.systems`,
+а material-location owner разрешает механические пути исторических receipts.
+Он не переписывает содержательный текст/argv и не создаёт новый перенос.
+Постоянная доставка, интеграция и TaskCleanup сохраняют отдельные полномочия.
+[Протокол смены участника](../workflows/local-handoff.md#пакет).
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
 - `modules/capabilities` и `modules/hook_transport`: pure contracts; нет subprocess, времени и
@@ -598,9 +591,9 @@ entry gate сохраняет цель для correction/restart, но не ме
 роли `advance` возвращает `user_acceptance_required`, а этап открывается только отдельным
 публичным решением пользователя.
 
-Граница `executor`/`reviewer` выводится только из handler сохранённого route: `inspect` принадлежит
-reviewer, остальные семейства — executor. Переход через неё разрешён лишь после public handoff,
-release и bootstrap другой сессии; операция не отправляет сообщение и не исполняет работу этапа.
+Граница участников определяется явными `role` сохранённого workflow, а не handler.
+При разных ролях сохраняют результат, выполняют обычный release и bootstrap другой
+сессии с проверкой происхождения. Advance не отправляет сообщение и не исполняет работу этапа.
 
 ## DDD-10 — интеграция принятого результата
 

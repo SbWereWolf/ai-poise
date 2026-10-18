@@ -138,7 +138,7 @@ smoke и смежные Task/verification проверки прошли на з�
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
-точные проверки и Git, runtime/JSONL/парсеры/handoff/scoped transfer, локальные hooks/probes,
+точные проверки и Git, runtime/JSONL/парсеры, обычное освобождение и продолжение в той же области, локальные hooks/probes,
 accounting — сохранены. Текущие утверждения проверяются профильными тестами репозитория;
 числа из удалённых исторических отчётов не считаются актуальной регрессией.
 
@@ -222,7 +222,7 @@ integration.
 `target_stage`. Она сохраняет цель в Task journal, использует обычные route transitions и
 останавливается на работе этапа, entry gate, границе executor/reviewer либо достигнутой цели.
 Точный replay после workflow loss, correction, restart и handoff продолжает тот же intent;
-изменение цели конфликтует. Переход роли требует public handoff и bootstrap другой сессии.
+изменение цели конфликтует. Переход роли требует сохранения результата, обычного release и bootstrap другой сессии.
 Обычные переходы пишут `stage_progressed` без `user_accept*` и сохраняют report как `verified`;
 перед `publish` возвращается `user_acceptance_required` до отдельного решения пользователя.
 

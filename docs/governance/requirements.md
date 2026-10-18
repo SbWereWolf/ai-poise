@@ -142,7 +142,7 @@ Session key строится адаптером из runtime kind + external ses
 
 ### HR-032. Bootstrap одним пакетом
 
-Bootstrap получает выбранный project/config, необязательный task/sprint scope и explicit instruction binding/intent. Без scope существующая formal work возвращается, иначе ad-hoc. Task bootstrap/resume создаёт binding/claim, проверяет creation/prerequisites/worktree/capabilities и выдаёт текущие layers и прямой контракт пакетного результата, без обязательной ручной правки result file. Sprint bootstrap сразу вычисляет весь eligible set и blockers; выбор задачи агентом возвращает её capsule в том же start-вызове. Отдельные next/status/refresh не требуются. После binding task ID не требуется для verify/show/handoff/discard. Факт пользовательского сообщения учитывается в этом же входе при наличии configured источника, без отдельного call. Stale mutation не применяется и возвращает свежий контекст в том же ответе.
+Bootstrap получает выбранный project/config, необязательный task/sprint scope и explicit instruction binding/intent. Без scope существующая formal work возвращается, иначе ad-hoc. Task bootstrap/resume создаёт binding/claim, проверяет creation/prerequisites/worktree/capabilities и выдаёт текущие layers и прямой контракт пакетного результата, без обязательной ручной правки result file. Sprint bootstrap сразу вычисляет весь eligible set и blockers; выбор задачи агентом возвращает её capsule в том же start-вызове. Отдельные next/status/refresh не требуются. После binding task ID не требуется для verify/show; обычный release явно называет Task и её expected_version. Факт пользовательского сообщения учитывается в этом же входе при наличии configured источника, без отдельного call. Stale mutation не применяется и возвращает свежий контекст в том же ответе.
 
 <a id="HR-033"></a>
 
@@ -166,7 +166,13 @@ Standalone formal task имеет sprint=None явно, собственный r
 
 ### HR-036. Handoff и discard
 
-Начало другой formal task допускается только после завершения, successful handoff либо safe discard текущей. Handoff сохраняет workflow position, WIP/verified vector, sections/findings/decisions/evidence и обязательный backup, затем освобождает claim. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.
+Уточнение действующего договора: смена участника — сохранение результата через его
+владельца, обычный release и bootstrap той же Task в существующей рабочей области.
+Scoped handoff/transfer API и обязательное создание bundle удалены. Локальный архив
+требует отдельного поручения; облачные условия резервирования сохраняют свой договор.
+Освобождение не удаляет dirty WIP; terminal cleanup имеет отдельный допуск.
+
+Начало другой formal task допускается только после завершения, successful handoff либо safe discard текущей. Смена участника сохраняет workflow position, WIP/verified vector, sections/findings/decisions/evidence в той же рабочей области и освобождает claim обычным release. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.
 
 <a id="HR-037"></a>
 
@@ -190,7 +196,7 @@ Standalone formal task имеет sprint=None явно, собственный r
 продолжение обеих ролей: прежнее требование новой команды для каждого reviewer-этапа
 заменено [канонической политикой ролей](development-rules.md#роли-этапов-и-непрерывность-поручения).
 Отдельный проверяющий получает работу лишь после публичного освобождения и bootstrap.
-Существующие Task guards, handoff, terminal cleanup (0048) и result integration (0057)
+Существующие Task guards, обычное освобождение, terminal cleanup (0048) и result integration (0057)
 переиспользуются, не являются новой функциональностью 0076 и не получают дополнительной
 авторизации из операции владения. Исполнимый контракт и ограничения:
 [правила владения](development-rules.md#владение-task-и-worktree).
@@ -362,25 +368,45 @@ Operational journal — append-only файлы на выделенном configu
 
 ### HR-071. Crash на границах и atomic receipts
 
-Bootstrap/verify/handoff/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Workflow/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.
+Bootstrap/verify/release/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Workflow/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.
 
 <a id="HR-072"></a>
 
 ### HR-072. Два точных режима transfer
 
-Transfer сохраняет привычный комплект SQLite DB+owner files+integrity manifest. Whole-store restore разрешён только в пустой/эксклюзивно передаваемый store с exact expected generation; не заменяет живую расходящуюся БД. Owner-scoped handoff/export выбранных task переносит SQLite subset той же schema с immutable origin IDs, exact owner base revision, full task closure и readonly pinned sprint/prerequisite references. Destination под внешним lock применяет только owners, не изменившиеся от declared base; независимые изменения B сохраняются при импорте A. Никакого semantic merge одного owner, schema migration или last-writer-wins. Новые immutable events дедуплицируются по origin ID; derived sprint counts/eligibility пересчитываются. Изменение общей sprint topology требует отдельного owner revision match, не перезаписывается task package. Активная работа передаваемого owner прекращена; другие tasks могут работать.
+Уточнение 2026-10-18: owner-scoped handoff/export/import выбранных Task удалён.
+Участники продолжают одну Task в существующей рабочей области через обычный release
+и bootstrap. История и WIP сохраняются на месте; semantic merge разных Task stores
+и транспортная копия не являются способом смены участника.
+
+Отдельно разрешённые whole-store backup/restore и перемещение project state сохраняют
+собственных владельцев, допуски и проверки целостности. Они не запускаются от обычного
+release и не получают права заменять живую расходящуюся БД.
 
 <a id="HR-073"></a>
 
 ### HR-073. Согласованный snapshot DB и artifacts
 
-Перед export под коротким внешним lock фиксируются consistent SQLite snapshot поддержанным backup методом, owner revisions и pinned список immutable artifact digests. Длинное копирование выполняется после release lock; retention не удаляет pinned файлы. Manifest содержит exact schema/release/config identities, owner bases/results, file sizes/digests, closure refs и package digest. Package ready только после проверки полного набора. Import сначала валидирует schema/closure/digests и разрешённые реальные пути в staging, затем публикует файлы и одной DB transaction применяет records. Failure до transaction оставляет лишь очищаемые unreferenced artifacts, не полуприменённую задачу. Повтор receipt не применяет пакет второй раз.
+Согласованность БД и объявленных файлов проверяется владельцем отдельно разрешённого
+backup/restore либо state relocation: явный набор, generation, schema, digests и
+проверка результата. Неизвестный или частичный исход сохраняется как таковой.
+Смена участника не создаёт snapshot и не импортирует owner records: обычный release
+сохраняет текущую Task и её материалы в прежней области. Прежний scoped transport
+protocol не является текущим API или обязательной процедурой выполнения.
 
 <a id="HR-074"></a>
 
 ### HR-074. Git objects и внешний backup
 
-DB+files сохраняют business state, но для checkout нужны сами Git objects. Handoff предоставляет exact commit vector в проверенно доступном remote либо Git bundle с требуемой closure; одного SHA недостаточно. Ignored secret inputs передаются отдельным явным каналом и не попадают в общий backup. Gmail transport получает только разрешённый package или подтверждённые ссылки; upload/send/read receipt и limits определены adapter profile. Error backup не удаляет canonical state и не фальсифицирует delivery. Receipt, digest и source revisions сохраняются в task/sprint data. Никакой распределённой синхронизации SQLite через Gmail.
+В отдельно согласованном backup одних commit IDs недостаточно: выбранный владелец
+проверяет доступность требуемых Git objects и полный фактический результат доставки.
+Секретные inputs не попадают в общий пакет без явного разрешения. Ошибка backup
+сохраняет исходные данные и честный outcome; Gmail не синхронизирует рабочую SQLite.
+
+Обычная смена участника использует существующий checkout и объекты той же Task;
+она не создаёт bundle, remote publication или почтовую отправку. Локальная разработка
+не требует архива без отдельного поручения; облачные условия сохранения действуют
+только в своей области применения.
 
 ## 09. Метрики результата и стоимости
 
@@ -1191,7 +1217,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -1886,7 +1912,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -2314,7 +2340,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Список EvidenceProposal для назначенных PREPARE logical_argument/inspection методов. Обязательные id, method_ref, obligation_refs, subject_ref, claim, facts с source_ref, assumptions, inference_summary, conclusion, source_refs. Пустой список явно разрешён только при отсутствии таких обязанностей; reviewer verdict и execution observations не поля агента. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -2667,7 +2693,7 @@ Negative product verdict не даёт cancelled verification. По каждой
 | finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -2889,7 +2915,7 @@ Solution rationale не inline в независимом inspection; досту�
 | finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -3326,7 +3352,7 @@ Solution rationale не inline в независимом inspection; досту�
 | finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -3637,7 +3663,7 @@ Solution rationale не inline в независимом inspection; досту�
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -4033,7 +4059,7 @@ Solution rationale не inline в независимом inspection; досту�
 | finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -4426,7 +4452,7 @@ Solution rationale не inline в независимом inspection; досту�
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -4861,7 +4887,7 @@ User-executed instruction фиксируется как external action и по�
 | decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -5252,7 +5278,7 @@ User-executed instruction фиксируется как external action и по�
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -5770,7 +5796,7 @@ User-executed instruction фиксируется как external action и по�
 | decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
@@ -6327,7 +6353,7 @@ User-executed instruction фиксируется как external action и по�
 | decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
 | user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
+| Смена участника | Сохранённые stage/iteration/submission, результат, WIP и findings/evidence в той же области; обычный release receipt и следующий bootstrap. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |

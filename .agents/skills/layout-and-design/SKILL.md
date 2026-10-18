@@ -22,4 +22,4 @@ The user goal and sequence/frequency, accepted states and observable outcome, er
 
 ## Output
 
-Scenario/state/structure decisions, focused component responsibilities and integration obligations, exact changed markup/style/behavior evidence, accessibility risks and remaining limits in existing Poise content/evidence owners. Public handoff preserves these decisions; it does not authorize unrelated implementation or deployment.
+Scenario/state/structure decisions, focused component responsibilities and integration obligations, exact changed markup/style/behavior evidence, accessibility risks and remaining limits in existing Poise content/evidence owners. Ordinary public release preserves these decisions; it does not authorize unrelated implementation or deployment.

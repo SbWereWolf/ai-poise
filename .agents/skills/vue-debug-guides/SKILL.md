@@ -421,4 +421,4 @@ References are source-bound diagnostic patterns, not universal executable guaran
 
 ## Output
 
-Symptom, exact runtime/build identity, hypothesis and discriminating reproduction, changed boundary, cleanup and actual targeted/smoke/browser results in existing Poise Task content/evidence. Public handoff preserves remaining uncertainty; a diagnostic library is not automatic Poise routing, independent review or permission for unrelated changes.
+Symptom, exact runtime/build identity, hypothesis and discriminating reproduction, changed boundary, cleanup and actual targeted/smoke/browser results in existing Poise Task content/evidence. Ordinary public release preserves remaining uncertainty; a diagnostic library is not automatic Poise routing, independent review or permission for unrelated changes.

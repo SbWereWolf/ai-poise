@@ -21,4 +21,4 @@ The affected application/use case, actual installed Laravel/PHP version and stac
 
 ## Output
 
-The explicit application/interface/DI/transaction decisions, actual version/runtime, selected specialist rationale, changed code and focused evidence in current Poise owners. Record unsupported API/environment assumptions and public handoff; this skill does not grant dependency upgrade, deployment, acceptance or master integration authority.
+The explicit application/interface/DI/transaction decisions, actual version/runtime, selected specialist rationale, changed code and focused evidence in current Poise owners. Record unsupported API/environment assumptions and ordinary public release; this skill does not grant dependency upgrade, deployment, acceptance or master integration authority.

@@ -2,6 +2,7 @@ from __future__ import annotations
 from ..modules.actions.domain import CommitMessagePolicy
 
 import hashlib
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -1041,17 +1042,30 @@ class RuntimeResultIntegration:
             raise PoiseError('Task branch cleanup could not be verified')
 
     def _reconcile_terminal_ownership(self, run, repository):
-        from ..application.ownership import reconcile_integrated_worktree_in
+        from ..application.ownership import (
+            capture_integrated_worktree_in, reconcile_integrated_worktree_in,
+        )
 
         with exclusive_lock(
             self._publication_lock(), self.h.cfg['limits']['lock_seconds'],
             self.h.cfg['limits']['lock_poll_seconds'],
         ):
             with self.h.store.unit_of_work() as uow:
-                reconcile_integrated_worktree_in(
+                basis = capture_integrated_worktree_in(
                     uow, self.h.session, run.intent.task_id, run.to_storage(),
-                    lambda execution: self._verify_terminal_cleanup(run, repository, execution),
                 )
+            if basis is None:
+                return
+            # No Task DB transaction or common DB lock spans external proof.
+            try:
+                self._verify_terminal_cleanup(run, repository, deepcopy(basis.execution))
+            except PoiseError as exc:
+                raise PoiseError(
+                    f'Terminal ownership reconciliation: {exc}; repeat the saved '
+                    'integrate request after resolving the reported conflict.'
+                ) from exc
+            with self.h.store.unit_of_work() as uow:
+                reconcile_integrated_worktree_in(uow, self.h.session, basis)
 
     def apply(self, intent):
         self._validate_message(intent)

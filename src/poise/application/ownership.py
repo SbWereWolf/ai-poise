@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from copy import deepcopy
+from dataclasses import dataclass
+
 from ..modules.foundation.errors import PoiseError
 from ..modules.ownership.domain import Liveness, OwnershipChange
 
@@ -25,12 +28,28 @@ def release_dependent_worktree_in(uow, actor, task_id):
 
 
 
-def reconcile_integrated_worktree_in(uow, actor, task_id, expected_pending, verify_cleanup):
-    """Release only an obsolete dependent binding, with proof and audit in one UoW.
+@dataclass(frozen=True)
+class IntegratedWorktreeReconciliation:
+    """Detached, call-local authority; consumers must not mutate execution."""
 
-    Integration supplies its read-only Git/filesystem proof under its publication
-    lock. This owner neither changes Task results nor deletes any resource.
-    """
+    actor: str
+    task_id: str
+    worktree_owner: str
+    task_version: int
+    execution_version: int
+    execution: dict
+
+
+def _reconciliation_conflict(condition):
+    raise PoiseError(
+        f'Terminal ownership reconciliation {condition}; repeat the saved integrate request.'
+    )
+
+
+def capture_integrated_worktree_in(
+    uow, actor: str, task_id: str, expected_pending: dict,
+) -> IntegratedWorktreeReconciliation | None:
+    """Capture authority in a short UoW, before external cleanup proof."""
     from ..modules.tasks.domain import TaskStatus
 
     if not uow.ownership.worktree_required(task_id):
@@ -39,22 +58,60 @@ def reconcile_integrated_worktree_in(uow, actor, task_id, expected_pending, veri
     if observed.worktree_owner is None:
         return
     if observed.task_owner is not None:
-        raise PoiseError('Terminal ownership reconciliation cannot release a claimed Task')
+        _reconciliation_conflict('cannot release a claimed Task')
     task = uow.tasks.load(task_id)
     if task.state.status != TaskStatus.COMPLETED:
-        raise PoiseError('Terminal ownership reconciliation requires an unclaimed completed Task')
-    execution, _ = uow.execution.load(task_id)
+        _reconciliation_conflict('requires an unclaimed completed Task')
+    execution, version = uow.execution.load(task_id)
     if execution['pending'] != expected_pending:
-        raise PoiseError('Cleanup proof changed during ownership reconciliation')
-    verify_cleanup(execution)
-    owner = observed.worktree_owner
-    release_dependent_worktree_in(uow, owner, task_id)
+        _reconciliation_conflict('cleanup proof changed')
+    return IntegratedWorktreeReconciliation(
+        actor, task_id, observed.worktree_owner, task.state.version, version,
+        deepcopy(execution),
+    )
+
+
+def reconcile_integrated_worktree_in(
+    uow, actor: str, basis: IntegratedWorktreeReconciliation,
+) -> None:
+    """Revalidate proven authority and atomically release its binding with audit."""
+    from ..modules.tasks.domain import TaskStatus
+
+    if actor != basis.actor:
+        _reconciliation_conflict('caller changed')
+    task_id = basis.task_id
+    if not uow.ownership.worktree_required(task_id):
+        return
+    observed = uow.ownership.preflight(actor, task_id)
+    if observed.worktree_owner is None:
+        return
+    if observed.worktree_owner != basis.worktree_owner:
+        _reconciliation_conflict('owner changed')
+    if observed.task_owner is not None:
+        _reconciliation_conflict('cannot release a claimed Task')
+    task = uow.tasks.load(task_id)
+    if task.state.status != TaskStatus.COMPLETED:
+        _reconciliation_conflict('requires an unclaimed completed Task')
+    execution, version = uow.execution.load(task_id)
+    if execution['pending'] != basis.execution['pending']:
+        _reconciliation_conflict('cleanup proof changed')
+    if execution['last_report'] != basis.execution['last_report']:
+        _reconciliation_conflict('accepted result changed')
+    if (execution['worktree'] != basis.execution['worktree']
+            or execution['branch'] != basis.execution['branch']):
+        _reconciliation_conflict('cleanup identity changed')
+    if task.state.version != basis.task_version:
+        _reconciliation_conflict('Task version changed')
+    if version != basis.execution_version:
+        _reconciliation_conflict('execution version changed')
+    pending = basis.execution['pending']
+    release_dependent_worktree_in(uow, basis.worktree_owner, task_id)
     uow.ownership.record_integrated_worktree_reconciliation(actor, task_id, {
-        'released_owner': owner,
-        'request_id': expected_pending['intent']['request_id'],
-        'accepted_commit': expected_pending['accepted_commit'],
-        'published_commit': expected_pending['target_after'],
-        'cleanup': dict(expected_pending['cleanup']),
+        'released_owner': basis.worktree_owner,
+        'request_id': pending['intent']['request_id'],
+        'accepted_commit': pending['accepted_commit'],
+        'published_commit': pending['target_after'],
+        'cleanup': dict(pending['cleanup']),
     })
 
 

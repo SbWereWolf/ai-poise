@@ -83,6 +83,11 @@ Do not invent resolution proposals or native stage completion before actual fixe
 
 ### Environment maintenance
 
+[Task-worktree preparation](../../../docs/operator/worktree-preparation.md#подготовка-рабочей-области)
+owns the working configuration, all options/placeholders, plugin contract, full
+inputs/results and retry/reconciliation procedure. Use the selected native
+bootstrap; readiness is distinct from Task acceptance and integration.
+
 [ERP profile setup and operation](../../../docs/operator/maintenance-profile-v2.md#профиль-erp)
 uses the explicit ERP specification, ignored working values and a separate state.
 [Materialize the full working
@@ -114,6 +119,10 @@ For observed harness limitations, use the [replay](../../../docs/operations/know
 [lock](../../../docs/operations/known-bugs.md#aip-external-lock-diagnostics-001--отказ-не-называет-держателя)
 and [IDE source-preservation](../../../docs/operations/known-bugs.md#aip-ide-format-source-preservation-001--потеря-правок-после-форматирования)
 guidance; apply the actual current-stage recovery owner, not a blanket restart.
+Before an agreed restart, both roles check the actual
+[progression and current position](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
+Publish permanent proofs while ACTIVE before verify; use saved native receipts
+afterward. Follow the [handoff material timing](../../../docs/workflows/local-handoff.md#постоянный-комплект-при-передаче).
 
 ### Operator recovery and migrations
 

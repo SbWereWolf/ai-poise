@@ -40,5 +40,5 @@ if [[ ! -f $STRIDE_CONFIG ]]; then
   printf 'STRIDE_CONFIG does not exist: %s\n' "$STRIDE_CONFIG" >&2
   exit 2
 fi
-export PYTHONPATH="$stride_poise_root/src"
+export PYTHONPATH="$stride_poise_root/src:$stride_poise_root"
 exec "$STRIDE_PYTHON" -P -s -B -m poise.stride --config "$STRIDE_CONFIG" --project "$stride_project" -- "${stride_arguments[@]}"

@@ -1,0 +1,18 @@
+{
+  "id": "python",
+  "kind": "command",
+  "required": true,
+  "argv": [],
+  "cwd": "${workspace}",
+  "environment": {},
+  "timeout_seconds": 3.0,
+  "max_output_bytes": 65536,
+  "expected_exit_code": 0,
+  "stdout_contains": ["ready"],
+  "stderr_contains": [],
+  "json_assertions": [],
+  "mcp": null,
+  "tool_ref": "python",
+  "project_bound": false,
+  "remediation": "Install the explicitly required interpreter and retry."
+}

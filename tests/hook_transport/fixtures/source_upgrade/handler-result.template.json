@@ -1,0 +1,8 @@
+{
+  "status": "ready",
+  "exit_code": 0,
+  "actions": [],
+  "observations": [
+    {"stage": "initial", "stdout": "BOUND_BY_FIXTURE", "stderr": "BOUND_BY_FIXTURE", "exit_code": 0}
+  ]
+}

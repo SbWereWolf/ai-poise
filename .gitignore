@@ -41,6 +41,7 @@ dist/
 /config/bootstrap.json
 /config/environment-maintenance.json
 /operator/profile/
+/operator/worktree-preparation.json
 
 # Working catalogue editor settings; retain its sanitized example.
 /config/catalogue/editor.json

@@ -179,13 +179,15 @@ def _guarded_command(service, binding_path):
 def test_managed_command_invokes_configured_interpreter_directly(project, tmp_path):
     service, selected = _service_with_selected_interpreter(project, tmp_path)
     binding = tmp_path / "binding.json"
+    fixture_code_root = Path(__file__).resolve().parents[2]
+    expected_python_path = os.pathsep.join((str(fixture_code_root / "src"), str(fixture_code_root)))
 
     command = service.settings.command("hook-work", "--binding", str(binding))
 
     arguments = shlex.split(command)
     assert arguments[arguments.index("env"):] == [
         "env",
-        f"PYTHONPATH={service.settings.raw['source_root']}",
+        f"PYTHONPATH={expected_python_path}",
         str(selected),
         "-P",
         "-B",
@@ -357,7 +359,8 @@ def test_previous_forwarded_launcher_upgrade_preserves_binding_and_foreign_conte
         invoke()
         arguments = shlex.split(launcher.read_text(encoding="utf-8").splitlines()[1])
         assert arguments[arguments.index("env"):] == [
-            "env", "PYTHONPATH=" + str(selected_source), service.settings.raw["python"],
+            "env", "PYTHONPATH=" + os.pathsep.join((str(selected_source), str(selected_source.parent))),
+            service.settings.raw["python"],
             "-P", "-B", "-X", "pycache_prefix=" + os.devnull, "-m", "poise", "hook-work",
             "--settings", str(service.settings.path), "--binding", binding["binding_path"], "$@",
         ]
@@ -380,7 +383,8 @@ def test_native_event_creates_direct_launcher_and_recreates_deleted_binding(proj
     launcher = Path(binding["launcher"])
     command = launcher.read_text(encoding="utf-8")
     arguments = shlex.split(command)
-    assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + service.settings.raw["source_root"]
+    source = Path(service.settings.raw["source_root"])
+    assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + os.pathsep.join((str(source), str(source.parent)))
     assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in command
     assert "poise-runtime-guard" not in command
 
@@ -408,7 +412,8 @@ def test_install_emits_one_direct_group_per_declared_event(project, tmp_path):
     assert len(commands) == len(definition()["events"])
     for command in commands:
         arguments = shlex.split(command)
-        assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + service.settings.raw["source_root"]
+        source = Path(service.settings.raw["source_root"])
+        assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + os.pathsep.join((str(source), str(source.parent)))
     assert all((" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook ") in command for command in commands)
     assert all("poise-runtime-guard" not in command for command in commands)
 
@@ -431,7 +436,8 @@ def test_exact_guarded_launcher_is_migrated_without_changing_session(project, tm
 
     assert migrated["session_id"] == binding["session_id"]
     arguments = shlex.split(command)
-    assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + service.settings.raw["source_root"]
+    source = Path(service.settings.raw["source_root"])
+    assert arguments[arguments.index("env") + 1] == "PYTHONPATH=" + os.pathsep.join((str(source), str(source.parent)))
     assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in command
     assert "poise-runtime-guard" not in command
 

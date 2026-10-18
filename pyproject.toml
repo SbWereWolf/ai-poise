@@ -15,4 +15,12 @@ dependencies = [
 poise = "poise.__main__:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "."]
+include = [
+    "poise",
+    "poise.*",
+    "poise_environment",
+    "poise_environment.*",
+    "apps.bootstrap",
+    "apps.bootstrap.*",
+]

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /bin/sh -c {source_guard} poise-source-check {source_root} {settings} 2 : env {current_python_path} {python} -P -B -X pycache_prefix=/dev/null -m poise hook-work --settings {settings} --binding {binding} "$@"

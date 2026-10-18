@@ -1,0 +1,17 @@
+{
+  "parameters": {},
+  "catalog_dir": "${catalog}",
+  "inputs": [{"source": "${input_source}", "destination": "selected/input.txt"}],
+  "operations": ["infra", "deps", "check"],
+  "commands": {
+    "infra": ["${python}", "${command}", "infra", "${events}", "${control}", "${worktree}", "${task_id}", "${project_id}", "${label}"],
+    "deps": ["${python}", "${command}", "deps", "${events}", "${control}", "${worktree}", "${task_id}", "${project_id}", "${label}"],
+    "check": ["${python}", "${command}", "check", "${events}", "${control}", "${worktree}", "${task_id}", "${project_id}", "${label}"],
+    "repair": ["${python}", "${command}", "repair", "${events}", "${control}", "${worktree}", "${task_id}", "${project_id}", "${label}"],
+    "verification": ["${python}", "${command}", "verification", "${events}", "${control}", "${worktree}", "${task_id}", "${project_id}", "${label}"]
+  },
+  "handler": {
+    "callable": "worktree_handlers:accept",
+    "options": {"marker": "${label}", "owner": "${task_id}", "workspace": "${worktree}"}
+  }
+}

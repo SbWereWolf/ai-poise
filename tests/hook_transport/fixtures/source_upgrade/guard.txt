@@ -1,0 +1,1 @@
+interpreter=$1; recovery_command=$2; source_root=$3; shift 3; if [ ! -x "$interpreter" ]; then printf "%s\n" "Configured Poise interpreter is unavailable: $interpreter" >&2; printf "%s\n" "Recovery: $recovery_command" >&2; exit 126; fi; exec env "PYTHONPATH=$source_root" "$interpreter" "$@"

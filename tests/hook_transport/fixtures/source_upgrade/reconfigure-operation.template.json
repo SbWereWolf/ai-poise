@@ -1,0 +1,6 @@
+{
+  "kind": "hook_reconfiguration",
+  "packet": "BOUND_BY_FIXTURE",
+  "phase": "completed",
+  "receipt": {}
+}

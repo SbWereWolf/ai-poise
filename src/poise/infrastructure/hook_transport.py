@@ -179,6 +179,13 @@ class HookSettings:
                 'No Task work was started.')
 
     def _direct_command(self,python_flags,verb,*args):
+        return shlex.join(['env','PYTHONPATH='+self.source_python_path(),self.raw['python'],
+                           *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
+
+    def source_python_path(self):
+        return os.pathsep.join((self.raw['source_root'], str(Path(self.raw['source_root']).parent)))
+
+    def _superseded_direct_command(self,python_flags,verb,*args):
         return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
@@ -199,7 +206,7 @@ class HookSettings:
                            recovery_command,self.raw['source_root'],
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
-    def command(self,verb,*args):
+    def _source_guarded_command(self,command):
         guard=(
             'source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; '
             'case "$source_root" in *"$separator"*) valid=0;; *) valid=1;; esac; '
@@ -213,24 +220,38 @@ class HookSettings:
         prefix=shlex.join(['/bin/sh','-c',guard,'poise-source-check',
                            self.raw['source_root'],str(self.path),
                            str(self.raw['exit_codes']['rejected']),os.pathsep])
-        return prefix+' '+self._direct_command(
-            ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
+        return prefix+' '+command
+
+    def command(self,verb,*args):
+        return self._source_guarded_command(self._direct_command(
+            ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args))
 
     def launcher_bytes(self, binding_path):
         return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + ' "$@"\n').encode()
 
     def prior_launcher_commands(self,verb,*args):
         """Exact superseded forms accepted only for an owned launcher upgrade."""
-        previous=self._direct_command(
+        previous=self._superseded_direct_command(
             ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
+        source_checked_previous=self._source_guarded_command(previous)
         return (
-            self._direct_command(['-B'],verb,*args),
+            self._superseded_direct_command(['-B'],verb,*args),
             self._superseded_guarded_command(['-B'],verb,*args),
             self._superseded_guarded_command([],verb,*args),
+            self._superseded_direct_command([],verb,*args),
             self._direct_command([],verb,*args),
+            self._direct_command(['-B'],verb,*args),
             previous,
-        ) + ((self._direct_command(['-B'],verb,*args)+' "$@"',
-              previous+' "$@"') if verb=='hook-work' else ())
+        ) + ((self._superseded_direct_command(['-B'],verb,*args)+' "$@"',
+              self._direct_command(['-B'],verb,*args)+' "$@"',
+              previous+' "$@"') if verb=='hook-work' else ()) + (
+                  source_checked_previous+' "$@"' if verb=='hook-work' else source_checked_previous,
+              )
+
+    def prior_launcher_bytes(self, binding_path):
+        args = ('hook-work', '--binding', str(binding_path))
+        return tuple(('#!/bin/sh\nexec ' + command + '\n').encode()
+                     for command in self.prior_launcher_commands(*args))
 
 
 def _read_definition(settings,path):
@@ -652,8 +673,7 @@ class HookService:
         raw=(json.dumps(record,ensure_ascii=False,indent=2)+'\n').encode()
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
         script=self.settings.launcher_bytes(binding)
-        priors=tuple(('#!/bin/sh\nexec '+command+'\n').encode() for command in
-            self.settings.prior_launcher_commands('hook-work','--binding',str(binding)))
+        priors=self.settings.prior_launcher_bytes(binding)
         if launcher.exists():
             current=launcher.read_bytes()
             if current in priors:atomic_write(launcher,script,self.settings.raw['executable_mode'])

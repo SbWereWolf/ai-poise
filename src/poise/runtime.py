@@ -1113,15 +1113,45 @@ class Poise:
             uow.execution.patch(data['id'],{'pending':None,'entry_tree':tree})
 
     @duplicate_admission
-    def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
+    def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False, preparation_request_id: str | None = None) -> dict:
+        if preparation_request_id is not None:
+            if not isinstance(preparation_request_id, str) or not preparation_request_id.strip():
+                raise PoiseError('preparation_request_id must be a nonempty string')
+            if decision is not None or rework_stage is not None:
+                raise PoiseError('preparation_request_id requires bootstrap without a stage decision')
         selected_id = task.get('id') if isinstance(task, dict) else None
         selected = self.task_queries.record(selected_id) if selected_id is not None else self.store.current(self.session)
         if selected is not None and is_terminal_task_status(selected['status']):
             return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        if preparation_request_id is not None and self.cfg.get('worktree_preparation') is None:
+            raise PoiseError('worktree_preparation is not configured for this project')
         with self.delivery_effects.locked():
             if selected is not None:
                 self.delivery_tools.material_admission(selected['id'], 'bootstrap')
-            return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+            result = self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        return self._prepare_worktree(result, preparation_request_id)
+
+    def _prepare_worktree(self, result, request_id):
+        configured = self.cfg.get('worktree_preparation')
+        if configured is None:
+            return result
+        task = self.store.current(self.session)
+        if (task is None or task['status'] == 'newborn' or is_terminal_task_status(task['status'])
+                or result.get('task') != task['id'] or not result.get('worktree')
+                or result.get('failure') is not None
+                or not result.get('duplicate_gate', {}).get('allowed', True)):
+            return result
+        from .application.worktree_preparation import WorktreePreparation
+        from .infrastructure.worktree_preparation import FilePreparationEffects
+        coordinates = {name: task[name] for name in ('worktree', 'branch', 'base')}
+        coordinates.update(task_id=task['id'], project_id=self.cfg['project'], task_root=str(self._roots(task)['task']))
+        preparation = WorktreePreparation(self.store.unit_of_work, self.session,
+            FilePreparationEffects(self, task, configured['configuration'])).prepare(coordinates, request_id)
+        result['preparation'] = preparation
+        if preparation['status'] != 'ready':
+            result['task_status'] = task['status']
+            result['status'] = 'action_failed'
+        return result
 
     def _bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
         if type(force_duplicate_start) is not bool:
@@ -1419,7 +1449,7 @@ class Poise:
                 continue
             try:
                 current = self._inspect_artifacts([prior['path']], roots, owners)[0]
-            except PoiseError:
+            except (PoiseError, OSError):
                 continue
             if current['digest'] != prior['digest']:
                 continue

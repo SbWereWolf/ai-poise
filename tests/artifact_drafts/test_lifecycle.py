@@ -89,7 +89,7 @@ def assert_refused_use_preserved(runtime, task_root, before, request_id, *, acti
     new_journal = after['database']['journal']
     assert new_journal[:len(old_journal)] == old_journal
     added = new_journal[len(old_journal):]
-    assert len(added) == 2
+    assert len(added) == 2, (request_id, action, added)
     values = []
     for row in added:
         assert row[1:4] == (runtime.session, 'T1', 'task_delivery.material_use')
@@ -200,13 +200,14 @@ def release(tools, request_id: str) -> dict:
 def acquire_and_rework(project, session: str) -> tuple[WorkPoise, WorkTools, dict]:
     runtime = WorkPoise(project["config_path"], session)
     tools = WorkTools(runtime)
-    tools.invoke(request("bootstrap", {
+    context = tools.invoke(request("bootstrap", {
         "task": {"id": "T1"},
         "decision": None,
         "feedback": None,
         "rework_stage": None,
     }))
-    return runtime, tools, rework(tools)
+    # Recovery may resume the stage already opened by its original owner.
+    return runtime, tools, context if context['status'] == 'active' else rework(tools)
 
 
 def test_artifact_drafts_public_operation_exists(project):
@@ -425,8 +426,12 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
                 request_id=request_id,
                 artifacts=[target],
             )
-        assert_refused_use_preserved(recovery_runtime, task_root, before_invalid,
-                                     request_id, action="recover")
+        if target['scope'] == 'sprint':
+            # Invalid scope is rejected by input parsing before use admission.
+            assert protected_state(recovery_runtime, task_root) == before_invalid
+        else:
+            assert_refused_use_preserved(recovery_runtime, task_root, before_invalid,
+                                         request_id, action="recover")
 
     artifact_path = Path(verified["artifacts"][0]["path"])
     artifact_path.write_text("conflicting unreviewed bytes\n", encoding="utf-8")

@@ -2660,5 +2660,56 @@
         }
       ]
     }
+  },
+  "precursor_all_references": {
+    "packet": {
+      "schema": "stride-sequencing/v1",
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "reference-0042",
+            "kind": "task",
+            "task_id": "0042"
+          },
+          {
+            "id": "reference-0043",
+            "kind": "task",
+            "task_id": "0043"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "schema": "stride-sequencing/v1",
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "reference-0042",
+          "value": {
+            "task_id": "0042",
+            "requirements_snapshot_revision": 2,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null
+          }
+        },
+        {
+          "id": "reference-0043",
+          "value": {
+            "task_id": "0043",
+            "requirements_snapshot_revision": 7,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null
+          }
+        }
+      ]
+    }
   }
 }

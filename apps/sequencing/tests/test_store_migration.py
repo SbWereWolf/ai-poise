@@ -346,7 +346,9 @@ def test_cli_precursor_query_and_exact_historical_replay(tmp_path):
     with closing(connect(path)) as db:
         precursor(db)
     assert_response(invoke(tmp_path, config, DATA['packets']['source_query']), DATA['responses']['source_query'])
-    from apps.sequencing.tests.test_registration import assert_legacy_rows, current_state
+    from apps.sequencing.tests.test_registration import DATA as REGISTRATION, assert_legacy_rows, current_state
+    references = REGISTRATION['precursor_all_references']
+    assert_response(invoke(tmp_path, config, references['packet']), references['expected'])
     assert_legacy_rows(path, DATA['migrated_rows'])
     before = current_state(path)
     assert_response(invoke(tmp_path, config, DATA['packets']['source_replay']), DATA['responses']['source_replay'])

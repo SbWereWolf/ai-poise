@@ -81,8 +81,9 @@ def installed(i, *, examples=None, label='installed-command'):
     def sdk(action,**kwargs):
         return strict_json(run([python,'-I','-B',str(DRIVER)],
             input=canonical(dict(action=action,settings=str(settings_path),**kwargs)).encode(),native=True))
+    revision=sdk('revision')['revision']
     installation=sdk('install',request={'request_id':'installed-command-hooks',
-                                       'expected_revision':None,'definition':definition})
+                                       'expected_revision':revision,'definition':definition})
     i.s.native_identity('installed-command-native')
     profile['admission']={'hook_settings':str(settings_path),'definition_path':installation['definition_path']}
     write_json(i.s.policy,profile)

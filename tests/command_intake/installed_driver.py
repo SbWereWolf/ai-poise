@@ -12,6 +12,8 @@ from poise.interfaces.content_reader import execute
 def main():
     packet=json.load(sys.stdin)
     action=packet['action']
+    if action=='revision':
+        return {'revision':HookService(packet['settings']).revision()}
     if action=='install':
         return HookService(packet['settings']).install(packet['request'])
     if action=='event':

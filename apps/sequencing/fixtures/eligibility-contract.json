@@ -4864,6 +4864,544 @@
           "exit": 0
         }
       ]
+    },
+    {
+      "name": "G13-claimed-successor-pending-predecessor",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        },
+        {
+          "task_id": "000043",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "task_claims": [
+          [
+            "CLAIM-000043",
+            "000043",
+            "SESSION-A",
+            "active"
+          ]
+        ]
+      },
+      "post_setup": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "fixture-attach-claimed",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "attach",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-A",
+                  "members": [
+                    "000043",
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000030",
+                      "successor": "000043",
+                      "kind": "result"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "successor": "000043",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 2,
+            "replayed": false,
+            "results": [
+              {
+                "id": "attach",
+                "kind": "register_sprint",
+                "changed": true,
+                "sprint_id": "SPR-A",
+                "sprint_revision": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "owner",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "foreign",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-B"
+                },
+                {
+                  "id": "owner-next",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "foreign-next",
+                  "kind": "next",
+                  "claimant": "SESSION-B",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 2,
+            "results": [
+              {
+                "id": "owner",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "predecessor": "000017",
+                      "kind": "completion",
+                      "reason": "predecessor_not_completed"
+                    }
+                  ],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "foreign",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "claimed_by_other",
+                      "claim_id": "CLAIM-000043",
+                      "claimant": "SESSION-A"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "kind": "completion",
+                      "reason": "predecessor_not_completed"
+                    }
+                  ],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "owner-next",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "foreign-next",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "10"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G13-claimed-successor-all-completed",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        },
+        {
+          "task_id": "000043",
+          "state": "claimed",
+          "terminal": null
+        },
+        {
+          "task_id": "000017",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000017",
+            "task_id": "000017",
+            "kind": "completed",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000017"
+            }
+          }
+        }
+      ],
+      "rows": {
+        "task_claims": [
+          [
+            "CLAIM-000043",
+            "000043",
+            "SESSION-A",
+            "active"
+          ]
+        ]
+      },
+      "post_setup": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "fixture-attach-claimed",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "attach",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-A",
+                  "members": [
+                    "000043",
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000030",
+                      "successor": "000043",
+                      "kind": "result"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "successor": "000043",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 2,
+            "replayed": false,
+            "results": [
+              {
+                "id": "attach",
+                "kind": "register_sprint",
+                "changed": true,
+                "sprint_id": "SPR-A",
+                "sprint_revision": 1
+              }
+            ]
+          }
+        }
+      ],
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "owner",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "foreign",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-B"
+                },
+                {
+                  "id": "owner-next",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "foreign-next",
+                  "kind": "next",
+                  "claimant": "SESSION-B",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 2,
+            "results": [
+              {
+                "id": "owner",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "foreign",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "claimed_by_other",
+                      "claim_id": "CLAIM-000043",
+                      "claimant": "SESSION-A"
+                    }
+                  ],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "owner-next",
+                "value": {
+                  "task_ids": [
+                    "000043",
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "foreign-next",
+                "value": {
+                  "task_ids": [
+                    "10"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
     }
   ],
   "empty_prepare": {

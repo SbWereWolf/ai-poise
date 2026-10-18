@@ -37,6 +37,9 @@ def arrange(client, case):
         db.commit()
         assert db.execute('PRAGMA user_version').fetchone()[0] == 2
         assert db.execute('PRAGMA foreign_key_check').fetchall() == []
+    for scenario in case.get('post_setup', []):
+        # Attach already-claimed work through the real supported Sprint command.
+        client.check(scenario)
     for row in case['rows'].get('workspace_roots', []):
         directory = Path(rendered(row[3], client.root))
         directory.mkdir(parents=True)

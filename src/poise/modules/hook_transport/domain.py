@@ -19,7 +19,8 @@ def binding_context(record):
     return {key: value for key, value in record.items() if key != 'settings_digest'}
 
 
-EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
+TOOL_EVENTS={'PreToolUse','PostToolUse'}
+EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'} | TOOL_EVENTS
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 SESSION_START_SOURCES=('startup','resume','clear','compact','fork')
 
@@ -56,10 +57,14 @@ class HookDefinition:
                 raise PoiseError('Binding/counting hooks are synchronous; SessionEnd is advisory synchronous')
             if kind=='SessionEnd' and not 1<=event['timeout_seconds']<=3:
                 raise PoiseError('Codex SessionEnd requires a timeout between one and three seconds')
-            if kind in CONTEXT_EVENTS:positive(event['context_limit'],'context_limit',True)
+            if kind in CONTEXT_EVENTS | TOOL_EVENTS:positive(event['context_limit'],'context_limit',True)
             elif event['context_limit'] is not None:raise PoiseError('No additionalContext for this event: use explicit null')
             nonempty(event['status_message'],'status_message')
         if 'SessionStart' not in seen:raise PoiseError('SessionStart binding hook is required')
+        if seen & TOOL_EVENTS and not TOOL_EVENTS <= seen:
+            raise PoiseError('Install PreToolUse and PostToolUse together')
+        if any(e['event'] in TOOL_EVENTS and e['matcher'] != 'Bash' for e in raw['events']):
+            raise PoiseError('Command intake requires the explicit Bash matcher')
         if not isinstance(raw['probes'],list):raise PoiseError('Explicit probe list required')
         probes=[ProbeSpec.parse(p) for p in raw['probes']]
         if len({p.data['id'] for p in probes})!=len(probes):raise PoiseError('Duplicate capability')

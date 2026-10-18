@@ -1,9 +1,12 @@
 """One schema-2 ledger: generation and atomic prepared-read registration."""
 from contextlib import contextmanager
+import json
 import sqlite3
 from ...modules.document_intake.contracts import ReadFailure
 from ...modules.document_intake.domain import read_decision
+from ...modules.document_intake.domain import identity
 from .template import validate_registry, TemplateError
+from ...modules.document_intake.command import CommandFailure, call_hash, validate_call, validate_plan
 
 
 def add_summary(summary, item):
@@ -79,6 +82,105 @@ class PreparedRegistry:
             db.execute('BEGIN')
             return self._generation(db, scope.namespace), self._summary(db, scope.namespace)
 
+    @staticmethod
+    def _command_calls(db, namespace):
+        calls = {}
+        rows = db.execute('SELECT turn_id,tool_use_id,epoch,plan_hash,plans_json,created_at '
+                          'FROM pending_calls WHERE session_id=? ORDER BY tool_use_id', (namespace,)).fetchall()
+        for turn, tool, generation, digest, body, at in rows:
+            try:
+                record = validate_call(json.loads(body))
+            except (ValueError, TypeError) as exc:
+                raise CommandFailure('registry_invalid') from exc
+            if (record['scope']['namespace'] != namespace or record['scope']['tool_use_id'] != tool
+                    or record['pre_turn_id'] != turn or record['generation'] != generation
+                    or call_hash(record) != digest or record['created_clock']['audit_utc'] != at):
+                raise CommandFailure('registry_invalid')
+            calls[tool] = record
+        return calls
+
+    @staticmethod
+    def _general_history(db, namespace):
+        history = []
+        for path, version, generation, operation, body in db.execute(
+                'SELECT path_label,version_key,epoch,operation_key,plan_json '
+                'FROM read_events WHERE session_id=? ORDER BY id', (namespace,)).fetchall():
+            try:
+                plan = validate_plan(json.loads(body))
+            except (ValueError, TypeError) as exc:
+                raise CommandFailure('registry_invalid') from exc
+            if (plan['path'] != path or plan['version_key'] != version
+                    or plan['generation'] != generation or plan['operation_digest'] != operation):
+                raise CommandFailure('registry_invalid')
+            history.append(plan)
+        return history
+
+    def command_snapshot(self, scope):
+        with self.open_existing() as db:
+            db.execute('BEGIN')
+            return (self._generation(db, scope.namespace),
+                    self._command_calls(db, scope.namespace),
+                    self._general_history(db, scope.namespace))
+
+    @staticmethod
+    def _encoded(value):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+
+    def prepare_call(self, scope, record):
+        validate_call(record)
+        with self.open_existing(write=True) as db:
+            db.execute('BEGIN IMMEDIATE')
+            generation = self._generation(db, scope.namespace)
+            calls = self._command_calls(db, scope.namespace)
+            tool = record['scope']['tool_use_id']
+            if tool in calls:
+                if call_hash(record) != call_hash(calls[tool]):
+                    raise CommandFailure('call_conflict')
+                return calls[tool]
+            if generation != record['generation'] or record['scope']['namespace'] != scope.namespace:
+                raise CommandFailure('generation_changed')
+            db.execute('INSERT INTO pending_calls '
+                       '(session_id,turn_id,tool_use_id,epoch,plan_hash,plans_json,created_at) '
+                       'VALUES (?,?,?,?,?,?,?)',
+                       (scope.namespace, record['pre_turn_id'], tool, generation,
+                        call_hash(record), self._encoded(record), record['created_clock']['audit_utc']))
+            db.commit()
+            return record
+
+    def _insert_general(self, db, scope, tool, turn, plan, at):
+        validate_plan(plan)
+        db.execute('INSERT OR IGNORE INTO read_events '
+                   '(session_id,turn_id,tool_use_id,epoch,committed_at,path_label,version_key,plan_json,operation_key) '
+                   'VALUES (?,?,?,?,?,?,?,?,?)',
+                   (scope.namespace, turn, tool, plan['generation'], at, plan['path'],
+                    plan['version_key'], self._encoded(plan), plan['operation_digest']))
+
+    def settle_call(self, scope, expected, record, eligible):
+        validate_call(record)
+        with self.open_existing(write=True) as db:
+            db.execute('BEGIN IMMEDIATE')
+            calls = self._command_calls(db, scope.namespace)
+            tool = record['scope']['tool_use_id']
+            current = calls.get(tool)
+            if current is None or call_hash(current) != expected or call_hash(record) != expected:
+                raise CommandFailure('call_conflict')
+            if current['state'] != 'pending':
+                if current['post_fingerprint'] != record['post_fingerprint']:
+                    raise CommandFailure('call_conflict')
+                return current
+            generation = self._generation(db, scope.namespace)
+            if eligible and generation != record['generation']:
+                raise CommandFailure('generation_changed')
+            at = self.clock.observe().audit_utc
+            for plan in eligible:
+                if plan not in record['plans'] or plan['generation'] != generation:
+                    raise CommandFailure('registry_invalid')
+                self._insert_general(db, scope, tool, record['pre_turn_id'], plan, at)
+            db.execute('UPDATE pending_calls SET plans_json=? WHERE session_id=? AND tool_use_id=? AND plan_hash=?',
+                       (self._encoded(record), scope.namespace, tool, expected))
+            db.commit()
+            return record
+
     def preview_batch(self, scope, prepared):
         with self.open_existing() as db:
             db.execute('BEGIN')
@@ -98,7 +200,7 @@ class PreparedRegistry:
                                  value.normalized_range, 'repository-content-read'))
         return generation, items, summary
 
-    def register(self, scope, prepared, expected_generation):
+    def register(self, scope, prepared, expected_generation, *, general_plan=None):
         with self.open_existing(write=True, key=prepared.key) as db:
             db.execute('BEGIN IMMEDIATE')
             generation = self._generation(db, scope.namespace)
@@ -120,6 +222,12 @@ class PreparedRegistry:
                        'VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
                        (scope.namespace, generation, at, *values[2:], item['status'], item['classification'],
                         prepared.content_bytes, prepared.content_lines, prepared.content_bytes if content else 0))
+            if general_plan is not None:
+                if general_plan['generation'] != generation or general_plan['origin'] != 'direct':
+                    raise CommandFailure('registry_invalid')
+                delivery = 'direct:' + identity([scope.namespace, generation, prepared.path,
+                                                 prepared.content_sha256, prepared.normalized_range])
+                self._insert_general(db, scope, delivery, delivery, general_plan, at)
             db.commit()
             return item
 

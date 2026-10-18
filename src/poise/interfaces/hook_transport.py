@@ -33,7 +33,8 @@ def execute(command,args,stream,output,error):
         packet=strict_json(raw.decode('utf-8'))
         if command == 'hook' and not isinstance(packet, dict):
             raise PoiseError('Native hook JSON object required')
-        if command == 'hook' and not matches_repository_scope(settings, packet.get('cwd')):
+        if (command == 'hook' and packet.get('hook_event_name') not in ('PreToolUse','PostToolUse')
+                and not matches_repository_scope(settings, packet.get('cwd'))):
             output.write('{}\n')
             return cfg['exit_codes']['success']
         service=HookService(args.settings)

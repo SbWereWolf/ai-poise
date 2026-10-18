@@ -2,7 +2,7 @@
 from .catalog import ERRORS
 from .domain import Selection
 
-OPERATIONS = {'prepare_template', 'prepare', 'read', 'context', 'advance_context', 'recover', 'adopt'}
+OPERATIONS = {'prepare_template', 'prepare', 'read', 'context', 'advance_context', 'recover', 'adopt', 'coverage'}
 
 
 class ReadFailure(Exception):

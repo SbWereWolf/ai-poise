@@ -4,9 +4,10 @@ from ..modules.document_intake.ports import ContentSource, ReadBudget
 
 
 class ContentReader:
-    def __init__(self, configuration, source: ContentSource, sessions, resources, budget: ReadBudget):
+    def __init__(self, configuration, source: ContentSource, sessions, resources, budget: ReadBudget, *, command=None):
         self.configuration, self.source, self.sessions, self.resources = configuration, source, sessions, resources
         self.budget = budget
+        self.command = command
 
     @staticmethod
     def _outcome(result):
@@ -20,6 +21,11 @@ class ContentReader:
 
     def execute(self, request, representation, result):
         op = request['operation']
+        if op == 'coverage':
+            if self.command is None:
+                raise ReadFailure('invalid_policy', field='command_intake.policy')
+            result['context'], result['details'] = self.command.coverage()
+            return 0, None
         if op == 'prepare_template':
             result['details'] = self.sessions.prepare_template()
             return 0, None
@@ -29,9 +35,16 @@ class ContentReader:
             return 0, None
         observation = r.observe_active()
         prepared = []
+        general_versions = {}
         if op == 'read':
             for item in request['reads']:
                 try:
+                    if self.command is not None:
+                        from ..modules.document_intake.command import CommandFailure
+                        try:
+                            general_versions[item['key']] = self.command.source.direct_version(item['path'])
+                        except (OSError, CommandFailure):
+                            pass
                     prepared.append(self.source.select(self.configuration.bound.checkout, item, self.configuration.policy))
                 except ReadFailure as exc:
                     prepared.append(exc)
@@ -63,7 +76,13 @@ class ContentReader:
                     item = dict(key=value.key, status='failed', error=value.as_dict())
                 else:
                     try:
-                        item = r.registry.register(r.scope, value, generation)
+                        general = None
+                        if self.command is not None and value.key in general_versions:
+                            general = self.command.source.direct_plan(value, generation, general_versions[value.key])
+                            if not self.command.source.current(general):
+                                general = None
+                                result['details'] = dict(coverage_unconfirmed=True)
+                        item = r.registry.register(r.scope, value, generation, general_plan=general)
                     except ReadFailure as exc:
                         item = dict(key=value.key, status='failed', error=exc.as_dict())
                 result['items'].append(item)

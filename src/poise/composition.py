@@ -67,7 +67,18 @@ def content_reader_tools(configuration, environment, clock):
 
     resources = EpisodeResources(configuration, caller, authority, clock)
     sessions = IntakeSessions(configuration, resources, PreparedTemplate(Path(configuration.policy['session']['registry_template'])))
-    return ContentReader(configuration, ProjectContentSource(), sessions, resources, FullReadCost())
+    command = None
+    if 'command_intake' in configuration.policy:
+        from .application.command_intake import CommandIntake
+        from .infrastructure.document_intake.command_configuration import load_command_policy
+        from .infrastructure.document_intake.command_source import CommandSource
+        from .modules.document_intake.command import CommandFailure
+        try:
+            policy, digest = load_command_policy(configuration.policy)
+        except CommandFailure as exc:
+            raise ReadFailure('invalid_policy', field=exc.field) from exc
+        command = CommandIntake(resources, sessions, CommandSource(bound.checkout, policy), policy, digest, clock)
+    return ContentReader(configuration, ProjectContentSource(), sessions, resources, FullReadCost(), command=command)
 
 
 def task_tools(store, repository_tree, requirements_gate):

@@ -11,6 +11,7 @@ from ..infrastructure.result_views import SavedResponse
 from ..infrastructure.document_intake.presentation import canonical_result, text_frames
 from ..infrastructure.document_intake.configuration import ReaderConfiguration
 from ..modules.document_intake.contracts import ContentReadRequest, ReadFailure, OPERATIONS
+from ..modules.document_intake.command import CommandFailure
 
 
 def execute(config_path, checkout, policy_path, stream, output, error_output, clock):
@@ -61,6 +62,9 @@ def _execute(config_path, checkout, policy_path, representation, stream, output,
         request = ContentReadRequest.parse(value, bound.config['batch']['max_items'])
         service = content_reader_tools(configuration, dict(os.environ), clock)
         code, saved = service.execute(request, representation, result)
+    except CommandFailure as exc:
+        result.update(status='failed', error=exc.as_dict())
+        code = 1
     except ReadFailure as exc:
         result.update(status=exc.status, error=exc.as_dict(), details=exc.details)
         if exc.status == 'rejected':

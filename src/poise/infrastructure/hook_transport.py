@@ -394,6 +394,13 @@ class FileHookRepository:
     def _install(self,request_id,expected_revision,definition,reconciliation):
         s=self.settings
         s.require_runtime()
+        if any(e['event'] in ('PreToolUse','PostToolUse') for e in definition.data['events']):
+            from .document_intake.command_configuration import load_command_profile
+            from ..modules.document_intake.command import CommandFailure
+            try:
+                load_command_profile(s)
+            except CommandFailure as exc:
+                raise PoiseError(f'{exc.code}: {exc.field}; restore the explicit command policy chain') from exc
         if len(definition.data['probes'])>s.raw['max_probes']:raise PoiseError('Too many probes')
         _,project,_=load_config(s.project_config)
         if project['batch']['message_source']!={'id':definition.data['message_source'],'mode':'runtime_event'}:
@@ -476,8 +483,10 @@ class FileHookRepository:
 
 class HookService:
     """Composition boundary. Native events observe/bind; WorkTools alone changes work."""
-    def __init__(self,settings_path):
+    def __init__(self,settings_path, *, clock=None):
         from .project_resources import ProjectRuntimeFence
+        from .clock import SystemClock
+        self.clock = SystemClock() if clock is None else clock
         self.settings=HookSettings(settings_path)
         self.project_fence=ProjectRuntimeFence(self.settings.project_config,hook_settings=self.settings)
         self.registry=HookRegistry(self.settings,self.project_fence)
@@ -592,6 +601,9 @@ class HookService:
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
     def event(self,definition_path,event):
+        if isinstance(event, dict) and event.get('hook_event_name') in ('PreToolUse','PostToolUse'):
+            from .document_intake.command_transport import tool_event
+            return tool_event(self, definition_path, event)
         if isinstance(event, dict) and event.get('hook_event_name') == 'SessionStart':
             self.settings.require_summary()
         with self.project_fence.locked():

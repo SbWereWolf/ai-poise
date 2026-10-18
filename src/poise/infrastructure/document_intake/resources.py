@@ -180,7 +180,7 @@ class EpisodeResources:
         self._validate_template()
         return observation
 
-    def admit(self, observation, *, adopt=False):
+    def admit(self, observation, *, adopt=False, existing_only=False):
         episode = observation['episode']
         record = self.store.load()
         if record is not None:
@@ -189,6 +189,8 @@ class EpisodeResources:
             raise ReadFailure('episode_mismatch')
         fresh = record is None or record.get('episode') != episode
         if fresh:
+            if existing_only:
+                raise ReadFailure('admission_uncertain')
             if adopt:
                 raise ReadFailure('adoption_unconfirmed')
             target = Path(self.session['temporary_root']) / self.caller.key / identity(episode)

@@ -1,0 +1,67 @@
+{
+  "packets": {
+    "check": {
+      "schema": "stride-sequencing/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "expected_revision": 2,
+        "operations": [
+          {
+            "id": "reg",
+            "kind": "register_task",
+            "task_id": "0051",
+            "requirements_snapshot_revision": 2
+          }
+        ]
+      }
+    },
+    "collation": {
+      "schema": "stride-sequencing/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "SOURCE-REGISTER-0042",
+        "expected_revision": 2,
+        "operations": [
+          {
+            "id": "reg",
+            "kind": "register_task",
+            "task_id": "0051",
+            "requirements_snapshot_revision": 2
+          }
+        ]
+      }
+    },
+    "foreign-key": {
+      "schema": "stride-sequencing/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "new-valid-register",
+        "expected_revision": 2,
+        "operations": [
+          {
+            "id": "reg",
+            "kind": "register_task",
+            "task_id": "0051",
+            "requirements_snapshot_revision": 2
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "schema": "stride-sequencing/v1",
+    "status": "applied",
+    "revision": 3,
+    "replayed": false,
+    "results": [
+      {
+        "id": "reg",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0051",
+        "requirements_snapshot_revision": 2
+      }
+    ]
+  }
+}

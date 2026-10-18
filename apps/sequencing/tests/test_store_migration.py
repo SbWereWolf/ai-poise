@@ -455,3 +455,130 @@ def test_integer_storage_contract(tmp_path, subject, case):
             db.execute('RELEASE typed_probe')
             assert not db.in_transaction
             assert snapshot(db, DATA['columns']) == before
+
+
+SOURCE_PROFILE_CLI = json.loads((FIXTURES / 'source-profile-cli.json').read_text())
+
+
+def profile_source(db, case, *, parents=False):
+    source = (FIXTURES / 'precursor-store.sql').read_text()
+    replacements = {
+        'meta-no-pk': ('key TEXT PRIMARY KEY', 'key TEXT'),
+        'requests-no-pk': ('request_id TEXT PRIMARY KEY', 'request_id TEXT'),
+        'requests-nullable-digest': ('digest TEXT NOT NULL', 'digest TEXT'),
+        'requests-other-type': ('digest TEXT NOT NULL', 'digest INTEGER NOT NULL'),
+        'check': ('response_json TEXT NOT NULL',
+                  'response_json TEXT NOT NULL, CHECK(length(request_id)<64)'),
+        'collation': ('request_id TEXT PRIMARY KEY',
+                      'request_id TEXT COLLATE NOCASE PRIMARY KEY'),
+        'foreign-key': ('response_json TEXT NOT NULL',
+                        'response_json TEXT NOT NULL, FOREIGN KEY(digest) REFERENCES meta(key)'),
+    }
+    if case in replacements:
+        before, after = replacements[case]
+        assert source.count(before) == 1
+        source = source.replace(before, after)
+    if case == 'formatted':
+        for table in ('meta', 'tasks', 'requests'):
+            before = 'CREATE TABLE ' + table
+            assert source.count(before) == 1
+            source = source.replace(before, 'CREATE /* historical table */ TABLE\n "' + table + '"')
+    columns = {}
+    if case not in ('user-prefix-only', 'view-only'):
+        db.executescript(source)
+        for table in ('meta', 'tasks', 'requests'):
+            if table == 'requests' and parents:
+                db.executemany('INSERT INTO meta(key,value) VALUES(?,?)',
+                               [(row[1], 0) for row in DATA['source_rows']['requests']])
+            insert_rows(db, {table: DATA['source_rows'][table]}, DATA['source_columns'])
+        columns = dict(DATA['source_columns'])
+    if case in ('user-prefix-only', 'user-prefix-precursor'):
+        db.execute('CREATE TABLE sqliteXforeign(value TEXT)')
+        db.execute('INSERT INTO sqliteXforeign(value) VALUES(?)', ('Preserved user source',))
+        columns['sqliteXforeign'] = ['value']
+    if case == 'view-only':
+        db.execute('CREATE VIEW source_view AS SELECT 7 AS value')
+    elif case == 'precursor-view':
+        db.execute('CREATE VIEW source_view AS SELECT task_id FROM tasks')
+    elif case == 'precursor-trigger':
+        db.execute('CREATE TRIGGER source_trigger AFTER UPDATE ON tasks BEGIN SELECT 1; END')
+    elif case == 'precursor-index':
+        db.execute('CREATE INDEX source_index ON tasks(state)')
+    db.commit()
+    assert db.execute('PRAGMA foreign_key_check').fetchall() == []
+    return columns
+
+
+@pytest.mark.parametrize('case', [
+    'user-prefix-only', 'user-prefix-precursor', 'view-only', 'precursor-view',
+    'precursor-trigger', 'precursor-index', 'meta-no-pk', 'requests-no-pk',
+    'requests-nullable-digest', 'requests-other-type',
+])
+def test_source_profile_refusal_preserves_catalog_and_wip(tmp_path, case):
+    repository, worktree = physical_wip(tmp_path)
+    wip_before = wip_state(tmp_path, repository, worktree)
+    with closing(connect(tmp_path / 'source.sqlite')) as db:
+        columns = profile_source(db, case)
+        before = snapshot(db, columns)
+        with pytest.raises(ValueError) as error:
+            migration()(db)
+        assert str(error.value).strip()
+        assert not db.in_transaction
+        assert snapshot(db, columns) == before
+    assert wip_state(tmp_path, repository, worktree) == wip_before
+
+
+@pytest.mark.parametrize('case', ['canonical', 'formatted'])
+def test_source_profile_accepts_internal_indexes_and_equivalent_ddl(tmp_path, case):
+    with closing(connect(tmp_path / 'source.sqlite')) as db:
+        profile_source(db, case)
+        assert db.execute("SELECT type,name,tbl_name,sql FROM sqlite_master "
+                          "WHERE type='index' ORDER BY name").fetchall() == [
+            ('index', 'sqlite_autoindex_meta_1', 'meta', None),
+            ('index', 'sqlite_autoindex_requests_1', 'requests', None),
+            ('index', 'sqlite_autoindex_tasks_1', 'tasks', None),
+        ]
+        assert migration()(db) is None
+        assert not db.in_transaction
+        assert_schema(db)
+        assert_rows(db, DATA['migrated_rows'])
+
+
+@pytest.mark.parametrize('case', ['check', 'collation', 'foreign-key'])
+def test_retained_source_constraints_refuse_with_valid_cli_control(tmp_path, case):
+    control = tmp_path / 'canonical'
+    control.mkdir()
+    config, path = cli_root(control)
+    with closing(connect(path)) as db:
+        profile_source(db, 'canonical', parents=(case == 'foreign-key'))
+    packet = SOURCE_PROFILE_CLI['packets'][case]
+    if case == 'collation':
+        old_ids = [row[0] for row in DATA['source_rows']['requests']]
+        assert packet['input']['request_id'] not in old_ids
+        assert packet['input']['request_id'].casefold() in [value.casefold() for value in old_ids]
+    elif case == 'check':
+        assert len(packet['input']['request_id']) == 70
+    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    process = subprocess.run(
+        [sys.executable, '-B', str(ROOT / 'apps/sequencing/bin/sequencing'), '--config', str(config)],
+        input=json.dumps(packet) + '\n', cwd=control, env=environment, text=True, capture_output=True,
+    )
+    assert_response(process, SOURCE_PROFILE_CLI['response'])
+    with closing(connect(path)) as db:
+        assert_schema(db)
+        assert db.execute('SELECT task_id,requirements_snapshot_revision,state FROM tasks '
+                          'WHERE task_id=?', ('0051',)).fetchall() == [('0051', 2, 'available')]
+        assert db.execute('SELECT value FROM meta WHERE key=?', ('revision',)).fetchone() == (3,)
+    changed = tmp_path / 'changed'
+    changed.mkdir()
+    repository, worktree = physical_wip(changed)
+    wip_before = wip_state(changed, repository, worktree)
+    with closing(connect(changed / 'source.sqlite')) as db:
+        columns = profile_source(db, case, parents=(case == 'foreign-key'))
+        before = snapshot(db, columns)
+        with pytest.raises(ValueError) as error:
+            migration()(db)
+        assert str(error.value).strip()
+        assert not db.in_transaction
+        assert snapshot(db, columns) == before
+    assert wip_state(changed, repository, worktree) == wip_before

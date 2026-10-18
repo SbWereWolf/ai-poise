@@ -1,0 +1,2664 @@
+{
+  "configs": {
+    "sequencing": {
+      "schema": "stride-sequencing-config/v1",
+      "paths": {
+        "state": "../state",
+        "database": "sequencing.sqlite",
+        "lock": "sequencing.lock"
+      },
+      "batch": {
+        "max_input_bytes": 8192,
+        "max_items": 64
+      },
+      "read": {
+        "max_queries": 64
+      },
+      "lock": {
+        "seconds": 1.0,
+        "poll_seconds": 0.01
+      },
+      "repository": {
+        "id": "ai-poise",
+        "path": "../repo",
+        "base_ref": "refs/heads/poise-stride-v2"
+      },
+      "worktree": {
+        "root": "../worktrees",
+        "branch_prefix": "tasks/",
+        "fs_timeout_seconds": 5.0,
+        "git_timeout_seconds": 5.0
+      },
+      "transfer": {
+        "root": "../transfer",
+        "max_package_bytes": 1048576,
+        "max_files": 64,
+        "max_file_bytes": 262144,
+        "file_mode": 384
+      },
+      "identifiers": {
+        "task": {
+          "pattern": "^[0-9]+$"
+        },
+        "sprint": {
+          "pattern": "^[A-Z0-9-]+$"
+        }
+      }
+    },
+    "requirements": {
+      "schema": "stride-requirements-config/v1",
+      "paths": {
+        "state": "../state",
+        "database": "requirements.sqlite",
+        "lock": "requirements.lock"
+      },
+      "batch": {
+        "max_input_bytes": 8192,
+        "max_items": 64
+      },
+      "lock": {
+        "seconds": 1.0,
+        "poll_seconds": 0.01
+      },
+      "task_ids": {
+        "namespace": {
+          "minimum": 1,
+          "maximum": 999999
+        },
+        "width": 6,
+        "progression": {
+          "first": 17,
+          "step": 13
+        }
+      }
+    }
+  },
+  "seeds": {
+    "anchor": {
+      "ids": [
+        "000999"
+      ],
+      "warmup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "000999"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 0,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "000999",
+                "requirements_snapshot_revision": 2,
+                "state": "available",
+                "sprint_id": null,
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    "abc": {
+      "ids": [
+        "000017",
+        "000030",
+        "000043"
+      ],
+      "warmup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "000017"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 0,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "000017",
+                "requirements_snapshot_revision": 2,
+                "state": "available",
+                "sprint_id": null,
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    "abcd": {
+      "ids": [
+        "000017",
+        "000030",
+        "000043",
+        "000056"
+      ],
+      "warmup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "000017"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 0,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "000017",
+                "requirements_snapshot_revision": 2,
+                "state": "available",
+                "sprint_id": null,
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    "parallel": {
+      "ids": [
+        "2",
+        "10"
+      ],
+      "warmup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "2"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 0,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "2",
+                "requirements_snapshot_revision": 2,
+                "state": "available",
+                "sprint_id": null,
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "cases": {
+    "goal_only": {
+      "req_create": [
+        {
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "goal-0",
+              "goal": "Подготовить самостоятельный отчёт.",
+              "work_choice": {
+                "kind": "standalone"
+              }
+            }
+          },
+          "expected": {
+            "status": "created",
+            "task_id": "000017",
+            "statement_revision": 1,
+            "revision": 1,
+            "replayed": false
+          }
+        },
+        {
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "goal-1",
+              "goal": "Собрать данные отчёта.",
+              "work_choice": {
+                "kind": "sequence",
+                "sequence_id": "SPR-TEST"
+              }
+            }
+          },
+          "expected": {
+            "status": "created",
+            "task_id": "000030",
+            "statement_revision": 1,
+            "revision": 2,
+            "replayed": false
+          }
+        },
+        {
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "goal-2",
+              "goal": "Проверить данные отчёта.",
+              "work_choice": {
+                "kind": "sequence",
+                "sequence_id": "SPR-TEST"
+              }
+            }
+          },
+          "expected": {
+            "status": "created",
+            "task_id": "000043",
+            "statement_revision": 1,
+            "revision": 3,
+            "replayed": false
+          }
+        }
+      ],
+      "req_view": {
+        "packet": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "get_task0",
+                "kind": "get_task",
+                "task_id": "000017"
+              },
+              {
+                "id": "task_basis0",
+                "kind": "task_basis",
+                "task_id": "000017"
+              },
+              {
+                "id": "task_creation0",
+                "kind": "task_creation",
+                "task_id": "000017"
+              },
+              {
+                "id": "get_task1",
+                "kind": "get_task",
+                "task_id": "000030"
+              },
+              {
+                "id": "task_basis1",
+                "kind": "task_basis",
+                "task_id": "000030"
+              },
+              {
+                "id": "task_creation1",
+                "kind": "task_creation",
+                "task_id": "000030"
+              },
+              {
+                "id": "get_task2",
+                "kind": "get_task",
+                "task_id": "000043"
+              },
+              {
+                "id": "task_basis2",
+                "kind": "task_basis",
+                "task_id": "000043"
+              },
+              {
+                "id": "task_creation2",
+                "kind": "task_creation",
+                "task_id": "000043"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "status": "read_only",
+          "revision": 3,
+          "results": [
+            {
+              "id": "get_task0",
+              "value": {
+                "task_id": "000017",
+                "statement_revision": 1,
+                "snapshot_revision": null,
+                "goal": "Подготовить самостоятельный отчёт.",
+                "definition_of_done": [],
+                "task_requirements": []
+              }
+            },
+            {
+              "id": "task_basis0",
+              "value": {
+                "task_id": "000017",
+                "statement_revision": 1,
+                "basis_ready": false,
+                "requirements": []
+              }
+            },
+            {
+              "id": "task_creation0",
+              "value": {
+                "task_id": "000017",
+                "request_id": "goal-0",
+                "intent": {
+                  "request_id": "goal-0",
+                  "goal": "Подготовить самостоятельный отчёт.",
+                  "work_choice": {
+                    "kind": "standalone"
+                  }
+                },
+                "response": {
+                  "status": "created",
+                  "task_id": "000017",
+                  "statement_revision": 1,
+                  "revision": 1,
+                  "replayed": false
+                }
+              }
+            },
+            {
+              "id": "get_task1",
+              "value": {
+                "task_id": "000030",
+                "statement_revision": 1,
+                "snapshot_revision": null,
+                "goal": "Собрать данные отчёта.",
+                "definition_of_done": [],
+                "task_requirements": []
+              }
+            },
+            {
+              "id": "task_basis1",
+              "value": {
+                "task_id": "000030",
+                "statement_revision": 1,
+                "basis_ready": false,
+                "requirements": []
+              }
+            },
+            {
+              "id": "task_creation1",
+              "value": {
+                "task_id": "000030",
+                "request_id": "goal-1",
+                "intent": {
+                  "request_id": "goal-1",
+                  "goal": "Собрать данные отчёта.",
+                  "work_choice": {
+                    "kind": "sequence",
+                    "sequence_id": "SPR-TEST"
+                  }
+                },
+                "response": {
+                  "status": "created",
+                  "task_id": "000030",
+                  "statement_revision": 1,
+                  "revision": 2,
+                  "replayed": false
+                }
+              }
+            },
+            {
+              "id": "get_task2",
+              "value": {
+                "task_id": "000043",
+                "statement_revision": 1,
+                "snapshot_revision": null,
+                "goal": "Проверить данные отчёта.",
+                "definition_of_done": [],
+                "task_requirements": []
+              }
+            },
+            {
+              "id": "task_basis2",
+              "value": {
+                "task_id": "000043",
+                "statement_revision": 1,
+                "basis_ready": false,
+                "requirements": []
+              }
+            },
+            {
+              "id": "task_creation2",
+              "value": {
+                "task_id": "000043",
+                "request_id": "goal-2",
+                "intent": {
+                  "request_id": "goal-2",
+                  "goal": "Проверить данные отчёта.",
+                  "work_choice": {
+                    "kind": "sequence",
+                    "sequence_id": "SPR-TEST"
+                  }
+                },
+                "response": {
+                  "status": "created",
+                  "task_id": "000043",
+                  "statement_revision": 1,
+                  "revision": 3,
+                  "replayed": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "register": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "goal-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "a",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "b",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "c",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-TEST",
+                "members": [
+                  "000043",
+                  "000030"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "a",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000017",
+              "requirements_statement_revision": 1
+            },
+            {
+              "id": "b",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000030",
+              "requirements_statement_revision": 1
+            },
+            {
+              "id": "c",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000043",
+              "requirements_statement_revision": 1
+            },
+            {
+              "id": "group",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-TEST",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "read": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "000017"
+              },
+              {
+                "id": "q1",
+                "kind": "task",
+                "task_id": "000030"
+              },
+              {
+                "id": "q2",
+                "kind": "task",
+                "task_id": "000043"
+              },
+              {
+                "id": "q3",
+                "kind": "sprint",
+                "sprint_id": "SPR-TEST"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 1,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "000017",
+                "requirements_statement_revision": 1,
+                "state": "available",
+                "sprint_id": null,
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            },
+            {
+              "id": "q1",
+              "value": {
+                "task_id": "000030",
+                "requirements_statement_revision": 1,
+                "state": "available",
+                "sprint_id": "SPR-TEST",
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            },
+            {
+              "id": "q2",
+              "value": {
+                "task_id": "000043",
+                "requirements_statement_revision": 1,
+                "state": "available",
+                "sprint_id": "SPR-TEST",
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            },
+            {
+              "id": "q3",
+              "value": {
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1,
+                "members": [
+                  "000030",
+                  "000043"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "published": {
+      "req_steps": [
+        {
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "publish-origin",
+              "goal": "Подготовить отчёт.",
+              "work_choice": {
+                "kind": "sequence",
+                "sequence_id": "SPR-TEST"
+              }
+            }
+          },
+          "expected": {
+            "status": "created",
+            "task_id": "000017",
+            "statement_revision": 1,
+            "revision": 1,
+            "replayed": false
+          }
+        },
+        {
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "foundation",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "SYS-REPORT",
+                    "level": "system",
+                    "status": "current",
+                    "text": "Пользователь получает отчёт."
+                  }
+                },
+                {
+                  "kind": "put_requirement",
+                  "requirement": {
+                    "id": "APP-REPORT",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Приложение выдаёт отчёт."
+                  }
+                },
+                {
+                  "kind": "link",
+                  "system": "SYS-REPORT",
+                  "application": "APP-REPORT"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "applied",
+            "revision": 2,
+            "replayed": false
+          }
+        },
+        {
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "statement",
+              "expected_revision": 2,
+              "operations": [
+                {
+                  "kind": "revise_task",
+                  "task_id": "000017",
+                  "expected_statement_revision": 1,
+                  "statement": {
+                    "goal": "Подготовить отчёт.",
+                    "task_requirements": [
+                      {
+                        "key": "report",
+                        "status": "current",
+                        "text": "Выдать отчёт.",
+                        "applications": [
+                          "APP-REPORT"
+                        ]
+                      }
+                    ],
+                    "definition_of_done": [
+                      "Отчёт доступен."
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "applied",
+            "revision": 3,
+            "replayed": false
+          }
+        },
+        {
+          "packet": {
+            "operation": "apply",
+            "input": {
+              "request_id": "publish",
+              "expected_revision": 3,
+              "operations": [
+                {
+                  "kind": "publish_task",
+                  "task_id": "000017",
+                  "statement_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "applied",
+            "revision": 4,
+            "replayed": false
+          }
+        },
+        {
+          "packet": {
+            "operation": "create_task",
+            "input": {
+              "request_id": "draft-neighbor",
+              "goal": "Проверить отчёт.",
+              "work_choice": {
+                "kind": "sequence",
+                "sequence_id": "SPR-TEST"
+              }
+            }
+          },
+          "expected": {
+            "status": "created",
+            "task_id": "000030",
+            "statement_revision": 1,
+            "revision": 5,
+            "replayed": false
+          }
+        }
+      ],
+      "req_view": {
+        "operation": "query",
+        "input": {
+          "queries": [
+            {
+              "id": "published",
+              "kind": "get_task",
+              "task_id": "000017"
+            },
+            {
+              "id": "snapshot",
+              "kind": "snapshot",
+              "task_id": "000017",
+              "snapshot_revision": 1
+            },
+            {
+              "id": "draft",
+              "kind": "get_task",
+              "task_id": "000030"
+            }
+          ]
+        }
+      },
+      "register": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "mixed-origin",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "a",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "b",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-TEST",
+                "members": [
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000017",
+                    "successor": "000030",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "a",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1
+            },
+            {
+              "id": "b",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000030",
+              "requirements_statement_revision": 1
+            },
+            {
+              "id": "group",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-TEST",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "read": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "000017"
+              },
+              {
+                "id": "q1",
+                "kind": "task",
+                "task_id": "000030"
+              },
+              {
+                "id": "q2",
+                "kind": "sprint",
+                "sprint_id": "SPR-TEST"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 1,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1,
+                "state": "available",
+                "sprint_id": "SPR-TEST",
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            },
+            {
+              "id": "q1",
+              "value": {
+                "task_id": "000030",
+                "requirements_statement_revision": 1,
+                "state": "available",
+                "sprint_id": "SPR-TEST",
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            },
+            {
+              "id": "q2",
+              "value": {
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1,
+                "members": [
+                  "000017",
+                  "000030"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000017",
+                    "successor": "000030",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "statement_replay": {
+      "seed": "anchor",
+      "first": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "statement-first",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000017",
+              "requirements_statement_revision": 1
+            }
+          ]
+        }
+      },
+      "duplicate": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "statement-again",
+            "expected_revision": 1,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 2,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg",
+              "kind": "register_task",
+              "changed": false,
+              "task_id": "000017",
+              "requirements_statement_revision": 1
+            }
+          ]
+        }
+      },
+      "replay": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "statement-first",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": true,
+          "results": [
+            {
+              "id": "reg",
+              "kind": "register_task",
+              "changed": true,
+              "task_id": "000017",
+              "requirements_statement_revision": 1
+            }
+          ]
+        }
+      },
+      "read": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "task",
+                "task_id": "000017"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 2,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "task_id": "000017",
+                "requirements_statement_revision": 1,
+                "state": "available",
+                "sprint_id": null,
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    "reference_conflicts": [
+      {
+        "name": "statement_revision",
+        "seed": "anchor",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement_revision-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement_revision-conflict",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "identity_conflict"
+          }
+        }
+      },
+      {
+        "name": "snapshot_revision",
+        "seed": "anchor",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "snapshot_revision-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_snapshot_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000017",
+                "requirements_snapshot_revision": 2
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "snapshot_revision-conflict",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_snapshot_revision": 3
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "identity_conflict"
+          }
+        }
+      },
+      {
+        "name": "statement_to_snapshot",
+        "seed": "anchor",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement_to_snapshot-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement_to_snapshot-conflict",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_snapshot_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "identity_conflict"
+          }
+        }
+      },
+      {
+        "name": "snapshot_to_statement",
+        "seed": "anchor",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "snapshot_to_statement-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_snapshot_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000017",
+                "requirements_snapshot_revision": 2
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "snapshot_to_statement-conflict",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "identity_conflict"
+          }
+        }
+      }
+    ],
+    "invalid_references": [
+      {
+        "name": "missing",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-missing",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "both",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-both",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1,
+                "requirements_snapshot_revision": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "boolean",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-boolean",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "string",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-string",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": "1"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "null",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-null",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": null
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "array",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-array",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": []
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "object",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-object",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": {}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "fraction",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-fraction",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1.5
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "zero",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-zero",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "negative",
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "invalid-negative",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": -1
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "parallel": {
+      "seed": "parallel",
+      "register": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "parallel",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-TEST",
+                "members": [
+                  "2",
+                  "10"
+                ],
+                "dependencies": []
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "group",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-TEST",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "read": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "sprint",
+                "sprint_id": "SPR-TEST"
+              },
+              {
+                "id": "q1",
+                "kind": "task",
+                "task_id": "2"
+              },
+              {
+                "id": "q2",
+                "kind": "task",
+                "task_id": "10"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 1,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1,
+                "members": [
+                  "10",
+                  "2"
+                ],
+                "dependencies": []
+              }
+            },
+            {
+              "id": "q1",
+              "value": {
+                "task_id": "2",
+                "requirements_snapshot_revision": 2,
+                "state": "available",
+                "sprint_id": "SPR-TEST",
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            },
+            {
+              "id": "q2",
+              "value": {
+                "task_id": "10",
+                "requirements_snapshot_revision": 2,
+                "state": "available",
+                "sprint_id": "SPR-TEST",
+                "claim": null,
+                "workspace": null,
+                "terminal": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    "sprint_replay": {
+      "seed": "abc",
+      "first": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "sprint-first",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-TEST",
+                "members": [
+                  "000043",
+                  "000017",
+                  "000030"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000030",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "group",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-TEST",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "duplicate": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "sprint-again",
+            "expected_revision": 1,
+            "operations": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-TEST",
+                "members": [
+                  "000030",
+                  "000043",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000017",
+                    "successor": "000030",
+                    "kind": "completion"
+                  },
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 2,
+          "replayed": false,
+          "results": [
+            {
+              "id": "group",
+              "kind": "register_sprint",
+              "changed": false,
+              "sprint_id": "SPR-TEST",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "replay": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "sprint-first",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-TEST",
+                "members": [
+                  "000043",
+                  "000017",
+                  "000030"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000030",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": true,
+          "results": [
+            {
+              "id": "group",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-TEST",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "read": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q0",
+                "kind": "sprint",
+                "sprint_id": "SPR-TEST"
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "read_only",
+          "revision": 2,
+          "results": [
+            {
+              "id": "q0",
+              "value": {
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1,
+                "members": [
+                  "000017",
+                  "000030",
+                  "000043"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000017",
+                    "successor": "000030",
+                    "kind": "completion"
+                  },
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "sprint_conflicts": [
+      {
+        "name": "definition",
+        "seed": "abc",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "sprint-existing",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "changed": true,
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "different-definition",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000043"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000043",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "already_exists"
+          }
+        }
+      },
+      {
+        "name": "membership",
+        "seed": "abc",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "sprint-existing",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "changed": true,
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "different-group",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-OTHER",
+                  "members": [
+                    "000043",
+                    "000017"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000043",
+                      "successor": "000017",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "dependency_conflict"
+          }
+        }
+      }
+    ],
+    "invalid_graphs": [
+      {
+        "name": "unknown_member",
+        "seed": "abc",
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "graph-unknown_member",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "prefix",
+                  "kind": "register_task",
+                  "task_id": "000056",
+                  "requirements_snapshot_revision": 2
+                },
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "999999"
+                  ],
+                  "dependencies": []
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "dependency_conflict"
+          }
+        }
+      },
+      {
+        "name": "endpoint",
+        "seed": "abc",
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "graph-endpoint",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "prefix",
+                  "kind": "register_task",
+                  "task_id": "000056",
+                  "requirements_snapshot_revision": 2
+                },
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000043",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "dependency_conflict"
+          }
+        }
+      },
+      {
+        "name": "duplicate",
+        "seed": "abc",
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "graph-duplicate",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "prefix",
+                  "kind": "register_task",
+                  "task_id": "000056",
+                  "requirements_snapshot_revision": 2
+                },
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "completion"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "result"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "dependency_conflict"
+          }
+        }
+      },
+      {
+        "name": "cycle",
+        "seed": "abc",
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "graph-cycle",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "prefix",
+                  "kind": "register_task",
+                  "task_id": "000056",
+                  "requirements_snapshot_revision": 2
+                },
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "completion"
+                    },
+                    {
+                      "predecessor": "000030",
+                      "successor": "000017",
+                      "kind": "result"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "dependency_conflict"
+          }
+        }
+      }
+    ],
+    "request_failures": [
+      {
+        "name": "registration-reuse",
+        "seed": "anchor",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "advance": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement-again",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 2,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": false,
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "request_reuse_conflict"
+          }
+        }
+      },
+      {
+        "name": "registration-stale",
+        "seed": "anchor",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "advance": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "statement-again",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000017",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 2,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": false,
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "stale-registration",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000030",
+                  "requirements_statement_revision": 1
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "revision_conflict"
+          }
+        }
+      },
+      {
+        "name": "sprint-reuse",
+        "seed": "abc",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "sprint-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000043",
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000030",
+                      "successor": "000043",
+                      "kind": "result"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "changed": true,
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1
+              }
+            ]
+          }
+        },
+        "advance": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "advance-owner",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000056",
+                  "requirements_snapshot_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 2,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000056",
+                "requirements_snapshot_revision": 2
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "sprint-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000017",
+                    "000043"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000017",
+                      "successor": "000043",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "request_reuse_conflict"
+          }
+        }
+      },
+      {
+        "name": "sprint-stale",
+        "seed": "abc",
+        "first": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "sprint-first",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-TEST",
+                  "members": [
+                    "000043",
+                    "000017",
+                    "000030"
+                  ],
+                  "dependencies": [
+                    {
+                      "predecessor": "000030",
+                      "successor": "000043",
+                      "kind": "result"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "successor": "000030",
+                      "kind": "completion"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 1,
+            "replayed": false,
+            "results": [
+              {
+                "id": "group",
+                "kind": "register_sprint",
+                "changed": true,
+                "sprint_id": "SPR-TEST",
+                "sprint_revision": 1
+              }
+            ]
+          }
+        },
+        "advance": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "advance-owner",
+              "expected_revision": 1,
+              "operations": [
+                {
+                  "id": "reg",
+                  "kind": "register_task",
+                  "task_id": "000056",
+                  "requirements_snapshot_revision": 2
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "applied",
+            "revision": 2,
+            "replayed": false,
+            "results": [
+              {
+                "id": "reg",
+                "kind": "register_task",
+                "changed": true,
+                "task_id": "000056",
+                "requirements_snapshot_revision": 2
+              }
+            ]
+          }
+        },
+        "failure": {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "apply",
+            "input": {
+              "request_id": "stale-sprint",
+              "expected_revision": 0,
+              "operations": [
+                {
+                  "id": "group",
+                  "kind": "register_sprint",
+                  "sprint_id": "SPR-OTHER",
+                  "members": [
+                    "000056"
+                  ],
+                  "dependencies": []
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "revision_conflict"
+          }
+        }
+      }
+    ]
+  },
+  "errors": {
+    "identity_conflict": {
+      "schema": "stride-sequencing/v1",
+      "status": "rejected",
+      "reason": "identity_conflict"
+    },
+    "already_exists": {
+      "schema": "stride-sequencing/v1",
+      "status": "rejected",
+      "reason": "already_exists"
+    },
+    "dependency_conflict": {
+      "schema": "stride-sequencing/v1",
+      "status": "rejected",
+      "reason": "dependency_conflict"
+    },
+    "request_reuse_conflict": {
+      "schema": "stride-sequencing/v1",
+      "status": "rejected",
+      "reason": "request_reuse_conflict"
+    },
+    "revision_conflict": {
+      "schema": "stride-sequencing/v1",
+      "status": "rejected",
+      "reason": "revision_conflict"
+    }
+  },
+  "legacy_control_read": {
+    "packet": {
+      "schema": "stride-sequencing/v1",
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "q0",
+            "kind": "task",
+            "task_id": "0051"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "schema": "stride-sequencing/v1",
+      "status": "read_only",
+      "revision": 3,
+      "results": [
+        {
+          "id": "q0",
+          "value": {
+            "task_id": "0051",
+            "requirements_snapshot_revision": 2,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null
+          }
+        }
+      ]
+    }
+  }
+}

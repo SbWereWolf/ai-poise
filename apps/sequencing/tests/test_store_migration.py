@@ -346,26 +346,27 @@ def test_cli_precursor_query_and_exact_historical_replay(tmp_path):
     with closing(connect(path)) as db:
         precursor(db)
     assert_response(invoke(tmp_path, config, DATA['packets']['source_query']), DATA['responses']['source_query'])
-    with closing(connect(path)) as db:
-        assert_schema(db)
-        assert_rows(db, DATA['migrated_rows'])
-        before = snapshot(db, DATA['columns'])
+    from apps.sequencing.tests.test_registration import assert_legacy_rows, current_state
+    assert_legacy_rows(path, DATA['migrated_rows'])
+    before = current_state(path)
     assert_response(invoke(tmp_path, config, DATA['packets']['source_replay']), DATA['responses']['source_replay'])
-    with closing(connect(path)) as db:
-        assert snapshot(db, DATA['columns']) == before
+    assert current_state(path) == before
 
 
 def test_cli_populated_nonempty_projection_is_complete_and_read_only(tmp_path):
+    from apps.sequencing.tests.test_registration import assert_legacy_rows, current_state
     config, path = cli_root(tmp_path)
     repository, worktree = physical_wip(tmp_path)
     with closing(connect(path)) as db:
         populated(db, tmp_path)
-        before = snapshot(db, DATA['columns'])
     wip_before = wip_state(tmp_path, repository, worktree)
     packet = DATA['packets']['populated_query']
-    assert_response(invoke(tmp_path, config, packet), rendered(DATA['responses']['populated_query'], tmp_path))
-    with closing(connect(path)) as db:
-        assert snapshot(db, DATA['columns']) == before
+    expected = rendered(DATA['responses']['populated_query'], tmp_path)
+    assert_response(invoke(tmp_path, config, packet), expected)
+    assert_legacy_rows(path, rendered(DATA['target_rows'], tmp_path))
+    before = current_state(path)
+    assert_response(invoke(tmp_path, config, packet), expected)
+    assert current_state(path) == before
     assert wip_state(tmp_path, repository, worktree) == wip_before
 
 
@@ -564,10 +565,11 @@ def test_retained_source_constraints_refuse_with_valid_cli_control(tmp_path, cas
         input=json.dumps(packet) + '\n', cwd=control, env=environment, text=True, capture_output=True,
     )
     assert_response(process, SOURCE_PROFILE_CLI['response'])
+    from apps.sequencing.tests.test_registration import DATA as REGISTRATION, current_state
+    expected_read = REGISTRATION['legacy_control_read']
+    assert_response(invoke(control, config, expected_read['packet']), expected_read['expected'])
+    assert current_state(path)['version'] == 2
     with closing(connect(path)) as db:
-        assert_schema(db)
-        assert db.execute('SELECT task_id,requirements_snapshot_revision,state FROM tasks '
-                          'WHERE task_id=?', ('0051',)).fetchall() == [('0051', 2, 'available')]
         assert db.execute('SELECT value FROM meta WHERE key=?', ('revision',)).fetchone() == (3,)
     changed = tmp_path / 'changed'
     changed.mkdir()

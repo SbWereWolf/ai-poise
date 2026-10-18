@@ -379,6 +379,40 @@ def test_public_retry_rejects_metadata_different_from_committed_start(project, t
         assert [tuple(row) for row in db.execute('SELECT * FROM hook_events ORDER BY id')] == rows
 
 
+@pytest.mark.parametrize('retained_events', [[], ['Stop']], ids=['empty', 'stop-only'])
+def test_observation_rejects_incomplete_publication_without_changing_real_start(project, tmp_path, retained_events):
+    service, installed = configured(project, tmp_path)
+    deliver(service, installed)
+    record = service.registry.observed_installation('primary-hooks')
+    record['groups'] = [item for item in record['groups'] if item[0] in retained_events]
+    with service.registry.transaction() as db:
+        db.execute('UPDATE installations SET data=? WHERE id=?',
+                   (json.dumps(record), 'primary-hooks'))
+    document = json.loads(service.settings.hooks_file.read_text())
+    document['hooks'] = {kind: [group] for kind, group in record['groups']}
+    write_json(service.settings.hooks_file, document)
+    paths = [service.settings.path, service.settings.hooks_file, Path(installed['definition_path'])]
+    paths.extend(path for path in service.settings.bindings.rglob('*') if path.is_file())
+    files = {path: path.read_bytes() for path in paths}
+    with service.registry.read_transaction() as db:
+        rows = {table: [tuple(row) for row in db.execute(f'SELECT * FROM {table} ORDER BY rowid')]
+                for table in ('installations', 'operations', 'bindings', 'hook_events')}
+    committed = native_rows(service)
+    assert len(committed) == 1 and committed[0][1:] == ('conversation', 'SessionStart')
+    result = service.diagnose({'definition_path': installed['definition_path'],
+        'session_id': 'conversation', 'event': 'SessionStart', 'event_id': None,
+        'run_ids': [], 'probe_cwd': None})
+    assert result['installation']['status'] == 'changed'
+    assert result['binding']['status'] == 'valid'
+    assert result['native_event']['status'] == 'observed'
+    assert result['native_event']['id'] == committed[0][0]
+    assert result['native_event']['source'] == 'startup'
+    assert {path: path.read_bytes() for path in paths} == files
+    with service.registry.read_transaction() as db:
+        assert {table: [tuple(row) for row in db.execute(f'SELECT * FROM {table} ORDER BY rowid')]
+                for table in rows} == rows
+
+
 def test_observation_preserves_real_start_published_with_prior_launcher_flags(project, tmp_path, monkeypatch):
     with monkeypatch.context() as publisher:
         publisher.setattr(HookSettings, 'command',

@@ -29,6 +29,11 @@ def observe_published_installation(settings, saved, definition, path):
     expected = saved.get('groups')
     if not isinstance(expected, list):
         raise PoiseError('Invalid installation groups; republish the selected hook installation through runtime-config, then retry observation')
+    if any(not isinstance(item, list) or len(item) != 2
+           or not isinstance(item[0], str) or not isinstance(item[1], dict) for item in expected):
+        return {'status': 'changed'}
+    if sorted(item[0] for item in expected) != sorted(event['event'] for event in definition.data['events']):
+        return {'status': 'changed'}
     receipt = saved.get('receipt', {})
     if not isinstance(receipt, dict):
         raise PoiseError('Invalid installation receipt')

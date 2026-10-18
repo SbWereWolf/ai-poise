@@ -35,6 +35,13 @@ class FileOperand:
     line_count: int | None
     line_count_exact: bool | None = None
     relative: bool = False
+    final_record_terminated: bool | None = None
+
+@dataclass(frozen=True)
+class SourceProjection:
+    """Original contributions and the separately proved bounded output count."""
+    line_ranges: tuple[tuple[int, int], ...]
+    emitted_lines: int | None
 
 @dataclass(frozen=True)
 class ReaderUse:
@@ -50,26 +57,36 @@ class ReaderUse:
     address_space: str = 'file'
     reversed_input: bool = False
 
-    def source_ranges(self, index):
+    def source_projection(self, index):
         """Project output addresses onto one observed original input.
 
-        None means unproved coordinates; an empty tuple proves no contribution.
-        Keep repeated ranges here: budgeting counts emitted duplicates, while
-        the ledger separately unions the same canonical source intervals.
+        None means unproved coordinates. A known empty projection has no
+        contribution. Repeated emissions count for volume; ledger union is
+        separate. A tac output record may contain two original source records.
         """
         operand = self.operands[index]
         if self.requested_bytes_per_file is not None:
             return None
+        if self.mode == 'complete':
+            if not operand.line_count_exact:
+                return None
+            ranges = ((1, operand.line_count),) if operand.line_count else ()
+            return SourceProjection(ranges, None)
+        output_total = operand.line_count if operand.line_count_exact else None
+        joined = False
+        if self.reversed_input:
+            if output_total is None or operand.final_record_terminated is None:
+                return None
+            joined = output_total > 1 and not operand.final_record_terminated
+            output_total -= int(joined)
         ranges = self.line_ranges
         if not ranges:
-            if self.mode == 'complete' and operand.line_count_exact:
-                return ((1, operand.line_count),) if operand.line_count else ()
-            if self.reader != 'tail' or not operand.line_count_exact:
+            if self.reader != 'tail' or output_total is None:
                 return None
             count = self.requested_lines_per_file
             if count is None:
                 return None
-            ranges = ((max(1, operand.line_count - count + 1), operand.line_count),)
+            ranges = ((max(1, output_total - count + 1), output_total),)
         offset = 0
         if self.address_space == 'stream':
             preceding = self.operands[:index]
@@ -77,22 +94,30 @@ class ReaderUse:
                 return None
             offset = sum(p.line_count for p in preceding)
             if any(not p.line_count_exact for p in preceding):
-                return () if all(last <= offset for _, last in ranges) else None
-        if self.reversed_input and not operand.line_count_exact:
-            return None
+                return SourceProjection((), 0) if all(last <= offset for _, last in ranges) else None
         projected = []
+        emitted_lines = 0
         for first, last in ranges:
             first, last = max(1, first - offset), last - offset
-            if operand.line_count_exact:
-                last = min(last, operand.line_count)
+            if output_total is not None:
+                last = min(last, output_total)
             elif operand.line_count is None or last > operand.line_count:
                 return None
             if first > last:
                 continue
+            emitted_lines += last - first + 1
             if self.reversed_input:
-                first, last = operand.line_count - last + 1, operand.line_count - first + 1
-            projected.append((first, last))
-        return tuple(projected)
+                if joined:
+                    if first == 1:
+                        projected.append((operand.line_count - 1, operand.line_count))
+                        first = 2
+                    if first <= last:
+                        projected.append((operand.line_count - last, operand.line_count - first))
+                else:
+                    projected.append((operand.line_count - last + 1, operand.line_count - first + 1))
+            else:
+                projected.append((first, last))
+        return SourceProjection(tuple(projected), emitted_lines)
 
 @dataclass(frozen=True)
 class IntakeDecision:
@@ -683,7 +708,7 @@ class CommandClassifier:
                 continue
             executable = self._basename(stripped[0])
             arguments = stripped[1:]
-            if executable == 'cd' and position > 0:
+            if executable == 'cd' and (position > 0 or depth > 0):
                 changed_cwd = True
             if executable in nested_shells:
                 command_index = next((index for index, token in enumerate(arguments) if token in {'-c', '-lc', '-cl'}), None)
@@ -742,9 +767,9 @@ class CommandClassifier:
         return (operands, self._sum_known([operand.size_bytes for operand in operands]), self._sum_known([operand.line_count if operand.line_count_exact is True else None for operand in operands]))
 
     def _effective_bounded_lines(self, reader: ReaderUse, operand: FileOperand, index: int) -> int | None:
-        ranges = reader.source_ranges(index)
-        if ranges is not None:
-            return sum(last - first + 1 for first, last in ranges)
+        projection = reader.source_projection(index)
+        if projection is not None:
+            return projection.emitted_lines
         requested = reader.requested_lines_per_file
         if requested is None:
             return None
@@ -792,7 +817,7 @@ class CommandClassifier:
             return self._unclassified('dynamic_single_file_read', 'One reader operand could not be resolved before execution.', readers, policy)
         if any(reader.mode == 'bounded' and reader.requested_bytes_per_file is None
                and (reader.reversed_input or reader.address_space == 'stream')
-               and reader.source_ranges(index) is None
+               and reader.source_projection(index) is None
                for reader in readers for index, operand in enumerate(reader.operands)
                if operand.classification != 'stdin'):
             return self._unclassified('unresolved_source_projection',

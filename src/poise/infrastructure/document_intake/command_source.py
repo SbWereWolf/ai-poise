@@ -50,9 +50,10 @@ class OperandSnapshot:
         lines = self.lines.get(operand.path)
         if lines is None:
             return None
-        ranges = reader.source_ranges(index)
-        if ranges is None:
+        projection = reader.source_projection(index)
+        if projection is None:
             return None
+        ranges = projection.line_ranges
         if any(last > len(lines) for _, last in ranges) and not operand.line_count_exact:
             return None
         return sum(len(line) for first, last in ranges for line in lines[first - 1:last])
@@ -101,8 +102,10 @@ class CommandSource:
             return FileOperand('missing', label, PurePath(path), None, None)
         except (OSError, CommandFailure):
             return FileOperand('unreadable', label, PurePath(path), None, None)
+        exact = len(lines) <= limit
+        terminated = (not lines or lines[-1].endswith(b'\n')) if exact else None
         operand = FileOperand('explicit', label, PurePath(path), version['size'],
-                              len(lines), len(lines) <= limit, symbolic.relative)
+                              len(lines), exact, symbolic.relative, terminated)
         self.snapshot.lines[operand.path] = lines
         self.versions[operand.path] = version
         return operand
@@ -131,10 +134,10 @@ class CommandSource:
             for index, operand in enumerate(reader.operands):
                 if operand.classification != 'explicit' or operand.path not in self.versions:
                     continue
-                projected = reader.source_ranges(index)
-                if reader.mode == 'bounded' and projected == ():
+                projected = reader.source_projection(index)
+                if reader.mode == 'bounded' and projected is not None and not projected.line_ranges:
                     continue
-                ranges = [list(r) for r in projected] if projected is not None else []
+                ranges = [list(r) for r in projected.line_ranges] if projected is not None else []
                 kind = 'complete' if reader.mode == 'complete' else 'operation'
                 if ranges and kind != 'complete':
                     kind = 'lines'

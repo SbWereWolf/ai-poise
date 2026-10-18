@@ -80,20 +80,20 @@ class Intake:
         self.clock = None
 
     def enable(self):
-        # Every current product CALL reaches the real missing capability here.
-        # None of the future feature imports or invalid arrangements precedes it.
+        # Install the complete authority before its first real SessionStart.
+        # Historical entry RED belongs to the pre-code source, not this setup.
         for name in ['wait_seconds','recovery_budget_seconds','host_event_budget_seconds']:
             self.s.data['coordination'][name] = 120.0
         self.s.save_policy()
-        self.s.ready()
         self.policy_save()
         self.s.data['command_intake'] = {'policy': str(self.policy_path)}
         self.s.save_policy()
-        from tests.hook_transport.helpers import definition
+        from tests.hook_transport.helpers import definition, settings, event
         from poise.infrastructure.hook_transport import HookService
         self.definition = definition()
         self.definition['events'].extend(fixture('tool-events.json'))
-        path = self.s.hooks.settings.path
+        self.s.native_identity(self.s.identity if self.s.origin == 'native' else 'reader-native')
+        path = settings(self.s.base, self.s.parent)
         self.settings = json.loads(path.read_text())
         self.settings['tool_intake'] = {'reader_policy': str(self.s.policy)}
         write_json(path, self.settings)
@@ -106,6 +106,13 @@ class Intake:
         self.s.data['admission']['definition_path'] = self.installation['definition_path']
         self.s.save_policy()
         self.s.hooks = self.service
+        self.s.event_factory = event
+        self.s.event('SessionStart')
+        self.s.ready()
+        binding = self.service.latest_binding(self.s.identity, 'primary')
+        assert binding['definition_path'] == self.installation['definition_path']
+        assert binding['external_session'] == self.s.identity
+        assert self.s.episode['binding_id'] == binding['session_id']
         for name, text in fixture('cases.json')['common_vectors']['files'].items():
             self.s.write('docs/' + name + '.txt', text.encode('utf-8'))
         self.enabled = True

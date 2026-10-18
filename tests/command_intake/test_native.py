@@ -2,6 +2,7 @@
 from copy import deepcopy
 import fcntl
 import json
+import shlex
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -44,14 +45,42 @@ def installation(i):
     assert i.service.install(packet)==installed and path.read_bytes()==before
     foreign={'matcher':'OtherTool','hooks':[{'type':'command','command':'printf foreign'}]}
     doc=json.loads(path.read_text());doc['hooks']['PreToolUse'].append(foreign);write_json(path,doc)
+    # Reconcile is a distinct-identity repair of proven live-file drift.
+    # End the former authority with its own definition before arranging drift.
+    i.s.event('SessionEnd');assert i.s.invoke({'operation':'recover'})[0]==0
+    previous_id=i.definition['id']
+    current=deepcopy(i.definition);current['id']='reconciled-command-hooks'
+    live=deepcopy(current);live['events'][0]['status_message']='Previous six-event command binding'
+    from poise.common import digest
+    live_path=i.service.settings.definitions/(digest(live)+'.json')
+    write_json(live_path,live)
+    for groups in doc['hooks'].values():
+        for group in groups:
+            if group==foreign:continue
+            for hook in group['hooks']:
+                argv=shlex.split(hook['command'])
+                assert argv[-2:]==['--definition',i.installation['definition_path']]
+                argv[-1]=str(live_path)
+                hook['command']=shlex.join(argv)
+                if group.get('matcher')==live['events'][0]['matcher']:
+                    hook['statusMessage']=live['events'][0]['status_message']
+    write_json(path,doc)
     packet={'request_id':'six-events-reconcile','expected_revision':i.service.revision(),
-            'definition':i.definition,'previous_installation_id':i.definition['id'],
-            'live_definition_path':i.installation['definition_path']}
+            'definition':current,'previous_installation_id':previous_id,
+            'live_definition_path':str(live_path)}
     result=i.service.reconcile(packet)
     assert i.service.reconcile(packet)==result
     after=json.loads(path.read_text())
     assert foreign in after['hooks']['PreToolUse']
     assert len([g for g in after['hooks']['PreToolUse'] if g!=foreign])==1
+    assert result['reconciliation']['previous_installation_id']==previous_id
+    assert result['reconciliation']['installation_id']==current['id']
+    i.definition=current;i.installation=result;i.s.installation=result
+    i.s.data['admission']['definition_path']=result['definition_path'];i.s.save_policy()
+    i.s.native_identity('reconciled-command-native')
+    i.s.event('SessionStart');i.s.ready()
+    binding=i.service.latest_binding(i.s.identity,'primary')
+    assert binding['definition_path']==result['definition_path']
     i.read('head -n2 docs/A.txt')
 
 

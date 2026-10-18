@@ -82,8 +82,8 @@ Do not introduce symbolic-link checks by default. Such checks require an explici
 request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
 Follow [explicit agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
 
-Present historical receipts of terminal Tasks with the message
-"Служебные материалы задачи удалены. Служебные журналы уничтожены" based on the owning Task's state,
+Present historical receipts of terminal Tasks using the exact Russian retirement message
+defined by the linked canonical terminal-history contract, based on the owning Task's state,
 including when log files remain. Resolve ownership through stage evidence or the saved integration
 result;
 show state/owner lookup errors explicitly. Preserve complete receipt history in the saved

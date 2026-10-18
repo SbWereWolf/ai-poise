@@ -150,6 +150,8 @@ def test_completed_request_replay_does_not_run_again(project, monkeypatch, outco
 
 
 def test_handoff_resume_is_not_a_new_preparation_attempt(project, monkeypatch):
+    project['cfg']['runtime_services']['handoff'] = read_json(
+        Path(__file__).parents[1] / 'sprints/fixtures/file-handoff.json')
     case = arrange(project, monkeypatch)
     initial = boot(case)
     before = events(case)

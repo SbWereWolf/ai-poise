@@ -85,7 +85,7 @@ def tool_event(service, definition_path, event):
     if isinstance(event.get('tool_use_id'), str) and isinstance(event.get('tool_name'), str):
         result['call'] = dict(tool_use_id=event['tool_use_id'], tool_name=event['tool_name'],
                               pre_turn_id=event.get('turn_id'), post_turn_id=None)
-    fallback = (service.settings.observations / identity([event.get('session_id'), event.get('tool_use_id'), phase])
+    fallback = (service.settings.observations / identity([event.get('session_id'), event.get('tool_use_id'), phase, identity(event)])
                 / service.settings.raw['response_file'])
     try:
         intake, normalized = compose(service, definition_path, event)

@@ -57,19 +57,23 @@ def coverage_decision(plans, history, generation, policy):
             count, new = line_count(requested), line_count(novel)
             if current and new == 0 and same['deny_fully_covered_ranges']:
                 return 'duplicate_document_range'
-            if count > new and new < same['min_new_lines'] and new * 100 < count * same['min_new_fraction_percent']:
+            if 0 < new < count and new < same['min_new_lines'] and new * 100 < count * same['min_new_fraction_percent']:
                 return 'mostly_redundant_document_range'
         if older and not current:
             post = policy['post_generation']
             kind = plan['coverage_kind']
+            previously_complete = any(row['coverage_kind'] == 'complete' for row in older)
+            previous_ranges = [r for row in older for r in row['line_ranges']]
+            repeated_lines = (line_count(requested) if previously_complete else
+                              line_count(requested) - line_count(subtract_ranges(requested, previous_ranges)))
             if kind == 'operation':
                 if post['unknown_repeat_behavior'] == 'deny':
                     return 'unbounded_reread_after_generation'
                 if post['unknown_repeat_behavior'] == 'allow_with_audit':
                     return 'audit_unbounded_reread_after_generation'
-            elif kind == 'complete' and post['deny_complete_reread']:
+            elif kind == 'complete' and previously_complete and post['deny_complete_reread']:
                 return 'complete_reread_after_generation'
-            elif kind == 'lines':
+            elif kind == 'lines' and repeated_lines > 0:
                 if not post['allow_targeted_reread']:
                     return 'post_generation_reread_disabled'
                 count = line_count(requested)

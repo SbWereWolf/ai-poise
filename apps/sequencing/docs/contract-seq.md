@@ -3,7 +3,8 @@
 Статус: целевой публичный контракт самостоятельного Sequencing.
 
 Реализованный срез включает собственный CLI/config, хранилище формата 2,
-`register_task`, `register_sprint` и чтение полного текущего значения Task/Sprint.
+`register_task`, `register_sprint`, чтение полного текущего значения Task/Sprint,
+доступности `eligibility` и кандидатов `next` относительно явной Session.
 Процедуры описаны в [руководстве CLI](shell-seq.md) и
 [руководстве хранилища](storage-seq.md). Независимая работа — Task вне Sprint;
 Sprint использует ту же выданную identity с явно зарегистрированным membership.
@@ -12,7 +13,7 @@ Sprint использует ту же выданную identity с явно за
 exit 2. Обычные смысловые конфликты используют `identity_conflict`,
 `already_exists`, `dependency_conflict`, `request_reuse_conflict`,
 `revision_conflict`; диагностика формы и типов содержит причину.
-Последующие разделы описывают также целевые команды revise, eligibility, claims,
+Последующие разделы описывают также целевые команды revise, claims,
 Workspace, terminal и transfer, а также расширенный профиль структурированных
 ошибок. Этот целевой профиль и будущие команды не заявлены как реализованные
 нынешним CLI. Правила уже доступных вариантов уточнены ниже.
@@ -721,15 +722,18 @@ Request:
   "operation": "query",
   "input": {
     "queries": [
-      {"id": "q1", "kind": "eligibility", "task_id": "0043"},
+      {"id": "q1", "kind": "eligibility", "task_id": "0043", "claimant": "SESSION-GUIDE"},
       {"id": "q2", "kind": "sprint", "sprint_id": "PS-DEV-002"}
     ]
   }
 }
 ```
 
-Все queries одного packet наблюдают одну Sequencing `revision`. Query не repair/migrate owner
-state и не читает foreign stores.
+Все queries одного packet наблюдают одну Sequencing `revision` в общей read-транзакции.
+Подготовленное хранилище формата 2 сохраняет данные и revision при чтении.
+Первоначальная подготовка схемы описана в [руководстве хранилища](storage-seq.md#переход-к-формату-2).
+Caller передаёт уже выданный публичным владельцем Session канонический ID в `claimant`;
+Sequencing использует его как непрозрачную непустую строку.
 
 Успех:
 
@@ -749,13 +753,27 @@ state и не читает foreign stores.
 
 - `task`: `{id, kind, task_id}` → current owner record, claim/workspace/terminal refs.
 - `sprint`: `{id, kind, sprint_id}` → members, dependencies, sprint revision.
+- `eligibility`: `{id, kind, task_id, claimant}` → доступность для указанной Session (§7.2).
+- `next`: `{id, kind, claimant, scope}` → `{task_ids: [...]}` доступных кандидатов (§7.2).
+
+Следующие варианты остаются целевыми:
+
 - `work_overview`: `{id, kind, sprint_id}` → eligible, blocked, active/resumable,
   result provenance and current counts derived from authoritative owner records.
 - `dependencies`: `{id, kind, task_id}` → exact predecessors/successors and kinds.
 
 ### 7.2 Eligibility
 
-`eligibility` returns a deterministic projection:
+`eligibility` возвращает детерминированную проекцию относительно обязательного
+`claimant`. Обе формы работы используют одно правило: собственная Task
+не завершена и не отменена, действующий Task claim принадлежит caller либо
+отсутствует, все предшественники успешно завершены. Для `result`-ребра также
+требуется сохранённый `result_commit`. Собственный claim учитывается совместно
+со всеми зависимостями. Самостоятельный Workspace binding и занятость Session
+другой Task сохраняют своё назначение; ограничения приобретения ресурсов
+относятся к будущим mutators.
+
+Проекция имеет ровно четыре поля:
 
 ```json
 {
@@ -781,7 +799,35 @@ state и не читает foreign stores.
 }
 ```
 
-Eligibility query не создаёт claim и не резервирует Workspace.
+Собираются все применимые причины в порядке:
+
+1. `{"reason": "task_terminal", "state": "completed"}` либо состояние `cancelled`.
+2. `{"reason": "claimed_by_other", "claim_id": "CLAIM-A", "claimant": "SESSION-OTHER"}`.
+3. Причины предшественников по строковому `predecessor` и `kind`:
+   `{predecessor, kind, reason: "predecessor_not_completed"}` для любого
+   незавершённого предшественника, включая cancelled; либо
+   `{predecessor, kind: "result", reason: "missing_predecessor_result"}`
+   для completed без сохранённого результата.
+
+`eligible` истинно ровно при пустом `blockers`. `result_provenance` содержит
+все имеющиеся ссылки завершённых result-предшественников в порядке их ID,
+включая случай, когда другая причина делает Task недоступной. Completion-ребро
+требует только успешного завершения и сохраняет своё значение при отсутствии
+commit. Чтение сохраняет claims, Workspace и остальные собственные данные.
+
+`next` принимает ровно `{id, kind: "next", claimant, scope}`. Область задаётся
+одним из точных объектов:
+
+- `{"kind": "all"}` — все зарегистрированные Task;
+- `{"kind": "independent"}` — Task вне Sprint;
+- `{"kind": "sprint", "sprint_id": "PS-DEV-002"}` — members указанного Sprint.
+
+Значение — ровно `{"task_ids": [...]}`: уникальные доступные ID в строковом
+порядке, с сохранением ведущих нулей. Используется то же правило доступности.
+Собственная захваченная работа остаётся видна владельцу при выполненных
+зависимостях; чужая захваченная работа получает причину владения. Первоначальная
+регистрация Sprint достаточна для участия в выборке; отдельная публикация
+или подготовка процесса для чтения не требуется.
 
 ### 7.3 Claim/Workspace reads
 
@@ -789,8 +835,12 @@ Eligibility query не создаёт claim и не резервирует Works
 - `workspace`: exact reservation/status/path/branch/base commit;
 - `resumable`: tasks с released claim + valid preserved workspace/handoff, без нового claim.
 
-Неизвестная identity получает packet-level `not_found`; v1 не возвращает mixed partial
-success, чтобы caller не объединял observations разных revisions/errors.
+Для реализованных `task`/`eligibility` неизвестная Task возвращает
+`task_not_found`; для `sprint` и `next` с именованной областью неизвестный Sprint —
+`sprint_not_found`. Весь packet получает текущий `status: "rejected"`, `reason`
+и exit 2, даже если более ранний query был успешен. Успешный packet имеет
+`status: "read_only"`. Перечисленные выше отдельные Claim/Workspace reads
+остаются целевыми возможностями.
 
 ### 7.4 Точные shapes query и `value`
 
@@ -801,35 +851,29 @@ Query item всегда имеет непустой уникальный `id` и
 | `task` | `task_id` | Полная Task record §4.1; claim/workspace/terminal — модель или null |
 | `sprint` | `sprint_id` | Полная Sprint record §4.2, включая `sprint_revision` |
 | `dependencies` | `task_id` | `{task_id, predecessors, successors}`; arrays edges §4.2 |
-| `eligibility` | `task_id` | `{task_id, eligible, blockers, result_provenance}` из §7.2 |
+| `eligibility` | `task_id`, `claimant` | `{task_id, eligible, blockers, result_provenance}` из §7.2 |
+| `next` | `claimant`, `scope` | `{task_ids}` из §7.2 |
 | `claim` | `task_id` | `{task_id, active_claim, latest_handoff}`; последние два — модель или null |
 | `workspace` | `task_id` | `{task_id, workspace}`; reservation §4.4 или null |
 | `resumable` | `sprint_id` | Array `{task_id, handoff_id, workspace_id}` для unclaimed non-terminal Tasks с не consumed handoff |
 | `work_overview` | `sprint_id` | `{sprint_id, tasks, counts}` по правилам ниже |
 
-В двух последних запросах `sprint_id=null` явно означает все Sprint и standalone Tasks;
+Текущий CLI поддерживает строки `task`, `sprint`, `eligibility`, `next`;
+остальные строки таблицы описывают будущие варианты. Для `next` обязательны
+точные tagged scopes §7.2. В двух последних целевых запросах `sprint_id=null` явно означает все Sprint и standalone Tasks;
 строка выбирает ровно одну существующую Sprint. Для остальных queries null ID недопустим.
-Count не больше `batch.max_items`; `queries` непуст; bounded result limits заданы config.
-При превышении read bound — `limit_exceeded`, не молчаливая обрезка.
+Число текущих queries ограничено `read.max_queries`; список непустой,
+`id` уникальны в пределах packet. Точные обязательные поля каждого текущего
+варианта проверяются до исполнения; caller и scope передаются явно.
 
 `active_claim` — Claim §4.3 или null. `latest_handoff` — immutable поля §5.5 плюс
 `consumed` (boolean); это projection изменяемого consumption state, а не переписанный
 исторический release receipt. `workspace_id` в resumable может быть null.
 
-`work_overview.tasks` — упорядоченный array `{task, eligibility, latest_handoff}` из
-моделей выше. `counts` содержит ровно integer-поля `registered`, `eligible`, `blocked`,
-`claimed`, `resumable`, `completed`, `cancelled`. Они вычислены из этих records на одной
-revision; это **не** непересекающиеся группы. `eligible` означает пригодность по graph
-и non-terminal state; active claim показан отдельно и проверяется при acquisition.
-`blocked` считает non-terminal Tasks с graph blockers. Owner exclusivity проверяется
-после eligibility по §5.4, поэтому занятая eligible Task даёт `claim_conflict`, а не
-недетерминированный выбор между ним и `not_eligible`.
-
-Каждый blocker имеет ровно `predecessor`, `kind`, `reason`; reasons:
-`predecessor_not_completed`, `predecessor_cancelled`, `result_provenance_missing`.
-Для terminal самой Task `eligible=false` даже при пустых blockers; caller видит её
-state в `task`. Result provenance содержит `{predecessor, result_commit}` только для
-удовлетворённых result edges. Клиент не интерпретирует `blockers=[]` без `eligible`.
+Для будущего `work_overview` точный контракт caller и групп подсчёта
+уточняется при реализации этого варианта. Текущая caller-relative доступность,
+все варианты причин, их порядок и происхождение результата определены §7.2.
+Конфликты будущих acquisition-команд §5.4 сохраняют собственный смысл.
 
 Успех §7 содержит типизированные `value` для Task, заблокированной единственным
 незавершённым result predecessor, и соответствующей Sprint revision 1.
@@ -1045,7 +1089,7 @@ Workspace successor автоматически.
 
 Revision `30`: Task `0044` имеет completion edges от `0042` и `0043`. Первый completed,
 второй cancelled. `eligibility(0044)` возвращает `eligible=false`, единственный blocker
-`{predecessor:"0043", kind:"completion", reason:"predecessor_cancelled"}`.
+`{predecessor:"0043", kind:"completion", reason:"predecessor_not_completed"}`.
 Если вместо cancelled второй non-terminal, reason — `predecessor_not_completed`.
 Только completed **обоих** predecessors убирает blockers. Result-edge дополнительно
 требует exact result commit. Ни один из этих query не создаёт claim/Workspace.
@@ -1109,7 +1153,7 @@ claim после exact handoff validation и не пересоздаёт Workspa
 ### F6 — cancelled predecessor не удовлетворяет dependency
 
 `0042 -> 0043` kind completion. Explicit cancellation `0042` переводит terminal state в
-cancelled. `eligibility(0043)` остаётся false с reason `predecessor_cancelled`; caller должен
+cancelled. `eligibility(0043)` остаётся false с reason `predecessor_not_completed`; caller должен
 explicitly revise/waive graph policy в поддержанном owner flow. Cancellation не имитирует
 completion.
 

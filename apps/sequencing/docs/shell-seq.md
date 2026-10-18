@@ -13,11 +13,11 @@ apps/sequencing/bin/sequencing --config /absolute/path/sequencing.json
 Провайдер находит код относительно собственного файла; `--config` задаётся явно.
 
 Реализованы `apply` с `register_task`, `register_sprint` и `query` с
-`kind: "task"`, `kind: "sprint"`. Независимая работа — зарегистрированная Task
+`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`. Независимая работа — зарегистрированная Task
 вне Sprint. Работа в Sprint использует ту же Task identity и явное membership.
 Обе формы доступны одновременно. Ссылка ведёт на постановку Requirements либо
 на её опубликованный снимок; содержимое остаётся у Requirements. Последующие
-eligibility, claims, физические Workspace и transfer описаны в
+claims, физические Workspace и transfer описаны в
 [целевом контракте](contract-seq.md) как будущие команды.
 Точный реализованный формат, миграция и исполняемые примеры находятся в
 [руководстве по хранилищу](storage-seq.md).
@@ -242,6 +242,113 @@ with tempfile.TemporaryDirectory(prefix='sequencing-registration-guide-') as dir
 точный повтор использует весь исходный пакет. Владелец сохраняет атомарность
 пакета и его receipt.
 
+## Доступность и следующая работа
+
+Передайте канонический ID текущей Session, уже выданный её публичным владельцем,
+как непустой `claimant`. Используйте его одинаково в `eligibility` и `next`.
+Идентификаторы query уникальны внутри packet. Конфигурация остаётся прежней.
+
+`eligibility` принимает `id`, `kind`, `task_id`, `claimant` и возвращает
+`task_id`, `eligible`, `blockers`, `result_provenance`. `next` принимает
+`id`, `kind`, `claimant`, `scope`; значение содержит только `task_ids`.
+Область — ровно `{"kind": "all"}`, `{"kind": "independent"}` либо
+`{"kind": "sprint", "sprint_id": "SPR-GUIDE"}`. Все ID сортируются как строки.
+
+Работа доступна при выполнении всех условий: она nonterminal, действующий
+Task claim свой либо отсутствует, все предшественники completed. Для
+result-ребра требуется сохранённый commit результата; completion-ребру
+достаточно completed. Cancelled предшественник оставляет зависимость
+невыполненной. Собственная захваченная работа проверяется по тем же зависимостям;
+чужая получает причину `claimed_by_other`. Владение Workspace самостоятельно
+и сохраняет своё назначение при любом владельце Task. Выбор кандидатов
+показывает доступность; приобретение ресурсов имеет собственный будущий контракт.
+
+Порядок `blockers`: `task_terminal`, затем `claimed_by_other`, затем все
+причины предшественников в порядке ID. Их причины — `predecessor_not_completed`
+либо `missing_predecessor_result`. Ссылки `{predecessor, result_commit}`
+на завершённые result-предшественники сохраняются в `result_provenance`,
+даже если другое условие делает Task недоступной. Точные поля каждого варианта —
+в [контракте чтения](contract-seq.md#72-eligibility).
+
+Первоначально зарегистрированный Sprint участвует сразу. Чтение подготовленного
+формата 2 сохраняет данные и revision; все queries видят один снимок.
+Неизвестная Task даёт `task_not_found`, неизвестный именованный Sprint —
+`sprint_not_found`; текущий отказ относится ко всему packet и возвращает exit 2.
+
+Следующий пример запускается из корня рабочей копии с Python 3.13. Он использует
+временные данные и канонические четырёхзначные ID, переданные Requirements.
+`SESSION-GUIDE` обозначает уже выданный ID Session вызывающего пользователя.
+
+```python
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+def cli(config, operation, data):
+    result = subprocess.run(
+        [sys.executable, '-B', 'apps/sequencing/bin/sequencing', '--config', str(config)],
+        input=json.dumps({'schema': 'stride-sequencing/v1', 'operation': operation,
+                          'input': data}) + '\n',
+        text=True, capture_output=True, check=True,
+    )
+    assert result.stderr == ''
+    return json.loads(result.stdout)
+
+
+with tempfile.TemporaryDirectory(prefix='sequencing-availability-guide-') as directory:
+    root = Path(directory)
+    config = json.loads(Path('apps/sequencing/config/sequencing.example.json').read_text())
+    config['paths']['state'] = str(root / 'state')
+    config['repository']['path'] = str(Path.cwd())
+    config['worktree']['root'] = str(root / 'worktrees')
+    config['transfer']['root'] = str(root / 'transfer')
+    path = root / 'sequencing.json'
+    path.write_text(json.dumps(config))
+    operations = [
+        {'id': 'register-' + identifier, 'kind': 'register_task',
+         'task_id': identifier, 'requirements_statement_revision': 1}
+        for identifier in ['0041', '0042', '0043']]
+    operations.append({'id': 'register-group', 'kind': 'register_sprint',
+        'sprint_id': 'SPR-GUIDE', 'members': ['0042', '0043'], 'dependencies': [
+            {'predecessor': '0042', 'successor': '0043', 'kind': 'result'}]})
+    registered = cli(path, 'apply', {'request_id': 'availability-guide-register',
+                                   'expected_revision': 0, 'operations': operations})
+    assert registered == {'schema': 'stride-sequencing/v1', 'status': 'applied',
+        'revision': 1, 'replayed': False, 'results': [
+            {'id': 'register-' + identifier, 'kind': 'register_task',
+             'task_id': identifier, 'requirements_statement_revision': 1, 'changed': True}
+            for identifier in ['0041', '0042', '0043']] + [
+            {'id': 'register-group', 'kind': 'register_sprint', 'sprint_id': 'SPR-GUIDE',
+             'sprint_revision': 1, 'changed': True}]}
+    queries = [
+        {'id': 'root', 'kind': 'eligibility', 'task_id': '0042', 'claimant': 'SESSION-GUIDE'},
+        {'id': 'successor', 'kind': 'eligibility', 'task_id': '0043', 'claimant': 'SESSION-GUIDE'},
+        {'id': 'all', 'kind': 'next', 'claimant': 'SESSION-GUIDE', 'scope': {'kind': 'all'}},
+        {'id': 'independent', 'kind': 'next', 'claimant': 'SESSION-GUIDE',
+         'scope': {'kind': 'independent'}},
+        {'id': 'group', 'kind': 'next', 'claimant': 'SESSION-GUIDE',
+         'scope': {'kind': 'sprint', 'sprint_id': 'SPR-GUIDE'}},
+    ]
+    expected = {'schema': 'stride-sequencing/v1', 'status': 'read_only', 'revision': 1,
+        'results': [
+            {'id': 'root', 'value': {'task_id': '0042', 'eligible': True,
+                                    'blockers': [], 'result_provenance': []}},
+            {'id': 'successor', 'value': {'task_id': '0043', 'eligible': False,
+                'blockers': [{'predecessor': '0042', 'kind': 'result',
+                              'reason': 'predecessor_not_completed'}], 'result_provenance': []}},
+            {'id': 'all', 'value': {'task_ids': ['0041', '0042']}},
+            {'id': 'independent', 'value': {'task_ids': ['0041']}},
+            {'id': 'group', 'value': {'task_ids': ['0042']}},
+        ]}
+    current = cli(path, 'query', {'queries': queries})
+    assert current == expected
+    assert cli(path, 'query', {'queries': queries}) == expected
+    print(json.dumps({'registration': registered, 'read': current}, ensure_ascii=False))
+```
+
 ## Проверка
 
 Команды из корня рабочей копии:
@@ -249,8 +356,11 @@ with tempfile.TemporaryDirectory(prefix='sequencing-registration-guide-') as dir
 ```sh
 python -B apps/sequencing/tests/test_shell.py --suite behavior
 python -B apps/sequencing/tests/test_shell.py --suite documentation
-python -B -m pytest -q apps/sequencing/tests/test_registration.py apps/sequencing/tests/test_store_migration.py
+python -B -m pytest -q apps/sequencing/tests/test_eligibility.py
+PYTHONPATH=src python -B tools/check_documentation.py --checkout . --changed apps/sequencing/docs --changed docs/architecture/library-api.md
 ```
 
-Проверки выполняют реальные CLI/SQLite операции, проверяют независимые значения,
+Исторические проверки регистрации и переходов хранилища находятся в
+`test_registration.py` и `test_store_migration.py`; их выбирают при изменении
+соответствующей границы. Проверки текущего чтения выполняют реальные CLI/SQLite операции, проверяют независимые значения,
 идентичности, типы, ownership, сохранность WIP и откат транзакций.

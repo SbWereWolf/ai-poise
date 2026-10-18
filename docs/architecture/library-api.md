@@ -600,11 +600,23 @@ python examples/project_execution.py \
 Requirements выдаёт канонический ID и сохраняет постановку/снимки; Sequencing
 сохраняет переданный ID и точный вид/номер ссылки. Execution сохраняет свой процесс.
 
-Текущий CLI выполняет `register_task`, `register_sprint` и Task/Sprint query.
+`apps.sequencing.domain.eligibility.project_eligibility` владеет чистым правилом
+доступности относительно caller: состояние, действующий Task claim и все
+предшественники применяются совместно, с сохранением имеющихся ссылок результата.
+`apps.sequencing.infrastructure.eligibility_read.EligibilityReadRepository`
+читает необходимые собственные Task/edge/terminal факты и кандидатов выбранной
+области через переданное соединение. Транзакцией владеет `Store.query`.
+`Store._eligibility` объединяет эти факты с существующим `Store._active_claim`
+и одной domain-проекцией для обоих запросов.
+
+Текущий CLI выполняет `register_task`, `register_sprint` и четыре query-варианта:
+Task, Sprint, `eligibility`, `next`. Явные caller и области выбора описаны в
+[руководстве доступности](../../apps/sequencing/docs/shell-seq.md#доступность-и-следующая-работа).
 Independent и явное Sprint membership используют одну Task identity. `Store.query`
-собирает происхождение, членство, active claim, текущий Workspace, упорядоченные
+открывает одну read-транзакцию до чтения revision и собирает
+происхождение, членство, active claim, текущий Workspace, упорядоченные
 roots, независимую binding и terminal value только из своих таблиц. Изменение
-Sprint, eligibility, claim и физического Workspace остаётся последующим срезом.
+Sprint, claim и физического Workspace остаётся последующим срезом.
 Подробные предусловия, ограничения SQL, пошаговый откат и правильные примеры
 принадлежат [руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
 запуск и рабочие параметры — [руководству CLI](../../apps/sequencing/docs/shell-seq.md).

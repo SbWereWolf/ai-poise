@@ -14,9 +14,11 @@ import sqlite3
 import sys
 import time
 
+from apps.sequencing.domain.eligibility import project_eligibility
 from apps.sequencing.domain.registration import (
     Dependency, RegistrationError, RequirementsReference, SprintDefinition,
 )
+from apps.sequencing.infrastructure.eligibility_read import EligibilityReadRepository
 from apps.sequencing.infrastructure.registration_store import RegistrationRepository
 from apps.sequencing.migrations.v1 import migrate as migrate_v1
 from apps.sequencing.migrations.v2 import migrate as migrate_v2
@@ -239,15 +241,31 @@ def _packet(value, config):
             raise SequencingError('Sequencing query queries: required nonempty bounded list')
         seen = set()
         for query in queries:
-            if not isinstance(query, dict) or query.get('kind') not in ('task', 'sprint'):
+            if not isinstance(query, dict) or query.get('kind') not in ('task', 'sprint', 'eligibility', 'next'):
                 raise SequencingError('Unsupported Sequencing query kind')
-            field = query['kind'] + '_id'
-            _exact(query, {'id', 'kind', field}, 'Sequencing query')
+            kind = query['kind']
+            if kind in ('task', 'sprint'):
+                field = kind + '_id'
+                _exact(query, {'id', 'kind', field}, 'Sequencing query')
+                _identifier(query[field], config[kind + '_pattern'], kind)
+            elif kind == 'eligibility':
+                _exact(query, {'id', 'kind', 'task_id', 'claimant'}, 'Sequencing eligibility query')
+                _identifier(query['task_id'], config['task_pattern'], 'Task')
+                _nonempty(query['claimant'], 'Sequencing query claimant')
+            else:
+                _exact(query, {'id', 'kind', 'claimant', 'scope'}, 'Sequencing next query')
+                _nonempty(query['claimant'], 'Sequencing query claimant')
+                scope = query['scope']
+                if not isinstance(scope, dict) or scope.get('kind') not in ('all', 'independent', 'sprint'):
+                    raise SequencingError('Sequencing scope requires all, independent or sprint selector')
+                fields = {'kind', 'sprint_id'} if scope['kind'] == 'sprint' else {'kind'}
+                _exact(scope, fields, 'Sequencing scope')
+                if scope['kind'] == 'sprint':
+                    _identifier(scope['sprint_id'], config['sprint_pattern'], 'Sprint')
             qid = _nonempty(query['id'], 'Sequencing query id')
             if qid in seen:
                 raise SequencingError('Sequencing query ids must be unique')
             seen.add(qid)
-            _identifier(query[field], config[query['kind'] + '_pattern'], query['kind'])
     return value
 
 
@@ -379,16 +397,34 @@ class Store:
                 'workspace': self._workspace(conn, row['task_id']),
                 'terminal': None if row['terminal_json'] is None else json.loads(row['terminal_json'])}
 
+    def _eligibility(self, conn, reader, task_id, claimant):
+        return project_eligibility(task_id, reader.task_state(task_id), claimant,
+                                   self._active_claim(conn, task_id), reader.predecessors(task_id))
+
     def query(self, packet):
         with self.locked():
             conn = self.connect()
             try:
+                conn.execute('BEGIN')
                 revision = self.revision(conn)
                 results = []
                 repository = RegistrationRepository(conn)
+                reader = EligibilityReadRepository(conn)
                 for query in packet["input"]["queries"]:
                     if query['kind'] == 'sprint':
                         results.append({'id': query['id'], 'value': repository.sprint_value(query['sprint_id'])})
+                        continue
+                    if query['kind'] == 'eligibility':
+                        value = self._eligibility(conn, reader, query['task_id'], query['claimant'])
+                        results.append({'id': query['id'], 'value': value})
+                        continue
+                    if query['kind'] == 'next':
+                        scope = query['scope']
+                        sprint_id = scope['sprint_id'] if scope['kind'] == 'sprint' else None
+                        candidates = reader.candidate_ids(scope['kind'], sprint_id)
+                        eligible = [task_id for task_id in candidates
+                                    if self._eligibility(conn, reader, task_id, query['claimant'])['eligible']]
+                        results.append({'id': query['id'], 'value': {'task_ids': eligible}})
                         continue
                     row = conn.execute(
                         "SELECT task_id,requirements_snapshot_revision,requirements_statement_revision,state,terminal_json "
@@ -400,6 +436,7 @@ class Store:
                     results.append({"id": query["id"], "value": self._task_value(conn, row)})
                 return {"schema": WIRE_SCHEMA, "status": "read_only", "revision": revision, "results": results}
             finally:
+                conn.rollback()
                 conn.close()
 
 

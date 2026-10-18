@@ -1,0 +1,11 @@
+{
+  "sprint_id": null,
+  "goal": "Seed A.",
+  "config_hash": "test-config",
+  "newborn": {
+    "draft": {
+      "goal": "Seed A."
+    },
+    "ready": false
+  }
+}

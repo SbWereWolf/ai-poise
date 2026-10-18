@@ -1,0 +1,43 @@
+{
+  "goal_type": "development",
+  "worktree_required": false,
+  "route": {
+    "entry": "work"
+  },
+  "stages": [
+    {
+      "id": "work",
+      "handler": "produce",
+      "role": "executor",
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "read_only": true,
+      "allowed_paths": [],
+      "sections": {
+        "report": "A report is required."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "normalization": "strip",
+      "instruction": "Produce a report.",
+      "rework_targets": [],
+      "transitions": {
+        "complete": null
+      },
+      "artifact_requirements": []
+    }
+  ],
+  "benefit": {
+    "git_categories": [],
+    "sections": []
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "project": "test-project",
+  "aggregate": {
+    "state": "draft",
+    "revision": 0,
+    "plan": {
+      "id": "S",
+      "goal": "Prepare independent work.",
+      "requirements": [
+        "Preserve member state."
+      ],
+      "definition_of_done": [
+        "Member state is consistent."
+      ],
+      "tasks": [
+        {
+          "task_id": "A"
+        }
+      ],
+      "dependencies": []
+    }
+  },
+  "sections": {
+    "plan": "Test-owned Sprint snapshot."
+  }
+}

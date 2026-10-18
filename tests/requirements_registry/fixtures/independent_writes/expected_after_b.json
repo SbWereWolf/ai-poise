@@ -1,0 +1,34 @@
+{
+  "requirements": [
+    [
+      "APP-A",
+      "application",
+      "current",
+      "Application A."
+    ],
+    [
+      "APP-B",
+      "application",
+      "current",
+      "Updated B."
+    ],
+    [
+      "SYS-A",
+      "system",
+      "current",
+      "System A."
+    ],
+    [
+      "SYS-B",
+      "system",
+      "current",
+      "System B."
+    ]
+  ],
+  "links": [],
+  "revision": 1,
+  "response": {
+    "revision": 1,
+    "replayed": false
+  }
+}

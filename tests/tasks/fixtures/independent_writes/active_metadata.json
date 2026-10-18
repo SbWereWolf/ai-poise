@@ -1,0 +1,133 @@
+{
+  "contract": {
+    "id": "A",
+    "sprint_id": null,
+    "goal_type": "development",
+    "goal": "Prepare independent data.",
+    "requirements": [
+      "Save the report."
+    ],
+    "definition_of_done": [
+      "The report is saved."
+    ],
+    "methods": [],
+    "method_inputs": [],
+    "checks": {
+      "work": []
+    },
+    "artifact_requirements": [],
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "evidence_plan": {
+      "work": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "work",
+        "allowed_paths": [],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [],
+          "definition_of_ready": [],
+          "definition_of_done": []
+        }
+      }
+    ],
+    "decomposition": {
+      "kind": "ordinary",
+      "phases": [
+        {
+          "stage": "work",
+          "skills": [
+            "poise-development"
+          ],
+          "areas": []
+        }
+      ],
+      "integration": null
+    }
+  },
+  "workflow": {
+    "goal_type": "development",
+    "worktree_required": false,
+    "route": {
+      "entry": "work"
+    },
+    "stages": [
+      {
+        "id": "work",
+        "handler": "produce",
+        "role": "executor",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "read_only": true,
+        "allowed_paths": [],
+        "sections": {
+          "report": "A report is required."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "normalization": "strip",
+        "instruction": "Produce a report.",
+        "rework_targets": [],
+        "transitions": {
+          "complete": null
+        },
+        "artifact_requirements": []
+      }
+    ],
+    "benefit": {
+      "git_categories": [],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "sprint_id": null,
+  "goal": "Prepare independent data.",
+  "config_hash": "test-config",
+  "stage_criteria": {
+    "stages": {
+      "work": {
+        "purpose": "execution",
+        "revision": 0,
+        "criteria": {
+          "requirements": [],
+          "definition_of_ready": [],
+          "definition_of_done": []
+        },
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "source": {
+          "kind": "initial",
+          "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "execution": {
+          "state": "started",
+          "epoch": 1,
+          "bound_revision": 0
+        },
+        "proposals": [],
+        "history": [],
+        "revisions": []
+      }
+    },
+    "requests": {}
+  }
+}

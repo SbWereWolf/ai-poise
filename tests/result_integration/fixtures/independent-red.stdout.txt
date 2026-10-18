@@ -1,72 +1,72 @@
 FFFFFFFFF
 ======================================================= FAILURES =======================================================
 __________________________ test_unrelated_task_edit_commits_during_terminal_proof[completion] __________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:190: in test_unrelated_task_edit_commits_during_terminal_proof
+tests/result_integration/test_independent_ownership_reconciliation.py:195: in test_unrelated_task_edit_commits_during_terminal_proof
     observed = pause_and_change(
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 ____________________________ test_unrelated_task_edit_commits_during_terminal_proof[replay] ____________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:190: in test_unrelated_task_edit_commits_during_terminal_proof
+tests/result_integration/test_independent_ownership_reconciliation.py:195: in test_unrelated_task_edit_commits_during_terminal_proof
     observed = pause_and_change(
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 _______________________________ test_terminal_proof_preserves_moved_independent_binding ________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:224: in test_terminal_proof_preserves_moved_independent_binding
+tests/result_integration/test_independent_ownership_reconciliation.py:229: in test_terminal_proof_preserves_moved_independent_binding
     observed = pause_and_change(project, monkeypatch, tools, packet, move)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 _________________________________ test_terminal_proof_rejects_replaced_dependent_owner _________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:241: in test_terminal_proof_rejects_replaced_dependent_owner
+tests/result_integration/test_independent_ownership_reconciliation.py:246: in test_terminal_proof_rejects_replaced_dependent_owner
     observed = pause_and_change(project, monkeypatch, tools, packet, replace)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 _________________________________ test_terminal_proof_rechecks_related_state[claimed] __________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:280: in test_terminal_proof_rechecks_related_state
+tests/result_integration/test_independent_ownership_reconciliation.py:285: in test_terminal_proof_rechecks_related_state
     observed = pause_and_change(project, monkeypatch, tools, packet, inject_related_state)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 __________________________________ test_terminal_proof_rechecks_related_state[status] __________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:280: in test_terminal_proof_rechecks_related_state
+tests/result_integration/test_independent_ownership_reconciliation.py:285: in test_terminal_proof_rechecks_related_state
     observed = pause_and_change(project, monkeypatch, tools, packet, inject_related_state)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 _________________________________ test_terminal_proof_rechecks_related_state[pending] __________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:280: in test_terminal_proof_rechecks_related_state
+tests/result_integration/test_independent_ownership_reconciliation.py:285: in test_terminal_proof_rechecks_related_state
     observed = pause_and_change(project, monkeypatch, tools, packet, inject_related_state)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 __________________________________ test_terminal_proof_rechecks_related_state[report] __________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:280: in test_terminal_proof_rechecks_related_state
+tests/result_integration/test_independent_ownership_reconciliation.py:285: in test_terminal_proof_rechecks_related_state
     observed = pause_and_change(project, monkeypatch, tools, packet, inject_related_state)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False
 _______________________________ test_terminal_proof_rechecks_related_state[independent] ________________________________
-tests/result_integration/test_independent_ownership_reconciliation.py:280: in test_terminal_proof_rechecks_related_state
+tests/result_integration/test_independent_ownership_reconciliation.py:285: in test_terminal_proof_rechecks_related_state
     observed = pause_and_change(project, monkeypatch, tools, packet, inject_related_state)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/result_integration/test_independent_ownership_reconciliation.py:165: in pause_and_change
+tests/result_integration/test_independent_ownership_reconciliation.py:170: in pause_and_change
     assert observed["committed_before_resume"], (
 E   AssertionError: independent change was not committed before terminal proof continued
 E   assert False

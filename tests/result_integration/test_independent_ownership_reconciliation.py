@@ -32,16 +32,16 @@ def assert_relevant_refusal(observed, cause):
     controls = inputs()["refusal_controls"]
     for pattern in controls["scope_patterns"]:
         assert re.search(pattern, message), "refusal belongs to another operation"
-    assert re.search(controls["conflict_pattern"], message), "refusal is not a freshness conflict"
     assert (
         re.search(controls["causes"][cause]["pattern"], message)
-        or (
-            re.search(controls["generic_basis_pattern"], message)
-            and re.search(controls["generic_conflict_pattern"], message)
-        )
+        or re.search(controls["generic_basis_pattern"], message)
     ), "refusal does not explain the changed basis in this scenario"
-    for pattern in controls["continuation_patterns"]:
-        assert re.search(pattern, message), "refusal lacks the saved integration continuation"
+    assert re.search(controls["continuation_pattern"], message), (
+        "refusal lacks the saved integration continuation"
+    )
+    assert not re.search(controls["negated_continuation_pattern"], message), (
+        "refusal prohibits the expected saved integration continuation"
+    )
 
 
 def check_refusal_oracle(cause):
@@ -62,6 +62,11 @@ def check_refusal_oracle(cause):
         PoiseError(specific["wrong_scenario"]),
         PoiseError(specific["intended"].split(";")[0] + "; cancel another task."),
         PoiseError(controls["unchanged_basis"]),
+        PoiseError(specific["contextual_initialization"]),
+        PoiseError(specific["contextual_requirement"]),
+        PoiseError(specific["split_unrelated_change"]),
+        PoiseError(controls["split_basis_change"]),
+        PoiseError(specific["intended"].split(";")[0] + "; do not repeat the saved integrate request."),
     ]
     for error in invalid:
         with pytest.raises(AssertionError):

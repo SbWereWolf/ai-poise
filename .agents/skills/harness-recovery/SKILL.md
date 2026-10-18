@@ -12,6 +12,8 @@ Canonical policy: [harness failure and manual
 recovery](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 Read that section before choosing a recovery; it owns classification, authority,
 logs, rollback, repair drafts and reconciliation. This skill adds no repair API.
+Before an agreed restart, both roles inspect the actual progression/position using
+the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
 
 1. Read the actual input, full saved response, contract/configuration and effect state.
    Classify agent/task-planner misuse, configuration, code or manual-data damage;

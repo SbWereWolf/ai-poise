@@ -44,10 +44,15 @@ Gate не заменяет эти методы и не делает `inspect` а
 Из окружения, где установлен проверяемый инструмент Poise:
 
 ```bash
-python tools/check_architecture.py --checkout /concrete/ai-poise-copy \
-  --policy config/testing/architecture-boundaries.json \
+PYTHONPATH="$poise_root/src" "$poise_python" -B "$poise_root/tools/check_architecture.py" \
+  --checkout /concrete/ai-poise-copy \
+  --policy "$poise_root/config/testing/architecture-boundaries.json" \
   --path src/poise/modules/tasks/domain.py
 ```
+
+`poise_root` — выбранная установленная source-поставка инструмента, `poise_python` —
+её Python; `--checkout` выбирает проверяемые исходники независимо от корня инструмента.
+При установленном пакете используйте его доступные модули без source PYTHONPATH.
 
 `--path` повторяется для конкретных файлов, `--deleted` явно объявляет отсутствующую
 цель из того же списка. Проверка отвергает path escape, glob вместо файла и checkout

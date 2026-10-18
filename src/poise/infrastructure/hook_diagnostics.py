@@ -181,7 +181,10 @@ class HookObservationPort:
                 result['native_event'] = {'status': 'observed', 'id': event['id'], 'event': event['event'],
                     'session_id': event['binding'], 'recorded_at': event['at'],
                     'source': event['data'].get('source'), 'turn_id': event['data'].get('turn_id')}
-                if result['binding']['status'] == 'valid':
+                ended = (req['event'] == 'SessionEnd'
+                         and result['binding']['status'] == 'not_observed'
+                         and result['installation']['status'] == 'configured')
+                if result['binding']['status'] == 'valid' or ended:
                     try:
                         result['effect'] = self._effect(req, snapshot['binding'], event, root, cfg)
                     except FileNotFoundError:

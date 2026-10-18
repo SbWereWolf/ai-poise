@@ -400,6 +400,24 @@
         6,
         "available",
         null
+      ],
+      [
+        "0048",
+        8,
+        "claimed",
+        null
+      ],
+      [
+        "0049",
+        9,
+        "claimed",
+        null
+      ],
+      [
+        "0050",
+        10,
+        "available",
+        null
       ]
     ],
     "requests": [
@@ -495,6 +513,18 @@
         "0045",
         "S-A",
         "released"
+      ],
+      [
+        "C48",
+        "0048",
+        "S-E",
+        "active"
+      ],
+      [
+        "C49",
+        "0049",
+        "S-F",
+        "active"
       ]
     ],
     "workspaces": [
@@ -532,6 +562,24 @@
         "4444444444444444444444444444444444444444",
         "tasks/0046",
         "reserved",
+        0
+      ],
+      [
+        "WS48",
+        "0048",
+        "repo-1",
+        "6666666666666666666666666666666666666666",
+        "tasks/0048",
+        "ready",
+        0
+      ],
+      [
+        "WS50",
+        "0050",
+        "repo-1",
+        "7777777777777777777777777777777777777777",
+        "tasks/0050",
+        "ready",
         0
       ]
     ],
@@ -589,6 +637,42 @@
         "code",
         0,
         "$ROOT/released"
+      ],
+      [
+        "WS48",
+        "code",
+        0,
+        "$ROOT/code same"
+      ],
+      [
+        "WS48",
+        "main",
+        0,
+        "$ROOT/main one"
+      ],
+      [
+        "WS48",
+        "artifact",
+        0,
+        "$ROOT/artifacts/eight"
+      ],
+      [
+        "WS50",
+        "code",
+        0,
+        "$ROOT/code other"
+      ],
+      [
+        "WS50",
+        "main",
+        0,
+        "$ROOT/main one"
+      ],
+      [
+        "WS50",
+        "artifact",
+        0,
+        "$ROOT/artifacts/fifty"
       ]
     ],
     "workspace_bindings": [
@@ -599,6 +683,14 @@
       [
         "WS44",
         "S-D"
+      ],
+      [
+        "WS48",
+        "S-E"
+      ],
+      [
+        "WS50",
+        "S-F"
       ]
     ],
     "sequencing_history": [
@@ -698,6 +790,21 @@
             "id": "query-0042",
             "kind": "task",
             "task_id": "0042"
+          },
+          {
+            "id": "query-0048",
+            "kind": "task",
+            "task_id": "0048"
+          },
+          {
+            "id": "query-0049",
+            "kind": "task",
+            "task_id": "0049"
+          },
+          {
+            "id": "query-0050",
+            "kind": "task",
+            "task_id": "0050"
           }
         ]
       }
@@ -903,6 +1010,106 @@
                   "kind": "main",
                   "position": 1,
                   "path": "$ROOT/main two"
+                }
+              ]
+            },
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0048",
+          "value": {
+            "task_id": "0048",
+            "requirements_snapshot_revision": 8,
+            "state": "claimed",
+            "sprint_id": null,
+            "claim": {
+              "claim_id": "C48",
+              "task_id": "0048",
+              "claimant": "S-E",
+              "status": "active"
+            },
+            "workspace": {
+              "workspace_id": "WS48",
+              "task_id": "0048",
+              "repository_id": "repo-1",
+              "base_commit": "6666666666666666666666666666666666666666",
+              "branch": "tasks/0048",
+              "path": "$ROOT/code same",
+              "status": "ready",
+              "read_only": false,
+              "owner_session_id": "S-E",
+              "roots": [
+                {
+                  "kind": "artifact",
+                  "position": 0,
+                  "path": "$ROOT/artifacts/eight"
+                },
+                {
+                  "kind": "code",
+                  "position": 0,
+                  "path": "$ROOT/code same"
+                },
+                {
+                  "kind": "main",
+                  "position": 0,
+                  "path": "$ROOT/main one"
+                }
+              ]
+            },
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0049",
+          "value": {
+            "task_id": "0049",
+            "requirements_snapshot_revision": 9,
+            "state": "claimed",
+            "sprint_id": null,
+            "claim": {
+              "claim_id": "C49",
+              "task_id": "0049",
+              "claimant": "S-F",
+              "status": "active"
+            },
+            "workspace": null,
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0050",
+          "value": {
+            "task_id": "0050",
+            "requirements_snapshot_revision": 10,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": {
+              "workspace_id": "WS50",
+              "task_id": "0050",
+              "repository_id": "repo-1",
+              "base_commit": "7777777777777777777777777777777777777777",
+              "branch": "tasks/0050",
+              "path": "$ROOT/code other",
+              "status": "ready",
+              "read_only": false,
+              "owner_session_id": "S-F",
+              "roots": [
+                {
+                  "kind": "artifact",
+                  "position": 0,
+                  "path": "$ROOT/artifacts/fifty"
+                },
+                {
+                  "kind": "code",
+                  "position": 0,
+                  "path": "$ROOT/code other"
+                },
+                {
+                  "kind": "main",
+                  "position": 0,
+                  "path": "$ROOT/main one"
                 }
               ]
             },

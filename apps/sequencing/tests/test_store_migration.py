@@ -104,6 +104,41 @@ def populated(db, root):
     assert_rows(db, rendered(DATA['target_rows'], root))
 
 
+def table_definitions(db):
+    return dict(db.execute(
+        "SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
+
+
+def partial_ddl_observer(db):
+    before = table_definitions(db)
+    observed = {'creates': [], 'denied': [], 'changed_tables': {}}
+    def authorizer(action, first, second, database, trigger):
+        if action == sqlite3.SQLITE_CREATE_TABLE and not first.startswith('sqlite_'):
+            observed['creates'].append(first)
+            current = table_definitions(db)
+            changed = {name: sql for name, sql in current.items() if before.get(name) != sql}
+            if len(observed['creates']) >= 3 and len(changed) >= 2:
+                observed['denied'].append(first)
+                observed['changed_tables'] = changed
+                return sqlite3.SQLITE_DENY
+        return sqlite3.SQLITE_OK
+    return authorizer, observed
+
+
+def late_marker_observer(db):
+    observed = {}
+    def authorizer(action, first, second, database, trigger):
+        if action == sqlite3.SQLITE_PRAGMA and first == 'user_version' and second is not None:
+            observed['marker'] = (first, second)
+            observed['tables'] = table_definitions(db)
+            observed['task_columns'] = [row[1] for row in db.execute('PRAGMA table_info(tasks)')]
+            observed['tasks'] = [list(row) for row in db.execute(
+                'SELECT task_id,requirements_snapshot_revision,state,terminal_json FROM tasks ORDER BY task_id')]
+            return sqlite3.SQLITE_DENY
+        return sqlite3.SQLITE_OK
+    return authorizer, observed
+
+
 def physical_wip(root):
     repository = root / 'source-repository'
     subprocess.run(['git', 'init', '-q', '--initial-branch=fixture', str(repository)], check=True, capture_output=True)
@@ -112,8 +147,9 @@ def physical_wip(root):
     worktree = root / 'code one'
     subprocess.run(['git', '-C', str(repository), 'worktree', 'add', '--detach', str(worktree), 'HEAD'],
                    check=True, capture_output=True)
-    for relative in ('code one', 'code two', 'main one', 'main two', 'artifacts/one', 'artifacts/two'):
-        directory = root / relative
+    directories = {Path(row[3]) for row in rendered(DATA['target_rows']['workspace_roots'], root)}
+    for directory in sorted(directories):
+        relative = str(directory.relative_to(root))
         directory.mkdir(parents=True, exist_ok=True)
         (directory / 'wip.txt').write_bytes(('Uncommitted material: ' + relative).encode())
     return repository, worktree
@@ -121,7 +157,9 @@ def physical_wip(root):
 
 def wip_state(root, repository, worktree):
     files = {str(path.relative_to(root)): path.read_bytes() for path in root.rglob('wip.txt')}
+    directories = {Path(row[3]) for row in rendered(DATA['target_rows']['workspace_roots'], root)}
     return {'files': files,
+        'root_names': [(str(path.relative_to(root)), path.is_dir()) for path in sorted(directories)],
         'worktrees': subprocess.check_output(['git', '-C', str(repository), 'worktree', 'list', '--porcelain', '-z']),
         'head': subprocess.check_output(['git', '-C', str(worktree), 'rev-parse', 'HEAD']),
         'dirty': subprocess.check_output(['git', '-C', str(worktree), 'status', '--porcelain'])}
@@ -153,7 +191,8 @@ def test_populated_supported_precursor_preserves_references_and_receipts(tmp_pat
 
 
 @pytest.mark.parametrize('case', ['sprint_id', 'claim_json', 'workspace_json', 'terminal_json',
-                                 'state', 'unknown-version', 'foreign-format'])
+                                 'state', 'unknown-version', 'foreign-format',
+                                 'empty-sprint_id', 'empty-claim_json', 'empty-workspace_json', 'empty-terminal_json'])
 def test_unsupported_source_refuses_without_loss(tmp_path, case):
     with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
         columns = DATA['source_columns']
@@ -166,10 +205,12 @@ def test_unsupported_source_refuses_without_loss(tmp_path, case):
             if case == 'unknown-version':
                 db.execute('PRAGMA user_version=9')
             else:
-                value = {'sprint_id': 'SPR-A', 'claim_json': '{"claimant":"S-A"}',
+                field = case.removeprefix('empty-')
+                value = '' if case.startswith('empty-') else {
+                         'sprint_id': 'SPR-A', 'claim_json': '{"claimant":"S-A"}',
                          'workspace_json': '{"path":"$ROOT/code one"}',
                          'terminal_json': '{"kind":"completed"}', 'state': 'claimed'}[case]
-                db.execute('UPDATE tasks SET ' + quoted(case) + '=? WHERE task_id=?', (value, '0043'))
+                db.execute('UPDATE tasks SET ' + quoted(field) + '=? WHERE task_id=?', (value, '0043'))
         db.commit()
         before = snapshot(db, columns)
         with pytest.raises(ValueError) as error:
@@ -187,23 +228,16 @@ def test_partial_ddl_failure_is_atomic(tmp_path, source):
             precursor(db)
             columns = DATA['source_columns']
         before = snapshot(db, columns)
-        creates, traces = [], []
-        def deny_third_create(action, first, second, database, trigger):
-            if action == sqlite3.SQLITE_CREATE_TABLE:
-                creates.append(first)
-                if len(creates) == 3:
-                    return sqlite3.SQLITE_DENY
-            return sqlite3.SQLITE_OK
-        db.set_trace_callback(traces.append)
-        db.set_authorizer(deny_third_create)
+        authorizer, progress = partial_ddl_observer(db)
+        db.set_authorizer(authorizer)
         try:
             with pytest.raises(sqlite3.Error):
                 migration()(db)
         finally:
             db.set_authorizer(None)
-            db.set_trace_callback(None)
-        assert len(creates) == 3
-        assert len([sql for sql in traces if sql.lstrip().upper().startswith('CREATE TABLE')]) >= 2
+        assert len(progress['creates']) >= 3
+        assert len(progress['denied']) == 1
+        assert len(progress['changed_tables']) >= 2
         assert not db.in_transaction
         assert snapshot(db, columns) == before
 
@@ -214,29 +248,26 @@ def test_late_marker_failure_restores_data_schema_and_physical_wip(tmp_path):
     with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
         precursor(db)
         before = snapshot(db, DATA['source_columns'])
-        traces, denied = [], []
-        def deny_marker(action, first, second, database, trigger):
-            if action == sqlite3.SQLITE_PRAGMA and first == 'user_version' and second is not None:
-                denied.append((first, second))
-                return sqlite3.SQLITE_DENY
-            return sqlite3.SQLITE_OK
-        db.set_trace_callback(traces.append)
-        db.set_authorizer(deny_marker)
+        before_tables = table_definitions(db)
+        authorizer, progress = late_marker_observer(db)
+        db.set_authorizer(authorizer)
         try:
             with pytest.raises(sqlite3.Error):
                 migration()(db)
         finally:
             db.set_authorizer(None)
-            db.set_trace_callback(None)
-        assert denied == [('user_version', '1')]
-        assert any('tasks' in sql.lower() and sql.lstrip().upper().startswith(('INSERT', 'ALTER')) for sql in traces)
-        assert any(sql.lstrip().upper().startswith('CREATE TABLE') for sql in traces)
+        assert progress['marker'] == ('user_version', '1')
+        assert progress['tables'] != before_tables
+        assert set(progress['task_columns']) == set(DATA['columns']['tasks'])
+        assert progress['tasks'] == DATA['migrated_rows']['tasks']
         assert not db.in_transaction
         assert snapshot(db, DATA['source_columns']) == before
     assert wip_state(tmp_path, repository, worktree) == files_before
 
 
 def test_populated_target_history_roots_and_ownership_survive_repeat(tmp_path):
+    repository, worktree = physical_wip(tmp_path)
+    wip_before = wip_state(tmp_path, repository, worktree)
     path = tmp_path / 'sequencing.sqlite'
     with closing(connect(path)) as db:
         populated(db, tmp_path)
@@ -248,6 +279,7 @@ def test_populated_target_history_roots_and_ownership_survive_repeat(tmp_path):
         assert_schema(db)
         assert snapshot(db, DATA['columns']) == before
         assert_rows(db, rendered(DATA['target_rows'], tmp_path))
+    assert wip_state(tmp_path, repository, worktree) == wip_before
 
 
 @pytest.mark.parametrize('case', ['active-task', 'active-session', 'double-membership', 'cross-sprint-edge',
@@ -325,13 +357,16 @@ def test_cli_precursor_query_and_exact_historical_replay(tmp_path):
 
 def test_cli_populated_nonempty_projection_is_complete_and_read_only(tmp_path):
     config, path = cli_root(tmp_path)
+    repository, worktree = physical_wip(tmp_path)
     with closing(connect(path)) as db:
         populated(db, tmp_path)
         before = snapshot(db, DATA['columns'])
+    wip_before = wip_state(tmp_path, repository, worktree)
     packet = DATA['packets']['populated_query']
     assert_response(invoke(tmp_path, config, packet), rendered(DATA['responses']['populated_query'], tmp_path))
     with closing(connect(path)) as db:
         assert snapshot(db, DATA['columns']) == before
+    assert wip_state(tmp_path, repository, worktree) == wip_before
 
 
 @pytest.mark.parametrize('source', ['unknown-version', 'foreign-format'])

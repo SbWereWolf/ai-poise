@@ -222,8 +222,13 @@ def test_healthy_cached_controls(state, intake):
     if state == 'discarded':
         command += ' && false'
     elif state == 'deduplicated':
+        # This control exercises settlement/replay of duplicate plans. The
+        # registry's intentional same-call repeat rejection uses audit.
+        i.configure(**{'registry.mode': 'audit'})
         command += ' && head -n2 docs/pipeline.txt'
     call, pre = allow(i, command)
+    if state == 'deduplicated':
+        assert pre['decision']['action'] == 'audit'
     assert i.hook(deepcopy(i.calls[call]))[1] == pre
     body = 'P01\nP02\nP01\nP02\n' if state == 'deduplicated' else 'P01\nP02\n'
     response = actual(i, call, body, exit_code=1 if state == 'discarded' else 0)

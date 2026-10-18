@@ -12,7 +12,7 @@ _DDL = {
     'meta': 'CREATE TABLE meta(key TEXT PRIMARY KEY,value INTEGER NOT NULL)',
     'tasks': '''CREATE TABLE tasks(
         task_id TEXT PRIMARY KEY NOT NULL,
-        requirements_snapshot_revision INTEGER NOT NULL CHECK(requirements_snapshot_revision>0),
+        requirements_snapshot_revision INTEGER NOT NULL CHECK(typeof(requirements_snapshot_revision)='integer' AND requirements_snapshot_revision>0),
         state TEXT NOT NULL CHECK(state IN ('available','claimed','completed','cancelled')),
         terminal_json TEXT
     )''',
@@ -21,12 +21,12 @@ _DDL = {
     )''',
     'sprints': '''CREATE TABLE sprints(
         sprint_id TEXT PRIMARY KEY NOT NULL,
-        revision INTEGER NOT NULL CHECK(revision>0),
+        revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>0),
         state TEXT NOT NULL
     )''',
     'sprint_revisions': '''CREATE TABLE sprint_revisions(
         sprint_id TEXT NOT NULL REFERENCES sprints(sprint_id),
-        revision INTEGER NOT NULL CHECK(revision>0),
+        revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>0),
         state TEXT NOT NULL,
         data TEXT NOT NULL,
         PRIMARY KEY(sprint_id,revision)
@@ -64,7 +64,7 @@ _DDL = {
     'workspace_roots': '''CREATE TABLE workspace_roots(
         workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
         kind TEXT NOT NULL CHECK(kind IN ('code','main','artifact')),
-        position INTEGER NOT NULL CHECK(position>=0),
+        position INTEGER NOT NULL CHECK(typeof(position)='integer' AND position>=0),
         path TEXT NOT NULL,
         PRIMARY KEY(workspace_id,kind,position)
     )''',

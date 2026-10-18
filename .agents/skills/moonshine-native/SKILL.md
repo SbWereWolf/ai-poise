@@ -21,4 +21,4 @@ A project that actually uses MoonShine, its installed version, affected user sce
 
 ## Output
 
-Selected native/extension capability, material divergence reason only where needed, actual UI/host/data boundaries and focused feature/browser evidence with version/build identity. Persist in existing Task/evidence/content and public handoff; native preference is not permission to rewrite unrelated existing UI.
+Selected native/extension capability, material divergence reason only where needed, actual UI/host/data boundaries and focused feature/browser evidence with version/build identity. Persist in existing Task/evidence/content and ordinary public release; native preference is not permission to rewrite unrelated existing UI.

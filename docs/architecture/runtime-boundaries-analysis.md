@@ -24,8 +24,7 @@
 | RuntimeAccounting | cfg, session, store; PayloadMeasurer(runtime) | AccountingCommands и раздельные authoritative/optional repositories. |
 | SprintWork | UoW, workflow/config, prepare_creation, creation base; cleanup/current_task/paths | SprintCommands владеет членством/графом; адаптер связывает физические пути и cleanup. |
 | RuntimePlanActions | private _git/_tree/_stage/_roots/_invocations/_verification_workspace, cfg, session, store | PlanCommands владеет сохранённой операцией; Git effects не атомарны с SQL. |
-| LocalHandoff | current_task/_task, roots/tree/git, plan_actions, artifact validation, runner.submit, ownership | HandoffCommands сохраняет план и освобождение; адаптер сохраняет bundle/WIP до release. |
-| RuntimeTransfers | cfg/session и store/repository snapshot через runtime | TransferCommands и SqliteTransferRepository; перенос не даёт право менять роль. |
+| Обычное освобождение | Task/worktree claims и accounting cycle | OwnershipCommands.release сохраняет один receipt; существующий WIP не копируется. |
 | RuntimeResultIntegration | cfg/paths/state/store/task_queries и отдельный RuntimeTaskResourceCleanup(runtime) | IntegrationIntent и persisted phases; accepted commit не переписывается. |
 | RuntimeTaskResourceCleanup | roots/config/runtime/state/store/task_queries/register_artifact_paths | TaskResourceCleanup/CleanupRun: удалить только точно принадлежащие Task ресурсы. |
 
@@ -53,9 +52,10 @@ accepted commit и ff-only в основном checkout должны переж�
 физические операции и persistence. Этот образец предпочтительнее добавления нового
 универсального runtime interface со всеми сегодняшними методами.
 
-**Handoff.** Сначала сохранить артефакты/точный WIP/bundle, затем release. Нельзя
-заменять это освобождением claim без сохранения внешнего состояния. Независимое
-владение worktree и Task остаётся у WorkOwnership.
+**Смена участника.** Сначала сохранить результат/evidence через владельцев, затем
+обычный release и bootstrap той же Task. Существующий WIP остаётся в той же области;
+bundle и транспорт между участниками удалены. Неизвестные внешние эффекты остаются
+воротами выполнения. Независимое владение worktree и Task остаётся у WorkOwnership.
 
 ## Альтернативы
 

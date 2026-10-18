@@ -487,7 +487,7 @@ class FileProjectConfigUpdate:
                     workspace and path == ('paths', 'worktrees')):
                 raise PoiseError(f"Manifest field {path[0]} has a dedicated owner")
             # Named optional C004 capability, not permission to create arbitrary fields.
-            if path not in (("development_routing",), ("source_reader",), ("telemetry_delivery",), ("task_planning",)):
+            if path not in (("development_routing",), ("source_reader",), ("telemetry_delivery",), ("task_planning",), ("task_ids",)):
                 field_at(config, path)
             if any(path[:len(old)] == old or old[:len(path)] == path for old in changed):
                 raise PoiseError("Conflicting manifest edits")

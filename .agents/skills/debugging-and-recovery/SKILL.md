@@ -36,7 +36,7 @@ The failed operation and its stable identity, terminal result or confirmed loss 
 
 ## Output
 
-Save symptom/command, terminal identity, last completed step, side-effect state, inspected evidence, hypothesis, diagnostic change, actual result, justified retry/recovery and regression evidence through the existing Task/evidence/artifact owners. Distinguish recovered execution from unverified behavior. Release or transfer through public handoff; a blocker is not successful validation, and a conversation note is not durable state.
+Save symptom/command, terminal identity, last completed step, side-effect state, inspected evidence, hypothesis, diagnostic change, actual result, justified retry/recovery and regression evidence through the existing Task/evidence/artifact owners. Distinguish recovered execution from unverified behavior. Release or transfer through ordinary public release; a blocker is not successful validation, and a conversation note is not durable state.
 
 ## Checkpoint recovery
 

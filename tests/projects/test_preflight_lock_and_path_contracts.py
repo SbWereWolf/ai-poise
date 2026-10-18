@@ -110,8 +110,8 @@ def test_mandatory_filesystem_input_classification(optional_case, monkeypatch,
 
 POSITIVE_CASES = [
     'ordinary', 'relative-worktree', 'absolute-worktree', 'absolute-state',
-    'absolute-requirements', 'relative-requirements', 'handoff-unicode-spaces',
-    'transfer-whitespace-name', 'process-whitespace-name', 'optional-present',
+    'absolute-requirements', 'relative-requirements',
+    'process-whitespace-name', 'optional-present',
 ]
 
 
@@ -140,12 +140,6 @@ def test_supported_filesystem_input_controls(case, variant):
         cfg['paths']['requirements_lock'] = 'external/data.lock'
         values.update(requirements_db=str(project['root'] / 'state/external/data.sqlite'),
                       requirements_lock=str(project['root'] / 'state/external/data.lock'))
-    elif variant == 'handoff-unicode-spaces':
-        cfg['runtime_services']['handoff'].update(
-            receipt='отчёт передачи.json', bundle='source with spaces.bundle',
-            preserved_directory='сохранённые файлы')
-    elif variant == 'transfer-whitespace-name':
-        cfg['runtime_services']['transfer']['archive'] = '   '
     elif variant == 'process-whitespace-name':
         original = project['root'] / cfg['workflows']['development']
         target = project['root'] / 'config/workflows/   '

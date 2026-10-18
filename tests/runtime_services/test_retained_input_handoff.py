@@ -1,4 +1,4 @@
-"""Public handoff must transfer a usable declared acceptance input closure."""
+"""Participants reuse retained acceptance inputs in the existing Task working area."""
 from pathlib import Path
 
 import pytest
@@ -10,20 +10,20 @@ from poise.common import PoiseError
 from verification.retention_helpers import BYTES, assert_bundle, assert_preserved, invoke_required, manifest, verify_input
 
 
-def handoff(tools):
-    return tools.invoke(request('handoff', {
-        'request_id': 'retained-input-handoff', 'reason': 'Independent repeat verification',
-        'result': None, 'commit_message': None, 'artifact_paths': [],
+def release(tools):
+    current = tools.runtime.current_task()
+    return tools.invoke(request('release', {
+        'request_id': 'retained-input-release', 'reason': 'Independent repeat verification',
+        'task_id': current['id'], 'expected_version': current['version'],
     }))
 
 
-def test_handoff_and_resumed_check_use_retained_bytes_after_source_removal(project, tmp_path):
+def test_released_participant_uses_retained_bytes_after_source_removal(project, tmp_path):
     tools, context, first, source, marker = verify_input(project, tmp_path)
     original = assert_bundle(first, context, first['commit'])
-    released = handoff(tools)
-    assert released['status'] == 'handed_off'
+    released = release(tools)
+    assert released['status'] == 'ownership_released'
     assert_preserved(original, context)
-    assert not tools.runtime.runtime.exists()
     source.unlink()
     source.parent.rmdir()
     receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
@@ -55,7 +55,7 @@ def test_handoff_and_resumed_check_use_retained_bytes_after_source_removal(proje
 
 
 @pytest.mark.parametrize('fault', ['missing', 'bytes'])
-def test_handoff_refuses_invalid_required_input_without_releasing_owner(project, tmp_path, fault):
+def test_release_keeps_invalid_input_for_the_next_participants_guard(project, tmp_path, fault):
     tools, context, _, _, marker = verify_input(project, tmp_path)
     target = Path(context['task_root']) / 'artifacts/inputs/accepted.whl'
     if fault == 'missing':
@@ -63,16 +63,24 @@ def test_handoff_refuses_invalid_required_input_without_releasing_owner(project,
     else:
         target.write_bytes(b'changed')
     before = tools.runtime.task_queries.record('T1')
+    assert release(tools)['status'] == 'ownership_released'
+    after = tools.runtime.task_queries.record('T1')
+    assert after['claimed_by'] is None
+    assert after['status'] == before['status']
+    assert after['worktree'] == before['worktree']
+    receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
     with pytest.raises(PoiseError, match='exist|missing|digest|измен'):
-        handoff(tools)
-    assert tools.runtime.task_queries.record('T1') == before
-    assert tools.runtime.current_task()['claimed_by'] == 'producer'
+        receiver.invoke(request('bootstrap', {
+            'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None,
+        }))
+    assert receiver.runtime.current_task() is None
+    assert tools.runtime.task_queries.record('T1') == after
     assert marker.read_text() == 'run\n'
 
 
 @pytest.mark.parametrize('member', ['input', 'proof', 'manifest'])
 @pytest.mark.parametrize('fault', ['missing', 'bytes'])
-def test_released_bundle_damage_refuses_receiver_claim_and_exact_repair_retries(
+def test_retained_material_damage_refuses_receiver_claim_and_exact_repair_retries(
     project, tmp_path, member, fault,
 ):
     tools, context, done, _, marker = verify_input(project, tmp_path)
@@ -81,7 +89,7 @@ def test_released_bundle_damage_refuses_receiver_claim_and_exact_repair_retries(
     target = (Path(value['inputs'][0]['path']) if member == 'input' else
               next(Path(e['path']) for e in value['evidence'] if e['kind'] == 'output')
               if member == 'proof' else path)
-    assert handoff(tools)['status'] == 'handed_off'
+    assert release(tools)['status'] == 'ownership_released'
     before = tools.runtime.task_queries.record('T1')
     assert before['claimed_by'] is None
     if fault == 'missing':

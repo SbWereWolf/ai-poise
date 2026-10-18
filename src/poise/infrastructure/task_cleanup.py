@@ -126,7 +126,7 @@ class RuntimeTaskResourceCleanup:
             if not uow.execution.exists(task_id):
                 return None
             data, _ = uow.execution.load(task_id)
-            return data["pending"]
+            return data.get("pending")
 
     def save(self, task_id, pending):
         with self.h.store.unit_of_work() as uow:

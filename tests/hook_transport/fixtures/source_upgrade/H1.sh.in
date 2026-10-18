@@ -1,0 +1,2 @@
+#!/bin/sh
+exec env {source_python_path} {python} -B -m poise hook-work --settings {settings} --binding {binding}

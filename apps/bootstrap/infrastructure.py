@@ -17,7 +17,14 @@ class CommandConfiguration:
 
     @classmethod
     def load(cls, path: Path) -> "CommandConfiguration":
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        return cls.from_bytes(path.read_bytes())
+
+    @classmethod
+    def from_bytes(cls, raw: bytes) -> "CommandConfiguration":
+        return cls.from_mapping(json.loads(raw.decode("utf-8")))
+
+    @classmethod
+    def from_mapping(cls, raw: dict) -> "CommandConfiguration":
         if not isinstance(raw, dict):
             raise ValueError("Конфигурация команды должна быть JSON-объектом")
         parameters, commands, handler = raw["parameters"], raw["commands"], raw["handler"]
@@ -47,8 +54,8 @@ class CommandConfiguration:
     def handler_options(self) -> dict:
         return self.raw["handler"]["options"]
 
-    def rendered_commands(self, catalog_dir: str) -> dict[str, list[str]]:
-        values = {**self.raw["parameters"], "catalog_dir": catalog_dir}
+    def rendered_commands(self, catalog_dir: str, *, values: dict | None = None) -> dict[str, list[str]]:
+        values = {**self.raw["parameters"], **(values or {}), "catalog_dir": catalog_dir}
         return {
             name: [Template(argument).substitute(values) for argument in arguments]
             for name, arguments in self.raw["commands"].items()

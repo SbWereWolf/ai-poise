@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /bin/sh -c {guard} poise-runtime-guard {python} {recovery_command} {source_root} -B -m poise hook-work --settings {settings} --binding {binding}

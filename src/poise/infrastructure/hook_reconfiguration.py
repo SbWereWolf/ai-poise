@@ -12,6 +12,7 @@ from pathlib import Path
 from ..common import PoiseError, digest, encoded, exact_keys, file_digest
 from ..modules.foundation.validation import nonempty
 from ..modules.hook_transport.domain import HookDefinition, merge_hook_document
+from ..modules.ownership.domain import Liveness
 from . import hook_transport as transport
 from .goal_config import read_document
 from .locking import exclusive_lock
@@ -35,7 +36,8 @@ def _observed_file(item):
 
 def _bindings(db, settings_path):
     return {key: raw for key, raw in db.execute('SELECT id,data FROM bindings')
-            if json.loads(raw)['settings'] == str(settings_path)}
+            if json.loads(raw)['settings'] == str(settings_path)
+            and transport.HookRegistry.binding_liveness(db, key) is Liveness.LIVE}
 
 
 def _binding_change(service, proposed, key, raw, definition_path, installation_id):
@@ -48,9 +50,7 @@ def _binding_change(service, proposed, key, raw, definition_path, installation_i
         raise PoiseError('Binding belongs to another installation: ' + key)
     source = service.settings
     launcher = Path(record['launcher'])
-    allowed = [source.launcher_bytes(record['binding_path'])] + [
-        ('#!/bin/sh\nexec ' + command + '\n').encode()
-        for command in source.prior_launcher_commands('hook-work', '--binding', record['binding_path'])]
+    allowed = [source.launcher_bytes(record['binding_path']), *source.prior_launcher_bytes(record['binding_path'])]
     if launcher.read_bytes() not in allowed:
         raise PoiseError('Foreign launcher content before reconfiguration: ' + key)
     after = {**record, 'settings_digest': digest(proposed.raw), 'definition_path': str(definition_path)}
@@ -213,7 +213,7 @@ def reconfigure(settings_path, packet):
         raise PoiseError('Moving native hooks requires explicit repository_scope and hooks_lock')
     definition = HookDefinition.parse(packet['definition'])
     allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher',
-               'capability_summary'}
+               'capability_summary', 'lifecycle_consumer'}
     unchanged = lambda value: {key: item for key, item in value.items() if key not in allowed}
     if unchanged(service.settings.raw) != unchanged(proposed.raw):
         raise PoiseError('Hook reconfiguration cannot change project, stores or other transport settings')

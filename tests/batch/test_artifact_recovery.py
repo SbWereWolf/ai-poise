@@ -1,4 +1,4 @@
-"""Registered legacy handoff files are rehomed, never silently accepted in place."""
+"""Registered Task artifacts retain their integrity during an authorized root change."""
 from copy import deepcopy
 from pathlib import Path
 import sqlite3
@@ -8,7 +8,8 @@ import pytest
 from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
-from .helpers import bootstrap, configure, request, result, verify
+from .helpers import bootstrap, configure, request, result, text_artifact, verify
+from runtime_services.test_participant_continuity import release_packet
 
 
 @pytest.fixture
@@ -19,14 +20,12 @@ def legacy(project, request):
     tools = WorkTools(first)
     context = bootstrap(tools, project)
     add_test(context['worktree'])
-    handoff = tools.invoke(work_request('handoff', {
-        'request_id': 'legacy-handoff', 'reason': 'save incomplete work',
-        'result': result(context), 'commit_message': 'Preserve incomplete task work',
-        'artifact_paths': [],
-    }))
+    tools.invoke(work_request('artifacts', {'items': [
+        text_artifact('task', 'working-note.md', 'Unfinished analysis retained for the next participant.')]}))
+    released = tools.invoke(release_packet(tools, 'legacy-release'))
     old_root = Path(context['task_root'])
     records = first.store.artifact_records('T1')
-    assert any(Path(row['path']).name == 'source.bundle' for row in records)
+    assert any(Path(row['path']).name == 'working-note.md' for row in records)
     original_bytes = {row['id']: Path(row['path']).read_bytes() for row in records}
     claiming = getattr(getattr(request.node, 'callspec', None), 'params', {}).get('case') == 'claimed'
     if claiming:
@@ -45,7 +44,7 @@ def legacy(project, request):
     }
     return {'runtime': current, 'tools': WorkTools(current), 'args': args,
             'records': records, 'bytes': original_bytes, 'old_root': old_root,
-            'new_root': current.state / 'relocated' / 'T1', 'handoff': handoff}
+            'new_root': current.state / 'relocated' / 'T1', 'release': released}
 
 
 def history(h):
@@ -65,7 +64,7 @@ def recover(case, **changes):
     return case['tools'].invoke(request('recover_artifacts', {**case['args'], **changes}))
 
 
-def test_public_recovery_of_0121_shaped_handoff_removes_verify_blocker(legacy):
+def test_public_recovery_of_registered_artifacts_removes_verify_blocker(legacy):
     h = legacy['runtime']
     task = h.task_queries.record('T1')
     with pytest.raises(PoiseError, match='област'):
@@ -86,7 +85,8 @@ def test_public_recovery_of_0121_shaped_handoff_removes_verify_blocker(legacy):
     assert len(h._candidate_artifacts(task, [], h._roots(task))) == len(records)
     resumed = legacy['tools'].invoke(request('bootstrap', {
         'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None}))
-    assert verify(legacy['tools'], resumed['result_template'])['status'] == 'verified'
+    payload = result(resumed, 'Verify the recovered registered artifact bytes in the original Task.')
+    assert verify(legacy['tools'], payload)['status'] == 'verified'
 
 
 def test_exact_replay_returns_original_receipt_and_conflict_is_rejected(legacy):
@@ -206,9 +206,7 @@ def test_public_recovery_preserves_sprint_and_task_scope(project):
     tools.invoke(request('artifacts', {'items':[
         text_artifact('sprint', 'shared.md'), text_artifact('task', 'local.md')]}))
     add_test(context['worktree'])
-    tools.invoke(request('handoff', {
-        'request_id':'sprint-handoff', 'reason':'save work', 'result':result(context),
-        'commit_message':'Save sprint work', 'artifact_paths':[]}))
+    tools.invoke(release_packet(tools, 'sprint-release'))
     records = first.store.artifact_records('T1')
     roots = {'task':context['task_root'], 'sprint':context['sprint_root']}
     project['cfg']['paths']['sprints'] = 'relocated_sprints'

@@ -158,7 +158,7 @@ smoke и смежные Task/verification проверки прошли на з�
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
-точные проверки и Git, runtime/JSONL/парсеры/handoff/scoped transfer, локальные hooks/probes,
+точные проверки и Git, runtime/JSONL/парсеры, обычное освобождение и продолжение в той же области, локальные hooks/probes,
 accounting — сохранены. Текущие утверждения проверяются профильными тестами репозитория;
 числа из удалённых исторических отчётов не считаются актуальной регрессией.
 
@@ -242,7 +242,7 @@ integration.
 `target_stage`. Она сохраняет цель в Task journal, использует обычные route transitions и
 останавливается на работе этапа, entry gate, границе executor/reviewer либо достигнутой цели.
 Точный replay после workflow loss, correction, restart и handoff продолжает тот же intent;
-изменение цели конфликтует. Переход роли требует public handoff и bootstrap другой сессии.
+изменение цели конфликтует. Переход роли требует сохранения результата, обычного release и bootstrap другой сессии.
 Обычные переходы пишут `stage_progressed` без `user_accept*` и сохраняют report как `verified`;
 перед `publish` возвращается `user_acceptance_required` до отдельного решения пользователя.
 
@@ -334,3 +334,21 @@ retirement повторно наблюдает постоянный резуль
 неявный договор, полномочия приёмки/интеграции не выводятся из settlement.
 Точные формы и ограничения — в [договоре
 поставки](../workflows/terminal-materials.md#публичный-договор-поставки).
+
+## Общее чтение частей файлов проекта
+
+Реализован `content-read` и Python JSON-порт общего чтения зарегистрированного checkout без
+Task/Sprint. Поддержаны UTF-8 complete/lines, SHA выбранного текста, строгие packet/policy поля,
+current-generation repeat и явный manual переход, консервативный полный budget preflight,
+поэлементные факты и полные JSON/text результаты. Пустой schema2 template поставляется
+versioned Python resource; native admission и exact-End recovery используют существующий owner.
+Stale recovery прежнего episode сохраняет нового владельца; неверный JSON root owner record
+возвращает structured ownership_unknown с сохранением данных.
+
+Поставка проверяется offline wheel/noneditable install, изолированным `-I` CLI consumer и
+настоящим isolated SDK lifecycle, включая оба обезличенных профиля. Ссылки на
+[политику и исполняемые примеры](../configuration/project-file-reading.md#проверка-поставленных-примеров)
+и [жизненный цикл](../workflows/file-intake-lifecycle.md#границы-поставки-и-проверка) определяют
+текущую возможность. Это не общий перехват всех tool results и не автоматический reset при
+compaction; специализированный acknowledged SourceReader сохраняет собственный API.
+Регистрация текста не является доказательством памяти модели, доставки или provider billing.

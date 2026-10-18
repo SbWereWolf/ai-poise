@@ -292,15 +292,15 @@ def test_worktree_free_task_verifies_hands_off_and_resumes(project):
     assert verified["status"] == "verified"
     assert verified["commit"] == git(project["app"], "rev-parse", "HEAD")
 
-    handed_off = first.invoke(request("handoff", {
-        "request_id": "task-only-handoff",
+    current = first.runtime.current_task()
+    released = first.invoke(request("release", {
+        "request_id": "task-only-release",
         "reason": "Continue the worktree-free Task in another session.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": current["id"],
+        "expected_version": current["_version"],
     }))
-    assert handed_off["worktree"] is None
-    assert handed_off["bundle_path"] is None
+    assert released["status"] == "ownership_released"
+    assert first.runtime.task_queries.record(task["id"])["worktree"] is None
 
     second = WorkTools(Poise(project["config_path"], "task-only-second"))
     resumed = second.invoke(request("bootstrap", {
@@ -423,14 +423,14 @@ def test_partial_acquisition_rolls_back(project):
 def test_release_couples_required_worktree_but_preserves_independent(project):
     _configure_workflow(project, True)
     dependent, _ = _bootstrap(project, "dependent", "DEPENDENT")
-    receipt = dependent.invoke(request("handoff", {
+    current = dependent.runtime.current_task()
+    receipt = dependent.invoke(request("release", {
         "request_id": "release-dependent",
         "reason": "Exercise the public release route.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": current["id"],
+        "expected_version": current["_version"],
     }))
-    assert receipt["status"] == "handed_off"
+    assert receipt["status"] == "ownership_released"
     tasks, worktrees = _ownership_rows(dependent.runtime)
     assert tasks["DEPENDENT"] is None
     assert worktrees["dependent"] is None

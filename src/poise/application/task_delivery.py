@@ -62,6 +62,8 @@ class TaskDeliveryCommands:
             if replay is not None:
                 return replay
             current = uow.tasks.load_state(args['task_id'])
+            if current.status.value != record['status']:
+                raise PoiseError('Delivery Task state changed before agreement')
             if current.version != args['expected_version'] or current.claimed_by not in (None, self.actor):
                 raise PoiseError('Delivery Task owner/version changed before agreement')
             uow.task_delivery.save(self.actor, state, state.data['revision'] - 1)
@@ -74,15 +76,11 @@ class TaskDeliveryCommands:
         pending = uow.execution.load(task_id)[0]['pending'] if uow.execution.exists(task_id) else None
         if isinstance(pending, dict) and pending.get('kind') == 'check_attempt':
             return 'checks_pending'
-        if any(d['state'] != 'finalized' for d in uow.artifacts.drafts(task_id).values()):
+        if (uow.tasks.load_state(task_id).status != 'cancelled'
+                and any(d['state'] != 'finalized' for d in uow.artifacts.drafts(task_id).values())):
             return 'artifact_draft_open'
-        handoff = uow.handoffs.latest_recovery_candidate(task_id)
-        if handoff is not None and handoff['state'] == 'released':
-            return 'handoff_pending'
         if uow.tasks.pending_artifact_consumers(task_id):
             return 'artifact_consumer_pending'
-        if uow.transfers.pending_consumers(task_id):
-            return 'transfer_pending'
         if material_uses and uow.task_delivery.pending_uses(task_id):
             return 'artifact_consumer_pending'
         return None
@@ -116,19 +114,8 @@ class TaskDeliveryCommands:
         if state.data['status'] == 'delivery_complete':
             return state.result(replayed=True)
         record = self.effects.admission(task_id, self.actor)
-        with self.uow() as uow:
-            reason = self.consumer_blocker_in(uow, task_id)
-        if reason:
-            return self._blocked(state, reason)
-        if not state.data['retirement_started']:
-            reason = self.effects.validate_sources(state)
-            if reason:
-                return self._blocked(state, reason)
-            self.effects.ensure_resources(record, state)
-        record = self.effects.admission(task_id, self.actor)
-        reason = self.effects.blocker(record, state)
-        if reason:
-            return self._blocked(state, reason)
+        if record['status'] not in ('completed', 'cancelled'):
+            return self._blocked(state, 'task_not_terminal')
         if not state.data['retirement_started']:
             reason = self.effects.validate_sources(state)
             if reason:
@@ -141,6 +128,7 @@ class TaskDeliveryCommands:
                     return self._blocked(state, reason)
                 confirmed = [r for r in confirmed if r['id'] != receipt['id']] + [receipt]
                 state = self._save(state.evolve(confirmed=confirmed))
+            self.effects.ensure_resources(self.effects.admission(task_id, self.actor), state)
             record = self.effects.admission(task_id, self.actor)
             reason = self.effects.blocker(record, state)
             if reason:
@@ -170,8 +158,6 @@ class TaskDeliveryCommands:
                 if task_id in permanent_sources:
                     continue
                 raise PoiseError('Task working material has been retired')
-            if uow.transfers.preparing_consumers(task_id):
-                raise PoiseError('transfer_preparing: finish the original export preparation first')
             uow.task_delivery.admit_use(self.actor, intent, task_id, attempt, task.version,
                                        None if state is None else state.data['epoch'])
             live.append(task_id)
@@ -186,12 +172,10 @@ class TaskDeliveryCommands:
         This observation grants no Task claim; new released consumers admit in their outcome owner.
         Reuse of retired input is separately resolved through agreed delivery.
         """
-        if purpose not in {'bootstrap', 'handoff', 'draft', 'reuse', 'reuse_source', 'export'}:
+        if purpose not in {'bootstrap', 'draft', 'reuse', 'reuse_source'}:
             raise PoiseError('Unknown material consumer purpose')
         if self.unavailable(task_id) and purpose != 'reuse_source':
             raise PoiseError('Task working material has been retired')
-        if purpose != 'export' and self.effects.preparing_consumer(task_id):
-            raise PoiseError('transfer_preparing: finish the original export preparation first')
 
     def resource_gate(self, task_id):
         """Keep existing resource consumers; material-only uses guard root retirement."""

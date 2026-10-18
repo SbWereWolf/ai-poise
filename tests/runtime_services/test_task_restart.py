@@ -113,6 +113,11 @@ def workflow_contract(goal_type, workflow):
                     item["id"] for item in requirements
                     if stage["id"] in item["stages"] and item["phase"] == "post"
                 ],
+                "criteria": {
+                    "requirements": [],
+                    "definition_of_ready": [],
+                    "definition_of_done": [],
+                },
             }
             for stage in workflow["stages"]
         ],
@@ -529,12 +534,11 @@ def test_restarted_published_sprint_member_becomes_available_under_same_id(proje
     planned = draft(planner, [sprint_task(project, "BROKEN")])
     publish(planner, planned["revision"])
     active = sprint_bootstrap(planner, "BROKEN")
-    planner.invoke(request("handoff", {
+    planner.invoke(request("release", {
         "request_id": "release-broken",
         "reason": "Reviewer will recover the broken contract.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": "BROKEN",
+        "expected_version": planner.runtime.current_task()['_version'],
     }))
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
     before = reviewer.runtime.task_queries.record("BROKEN")

@@ -14,8 +14,9 @@ from .goal_config import strict_json
 
 
 class StdioProbe:
-    def __init__(self,spec,directory,files):
+    def __init__(self,spec,directory,files, *, deadline=None):
         self.spec=spec;self.directory=directory;self.files=files;self.child=None
+        self.host_deadline=deadline
         self.buffer=b'';self.messages=0;self.total=0;self.next_id=0
 
     def _send(self, value):
@@ -74,6 +75,8 @@ class StdioProbe:
     def run(self):
         prohibit_git_push(self.spec['argv'])
         m=self.spec['mcp'];self.deadline=time.monotonic()+self.spec['timeout_seconds']
+        if self.host_deadline is not None:
+            self.deadline=min(self.deadline,self.host_deadline)
         with (self.directory/self.files['stdout']).open('wb') as self.raw,(self.directory/self.files['stderr']).open('wb') as err:
             try:
                 self.child=subprocess.Popen(self.spec['argv'],cwd=self.spec['cwd'],env=self.spec['environment'],
@@ -112,7 +115,10 @@ class StdioProbe:
                 if self.child is not None:
                     try:
                         self.child.stdin.close()
-                        self.child.wait(timeout=m['shutdown_seconds'])
+                        shutdown=m['shutdown_seconds']
+                        if self.host_deadline is not None:
+                            shutdown=min(shutdown,max(0,self.host_deadline-time.monotonic()))
+                        self.child.wait(timeout=shutdown)
                     except (subprocess.TimeoutExpired,BrokenPipeError):
                         if self.child.poll() is None:
                             os.killpg(self.child.pid,signal.SIGKILL);self.child.wait()

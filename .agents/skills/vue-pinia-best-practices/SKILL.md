@@ -65,4 +65,4 @@ Apply the strict one-owner and no-copied-state/no-watcher-synchronization rules 
 
 ## Output
 
-State-owner map, route-versus-store boundary, typed actions/getters, exact focused checks and unresolved lifecycle/runtime assumptions in existing Poise Task content/evidence. Use the current public handoff; independent review and automatic routing are not self-certified.
+State-owner map, route-versus-store boundary, typed actions/getters, exact focused checks and unresolved lifecycle/runtime assumptions in existing Poise Task content/evidence. Use the current ordinary public release; independent review and automatic routing are not self-certified.

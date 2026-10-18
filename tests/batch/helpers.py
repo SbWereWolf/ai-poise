@@ -16,12 +16,6 @@ def batch_config():
 def configure(project):
     project['cfg']['schema']='ddd-accounting-12'
     project['cfg']['batch']=batch_config()
-    # Tests requesting historical filesystem handoff configure that optional
-    # adapter explicitly; sanitized installation examples no longer enable it.
-    project['cfg']['runtime_services']['handoff'] = {
-        'directory': 'handoffs', 'preserved_directory': 'materials',
-        'file_mode': 384, 'bundle': 'source.bundle', 'receipt': 'receipt.json',
-    }
     project['cfg']['paths'].pop('result',None)  # fixture evolution, not product migration
     write_json(project['config_path'],project['cfg'])
 

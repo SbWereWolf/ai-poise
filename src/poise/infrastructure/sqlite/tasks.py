@@ -110,14 +110,6 @@ class SqliteTaskRepository:
             'event': 'ownership_released', 'actor': actor, 'recovery': recovery,
             'previous_owner': owner, 'request_id': request_id, 'reason': reason})
 
-    def restore_snapshot(self, tables: dict, binding: dict) -> None:
-        """Controlled same-format import into absent identities; not a lifecycle edit."""
-        from .transfer_records import restore_tasks
-        for row in tables["tasks"]:
-            TaskStatus.parse(row["status"])
-        if any(self.exists(row['id']) for row in tables['tasks']):
-            raise PoiseError('Task snapshot cannot overwrite an existing aggregate')
-        restore_tasks(self.db,tables,binding)
 
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
@@ -188,7 +180,7 @@ class SqliteTaskRepository:
                 "stage": row["stage"], "iteration": row["iteration"],
                 "submission_id": row["submission_id"]}
 
-    def versioned_event_suffix(
+    def _event_range(
         self, task_id: str, after_version: int, through_version: int
     ) -> tuple[tuple[int, dict], ...] | None:
         if through_version < after_version:
@@ -204,6 +196,11 @@ class SqliteTaskRepository:
             return None
         return tuple((row['version'], json.loads(row['data'])) for row in rows)
 
+    def versioned_event_suffix(
+        self, task_id: str, after_version: int, through_version: int
+    ) -> tuple[tuple[int, dict], ...] | None:
+        return self._event_range(task_id, after_version, through_version)
+
     def ownership_event_suffix(
         self, task_id: str, after_version: int, through_version: int
     ) -> tuple[str, ...]:
@@ -218,6 +215,40 @@ class SqliteTaskRepository:
             "ownership_released",
         }
         return events if set(events) <= ownership_events else ()
+
+    def verified_ownership_history(
+        self, task_id: str, stage_id: str, iteration: int,
+        submission_digest: str, through_version: int,
+    ) -> dict | None:
+        current = self.db.execute(
+            "SELECT t.version,t.current_submission_id,s.digest,s.stage,s.iteration "
+            "FROM tasks t JOIN submissions s "
+            "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
+            (task_id,),
+        ).fetchone()
+        if (current is None or current["version"] != through_version
+                or current["digest"] != submission_digest
+                or current["stage"] != stage_id or current["iteration"] != iteration):
+            return None
+        submission_id = current["current_submission_id"]
+        anchor = self.db.execute(
+            "SELECT version FROM task_events WHERE task_id=? AND version<=? "
+            "AND json_extract(data,'$.event')='verified' "
+            "AND json_extract(data,'$.submission')=? "
+            "AND json_extract(data,'$.stage')=? AND json_extract(data,'$.iteration')=? "
+            "ORDER BY version DESC LIMIT 1",
+            (task_id, through_version, submission_id, stage_id, iteration),
+        ).fetchone()
+        if anchor is None:
+            return None
+        suffix = self._event_range(task_id, anchor["version"] - 1, through_version)
+        if suffix is None:
+            return None
+        events = [{**data, "version": version} for version, data in suffix]
+        return {"task_id": task_id, "submission_id": submission_id,
+                "submission_digest": submission_digest, "stage_id": stage_id,
+                "iteration": iteration, "through_version": through_version,
+                "events": events}
 
     def _newborn_metadata(self, newborn, config_hash):
         metadata = newborn.metadata(config_hash)
@@ -1197,7 +1228,8 @@ class SqliteTaskRepository:
         if change.task.criteria_book is None:
             raise PoiseError('stage criteria migration required')
         metadata['stage_criteria'] = change.task.criteria_book.data
-        metadata['contract']['stage_contracts'] = change.task.stage_contracts.to_list()
+        if change.task.stage_contracts is not None:
+            metadata['contract']['stage_contracts'] = change.task.stage_contracts.to_list()
         if change.submission is not None:
             _, intent = split_work(json.loads(change.submission.stage_work))
             metadata.pop('criteria_pending', None)

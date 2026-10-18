@@ -20,7 +20,7 @@ class SqliteEvidenceRepository:
         records = [json.loads(r[0]) for r in self.db.execute('SELECT data FROM evidence WHERE task_id=? ORDER BY rowid',(task_id,))]
         locations = self.db.execute('SELECT data FROM transfer_locations WHERE task_id=?', (task_id,)).fetchone()
         if locations is not None:
-            from .transfer_records import relocate_receipt
+            from ..material_locations import relocate_receipt
             records = [relocate_receipt(record, json.loads(locations['data'])) for record in records]
         return records
 

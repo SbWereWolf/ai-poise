@@ -11,7 +11,7 @@ def project_checks_tools(bound, policy_path, environment, clock):
     from .infrastructure.project_checks.subject import SubjectAdmission
     from .infrastructure.project_checks.execution import CheckExecution
     from .infrastructure.project_checks.publication import ProfilePublisher
-    from .infrastructure.session_establishment import establish_project_check_session
+    from .infrastructure.session_establishment import establish_project_session, direct_caller
     configuration = CheckConfiguration.load(bound, policy_path)
     inputs = InputSnapshot(bound.checkout, bound.config['limits']['git_seconds'], configuration.packages)
     runtime = RuntimeAdapter(bound.checkout, configuration.policy['runtime_adapters'])
@@ -25,8 +25,49 @@ def project_checks_tools(bound, policy_path, environment, clock):
     publisher = ProfilePublisher(configuration, clock)
     service = ProjectChecks(configuration, inputs, runtime, ledger, cache, execution,
                             timing, subject, publisher, environment)
-    service.establish_session = lambda: establish_project_check_session(bound, environment)
+    service.establish_session = lambda: establish_project_session(bound, direct_caller(bound.config['project'], environment))
     return service
+
+
+def content_reader_tools(configuration, environment, clock):
+    """Taskless content reading composes canonical identity and native owners."""
+    from .application.content_reader import ContentReader
+    from .application.document_intake import IntakeSessions
+    from .infrastructure.document_intake.source import ProjectContentSource
+    from .infrastructure.document_intake.template import PreparedTemplate
+    from .infrastructure.document_intake.presentation import FullReadCost
+    from .infrastructure.document_intake.resources import EpisodeResources
+    from .infrastructure.document_intake.native import HookNativeAuthority
+    from .infrastructure.hook_transport import HookService
+    from .infrastructure.session_establishment import direct_caller, establish_project_session
+    from .modules.document_intake.contracts import ReadFailure
+    from .common import PoiseError
+    from pathlib import Path
+    bound = configuration.bound
+    try:
+        caller = direct_caller(bound.config['project'], environment)
+    except PoiseError as exc:
+        raise ReadFailure('invalid_caller') from exc
+    try:
+        establish_project_session(bound, caller)
+    except PoiseError as exc:
+        raise ReadFailure('admission_unavailable') from exc
+
+    def authority():
+        admission = configuration.policy['admission']
+        try:
+            service = HookService(admission['hook_settings'])
+            if service.settings.project_config.resolve() != bound.config_path.resolve():
+                raise ReadFailure('authority_mismatch')
+            return HookNativeAuthority(service=service, project_id=bound.config['project'],
+                                       definition_path=Path(admission['definition_path']),
+                                       authority_identity=dict(admission))
+        except (PoiseError, OSError, ValueError) as exc:
+            raise ReadFailure('admission_unavailable') from exc
+
+    resources = EpisodeResources(configuration, caller, authority, clock)
+    sessions = IntakeSessions(configuration, resources, PreparedTemplate(Path(configuration.policy['session']['registry_template'])))
+    return ContentReader(configuration, ProjectContentSource(), sessions, resources, FullReadCost())
 
 
 def task_tools(store, repository_tree, requirements_gate):

@@ -1,5 +1,6 @@
-"""A real-source verification can stop and survive disappearance of its first store."""
+"""A real-source verification stops and resumes in the same assigned working area."""
 import json
+from copy import deepcopy
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,10 +10,10 @@ import pytest
 
 from poise.application.work import WorkTools
 from poise.composition import project_tools
+from poise.common import load_config
 from conftest import WorkPoise as Poise
 from examples.project_execution import continue_execution
-from examples.project_pilot import run as plan_real_source
-from tests.conftest import git
+from tests.conftest import bind_task_requirements, git, seed_fixture_requirements, write_json
 
 
 def snapshot_source(tmp_path):
@@ -32,58 +33,110 @@ def snapshot_source(tmp_path):
     return repo
 
 
-def setup_destination(repo, destination, requirements_root):
-    setup = json.loads((repo / 'config/project-setup.json').read_text())
-    selected = setup['templates']['linux-reference']
-    template = json.loads((repo / selected['path']).read_text())
-    values = {'project': 'poise-pilot', 'repository': str(repo), 'base': 'main',
-              'remote': 'not-configured', 'author_name': 'Poise pilot',
-              'author_email': 'pilot@example.invalid', 'push': False,
-              'state': 'state', 'environment': ['PATH', 'HOME']}
-    return project_tools(repo / 'config/project-setup.json').apply({
-        'schema': 'project-setup-1', 'request_id': 'receiving-project',
-        'destination': destination,
-        'template': {'id': 'linux-reference', 'version': selected['version'], 'digest': selected['digest']},
-        'edits': [{'path': q['path'], 'value': values[q['id']]} for q in template['questions']] + [
-            {'path':['paths','requirements_database'],'value':str(requirements_root/'requirements.sqlite')},
-            {'path':['paths','requirements_lock'],'value':str(requirements_root/'requirements.lock')}],
-        'probe_repository': True})
+def plan_real_source(project, repo, tmp_path):
+    """Arrange a current supported verification Task through public owners.
+
+    The historical pilot hard-codes a whole package invocation. This fixture
+    selects one actual-source setup oracle and keeps the live execution example
+    as the subject; it does not repair or mock that historical pilot.
+    """
+    workflow = deepcopy(project['workflow'])
+    names = ['planning', 'execution', 'interpretation']
+    stages = workflow['stages'][:3]
+    for index, stage in enumerate(stages):
+        stage.update(id=names[index], handler='produce', role='executor',
+                     purpose=['design', 'execution', 'observation'][index],
+                     read_only=True, allowed_paths=[], rework_targets=[names[index]],
+                     transitions={'complete': names[index + 1] if index < 2 else None})
+    workflow.update(goal_type='verification', route={'entry': 'planning'}, stages=stages,
+                    benefit={'git_categories': [], 'sections': []})
+    root = project['root']
+    workflow_path = write_json(root / 'execution-workflow.json', workflow)
+    settings_path = root / 'execution-setup.json'
+    config = deepcopy(project['cfg'])
+    config['git']['repository'] = str(repo)
+    config['automatic_checks'] = []
+    config['workflows'] = {'verification': 'workflows/verification.json'}
+    config['paths'].update(state=str(tmp_path / 'pilot-data'),
+                           worktrees=str(repo / 'pilot-worktrees'))
+    config['runtime_resources'] = {'project_setup': str(settings_path), 'hooks': []}
+    blueprint = write_json(root / 'execution-blueprint.json', {
+        'schema': 'project-blueprint-1', 'config': config,
+        'workflow_sources': {'verification': {'path': str(workflow_path)}},
+        'questions': [{'id': 'project', 'path': ['project'], 'type': 'text',
+                       'prompt': 'Идентификатор проверяемого проекта'}],
+    })
+    settings = json.loads((Path(__file__).parents[1] / 'config/project-setup.example.json').read_text())
+    settings.update(root=str(root), templates={'execution': {'path': str(blueprint)}},
+                    registry='execution-registry.json', lock='execution-setup.lock')
+    write_json(settings_path, settings)
+    write_json(root / 'execution-registry.json', {'schema': 'configured-project-registry-1', 'projects': {}})
+    created = project_tools(settings_path).apply({
+        'schema': 'project-setup-1', 'request_id': 'execution-project',
+        'destination': 'execution-config', 'template': {'id': 'execution'},
+        'edits': [{'path': ['project'], 'value': 'execution-fixture'}], 'probe_repository': True,
+    })
+    config_path = Path(created['config_path'])
+    configured_root, configured, _ = load_config(config_path)
+    registry = seed_fixture_requirements(configured_root, configured)
+    method = json.loads((Path(__file__).parent / 'projects/fixtures/project_execution_method.json').read_text())
+    method['argv'][0] = sys.executable
+    task = deepcopy(project['task'])
+    task.update(id='VERIFY-SOURCE', goal_type='verification',
+                goal='Проверить настройку проекта на фактическом коде.',
+                requirements=['Исполнение сохраняет проверенные исходники и рабочую область.'],
+                definition_of_done=['Сохранена квитанция адресной проверки без неявной приёмки.'],
+                methods=[method], method_inputs=[{'method_id': 'VERIFY',
+                    'repository_inputs': ['tests/projects/test_reference.py'], 'future_outputs': [],
+                    'reference_profile': {'runner': 'pytest', 'parser': 'positional-paths', 'version': 1}}],
+                checks={name: ['VERIFY'] if name == 'execution' else [] for name in names},
+                artifact_requirements=[],
+                evidence_plan={name: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for name in names},
+                stage_contracts=[{'stage_id': name, 'allowed_paths': [], 'entry_requirements': [],
+                    'exit_requirements': [], 'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
+                    for name in names],
+                decomposition={'kind': 'ordinary', 'integration': None,
+                    'phases': [{'stage': name, 'skills': ['workflow'], 'areas': []} for name in names]})
+    bind_task_requirements(task, registry)
+    exclude = repo / '.git/info/exclude'
+    exclude.write_text(exclude.read_text() + '\n/pilot-worktrees/\n')
+    tools = WorkTools(Poise(config_path, 'VERIFY-SOURCE'))
+    context = tools.invoke({'operation': 'bootstrap', 'input': {
+        'task': task, 'decision': None, 'feedback': None, 'rework_stage': None}, 'messages': []})
+    payload = deepcopy(context['result_template'])
+    payload['sections']['report'] = 'Проверить один адресный oracle настройки проекта на фактическом коде.'
+    planned = tools.invoke({'operation': 'verify', 'input': {'result': payload, 'artifacts': []}, 'messages': []})
+    assert planned['status'] == 'verified' and planned['checks'] == []
+    return {'setup': created}
 
 
-def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(tmp_path):
+def test_real_execution_is_not_accepted_and_resumes_in_the_same_working_area(project, tmp_path):
     repo = snapshot_source(tmp_path)
     base = git(repo, 'rev-parse', 'HEAD')
-    first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE', requirements_root=tmp_path/'requirements-planned')
+    first = plan_real_source(project, repo, tmp_path)
     # User decision is an explicit fixture. The test does not simulate a human reviewer.
     result = continue_execution(config_path=Path(first['setup']['config_path']),
                                session='VERIFY-SOURCE', task_id='VERIFY-SOURCE',
-                               user_decision='continue', export_request_id='saved-execution')
+                               user_decision='continue', release_request_id='saved-execution')
     assert result['status'] == 'verified'
     assert result['stage'] == 'execution' and result['execution_accepted'] is False
     assert result['next_stage_started'] is False and result['target_changed'] is False
     assert result['repeat_replayed'] is True and result['target_revision'] == base
     observations = [o for o in result['report']['evidence']['observations'] if o['method'] == 'VERIFY']
     assert len(observations) == 1 and observations[0]['actual_exit_code'] == 0
-    assert result['transfer']['status'] == 'exported'
-    incoming = tmp_path / 'execution.zip'
-    shutil.copy2(result['transfer']['package_path'], incoming)
-    receiving_repo = tmp_path / 'receiving-source'
-    subprocess.run(['git', 'clone', str(repo), str(receiving_repo)], check=True, capture_output=True)
-    setup = setup_destination(receiving_repo, 'state/received',tmp_path/'requirements-received')
-    # Remove access to the original operational store before importing/reading evidence.
-    (repo / 'state/planned').rename(repo / 'state/offline')
-    h = Poise(setup['config_path'], 'next-agent')
+    assert result['release']['status'] == 'ownership_released'
+    saved = Poise(first['setup']['config_path'], 'observing-session').task_queries.record('VERIFY-SOURCE')
+    original_worktree = saved['worktree']
+    h = Poise(first['setup']['config_path'], 'next-agent')
     client = WorkTools(h)
     def call(op, args):
         return client.invoke({'operation': op, 'input': args, 'messages': []})
-    imported = call('transfer', {'action': 'import', 'request_id': 'restore-execution',
-                                'package_path': str(incoming), 'package_digest': result['transfer']['package_digest']})
-    assert imported['status'] == 'imported'
     context = call('bootstrap', {'task': {'id': 'VERIFY-SOURCE'}, 'decision': None,
                                 'feedback': None, 'rework_stage': None})
     assert context['stage'] == 'execution' and context['status'] == 'verified'
     assert context['iteration'] == 1
-    assert Path(context['worktree']).is_relative_to(receiving_repo)
+    assert context['worktree'] == original_worktree
+    assert Path(context['worktree']).is_relative_to(repo)
     replay = call('verify', {'result': None, 'artifacts': []})
     assert replay['replayed']
     check = next(c for c in replay['checks'] if c['method'] == 'VERIFY')
@@ -96,4 +149,4 @@ def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(
 def test_execution_requires_explicit_continue_before_opening_store(tmp_path):
     with pytest.raises(ValueError, match='continue'):
         continue_execution(config_path=tmp_path/'missing.json', session='S', task_id='T',
-                           user_decision='accepted-but-stop', export_request_id='export')
+                           user_decision='accepted-but-stop', release_request_id='release')

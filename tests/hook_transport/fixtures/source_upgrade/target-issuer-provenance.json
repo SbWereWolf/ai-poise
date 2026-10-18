@@ -1,0 +1,11 @@
+{
+  "target_commit": "83051515b6911d28e9e71d0af5205e5472ff6e1c",
+  "captured_launcher_sha256": "8e6789cde2fa3b6eff7ebe1028754834d683c81b4d685f50e1f544bef4f73624",
+  "coordinate_substitutions": [
+    "source_root",
+    "settings",
+    "binding",
+    "python"
+  ],
+  "contract": "Frozen target-issued source guard, src-only import path, -P -B -X pycache_prefix=/dev/null, hook-work binding and argv forwarding. Deployment addresses are replaced with explicit fixture coordinates; input and current output are distinct."
+}

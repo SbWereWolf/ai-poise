@@ -130,14 +130,13 @@ def start(tools, task_id):
 
 def release_started(tools, task_id):
     started = start(tools, task_id)
-    handed_off = tools.invoke(request("handoff", {
+    released = tools.invoke(request("release", {
         "request_id": f"release-{task_id.lower()}",
         "reason": "Create a released started Task fixture through the public lifecycle.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": task_id,
+        "expected_version": tools.runtime.current_task()['version'],
     }))
-    assert handed_off["status"] == "handed_off"
+    assert released["status"] == "ownership_released"
     return started
 
 

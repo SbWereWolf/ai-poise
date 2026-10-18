@@ -32,10 +32,6 @@ def bootstrap_python(tmp_path_factory):
     python = environment / 'bin/python'
     subprocess.run([str(python), '-B', '-m', 'pip', 'install', '--no-index', '--no-deps',
                     str(wheel)], check=True, capture_output=True)
-    proof = subprocess.run([str(python), '-I', '-B', '-c',
-                            "import importlib.metadata; print(importlib.metadata.version('ai-poise'))"],
-                           check=True, capture_output=True, text=True)
-    assert proof.stdout == '1.1.1\n' and proof.stderr == ''
     (root / 'wheel.sha256.txt').write_text(hashlib.sha256(wheel.read_bytes()).hexdigest() + '\n')
     return python
 

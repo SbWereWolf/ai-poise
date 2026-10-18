@@ -151,15 +151,27 @@ def test_initialize_preserves_an_existing_pending_operation(project):
 
 
 def test_nonterminal_draft_is_rejected(project):
-    tools, root, _ = cancelled_draft(project)
-    with tools.runtime.store.transaction() as db:
-        db.execute("UPDATE tasks SET status='newborn',version=version+1 WHERE id='T1'")
+    from conftest import WorkPoise
+    from sprints.helpers import setup
+
+    setup(project)
+    tools = WorkTools(WorkPoise(project['config_path'], 'nonterminal-owner'))
+    born = tools.invoke(request('task', {
+        'action': 'create', 'task_id': 'T1', 'sprint_id': None,
+        'request_id': 'create-nonterminal-draft',
+    }))
+    assert born['status'] == 'newborn'
+    root = tools.runtime.state / tools.runtime.paths['standalone_tasks'] / 'T1'
+    root.mkdir(parents=True, exist_ok=True)
+    (root / 'planning.txt').write_bytes(b'discarded plan\n')
+    before = tools.runtime.task_queries.record('T1')
 
     with pytest.raises(PoiseError, match="terminal cancelled Task"):
         tools.runtime.cleanup_tools.adapter.load("T1")
 
     with tools.runtime.store.transaction() as db:
         assert db.execute("SELECT COUNT(*) FROM task_execution WHERE task_id='T1'").fetchone()[0] == 0
+    assert tools.runtime.task_queries.record('T1') == before
     assert (root / "planning.txt").read_bytes() == b"discarded plan\n"
 
 

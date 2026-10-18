@@ -1,5 +1,3 @@
-from .transfers import SqliteTransferContext
-from .handoff import SqliteHandoffRepository
 from .actions import SqliteActionRepository
 from .sprints import SqliteSprintRepository
 from .evidence import SqliteEvidenceRepository
@@ -10,6 +8,7 @@ from .work_packets import SqliteWorkPacketRepository
 from .artifacts import SqliteArtifactRepository
 from .task_delivery import SqliteTaskDeliveryRepository
 from .integration_scopes import SqliteIntegrationScopeRepository
+from .worktree_preparation import SqlitePreparationRepository
 
 
 class SqliteUnitOfWork:
@@ -21,8 +20,6 @@ class SqliteUnitOfWork:
     def __enter__(self):
         self._transaction = self.database.transaction()
         connection = self._transaction.__enter__()
-        self.transfers = SqliteTransferContext(connection)
-        self.handoffs = SqliteHandoffRepository(connection)
         self.sprints = SqliteSprintRepository(connection)
         self.tasks = SqliteTaskRepository(connection)
         self.actions = SqliteActionRepository(connection,self.tasks)
@@ -34,6 +31,7 @@ class SqliteUnitOfWork:
         self.artifacts = SqliteArtifactRepository(connection)
         self.task_delivery = SqliteTaskDeliveryRepository(connection)
         self.integration_scopes = SqliteIntegrationScopeRepository(connection)
+        self.preparation = SqlitePreparationRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

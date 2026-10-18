@@ -24,4 +24,4 @@ Current Poise Task/stage/scope and session-selected worktree, symptom and affect
 
 ## Output
 
-Measured baseline and matched result when available, exact protocol/runtime/workload identity, uncertainty and confounders, explained change, correctness evidence and remaining limits. Use current Poise Task artifacts/evidence and public handoff. Explicitly say when performance was not measured or a required environment was unavailable; do not self-certify independent review, acceptance or automatic routing.
+Measured baseline and matched result when available, exact protocol/runtime/workload identity, uncertainty and confounders, explained change, correctness evidence and remaining limits. Use current Poise Task artifacts/evidence and ordinary public release. Explicitly say when performance was not measured or a required environment was unavailable; do not self-certify independent review, acceptance or automatic routing.

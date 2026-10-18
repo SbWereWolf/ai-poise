@@ -1,0 +1,130 @@
+{
+  "parameters": {
+    "python": "/srv/poise/operator/maintenance/bin/python",
+    "profile": "/srv/poise/operator/profile",
+    "tool_config": "/srv/poise/operator/profile/values.json",
+    "shared_environment": "/srv/poise/operator/selected-shared.env",
+    "cjm_execution": "/srv/poise/operator/test-execution.json"
+  },
+  "catalog_dir": "${profile}",
+  "inputs": [
+    {
+      "source": "${shared_environment}",
+      "destination": "${worktree}/platform-infrastructure/config/dev/local-development.env"
+    },
+    {
+      "source": "${cjm_execution}",
+      "destination": "${worktree}/platform-infrastructure/test-execution.json"
+    }
+  ],
+  "operations": [
+    "infra",
+    "deps",
+    "check"
+  ],
+  "commands": {
+    "infra": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "run",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "deps": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "run",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "check": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "repair": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "run",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "verify": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ]
+  },
+  "handler": {
+    "callable": "apps.bootstrap.erp_result:handle",
+    "options": {
+      "schema": "environment-maintenance/result/v2",
+      "status_exit_codes": {
+        "ready": 0,
+        "action_required": 2,
+        "unavailable": 3,
+        "failed": 4
+      },
+      "success_statuses": [
+        "ready"
+      ],
+      "repairable_statuses": [
+        "action_required"
+      ],
+      "repair_operations": [
+        "infra",
+        "deps"
+      ],
+      "repair_command": "repair",
+      "verification_command": "verify",
+      "failure_exit_code": 4,
+      "configuration_root": "${worktree}",
+      "configuration_targets": [
+        {
+          "id": "local-settings",
+          "kind": "local-development",
+          "path": "${worktree}/platform-infrastructure/config/dev/local-development.settings.json"
+        },
+        {
+          "id": "host-runtime-settings",
+          "kind": "local-development",
+          "path": "${worktree}/platform-infrastructure/config/dev/local-dev-host-runtime.settings.json"
+        },
+        {
+          "id": "cjm-settings",
+          "kind": "cjm",
+          "path": "${worktree}/platform-infrastructure/tests/playwright/cjm.local-development.settings.json"
+        }
+      ]
+    }
+  }
+}

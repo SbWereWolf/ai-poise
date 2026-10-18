@@ -1,0 +1,130 @@
+{
+  "plain": {
+    "coordinates": {
+      "code_root": "/fixture/code",
+      "python": "/fixture/python/bin/python",
+      "settings": "/fixture/config.json",
+      "binding": "/fixture/binding.json"
+    },
+    "forms": {
+      "target-issuer": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; case \"$source_root\" in *\"$separator\"*) valid=0;; *) valid=1;; esac; if [ \"$valid\" = 0 ] || [ ! -f \"$source_root/poise/__init__.py\" ] || [ ! -f \"$source_root/poise/__main__.py\" ]; then printf \"%s\\n\" \"Configured Poise source must be one directory containing poise/__init__.py and poise/__main__.py: $source_root\" \"Recovery: restore that source directory or correct source_root in $settings, then retry.\" >&2; exit \"$rejected\"; fi; exec \"$@\"",
+          "poise-source-check",
+          "/fixture/code/src",
+          "/fixture/config.json",
+          "2",
+          ":",
+          "env",
+          "PYTHONPATH=/fixture/code/src",
+          "/fixture/python/bin/python",
+          "-P",
+          "-B",
+          "-X",
+          "pycache_prefix=/dev/null",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": true
+      },
+      "current-output": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; case \"$source_root\" in *\"$separator\"*) valid=0;; *) valid=1;; esac; if [ \"$valid\" = 0 ] || [ ! -f \"$source_root/poise/__init__.py\" ] || [ ! -f \"$source_root/poise/__main__.py\" ]; then printf \"%s\\n\" \"Configured Poise source must be one directory containing poise/__init__.py and poise/__main__.py: $source_root\" \"Recovery: restore that source directory or correct source_root in $settings, then retry.\" >&2; exit \"$rejected\"; fi; exec \"$@\"",
+          "poise-source-check",
+          "/fixture/code/src",
+          "/fixture/config.json",
+          "2",
+          ":",
+          "env",
+          "PYTHONPATH=/fixture/code/src:/fixture/code",
+          "/fixture/python/bin/python",
+          "-P",
+          "-B",
+          "-X",
+          "pycache_prefix=/dev/null",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": true
+      }
+    }
+  },
+  "unicode": {
+    "coordinates": {
+      "code_root": "/fixture/код Ω",
+      "python": "/fixture/runtime Ω/bin/python",
+      "settings": "/fixture/настройки Ω.json",
+      "binding": "/fixture/binding Ω.json"
+    },
+    "forms": {
+      "target-issuer": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; case \"$source_root\" in *\"$separator\"*) valid=0;; *) valid=1;; esac; if [ \"$valid\" = 0 ] || [ ! -f \"$source_root/poise/__init__.py\" ] || [ ! -f \"$source_root/poise/__main__.py\" ]; then printf \"%s\\n\" \"Configured Poise source must be one directory containing poise/__init__.py and poise/__main__.py: $source_root\" \"Recovery: restore that source directory or correct source_root in $settings, then retry.\" >&2; exit \"$rejected\"; fi; exec \"$@\"",
+          "poise-source-check",
+          "/fixture/код Ω/src",
+          "/fixture/настройки Ω.json",
+          "2",
+          ":",
+          "env",
+          "PYTHONPATH=/fixture/код Ω/src",
+          "/fixture/runtime Ω/bin/python",
+          "-P",
+          "-B",
+          "-X",
+          "pycache_prefix=/dev/null",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": true
+      },
+      "current-output": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; case \"$source_root\" in *\"$separator\"*) valid=0;; *) valid=1;; esac; if [ \"$valid\" = 0 ] || [ ! -f \"$source_root/poise/__init__.py\" ] || [ ! -f \"$source_root/poise/__main__.py\" ]; then printf \"%s\\n\" \"Configured Poise source must be one directory containing poise/__init__.py and poise/__main__.py: $source_root\" \"Recovery: restore that source directory or correct source_root in $settings, then retry.\" >&2; exit \"$rejected\"; fi; exec \"$@\"",
+          "poise-source-check",
+          "/fixture/код Ω/src",
+          "/fixture/настройки Ω.json",
+          "2",
+          ":",
+          "env",
+          "PYTHONPATH=/fixture/код Ω/src:/fixture/код Ω",
+          "/fixture/runtime Ω/bin/python",
+          "-P",
+          "-B",
+          "-X",
+          "pycache_prefix=/dev/null",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": true
+      }
+    }
+  }
+}

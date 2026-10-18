@@ -99,12 +99,6 @@ class DuplicateReuseWorkspace:
                     raise PoiseError('Reuse workspace changed after candidate preparation')
         return observation, execution
 
-    def handoff_preflight(self, task_id):
-        data = self.h.task_queries.record(task_id)
-        if self.h.handoff_tools.commands.latest(task_id) is None:
-            return None
-        return self.h.handoff_tools.validate_resume(data)
-
     def reconcile(self, task_id):
         self.h._reconcile_task_worktree(self.h.task_queries.record(task_id))
 

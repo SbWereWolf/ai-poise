@@ -4,7 +4,6 @@ import importlib.util
 import io
 import json
 from pathlib import Path
-import zipfile
 
 import pytest
 
@@ -14,14 +13,7 @@ from poise.artifacts import inspect_paths
 from poise.common import PoiseError, load_config
 from poise.interfaces.work import execute
 from sprints.helpers import draft, publish, setup as sprint_setup, task as sprint_task
-from transfer.helpers import (
-    destination,
-    enabled as enable_transfer,
-    export,
-    handoff_args,
-    pick,
-    restore,
-)
+from runtime_services.test_participant_continuity import release_packet
 from batch.helpers import request
 from result_integration.helpers import (
     integration_guard_method,
@@ -153,22 +145,23 @@ def test_legacy_task_directory_is_ignored_without_migration_or_fallback(project)
 def test_task_path_consumers_do_not_duplicate_namespace_selection(project):
     repository = Path(__file__).parents[2]
     owner = repository / "src" / "poise" / "infrastructure" / "task_paths.py"
+    paths = importlib.import_module("poise.infrastructure.task_paths")
+    views = importlib.import_module("poise.infrastructure.result_views")
     consumers = {
-        repository / "src" / "poise" / "interfaces" / "work.py":
-            "from ..infrastructure.task_paths import sprint_root, task_root",
-        repository / "src" / "poise" / "runtime.py":
-            "from .infrastructure.task_paths import sprint_root, task_root",
-        repository / "src" / "poise" / "infrastructure" / "result_integration.py":
-            "from .task_paths import task_root",
-        repository / "src" / "poise" / "infrastructure" / "transfers.py":
-            "from .task_paths import sprint_root, task_root",
+        "poise.interfaces.work": {"sprint_root": paths.sprint_root,
+                                  "task_response_root": views.task_response_root},
+        "poise.runtime": {"sprint_root": paths.sprint_root, "task_root": paths.task_root},
+        "poise.infrastructure.result_integration": {"task_root": paths.task_root},
+        "poise.infrastructure.result_views": {"task_root": paths.task_root,
+                                              "sprint_root": paths.sprint_root},
     }
 
     assert 'paths["standalone_tasks"]' in owner.read_text(encoding="utf-8")
-    for consumer, owner_import in consumers.items():
-        source = consumer.read_text(encoding="utf-8")
-        assert owner_import in source, consumer
-        assert "task_root(" in source, consumer
+    for name, bindings in consumers.items():
+        consumer = importlib.import_module(name)
+        source = Path(consumer.__file__).read_text(encoding="utf-8")
+        for binding, canonical in bindings.items():
+            assert getattr(consumer, binding) is canonical, name
         assert 'paths["standalone_tasks"]' not in source, consumer
         assert 'paths["sprints"]' not in source, consumer
         assert ' / "task"' not in source, consumer
@@ -214,15 +207,14 @@ def test_runtime_evidence_query_artifact_and_handoff_receipts_are_standalone(pro
     query_receipt = json.loads(output.getvalue())
     assert Path(query_receipt["response_path"]).is_relative_to(expected / "runs")
 
-    handed_off = tools.invoke(request("handoff", {
-        "request_id": "standalone-consumer-handoff",
+    released = tools.invoke(request("release", {
+        "request_id": "standalone-consumer-release",
         "reason": "Prove receipt ownership.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": tools.runtime.current_task()['id'],
+        "expected_version": tools.runtime.current_task()['_version'],
     }))
-    assert Path(handed_off["receipt_path"]).is_relative_to(expected / "handoffs")
-    assert Path(handed_off["bundle_path"]).is_relative_to(expected / "handoffs")
+    assert released['status'] == 'ownership_released'
+    assert not (expected / 'handoffs').exists()
 
 
 def test_cleanup_preservation_uses_the_standalone_owner_root(project):
@@ -310,9 +302,8 @@ def test_published_sprint_task_bootstrap_and_response_are_nested(project):
     assert Path(receipt["response_path"]).is_relative_to(expected / "runs")
 
 
-def test_transfer_separates_nested_task_and_sprint_artifacts(project, tmp_path):
+def test_continuation_preserves_distinct_nested_task_and_sprint_artifacts(project, tmp_path):
     sprint_setup(project)
-    enable_transfer(project)
     planner = WorkTools(Poise(project["config_path"], "planner"))
     planned = draft(planner, [sprint_task(project, "MEMBER")])
     publish(planner, planned["revision"])
@@ -332,27 +323,21 @@ def test_transfer_separates_nested_task_and_sprint_artifacts(project, tmp_path):
     payload["sections"]["report"] = "Preserve nested owners."
     payload["artifact_paths"] = made["artifact_paths"]
     payload["commit_message"] = "test: preserve nested owners"
-    saved = export(
-        member,
-        sprint="S",
-        handoff=handoff_args(payload),
-    )
-
-    with zipfile.ZipFile(saved["package_path"]) as archive:
-        names = archive.namelist()
-    assert any(name.startswith("files/task/MEMBER/") and name.endswith("task-note.txt") for name in names)
-    assert any(name.startswith("files/sprint/S/") and name.endswith("sprint-note.txt") for name in names)
-    assert not any("files/sprint/S/task/MEMBER" in name for name in names)
-
-    target = destination(project, tmp_path / "destination")
-    receiver = WorkTools(Poise(target["config_path"], "receiver"))
-    restore(receiver, saved["package_path"], saved["package_digest"])
-    restored = pick(receiver, "MEMBER")
-    expected = target["root"] / "state" / "sprints" / "S" / "task" / "MEMBER"
+    member.runtime.runner.submit(context["task"], member.runtime.session, payload)
+    original = member.runtime.store.artifact_records('MEMBER')
+    assert member.invoke(release_packet(member))['status'] == 'ownership_released'
+    receiver = WorkTools(Poise(project['config_path'], 'next-member-participant'))
+    restored = receiver.invoke(request('bootstrap', {
+        'task': {'id': 'MEMBER'}, 'decision': None, 'feedback': None, 'rework_stage': None}))
+    expected = project['root'] / 'state/sprints/S/task/MEMBER'
     assert Path(restored["task_root"]) == expected
+    assert restored['worktree'] == context['worktree']
+    assert receiver.runtime.store.artifact_records('MEMBER') == original
     restored_paths = [Path(path) for path in restored["result_template"]["artifact_paths"]]
     assert any(path.is_relative_to(expected) for path in restored_paths)
     assert any(
         path.is_relative_to(expected.parents[1]) and not path.is_relative_to(expected)
         for path in restored_paths
     )
+    assert {path.name: path.read_bytes() for path in restored_paths} == {
+        'task-note.txt': b'task', 'sprint-note.txt': b'sprint'}

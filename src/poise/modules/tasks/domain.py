@@ -428,20 +428,7 @@ class Task:
         self._require_start()  # Readiness is not actual execution admission/history.
         return self.assess_content('pre', artifacts).passed
 
-    def handoff(self, actor: str, reason: str) -> Change:
-        self._owned(actor)
-        if self.state.claimed_by != actor or self.state.status not in (TaskStatus.ACTIVE,TaskStatus.VERIFIED,TaskStatus.ACCEPTED):
-            raise DomainError("Handoff requires current owned unfinished work")
-        if not isinstance(reason,str) or not reason.strip():
-            raise DomainError("Handoff reason is required")
-        return self._change("handed_off",reason,None,claimed_by=None)
 
-    def resume_handoff(self, actor: str) -> Change:
-        self._require_stage_contracts()
-        identifier(actor)
-        if self.state.claimed_by is not None or self.state.status not in (TaskStatus.ACTIVE,TaskStatus.VERIFIED,TaskStatus.ACCEPTED):
-            raise DomainError("Only unowned preserved work can be resumed")
-        return self._change("handoff_resumed",None,None,claimed_by=actor)
 
     def open_delivery_verification(self, actor: str) -> Change:
         """Open fresh proof at the preserved position after explicit acquisition."""

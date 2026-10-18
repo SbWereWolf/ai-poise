@@ -1271,7 +1271,7 @@ class TaskCommands:
         artifacts: tuple[ArtifactFact, ...],
         *, force_duplicate_start=False, replay_request=None,
     ) -> dict:
-        from ..modules.tasks.progression import progression_step
+        from ..modules.tasks.progression import crossed_role_boundary, progression_step
         from .duplicate_tasks import require_duplicate_start_in, require_duplicate_transition_in
 
         if not isinstance(request_id, str) or not request_id:
@@ -1325,27 +1325,16 @@ class TaskCommands:
                 cursor['phase'] = 'preserved'
                 uow.tasks.remember_replay_progress(task_id, actor, replay_request, cursor)
                 return {'kind': kind, 'following': following, 'cursor': cursor}
-            handoff = uow.handoffs.latest_recovery_candidate(task_id)
-            ownership_suffix = (
-                ()
-                if handoff is None
-                else uow.tasks.ownership_event_suffix(
-                    task_id, handoff["version"], task.state.version
-                )
-            )
-            resumed_boundary = bool(
-                handoff is not None
-                and handoff["state"] == "resumed"
-                and handoff["receipt"]["stage"] == task.stage.stage_id
-                and ownership_suffix[:2] == ("handed_off", "handoff_resumed")
-            )
-            crossed = resumed_boundary and handoff["actor"] != actor
             require_reviewer_identity_in(uow, task, actor)
-            if resumed_boundary and task.progress.outcome is not None:
-                following = task.route.node(task.stage.stage_id).target(task.progress.outcome)
-                if following is not None:
-                    require_reviewer_identity_in(uow, task, actor, target_stage=following)
-            step = progression_step(task, target_stage, crossed)
+            step = progression_step(task, target_stage, False)
+            if step.kind == "role_handoff_required":
+                history = uow.tasks.verified_ownership_history(
+                    task_id, task.stage.stage_id, task.state.iteration,
+                    task.state.submission_digest, task.state.version,
+                )
+                if crossed_role_boundary(task, actor, history):
+                    require_reviewer_identity_in(uow, task, actor, target_stage=step.next_stage)
+                    step = progression_step(task, target_stage, True)
             require_duplicate_start_in(uow,task_id,actor,force_duplicate_start=force_duplicate_start)
             progression = uow.tasks.begin_progression(
                 task_id, actor, request_id, identity, target_stage
@@ -1440,7 +1429,6 @@ class TaskCommands:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
-            handoff = uow.handoffs.latest_recovery_candidate(task_id)
             point = uow.tasks.empty_rework_recovery_point(
                 task_id, task.state.version, execution["last_report"], transition_event
             )
@@ -1464,13 +1452,6 @@ class TaskCommands:
                     task_id,
                     {"last_report": {**execution["last_report"], "status": "verified"}},
                 )
-            if (handoff is not None
-                    and task.state.version >= handoff["version"] + 1
-                    and handoff["receipt"]["verified"] is False
-                    and handoff["receipt"]["stage"] == task.stage.stage_id
-                    and handoff["receipt"]["iteration"] == task.state.iteration
-                    and handoff["receipt"]["tree"] == tree):
-                uow.handoffs.replace({**handoff, "state": "recovered"})
             return {
                 "status": "recovered",
                 "task": task_id,

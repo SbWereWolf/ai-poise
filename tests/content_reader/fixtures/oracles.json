@@ -1,0 +1,452 @@
+{
+  "source_texts": {
+    "lf": "alpha\nβeta\nlast",
+    "crlf": "alpha\r\nβeta\r\nlast",
+    "range_2_3": "βeta\nlast",
+    "range_crlf_1_2": "alpha\r\nβeta\r\n",
+    "changed_range_2_3": "γeta\nlast",
+    "empty": ""
+  },
+  "selected_sha256_literals": {
+    "lf": "ff76f06bb21ce11b14f429ebddcfafedb61e3aa7f724138cf67ed13c5955dbfe",
+    "crlf": "91d319764ff35d1a6c82d1c7e83f9333133e99ceba30d2b9e79b7a4f14a87fb6",
+    "range_2_3": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
+    "range_crlf_1_2": "94bef2e68d4099a4224ec03a93a9365a135cc3c230eba45a033ca6e7fcbd5141",
+    "changed_range_2_3": "86d34abea1f5fb30a821576d75801d6b7c406ccd028a926cd6dab3b944390dd4",
+    "empty": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "large_file_oracle": {
+    "input_builder": "Test-owned2000lines, 1..2000 each fourdigit number+\" literal line \"+samefourdigit+LF. No production builder or reader selection used.",
+    "requested": [
+      100,
+      140
+    ],
+    "expected_range": "lines:100-140",
+    "expected_content": "0100 literal line 0100\n0101 literal line 0101\n0102 literal line 0102\n0103 literal line 0103\n0104 literal line 0104\n0105 literal line 0105\n0106 literal line 0106\n0107 literal line 0107\n0108 literal line 0108\n0109 literal line 0109\n0110 literal line 0110\n0111 literal line 0111\n0112 literal line 0112\n0113 literal line 0113\n0114 literal line 0114\n0115 literal line 0115\n0116 literal line 0116\n0117 literal line 0117\n0118 literal line 0118\n0119 literal line 0119\n0120 literal line 0120\n0121 literal line 0121\n0122 literal line 0122\n0123 literal line 0123\n0124 literal line 0124\n0125 literal line 0125\n0126 literal line 0126\n0127 literal line 0127\n0128 literal line 0128\n0129 literal line 0129\n0130 literal line 0130\n0131 literal line 0131\n0132 literal line 0132\n0133 literal line 0133\n0134 literal line 0134\n0135 literal line 0135\n0136 literal line 0136\n0137 literal line 0137\n0138 literal line 0138\n0139 literal line 0139\n0140 literal line 0140\n",
+    "expected_lines": 41,
+    "expected_bytes": 943,
+    "expected_hash": "e45048129a1125a695555d2f5ca5453dac7789b3855ddde2af759f1285bee2f9"
+  },
+  "first_response": {
+    "schema": "poise-content-read-result-1",
+    "status": "ready",
+    "operation": "read",
+    "project": "@PROJECT@",
+    "checkout": "@CHECKOUT@",
+    "policy_sha256": "@POLICY_SHA256@",
+    "context": {
+      "caller_key": "@CALLER_KEY@",
+      "generation": 0,
+      "admission_mode": "native_hook",
+      "native_episode": {
+        "project_id": "@PROJECT@",
+        "session_id": "@NATIVE_SESSION@",
+        "binding_id": "@BINDING_ID@",
+        "start_event_id": "@START_EVENT_ID@"
+      },
+      "checkout_key": "@CHECKOUT_KEY@"
+    },
+    "items": [
+      {
+        "schema_version": 1,
+        "key": "sample",
+        "status": "content",
+        "classification": "first_read",
+        "path": "docs/sample.txt",
+        "hash": "acde3ce70144456a3a1e51888bf708e9824b692f2a18afe176fa8e47637fbd8b",
+        "range": "lines:2-3",
+        "reader_kind": "repository-content-read",
+        "context_generation": 0,
+        "previous_read_available": false,
+        "content_bytes": 10,
+        "content_lines": 2,
+        "content_follows": true,
+        "content": "βeta\nlast"
+      }
+    ],
+    "summary": {
+      "cache_entries": 1,
+      "event_count": 1,
+      "content_events": 1,
+      "unchanged_events": 0,
+      "model_content_bytes": 10,
+      "avoided_bytes": 0
+    },
+    "details": null,
+    "error": null,
+    "response_path": "@SAVED_RESPONSE_PATH@"
+  },
+  "generated_binding": {
+    "schema": "poise-caller-binding-1",
+    "caller_id": "reader-fixture-caller"
+  },
+  "requests": {
+    "read": {
+      "operation": "read",
+      "reads": [
+        {
+          "key": "sample",
+          "path": "docs/sample.txt",
+          "selection": {
+            "kind": "lines",
+            "start": 2,
+            "end": 8
+          }
+        }
+      ]
+    },
+    "context": {
+      "operation": "context"
+    },
+    "prepare_template": {
+      "operation": "prepare_template"
+    },
+    "prepare": {
+      "operation": "prepare"
+    },
+    "advance": {
+      "operation": "advance_context",
+      "request_id": "context-1",
+      "reason": "manual"
+    },
+    "recover": {
+      "operation": "recover"
+    },
+    "adopt": {
+      "operation": "adopt"
+    }
+  },
+  "errors": [
+    {
+      "code": "invalid_request",
+      "single_failure_exit": 2,
+      "field": "request",
+      "message": "Неверная структура пакета.",
+      "action": "Передайте поддержанный пакет без лишних или повторных полей."
+    },
+    {
+      "code": "invalid_selection",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Неверные границы чтения.",
+      "action": "Укажите полный режим либо включительный положительный диапазон."
+    },
+    {
+      "code": "invalid_path",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Неверный путь файла.",
+      "action": "Укажите непустой путь обычного файла выбранной копии."
+    },
+    {
+      "code": "path_outside_project",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Путь находится вне выбранной рабочей копии.",
+      "action": "Выберите файл внутри зарегистрированного checkout."
+    },
+    {
+      "code": "invalid_caller",
+      "single_failure_exit": 2,
+      "field": "caller",
+      "message": "Не подтверждён подлинный вызывающий.",
+      "action": "Используйте действительную native identity либо явный допустимый binding."
+    },
+    {
+      "code": "invalid_project",
+      "single_failure_exit": 2,
+      "field": "config",
+      "message": "Не удалось выбрать проект.",
+      "action": "Укажите действительный manifest проекта."
+    },
+    {
+      "code": "project_binding",
+      "single_failure_exit": 2,
+      "field": "checkout",
+      "message": "Рабочая копия не принадлежит выбранному проекту.",
+      "action": "Выберите зарегистрированный checkout этого репозитория."
+    },
+    {
+      "code": "policy_missing",
+      "single_failure_exit": 3,
+      "field": "policy",
+      "message": "Нужная политика отсутствует.",
+      "action": "Подготовьте и явно выберите рабочую политику."
+    },
+    {
+      "code": "invalid_policy",
+      "single_failure_exit": 2,
+      "field": "policy:@FIELD@",
+      "message": "Обязательное известное значение политики недопустимо.",
+      "action": "Исправьте указанное поле политики и повторите допустимую операцию."
+    },
+    {
+      "code": "source_missing",
+      "single_failure_exit": 3,
+      "field": "reads:@KEY@:path",
+      "message": "Файл отсутствует.",
+      "action": "Восстановите файл или выберите доступный путь."
+    },
+    {
+      "code": "source_unreadable",
+      "single_failure_exit": 3,
+      "field": "reads:@KEY@:path",
+      "message": "Файл недоступен для чтения.",
+      "action": "Восстановите доступ к файлу и повторите этот элемент."
+    },
+    {
+      "code": "source_not_file",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Путь не является обычным файлом.",
+      "action": "Выберите обычный UTF-8 файл."
+    },
+    {
+      "code": "source_not_utf8",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:path",
+      "message": "Выбранный файл не является допустимым UTF-8 текстом.",
+      "action": "Выберите поддержанный текстовый файл."
+    },
+    {
+      "code": "range_after_eof",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Начало диапазона находится после конца файла.",
+      "action": "Выберите существующие строки файла."
+    },
+    {
+      "code": "complete_limit",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Полное чтение превышает настроенный предел.",
+      "action": "Запросите допустимый диапазон строк."
+    },
+    {
+      "code": "bounded_limit",
+      "single_failure_exit": 2,
+      "field": "reads:@KEY@:selection",
+      "message": "Диапазон превышает настроенный предел.",
+      "action": "Уменьшите выбранный диапазон."
+    },
+    {
+      "code": "output_limit",
+      "single_failure_exit": 2,
+      "field": "output",
+      "message": "Полное представление превышает настроенный предел.",
+      "action": "Уменьшите диапазон или число выбранных элементов."
+    },
+    {
+      "code": "template_missing",
+      "single_failure_exit": 3,
+      "field": "session.registry_template",
+      "message": "Подготовленный шаблон отсутствует.",
+      "action": "Подготовьте пустой шаблон публичной операцией prepare_template."
+    },
+    {
+      "code": "template_invalid",
+      "single_failure_exit": 3,
+      "field": "session.registry_template",
+      "message": "Подготовленный шаблон не соответствует схеме.",
+      "action": "Сохраните текущий файл и подготовьте шаблон по новому свободному адресу."
+    },
+    {
+      "code": "template_exists",
+      "single_failure_exit": 2,
+      "field": "session.registry_template",
+      "message": "Адрес шаблона уже занят.",
+      "action": "Выберите новый свободный адрес; существующий файл не заменяется."
+    },
+    {
+      "code": "template_publication_unconfirmed",
+      "single_failure_exit": 1,
+      "field": "session.registry_template",
+      "message": "Долговечность публикации шаблона не подтверждена.",
+      "action": "Сохраните текущие bytes и подготовьте новый шаблон по свободному адресу."
+    },
+    {
+      "code": "registry_missing",
+      "single_failure_exit": 3,
+      "field": "registry",
+      "message": "Принадлежащий контексту реестр отсутствует.",
+      "action": "Подготовьте ресурсы активного эпизода через их владельца."
+    },
+    {
+      "code": "registry_schema",
+      "single_failure_exit": 3,
+      "field": "registry",
+      "message": "Версия подготовленного реестра не поддержана.",
+      "action": "Сохраните реестр и восстановите его через подготовленный совместимый шаблон."
+    },
+    {
+      "code": "registry_invalid",
+      "single_failure_exit": 3,
+      "field": "registry",
+      "message": "Подготовленный реестр повреждён либо имеет неверное устройство.",
+      "action": "Сохраните данные и восстановите ресурс через его владельца."
+    },
+    {
+      "code": "registry_read",
+      "single_failure_exit": 1,
+      "field": "registry",
+      "message": "Не удалось прочитать реестр.",
+      "action": "Восстановите доступ и повторите допустимую операцию."
+    },
+    {
+      "code": "registry_write",
+      "single_failure_exit": 1,
+      "field": "registry",
+      "message": "Не удалось зарегистрировать чтение.",
+      "action": "Прочитайте сохранённый исход и восстановите доступ перед повтором."
+    },
+    {
+      "code": "admission_unavailable",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Native authority недоступна.",
+      "action": "Восстановите выбранную native конфигурацию и повторите наблюдение."
+    },
+    {
+      "code": "admission_dead",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Native authority подтверждает окончание эпизода.",
+      "action": "Завершите восстановление его временных ресурсов через recover."
+    },
+    {
+      "code": "admission_uncertain",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Активный native эпизод не подтверждён.",
+      "action": "Сохраните данные и подтвердите действительную сессию."
+    },
+    {
+      "code": "authority_mismatch",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Выбрана другая native authority.",
+      "action": "Верните конфигурацию действительного владельца ресурса."
+    },
+    {
+      "code": "episode_mismatch",
+      "single_failure_exit": 1,
+      "field": "admission",
+      "message": "Наблюдаемый эпизод отличается от владельца ресурса.",
+      "action": "Продолжите восстановление через действительного владельца эпизода."
+    },
+    {
+      "code": "ownership_unknown",
+      "single_failure_exit": 1,
+      "field": "session",
+      "message": "Владение существующим каталогом не подтверждено.",
+      "action": "Сохраните каталог; используйте допустимое явное принятие либо восстановление владельцем."
+    },
+    {
+      "code": "event_conflict",
+      "single_failure_exit": 2,
+      "field": "request_id",
+      "message": "Идентичность доменного перехода уже использована с другим смыслом.",
+      "action": "Прочитайте первоначальный исход или задайте другую действительную операцию."
+    },
+    {
+      "code": "context_missing",
+      "single_failure_exit": 3,
+      "field": "context",
+      "message": "Подготовленный контекст отсутствует.",
+      "action": "Подготовьте ресурсы подтверждённого активного эпизода."
+    },
+    {
+      "code": "context_changed",
+      "single_failure_exit": 1,
+      "field": "context",
+      "message": "Контекст изменился до завершения допустимой операции.",
+      "action": "Прочитайте актуальный контекст и сохранённые результаты элементов."
+    },
+    {
+      "code": "output_write",
+      "single_failure_exit": 1,
+      "field": "output",
+      "message": "Не удалось полностью записать поток результата.",
+      "action": "Прочитайте доступный сохранённый полный результат; регистрация не доказывает доставку."
+    },
+    {
+      "code": "result_save_failed",
+      "single_failure_exit": 1,
+      "field": "response_path",
+      "message": "Полный результат не удалось подтвердить в хранилище.",
+      "action": "Восстановите доступ и прочитайте известные сохранённые материалы без выдуманного успеха."
+    },
+    {
+      "code": "cleanup_incomplete",
+      "single_failure_exit": 1,
+      "field": "session",
+      "message": "Очистка завершённого эпизода не закончена.",
+      "action": "Прочитайте сохранённую причину и повторите допустимый recover."
+    },
+    {
+      "code": "adoption_unconfirmed",
+      "single_failure_exit": 1,
+      "field": "session",
+      "message": "Принятие существующего ресурса не подтверждено.",
+      "action": "Сохраните его и проверьте действительного владельца."
+    },
+    {
+      "code": "lock_resources_conflict",
+      "single_failure_exit": 2,
+      "field": "policy:session",
+      "message": "Временные данные и управляющие ресурсы имеют несовместимое размещение.",
+      "action": "Разделите удаляемый subtree, координацию и постоянную диагностику."
+    },
+    {
+      "code": "template_preparation_failed",
+      "single_failure_exit": 1,
+      "field": "session.registry_template",
+      "message": "Не удалось подготовить шаблон до публикации.",
+      "action": "Устраните причину сбоя и повторите подготовку по свободному адресу."
+    }
+  ],
+  "policy": {
+    "schema": "poise-content-reader-policy-1",
+    "version": "fixture-2",
+    "complete": {
+      "max_bytes": 4096,
+      "max_lines": 200
+    },
+    "bounded": {
+      "max_bytes": 4096,
+      "max_lines": 160
+    },
+    "output": {
+      "max_bytes": 32768,
+      "max_lines": 512
+    },
+    "registry": {
+      "filename": "reads.sqlite",
+      "schema_version": 2,
+      "busy_timeout_ms": 40
+    },
+    "session": {
+      "temporary_root": "@ROOT@/reader-tmp",
+      "coordination_root": "@ROOT@/reader-control",
+      "diagnostic_file": "@ROOT@/reader-diagnostics.jsonl",
+      "registry_template": "@ROOT@/reader-template.sqlite",
+      "registry_directory": "registry",
+      "response_directory": "responses",
+      "ownership_filename": "ownership.json"
+    },
+    "admission": {
+      "hook_settings": "@ROOT@/hook-settings.json",
+      "definition_path": "@ROOT@/definition-pending.json"
+    },
+    "coordination": {
+      "wait_seconds": 2.0,
+      "poll_seconds": 0.01,
+      "recovery_budget_seconds": 2.0,
+      "host_event_budget_seconds": 2.0,
+      "end_observation_poll_seconds": 0.01
+    },
+    "storage": {
+      "control_response_root": "@ROOT@/reader-control-responses"
+    }
+  }
+}

@@ -23,9 +23,9 @@ class RunnerTimeoutPolicy:
 
     @classmethod
     def parse(cls, raw: dict) -> "RunnerTimeoutPolicy":
-        if not isinstance(raw, dict) or set(raw) != cls.REQUIRED:
+        if not isinstance(raw, dict) or not cls.REQUIRED.issubset(raw):
             raise PoiseError('check_runner timeout policy must define exactly the required fields')
-        data = dict(raw)
+        data = {key: raw[key] for key in cls.REQUIRED}
         for key in ('initial_seconds', 'history_multiplier', 'progress_gap_seconds', 'poll_seconds', 'diagnostic_override_max_seconds'):
             value = data[key]
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
@@ -187,6 +187,7 @@ class RegisteredCheckRunner:
         poll_seconds: float = 0.05,
         cleanup_seconds: float = 0.25,
         capture_observer=None,
+        stdin_file=None,
     ) -> dict:
         if capture_observer is not None and not callable(capture_observer):
             raise ValueError('Capture observer must be callable or None')
@@ -238,7 +239,8 @@ class RegisteredCheckRunner:
                             raise PoiseError('Registered launch cancelled before spawn')
                         try:
                             child = subprocess.Popen(
-                                argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                argv, cwd=cwd, env=env,
+                                stdin=subprocess.DEVNULL if stdin_file is None else stdin_file,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 start_new_session=True,
                             )

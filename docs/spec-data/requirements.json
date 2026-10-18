@@ -206,7 +206,7 @@
     {
       "id": "HR-032",
       "title": "Bootstrap одним пакетом",
-      "text": "Bootstrap получает выбранный project/config, необязательный task/sprint scope и explicit instruction binding/intent. Без scope существующая formal work возвращается, иначе ad-hoc. Task bootstrap/resume создаёт binding/claim, проверяет creation/prerequisites/worktree/capabilities и выдаёт текущие layers и прямой контракт пакетного результата, без обязательной ручной правки result file. Sprint bootstrap сразу вычисляет весь eligible set и blockers; выбор задачи агентом возвращает её capsule в том же start-вызове. Отдельные next/status/refresh не требуются. После binding task ID не требуется для verify/show/handoff/discard. Факт пользовательского сообщения учитывается в этом же входе при наличии configured источника, без отдельного call. Stale mutation не применяется и возвращает свежий контекст в том же ответе.",
+      "text": "Bootstrap получает выбранный project/config, необязательный task/sprint scope и explicit instruction binding/intent. Без scope существующая formal work возвращается, иначе ad-hoc. Task bootstrap/resume создаёт binding/claim, проверяет creation/prerequisites/worktree/capabilities и выдаёт текущие layers и прямой контракт пакетного результата, без обязательной ручной правки result file. Sprint bootstrap сразу вычисляет весь eligible set и blockers; выбор задачи агентом возвращает её capsule в том же start-вызове. Отдельные next/status/refresh не требуются. После binding task ID не требуется для verify/show; обычный release явно называет Task и её expected_version. Факт пользовательского сообщения учитывается в этом же входе при наличии configured источника, без отдельного call. Stale mutation не применяется и возвращает свежий контекст в том же ответе.",
       "review_findings": [
         "R-10",
         "R-26"
@@ -243,7 +243,7 @@
     {
       "id": "HR-036",
       "title": "Handoff и discard",
-      "text": "Начало другой formal task допускается только после завершения, successful handoff либо safe discard текущей. Handoff сохраняет process position, WIP/verified vector, sections/findings/decisions/evidence и обязательный backup, затем освобождает claim. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.",
+      "text": "Начало другой formal task допускается после завершения текущей работы, сохранения её состояния и обычного освобождения владения либо санкционированного безопасного отказа от текущей работы. При смене участника результат, sections/findings/decisions/evidence сохраняются через существующих владельцев; обычный release освобождает claim, сохраняя положение процесса и WIP в той же рабочей области. Отправитель после освобождения напрямую уведомляет получателя, который своим bootstrap захватывает ту же Task. Локальный архив создаётся только по отдельному прямому поручению; облачные условия резервирования сохраняют свой отдельный договор. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.",
       "review_findings": [
         "R-18",
         "R-20"
@@ -498,7 +498,7 @@
     {
       "id": "HR-071",
       "title": "Crash на границах и atomic receipts",
-      "text": "Bootstrap/verify/handoff/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Process/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.",
+      "text": "Bootstrap/verify/release/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Process/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.",
       "review_findings": [
         "R-02",
         "R-16",
@@ -510,7 +510,7 @@
     {
       "id": "HR-072",
       "title": "Два точных режима transfer",
-      "text": "Transfer сохраняет привычный комплект SQLite DB+owner files+integrity manifest. Whole-store restore разрешён только в пустой/эксклюзивно передаваемый store с exact expected generation; не заменяет живую расходящуюся БД. Owner-scoped handoff/export выбранных task переносит SQLite subset той же schema с immutable origin IDs, exact owner base revision, full task closure и readonly pinned sprint/prerequisite references. Destination под внешним lock применяет только owners, не изменившиеся от declared base; независимые изменения B сохраняются при импорте A. Никакого semantic merge одного owner, schema migration или last-writer-wins. Новые immutable events дедуплицируются по origin ID; derived sprint counts/eligibility пересчитываются. Изменение общей sprint topology требует отдельного owner revision match, не перезаписывается task package. Активная работа передаваемого owner прекращена; другие tasks могут работать.",
+      "text": "Уточнение 2026-10-18: owner-scoped handoff/export/import выбранных Task удалён.\nУчастники продолжают одну Task в существующей рабочей области через обычный release\nи bootstrap. История и WIP сохраняются на месте; semantic merge разных Task stores\nи транспортная копия не являются способом смены участника.\n\nОтдельно разрешённые whole-store backup/restore и перемещение project state сохраняют\nсобственных владельцев, допуски и проверки целостности. Они не запускаются от обычного\nrelease и не получают права заменять живую расходящуюся БД.",
       "review_findings": [
         "R-15"
       ],
@@ -519,7 +519,7 @@
     {
       "id": "HR-073",
       "title": "Согласованный snapshot DB и artifacts",
-      "text": "Перед export под коротким внешним lock фиксируются consistent SQLite snapshot поддержанным backup методом, owner revisions и pinned список immutable artifact digests. Длинное копирование выполняется после release lock; retention не удаляет pinned файлы. Manifest содержит exact schema/release/config identities, owner bases/results, file sizes/digests, closure refs и package digest. Package ready только после проверки полного набора. Import сначала валидирует schema/closure/digests и разрешённые реальные пути в staging, затем публикует файлы и одной DB transaction применяет records. Failure до transaction оставляет лишь очищаемые unreferenced artifacts, не полуприменённую задачу. Повтор receipt не применяет пакет второй раз.",
+      "text": "Согласованность БД и объявленных файлов проверяется владельцем отдельно разрешённого\nbackup/restore либо state relocation: явный набор, generation, schema, digests и\nпроверка результата. Неизвестный или частичный исход сохраняется как таковой.\nСмена участника не создаёт snapshot и не импортирует owner records: обычный release\nсохраняет текущую Task и её материалы в прежней области. Прежний scoped transport\nprotocol не является текущим API или обязательной процедурой выполнения.",
       "review_findings": [
         "R-15",
         "R-16"
@@ -529,7 +529,7 @@
     {
       "id": "HR-074",
       "title": "Git objects и внешний backup",
-      "text": "DB+files сохраняют business state, но для checkout нужны сами Git objects. Handoff предоставляет exact commit vector в проверенно доступном remote либо Git bundle с требуемой closure; одного SHA недостаточно. Ignored secret inputs передаются отдельным явным каналом и не попадают в общий backup. Gmail transport получает только разрешённый package или подтверждённые ссылки; upload/send/read receipt и limits определены adapter profile. Error backup не удаляет canonical state и не фальсифицирует delivery. Receipt, digest и source revisions сохраняются в task/sprint data. Никакой распределённой синхронизации SQLite через Gmail.",
+      "text": "В отдельно согласованном backup одних commit IDs недостаточно: выбранный владелец\nпроверяет доступность требуемых Git objects и полный фактический результат доставки.\nСекретные inputs не попадают в общий пакет без явного разрешения. Ошибка backup\nсохраняет исходные данные и честный outcome; Gmail не синхронизирует рабочую SQLite.\n\nОбычная смена участника использует существующий checkout и объекты той же Task;\nона не создаёт bundle, remote publication или почтовую отправку. Локальная разработка\nне требует архива без отдельного поручения; облачные условия сохранения действуют\nтолько в своей области применения.",
       "review_findings": [
         "R-03",
         "R-15",

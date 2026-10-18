@@ -421,22 +421,3 @@ class SqliteAccountingCycles:
             self.db,row,json.loads(row['data']),'handoff_at_last_observation',
         )
         if error is not None:raise PoiseError(error)
-
-
-def check_accounting_import(db,tables):
-    for table in ('accounting_usage','accounting_cycles'):
-        for row in tables[table]:
-            if db.execute(f'SELECT 1 FROM {table} WHERE id=?',(row['id'],)).fetchone():
-                raise PoiseError('Accounting event already exists in destination; no duplicate merge')
-    for row in tables['accounting_cycles']:
-        if row['ended_at'] is None:raise PoiseError('Finish or hand off the open work cycle before transfer')
-
-
-def restore_accounting(db,tables):
-    from .transfer_records import ACCOUNTING_TABLES,insert
-    check_accounting_import(db,tables)
-    for table in ACCOUNTING_TABLES:
-        for original in tables[table]:
-            row=dict(original)
-            if table=='accounting_credits':row.pop('seq')
-            insert(db,table,row)

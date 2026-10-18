@@ -1,8 +1,4 @@
-"""Current draft acquisition must not resurrect historical handoffs.
-
-Integration subject: WorkTools bootstrap/edit/handoff, SQLite ownership and Git
-preservation. Expectations are test literals and exact pre-operation snapshots.
-"""
+"""Current draft acquisition preserves ordinary releases, history and shared WIP."""
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -13,7 +9,7 @@ from batch.helpers import bootstrap, request
 from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
-from runtime_services.test_newborn_handoff import configure_handoff, draft, handoff
+from runtime_services.test_draft_continuation import draft
 from runtime_services.test_task_restart import restart
 
 
@@ -40,11 +36,11 @@ def edit(tools, task_id, marker):
     }))
 
 
-def handoffs(runtime, task_id):
+def release_rows(runtime, task_id):
     with runtime.store.transaction() as db:
         return [tuple(row) for row in db.execute(
-            'SELECT actor,request_id,state,data FROM handoffs '
-            'WHERE task_id=? ORDER BY seq', (task_id,))]
+            "SELECT session_id,data FROM journal WHERE task_id=? "
+            "AND event='ownership.ordinary_released' ORDER BY seq", (task_id,))]
 
 
 def events(runtime, task_id):
@@ -55,14 +51,13 @@ def events(runtime, task_id):
 
 
 def state(runtime, task_id):
-    """Only business state; diagnostic journal/message accounting is separate."""
     with runtime.store.transaction() as db:
         task = tuple(db.execute(
             'SELECT status,stage_index,iteration,claimed_by,version,metadata '
             'FROM tasks WHERE id=?', (task_id,)).fetchone())
         sessions = [tuple(row) for row in db.execute(
             'SELECT id,task_id FROM sessions ORDER BY id')]
-    return task, sessions, handoffs(runtime, task_id), events(runtime, task_id)
+    return task, sessions, release_rows(runtime, task_id), events(runtime, task_id)
 
 
 def workspace(record):
@@ -79,23 +74,26 @@ def workspace(record):
 def prepare(project, kind):
     runtime, tools = draft(project, kind)
     tid = runtime.current_task()['id']
-    # Both replacement routes will have an existing, free draft available.
     create(tools, 'OTHER')
     edit(tools, tid, 'Initial acceptance')
     return runtime, tools, tid
 
 
 def preserve(tools, name, *, note=False):
-    paths = []
+    runtime = tools.runtime
+    current = runtime.current_task()
+    path = None
     if note:
-        runtime = tools.runtime
-        runtime.runtime.mkdir(parents=True, exist_ok=True)
-        path = runtime.runtime / 'continue-note.txt'
-        path.write_text('Keep this working note.\n')
-        paths.append(str(path))
-    return handoff(tools, request_id=name,
-                   commit_message='Preserve the current draft work',
-                   artifact_paths=paths)
+        path = runtime._roots(current)['task'] / 'continue-note.txt'
+        path.write_bytes(b'Keep this working note.\n')
+    packet = request('release', {
+        'task_id': current['id'], 'request_id': name,
+        'expected_version': current['_version'],
+        'reason': 'Continue the same draft in its existing working area.',
+    })
+    saved = tools.invoke(packet)
+    assert saved['status'] == 'ownership_released'
+    return {'packet': packet, 'result': saved, 'note': path}
 
 
 def replace_claim(tools, release):
@@ -109,13 +107,11 @@ def replace_claim(tools, release):
 @pytest.mark.parametrize('release', ['create_other', 'edit_other'])
 def test_lawful_edit_allows_current_draft(project, kind, release):
     runtime, tools, tid = prepare(project, kind)
-    receipt = preserve(tools, 'old', note=True)
-    note = Path(receipt['preserved_artifacts'][0])
-    receipt_bytes = Path(receipt['receipt_path']).read_bytes()
+    saved = preserve(tools, 'old', note=True)
     edit(tools, tid, 'Use the current acceptance')
     replace_claim(tools, release)
     before = deepcopy(runtime.task_queries.record(tid))
-    old_handoffs, old_events = handoffs(runtime, tid), events(runtime, tid)
+    old_releases, old_events = release_rows(runtime, tid), events(runtime, tid)
     work = workspace(before)
     other_before = deepcopy(runtime.current_task())
     receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
@@ -129,11 +125,10 @@ def test_lawful_edit_allows_current_draft(project, kind, release):
         'Исправить double(2): получить 4.' if kind == 'restarted'
         else 'Keep this unfinished draft')
     assert acquired['draft'] == before['draft']
-    assert handoffs(runtime, tid) == old_handoffs
+    assert release_rows(runtime, tid) == old_releases
     assert events(runtime, tid)[:len(old_events)] == old_events
     assert workspace(acquired) == work
-    assert note.read_bytes() == b'Keep this working note.\n'
-    assert Path(receipt['receipt_path']).read_bytes() == receipt_bytes
+    assert saved['note'].read_bytes() == b'Keep this working note.\n'
     assert runtime.current_task() == other_before
 
 
@@ -142,9 +137,8 @@ def test_lawful_edit_allows_current_draft(project, kind, release):
 def test_consumed_newer_does_not_revive_old_release(project, kind, extra_cycle):
     runtime, tools, tid = prepare(project, kind)
     old = preserve(tools, 'old', note=True)
-    old_row = handoffs(runtime, tid)[0]
     edit(tools, tid, 'Latest acceptance')
-    newer = preserve(tools, 'newer')
+    preserve(tools, 'newer')
     receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
     assert select(receiver, tid)['draft']['definition_of_done'] == ['Latest acceptance']
     create(receiver, 'RECEIVER-NEXT')
@@ -152,81 +146,59 @@ def test_consumed_newer_does_not_revive_old_release(project, kind, extra_cycle):
         assert select(receiver, tid)['status'] == 'newborn'
         edit(receiver, 'RECEIVER-NEXT', 'Keep working elsewhere')
     before = deepcopy(runtime.task_queries.record(tid))
-    rows, history = handoffs(runtime, tid), events(runtime, tid)
+    rows, history = release_rows(runtime, tid), events(runtime, tid)
     work = workspace(before)
+    other = deepcopy(receiver.runtime.current_task())
     last = WorkTools(WorkPoise(project['config_path'], 'last'))
 
     acquired = select(last, tid)
+    replay = tools.invoke(old['packet'])
 
+    assert replay['status'] == 'ownership_released' and replay['replayed'] is True
     assert acquired['status'] == 'newborn' and acquired['claimed_by'] == 'last'
     assert acquired['draft'] == before['draft']
     assert acquired['draft']['definition_of_done'] == ['Latest acceptance']
-    assert [row[2] for row in handoffs(runtime, tid)] == ['released', 'resumed']
-    assert handoffs(runtime, tid) == rows and rows[0] == old_row
+    assert runtime.task_queries.record(tid)['claimed_by'] == 'last'
+    assert [json.loads(row[1])['request']['request_id'] for row in rows] == ['old', 'newer']
+    assert release_rows(runtime, tid) == rows
     assert events(runtime, tid)[:len(history)] == history
     assert workspace(acquired) == work
-    assert Path(old['preserved_artifacts'][0]).read_bytes() == b'Keep this working note.\n'
-    assert Path(newer['receipt_path']).is_file()
+    assert old['note'].read_bytes() == b'Keep this working note.\n'
+    assert receiver.runtime.current_task() == other
 
 
-@pytest.mark.parametrize('drift', ['none', 'worktree', 'bundle', 'branch'])
-def test_applicable_newer_handoff_keeps_saved_work_guard(project, drift):
+@pytest.mark.parametrize('drift', ['none', 'worktree', 'branch'])
+def test_current_draft_acquisition_preserves_shared_work(project, drift):
     runtime, tools, tid = prepare(project, 'restarted')
     preserve(tools, 'old')
     edit(tools, tid, 'Latest acceptance')
-    receipt = preserve(tools, 'newer')
-    root = Path(receipt['worktree'])
+    preserve(tools, 'newer')
+    root = Path(runtime.task_queries.record(tid)['worktree'])
     if drift == 'worktree':
-        (root / 'foreign.txt').write_text('Preserve foreign work.\n')
-    elif drift == 'bundle':
-        Path(receipt['bundle_path']).write_bytes(b'Changed bundle')
+        (root / 'foreign.txt').write_bytes(b'Preserve foreign work.\n')
     elif drift == 'branch':
         git(root, 'checkout', '-b', 'foreign-branch')
     receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
-    before, work = state(runtime, tid), workspace(runtime.task_queries.record(tid))
+    before = deepcopy(runtime.task_queries.record(tid))
+    work = workspace(before)
+    rows = release_rows(runtime, tid)
 
-    if drift == 'none':
-        assert select(receiver, tid)['claimed_by'] == 'receiver'
-        assert [row[2] for row in handoffs(runtime, tid)] == ['released', 'resumed']
-    else:
-        with pytest.raises(PoiseError, match='(?i)worktree.*changed|bundle.*changed'):
-            select(receiver, tid)
-        assert state(runtime, tid) == before
-    assert workspace(runtime.task_queries.record(tid)) == work
+    acquired = select(receiver, tid)
 
-
-@pytest.mark.parametrize('damage', ['gap', 'unknown_event'])
-def test_unexplained_draft_history_refuses(project, damage):
-    runtime, tools, tid = prepare(project, 'fresh')
-    preserve(tools, 'old')
-    edit(tools, tid, 'Current acceptance')
-    create(tools, 'NEXT')
-    # Deliberately corrupt only this isolated test fixture, after lawful setup.
-    with runtime.store.transaction() as db:
-        row = db.execute(
-            "SELECT seq,data FROM task_events WHERE task_id=? "
-            "AND json_extract(data,'$.event')='newborn_edited' ORDER BY seq DESC LIMIT 1",
-            (tid,)).fetchone()
-        if damage == 'gap':
-            db.execute('DELETE FROM task_events WHERE seq=?', (row['seq'],))
-        else:
-            event = json.loads(row['data'])
-            event['event'] = 'unexplained_change'
-            db.execute('UPDATE task_events SET data=? WHERE seq=?',
-                       (json.dumps(event), row['seq']))
-    receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
-    before = state(runtime, tid)
-
-    with pytest.raises(PoiseError, match='(?i)handoff|draft|history|version'):
-        select(receiver, tid)
-
-    assert state(runtime, tid) == before
+    assert acquired['claimed_by'] == 'receiver'
+    assert acquired['draft'] == before['draft']
+    assert workspace(acquired) == work
+    assert release_rows(runtime, tid) == rows
+    if drift == 'worktree':
+        assert (root / 'foreign.txt').read_bytes() == b'Preserve foreign work.\n'
+    elif drift == 'branch':
+        assert git(root, 'symbolic-ref', '--short', 'HEAD') == 'foreign-branch'
 
 
 @pytest.mark.parametrize('change', ['version', 'claim'])
 def test_newborn_acquisition_rechecks_observed_state(project, monkeypatch, change):
     runtime, tools, tid = prepare(project, 'fresh')
-    create(tools, 'NEXT')  # No preserved handoff: exercise ordinary acquisition.
+    create(tools, 'NEXT')
     receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
     editor = WorkTools(WorkPoise(project['config_path'], 'editor'))
     observed = []
@@ -240,58 +212,30 @@ def test_newborn_acquisition_rechecks_observed_state(project, monkeypatch, chang
         observed.append(state(runtime, tid))
 
     monkeypatch.setattr(receiver.runtime.ownership.commands, 'after_preflight', intervene)
-
-    with pytest.raises(PoiseError, match='(?i)changed|version|owner|handoff|draft'):
+    with pytest.raises(PoiseError, match='(?i)changed|version|owner|draft'):
         select(receiver, tid)
 
-    assert len(observed) == 1, 'The actual acquisition boundary must be exercised'
-    assert state(runtime, tid) == observed[0]
-    assert receiver.runtime.ownership.snapshot('receiver').task_id is None
-
-
-def test_current_handoff_rechecks_after_material_validation(project, monkeypatch):
-    runtime, tools, tid = prepare(project, 'fresh')
-    preserve(tools, 'current')
-    receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
-    editor = WorkTools(WorkPoise(project['config_path'], 'editor'))
-    validate = receiver.runtime.handoff_tools.validate_resume
-    observed = []
-
-    def intervene(data):
-        record = validate(data)
-        edit(editor, tid, 'Changed after material validation')
-        create(editor, 'EDITOR-NEXT')
-        observed.append(state(runtime, tid))
-        return record
-
-    monkeypatch.setattr(receiver.runtime.handoff_tools, 'validate_resume', intervene)
-
-    with pytest.raises(PoiseError, match='Task changed after preserved handoff'):
-        select(receiver, tid)
-
-    assert len(observed) == 1, 'Real saved-material validation must have succeeded'
+    assert len(observed) == 1
     assert state(runtime, tid) == observed[0]
     assert receiver.runtime.ownership.snapshot('receiver').task_id is None
 
 
 def test_authoritative_restart_keeps_current_draft(project):
-    configure_handoff(project)
     runtime = WorkPoise(project['config_path'], 'owner')
     tools = WorkTools(runtime)
     active = bootstrap(tools, project)
     tid = active['task']
     (Path(active['worktree']) / 'untracked-note.txt').write_text('WIP to preserve\n')
-    receipt = preserve(tools, 'active-handoff', note=True)
+    saved = preserve(tools, 'active-release', note=True)
     receiver = WorkTools(WorkPoise(project['config_path'], 'receiver'))
     assert select(receiver, tid)['status'] == 'active'
     restart(receiver, tid, receiver.runtime.current_task()['version'])
     edit(receiver, tid, 'Continue preparation after restart')
     create(receiver, 'NEXT')
     before = deepcopy(runtime.task_queries.record(tid))
-    old_rows, old_history = handoffs(runtime, tid), events(runtime, tid)
-    old_metadata = state(runtime, tid)[0][-1]
+    rows, history = release_rows(runtime, tid), events(runtime, tid)
+    metadata = state(runtime, tid)[0][-1]
     work = workspace(before)
-    receipt_bytes = Path(receipt['receipt_path']).read_bytes()
     third = WorkTools(WorkPoise(project['config_path'], 'third'))
 
     acquired = select(third, tid)
@@ -300,11 +244,8 @@ def test_authoritative_restart_keeps_current_draft(project):
     assert acquired['draft']['goal'] == 'Исправить double(2): получить 4.'
     assert acquired['draft']['definition_of_done'] == ['Continue preparation after restart']
     assert acquired['draft'] == before['draft']
-    assert [row[2] for row in handoffs(runtime, tid)] == ['resumed']
-    assert json.loads(old_rows[0][3])['receipt']['task_status'] == 'active'
-    assert handoffs(runtime, tid) == old_rows
-    assert events(runtime, tid)[:len(old_history)] == old_history
-    assert state(runtime, tid)[0][-1] == old_metadata
+    assert release_rows(runtime, tid) == rows
+    assert events(runtime, tid)[:len(history)] == history
+    assert state(runtime, tid)[0][-1] == metadata
     assert workspace(acquired) == work
-    assert Path(receipt['preserved_artifacts'][0]).read_bytes() == b'Keep this working note.\n'
-    assert Path(receipt['receipt_path']).read_bytes() == receipt_bytes
+    assert saved['note'].read_bytes() == b'Keep this working note.\n'

@@ -9,11 +9,6 @@ from .tasks import encode
 class SqliteSprintRepository:
     def __init__(self, connection):self.db=connection
 
-    def restore_snapshot(self,tables,binding):
-        from .transfer_records import restore_sprints
-        if any(self.get(row['id']) is not None for row in tables['sprints']):
-            raise PoiseError('Sprint snapshot cannot replace an existing aggregate')
-        restore_sprints(self.db,tables,binding)
 
     def get(self,sprint_id):
         row=self.db.execute('SELECT data FROM sprints WHERE id=?',(sprint_id,)).fetchone()
@@ -76,7 +71,6 @@ class SqliteSprintRepository:
         if not current:return {}
         placeholders=','.join('?' for _ in current)
         rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.version,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
-            "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available, "
             "(SELECT id FROM sessions WHERE task_id=t.id) AS worktree_owner "
             'FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id '
             f'WHERE t.id IN ({placeholders}) ORDER BY t.id',tuple(sorted(current))).fetchall()
@@ -91,7 +85,7 @@ class SqliteSprintRepository:
                 result[r['id']] = {
                     'status':'newborn','version':r['version'],'goal':draft.get('goal',''),
                     'goal_type':draft.get('goal_type'),'stage':'newborn','iteration':1,
-                    'claimed_by':r['claimed_by'],'handoff_available':False,
+                    'claimed_by':r['claimed_by'],
                     'result_commit':None,'worktree':None if exe is None else exe['worktree'],
                     'pending':None if exe is None else exe['pending'],
                     'publication':None if exe is None else exe['publication'],
@@ -105,7 +99,7 @@ class SqliteSprintRepository:
             report=None if exe is None else exe['last_report']
             result[r['id']]={'status':r['status'],'version':r['version'],'goal':meta['goal'],'goal_type':meta['contract']['goal_type'],
                 'stage':meta['workflow']['stages'][r['stage_index']]['id'],'iteration':r['iteration'],
-                'claimed_by':r['claimed_by'],'handoff_available':bool(r['handoff_available']),'result_commit':None if report is None else report['commit'],
+                'claimed_by':r['claimed_by'],'result_commit':None if report is None else report['commit'],
                 'worktree':None if exe is None else exe['worktree'],
                 'pending':None if exe is None else exe['pending'],
                 'publication':None if exe is None else exe['publication'],

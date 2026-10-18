@@ -8,7 +8,7 @@ from batch.helpers import request, result, verify
 from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
-from .test_stage_progression import configure_progression, advance, bootstrap, handoff
+from .test_stage_progression import configure_progression, advance, bootstrap, release_current
 
 
 def _through_implementation(project, *, role='executor', review_role='executor'):
@@ -51,7 +51,7 @@ def test_one_session_completes_red_green_inspection_and_acceptance(project, role
 
 def test_single_role_can_reacquire_its_review_after_handoff(project):
     tools = _through_implementation(project)
-    assert handoff(tools)['status'] == 'handed_off'
+    assert release_current(tools)['status'] == 'ownership_released'
     resumed = WorkTools(WorkPoise(project['config_path'], 'session-A'))
     bootstrap(resumed, {'id': 'T1'})
     review = advance(resumed)
@@ -66,7 +66,7 @@ def test_different_roles_keep_same_actor_rejection_at_public_acquisition(project
     boundary = advance(tools)
     assert boundary['status'] == 'role_handoff_required'
     assert (boundary['from_role'], boundary['to_role']) == ('author', 'assayer')
-    assert handoff(tools)['status'] == 'handed_off'
+    assert release_current(tools)['status'] == 'ownership_released'
     with pytest.raises(PoiseError, match='equals executor'):
         bootstrap(tools, {'id': 'T1'})
     other = WorkTools(WorkPoise(project['config_path'], 'session-B'))

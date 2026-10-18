@@ -74,7 +74,7 @@ for explicit roots, policy, refresh and readiness.
 The implemented tool contract and focused tests, exact input/result/exit/error behavior,
 replay/recovery evidence, source/runtime identity and bounded diagnostic links in the existing
 Task/evidence/artifact owners. Link remaining external capabilities, not invented successes.
-Transfer via public handoff; this skill does not authorize acceptance, master integration or
+Transfer via ordinary public release; this skill does not authorize acceptance, master integration or
 publication.
 
 ## Working-result placement
@@ -89,3 +89,15 @@ responses and distinguish visible bytes from confirmed durability. Follow the
 protocol](../../../docs/configuration/result-placement.md#подготовка-проекта-и-вызов)
 and [recovery contract](../../../docs/configuration/result-placement.md#отказы-и-повтор);
 do not create another selector, state registry or cleanup controller.
+
+## General project-file content
+
+Compose the installed `content-read` API for explicit project/checkout/policy reads without a Task;
+reuse its existing domain, registry, native authority and saved-response owners. Preserve complete
+JSON/text byte frames and truthful partial effects. Do not replace genuine caller/native admission
+with a supplied session identifier. Follow the canonical
+[reader contract](../../../docs/configuration/project-file-reading.md#семь-операций),
+[operator options](../../../docs/configuration/project-file-reading.md#справочник-опций) and
+[resource lifecycle](../../../docs/workflows/file-intake-lifecycle.md#допуск-и-владение).
+Keep specialized acknowledged reading separate; this adapter does not grant generic tool-result
+interception, automatic compaction handling, publication or integration authority.

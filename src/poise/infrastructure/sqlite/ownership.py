@@ -146,6 +146,12 @@ class SqliteOwnershipRepository:
             (request_id,)).fetchone()
         return None if row is None else json.loads(row[0])
 
+    def latest_ordinary_release(self, task_id):
+        row = self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event='ownership.ordinary_released' ORDER BY seq DESC LIMIT 1",
+            (task_id,)).fetchone()
+        return None if row is None else json.loads(row[0])
+
     def record_ordinary_release(self, intent, actor, result):
         self.db.execute(
             'INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',

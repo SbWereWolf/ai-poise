@@ -119,11 +119,13 @@ def fresh(project):
 def cancel_and_discard(tools, commit, identifier="T1"):
     result = tools.invoke(request("cancel", {"reason": "Cancel the exact fixture Task."}))
     assert result["status"] == "cancelled"
-    return tools.invoke(request("cleanup", {
-        "task_id": identifier, "request_id": "explicit-resource-disposition",
-        "authorization": "The fixture customer explicitly discards this exact unique commit.",
-        "commit_disposition": {"kind": "discard_authorized", "expected_commit": commit},
-    }))
+    assert result['delivery']['status'] == 'delivery_complete'
+    record = tools.runtime.task_queries.record(identifier)
+    assert record['pending']['kind'] == 'task_cleanup'
+    intent = deepcopy(record['pending']['intent'])
+    assert intent['commit_disposition'] == {'kind': 'discard_authorized', 'expected_commit': commit}
+    # Replay the actual completed cancellation cleanup, never add another approval.
+    return tools.invoke(request('cleanup', intent))
 
 
 def finish(project, tools, commit, status):

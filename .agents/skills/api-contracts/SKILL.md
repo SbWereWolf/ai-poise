@@ -21,4 +21,4 @@ The affected HTTP, JSON, event, CLI, host callback, WebSocket or cross-applicati
 
 ## Output
 
-The exact owned contract and explicit evolution decision, independent fixtures, producer/consumer coverage, command/source/runtime identity, actual targeted results and unresolved consumer or environment dependencies. Link these in the Task result and public handoff; static schema agreement alone is not end-to-end verification.
+The exact owned contract and explicit evolution decision, independent fixtures, producer/consumer coverage, command/source/runtime identity, actual targeted results and unresolved consumer or environment dependencies. Link these in the Task result and ordinary public release; static schema agreement alone is not end-to-end verification.

@@ -1,0 +1,44 @@
+[
+  {
+    "path": [
+      "registry",
+      "schema_version"
+    ],
+    "value": 1
+  },
+  {
+    "path": [
+      "registry",
+      "busy_timeout_ms"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "bounded",
+      "max_bytes"
+    ],
+    "value": false
+  },
+  {
+    "path": [
+      "coordination",
+      "wait_seconds"
+    ],
+    "value": 0
+  },
+  {
+    "path": [
+      "admission",
+      "definition_path"
+    ],
+    "value": null
+  },
+  {
+    "path": [
+      "session",
+      "temporary_root"
+    ],
+    "value": ""
+  }
+]

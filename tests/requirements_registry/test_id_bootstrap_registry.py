@@ -32,11 +32,11 @@ def edited(project, *, handoff=True):
     assert registry['revision']==1
     assert owner.runtime.task_queries.record(task_id)['contract'] != saved['contract']
     if handoff:
-        released=owner.invoke(request('handoff',{
+        released=owner.invoke(request('release',{
             'request_id':'id-resume-release','reason':'Pass produced work to a distinct reviewer.',
-            'result':None,'commit_message':None,'artifact_paths':[],
+            'task_id':task_id,'expected_version':owner.runtime.current_task()['_version'],
         }))
-        assert released['status']=='handed_off'
+        assert released['status']=='ownership_released'
         assert owner.runtime.current_task() is None
     return owner, saved, registry, wip
 

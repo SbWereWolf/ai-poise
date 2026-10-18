@@ -1,0 +1,39 @@
+{
+  "failed_item": {
+    "key": "missing",
+    "status": "failed",
+    "error": {
+      "code": "source_missing",
+      "key": "missing",
+      "field": "reads:missing:path",
+      "message": "Файл отсутствует.",
+      "action": "Восстановите файл или выберите доступный путь."
+    }
+  },
+  "empty_summary": {
+    "cache_entries": 0,
+    "event_count": 0,
+    "content_events": 0,
+    "unchanged_events": 0,
+    "model_content_bytes": 0,
+    "avoided_bytes": 0
+  },
+  "mixed_summary": {
+    "cache_entries": 1,
+    "event_count": 2,
+    "content_events": 1,
+    "unchanged_events": 1,
+    "model_content_bytes": 10,
+    "avoided_bytes": 10
+  },
+  "mixed_keys": [
+    "missing",
+    "z",
+    "a"
+  ],
+  "mixed_statuses": [
+    "failed",
+    "content",
+    "unchanged"
+  ]
+}

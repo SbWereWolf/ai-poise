@@ -9,7 +9,7 @@ from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from tests.batch.test_registry_atomicity import database_snapshot
-from tests.runtime_services.test_handoff import transfer
+from tests.runtime_services.test_participant_continuity import release_packet
 from .helpers import setup, verify, result, advance, start, inspect
 
 
@@ -19,7 +19,8 @@ def publication(project):
     produced = verify(executor, result(context, {
         'plan': plan, 'phase': 'prepare', 'resolutions': [], 'finding_resolutions': []}))
     assert produced['status'] == 'verified'
-    transfer(WorkTools(executor), None, message_=None)
+    executor_tools = WorkTools(executor)
+    executor_tools.invoke(release_packet(executor_tools))
     reviewer = WorkPoise(project['config_path'], 'PUBLICATION-REVIEWER')
     start(reviewer, {'id': context['task']})
     inspected = inspect(reviewer, advance(reviewer))

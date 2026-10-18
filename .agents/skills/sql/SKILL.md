@@ -22,4 +22,4 @@ The affected query/schema/transaction, required observable result, actual DBMS/v
 
 ## Output
 
-The explicit query/schema/transaction contract and fields, independent SQL arrangement/assertions, real application-boundary observations and relevant engine/plan/lock evidence with limitations. Save requirements, commands/source/runtime identity and results through current Poise Task/evidence/artifact owners and public handoff. Direct test SQL is never permission to edit Poise Task DB, lifecycle, claims or verification records.
+The explicit query/schema/transaction contract and fields, independent SQL arrangement/assertions, real application-boundary observations and relevant engine/plan/lock evidence with limitations. Save requirements, commands/source/runtime identity and results through current Poise Task/evidence/artifact owners and ordinary public release. Direct test SQL is never permission to edit Poise Task DB, lifecycle, claims or verification records.

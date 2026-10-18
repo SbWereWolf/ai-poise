@@ -77,13 +77,14 @@ class InteractionStore:
                 else:counts[event['reason']]+=1
             newborn = task is not None and (task['status'] == 'newborn' or
                 (task['status'] == 'cancelled' and 'newborn' in task))
+            retired_contract = task is not None and task['status'] in ('cancelled', 'completed') and 'contract' not in task
             return {'user_messages_count':len(rows),'observed_messages_count':len(rows),
                     'coverage':'partial' if rows else 'unavailable',
                     'source':self.config['message_source'], 'reason_counts':counts,'unclassified_messages':unknown,
                     'task':None if task is None else task['id'],
-                    'goal_type':None if task is None else (task.get('goal_type') if newborn else task['contract']['goal_type']),
+                    'goal_type':None if task is None or retired_contract else (task.get('goal_type') if newborn else task['contract']['goal_type']),
                     'outcome':None if task is None else task['status'],
-                    'planned_content_stages_count':None if task is None or newborn else sum(s['handler']!=HandlerKind.PUBLISH.value for s in task['workflow']['stages']),
+                    'planned_content_stages_count':None if task is None or newborn or retired_contract else sum(s['handler']!=HandlerKind.PUBLISH.value for s in task['workflow']['stages']),
                     'delivered_stages_count':len({r['stage'] for r in delivered}),
                     'delivered_iterations_count':len(delivered),
                     'delivery_observation':'tool_result_returned'}

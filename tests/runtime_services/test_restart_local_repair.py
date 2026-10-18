@@ -172,8 +172,8 @@ def test_local_repair_handoff_and_foreign_owner_guard(project):
     assert ctx['status'] == 'active'
     other = WorkPoise(project['config_path'],'receiver')
     assert other.bootstrap({'id':'D'},force_duplicate_start=True)['duplicate_gate']['reason'] == 'foreign_owner'
-    c.invoke(request('handoff',{'request_id':'repair-handoff','reason':'Continue local repair',
-        'result':None,'commit_message':None,'artifact_paths':[]}))
+    c.invoke(request('release',{'request_id':'repair-release','reason':'Continue local repair',
+        'task_id':'D','expected_version':c.runtime.current_task()['_version']}))
     resumed = other.bootstrap({'id':'D'})
     assert resumed['status'] == 'active',resumed
     assert resumed['worktree'] == ctx['worktree']

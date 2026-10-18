@@ -1,0 +1,6 @@
+{
+  "task_id": "T1",
+  "request_id": "prepared-release",
+  "expected_version": 0,
+  "reason": "Independent test actor continues the same prepared workspace."
+}

@@ -1,0 +1,17 @@
+{
+  "ready": true,
+  "missing_required": [],
+  "observations": [
+    {
+      "id": "python",
+      "status": "available",
+      "tool_ref": "python",
+      "project_path": null,
+      "version": null,
+      "observation": "command_executed",
+      "tools": [],
+      "receipt": "BOUND_BY_ACTUAL_CAPTURE",
+      "remediation": "Install the explicitly required interpreter and retry."
+    }
+  ]
+}

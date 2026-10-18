@@ -93,4 +93,4 @@ Preserve the intended RED, exact commands/exit results and the bounded GREEN evi
 
 ## Output
 
-Requirement-to-test/oracle mapping, exact runtime/selection, RED/GREEN and focused validation results, remaining target build/browser limits and executor self-review through existing Poise evidence/artifact/result APIs. Public handoff is not independent review, acceptance, publication or automatic area/stage skill routing.
+Requirement-to-test/oracle mapping, exact runtime/selection, RED/GREEN and focused validation results, remaining target build/browser limits and executor self-review through existing Poise evidence/artifact/result APIs. Ordinary public release is not independent review, acceptance, publication or automatic area/stage skill routing.

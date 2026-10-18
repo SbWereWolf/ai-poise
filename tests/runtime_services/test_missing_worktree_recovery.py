@@ -21,18 +21,18 @@ def _cleaned_verified(project, *, foreign_claim=False, integrate=True):
         "allowed_paths": list(stage["allowed_paths"]),
         "entry_requirements": [],
         "exit_requirements": [],
+        "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
     } for stage in workflow["stages"]]
     write_json(project["task_path"], task)
     context = executor.bootstrap(task_file=project["task_path"])
     edit(context, "development", "verified recovery source\n")
     result(context, {})
     verified = executor.verify()
-    handoff = WorkTools(executor).invoke(request("handoff", {
+    handoff = WorkTools(executor).invoke(request("release", {
         "request_id": "verified-before-cleanup",
         "reason": "Preserve the exact verified source.",
-        "result": None,
-        "commit_message": "test: preserve verified recovery source",
-        "artifact_paths": [],
+        "task_id": context['task'],
+        "expected_version": executor.current_task()['_version'],
     }))
 
     root = project["app"]
@@ -87,14 +87,14 @@ def test_recovers_exact_integrated_verified_worktree_for_reviewer(project):
         "task": context["task"],
         "worktree": str(worktree),
         "branch": branch,
-        "commit": handoff["commit"],
+        "commit": verified["commit"],
         "tree": verified["verified_tree"],
         "replayed": False,
     }
     after = executor.task_queries.record(context["task"])
     assert after["claimed_by"] == before["claimed_by"] is None
     assert after["_version"] == before["_version"]
-    assert git(worktree, "rev-parse", "HEAD") == handoff["commit"]
+    assert git(worktree, "rev-parse", "HEAD") == verified["commit"]
     assert git(worktree, "rev-parse", "HEAD^{tree}") == verified["verified_tree"]
     assert git(worktree, "status", "--porcelain") == ""
 
@@ -134,14 +134,13 @@ def test_recovers_without_changing_foreign_claim_or_task_records(project):
     assert recovered["replayed"] is False
     assert _state_snapshot(recovery, context["task"]) == before
     assert executor.task_queries.record(context["task"])["claimed_by"] == foreign.session
-    released = WorkTools(foreign).invoke(request("handoff", {
+    released = WorkTools(foreign).invoke(request("release", {
         "request_id": "release-after-worktree-recovery",
         "reason": "Recovered source can now be transferred.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": context['task'],
+        "expected_version": foreign.current_task()['_version'],
     }))
-    assert released["status"] == "handed_off"
+    assert released["status"] == "ownership_released"
     reviewer = WorkTools(WorkPoise(project["config_path"], "REVIEWER-FOREIGN")).invoke(
         request("bootstrap", {
             "task": {"id": context["task"]},
@@ -171,9 +170,9 @@ def test_current_owner_can_recover_its_missing_worktree(project):
 
 
 def test_rejects_independent_repository_at_saved_path(project):
-    _, _, context, _, handoff, root, worktree, branch = _cleaned_verified(project)
+    _, _, context, verified, _, root, worktree, branch = _cleaned_verified(project)
     subprocess.check_call(["git", "clone", "--quiet", str(root), str(worktree)])
-    git(worktree, "checkout", "-b", branch, handoff["commit"])
+    git(worktree, "checkout", "-b", branch, verified["commit"])
 
     with pytest.raises(Exception, match="not a worktree of the configured repository"):
         Poise(project["config_path"], "RECOVERY").recover_missing_worktree(

@@ -10,7 +10,7 @@
   "author_email": "",
   "git": "git",
   "directory_mode": "0750",
-  "python_minimum": "3.13",
+  "python_minimum": "3.15",
   "python_maximum": "3.14",
   "template_id": "linux-reference",
   "remote": "disabled",

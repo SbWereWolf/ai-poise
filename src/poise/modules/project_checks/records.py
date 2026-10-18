@@ -160,8 +160,12 @@ def process_run(value, project, field='run'):
     timeout = value['timeout']
     exact(timeout, ('configured_seconds', 'effective_seconds', 'basis', 'evidence_run_id', 'override_reason'),
           field + '.timeout')
-    for name in ('configured_seconds', 'effective_seconds'):
-        numeric(timeout[name], field + '.timeout.' + name)
+    numeric(timeout['configured_seconds'], field + '.timeout.configured_seconds')
+    numeric(timeout['effective_seconds'], field + '.timeout.effective_seconds', nullable=True)
+    require(timeout['effective_seconds'] is not None or
+            (timeout['configured_seconds'] == 0 and timeout['basis'] == 'initial'),
+            field + '.timeout.effective_seconds',
+            'Отсутствие ограничения допустимо только для начального запуска с configured_seconds = 0.')
     enumeration(timeout['basis'], ('initial', 'verified_success_history', 'diagnostic_override'),
                 field + '.timeout.basis')
     for name in ('evidence_run_id', 'override_reason'):

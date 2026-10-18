@@ -66,6 +66,8 @@ def setup(project, kind='git_merge', conflict=True):
         t=deepcopy(transitions)
         if kind=='commands':t={k:(None if v=='publish' else v) for k,v in t.items()}
         stages.append({'id':name,'handler':handler,'role':role,'transitions':t,'rework_targets':[name] if name!='publish' else ['apply'],
+                       'purpose':'execution' if handler in ('apply_plan','revise','publish') else 'observation',
+                       'criteria_authority':{'propose':[],'decide':[]},
                        'read_only':ro,'allowed_paths':[] if ro else ['src/**','README.md'],
                        'instruction':f'Выполнить {name}', 'normalization':'strip',
                        'sections':{} if handler=='publish' else {'report':'Заполнить.'},
@@ -90,6 +92,7 @@ def setup(project, kind='git_merge', conflict=True):
         'allowed_paths':list(stage['allowed_paths']),
         'entry_requirements':[],
         'exit_requirements':[],
+        'criteria':{'requirements':[],'definition_of_ready':[],'definition_of_done':[]},
     } for stage in stages]
     if kind=='git_merge':
         combined=method('COMBINED','from src.double import double; assert double(4)==8; print("combined OK")')

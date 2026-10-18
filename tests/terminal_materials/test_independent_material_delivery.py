@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from conftest import WorkPoise, write_json
+from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from tests.batch.helpers import bootstrap, request
@@ -122,20 +122,9 @@ def ready_source_retirement(project, monkeypatch):
 
 
 @pytest.mark.parametrize("operation", [
-    "agree", "integrate-settle", "reuse-preparation", "bootstrap", "handoff", "cleanup",
-    "export-preparation",
+    "agree", "integrate-settle", "reuse-preparation", "bootstrap", "cleanup",
 ])
 def test_unrelated_task_progresses_during_material_effect(project, operation):
-    if operation == "export-preparation":
-        project["cfg"]["runtime_services"]["transfer"]["recovery"]["mapping"]["materials"].append({
-            "id": "accepted-result", "role": "task-material", "source": "artifacts/result.txt",
-            "destination": "artifacts/result.txt", "include": True,
-        })
-        project["cfg"]["runtime_services"]["transfer"]["recovery"]["mapping"]["materials"].append({
-            "id": "check-runs", "role": "task-material", "source": "runs",
-            "destination": "runs", "include": True,
-        })
-        write_json(project["config_path"], project["cfg"])
     if operation == "bootstrap":
         setup(project)
         a = WorkTools(WorkPoise(project["config_path"], "bootstrap-A"))
@@ -151,58 +140,16 @@ def test_unrelated_task_progresses_during_material_effect(project, operation):
                     pause()
                 return original(path, *args, **kwargs)
             patch.setattr(os, "mkdir", mkdir)
-    elif operation in ("reuse-preparation", "export-preparation"):
+    elif operation == "reuse-preparation":
         saved, consumer, _ = family(project)
         source = Path(saved["record"]["path"])
-        if operation == "reuse-preparation":
-            first = lambda: reuse(consumer)
-            intercept = pause_read(source)
-        else:
-            exporter = WorkTools(WorkPoise(project["config_path"], "export-preparation"))
-            first = lambda: exporter.invoke(request("transfer", {
-                "action": "export", "request_id": "independent-export-preparation",
-                "task_ids": ["P"], "sprint_id": None, "handoff": None,
-            }))
-            def intercept(patch, pause):
-                original = os.open
-                original_path = Path.open
-                def opened(path, *args, **kwargs):
-                    if not isinstance(path, int) and Path(path) == source:
-                        pause()
-                        # Exercise preparation failure before any external
-                        # recovery command; no external harness fixture needed.
-                        raise PoiseError("INJECTED-EXPORT-SOURCE-REFUSAL")
-                    return original(path, *args, **kwargs)
-                patch.setattr(os, "open", opened)
-                def opened_path(path, *args, **kwargs):
-                    if path == source:
-                        pause()
-                        raise PoiseError("INJECTED-EXPORT-SOURCE-REFUSAL")
-                    return original_path(path, *args, **kwargs)
-                patch.setattr(Path, "open", opened_path)
+        first = lambda: reuse(consumer)
+        intercept = pause_read(source)
     else:
-        if operation == "handoff":
-            project["cfg"]["runtime_services"]["handoff"] = {
-                "directory": "handoffs", "preserved_directory": "materials",
-                "file_mode": 384, "bundle": "source.bundle", "receipt": "receipt.json",
-            }
-            write_json(project["config_path"], project["cfg"])
         producer, root, source, commit = arrange(project)
         destination = project["root"] / "permanent.txt"
         declaration_packet = delivery_packet(producer, declaration([file_output(source, destination)]))
-        if operation == "handoff":
-            first = lambda: producer.invoke(request("handoff", {
-                "request_id": "independent-handoff", "reason": "Hand the accepted result to its reviewer.",
-                "result": None, "commit_message": None, "artifact_paths": [],
-            }))
-            def intercept(patch, pause):
-                original = os.mkdir
-                def mkdir(path, *args, **kwargs):
-                    if Path(path).is_relative_to(root / "handoffs"):
-                        pause()
-                    return original(path, *args, **kwargs)
-                patch.setattr(os, "mkdir", mkdir)
-        elif operation == "cleanup":
+        if operation == "cleanup":
             first = lambda: finish(project, producer, commit, "cancelled")
             def intercept(patch, pause):
                 original = subprocess.Popen
@@ -222,11 +169,7 @@ def test_unrelated_task_progresses_during_material_effect(project, operation):
     b = unrelated(project)
     left, right = paused_overlap(first, lambda: publish(b), intercept)
     assert_material_success(right)
-    if operation == "export-preparation":
-        assert left[0] == "error" and left[4] is True, left
-        assert "INJECTED-EXPORT-SOURCE-REFUSAL" in left[2]
-    else:
-        require_success(left, "FIRST-OPERATION-BLOCKED")
+    require_success(left, "FIRST-OPERATION-BLOCKED")
 
 
 def test_material_consumer_admission_precedes_source_preparation(project):
@@ -281,66 +224,30 @@ def test_definitive_material_refusal_releases_only_its_own_consumer(project, mon
     assert not saved["root"].exists()
 
 
-@pytest.mark.parametrize("operation", ["export", "recovery"])
-def test_delayed_source_operation_protects_its_root(project, monkeypatch, operation):
-    if operation == "export":
-        project["cfg"]["runtime_services"]["transfer"]["recovery"]["mapping"]["materials"] += [
-            {"id": "accepted-result", "role": "task-material", "source": "artifacts/result.txt",
-             "destination": "artifacts/result.txt", "include": True},
-            {"id": "check-runs", "role": "task-material", "source": "runs",
-             "destination": "runs", "include": True},
-        ]
-        write_json(project["config_path"], project["cfg"])
-        saved, _consumer, report = family(project)
-    else:
-        saved, _consumer, report = ready_source_retirement(project, monkeypatch)
+def test_delayed_source_operation_protects_its_root(project, monkeypatch):
+    saved, _consumer, _report = ready_source_retirement(project, monkeypatch)
     source = Path(saved["record"]["path"])
-    caller = WorkTools(WorkPoise(project["config_path"], "held-" + operation))
+    caller = WorkTools(WorkPoise(project["config_path"], "held-recovery"))
     b = unrelated(project)
-    if operation == "export":
-        packet = request("transfer", {"action": "export", "request_id": "held-source-export",
-                                     "task_ids": ["P"], "sprint_id": None, "handoff": None})
-    else:
-        packet = recovery_packet(caller, saved, "held-source-recovery")
+    packet = recovery_packet(caller, saved, "held-source-recovery")
     observer = WorkTools(WorkPoise(project["config_path"], "source-retirement-observer"))
     def retire_and_progress():
-        if operation == "export":
-            saved["producer"].invoke(request("integrate", integration_input(
-                project, report["commit"], task_id="P", request_id="retire-export-source")))
-            state = delivery_status(observer, identifier="P")
-        else:
-            state = settle(observer, identifier="P", request_id="retire-held-source")
+        state = settle(observer, identifier="P", request_id="retire-held-source")
         return state, source.read_bytes(), saved["root"].is_dir(), publish(b)
     left, right = paused_overlap(lambda: caller.invoke(packet), retire_and_progress,
-                                 source_read_boundary(source, refusal=operation == "export"))
+                                 source_read_boundary(source))
     state, source_bytes, root_exists, independent = require_success(right, "HELD-SOURCE-RETIREMENT-BLOCKED")
     assert state["status"] == "delivery_blocked"
-    assert state["reason"] == {"export": "transfer_pending", "recovery": "artifact_consumer_pending"}[operation]
+    assert state["reason"] == "artifact_consumer_pending"
     assert source_bytes == b"accepted family result\n" and root_exists is True
     assert independent["status"] == "artifacts_created"
     independent_path = Path(independent["artifact_paths"][0])
     assert independent_path.read_bytes() == b"B material\n"
-    if operation == "recovery":
-        assert require_success(left, "HELD-RECOVERY-FAILED")["status"] == "artifacts_recovered"
-        assert caller.invoke(deepcopy(packet))["status"] == "artifacts_recovered"
-        assert settle(observer, identifier="P", request_id="retire-held-source")["status"] == "delivery_complete"
-        assert not saved["root"].exists()
-        assert (project["root"] / "permanent-family-input.txt").read_bytes() == b"accepted family result\n"
-    else:
-        assert left[0] == "error" and left[4] is True
-        assert "INJECTED-SOURCE-CONSUMER-REFUSAL" in left[2]
-        # A known preparation failure does not fabricate export completion.
-        # Repeating the original request may reject changed captured inputs;
-        # otherwise the same source fault stops before any external command.
-        with monkeypatch.context() as patch:
-            source_read_boundary(source, refusal=True)(patch, lambda: None)
-            with pytest.raises(PoiseError) as error:
-                caller.invoke(deepcopy(packet))
-        assert any(message in str(error.value) for message in (
-            "INJECTED-SOURCE-CONSUMER-REFUSAL", "Original export inputs changed before preparation completed"))
-        blocked = settle(observer, identifier="P", request_id="retire-held-source")
-        assert blocked["reason"] == "transfer_pending" and saved["root"].is_dir()
-        assert source.read_bytes() == b"accepted family result\n"
+    assert require_success(left, "HELD-RECOVERY-FAILED")["status"] == "artifacts_recovered"
+    assert caller.invoke(deepcopy(packet))["status"] == "artifacts_recovered"
+    assert settle(observer, identifier="P", request_id="retire-held-source")["status"] == "delivery_complete"
+    assert not saved["root"].exists()
+    assert (project["root"] / "permanent-family-input.txt").read_bytes() == b"accepted family result\n"
     assert independent_path.read_bytes() == b"B material\n"
 
 

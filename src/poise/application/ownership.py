@@ -58,21 +58,19 @@ def reconcile_integrated_worktree_in(uow, actor, task_id, expected_pending, veri
     })
 
 
-def _release_task_in(uow, actor, task_id, reason=None):
+def _release_task_in(uow, actor, task_id):
     if uow.tasks.is_newborn(task_id):
-        if reason is not None and (not isinstance(reason, str) or not reason.strip()):
-            raise PoiseError('Newborn Task handoff reason required')
         uow.tasks.release_newborn(task_id, actor)
         release_dependent_worktree_in(uow, actor, task_id)
         return
     task = uow.tasks.load(task_id)
-    change = task.handoff(actor, reason) if reason is not None else task.release_ownership(actor)
+    change = task.release_ownership(actor)
     uow.tasks.save(change, task.state.version)
     release_dependent_worktree_in(uow, actor, task_id)
 
 
-def release_task_in(uow, actor, task_id, reason=None):
-    _release_task_in(uow, actor, task_id, reason)
+def release_task_in(uow, actor, task_id):
+    _release_task_in(uow, actor, task_id)
 
 
 class OwnershipCommands:
@@ -201,10 +199,6 @@ class OwnershipCommands:
                 newborn = uow.tasks.load_newborn(task_id)
                 if newborn.version != expected_newborn_revision:
                     raise PoiseError('Newborn Task version changed before acquisition')
-                if newborn.claimed_by is None:
-                    from .handoff import HandoffCommands
-                    HandoffCommands.require_newborn_acquisition_in(
-                        uow, task_id, expected_newborn_revision)
             if not uow.tasks.is_newborn(task_id):
                 from .tasks import require_reviewer_identity_in
                 require_reviewer_identity_in(uow, uow.tasks.load(task_id), actor, acquiring=True)
@@ -269,14 +263,13 @@ class OwnershipCommands:
             target = uow.ownership.preflight(actor, task_id)
             if target.task_owner != actor or before.task_id != task_id:
                 raise PoiseError('Release requires the named Task owned by the current caller')
-            if uow.tasks.is_newborn(task_id):
-                raise PoiseError('Ordinary release requires an executable nonterminal Task')
-            task = uow.tasks.load(task_id)
-            if task.state.version != intent['expected_version']:
+            state = uow.tasks.load_state(task_id)
+            if state.version != intent['expected_version']:
                 raise PoiseError('Release version conflict; refresh the current Task version')
             if (uow.ownership.worktree_required(task_id)
                     and target.worktree_owner not in (None, actor)):
                 raise PoiseError('Release rejected inconsistent foreign dependent worktree ownership')
+            uow.accounting_cycles.release(actor, task_id)
             _release_task_in(uow, actor, task_id)
             after = uow.ownership.snapshot(actor)
             result = {'status': 'ownership_released', 'task': task_id,

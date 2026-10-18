@@ -8,7 +8,6 @@ from ..modules.sprints.domain import Sprint
 from ..modules.task_delivery.domain import MaterialUseIntent
 from ..modules.foundation.errors import PoiseError
 from .ownership import reserve_reuse_in, release_dependent_worktree_in
-from .handoff import HandoffCommands
 
 
 def fingerprint(value):
@@ -134,8 +133,6 @@ class DuplicateReuseCommands:
                         'reuse', task_id, request_id, intent_digest), [task_id, source_task_id],
                         permanent_sources=[source_task_id])
             self.workspace.admit_material(task_id, source_task_id)
-            handoff = (self.workspace.handoff_preflight(task_id)
-                       if task.state.claimed_by is None and execution is not None else None)
             delivery = self.workspace.plan_artifacts(task_id, context, artifact_source)
             observed, reservation = self.workspace.prepare(task_id, context, commit, execution, saved)
             candidate = ({**observed, 'intent_digest': intent_digest, 'request': intent, 'request_id': request_id,
@@ -153,8 +150,7 @@ class DuplicateReuseCommands:
                 if (current.state.version != version or (current_commit, current_digest) != (commit, contract_digest)
                         or current_source != artifact_source):
                     raise VersionConflict('Reuse inputs changed before reservation')
-                change = (current.prepare_duplicate_reuse(actor, candidate) if handoff is None
-                          else HandoffCommands.resume_reuse_in(uow, current, actor, candidate, handoff))
+                change = current.prepare_duplicate_reuse(actor, candidate)
                 reserve_reuse_in(uow, current, change, actor)
                 if execution is None:
                     uow.execution.create(task_id, reservation)

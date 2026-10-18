@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 from datetime import datetime,timezone
 from ..common import PoiseError
-from ..execution import run_command
+from ..execution import RegisteredCheckRunner, run_command
 from ..modules.capabilities.domain import CapabilitySummary,bind_workspace,satisfies
 from .goal_config import atomic_write,strict_json
 from .mcp_probe import StdioProbe
@@ -35,8 +35,9 @@ class FileCapabilitySummary:
 
 
 class LocalProbeExecutor:
-    def __init__(self,root,file_mode,files):
+    def __init__(self,root,file_mode,files, *, deadline=None, cleanup_seconds=None, poll_seconds=None):
         self.root=Path(root);self.file_mode=file_mode;self.files=files
+        self.deadline=deadline;self.cleanup_seconds=cleanup_seconds;self.poll_seconds=poll_seconds
 
     def observe(self,spec,workspace):
         p=bind_workspace(spec.data,workspace)
@@ -50,8 +51,17 @@ class LocalProbeExecutor:
              'remediation':p['remediation']}
         try:
             if not Path(p['cwd']).is_absolute():raise PoiseError('Probe cwd must resolve to an absolute directory')
+            if self.deadline is not None:
+                remaining=self.deadline-time.monotonic()-self.cleanup_seconds
+                if remaining<=0:raise PoiseError('Optional capability probe budget exhausted; retry configured readiness separately')
+                p['timeout_seconds']=min(p['timeout_seconds'],remaining)
             if p['kind']=='command':
-                result=run_command(p['argv'],Path(p['cwd']),p['environment'],p['timeout_seconds'],directory/self.files['stdout'],directory/self.files['stderr'])
+                if self.deadline is None:
+                    result=run_command(p['argv'],Path(p['cwd']),p['environment'],p['timeout_seconds'],directory/self.files['stdout'],directory/self.files['stderr'])
+                else:
+                    result=RegisteredCheckRunner().run(directory.name,p['argv'],Path(p['cwd']),p['environment'],
+                        p['timeout_seconds'],directory/self.files['stdout'],directory/self.files['stderr'],
+                        poll_seconds=self.poll_seconds,cleanup_seconds=self.cleanup_seconds)
                 detail.update(result)
                 if result['timed_out']:raise PoiseError('Capability probe timed out')
                 if result['actual_exit_code']!=p['expected_exit_code']:raise PoiseError('Probe exit code did not match')
@@ -64,7 +74,7 @@ class LocalProbeExecutor:
                     raise PoiseError('Probe JSON/project binding assertion failed')
                 obs['observation']='command_executed'
             else:
-                result=StdioProbe(p,directory,self.files).run();detail['protocol']=result
+                result=StdioProbe(p,directory,self.files,deadline=self.deadline).run();detail['protocol']=result
                 if p['json_assertions'] and not satisfies(result['smoke'],p['json_assertions']):
                     raise PoiseError('MCP smoke/project binding assertion failed')
                 obs.update(observation=result['observation'],tools=result['tools'],version=result['server']['version'])

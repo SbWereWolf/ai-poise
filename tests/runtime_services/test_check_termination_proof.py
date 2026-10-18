@@ -16,7 +16,7 @@ from poise.modules.evidence.domain import completed_receipts
 from runtime_services.test_durable_check_attempts import candidate, fail_once
 from runtime_services.test_failed_check_rework import _scenario
 from runtime_services.test_task_restart import workflow_contract, restart
-from runtime_services.test_uncertain_check_transfer import _handoff, _pending
+from runtime_services.test_uncertain_check_transfer import _release, _pending
 
 
 CONTRACT = json.loads((Path(__file__).parent / 'fixtures' /
@@ -272,7 +272,7 @@ def test_proved_transfer_archives_mixed_negative_missing_and_unstarted(project, 
     assert_proof(pending, 1)
     assert third.get('termination') is None
     before = state(tools)
-    assert _handoff(tools, pending, request_id='mixed-proof-transfer')['status'] == 'handed_off'
+    assert _release(tools, request_id='mixed-proof-release')['status'] == 'ownership_released'
     reviewer = WorkTools(WorkPoise(project['config_path'], 'mixed-proof-reviewer'))
     reviewer.runtime.bootstrap({'id': 'T1'})
     current = reviewer.runtime.current_task()
@@ -360,9 +360,9 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
     initial = executor.invoke(request('bootstrap', {
         'task': task, 'decision': None, 'feedback': None, 'rework_stage': None}))
     assert verify(executor, result(initial, 'Original baseline report.'))['status'] == 'verified'
-    executor.invoke(request('handoff', {'request_id': 'history-review',
-        'reason': 'Independent baseline review.', 'result': None,
-        'commit_message': None, 'artifact_paths': []}))
+    executor.invoke(request('release', {'request_id': 'history-review',
+        'reason': 'Independent baseline review.', 'task_id': 'T1',
+        'expected_version': executor.runtime.current_task()['_version']}))
     reviewer = WorkTools(WorkPoise(project['config_path'], 'history-reviewer'))
     reviewer.runtime.bootstrap({'id': 'T1'})
     reviewer.invoke(request('advance', {
@@ -418,12 +418,18 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
     assert saved == historical
     target = {'request_id': 'repeat-all-eight-obligations', 'task_id': 'T1',
               'target_stage': 'implementation_inspection'}
+    # Stop on entry before replaying historical acceptance: this scenario needs
+    # a new substantive baseline and eight new results, not accepted-visit reuse.
+    baseline_entry = {'request_id': 'fresh-eight-baseline-entry', 'task_id': 'T1',
+                      'target_stage': 'baseline'}
+    assert executor.invoke(request('advance', baseline_entry))['status'] == 'progression_target_reached'
     names = ['baseline', 'baseline_inspection', 'solution_planning',
              'solution_planning_inspection', 'test_implementation',
              'test_inspection', 'implementation', 'implementation_inspection']
     for index, stage in enumerate(names):
         actor = executor if index % 2 == 0 else reviewer
-        actor.invoke(request('advance', target))
+        if index:
+            actor.invoke(request('advance', target))
         context = actor.invoke(request('bootstrap', {
             'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}))
         assert context['stage'] == stage
@@ -456,11 +462,11 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
         assert verify(actor, fresh_payload)['status'] == 'verified'
         if index < 7:
             assert actor.invoke(request('advance', target))['status'] == 'role_handoff_required'
-            assert actor.invoke(request('handoff', {
+            assert actor.invoke(request('release', {
                 'request_id': f'fresh-eight-handoff-{index}',
                 'reason': 'Transfer to the distinct owner of the next stage.',
-                'result': None, 'commit_message': None, 'artifact_paths': []
-            }))['status'] == 'handed_off'
+                'task_id': 'T1', 'expected_version': actor.runtime.current_task()['_version']
+            }))['status'] == 'ownership_released'
             recipient = reviewer if index % 2 == 0 else executor
             recipient.runtime.bootstrap({'id': 'T1'})
     with reviewer.runtime.store.transaction() as database:

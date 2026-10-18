@@ -35,7 +35,7 @@ class RuntimeTaskDelivery:
     def prepare(self, record, args):
         root = self._root(record)
         # A never-started draft may have no material directory yet.
-        if not os.path.lexists(root) and record['status'] == 'newborn':
+        if not os.path.lexists(root) and record['status'] in ('newborn', 'cancelled'):
             root.mkdir(parents=True, exist_ok=True)
         root_identity = self.root_identity(root)
         for output in args['declaration']['outputs']:
@@ -73,10 +73,24 @@ class RuntimeTaskDelivery:
 
     def ensure_resources(self, record, state):
         pending = record.get('pending')
-        if record['status'] == 'cancelled' and isinstance(pending, dict) and pending.get('kind') == 'task_cleanup':
-            run = CleanupRun.restore(pending)
-            if not run.complete and run.intent.commit_disposition is not None:
-                self.h.cleanup_tools.apply(run.intent.to_dict(), internal=True)
+        if record['status'] == 'cancelled':
+            if isinstance(pending, dict) and pending.get('kind') == 'task_cleanup':
+                run = CleanupRun.restore(pending)
+                intent = run.intent.to_dict()
+                if intent['commit_disposition'] is None:
+                    branch = next((r for r in run.resources if r.kind == 'branch'), None)
+                    intent['commit_disposition'] = ({'kind': 'no_resources'} if branch is None else
+                        {'kind': 'discard_authorized', 'expected_commit': branch.commit})
+            elif pending is None:
+                intent = {'task_id': record['id'], 'request_id': 'cancelled-owned-resources',
+                    'authorization': state.data['agreement']['authorization'], 'commit_disposition': None}
+                resources = self.h.cleanup_tools.adapter.resources(record['id'])
+                branch = next((r for r in resources if r['kind'] == 'branch'), None)
+                if branch is not None:
+                    intent['commit_disposition'] = {'kind': 'discard_authorized', 'expected_commit': branch['commit']}
+            else:
+                return
+            self.h.cleanup_tools.apply(intent, internal=True)
             return
         if (record['status'] != 'completed' or record.get('duplicate_reuse') is None
                 or record.get('pending') is not None or state.data['retirement_started']):
@@ -93,8 +107,6 @@ class RuntimeTaskDelivery:
             'commit_disposition':{'kind':'integrated','expected_commit':commit,
                 'target_commit':target,'integration_request_id':record['duplicate_reuse']['candidate']['request_id']}},internal=True)
 
-    def preparing_consumer(self, task_id):
-        return self.h.transfer_repository.preparing_consumers(task_id)
 
     def blocker(self, record, state):
         pending = record.get('pending')

@@ -116,6 +116,10 @@ class TaskDeliveryCommands:
         record = self.effects.admission(task_id, self.actor)
         if record['status'] not in ('completed', 'cancelled'):
             return self._blocked(state, 'task_not_terminal')
+        with self.uow() as uow:
+            reason = self.consumer_blocker_in(uow, task_id)
+        if reason:
+            return self._blocked(state, reason)
         if not state.data['retirement_started']:
             reason = self.effects.validate_sources(state)
             if reason:

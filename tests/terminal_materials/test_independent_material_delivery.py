@@ -164,8 +164,11 @@ def test_unrelated_task_progresses_during_material_effect(project, operation):
         else:
             producer.invoke(declaration_packet)
             producer.invoke(request("accept", {}))
+            # The ordered output is already delivered; integration re-observes
+            # its bytes before retiring the Task working resources.
+            assert destination.read_bytes() == b"customer result\n"
             first = lambda: producer.invoke(request("integrate", integration_input(project, commit)))
-            intercept = pause_link(destination)
+            intercept = pause_read(destination)
     b = unrelated(project)
     left, right = paused_overlap(first, lambda: publish(b), intercept)
     assert_material_success(right)

@@ -21,7 +21,8 @@ def legacy(project, request):
     context = bootstrap(tools, project)
     add_test(context['worktree'])
     tools.invoke(work_request('artifacts', {'items': [
-        text_artifact('task', 'working-note.md', 'Unfinished analysis retained for the next participant.')]}))
+        text_artifact('task', 'working-note.md', 'Unfinished analysis retained for the next participant.'),
+        text_artifact('task', 'second-note.md', 'Second registered input for partial publication checks.')]}))
     released = tools.invoke(release_packet(tools, 'legacy-release'))
     old_root = Path(context['task_root'])
     records = first.store.artifact_records('T1')
@@ -299,4 +300,4 @@ def test_two_explicit_root_changes_preserve_history_then_verify(legacy,project):
     # Immutable historical receipts remain historical; current paths come from the registry.
     assert tools.invoke(request('recover_artifacts',legacy['args']))==first
     context=tools.invoke(request('bootstrap',{'task':{'id':'T1'},'decision':None,'feedback':None,'rework_stage':None}))
-    assert verify(tools,context['result_template'])['status']=='verified'
+    assert verify(tools,result(context, 'Verify both registered inputs after two explicit root changes.'))['status']=='verified'

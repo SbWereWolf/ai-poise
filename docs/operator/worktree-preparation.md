@@ -14,7 +14,8 @@ Poise подготавливает выделенную рабочую обла�
 Версию этого приложения выбирает установка, Poise исполняет настроенную команду.
 Собственные runtime условия: [лаунчер](../configuration/stride-launcher.md#установка-и-выбор-версии).
 
-Для ERP сначала подготовьте [рабочий профиль](maintenance-profile-v2.md#подготовка-erp-профиля).
+Для ERP сначала подготовьте [профиль конкретной задачи](#профиль-конкретной-задачи).
+Спецификация и полный состав профиля описаны в [руководстве ERP](maintenance-profile-v2.md#подготовка-erp-профиля).
 Нужны каталог из выбранной поставки, заполненные рабочие values, shared environment
 и test-execution с согласованными значениями. Проверенный полный профиль содержит
 56 ресурсов в21группе, а не только минимальные маркеры готовности. Его действия
@@ -52,6 +53,96 @@ Poise подготавливает выделенную рабочую обла�
 ERP сценария выбран4MiB (`4194304`): capture около1.77MB при суммарных сырых потоках
 около778KB. Это измерение конкретного сценария, не универсальный размер и не скрытое
 повышение лимита приложением. Полные stdout/stderr сохраняются независимо от preview.
+
+## Профиль конкретной задачи
+
+Профиль Task выбирает её рабочую область, а самостоятельный ERP-профиль — явно
+указанный существующий checkout. `repository` сохраняется в values и каталоге;
+cwd внешней команды и корень наблюдения обработчика сами его не меняют.
+Для каждой Task создайте отдельные profile и maintenance state.
+
+До первого bootstrap установите точный Task ID и фактически настроенный корень
+`paths.worktrees` выбранного проекта. Абсолютный корень используется непосредственно,
+относительный разрешается от configured state. В текущем контракте путь новой
+области равен этому разрешённому корню плюс Task ID. В примере ниже оператор уже
+выбрал `/srv/projects/erp/.task-worktrees` в конфигурации проекта; это значение
+установки, не универсальный путь. `base_ref` также берётся из выбранного проекта.
+
+```bash
+poise_root=/srv/poise/app
+poise_python=/srv/poise/poise-venv/bin/python
+project_id=erp
+task_id=ERP-TASK-001
+task_worktrees=/srv/projects/erp/.task-worktrees
+task_worktree="$task_worktrees/$task_id"
+profiles_root="$poise_root/operator/erp-task-profiles"
+task_profile="$profiles_root/$task_id"
+maintenance_state="/srv/poise/data/erp-task-maintenance/$task_id"
+base_ref=main
+mkdir -p "$profiles_root"
+PYTHONPATH="$poise_root/src" "$poise_python" -B -m poise_environment.profile \
+  --source "$poise_root" \
+  --profile-spec "$poise_root/config/projects/erp/profile.example.json" \
+  --output "$task_profile" --state "$maintenance_state" \
+  --repository "$task_worktree" --project "$project_id" --base-ref "$base_ref" \
+  --author-name Operator --author-email operator@example.invalid \
+  --module-path "$poise_root/src"
+```
+
+Материализатор допускает ещё несуществующий `task_worktree`: он публикует профиль,
+но не создаёт и не обслуживает целевой репозиторий. Саму ветку и область создаст
+штатный bootstrap. До него заполните `task_profile/values.json` выбранными
+инструментами и рабочими границами Python, а `task_profile/documents/*.json` —
+настройками по [ERP-инструкции](maintenance-profile-v2.md#параметры-и-корни-erp).
+Сохраните `values.repository` равным `task_worktree`, `profile_root` равным
+`task_profile`, `state_root` равным отдельному `maintenance_state`.
+
+Четыре назначения `environment_file`, `local_settings_path`,
+`host_runtime_settings_path`, `cjm_settings_path` разрешаются от этого repository;
+три `*_settings_source` — от этого profile_root. Материализованные относительные
+пути сохраняют такое разрешение. Если выбраны абсолютные пути, заполните их
+конкретными значениями именно этой области/профиля. Значения values передаются
+готовыми строками без повторного рендера.
+Projected documents подготовлены для выбранного repository; при смене цели
+материализуйте отдельный профиль для новой цели.
+
+В ignored working `operator/worktree-preparation.json` из примера заполните
+следующие поля; остальные обязательные parameters, inputs, operations и handler
+остаются заполненными по инструкции ниже:
+
+```json
+{
+  "parameters": {
+    "profile": "/srv/poise/app/operator/erp-task-profiles"
+  },
+  "catalog_dir": "${profile}/${task_id}"
+}
+```
+
+Здесь `parameters.profile` — буквальный корень профилей, а не вложенный шаблон.
+В argv каждой команды используйте `--catalog-dir`, `${catalog_dir}`,
+`--values`, `${catalog_dir}/values.json` отдельными элементами:
+
+| commands | Действие внешнего инструмента | Файл после `--values` |
+|---|---|---|
+| `infra`, `deps`, `repair` | `run` | `${catalog_dir}/values.json` |
+| `check`, `verify` | `check` | `${catalog_dir}/values.json` |
+
+Так выбираются и каталог, и values именно текущей Task; `parameters.tool_config`
+в этом варианте не используется. Inputs и `handler.options.configuration_root`
+продолжают использовать `${worktree}`. Три handler targets должны совпасть с
+тремя JSON destinations выбранных values. Профили и state других Task независимы.
+
+После подготовки этих входов выполняйте [обычный bootstrap](#запуск-и-чтение-результата).
+Его фактический `worktree` сверяется с выбранным `task_worktree`; квитанция связывает
+его с profile/configuration. Все обслуживаемые назначения выбраны в новой области
+и её отдельном state, основной checkout остаётся источником Git-базы.
+
+Для уже выделенной Task возьмите путь из её сохранённого bootstrap, а не вычисляйте
+новый. Материализуйте отдельный профиль с этим `--repository` и тем же Task ID.
+Если прежняя подготовка завершилась подтверждённым error, после исправления
+профиля используйте [новый preparation_request_id](#продолжение-после-отказа).
+При unconfirmed сначала согласуйте прежний исход по той же инструкции.
 
 ## Опции рабочего JSON
 

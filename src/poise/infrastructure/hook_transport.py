@@ -206,7 +206,7 @@ class HookSettings:
                            recovery_command,self.raw['source_root'],
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
-    def command(self,verb,*args):
+    def _source_guarded_command(self,command):
         guard=(
             'source_root=$1; settings=$2; rejected=$3; separator=$4; shift 4; '
             'case "$source_root" in *"$separator"*) valid=0;; *) valid=1;; esac; '
@@ -220,8 +220,11 @@ class HookSettings:
         prefix=shlex.join(['/bin/sh','-c',guard,'poise-source-check',
                            self.raw['source_root'],str(self.path),
                            str(self.raw['exit_codes']['rejected']),os.pathsep])
-        return prefix+' '+self._direct_command(
-            ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
+        return prefix+' '+command
+
+    def command(self,verb,*args):
+        return self._source_guarded_command(self._direct_command(
+            ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args))
 
     def launcher_bytes(self, binding_path):
         return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + ' "$@"\n').encode()
@@ -230,6 +233,7 @@ class HookSettings:
         """Exact superseded forms accepted only for an owned launcher upgrade."""
         previous=self._superseded_direct_command(
             ['-P','-B','-X','pycache_prefix='+os.devnull],verb,*args)
+        source_checked_previous=self._source_guarded_command(previous)
         return (
             self._superseded_direct_command(['-B'],verb,*args),
             self._superseded_guarded_command(['-B'],verb,*args),
@@ -240,7 +244,9 @@ class HookSettings:
             previous,
         ) + ((self._superseded_direct_command(['-B'],verb,*args)+' "$@"',
               self._direct_command(['-B'],verb,*args)+' "$@"',
-              previous+' "$@"') if verb=='hook-work' else ())
+              previous+' "$@"') if verb=='hook-work' else ()) + (
+                  source_checked_previous+' "$@"' if verb=='hook-work' else source_checked_previous,
+              )
 
     def prior_launcher_bytes(self, binding_path):
         args = ('hook-work', '--binding', str(binding_path))

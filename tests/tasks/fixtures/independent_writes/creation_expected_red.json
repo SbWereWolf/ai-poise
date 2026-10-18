@@ -1,0 +1,12 @@
+{
+  "errors": [],
+  "failures": [
+    "test_creation_independent_preparation.IndependentCreationPreparation.test_automatic_id_collision_recompiles_without_repeating_external_preparation",
+    "test_creation_independent_preparation.IndependentCreationPreparation.test_completed_creation_request_replays_after_preparation",
+    "test_creation_independent_preparation.IndependentCreationPreparation.test_direct_creation_allows_independent_commit",
+    "test_creation_independent_preparation.IndependentCreationPreparation.test_reviewed_sprint_creation_allows_independent_commit",
+    "test_creation_independent_preparation.IndependentCreationPreparation.test_reviewed_tasks_creation_allows_independent_commit",
+    "test_creation_independent_preparation.IndependentCreationPreparation.test_sprint_newborn_promotion_allows_independent_commit"
+  ],
+  "tests_run": 6
+}

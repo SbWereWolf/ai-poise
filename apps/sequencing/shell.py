@@ -14,6 +14,8 @@ import sqlite3
 import sys
 import time
 
+from apps.sequencing.migrations.v1 import migrate
+
 CONFIG_SCHEMA = "stride-sequencing-config/v1"
 WIRE_SCHEMA = "stride-sequencing/v1"
 
@@ -245,26 +247,14 @@ class Store:
         conn = sqlite3.connect(self.config["database"])
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL);
-            INSERT OR IGNORE INTO meta(key,value) VALUES('revision',0);
-            CREATE TABLE IF NOT EXISTS tasks (
-              task_id TEXT PRIMARY KEY,
-              requirements_snapshot_revision INTEGER NOT NULL,
-              state TEXT NOT NULL,
-              sprint_id TEXT,
-              claim_json TEXT,
-              workspace_json TEXT,
-              terminal_json TEXT
-            );
-            CREATE TABLE IF NOT EXISTS requests (
-              request_id TEXT PRIMARY KEY,
-              digest TEXT NOT NULL,
-              response_json TEXT NOT NULL
-            );
-            """
-        )
+        try:
+            migrate(conn)
+        except ValueError as exc:
+            conn.close()
+            raise SequencingError(str(exc)) from exc
+        except sqlite3.Error:
+            conn.close()
+            raise
         return conn
 
     @staticmethod
@@ -297,8 +287,8 @@ class Store:
                     changed = row is None
                     if row is None:
                         conn.execute(
-                            "INSERT INTO tasks(task_id,requirements_snapshot_revision,state,sprint_id,claim_json,workspace_json,terminal_json) VALUES(?,?, 'available',NULL,NULL,NULL,NULL)",
-                            (op["task_id"], op["requirements_snapshot_revision"]),
+                            "INSERT INTO tasks(task_id,requirements_snapshot_revision,state,terminal_json) VALUES(?,?,?,?)",
+                            (op["task_id"], op["requirements_snapshot_revision"], "available", None),
                         )
                     elif int(row["requirements_snapshot_revision"]) != op["requirements_snapshot_revision"]:
                         raise SequencingError("identity_conflict")
@@ -319,6 +309,42 @@ class Store:
             finally:
                 conn.close()
 
+    @staticmethod
+    def _active_claim(conn, task_id):
+        row = conn.execute(
+            'SELECT claim_id,task_id,claimant,status FROM task_claims WHERE task_id=? AND status=?',
+            (task_id, 'active'),
+        ).fetchone()
+        return None if row is None else dict(row)
+
+    @staticmethod
+    def _workspace(conn, task_id):
+        row = conn.execute(
+            'SELECT workspace_id,task_id,repository_id,base_commit,branch,status,read_only '
+            'FROM workspaces WHERE task_id=? AND status<>?', (task_id, 'released'),
+        ).fetchone()
+        if row is None:
+            return None
+        roots = [dict(root) for root in conn.execute(
+            'SELECT kind,position,path FROM workspace_roots WHERE workspace_id=? ORDER BY kind,position',
+            (row['workspace_id'],),
+        )]
+        binding = conn.execute('SELECT session_id FROM workspace_bindings WHERE workspace_id=?',
+                               (row['workspace_id'],)).fetchone()
+        return {**dict(row), 'read_only': bool(row['read_only']), 'roots': roots,
+                'path': next((root['path'] for root in roots if root['kind'] == 'code'), None),
+                'owner_session_id': None if binding is None else binding['session_id']}
+
+    def _task_value(self, conn, row):
+        membership = conn.execute('SELECT sprint_id FROM sprint_members WHERE task_id=?',
+                                  (row['task_id'],)).fetchone()
+        return {'task_id': row['task_id'],
+                'requirements_snapshot_revision': int(row['requirements_snapshot_revision']),
+                'state': row['state'], 'sprint_id': None if membership is None else membership['sprint_id'],
+                'claim': self._active_claim(conn, row['task_id']),
+                'workspace': self._workspace(conn, row['task_id']),
+                'terminal': None if row['terminal_json'] is None else json.loads(row['terminal_json'])}
+
     def query(self, packet):
         with self.locked():
             conn = self.connect()
@@ -327,20 +353,12 @@ class Store:
                 results = []
                 for query in packet["input"]["queries"]:
                     row = conn.execute(
-                        "SELECT task_id,requirements_snapshot_revision,state,sprint_id,claim_json,workspace_json,terminal_json FROM tasks WHERE task_id=?",
+                        "SELECT task_id,requirements_snapshot_revision,state,terminal_json FROM tasks WHERE task_id=?",
                         (query["task_id"],),
                     ).fetchone()
                     if row is None:
                         raise SequencingError("task_not_found")
-                    results.append({"id": query["id"], "value": {
-                        "task_id": row["task_id"],
-                        "requirements_snapshot_revision": int(row["requirements_snapshot_revision"]),
-                        "state": row["state"],
-                        "sprint_id": row["sprint_id"],
-                        "claim": json.loads(row["claim_json"]) if row["claim_json"] else None,
-                        "workspace": json.loads(row["workspace_json"]) if row["workspace_json"] else None,
-                        "terminal": json.loads(row["terminal_json"]) if row["terminal_json"] else None,
-                    }})
+                    results.append({"id": query["id"], "value": self._task_value(conn, row)})
                 return {"schema": WIRE_SCHEMA, "status": "read_only", "revision": revision, "results": results}
             finally:
                 conn.close()

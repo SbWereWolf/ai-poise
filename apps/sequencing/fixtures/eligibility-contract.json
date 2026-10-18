@@ -1,0 +1,4890 @@
+{
+  "schema": "sequencing-eligibility-tests/v1",
+  "columns": {
+    "task_claims": [
+      "claim_id",
+      "task_id",
+      "claimant",
+      "status"
+    ],
+    "workspaces": [
+      "workspace_id",
+      "task_id",
+      "repository_id",
+      "base_commit",
+      "branch",
+      "status",
+      "read_only"
+    ],
+    "workspace_roots": [
+      "workspace_id",
+      "kind",
+      "position",
+      "path"
+    ],
+    "workspace_bindings": [
+      "workspace_id",
+      "session_id"
+    ]
+  },
+  "cases": [
+    {
+      "name": "G1-mixed-forms-origins-selectors-lexical",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-2",
+                "kind": "register_task",
+                "task_id": "2",
+                "requirements_snapshot_revision": 7
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 42
+              },
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": []
+              },
+              {
+                "id": "group-SPR-B",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-B",
+                "members": [
+                  "000043"
+                ],
+                "dependencies": []
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-2",
+              "kind": "register_task",
+              "task_id": "2",
+              "requirements_snapshot_revision": 7,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 42,
+              "changed": true
+            },
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            },
+            {
+              "id": "group-SPR-B",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-B",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-independent",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "independent"
+                  }
+                },
+                {
+                  "id": "next-sprint-a",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                },
+                {
+                  "id": "next-sprint-b",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-B"
+                  }
+                },
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "eligible-10",
+                  "kind": "eligibility",
+                  "task_id": "10",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "task-snapshot",
+                  "kind": "task",
+                  "task_id": "000017"
+                },
+                {
+                  "id": "task-statement",
+                  "kind": "task",
+                  "task_id": "10"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "000030",
+                    "000043",
+                    "10",
+                    "2"
+                  ]
+                }
+              },
+              {
+                "id": "next-independent",
+                "value": {
+                  "task_ids": [
+                    "10",
+                    "2"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint-a",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "000030"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint-b",
+                "value": {
+                  "task_ids": [
+                    "000043"
+                  ]
+                }
+              },
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "eligible-10",
+                "value": {
+                  "task_id": "10",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "task-snapshot",
+                "value": {
+                  "task_id": "000017",
+                  "requirements_snapshot_revision": 1,
+                  "state": "available",
+                  "sprint_id": "SPR-A",
+                  "claim": null,
+                  "workspace": null,
+                  "terminal": null
+                }
+              },
+              {
+                "id": "task-statement",
+                "value": {
+                  "task_id": "10",
+                  "requirements_statement_revision": 42,
+                  "state": "available",
+                  "sprint_id": null,
+                  "claim": null,
+                  "workspace": null,
+                  "terminal": null
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G2-all-completed",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000043",
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000043",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000017",
+            "task_id": "000017",
+            "kind": "completed",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000017"
+            }
+          }
+        },
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-sprint",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000043",
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint",
+                "value": {
+                  "task_ids": [
+                    "000043"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G2-pending-and-success",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000043",
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000043",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-sprint",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "predecessor": "000017",
+                      "kind": "completion",
+                      "reason": "predecessor_not_completed"
+                    }
+                  ],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G2-cancelled-and-success",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000043",
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000043",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "cancelled",
+          "terminal": {
+            "terminal_id": "END-000017",
+            "task_id": "000017",
+            "kind": "cancelled",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000017"
+            }
+          }
+        },
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-sprint",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "predecessor": "000017",
+                      "kind": "completion",
+                      "reason": "predecessor_not_completed"
+                    }
+                  ],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G2-two-unmet",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000043",
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000043",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000030",
+          "state": "cancelled",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "cancelled",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-sprint",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "predecessor": "000017",
+                      "kind": "completion",
+                      "reason": "predecessor_not_completed"
+                    },
+                    {
+                      "predecessor": "000030",
+                      "kind": "result",
+                      "reason": "predecessor_not_completed"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G3-missing-saved-result",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_snapshot_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000043",
+                  "000030",
+                  "000017"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "000017",
+                    "successor": "000043",
+                    "kind": "completion"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_snapshot_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000017",
+            "task_id": "000017",
+            "kind": "completed",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000017"
+            }
+          }
+        },
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-sprint",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "predecessor": "000030",
+                      "kind": "result",
+                      "reason": "missing_predecessor_result"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "10"
+                  ]
+                }
+              },
+              {
+                "id": "next-sprint",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G4-two-result-origins-lexical",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-2",
+                "kind": "register_task",
+                "task_id": "2",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_snapshot_revision": 2
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "2",
+                  "000043",
+                  "10"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "2",
+                    "successor": "000043",
+                    "kind": "result"
+                  },
+                  {
+                    "predecessor": "10",
+                    "successor": "000043",
+                    "kind": "result"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-2",
+              "kind": "register_task",
+              "task_id": "2",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_snapshot_revision": 2,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "2",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-2",
+            "task_id": "2",
+            "kind": "completed",
+            "result_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-2"
+            }
+          }
+        },
+        {
+          "task_id": "10",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-10",
+            "task_id": "10",
+            "kind": "completed",
+            "result_commit": "dddddddddddddddddddddddddddddddddddddddd",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-10"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": [
+                    {
+                      "predecessor": "10",
+                      "result_commit": "dddddddddddddddddddddddddddddddddddddddd"
+                    },
+                    {
+                      "predecessor": "2",
+                      "result_commit": "cccccccccccccccccccccccccccccccccccccccc"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000043"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-None-workspace-None",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-None-workspace-SESSION-A",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000017",
+            "SESSION-A"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-None-workspace-SESSION-B",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000017",
+            "SESSION-B"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-SESSION-A-workspace-None",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-A",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-SESSION-A-workspace-SESSION-A",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000017",
+            "SESSION-A"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-A",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-SESSION-A-workspace-SESSION-B",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000017",
+            "SESSION-B"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-A",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-SESSION-B-workspace-None",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-B",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "claimed_by_other",
+                      "claim_id": "CLAIM-000017",
+                      "claimant": "SESSION-B"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-SESSION-B-workspace-SESSION-A",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000017",
+            "SESSION-A"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-B",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "claimed_by_other",
+                      "claim_id": "CLAIM-000017",
+                      "claimant": "SESSION-B"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G5-task-SESSION-B-workspace-SESSION-B",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000017",
+            "SESSION-B"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-B",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "claimed_by_other",
+                      "claim_id": "CLAIM-000017",
+                      "claimant": "SESSION-B"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G6-cross-task-combined-resources",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        },
+        {
+          "task_id": "000043",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000030",
+            "000030",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000030",
+            "ready",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000030",
+            "code",
+            0,
+            "$ROOT/code-000030"
+          ]
+        ],
+        "workspace_bindings": [
+          [
+            "WS-000030",
+            "SESSION-A"
+          ]
+        ],
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-A",
+            "active"
+          ],
+          [
+            "CLAIM-000043",
+            "000043",
+            "SESSION-C",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-caller-a",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-caller-b",
+                  "kind": "next",
+                  "claimant": "SESSION-B",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "eligible-000030",
+                  "kind": "eligibility",
+                  "task_id": "000030",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-B"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-caller-a",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "000030"
+                  ]
+                }
+              },
+              {
+                "id": "next-caller-b",
+                "value": {
+                  "task_ids": [
+                    "000030"
+                  ]
+                }
+              },
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "eligible-000030",
+                "value": {
+                  "task_id": "000030",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "claimed_by_other",
+                      "claim_id": "CLAIM-000017",
+                      "claimant": "SESSION-A"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G7-released-resource-history",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {
+        "workspaces": [
+          [
+            "WS-000017",
+            "000017",
+            "fixture-repo",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tasks/000017",
+            "released",
+            0
+          ]
+        ],
+        "workspace_roots": [
+          [
+            "WS-000017",
+            "code",
+            0,
+            "$ROOT/code-000017"
+          ]
+        ],
+        "task_claims": [
+          [
+            "OLD-000017",
+            "000017",
+            "SESSION-B",
+            "released"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G8-completed-independent",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000017",
+            "task_id": "000017",
+            "kind": "completed",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000017"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "task_terminal",
+                      "state": "completed"
+                    }
+                  ],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G8-cancelled-successor-pending-edge",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-000030",
+                "kind": "register_task",
+                "task_id": "000030",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-000043",
+                "kind": "register_task",
+                "task_id": "000043",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "reg-10",
+                "kind": "register_task",
+                "task_id": "10",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000017",
+                  "000030",
+                  "000043"
+                ],
+                "dependencies": [
+                  {
+                    "predecessor": "000017",
+                    "successor": "000043",
+                    "kind": "completion"
+                  },
+                  {
+                    "predecessor": "000030",
+                    "successor": "000043",
+                    "kind": "result"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000030",
+              "kind": "register_task",
+              "task_id": "000030",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-000043",
+              "kind": "register_task",
+              "task_id": "000043",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "reg-10",
+              "kind": "register_task",
+              "task_id": "10",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000030",
+          "state": "completed",
+          "terminal": {
+            "terminal_id": "END-000030",
+            "task_id": "000030",
+            "kind": "completed",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000030"
+            }
+          }
+        },
+        {
+          "task_id": "000043",
+          "state": "cancelled",
+          "terminal": {
+            "terminal_id": "END-000043",
+            "task_id": "000043",
+            "kind": "cancelled",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "execution",
+              "id": "OUT-000043"
+            }
+          }
+        }
+      ],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000043",
+                  "kind": "eligibility",
+                  "task_id": "000043",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000043",
+                "value": {
+                  "task_id": "000043",
+                  "eligible": false,
+                  "blockers": [
+                    {
+                      "reason": "task_terminal",
+                      "state": "cancelled"
+                    },
+                    {
+                      "predecessor": "000017",
+                      "kind": "completion",
+                      "reason": "predecessor_not_completed"
+                    }
+                  ],
+                  "result_provenance": [
+                    {
+                      "predecessor": "000030",
+                      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017",
+                    "10"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G9-empty-prepared-store",
+      "setup": null,
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-independent",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "independent"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 0,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": []
+                }
+              },
+              {
+                "id": "next-independent",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G9-existing-empty-candidate-scope",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              },
+              {
+                "id": "group-SPR-A",
+                "kind": "register_sprint",
+                "sprint_id": "SPR-A",
+                "members": [
+                  "000017"
+                ],
+                "dependencies": []
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            },
+            {
+              "id": "group-SPR-A",
+              "kind": "register_sprint",
+              "changed": true,
+              "sprint_id": "SPR-A",
+              "sprint_revision": 1
+            }
+          ]
+        }
+      },
+      "states": [
+        {
+          "task_id": "000017",
+          "state": "claimed",
+          "terminal": null
+        }
+      ],
+      "rows": {
+        "task_claims": [
+          [
+            "CLAIM-000017",
+            "000017",
+            "SESSION-B",
+            "active"
+          ]
+        ]
+      },
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "next-independent",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "independent"
+                  }
+                },
+                {
+                  "id": "next-sprint",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": []
+                }
+              },
+              {
+                "id": "next-independent",
+                "value": {
+                  "task_ids": []
+                }
+              },
+              {
+                "id": "next-sprint",
+                "value": {
+                  "task_ids": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G10-missing-task",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                },
+                {
+                  "id": "eligible-999999",
+                  "kind": "eligibility",
+                  "task_id": "999999",
+                  "claimant": "SESSION-A"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "task_not_found"
+          },
+          "exit": 2,
+          "reason_only_shape": false
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G10-missing-sprint",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-missing",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint",
+                    "sprint_id": "SPR-MISSING"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected",
+            "reason": "sprint_not_found"
+          },
+          "exit": 2,
+          "reason_only_shape": false
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                },
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              },
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-eligibility-caller-missing",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-eligibility-caller-null",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": null
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-eligibility-caller-empty",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": ""
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-eligibility-caller-integer",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": 7
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "eligible-000017",
+                  "kind": "eligibility",
+                  "task_id": "000017",
+                  "claimant": "SESSION-A"
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "eligible-000017",
+                "value": {
+                  "task_id": "000017",
+                  "eligible": true,
+                  "blockers": [],
+                  "result_provenance": []
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-next-caller-missing",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-next-caller-null",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": null,
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-next-caller-empty",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G11-next-caller-integer",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": 7,
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G12-scope-unknown",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "unknown"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G12-scope-extra",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all",
+                    "sprint_id": "SPR-A"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G12-scope-missing-sprint",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "sprint"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    },
+    {
+      "name": "G12-scope-null",
+      "setup": {
+        "packet": {
+          "schema": "stride-sequencing/v1",
+          "operation": "apply",
+          "input": {
+            "request_id": "fixture-register",
+            "expected_revision": 0,
+            "operations": [
+              {
+                "id": "reg-000017",
+                "kind": "register_task",
+                "task_id": "000017",
+                "requirements_statement_revision": 1
+              }
+            ]
+          }
+        },
+        "expected": {
+          "schema": "stride-sequencing/v1",
+          "status": "applied",
+          "revision": 1,
+          "replayed": false,
+          "results": [
+            {
+              "id": "reg-000017",
+              "kind": "register_task",
+              "task_id": "000017",
+              "requirements_statement_revision": 1,
+              "changed": true
+            }
+          ]
+        }
+      },
+      "states": [],
+      "rows": {},
+      "reads": [
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": null
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "rejected"
+          },
+          "exit": 2,
+          "reason_only_shape": true
+        },
+        {
+          "packet": {
+            "schema": "stride-sequencing/v1",
+            "operation": "query",
+            "input": {
+              "queries": [
+                {
+                  "id": "next-all",
+                  "kind": "next",
+                  "claimant": "SESSION-A",
+                  "scope": {
+                    "kind": "all"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "schema": "stride-sequencing/v1",
+            "status": "read_only",
+            "revision": 1,
+            "results": [
+              {
+                "id": "next-all",
+                "value": {
+                  "task_ids": [
+                    "000017"
+                  ]
+                }
+              }
+            ]
+          },
+          "exit": 0
+        }
+      ]
+    }
+  ],
+  "empty_prepare": {
+    "packet": {
+      "schema": "stride-sequencing/v1",
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "prepare",
+            "kind": "task",
+            "task_id": "999999"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "schema": "stride-sequencing/v1",
+      "status": "rejected",
+      "reason": "task_not_found"
+    },
+    "exit": 2
+  }
+}

@@ -481,8 +481,8 @@ acceptance/publication/integration.
 Use public `advance` with a stable `request_id` and exact Task ID. Supply an exact
 `target_stage` to stop on entry, or omit it for maximum progression. For ordinary new work, replay
 that exact request after completing and verifying each current-role
-stage, after a lawful correction or restart, and after the receiving session bootstraps a public
-handoff. Treat
+stage, after a lawful correction or restart, and after the receiving session bootstraps the
+released Task in its existing working area. Treat
 `progression_work_required`, `role_handoff_required` and `user_acceptance_required` as pauses, not
 success. At a role
 boundary, include the active progression identity in the direct handoff message. Never change its

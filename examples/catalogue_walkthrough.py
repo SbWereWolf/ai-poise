@@ -19,6 +19,7 @@ from poise.infrastructure.clock import SystemClock
 from poise.application.work import WorkTools
 from poise.application.catalogue import CatalogueCommands
 from poise.infrastructure.catalogue import FileCatalogue
+from poise.infrastructure.goal_config import read_document
 from poise.composition import goal_config_tools
 from poise.common import descendant, load_config
 from poise.modules.foundation.errors import PoiseError
@@ -72,8 +73,8 @@ def install(home):
     directory=home.resolve()/'config/catalogue'
     path=directory/'settings.json'
     editor_path=directory/'editor.json'
-    settings=json.loads((source/'settings.example.json').read_text())
-    editor=json.loads((source/'editor.example.json').read_text())
+    settings=read_document(source/'settings.example.json')
+    editor=read_document(source/'editor.example.json')
     if descendant(directory,settings['editor']) != editor_path:
         raise PoiseError('The disposable catalogue requires editor.json')
     editor['root']=str(home.resolve())

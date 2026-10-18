@@ -396,3 +396,62 @@ def test_cli_migration_refusal_is_described_and_preserves_wip(tmp_path, source):
     with closing(connect(path)) as db:
         assert snapshot(db, columns) == before
     assert wip_state(tmp_path, repository, worktree) == wip_before
+
+
+@pytest.mark.parametrize('subject', [
+    'task_provenance',
+    'sprint_revision',
+    'sprint_history_revision',
+    'root_position',
+])
+@pytest.mark.parametrize('case', ['fraction', 'text', 'first_integer', 'next_integer'])
+def test_integer_storage_contract(tmp_path, subject, case):
+    value = {'fraction': 1.5, 'text': 'not-an-integer',
+             'first_integer': 1, 'next_integer': 2}[case]
+    if subject == 'root_position' and case in ('first_integer', 'next_integer'):
+        value -= 1
+    with closing(connect(tmp_path / 'typed.sqlite')) as db:
+        populated(db, tmp_path)
+        before = snapshot(db, DATA['columns'])
+        db.execute('SAVEPOINT typed_probe')
+        try:
+            if subject == 'task_provenance':
+                sql = ('INSERT INTO tasks(task_id,requirements_snapshot_revision,state) '
+                       'VALUES(?,?,?)')
+                parameters = ('0051', value, 'available')
+                selection = ('SELECT requirements_snapshot_revision,'
+                             'typeof(requirements_snapshot_revision) '
+                             'FROM tasks WHERE task_id=?')
+                key = ('0051',)
+            elif subject == 'sprint_revision':
+                sql = 'INSERT INTO sprints(sprint_id,revision,state) VALUES(?,?,?)'
+                parameters = ('SPR-TYPED', value, 'draft')
+                selection = 'SELECT revision,typeof(revision) FROM sprints WHERE sprint_id=?'
+                key = ('SPR-TYPED',)
+            elif subject == 'sprint_history_revision':
+                db.execute('INSERT INTO sprints(sprint_id,revision,state) VALUES(?,?,?)',
+                           ('SPR-TYPED', 1, 'draft'))
+                sql = ('INSERT INTO sprint_revisions(sprint_id,revision,state,data) '
+                       'VALUES(?,?,?,?)')
+                parameters = ('SPR-TYPED', value, 'draft', '{}')
+                selection = ('SELECT revision,typeof(revision) FROM sprint_revisions '
+                             'WHERE sprint_id=?')
+                key = ('SPR-TYPED',)
+            else:
+                sql = ('INSERT INTO workspace_roots(workspace_id,kind,position,path) '
+                       'VALUES(?,?,?,?)')
+                parameters = ('WS46', 'code', value, str(tmp_path / 'typed-code'))
+                selection = ('SELECT position,typeof(position) FROM workspace_roots '
+                             'WHERE workspace_id=? AND kind=?')
+                key = ('WS46', 'code')
+            if case in ('fraction', 'text'):
+                with pytest.raises(sqlite3.IntegrityError):
+                    db.execute(sql, parameters)
+            else:
+                db.execute(sql, parameters)
+                assert db.execute(selection, key).fetchall() == [(value, 'integer')]
+        finally:
+            db.execute('ROLLBACK TO typed_probe')
+            db.execute('RELEASE typed_probe')
+            assert not db.in_transaction
+            assert snapshot(db, DATA['columns']) == before

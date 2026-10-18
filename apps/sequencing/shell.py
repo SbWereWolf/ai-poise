@@ -14,7 +14,12 @@ import sqlite3
 import sys
 import time
 
-from apps.sequencing.migrations.v1 import migrate
+from apps.sequencing.domain.registration import (
+    Dependency, RegistrationError, RequirementsReference, SprintDefinition,
+)
+from apps.sequencing.infrastructure.registration_store import RegistrationRepository
+from apps.sequencing.migrations.v1 import migrate as migrate_v1
+from apps.sequencing.migrations.v2 import migrate as migrate_v2
 
 CONFIG_SCHEMA = "stride-sequencing-config/v1"
 WIRE_SCHEMA = "stride-sequencing/v1"
@@ -173,6 +178,13 @@ def _canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def _identifier(value, pattern, kind):
+    _nonempty(value, 'Sequencing ' + kind + ' identifier')
+    if pattern.fullmatch(value) is None:
+        raise SequencingError('Sequencing ' + kind + ' identifier violates configured policy')
+    return value
+
+
 def _packet(value, config):
     _exact(value, {"schema", "operation", "input"}, "Sequencing packet")
     if value["schema"] != WIRE_SCHEMA:
@@ -190,32 +202,52 @@ def _packet(value, config):
         if not isinstance(ops, list) or not ops or len(ops) > config["max_items"]:
             raise SequencingError("Sequencing apply operations: required nonempty bounded list")
         for op in ops:
-            _exact(op, {"id", "kind", "task_id", "requirements_snapshot_revision"}, "Sequencing register_task")
-            _nonempty(op["id"], "Sequencing operation id")
-            if op["kind"] != "register_task":
-                raise SequencingError(f"Unsupported Sequencing operation kind: {op['kind']}")
-            task_id = _nonempty(op["task_id"], "Sequencing register_task task_id")
-            if config["task_pattern"].fullmatch(task_id) is None:
-                raise SequencingError("Sequencing register_task task_id violates configured identifier policy")
-            if type(op["requirements_snapshot_revision"]) is not int or op["requirements_snapshot_revision"] < 1:
-                raise SequencingError("Sequencing register_task requirements_snapshot_revision: required positive integer")
+            if not isinstance(op, dict):
+                raise SequencingError('Sequencing operation requires an object')
+            kind = op.get('kind')
+            if kind == 'register_task':
+                reference_fields = {'requirements_snapshot_revision', 'requirements_statement_revision'} & op.keys()
+                if len(reference_fields) != 1:
+                    raise SequencingError('Sequencing register_task requires exactly one Requirements reference')
+                field = next(iter(reference_fields))
+                _exact(op, {'id', 'kind', 'task_id', field}, 'Sequencing register_task')
+                _identifier(op['task_id'], config['task_pattern'], 'Task')
+                if type(op[field]) is not int or op[field] < 1:
+                    raise SequencingError('Sequencing Requirements reference requires a positive integer')
+            elif kind == 'register_sprint':
+                _exact(op, {'id', 'kind', 'sprint_id', 'members', 'dependencies'}, 'Sequencing register_sprint')
+                _identifier(op['sprint_id'], config['sprint_pattern'], 'Sprint')
+                if not isinstance(op['members'], list) or not op['members']:
+                    raise SequencingError('Sequencing Sprint members require a nonempty list')
+                for identifier in op['members']:
+                    _identifier(identifier, config['task_pattern'], 'Task')
+                if not isinstance(op['dependencies'], list):
+                    raise SequencingError('Sequencing Sprint dependencies require a list')
+                for edge in op['dependencies']:
+                    _exact(edge, {'predecessor', 'successor', 'kind'}, 'Sequencing dependency')
+                    _identifier(edge['predecessor'], config['task_pattern'], 'Task')
+                    _identifier(edge['successor'], config['task_pattern'], 'Task')
+                    if edge['kind'] not in ('completion', 'result'):
+                        raise SequencingError('Sequencing dependency kind must be completion or result')
+            else:
+                raise SequencingError(f'Unsupported Sequencing operation kind: {kind}')
+            _nonempty(op['id'], 'Sequencing operation id')
     else:
-        _exact(value["input"], {"queries"}, "Sequencing query input")
-        queries = value["input"]["queries"]
-        if not isinstance(queries, list) or not queries or len(queries) > config["max_queries"]:
-            raise SequencingError("Sequencing query queries: required nonempty bounded list")
+        _exact(value['input'], {'queries'}, 'Sequencing query input')
+        queries = value['input']['queries']
+        if not isinstance(queries, list) or not queries or len(queries) > config['max_queries']:
+            raise SequencingError('Sequencing query queries: required nonempty bounded list')
         seen = set()
         for query in queries:
-            _exact(query, {"id", "kind", "task_id"}, "Sequencing task query")
-            qid = _nonempty(query["id"], "Sequencing query id")
+            if not isinstance(query, dict) or query.get('kind') not in ('task', 'sprint'):
+                raise SequencingError('Unsupported Sequencing query kind')
+            field = query['kind'] + '_id'
+            _exact(query, {'id', 'kind', field}, 'Sequencing query')
+            qid = _nonempty(query['id'], 'Sequencing query id')
             if qid in seen:
-                raise SequencingError("Sequencing query ids must be unique")
+                raise SequencingError('Sequencing query ids must be unique')
             seen.add(qid)
-            if query["kind"] != "task":
-                raise SequencingError(f"Unsupported Sequencing query kind: {query['kind']}")
-            task_id = _nonempty(query["task_id"], "Sequencing query task_id")
-            if config["task_pattern"].fullmatch(task_id) is None:
-                raise SequencingError("Sequencing query task_id violates configured identifier policy")
+            _identifier(query[field], config[query['kind'] + '_pattern'], query['kind'])
     return value
 
 
@@ -248,7 +280,10 @@ class Store:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         try:
-            migrate(conn)
+            version = conn.execute('PRAGMA user_version').fetchone()[0]
+            if version == 0:
+                migrate_v1(conn)
+            migrate_v2(conn)
         except ValueError as exc:
             conn.close()
             raise SequencingError(str(exc)) from exc
@@ -280,23 +315,21 @@ class Store:
                 if packet["input"]["expected_revision"] != current:
                     raise SequencingError("revision_conflict")
                 results = []
-                for op in packet["input"]["operations"]:
-                    row = conn.execute(
-                        "SELECT requirements_snapshot_revision FROM tasks WHERE task_id=?", (op["task_id"],)
-                    ).fetchone()
-                    changed = row is None
-                    if row is None:
-                        conn.execute(
-                            "INSERT INTO tasks(task_id,requirements_snapshot_revision,state,terminal_json) VALUES(?,?,?,?)",
-                            (op["task_id"], op["requirements_snapshot_revision"], "available", None),
-                        )
-                    elif int(row["requirements_snapshot_revision"]) != op["requirements_snapshot_revision"]:
-                        raise SequencingError("identity_conflict")
-                    results.append({
-                        "id": op["id"], "kind": "register_task", "changed": changed,
-                        "task_id": op["task_id"],
-                        "requirements_snapshot_revision": op["requirements_snapshot_revision"],
-                    })
+                repository = RegistrationRepository(conn)
+                for op in packet['input']['operations']:
+                    if op['kind'] == 'register_task':
+                        kind = 'statement' if 'requirements_statement_revision' in op else 'snapshot'
+                        field = 'requirements_' + kind + '_revision'
+                        reference = RequirementsReference(kind, op[field])
+                        changed = repository.register_task(op['task_id'], reference)
+                        results.append({'id': op['id'], 'kind': 'register_task', 'changed': changed,
+                                        'task_id': op['task_id'], field: reference.revision})
+                    else:
+                        definition = SprintDefinition.create(op['sprint_id'], op['members'],
+                            [Dependency(**edge) for edge in op['dependencies']])
+                        changed, sprint_revision = repository.register_sprint(definition)
+                        results.append({'id': op['id'], 'kind': 'register_sprint', 'changed': changed,
+                                        'sprint_id': op['sprint_id'], 'sprint_revision': sprint_revision})
                 revision = current + 1
                 response = {"schema": WIRE_SCHEMA, "status": "applied", "revision": revision, "replayed": False, "results": results}
                 conn.execute("UPDATE meta SET value=? WHERE key='revision'", (revision,))
@@ -338,8 +371,9 @@ class Store:
     def _task_value(self, conn, row):
         membership = conn.execute('SELECT sprint_id FROM sprint_members WHERE task_id=?',
                                   (row['task_id'],)).fetchone()
-        return {'task_id': row['task_id'],
-                'requirements_snapshot_revision': int(row['requirements_snapshot_revision']),
+        reference_field = ('requirements_snapshot_revision' if row['requirements_snapshot_revision'] is not None
+                           else 'requirements_statement_revision')
+        return {'task_id': row['task_id'], reference_field: int(row[reference_field]),
                 'state': row['state'], 'sprint_id': None if membership is None else membership['sprint_id'],
                 'claim': self._active_claim(conn, row['task_id']),
                 'workspace': self._workspace(conn, row['task_id']),
@@ -351,9 +385,14 @@ class Store:
             try:
                 revision = self.revision(conn)
                 results = []
+                repository = RegistrationRepository(conn)
                 for query in packet["input"]["queries"]:
+                    if query['kind'] == 'sprint':
+                        results.append({'id': query['id'], 'value': repository.sprint_value(query['sprint_id'])})
+                        continue
                     row = conn.execute(
-                        "SELECT task_id,requirements_snapshot_revision,state,terminal_json FROM tasks WHERE task_id=?",
+                        "SELECT task_id,requirements_snapshot_revision,requirements_statement_revision,state,terminal_json "
+                        "FROM tasks WHERE task_id=?",
                         (query["task_id"],),
                     ).fetchone()
                     if row is None:
@@ -378,7 +417,7 @@ def execute(config_path, stream, output):
         store = Store(config)
         result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
         code = 0
-    except (SequencingError, OSError, sqlite3.Error) as exc:
+    except (SequencingError, RegistrationError, OSError, sqlite3.Error) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2
     output.write(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")

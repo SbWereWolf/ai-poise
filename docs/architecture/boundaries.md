@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-10-04**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-10-18**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -624,9 +624,29 @@ entry gate сохраняет цель для correction/restart, но не ме
 роли `advance` возвращает `user_acceptance_required`, а этап открывается только отдельным
 публичным решением пользователя.
 
-Граница `executor`/`reviewer` выводится только из handler сохранённого route: `inspect` принадлежит
-reviewer, остальные семейства — executor. Переход через неё разрешён лишь после public handoff,
-release и bootstrap другой сессии; операция не отправляет сообщение и не исполняет работу этапа.
+Граница ролей берётся из явных `role` соседних узлов сохранённого route. Чистый
+`crossed_role_boundary` подтверждает передачу текущего проверенного результата другому участнику
+по его истории владения: обычные release/acquire и сохранённые handoff/resume имеют свои реальные
+события. Уже доказанная передача сохраняется при повторном получении тем же получателем;
+цикл только исходного автора не создаёт её. Событие освобождения хранит `actor=None`, поэтому
+отправитель определяется из предыдущего доказанного владельца. Конечный владелец сверяется с Task.
+
+Read port `TaskRepository.verified_ownership_history` связывает текущие submission ID/digest,
+этап, итерацию и версию с точным `verified` событием и полной непрерывной последовательностью
+до текущей версии. SQLite adapter читает эти факты; чистая policy решает, подтверждена ли передача.
+`TaskCommands` запрашивает историю на действительной границе ролей и применяет policy в той же
+UoW, что прежние identity/content/report/tree/unknown/duplicate gates, `Task.progress_stage` и
+`execution.patch`. Уже разрешённый `user_accept` того же результата сохраняет существующую
+`accepted` цепочку, но classifier не принимает результат и не создаёт полномочий публикации.
+
+Общий приватный `_event_range` обслуживает также прежний `ownership_event_suffix`, сохраняя
+его отдельный ownership-only tuple contract для recovery. `review_identity` по-прежнему определяет
+последнего non-inspect производителя для независимости проверки, а не автора текущего review.
+`SqliteHandoffRepository.latest` выбирает последнюю запись Task до проверки её состояния;
+`latest_recovery_candidate` сохраняет собственный договор. Исторические строки остаются неизменными.
+Новые таблицы, миграция или сохраняемая привилегия не вводятся. Runtime и transport не получают
+второго lifecycle; операция не отправляет сообщения и не исполняет работу этапа. Публичная
+процедура принадлежит [контракту продолжения](../workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 
 ## DDD-10 — интеграция принятого результата
 
@@ -912,3 +932,28 @@ Placement декларации не заменяют immutable artifact publicat
 управление Task. Их владельцы и полномочия сохранены. Полный операторский контракт:
 [пакеты](../configuration/result-placement.md#пакет-prepare-и-check),
 [эффекты и повтор](../configuration/result-placement.md#отказы-и-повтор).
+
+## Общее чтение файлов и ресурсы эпизода
+
+`modules.document_intake` владеет выборкой, идентичностью выбранного текста, read decisions,
+строгими request/policy contracts и ports; домен не обращается к SQLite/filesystem/hooks.
+`application.ContentReader` согласует подготовку текста, short gate, generation/budget snapshot,
+поэлементную регистрацию и сохранение полного ответа. `IntakeSessions` связывает session операции.
+
+Инфраструктурные `ProjectContentSource`, `PreparedRegistry`, `PreparedTemplate`, `EpisodeResources`
+и rendering реализуют ports. Пустая schema2 — versioned ресурс пакета; чтение live registry не
+мигрирует схему. Настоящий native episode/End остаётся у существующего HookService. Общие
+SessionEstablisher/CallerIdentity и SavedResponse переиспользуются с другими потребителями;
+новый Task/Sprint/evidence lifecycle не создаётся.
+
+`CoordinationStore` отвергает существующие non-object записи до обращения к полям.
+`EpisodeResources` проверяет owner/path/episode и перечитывает его под gate перед восстановлением:
+старый A не перезаписывает допущенный B. Exact End перепроверяется перед удалением своего
+temporary tree, внешние control/diagnostic/coordination/template сохраняются. Source code,
+настройки live hooks и пути работающей установки не загружаются из читаемого checkout.
+
+[Публичный контракт](../configuration/project-file-reading.md#назначение-и-явные-входы) и
+[жизненный цикл](../workflows/file-intake-lifecycle.md#допуск-и-владение) отделены от
+[специализированного acknowledged reader](../workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).
+Общий перехват обычных инструментов и автоматический compaction reset не являются поведением
+этой композиции.

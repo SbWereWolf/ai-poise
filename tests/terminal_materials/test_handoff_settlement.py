@@ -27,6 +27,22 @@ def handoff_rows(tools):
         ).fetchall()]
 
 
+def assert_no_current_handoff(tools):
+    candidate = tools.runtime.handoff_tools.commands.latest("T1")
+    if candidate is not None:
+        assert candidate["task_id"] == "T1"
+        assert candidate["request_id"] == "old-release"
+        assert candidate["state"] == "released"
+        assert [(row[2], row[4]) for row in handoff_rows(tools)] == [
+            ("old-release", "released"), ("current-release", "resumed"),
+        ]
+        pytest.fail(
+            "RR-TARGET-CURRENT-HANDOFF-SELECTION: resumed current transfer revives an older release",
+            pytrace=False,
+        )
+    assert candidate is None
+
+
 def released_chain(project):
     project["cfg"]["runtime_services"]["handoff"] = json.loads(
         (Path(__file__).parents[1] / "sprints" / "fixtures" / "file-handoff.json").read_text())
@@ -53,7 +69,7 @@ def test_resumed_handoff_allows_public_terminal_delivery(project, foreign_pendin
     assert [(row[2], row[4]) for row in receipts] == [
         ("old-release", "released"), ("current-release", "resumed"),
     ]
-    assert receiver.runtime.handoff_tools.commands.latest("T1")["request_id"] == "old-release"
+    assert_no_current_handoff(receiver)
 
     if foreign_pending:
         foreign, foreign_root, foreign_source, _ = arrange(
@@ -72,7 +88,7 @@ def test_resumed_handoff_allows_public_terminal_delivery(project, foreign_pendin
     assert destination.read_bytes() == b"customer result\n"
     assert handoff_rows(receiver) == receipts
     assert receiver.runtime.task_queries.history("T1")[:len(history)] == history
-    assert receiver.runtime.handoff_tools.commands.latest("T1")["request_id"] == "old-release"
+    assert_no_current_handoff(receiver)
     if foreign_pending:
         assert foreign.runtime.task_queries.record("FOREIGN-CATALOG-EXPORT") == foreign_record
         assert foreign.runtime.task_queries.history("FOREIGN-CATALOG-EXPORT") == foreign_history

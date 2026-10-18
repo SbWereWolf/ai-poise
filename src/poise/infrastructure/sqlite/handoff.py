@@ -8,8 +8,8 @@ class SqliteHandoffRepository:
         row=self.db.execute('SELECT data FROM handoffs WHERE actor=? AND request_id=?',(actor,request_id)).fetchone()
         return None if row is None else json.loads(row[0])
     def latest(self,task_id):
-        row=self.db.execute("SELECT data FROM handoffs WHERE task_id=? AND state='released' ORDER BY seq DESC LIMIT 1",(task_id,)).fetchone()
-        return None if row is None else json.loads(row[0])
+        candidate = self.latest_entry(task_id)
+        return candidate if candidate is not None and candidate['state'] == 'released' else None
     def latest_entry(self,task_id):
         row=self.db.execute(
             'SELECT data FROM handoffs WHERE task_id=? ORDER BY seq DESC LIMIT 1',

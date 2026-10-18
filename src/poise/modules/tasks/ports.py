@@ -71,6 +71,10 @@ class TaskRepository(Protocol):
     def ownership_event_suffix(
         self, task_id: str, after_version: int, through_version: int
     ) -> tuple[str, ...]: ...
+    def verified_ownership_history(
+        self, task_id: str, stage_id: str, iteration: int,
+        submission_digest: str, through_version: int,
+    ) -> dict | None: ...
     def versioned_event_suffix(
         self, task_id: str, after_version: int, through_version: int
     ) -> tuple[tuple[int, dict], ...] | None: ...

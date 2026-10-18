@@ -134,16 +134,15 @@ def establish_direct_poise(config_path, environ, clock, *, read_only):
     return establish_poise(config_path, caller, [], clock, read_only=read_only)
 
 
-def establish_project_check_session(bound, environ):
+def establish_project_session(bound, caller):
     """Register identity through its owner without composing a Task runtime.
 
     Runtime bindings share physical SQLite storage with Task data. This path
     initializes that owner when necessary and writes runtime identity only;
-    it never acquires Task/worktree ownership or consumes check Clock data.
+    it never acquires Task/worktree ownership or observes a Clock.
     """
     from ..application.session_establishment import SessionEstablisher
     from .sqlite.runtime_adapter import RuntimeRegistry
-    caller = direct_caller(bound.config['project'], environ)
     database = _database(bound.root, bound.config, bound.config_path, False)
     return SessionEstablisher(RuntimeRegistry(database)).establish(caller, [])
 

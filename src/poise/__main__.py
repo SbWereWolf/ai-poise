@@ -31,6 +31,10 @@ def parser():
     for name in ('config', 'checkout', 'policy'):
         checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     checks.add_argument('--view',choices=('brief','expanded','full'),required=True,action=SingleArgument)
+    reader=sub.add_parser('content-read',help='Read selected project-file parts in the native context')
+    for name in ('config','checkout','policy'):
+        reader.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    reader.add_argument('--format',choices=('json','text'),required=True,action=SingleArgument)
     local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
     local_assets.add_argument('--manifest',type=Path,required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
@@ -101,6 +105,10 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='content-read':
+        from .interfaces.content_reader import execute_cli
+        from .infrastructure.clock import SystemClock
+        return execute_cli(args.config,args.checkout,args.policy,args.format,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
     if args.command=='checks':
         from .interfaces.project_checks import execute_cli
         from .infrastructure.clock import SystemClock

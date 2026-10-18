@@ -1,6 +1,7 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
 import sqlite3
+import errno
 from pathlib import Path
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
@@ -79,6 +80,42 @@ class HookRegistry:
             if row is None:raise PoiseError('Unknown hook session binding')
             return json.loads(row[0]),None if row[1] is None else json.loads(row[1])
 
+    def release_ended(self, record, end_event_id, prepare_files):
+        """Release one exact ended episode and its owner-validated projections."""
+        session = record['session_id']
+        with self.transaction() as db:
+            row = db.execute('SELECT data FROM bindings WHERE id=?', (session,)).fetchone()
+            last = db.execute('SELECT id,event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
+                              (session,)).fetchone()
+            if last is None or tuple(last) != (end_event_id, 'SessionEnd'):
+                return {'status': 'skipped', 'session_id': session}
+            if row is None:
+                return {'status': 'already_released', 'session_id': session}
+            if json.loads(row[0]) != record:
+                return {'status': 'skipped', 'session_id': session}
+            files = prepare_files()
+            for path, before in files.items():
+                current = path.read_bytes() if path.exists() else None
+                if current != before:
+                    raise PoiseError('Session projection changed before release: ' + str(path) +
+                                     '; Recovery: preserve edited files, refresh the exact cleanup preview '
+                                     'and retry only unchanged owned projections')
+            try:
+                for path in files:
+                    path.unlink(missing_ok=True)
+                directory = Path(record['binding_path']).parent
+                try:
+                    directory.rmdir()
+                except OSError as exc:
+                    if exc.errno not in (errno.ENOTEMPTY, errno.EEXIST, errno.ENOENT):
+                        raise
+            except OSError as exc:
+                raise PoiseError('Cannot release generated session files: ' + str(exc) +
+                                 '; Recovery: correct access to the session directory and retry cleanup') from exc
+            db.execute('DELETE FROM bindings WHERE id=?', (session,))
+            return {'status': 'released', 'session_id': session,
+                    'removed_files': [str(path) for path, before in files.items() if before is not None]}
+
     def session_workspace(self, session):
         with self.read_transaction() as db:
             row = db.execute('SELECT data FROM hook_events WHERE binding=? AND event=? ORDER BY id DESC LIMIT 1',
@@ -104,13 +141,13 @@ class HookRegistry:
     def binding_liveness(db, binding):
         from ...modules.ownership.domain import Liveness
         known=db.execute('SELECT 1 FROM bindings WHERE id=?',(binding,)).fetchone()
-        if known is None:return Liveness.UNCERTAIN
         row=db.execute(
             'SELECT event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
             (binding,),
         ).fetchone()
-        if row is None:return Liveness.UNCERTAIN
-        return Liveness.DEAD if row[0]=='SessionEnd' else Liveness.LIVE
+        if row is not None and row[0]=='SessionEnd':return Liveness.DEAD
+        if known is None or row is None:return Liveness.UNCERTAIN
+        return Liveness.LIVE
 
     def runner_cancellation_check(self, binding):
         """Capture one native session episode, not a PID or another launch registry.

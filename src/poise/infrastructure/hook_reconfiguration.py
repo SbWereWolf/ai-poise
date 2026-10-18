@@ -12,6 +12,7 @@ from pathlib import Path
 from ..common import PoiseError, digest, encoded, exact_keys, file_digest
 from ..modules.foundation.validation import nonempty
 from ..modules.hook_transport.domain import HookDefinition, merge_hook_document
+from ..modules.ownership.domain import Liveness
 from . import hook_transport as transport
 from .goal_config import read_document
 from .locking import exclusive_lock
@@ -35,7 +36,8 @@ def _observed_file(item):
 
 def _bindings(db, settings_path):
     return {key: raw for key, raw in db.execute('SELECT id,data FROM bindings')
-            if json.loads(raw)['settings'] == str(settings_path)}
+            if json.loads(raw)['settings'] == str(settings_path)
+            and transport.HookRegistry.binding_liveness(db, key) is Liveness.LIVE}
 
 
 def _binding_change(service, proposed, key, raw, definition_path, installation_id):

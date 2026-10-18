@@ -11,7 +11,7 @@ import shlex
 import string
 from dataclasses import replace
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
-from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document,binding_context
+from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document,binding_context,MissingHookBinding
 from ..modules.capabilities.domain import positive
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
@@ -609,6 +609,29 @@ class HookService:
 
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
+    def _release_files(self, record):
+        if record['settings'] != str(self.settings.path):
+            raise PoiseError('Select the matching hook settings before releasing this binding')
+        binding = Path(record['binding_path'])
+        launcher = Path(record['launcher'])
+        if binding.exists():
+            observed, _ = self._binding_record(binding)
+            if observed != record:
+                raise PoiseError('Binding changed before release; Recovery: reload the current binding and '
+                                 'latest SessionEnd, then retry only if that session is still ended')
+        allowed = [self.settings.launcher_bytes(binding)] + [
+            ('#!/bin/sh\nexec ' + command + '\n').encode()
+            for command in self.settings.prior_launcher_commands('hook-work', '--binding', str(binding))]
+        if launcher.exists() and launcher.read_bytes() not in allowed:
+            raise PoiseError('Foreign launcher content before release: ' + str(launcher) +
+                             '; Recovery: preserve the edited launcher and exclude its binding from cleanup '
+                             'until its ownership is resolved')
+        summary = self._readiness(record).store.path
+        return {path: path.read_bytes() if path.exists() else None for path in (binding, launcher, summary)}
+
+    def release_ended_binding(self, record, end_event_id):
+        return self.registry.release_ended(record, end_event_id, lambda: self._release_files(record))
+
     def event(self,definition_path,event):
         if isinstance(event, dict) and event.get('hook_event_name') == 'SessionStart':
             self.settings.require_summary()
@@ -632,6 +655,13 @@ class HookService:
         return result
 
     def _event_locked(self,definition_path,event):
+        selected = self.definition(definition_path)
+        observed = parse_native_event(event, selected)
+        if observed['event'] in ('SessionEnd', 'Stop'):
+            try:
+                self.registry.find(observed['session_id'], selected.data['agent_id'])
+            except MissingHookBinding:
+                return {}, selected, observed, None
         definition,native,binding=self._bind(definition_path,event)
         if native['event'] == 'SessionStart':
             event_id = self.registry.record_event(
@@ -669,6 +699,9 @@ class HookService:
             h.interactions.record(h.interactions.prepare([message]),h.session,active)
         if native['event'] != 'SessionStart':
             event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message)
+        if native['event'] == 'SessionEnd':
+            h._cleanup_runtime()
+            self.release_ended_binding(binding, event_id)
         recovery = None
         if native['event'] == 'SessionStart' and h.context_reader is not None:
             recovery = h.restore_context(reason=event['source'], event_id=f'hook-event:{event_id}',

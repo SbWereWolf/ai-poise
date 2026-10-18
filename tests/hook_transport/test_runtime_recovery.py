@@ -21,6 +21,92 @@ from poise.infrastructure.hook_transport import HookService
 from .helpers import definition, event, install, settings
 
 
+def test_reconfiguration_reads_only_active_binding_projections(project,tmp_path):
+    service=HookService(settings(project,tmp_path))
+    installed=install(service)
+    records={}
+    for session in ('active-session','ended-session','unknown-session'):
+        native=event(session=session);native['cwd']=str(project['app'])
+        if session=='unknown-session':
+            service._bind(installed['definition_path'],native)
+        else:
+            service.event(installed['definition_path'],native)
+        records[session]=service.latest_binding(session,'primary')
+    service.registry.record_event(records['ended-session']['session_id'],'SessionEnd','ended-turn',None)
+    for session in ('ended-session','unknown-session'):
+        Path(records[session]['binding_path']).unlink()
+        Path(records[session]['launcher']).unlink()
+    with service.registry.read_transaction() as db:
+        before=[tuple(row) for row in db.execute('SELECT * FROM bindings ORDER BY id')]
+        events_before=[tuple(row) for row in db.execute('SELECT * FROM hook_events ORDER BY id')]
+    raw={**service.settings.raw,'capability_summary':{
+        **service.settings.raw['capability_summary'],
+        'header_template':'Updated readiness={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}'}}
+    receipt=service.reconfigure({'request_id':'active-bindings-only',
+        'expected_settings_digest':digest(service.settings.raw),
+        'expected_revision':service.revision(),'target_revision':service.revision(),
+        'settings':raw,'definition':json.loads(Path(installed['definition_path']).read_text())})
+    assert receipt['status']=='installed'
+    assert receipt['binding_count']==1
+    current=HookService(service.settings.path)
+    with current.registry.read_transaction() as db:
+        after={row[0]:tuple(row) for row in db.execute('SELECT * FROM bindings ORDER BY id')}
+        assert [tuple(row) for row in db.execute('SELECT * FROM hook_events ORDER BY id')][:len(events_before)]==events_before
+    for row in before:
+        if row[0]!=records['active-session']['session_id']:
+            assert after[row[0]]==row
+    assert after[records['active-session']['session_id']]!=next(row for row in before if row[0]==records['active-session']['session_id'])
+    assert json.loads(service.settings.path.read_text())==raw
+    for session in ('ended-session','unknown-session'):
+        assert not Path(records[session]['launcher']).exists()
+        assert not Path(records[session]['binding_path']).exists()
+
+
+@pytest.mark.parametrize('changed',['none','resumed','record','missing'])
+def test_explicit_ended_binding_release_revalidates_selected_episode(project,tmp_path,changed):
+    service=HookService(settings(project,tmp_path));installed=install(service)
+    native=event(session='selected-ended-session');native['cwd']=str(project['app'])
+    service.event(installed['definition_path'],native)
+    binding=service.latest_binding('selected-ended-session','primary')
+    end=service.registry.record_event(binding['session_id'],'SessionEnd','ended-turn',None)
+    selected=dict(binding)
+    if changed=='resumed':
+        service.event(installed['definition_path'],native)
+    elif changed=='record':
+        selected['settings_digest']='different-selected-record'
+    elif changed=='missing':
+        Path(binding['binding_path']).unlink()
+        Path(binding['launcher']).unlink()
+    receipt=service.release_ended_binding(selected,end)
+    if changed in ('none','missing'):
+        assert receipt['status']=='released'
+        assert not Path(binding['launcher']).exists()
+        assert not Path(binding['binding_path']).exists()
+        assert not Path(binding['binding_path']).parent.exists()
+        assert service.registry.liveness(binding['session_id']).value=='dead'
+        assert service.release_ended_binding(selected,end)['status']=='already_released'
+    else:
+        assert receipt['status']=='skipped'
+        assert Path(binding['launcher']).is_file()
+        assert Path(binding['binding_path']).is_file()
+        assert service.registry.get(binding['session_id'])[0]==binding
+
+
+def test_explicit_release_rejects_foreign_launcher_without_losing_owned_state(project,tmp_path):
+    service=HookService(settings(project,tmp_path));installed=install(service)
+    native=event(session='foreign-edited-session');native['cwd']=str(project['app'])
+    service.event(installed['definition_path'],native)
+    binding=service.latest_binding('foreign-edited-session','primary')
+    end=service.registry.record_event(binding['session_id'],'SessionEnd','ended-turn',None)
+    launcher=Path(binding['launcher']);launcher.write_text('# user-owned replacement\n')
+    paths=[Path(binding['binding_path']),launcher,launcher.parent/'capabilities.json']
+    before={str(path):path.read_bytes() for path in paths}
+    with pytest.raises(PoiseError,match='[Ff]oreign launcher'):
+        service.release_ended_binding(binding,end)
+    assert {str(path):path.read_bytes() for path in paths}==before
+    assert service.registry.get(binding['session_id'])[0]==binding
+
+
 def _service_with_selected_interpreter(project, tmp_path):
     selected = tmp_path / "selected runtime" / "bin" / "python"
     selected.parent.mkdir(parents=True)

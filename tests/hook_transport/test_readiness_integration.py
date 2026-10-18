@@ -46,6 +46,7 @@ def test_shared_example_supplies_usable_summary(tmp_path):
         "FILESYSTEM_ROOT": tmp_path, "PYTHON_EXECUTABLE": sys.executable,
         "PYTHON_PACKAGE_ROOT": ROOT / "src", "REPOSITORY_ROOT": tmp_path,
         "CODEX_CONFIG_HOME": tmp_path / "native configuration",
+        "LAUNCHER_SETTINGS_PATH": tmp_path / "project launchers.json",
     })
     assert "${" not in json.dumps(filled)
     settings = HookSettings.proposed(tmp_path / "shared-settings.json", filled)

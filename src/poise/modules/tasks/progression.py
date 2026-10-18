@@ -17,6 +17,51 @@ class ProgressionStep:
     to_role: str | None = None
 
 
+def crossed_role_boundary(task: Task, actor: str, history: dict | None) -> bool:
+    """Prove ownership transfer of this verified result, retaining receiver self-cycles."""
+    if (history is None
+            or history["task_id"] != task.state.task_id
+            or history["submission_digest"] != task.state.submission_digest
+            or history["stage_id"] != task.stage.stage_id
+            or history["iteration"] != task.state.iteration
+            or history["through_version"] != task.state.version):
+        raise DomainError("Current verified ownership provenance is unavailable or changed")
+    events = history["events"]
+    if (not events or events[0]["event"] != "verified"
+            or [event["version"] for event in events] != list(
+                range(events[0]["version"], task.state.version + 1))
+            or any(event["submission"] != history["submission_id"]
+                   or event["stage"] != task.stage.stage_id
+                   or event["iteration"] != task.state.iteration for event in events)):
+        raise DomainError("Current verified ownership history is incomplete or mismatched")
+    owner = events[0]["actor"]
+    if not isinstance(owner, str) or not owner.strip():
+        raise DomainError("Current verified result has no proven author")
+    crossed = False
+    released_owner, released_crossed = None, False
+    for event in events[1:]:
+        kind, receiver = event["event"], event["actor"]
+        if kind in ("handed_off", "ownership_released"):
+            if owner is None or receiver is not None:
+                raise DomainError("Current result release has no proven owner")
+            released_owner, released_crossed = owner, crossed
+            owner = None
+        elif kind in ("handoff_resumed", "ownership_acquired"):
+            if (owner is not None or released_owner is None
+                    or not isinstance(receiver, str) or not receiver.strip()):
+                raise DomainError("Current result acquisition has no proven release")
+            crossed = released_crossed if receiver == released_owner else True
+            owner = receiver
+        elif kind == "user_accept":
+            if owner is None or receiver != owner or task.state.status != TaskStatus.ACCEPTED:
+                raise DomainError("Acceptance changed the current result ownership chain")
+        else:
+            raise DomainError("Current result history contains a non-ownership transition")
+    if owner != actor or owner != task.state.claimed_by:
+        raise DomainError("Current result history does not prove its actual owner")
+    return crossed
+
+
 def progression_step(task: Task, target_stage: str | None, crossed_role_boundary: bool) -> ProgressionStep:
     current = task.stage.stage_id
     try:

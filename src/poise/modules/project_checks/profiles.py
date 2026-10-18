@@ -52,7 +52,7 @@ def profile_from_raw(raw, index):
     valid(type(raw.get('require_parser_confirmation')) is bool,
           where + '.require_parser_confirmation', 'Требуется boolean.')
     value['require_parser_confirmation'] = raw['require_parser_confirmation']
-    for key, zero, integer in (('execution_timeout_seconds', False, True),
+    for key, zero, integer in (('execution_timeout_seconds', True, True),
                                 ('observed_max_success_seconds', True, False),
                                 ('observed_max_progress_gap_seconds', True, False),
                                 ('stall_timeout_seconds', True, True)):

@@ -187,6 +187,7 @@ class RegisteredCheckRunner:
         poll_seconds: float = 0.05,
         cleanup_seconds: float = 0.25,
         capture_observer=None,
+        stdin_file=None,
     ) -> dict:
         if capture_observer is not None and not callable(capture_observer):
             raise ValueError('Capture observer must be callable or None')
@@ -238,7 +239,8 @@ class RegisteredCheckRunner:
                             raise PoiseError('Registered launch cancelled before spawn')
                         try:
                             child = subprocess.Popen(
-                                argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                argv, cwd=cwd, env=env,
+                                stdin=subprocess.DEVNULL if stdin_file is None else stdin_file,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 start_new_session=True,
                             )

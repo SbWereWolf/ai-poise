@@ -110,6 +110,10 @@ decisions only in conversation history.
 Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the same business
+result without duplicate effects. Refusals identify a concrete obstacle and an executable remedy/continuation;
+unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal investigation.
+Follow [atomicity, idempotency and actionable refusals](docs/governance/development-rules.md#атомарность-идемпотентность-и-понятный-отказ).
 Reconcile a stale completion status with an actually completed, independently reviewed, accepted and integrated
 result through its public owner or an authorized audited manual correction. Preserve historical stages and native
 receipts; distinguish manual reconciliation from native lifecycle completion. Follow
@@ -257,6 +261,10 @@ Keep this English projection and its Russian source consistent in the same chang
 - Continue authorized work to its stated outcome, without expanding scope. Do not delegate to sub-agents without
   explicit user authorization in the current request. Ask only for a genuinely blocking decision; use existing
   authorization for routine work.
+- In paired executor/reviewer work, communicate only when handing the Task between participants. The executor
+  performs stage work, makes working decisions and applies corrections; the reviewer checks handed-over designs
+  and results. Include decisions and questions in the saved stage result and handoff, rather than sending separate
+  approval requests during execution. Follow [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 - For a user-started Task, known executor/reviewer counterparts continue autonomously within AI poise gates and user
   limits. In both directions, save results, confirm public Task release, then send the counterpart a direct handoff
   message; the recipient acquires before working. No per-review user command is required. Follow [direct role
@@ -267,6 +275,10 @@ Keep this English projection and its Russian source consistent in the same chang
   role boundaries and separately controlled publish acceptance; after public handoff, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
+  Continue the current verified result through its proved ownership history: a receiver's self-cycle
+  preserves an earlier transfer, while the original author alone does not establish one. Keep the same
+  progression intent and existing source/claim/unknown/review gates; follow
+  [verified-result continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 - Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New
   messages add to the working plan unless they explicitly change an assignment; preserve pending work and blockers
   across checkpoints and compaction. Reading or acknowledging a message does not complete its assignment.

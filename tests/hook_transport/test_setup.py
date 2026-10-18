@@ -1,5 +1,6 @@
 """Managed settings are created by one tool, never by the model editing files."""
 import json
+import shlex
 from pathlib import Path
 import subprocess
 import sys
@@ -64,4 +65,8 @@ def test_installed_codex_hooks_disable_installation_bytecode_writes(project, tmp
     commands=[hook['command'] for groups in document['hooks'].values()
               for group in groups for hook in group['hooks']]
     assert commands
-    assert all(' -B -m poise hook ' in command for command in commands)
+    for command in commands:
+        argv = shlex.split(command)
+        module = argv.index('-m')
+        assert '-B' in argv[:module]
+        assert argv[module + 1:module + 3] == ['poise', 'hook']

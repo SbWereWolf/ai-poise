@@ -1,0 +1,177 @@
+[
+  {
+    "path": [
+      "schema"
+    ],
+    "value": "wrong-schema"
+  },
+  {
+    "path": [
+      "status"
+    ],
+    "value": false
+  },
+  {
+    "path": [
+      "status"
+    ],
+    "value": "failed"
+  },
+  {
+    "path": [
+      "operation"
+    ],
+    "value": 3
+  },
+  {
+    "path": [
+      "operation"
+    ],
+    "value": "context"
+  },
+  {
+    "path": [
+      "project"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "project"
+    ],
+    "value": "foreign-project"
+  },
+  {
+    "path": [
+      "checkout"
+    ],
+    "value": 17
+  },
+  {
+    "path": [
+      "checkout"
+    ],
+    "value": "/foreign/checkout"
+  },
+  {
+    "path": [
+      "policy_sha256"
+    ],
+    "value": false
+  },
+  {
+    "path": [
+      "policy_sha256"
+    ],
+    "value": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+    "path": [
+      "context"
+    ],
+    "value": null
+  },
+  {
+    "path": [
+      "items"
+    ],
+    "value": null
+  },
+  {
+    "path": [
+      "summary"
+    ],
+    "value": false
+  },
+  {
+    "path": [
+      "details"
+    ],
+    "value": {}
+  },
+  {
+    "path": [
+      "error"
+    ],
+    "value": {}
+  },
+  {
+    "path": [
+      "response_path"
+    ],
+    "value": null
+  },
+  {
+    "path": [
+      "context",
+      "generation"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "context",
+      "caller_key"
+    ],
+    "value": "foreign-key"
+  },
+  {
+    "path": [
+      "context",
+      "checkout_key"
+    ],
+    "value": "foreign-namespace"
+  },
+  {
+    "path": [
+      "context",
+      "native_episode",
+      "start_event_id"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "summary",
+      "model_content_bytes"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "summary",
+      "event_count"
+    ],
+    "value": 1.0
+  },
+  {
+    "path": [
+      "items",
+      0,
+      "content_bytes"
+    ],
+    "value": true
+  },
+  {
+    "path": [
+      "items",
+      0,
+      "content_lines"
+    ],
+    "value": 2.0
+  },
+  {
+    "path": [
+      "items",
+      0,
+      "content"
+    ],
+    "value": null
+  },
+  {
+    "path": [
+      "items"
+    ],
+    "value": []
+  }
+]

@@ -525,6 +525,13 @@ acceptance, or infer
 publication authority. A publish stage opens only through the separately authorized public
 acceptance path.
 
+Continue the exact current verified result through its proved ownership history after an
+authorized ordinary release/acquire or preserved handoff/resume. A receiver's later self-cycle
+retains the already proved transfer; the original verified author alone does not establish one.
+Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
+Follow the canonical [verified-result continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
+this does not replace the paired handoff/message procedure or grant acceptance/publication authority.
+
 Poise isolates the temporary Git index for every repository snapshot invocation and cleans only that
 invocation's owned
 directory. Never delete `snapshot.index.lock` manually or remove a sibling snapshot directory:
@@ -1065,3 +1072,17 @@ artifact ownership, hooks or cleanup. Follow the
 prerequisites](../../../docs/configuration/result-placement.md#подготовка-проекта-и-вызов),
 [packet contract](../../../docs/configuration/result-placement.md#пакет-prepare-и-check)
 and [failure/retry contract](../../../docs/configuration/result-placement.md#отказы-и-повтор).
+
+## General project-file reading
+
+Use installed `poise content-read` for complete or bounded project-file content without a Task.
+Select absolute config, registered checkout and operator-owned policy, plus explicit `--format
+json` or `--format text`; preserve genuine caller identity and native admission. Send the reader
+operation packet directly, not a Work envelope. Follow the canonical
+[setup and examples](../../../docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
+and [episode recovery](../../../docs/workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+Keep complete machine JSON/frames and saved responses; a registered read is not acknowledgement
+or model-memory proof. New context transitions accept only reason `manual`; replay preserves the
+saved transition generation without rolling back live state. The specialized acknowledged source
+reader retains its existing owner. This API does not intercept arbitrary tools or automatically
+reset general context after compaction.

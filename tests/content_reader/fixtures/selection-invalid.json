@@ -1,0 +1,48 @@
+[
+  {
+    "kind": "lines",
+    "start": true,
+    "end": 2
+  },
+  {
+    "kind": "lines",
+    "start": null,
+    "end": 2
+  },
+  {
+    "kind": "lines",
+    "start": 0,
+    "end": 2
+  },
+  {
+    "kind": "lines",
+    "start": -1,
+    "end": 2
+  },
+  {
+    "kind": "lines",
+    "start": 3,
+    "end": 2
+  },
+  {
+    "kind": "lines",
+    "start": 1,
+    "end": false
+  },
+  {
+    "kind": "lines",
+    "start": 1,
+    "end": 1.5
+  },
+  {
+    "kind": "complete",
+    "start": 1,
+    "end": null
+  },
+  {
+    "kind": "lines",
+    "start": 1,
+    "end": 1,
+    "unknown": 0
+  }
+]

@@ -1,0 +1,55 @@
+{
+  "goal": "Продолжить исправление результата после независимого осмотра.",
+  "requirements": [
+    "Исполнитель получает актуальную доработку с сохранёнными замечаниями."
+  ],
+  "definition_of_done": [
+    "Текущий результат и история сохраняются при смене владельца."
+  ],
+  "criteria": {
+    "requirements": [],
+    "definition_of_ready": [],
+    "definition_of_done": []
+  },
+  "handoff_settings": {
+    "directory": "handoffs",
+    "preserved_directory": "preserved",
+    "file_mode": 384,
+    "bundle": "source.bundle",
+    "receipt": "receipt.json"
+  },
+  "first_report": "First accepted fixture result.",
+  "review_report": "Independent review requests the named correction.",
+  "review_coverage": "The current result and independent ownership contract were inspected.",
+  "amend_report": "A correction is proposed for independent follow-up.",
+  "finding": {
+    "id": "RR-FINDING-1",
+    "subject": "Reviewed result",
+    "description": "The named correction remains necessary.",
+    "evidence": "Independent fixture requirement and actual reviewed result."
+  },
+  "resolution": {
+    "id": "RR-RESOLUTION-1",
+    "finding_id": "RR-FINDING-1",
+    "description": "The named correction was proposed.",
+    "evidence": "Current correction report, preserved for independent review."
+  },
+  "rejected_resolution": {
+    "resolution_id": "RR-RESOLUTION-1",
+    "decision": "rejected",
+    "reason": "The current correction still needs another iteration."
+  },
+  "held_wip": {
+    "src/double.py": "def double(n):\n    return n + 1\n# Work held by the rightful fixture owner.\n",
+    "src/unfinished.note": "Untracked fixture work must remain with its owner.\n"
+  },
+  "synthetic_handoff": {
+    "actor": "legacy-fixture",
+    "request_id": "synthetic-previous-transfer",
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "task_id": "T1",
+    "version": 0,
+    "state": "released"
+  },
+  "synthetic_input_provenance": "Independent synthetic legacy record for this test only; not authenticated native history."
+}

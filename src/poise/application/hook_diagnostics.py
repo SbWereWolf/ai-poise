@@ -98,7 +98,8 @@ class HookDiagnostics:
             checks = self.port.probes(req)
         result['capability_checks'] = checks
         ready = (result['installation']['status'] == 'configured'
-                 and result['binding']['status'] == 'valid'
+                 and (result['binding']['status'] == 'valid'
+                      or (req['event'] == 'SessionEnd' and result['binding']['status'] == 'not_observed'))
                  and event['status'] == 'observed'
                  and effect['status'] in ('confirmed', 'not_configured')
                  and (checks is None or checks.get('ready') is True))

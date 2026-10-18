@@ -742,7 +742,7 @@
                           },
                           "execution_timeout_seconds": {
                             "type": "integer",
-                            "minimum": 1
+                            "minimum": 0
                           },
                           "observed_max_success_seconds": {
                             "type": "number",
@@ -2239,11 +2239,18 @@
                               "properties": {
                                 "configured_seconds": {
                                   "type": "number",
-                                  "exclusiveMinimum": 0
+                                  "minimum": 0
                                 },
                                 "effective_seconds": {
-                                  "type": "number",
-                                  "exclusiveMinimum": 0
+                                  "anyOf": [
+                                    {
+                                      "type": "number",
+                                      "exclusiveMinimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "basis": {
                                   "enum": [
@@ -3574,11 +3581,18 @@
                                   "properties": {
                                     "configured_seconds": {
                                       "type": "number",
-                                      "exclusiveMinimum": 0
+                                      "minimum": 0
                                     },
                                     "effective_seconds": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0
+                                      "anyOf": [
+                                        {
+                                          "type": "number",
+                                          "exclusiveMinimum": 0
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
                                     },
                                     "basis": {
                                       "enum": [
@@ -4375,7 +4389,7 @@
                       },
                       "execution_timeout_seconds": {
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 0
                       },
                       "stall_timeout_seconds": {
                         "type": "integer",
@@ -5944,11 +5958,18 @@
                                         "properties": {
                                           "configured_seconds": {
                                             "type": "number",
-                                            "exclusiveMinimum": 0
+                                            "minimum": 0
                                           },
                                           "effective_seconds": {
-                                            "type": "number",
-                                            "exclusiveMinimum": 0
+                                            "anyOf": [
+                                              {
+                                                "type": "number",
+                                                "exclusiveMinimum": 0
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "basis": {
                                             "enum": [
@@ -7279,11 +7300,18 @@
                                             "properties": {
                                               "configured_seconds": {
                                                 "type": "number",
-                                                "exclusiveMinimum": 0
+                                                "minimum": 0
                                               },
                                               "effective_seconds": {
-                                                "type": "number",
-                                                "exclusiveMinimum": 0
+                                                "anyOf": [
+                                                  {
+                                                    "type": "number",
+                                                    "exclusiveMinimum": 0
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
                                               },
                                               "basis": {
                                                 "enum": [
@@ -8778,11 +8806,18 @@
           "properties": {
             "configured_seconds": {
               "type": "number",
-              "exclusiveMinimum": 0
+              "minimum": 0
             },
             "effective_seconds": {
-              "type": "number",
-              "exclusiveMinimum": 0
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "basis": {
               "enum": [
@@ -9687,7 +9722,7 @@
                 },
                 "execution_timeout_seconds": {
                   "type": "integer",
-                  "minimum": 1
+                  "minimum": 0
                 },
                 "observed_max_success_seconds": {
                   "type": "number",
@@ -10847,11 +10882,18 @@
                     "properties": {
                       "configured_seconds": {
                         "type": "number",
-                        "exclusiveMinimum": 0
+                        "minimum": 0
                       },
                       "effective_seconds": {
-                        "type": "number",
-                        "exclusiveMinimum": 0
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "basis": {
                         "enum": [
@@ -11909,11 +11951,18 @@
               "properties": {
                 "configured_seconds": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "minimum": 0
                 },
                 "effective_seconds": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "basis": {
                   "enum": [
@@ -13854,11 +13903,18 @@
                               "properties": {
                                 "configured_seconds": {
                                   "type": "number",
-                                  "exclusiveMinimum": 0
+                                  "minimum": 0
                                 },
                                 "effective_seconds": {
-                                  "type": "number",
-                                  "exclusiveMinimum": 0
+                                  "anyOf": [
+                                    {
+                                      "type": "number",
+                                      "exclusiveMinimum": 0
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "basis": {
                                   "enum": [
@@ -15189,11 +15245,18 @@
                                   "properties": {
                                     "configured_seconds": {
                                       "type": "number",
-                                      "exclusiveMinimum": 0
+                                      "minimum": 0
                                     },
                                     "effective_seconds": {
-                                      "type": "number",
-                                      "exclusiveMinimum": 0
+                                      "anyOf": [
+                                        {
+                                          "type": "number",
+                                          "exclusiveMinimum": 0
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
                                     },
                                     "basis": {
                                       "enum": [

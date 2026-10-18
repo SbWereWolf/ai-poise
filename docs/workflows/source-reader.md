@@ -65,3 +65,13 @@ JSON на stdin:
 После действительно полученного текста ID можно передать в следующем `acknowledged`.
 Ответы — JSON, отказ имеет `status: rejected` и exit 2. Никакого глобального обхода файлов
 или изменения разрешения путей инструмент не выполняет.
+
+## Отличие общего reader выбранного проекта
+
+Эта страница сохраняет контракт специализированного SourceReader: whole-file SHA, явные
+`acknowledged` и reset своего контекста. Отдельный
+[общий content-read](../configuration/project-file-reading.md#назначение-и-явные-входы) читает
+выбранный зарегистрированный checkout без Task/Sprint и использует SHA выбранного текста,
+current-generation cache facts и явный manual advance_context без acknowledgement-пакета.
+Его [native lifecycle](file-intake-lifecycle.md#допуск-и-владение) не заменяет описанную выше
+нативную связку специализированного восстановления контекста.

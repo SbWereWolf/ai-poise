@@ -1,0 +1,17 @@
+{
+  "status": "newborn",
+  "task": "A",
+  "revision": 1,
+  "sprint": null,
+  "claimed_by": "actor-a",
+  "goal_type": "development",
+  "route_entry": "work",
+  "ready": false,
+  "draft": {
+    "goal": "Seed A.",
+    "goal_type": "development",
+    "requirements": [
+      "Starter requirement."
+    ]
+  }
+}

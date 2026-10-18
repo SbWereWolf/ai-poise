@@ -1,0 +1,300 @@
+{
+  "proof_old": {
+    "book": {
+      "batches": [],
+      "arguments": [
+        {
+          "id": "ARG",
+          "revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "stage": "work",
+          "iteration": 1,
+          "tree": "dddddddddddddddddddddddddddddddddddddddd",
+          "body": {
+            "id": "ARG",
+            "kind": "logical",
+            "facts": [
+              "/origin/proof.txt is semantic evidence."
+            ],
+            "assumptions": [],
+            "inference": "The observed fixture is coherent.",
+            "conclusion": "Original evidence.",
+            "verdict": "proved",
+            "observation_ids": []
+          }
+        }
+      ],
+      "decisions": []
+    },
+    "input": null,
+    "assessment": null
+  },
+  "proof_new": {
+    "book": {
+      "batches": [],
+      "arguments": [
+        {
+          "id": "ARG",
+          "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "stage": "work",
+          "iteration": 1,
+          "tree": "dddddddddddddddddddddddddddddddddddddddd",
+          "body": {
+            "id": "ARG",
+            "kind": "logical",
+            "facts": [
+              "/origin/proof.txt is semantic evidence."
+            ],
+            "assumptions": [],
+            "inference": "The observed fixture is coherent.",
+            "conclusion": "Updated evidence.",
+            "verdict": "proved",
+            "observation_ids": []
+          }
+        }
+      ],
+      "decisions": []
+    },
+    "input": null,
+    "assessment": null
+  },
+  "locations_old": {
+    "/origin": "/moved-old"
+  },
+  "locations_new": {
+    "/origin": "/moved-new"
+  },
+  "material": {
+    "sections": {
+      "report": "Report A."
+    },
+    "artifact_paths": [
+      "/origin/report.txt"
+    ],
+    "commit_message": "Save the prepared report",
+    "content_additions": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "trace": {},
+    "method_additions": [],
+    "stage_work": {},
+    "evidence_work": {
+      "phase": "prepare",
+      "arguments": [],
+      "decisions": []
+    }
+  },
+  "event": {
+    "event": "submitted",
+    "stage": "work",
+    "iteration": 1,
+    "submission": 41
+  },
+  "trace": {
+    "path": "/origin/trace.txt",
+    "text": "/origin/semantic"
+  },
+  "result": {
+    "status": "verified",
+    "task": "A",
+    "stage": "work",
+    "iteration": 1,
+    "checks": [
+      {
+        "stdout": "/origin/stdout.txt",
+        "stderr": "/origin/stderr.txt",
+        "argv": [
+          "/origin/keep-argv"
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "/origin/report.txt"
+      }
+    ],
+    "sections": {
+      "report": "/origin/keep-section"
+    }
+  },
+  "pending": {
+    "kind": "result_integration",
+    "schema": "existing-task-worktree-1",
+    "intent": {
+      "request_id": "integration-a",
+      "task_id": "A",
+      "expected_source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected_target_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "authorization": "Accepted fixture result.",
+      "commit_message": "Preserve the accepted fixture outcome",
+      "config_backup_paths": []
+    },
+    "status": "prepared",
+    "phase": "prepared",
+    "version": 0,
+    "accepted_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "task_branch": "tasks/A",
+    "task_worktree": "/origin/A",
+    "temporary_backup_directory": "/runtime/result-integration/A/example",
+    "last_included_target": null,
+    "integration_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "target_after": null,
+    "conflicts": [],
+    "resolutions": [],
+    "checks": [
+      {
+        "id": "receipt-a",
+        "method": "M",
+        "passed": true,
+        "actual_exit_code": 0,
+        "stdout": "/origin/stdout.txt",
+        "stderr": "/origin/stderr.txt"
+      }
+    ],
+    "publication": null,
+    "temporary_backups": [],
+    "failure": null,
+    "cleanup": {
+      "task_worktree": "pending",
+      "task_branch": "pending",
+      "temporary_backups": "pending"
+    },
+    "history": [
+      {
+        "status": "prepared",
+        "phase": "prepared"
+      }
+    ],
+    "drift_retries": 0
+  },
+  "registry_entry": {
+    "method": {
+      "id": "M",
+      "argv": [
+        "fixture-check"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "expected_exit_code": 0,
+      "stdout_contains": [],
+      "stderr_contains": []
+    },
+    "stages": [
+      "work"
+    ]
+  },
+  "registry_new": {
+    "revision": 1,
+    "history": [
+      {
+        "revision": 0,
+        "entries": []
+      }
+    ],
+    "requests": [
+      {
+        "request_id": "registry-new",
+        "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "revision": 1
+      }
+    ],
+    "executable_obligations": []
+  },
+  "accounting": {
+    "accounting_accounts": [
+      {
+        "task_id": "A",
+        "project": "test-project",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "data": "{\"baseline\": \"authored\"}"
+      }
+    ],
+    "accounting_usage": [
+      {
+        "id": "usage-a",
+        "task_id": "A",
+        "project": "test-project",
+        "source": "fixture",
+        "stream": "input",
+        "sequence": 1,
+        "occurred_at": "2026-01-01T00:00:01+00:00",
+        "data": "{\"tokens\": 7}"
+      }
+    ],
+    "accounting_cycles": [
+      {
+        "id": "cycle-a",
+        "task_id": "A",
+        "project": "test-project",
+        "session_id": "actor-a",
+        "started_at": "2026-01-01T00:00:00+00:00",
+        "ended_at": "2026-01-01T00:00:01+00:00",
+        "data": "{\"kind\": \"cycle\", \"observations\": [7]}"
+      },
+      {
+        "id": "telemetry-a",
+        "task_id": "A",
+        "project": "test-project",
+        "session_id": "telemetry-session",
+        "started_at": "2026-01-01T00:00:00+00:00",
+        "ended_at": "2026-01-01T00:00:01+00:00",
+        "data": "{\"envelope\": {\"after_binding\": {\"goal_type\": \"development\", \"iteration\": 1, \"sprint\": null, \"stage\": \"work\", \"task\": \"A\"}, \"before_binding\": {\"goal_type\": \"development\", \"iteration\": 1, \"sprint\": null, \"stage\": \"work\", \"task\": \"A\"}, \"finished\": {\"audit_utc\": \"2026-01-01T00:00:01+00:00\", \"comparison_domain\": \"fixture-boot\", \"monotonic_ns\": 2000000000}, \"id\": \"telemetry-fixture\", \"operation\": \"show\", \"result_status\": \"read_only\", \"session\": \"telemetry-session\", \"started\": {\"audit_utc\": \"2026-01-01T00:00:00+00:00\", \"comparison_domain\": \"fixture-boot\", \"monotonic_ns\": 1000000000}, \"telemetry\": {\"cause\": \"initial\", \"finding_targets\": [], \"intervals\": [], \"usage\": []}, \"turn_id\": null}, \"kind\": \"telemetry_envelope\"}"
+      }
+    ],
+    "accounting_credits": [
+      {
+        "seq": 1,
+        "id": "credit-a",
+        "task_id": "A",
+        "project": "test-project",
+        "at": "2026-01-01T00:00:01+00:00",
+        "data": "{\"delta\": 3}"
+      }
+    ],
+    "interaction_events": [
+      {
+        "id": "message-a",
+        "project": "test-project",
+        "data": "{\"text\": \"Authored message.\"}",
+        "received_at": "2026-01-01T00:00:00+00:00"
+      }
+    ],
+    "interaction_bindings": [
+      {
+        "event_id": "message-a",
+        "task_id": "A",
+        "sprint_id": null,
+        "goal_type": "development",
+        "stage": "work",
+        "iteration": 1,
+        "session_id": "actor-a",
+        "project": "test-project"
+      }
+    ],
+    "interaction_reports": [
+      {
+        "task_id": "A",
+        "stage": "work",
+        "iteration": 1,
+        "at": "2026-01-01T00:00:01+00:00",
+        "source": "fixture"
+      }
+    ],
+    "accounting_findings": [
+      {
+        "task_id": "A",
+        "finding_id": "finding-a",
+        "data": "{\"reason\": \"authored quality\"}"
+      }
+    ]
+  },
+  "evidence_plan_arguments": [
+    {
+      "id": "ARG",
+      "kind": "logical",
+      "phase": "prepare",
+      "observation_methods": []
+    }
+  ]
+}

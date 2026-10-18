@@ -1,0 +1,1694 @@
+{
+  "reverse-records": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB01-joined-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB01-joined-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB01-joined-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB01-joined-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB01-joined-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB01-joined-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB02-joined-per-file-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB02-joined-per-file-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB02-joined-per-file-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB02-joined-per-file-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB02-joined-per-file-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB02-joined-per-file-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB03-joined-aggregate-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB03-joined-aggregate-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB03-joined-aggregate-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB03-joined-aggregate-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB03-joined-aggregate-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB03-joined-aggregate-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB04-joined-aggregate-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB04-joined-aggregate-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB04-joined-aggregate-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB04-joined-aggregate-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB04-joined-aggregate-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB04-joined-aggregate-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB05-terminated-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB05-terminated-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB05-terminated-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB05-terminated-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB05-terminated-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB05-terminated-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB06-terminated-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB06-terminated-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB06-terminated-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB06-terminated-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB06-terminated-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB06-terminated-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB07-single-unterminated-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB07-single-unterminated-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB07-single-unterminated-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB07-single-unterminated-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB07-single-unterminated-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB07-single-unterminated-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB08-empty-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB08-empty-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB08-empty-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB08-empty-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB08-empty-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB08-empty-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB09-three-head1-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB09-three-head1-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB09-three-head1-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB09-three-head1-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB09-three-head1-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB09-three-head1-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB10-three-tail1-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB10-three-tail1-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB10-three-tail1-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB10-three-tail1-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB10-three-tail1-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB10-three-tail1-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB11-three-head2-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB11-three-head2-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB11-three-head2-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB11-three-head2-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB11-three-head2-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB11-three-head2-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB12-three-sed1-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB12-three-sed1-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB12-three-sed1-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB12-three-sed1-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB12-three-sed1-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB12-three-sed1-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB13-repeat-output-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB13-repeat-output-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB13-repeat-output-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB13-repeat-output-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB13-repeat-output-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB13-repeat-output-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB14-repeat-output-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB14-repeat-output-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB14-repeat-output-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB14-repeat-output-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB14-repeat-output-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[cli-RB14-repeat-output-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB01-joined-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB01-joined-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB01-joined-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB01-joined-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB01-joined-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB01-joined-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB02-joined-per-file-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB02-joined-per-file-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB02-joined-per-file-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB02-joined-per-file-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB02-joined-per-file-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB02-joined-per-file-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB03-joined-aggregate-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB03-joined-aggregate-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB03-joined-aggregate-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB03-joined-aggregate-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB03-joined-aggregate-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB03-joined-aggregate-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB04-joined-aggregate-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB04-joined-aggregate-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB04-joined-aggregate-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB04-joined-aggregate-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB04-joined-aggregate-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB04-joined-aggregate-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB05-terminated-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB05-terminated-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB05-terminated-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB05-terminated-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB05-terminated-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB05-terminated-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB06-terminated-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB06-terminated-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB06-terminated-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB06-terminated-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB06-terminated-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB06-terminated-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB07-single-unterminated-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB07-single-unterminated-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB07-single-unterminated-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB07-single-unterminated-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB07-single-unterminated-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB07-single-unterminated-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB08-empty-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB08-empty-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB08-empty-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB08-empty-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB08-empty-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB08-empty-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB09-three-head1-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB09-three-head1-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB09-three-head1-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB09-three-head1-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB09-three-head1-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB09-three-head1-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB10-three-tail1-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB10-three-tail1-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB10-three-tail1-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB10-three-tail1-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB10-three-tail1-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB10-three-tail1-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB11-three-head2-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB11-three-head2-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB11-three-head2-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB11-three-head2-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB11-three-head2-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB11-three-head2-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB12-three-sed1-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB12-three-sed1-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB12-three-sed1-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB12-three-sed1-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB12-three-sed1-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB12-three-sed1-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB13-repeat-output-exact-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB13-repeat-output-exact-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB13-repeat-output-exact-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB13-repeat-output-exact-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB13-repeat-output-exact-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB13-repeat-output-exact-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB14-repeat-output-over-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB14-repeat-output-over-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB14-repeat-output-over-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB14-repeat-output-over-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB14-repeat-output-over-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records[sdk-RB14-repeat-output-over-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  },
+  "nested-cwd": {
+    "exit_code": 0,
+    "collection_errors": [],
+    "reports": [
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC01-child-first-cd-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC01-child-first-cd-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC01-child-first-cd-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC01-child-first-cd-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC01-child-first-cd-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC01-child-first-cd-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC02-grandchild-first-cd-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC02-grandchild-first-cd-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC02-grandchild-first-cd-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC02-grandchild-first-cd-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC02-grandchild-first-cd-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC02-grandchild-first-cd-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC03-healthy-child-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC03-healthy-child-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC03-healthy-child-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC03-healthy-child-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC03-healthy-child-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC03-healthy-child-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC04-healthy-grandchild-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC04-healthy-grandchild-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC04-healthy-grandchild-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC04-healthy-grandchild-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC04-healthy-grandchild-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC04-healthy-grandchild-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC05-child-cd-absolute-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC05-child-cd-absolute-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC05-child-cd-absolute-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC05-child-cd-absolute-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC05-child-cd-absolute-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC05-child-cd-absolute-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC06-inherited-invalid-base-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC06-inherited-invalid-base-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC06-inherited-invalid-base-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC06-inherited-invalid-base-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC06-inherited-invalid-base-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[cli-NC06-inherited-invalid-base-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC01-child-first-cd-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC01-child-first-cd-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC01-child-first-cd-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC01-child-first-cd-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC01-child-first-cd-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC01-child-first-cd-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC02-grandchild-first-cd-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC02-grandchild-first-cd-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC02-grandchild-first-cd-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC02-grandchild-first-cd-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC02-grandchild-first-cd-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC02-grandchild-first-cd-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC03-healthy-child-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC03-healthy-child-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC03-healthy-child-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC03-healthy-child-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC03-healthy-child-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC03-healthy-child-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC04-healthy-grandchild-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC04-healthy-grandchild-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC04-healthy-grandchild-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC04-healthy-grandchild-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC04-healthy-grandchild-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC04-healthy-grandchild-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC05-child-cd-absolute-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC05-child-cd-absolute-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC05-child-cd-absolute-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC05-child-cd-absolute-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC05-child-cd-absolute-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC05-child-cd-absolute-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC06-inherited-invalid-base-audit]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC06-inherited-invalid-base-audit]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC06-inherited-invalid-base-audit]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC06-inherited-invalid-base-enforce]",
+        "phase": "call",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC06-inherited-invalid-base-enforce]",
+        "phase": "setup",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      },
+      {
+        "nodeid": "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change[sdk-NC06-inherited-invalid-base-enforce]",
+        "phase": "teardown",
+        "outcome": "passed",
+        "exception": null,
+        "code": null
+      }
+    ]
+  }
+}

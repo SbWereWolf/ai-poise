@@ -1,0 +1,720 @@
+{
+  "files": {
+    "docs/reverse-unterminated.txt": "A\nB",
+    "docs/reverse-terminated.txt": "A\nB\n",
+    "docs/reverse-three.txt": "A\nB\nC",
+    "docs/reverse-single.txt": "B",
+    "docs/reverse-empty.txt": "",
+    "docs/reverse-extra.txt": "Z\n"
+  },
+  "reverse": [
+    {
+      "id": "RB01-joined-exact-enforce",
+      "command": "tac docs/reverse-unterminated.txt | head -n1",
+      "stdout": "BA\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB01-joined-exact-audit",
+      "command": "tac docs/reverse-unterminated.txt | head -n1",
+      "stdout": "BA\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB02-joined-per-file-over-enforce",
+      "command": "tac docs/reverse-unterminated.txt | head -n1",
+      "stdout": "BA\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 2,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB02-joined-per-file-over-audit",
+      "command": "tac docs/reverse-unterminated.txt | head -n1",
+      "stdout": "BA\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 2,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB03-joined-aggregate-exact-enforce",
+      "command": "tac docs/reverse-unterminated.txt | head -n1 && head -n1 docs/reverse-extra.txt",
+      "stdout": "BA\nZ\n",
+      "output_bytes": 5,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/reverse-extra.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 5,
+      "per_file_lines": 1,
+      "total_lines": 2,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB03-joined-aggregate-exact-audit",
+      "command": "tac docs/reverse-unterminated.txt | head -n1 && head -n1 docs/reverse-extra.txt",
+      "stdout": "BA\nZ\n",
+      "output_bytes": 5,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/reverse-extra.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 5,
+      "per_file_lines": 1,
+      "total_lines": 2,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB04-joined-aggregate-over-enforce",
+      "command": "tac docs/reverse-unterminated.txt | head -n1 && head -n1 docs/reverse-extra.txt",
+      "stdout": "BA\nZ\n",
+      "output_bytes": 5,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/reverse-extra.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 4,
+      "per_file_lines": 1,
+      "total_lines": 2,
+      "reason": "bounded_total_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB04-joined-aggregate-over-audit",
+      "command": "tac docs/reverse-unterminated.txt | head -n1 && head -n1 docs/reverse-extra.txt",
+      "stdout": "BA\nZ\n",
+      "output_bytes": 5,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ],
+        "docs/reverse-extra.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 4,
+      "per_file_lines": 1,
+      "total_lines": 2,
+      "reason": "bounded_total_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB05-terminated-exact-enforce",
+      "command": "tac docs/reverse-terminated.txt | head -n1",
+      "stdout": "B\n",
+      "output_bytes": 2,
+      "coverage": {
+        "docs/reverse-terminated.txt": [
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 2,
+      "total_bytes": 2,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB05-terminated-exact-audit",
+      "command": "tac docs/reverse-terminated.txt | head -n1",
+      "stdout": "B\n",
+      "output_bytes": 2,
+      "coverage": {
+        "docs/reverse-terminated.txt": [
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 2,
+      "total_bytes": 2,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB06-terminated-over-enforce",
+      "command": "tac docs/reverse-terminated.txt | head -n1",
+      "stdout": "B\n",
+      "output_bytes": 2,
+      "coverage": {
+        "docs/reverse-terminated.txt": [
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 1,
+      "total_bytes": 2,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB06-terminated-over-audit",
+      "command": "tac docs/reverse-terminated.txt | head -n1",
+      "stdout": "B\n",
+      "output_bytes": 2,
+      "coverage": {
+        "docs/reverse-terminated.txt": [
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 1,
+      "total_bytes": 2,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB07-single-unterminated-enforce",
+      "command": "tac docs/reverse-single.txt | head -n1",
+      "stdout": "B",
+      "output_bytes": 1,
+      "coverage": {
+        "docs/reverse-single.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 1,
+      "total_bytes": 1,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB07-single-unterminated-audit",
+      "command": "tac docs/reverse-single.txt | head -n1",
+      "stdout": "B",
+      "output_bytes": 1,
+      "coverage": {
+        "docs/reverse-single.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 1,
+      "total_bytes": 1,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB08-empty-enforce",
+      "command": "tac docs/reverse-empty.txt | head -n1",
+      "stdout": "",
+      "output_bytes": 0,
+      "coverage": {},
+      "per_file_bytes": 1,
+      "total_bytes": 1,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": false,
+      "empty": true
+    },
+    {
+      "id": "RB08-empty-audit",
+      "command": "tac docs/reverse-empty.txt | head -n1",
+      "stdout": "",
+      "output_bytes": 0,
+      "coverage": {},
+      "per_file_bytes": 1,
+      "total_bytes": 1,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": false,
+      "empty": true
+    },
+    {
+      "id": "RB09-three-head1-enforce",
+      "command": "tac docs/reverse-three.txt | head -n1",
+      "stdout": "CB\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB09-three-head1-audit",
+      "command": "tac docs/reverse-three.txt | head -n1",
+      "stdout": "CB\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB10-three-tail1-enforce",
+      "command": "tac docs/reverse-three.txt | tail -n1",
+      "stdout": "A\n",
+      "output_bytes": 2,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 2,
+      "total_bytes": 2,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB10-three-tail1-audit",
+      "command": "tac docs/reverse-three.txt | tail -n1",
+      "stdout": "A\n",
+      "output_bytes": 2,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "per_file_bytes": 2,
+      "total_bytes": 2,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "RB11-three-head2-enforce",
+      "command": "tac docs/reverse-three.txt | head -n2",
+      "stdout": "CB\nA\n",
+      "output_bytes": 5,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "per_file_bytes": 5,
+      "total_bytes": 5,
+      "per_file_lines": 2,
+      "total_lines": 2,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB11-three-head2-audit",
+      "command": "tac docs/reverse-three.txt | head -n2",
+      "stdout": "CB\nA\n",
+      "output_bytes": 5,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "per_file_bytes": 5,
+      "total_bytes": 5,
+      "per_file_lines": 2,
+      "total_lines": 2,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB12-three-sed1-enforce",
+      "command": "tac docs/reverse-three.txt | sed -n '1p'",
+      "stdout": "CB\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB12-three-sed1-audit",
+      "command": "tac docs/reverse-three.txt | sed -n '1p'",
+      "stdout": "CB\n",
+      "output_bytes": 3,
+      "coverage": {
+        "docs/reverse-three.txt": [
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "per_file_bytes": 3,
+      "total_bytes": 3,
+      "per_file_lines": 1,
+      "total_lines": 1,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB13-repeat-output-exact-enforce",
+      "command": "tac docs/reverse-unterminated.txt | sed -n '1p;1p'",
+      "stdout": "BA\nBA\n",
+      "output_bytes": 6,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 6,
+      "total_bytes": 6,
+      "per_file_lines": 2,
+      "total_lines": 2,
+      "reason": null,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB13-repeat-output-exact-audit",
+      "command": "tac docs/reverse-unterminated.txt | sed -n '1p;1p'",
+      "stdout": "BA\nBA\n",
+      "output_bytes": 6,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 6,
+      "total_bytes": 6,
+      "per_file_lines": 2,
+      "total_lines": 2,
+      "reason": null,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB14-repeat-output-over-enforce",
+      "command": "tac docs/reverse-unterminated.txt | sed -n '1p;1p'",
+      "stdout": "BA\nBA\n",
+      "output_bytes": 6,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 5,
+      "total_bytes": 6,
+      "per_file_lines": 2,
+      "total_lines": 2,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "RB14-repeat-output-over-audit",
+      "command": "tac docs/reverse-unterminated.txt | sed -n '1p;1p'",
+      "stdout": "BA\nBA\n",
+      "output_bytes": 6,
+      "coverage": {
+        "docs/reverse-unterminated.txt": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "per_file_bytes": 5,
+      "total_bytes": 6,
+      "per_file_lines": 2,
+      "total_lines": 2,
+      "reason": "bounded_per_file_byte_budget_exceeded",
+      "mode": "audit",
+      "expected_red_failure": true
+    }
+  ],
+  "cwd": [
+    {
+      "id": "NC01-child-first-cd-enforce",
+      "script": "cd sub && head -n2 same.txt",
+      "depth": 1,
+      "unresolved": true,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "NC01-child-first-cd-audit",
+      "script": "cd sub && head -n2 same.txt",
+      "depth": 1,
+      "unresolved": true,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "NC02-grandchild-first-cd-enforce",
+      "script": "cd sub && head -n2 same.txt",
+      "depth": 2,
+      "unresolved": true,
+      "mode": "enforce",
+      "expected_red_failure": true
+    },
+    {
+      "id": "NC02-grandchild-first-cd-audit",
+      "script": "cd sub && head -n2 same.txt",
+      "depth": 2,
+      "unresolved": true,
+      "mode": "audit",
+      "expected_red_failure": true
+    },
+    {
+      "id": "NC03-healthy-child-enforce",
+      "script": "head -n2 same.txt",
+      "depth": 1,
+      "unresolved": false,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "NC03-healthy-child-audit",
+      "script": "head -n2 same.txt",
+      "depth": 1,
+      "unresolved": false,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "NC04-healthy-grandchild-enforce",
+      "script": "head -n2 same.txt",
+      "depth": 2,
+      "unresolved": false,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "NC04-healthy-grandchild-audit",
+      "script": "head -n2 same.txt",
+      "depth": 2,
+      "unresolved": false,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "NC05-child-cd-absolute-enforce",
+      "script": "cd sub && head -n2 __ABS_ROOT__",
+      "depth": 1,
+      "unresolved": false,
+      "mode": "enforce",
+      "expected_red_failure": false
+    },
+    {
+      "id": "NC05-child-cd-absolute-audit",
+      "script": "cd sub && head -n2 __ABS_ROOT__",
+      "depth": 1,
+      "unresolved": false,
+      "mode": "audit",
+      "expected_red_failure": false
+    },
+    {
+      "id": "NC06-inherited-invalid-base-enforce",
+      "script": "head -n2 same.txt",
+      "depth": 1,
+      "unresolved": true,
+      "mode": "enforce",
+      "expected_red_failure": false,
+      "outer_cd": true
+    },
+    {
+      "id": "NC06-inherited-invalid-base-audit",
+      "script": "head -n2 same.txt",
+      "depth": 1,
+      "unresolved": true,
+      "mode": "audit",
+      "expected_red_failure": false,
+      "outer_cd": true
+    }
+  ],
+  "nodes": {
+    "reverse-records": [
+      "tests/command_intake/test_remaining_boundaries.py::test_reverse_output_records"
+    ],
+    "nested-cwd": [
+      "tests/command_intake/test_remaining_boundaries.py::test_nested_first_directory_change"
+    ]
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "exit_code": 1,
+  "collection_errors": [],
+  "reports": [
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_all_seven_parser_literal_logs",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_all_seven_parser_literal_logs",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_all_seven_parser_literal_logs",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_caller_output_failure_keeps_committed_result",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_caller_output_failure_keeps_committed_result",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_caller_output_failure_keeps_committed_result",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_capture_failure_preserves_known_outcome",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_capture_failure_preserves_known_outcome",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_capture_failure_preserves_known_outcome",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_complete_utf8_and_empty_streams",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_complete_utf8_and_empty_streams",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_complete_utf8_and_empty_streams",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_declared_evidence_completeness_and_limits",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_declared_evidence_completeness_and_limits",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_declared_evidence_completeness_and_limits",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_diagnostic_sinks_survive_transport_failure",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_diagnostic_sinks_survive_transport_failure",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_diagnostic_sinks_survive_transport_failure",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_exact_argv_cwd_and_single_process_owner",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_exact_argv_cwd_and_single_process_owner",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_exact_argv_cwd_and_single_process_owner",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_failed_step_stops_remaining_steps",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_failed_step_stops_remaining_steps",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_failed_step_stops_remaining_steps",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_ledger_save_failure_keeps_full_streams",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_ledger_save_failure_keeps_full_streams",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_ledger_save_failure_keeps_full_streams",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_partial_interruption_never_creates_success_sample",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_partial_interruption_never_creates_success_sample",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_partial_interruption_never_creates_success_sample",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_presentation_error_does_not_change_run_truth",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_presentation_error_does_not_change_run_truth",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_presentation_error_does_not_change_run_truth",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_regex_progress_and_unavailable_progress",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_regex_progress_and_unavailable_progress",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_regex_progress_and_unavailable_progress",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_terminal_timeout_and_cancel_stop_owned_group",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_terminal_timeout_and_cancel_stop_owned_group",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_terminal_timeout_and_cancel_stop_owned_group",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_zero_exit_recognition_preserves_donor_outcomes",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "NamedChecksUnavailable",
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_zero_exit_recognition_preserves_donor_outcomes",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/named_checks/test_execution.py::test_zero_exit_recognition_preserves_donor_outcomes",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    }
+  ]
+}

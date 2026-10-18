@@ -43,6 +43,17 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
 | `placement` | Prepare/check explicit working-result placement without requiring a Task. | `"${poise[@]}" placement --config "$project_json" --checkout "$checkout" --policy "$placement_policy" < "$packet"` |
 | `skills` | Read metadata, validate decomposition, or prepare file-scoped instructions without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+| `checks` | Run/read configured named checks without a Task. | `"${poise[@]}" checks --config "$project_json" --checkout "$checkout" --policy "$checks_policy" --view expanded < "$packet"` |
+
+Named-check setup, exact operations, effective cwd/PATH, saved results and recovery
+belong to the [operator contract](../../../docs/configuration/named-project-checks.md).
+Retain the genuine native caller and omit `POISE_CALLER_BINDING`, or use an explicit
+persistent binding in a separate direct process without native session variables.
+Do not combine those identities or change the session launcher to prepare a check.
+For independently reviewing test-only RED in an unfinished `revise` stage, use the
+existing [partial-material handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
+save immutable materials through public artifacts, then ordinary release of the same Task.
+Do not invent resolution proposals or native stage completion before actual fixes.
 
 ### Project and workflow configuration
 
@@ -72,6 +83,8 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 
 ### Environment maintenance
 
+[ERP profile setup and operation](../../../docs/operator/maintenance-profile-v2.md#профиль-erp)
+uses the explicit ERP specification, ignored working values and a separate state.
 [Materialize the full working
 profile](../../../docs/operator/maintenance-profile-v2.md#развёртывание-из-примера)
 from the selected supply; use a dedicated profile and separate serviced data.
@@ -82,6 +95,8 @@ arguments](../../../docs/operator/poise-command-reference.md#обслужива�
 | Command | Purpose | Correct example |
 |---|---|---|
 | `poise_environment.profile` | Publish the selected complete maintenance profile. | `PYTHONPATH="$poise_root/src" "$poise_python" -B -m poise_environment.profile --source "$poise_root" --output "$catalog_dir" --state "$state_root" --repository "$repository" --project "$project_id" --base-ref "$base_ref" --author-name "$author_name" --author-email "$author_email" --module-path "$poise_root/src"` |
+| `poise_environment.profile --profile-spec` | Select the ERP profile; populate its working values and Bootstrap command before servicing. | `PYTHONPATH="$poise_root/src" "$poise_python" -B -m poise_environment.profile --source "$poise_root" --profile-spec config/projects/erp/profile.example.json --output "$catalog_dir" --state "$state_root" --repository "$repository" --project "$project_id" --base-ref "$base_ref" --author-name "$author_name" --author-email "$author_email" --module-path "$poise_root/src"` |
+| `bootstrap` with the ERP profile | Use the materialized ERP command for infra/deps/check; the canonical instruction supplies the complete sequence. | `"$poise_python" -I -B "$poise_root/bootstrap" check --config "$catalog_dir/bootstrap.json" --catalog-dir "$catalog_dir"` |
 | `poise infra` | Delegate infrastructure maintenance to the installed external CLI. | `"${poise[@]}" infra --catalog "$requirements_catalog" --repairs "$repairs_file" --dry-run` |
 | `poise deps` | Delegate dependency maintenance. | `"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" --dry-run` |
 | `poise check` | Delegate environment observation. | `"${poise[@]}" check --catalog "$requirements_catalog" --values "$values_file"` |
@@ -92,6 +107,13 @@ arguments](../../../docs/operator/poise-command-reference.md#обслужива�
 Run standalone examples from the explicitly selected `poise_root`; populate
 the ignored working files from tracked examples first. The configured plugin
 owns full result analysis and the single invocation-local correction/recheck.
+For ERP, follow the configured initial run/check commands and
+[literal values and explicit roots](../../../docs/operator/maintenance-profile-v2.md#параметры-и-корни-erp).
+Use the documented [serial Linux action runtime and diagnostics](../../../docs/operator/maintenance-profile-v2.md#процессы-и-диагностика-erp).
+For observed harness limitations, use the [replay](../../../docs/operations/known-bugs.md#stage-replay-semantic-001--историческая-промотка-не-выполняет-новое-проектирование),
+[lock](../../../docs/operations/known-bugs.md#aip-external-lock-diagnostics-001--отказ-не-называет-держателя)
+and [IDE source-preservation](../../../docs/operations/known-bugs.md#aip-ide-format-source-preservation-001--потеря-правок-после-форматирования)
+guidance; apply the actual current-stage recovery owner, not a blanket restart.
 
 ### Operator recovery and migrations
 
@@ -290,12 +312,14 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
-Apply the [accepted-goal
+Apply the [registered-goal
 rule](../../../docs/governance/development-rules.md#task-goal-preservation):
-review may clarify an inadequate goal until an independent reviewer confirms the first
-substantive result. After that confirmation, agents must keep the goal unchanged even
-when a lawful restart returns the Task to newborn. The API's newborn edit capability
-does not enforce this historical agent rule.
+keep the registered Task goal unchanged throughout its lifetime, including after
+a lawful restart. The API can edit the newborn goal field; that capability does
+not grant agent authority to change it. Agree the stage sequence first and design
+only the imminent stage immediately before execution, with independent design and
+result review. Ordinary refinement of an unstarted stage uses its criteria owner
+and does not restart the Task; follow [the shared contract](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом).
 
 Read task_decomposition from the selected project's project-specific routing. Declare every workflow
 phase before an
@@ -491,6 +515,13 @@ request ID or use it to cross gates, perform stage work, send the handoff messag
 acceptance, or infer
 publication authority. A publish stage opens only through the separately authorized public
 acceptance path.
+
+Continue the exact current verified result through its proved ownership history after an
+authorized ordinary release/acquire or authenticated historical ownership events. A receiver's later self-cycle
+retains the already proved transfer; the original verified author alone does not establish one.
+Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
+Follow the canonical [verified-result continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
+this does not replace the paired handoff/message procedure or grant acceptance/publication authority.
 
 Poise isolates the temporary Git index for every repository snapshot invocation and cleans only that
 invocation's owned
@@ -1030,3 +1061,17 @@ artifact ownership, hooks or cleanup. Follow the
 prerequisites](../../../docs/configuration/result-placement.md#подготовка-проекта-и-вызов),
 [packet contract](../../../docs/configuration/result-placement.md#пакет-prepare-и-check)
 and [failure/retry contract](../../../docs/configuration/result-placement.md#отказы-и-повтор).
+
+## General project-file reading
+
+Use installed `poise content-read` for complete or bounded project-file content without a Task.
+Select absolute config, registered checkout and operator-owned policy, plus explicit `--format
+json` or `--format text`; preserve genuine caller identity and native admission. Send the reader
+operation packet directly, not a Work envelope. Follow the canonical
+[setup and examples](../../../docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
+and [episode recovery](../../../docs/workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+Keep complete machine JSON/frames and saved responses; a registered read is not acknowledgement
+or model-memory proof. New context transitions accept only reason `manual`; replay preserves the
+saved transition generation without rolling back live state. The specialized acknowledged source
+reader retains its existing owner. This API does not intercept arbitrary tools or automatically
+reset general context after compaction.

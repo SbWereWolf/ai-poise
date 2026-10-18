@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "businessFixture": {
+    "draftSlabCountLimit": 500,
+    "productionPeriod": {
+      "start": "2030-01-07",
+      "end": "2030-01-08",
+      "weekendMode": "weekdays",
+      "tracks": 1
+    },
+    "readyDate": "2030-01-09",
+    "dueDate": "2030-01-09",
+    "trackLength": 85000,
+    "wirePrice": 15,
+    "setupPrice": 0,
+    "classes": [
+      {
+        "name": "B25",
+        "rank": 25,
+        "price": 6600
+      },
+      {
+        "name": "B32",
+        "rank": 32,
+        "price": 6800
+      }
+    ],
+    "positions": [
+      {
+        "article": "HP01-P1",
+        "quantity": 9,
+        "length": 7100,
+        "width": 1000,
+        "height": 220,
+        "concreteClass": "B25",
+        "topWire": 4,
+        "bottomWire": 28
+      },
+      {
+        "article": "HP01-P2",
+        "quantity": 11,
+        "length": 6300,
+        "width": 1000,
+        "height": 220,
+        "concreteClass": "B32",
+        "topWire": 4,
+        "bottomWire": 16
+      }
+    ]
+  },
+  "environmentFile": "platform-infrastructure/config/dev/local-development.env",
+  "planningWorkspaceEnvironmentFile": "planning-workspace/.env",
+  "testDirectory": "platform-infrastructure/tests/playwright/suites/acceptance/three-step-draft",
+  "testMatch": "**/*.{cjm,scenario}.spec.mjs",
+  "artifactsDirectory": ".runtime/checks/optimizer-saas-cjm-hp01-host-verification/local-development",
+  "fullyParallel": false,
+  "retries": 0,
+  "forbidOnly": true,
+  "browser": {
+    "name": "firefox",
+    "source": "playwright-managed",
+    "executablePath": null,
+    "headless": true,
+    "firefoxUserPrefs": {
+      "dom.events.testing.asyncClipboard": true
+    },
+    "environment": {},
+    "environmentPaths": {
+      "HOME": "var/local-development/browser-home"
+    }
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "timeouts": {
+    "testMs": 800000,
+    "expectMs": 20000,
+    "actionMs": 20000,
+    "navigationMs": 30000,
+    "happyPathMs": 540000
+  },
+  "artifacts": {
+    "screenshot": "only-on-failure",
+    "trace": "retain-on-failure"
+  },
+  "visualReview": {
+    "enabled": false,
+    "evidenceDirectory": ".runtime/checks/optimizer-saas-cjm-hp01-host-verification/local-development/visual-review",
+    "timeoutMs": 300000,
+    "pollMs": 200,
+    "testTimeoutMs": 3600000
+  },
+  "executionConfiguration": "platform-infrastructure/test-execution.json"
+}

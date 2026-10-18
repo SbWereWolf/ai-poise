@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 from .common import PoiseError,load_config
 from .infrastructure.session_establishment import establish_direct_poise
@@ -26,6 +27,14 @@ def parser():
     result_view.add_argument('--output-chars',type=int,required=True)
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
+    checks=sub.add_parser('checks',help='Select and run configured named project checks')
+    for name in ('config', 'checkout', 'policy'):
+        checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    checks.add_argument('--view',choices=('brief','expanded','full'),required=True,action=SingleArgument)
+    reader=sub.add_parser('content-read',help='Read selected project-file parts in the native context')
+    for name in ('config','checkout','policy'):
+        reader.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    reader.add_argument('--format',choices=('json','text'),required=True,action=SingleArgument)
     local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
     local_assets.add_argument('--manifest',type=Path,required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
@@ -62,6 +71,7 @@ def parser():
     hook=sub.add_parser('hook',help='Codex native command-hook event (adapter, not a task API)')
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
+    hook.add_argument('--retry',type=Path,help='Retry one saved committed lifecycle delivery without replaying a native event')
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
     bound.add_argument('--settings',type=Path,required=True,action=SingleArgument)
     bound.add_argument('--binding',type=Path,required=True,action=SingleArgument)
@@ -90,10 +100,19 @@ def parser():
 
 
 def main():
+    started_at=time.monotonic()
     if len(sys.argv)>1 and sys.argv[1] in ('infra','deps','check'):
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='content-read':
+        from .interfaces.content_reader import execute_cli
+        from .infrastructure.clock import SystemClock
+        return execute_cli(args.config,args.checkout,args.policy,args.format,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
+    if args.command=='checks':
+        from .interfaces.project_checks import execute_cli
+        from .infrastructure.clock import SystemClock
+        return execute_cli(args.config,args.checkout,args.policy,args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
     if args.command=='result-view':
         from .interfaces.result_views import execute
         return execute(args.response,args.view,args.output_chars,sys.stdout,sys.stderr)
@@ -137,7 +156,7 @@ def main():
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)
     if args.command in ('runtime-config','hook','hook-work'):
         from .interfaces.hook_transport import execute
-        return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr)
+        return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr,started_at=started_at)
     if args.command=='goal-config':
         from .interfaces.goal_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)

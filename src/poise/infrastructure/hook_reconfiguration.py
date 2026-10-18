@@ -12,6 +12,7 @@ from pathlib import Path
 from ..common import PoiseError, digest, encoded, exact_keys, file_digest
 from ..modules.foundation.validation import nonempty
 from ..modules.hook_transport.domain import HookDefinition, merge_hook_document
+from ..modules.ownership.domain import Liveness
 from . import hook_transport as transport
 from .goal_config import read_document
 from .locking import exclusive_lock
@@ -35,7 +36,8 @@ def _observed_file(item):
 
 def _bindings(db, settings_path):
     return {key: raw for key, raw in db.execute('SELECT id,data FROM bindings')
-            if json.loads(raw)['settings'] == str(settings_path)}
+            if json.loads(raw)['settings'] == str(settings_path)
+            and transport.HookRegistry.binding_liveness(db, key) is Liveness.LIVE}
 
 
 def _binding_change(service, proposed, key, raw, definition_path, installation_id):
@@ -208,10 +210,12 @@ def reconfigure(settings_path, packet):
     service = transport.HookService(settings_path)
     proposed = transport.HookSettings.proposed(settings_path, packet['settings'])
     proposed.require_summary()
-    if 'repository_scope' not in proposed.raw:
-        raise PoiseError('Shared session entry requires explicit repository_scope and hooks_lock')
+    if ('repository_scope' not in proposed.raw
+            and proposed.hooks_file != service.settings.hooks_file):
+        raise PoiseError('Moving native hooks requires explicit repository_scope and hooks_lock')
     definition = HookDefinition.parse(packet['definition'])
-    allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher'}
+    allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher',
+               'capability_summary', 'lifecycle_consumer'}
     unchanged = lambda value: {key: item for key, item in value.items() if key not in allowed}
     if unchanged(service.settings.raw) != unchanged(proposed.raw):
         raise PoiseError('Hook reconfiguration cannot change project, stores or other transport settings')

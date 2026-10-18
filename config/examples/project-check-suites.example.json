@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "suites": [
+    {
+      "id": "example-fast",
+      "profiles": [
+        "fast"
+      ],
+      "sources": [
+        "src"
+      ],
+      "commands": [
+        {
+          "kind": "profile",
+          "id": "example-python",
+          "workload_class": "example",
+          "runtime_class": "python"
+        },
+        {
+          "kind": "package",
+          "id": "unit-example"
+        }
+      ]
+    },
+    {
+      "id": "example-release",
+      "profiles": [
+        "release"
+      ],
+      "sources": [
+        "src",
+        "tests"
+      ],
+      "commands": [
+        {
+          "kind": "package",
+          "id": "unit-example"
+        }
+      ]
+    }
+  ]
+}

@@ -5,8 +5,8 @@ import sqlite3
 import sys
 
 from ..common import PoiseError, digest, descendant, configured_root, load_config
-from ..modules.hook_transport.domain import HookDefinition, EVENTS
-from .diagnostic_io import json_file, regular_bytes
+from ..modules.hook_transport.domain import HookDefinition, EVENTS, binding_context
+from .diagnostic_io import json_file
 from .source_reader import FileSourceReader
 from .sqlite.interactions import InteractionStore
 from .sqlite.evidence import SqliteEvidenceRepository
@@ -18,6 +18,38 @@ _ERRORS = (PoiseError, OSError, ValueError, TypeError, KeyError, sqlite3.Error)
 def _unavailable(exc):
     # Do not echo store contents, raw commands, messages or credentials.
     return {'status': 'unavailable', 'error': type(exc).__name__}
+
+
+def observe_published_installation(settings, saved, definition, path):
+    """Observe saved publication facts independently of the current command generator."""
+    if saved is None:
+        return {'status': 'not_observed'}
+    if not isinstance(saved, dict):
+        raise PoiseError('Invalid installation observation')
+    expected = saved.get('groups')
+    if not isinstance(expected, list):
+        raise PoiseError('Invalid installation groups; republish the selected hook installation through runtime-config, then retry observation')
+    if any(not isinstance(item, list) or len(item) != 2
+           or not isinstance(item[0], str) or not isinstance(item[1], dict) for item in expected):
+        return {'status': 'changed'}
+    if sorted(item[0] for item in expected) != sorted(event['event'] for event in definition.data['events']):
+        return {'status': 'changed'}
+    receipt = saved.get('receipt', {})
+    if not isinstance(receipt, dict):
+        raise PoiseError('Invalid installation receipt')
+    if (receipt.get('definition_path') != path
+            or receipt.get('hooks_path') != str(settings.hooks_file)):
+        return {'status': 'changed'}
+    actual = json_file(settings.hooks_file, settings.raw['max_input_bytes'])
+    hooks = actual.get('hooks', {})
+    if not isinstance(hooks, dict):
+        return {'status': 'changed'}
+    for event, group in expected:
+        groups = hooks.get(event, [])
+        if not isinstance(groups, list) or groups.count(group) != 1:
+            return {'status': 'changed'}
+    return {'status': 'configured', 'definition_id': definition.data['id'],
+            'definition_path': path, 'host_trust': 'not_observed'}
 
 
 class HookObservationPort:
@@ -48,36 +80,13 @@ class HookObservationPort:
         except _ERRORS as exc:
             return {**_unavailable(exc), 'ready': False}
 
-    def _installation(self, saved, definition, path):
-        if saved is None:
-            return {'status': 'not_observed'}
-        if not isinstance(saved, dict):
-            raise PoiseError('Invalid installation observation')
-        expected = self.service.repository._groups(definition, Path(path))
-        receipt = saved.get('receipt', {})
-        if not isinstance(receipt, dict):
-            raise PoiseError('Invalid installation receipt')
-        if (saved.get('groups') != expected or receipt.get('definition_path') != path
-                or receipt.get('hooks_path') != str(self.settings.hooks_file)):
-            return {'status': 'changed'}
-        actual = json_file(self.settings.hooks_file, self.settings.raw['max_input_bytes'])
-        hooks = actual.get('hooks', {})
-        if not isinstance(hooks, dict):
-            return {'status': 'changed'}
-        for event, group in expected:
-            groups = hooks.get(event, [])
-            if not isinstance(groups, list) or groups.count(group) != 1:
-                return {'status': 'changed'}
-        return {'status': 'configured', 'definition_id': definition.data['id'],
-                'definition_path': path, 'host_trust': 'not_observed'}
-
     def _binding(self, saved, definition, req, cfg):
         if saved is None:
             return {'status': 'not_observed'}
         if not isinstance(saved, dict) or not isinstance(saved.get('external_session'), str):
             raise PoiseError('Invalid binding observation')
         expected = {'session_id': req['session_id'], 'settings': str(self.settings.path),
-                    'settings_digest': digest(self.settings.raw), 'definition_path': req['definition_path'],
+                    'definition_path': req['definition_path'],
                     'project': cfg['project'], 'agent_id': definition.data['agent_id']}
         if any(saved.get(k) != v for k, v in expected.items()):
             return {'status': 'changed'}
@@ -89,11 +98,7 @@ class HookObservationPort:
                 return {'status': 'changed'}
         if binding_path.parent != launcher.parent:
             return {'status': 'changed'}
-        if json_file(binding_path, self.settings.raw['max_input_bytes']) != saved:
-            return {'status': 'changed'}
-        expected_script = self.settings.launcher_bytes(binding_path)
-        if (regular_bytes(launcher, self.settings.raw['max_input_bytes']) != expected_script
-                or launcher.stat().st_mode & 0o777 != self.settings.raw['executable_mode']):
+        if binding_context(json_file(binding_path, self.settings.raw['max_input_bytes'])) != binding_context(saved):
             return {'status': 'changed'}
         if cfg['batch']['message_source'] != {'id': definition.data['message_source'], 'mode': 'runtime_event'}:
             return {'status': 'changed'}
@@ -160,7 +165,8 @@ class HookObservationPort:
             result['native_event'] = _unavailable(exc)
             return result
         try:
-            result['installation'] = self._installation(snapshot['installation'], definition, req['definition_path'])
+            result['installation'] = observe_published_installation(
+                self.settings, snapshot['installation'], definition, req['definition_path'])
             result['binding'] = self._binding(snapshot['binding'], definition, req, cfg)
         except _ERRORS as exc:
             result['binding'] = _unavailable(exc)
@@ -175,7 +181,10 @@ class HookObservationPort:
                 result['native_event'] = {'status': 'observed', 'id': event['id'], 'event': event['event'],
                     'session_id': event['binding'], 'recorded_at': event['at'],
                     'source': event['data'].get('source'), 'turn_id': event['data'].get('turn_id')}
-                if result['binding']['status'] == 'valid':
+                ended = (req['event'] == 'SessionEnd'
+                         and result['binding']['status'] == 'not_observed'
+                         and result['installation']['status'] == 'configured')
+                if result['binding']['status'] == 'valid' or ended:
                     try:
                         result['effect'] = self._effect(req, snapshot['binding'], event, root, cfg)
                     except FileNotFoundError:

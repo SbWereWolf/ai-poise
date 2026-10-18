@@ -25,13 +25,32 @@ def fill_template(value,parameters):
 
 def run(directory):
     home=create(directory)
-    project=json.loads((home/'project.json').read_text())
-    project['batch']['message_source']={'id':'codex-hook-main','mode':'runtime_event'}
-    save(home/'project.json',project)
-    parameters={'python':sys.executable,'source_root':str(SOURCE/'src'),'workspace_parent':str(directory)}
-    cfg=fill_template(json.loads((SOURCE/'config/hook-templates/settings.json').read_text()),parameters)
+    parameters={'python':sys.executable,'workspace':str(home),
+                'PYTHON_EXECUTABLE':sys.executable,'PYTHON_PACKAGE_ROOT':str(SOURCE/'src'),
+                'FILESYSTEM_ROOT':str(home),'REPOSITORY_ROOT':str(home),
+                'LAUNCHER_SETTINGS_PATH':str(home/'project-launchers.json')}
+    cfg=fill_template(json.loads((SOURCE/'config/hook-settings.example.json').read_text()),parameters)
+    cfg.update(project_config='project.json',hooks_file='.codex/hooks.json',
+               definitions='hook-definitions',state='hook-state',lock='hook-state/runtime.lock')
+    del cfg['project_launcher']  # This standalone replay binds only its demo project.
     plan=fill_template(json.loads((SOURCE/'config/hook-templates/codex-main.json').read_text()),parameters)
     settings=home/'hooks-settings.json'
+    from poise.common import digest, load_config
+    from poise.composition import project_config_tools
+    _, project, workflows = load_config(home/'project.json')
+    resources = deepcopy(project['runtime_resources'])
+    resources['hooks'] = [{'installation_id': 'demo-hooks', 'settings_path': str(settings)}]
+    updated = project_config_tools(resources['project_setup']).apply({
+        'schema': 'project-config-update-1', 'request_id': 'demo-hooks-configuration',
+        'config_path': str(home/'project.json'),
+        'expected_revision': digest({'config': project, 'workflows': workflows}),
+        'manifest_edits': [
+            {'path': ['batch', 'message_source'], 'value': {'id': 'codex-hook-main', 'mode': 'runtime_event'}},
+            {'path': ['runtime_resources'], 'value': resources},
+        ], 'workflow_updates': [], 'state_relocation': None,
+        'probe_repository': False, 'receipt_path': 'operations/demo-hooks-configuration.json',
+    })
+    assert updated['status'] == 'updated'
     env={**{k:v for k,v in os.environ.items() if k not in
             ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_CALLER_BINDING')},
          'PYTHONPATH':str(SOURCE/'src'), 'CODEX_THREAD_ID':'hook-demo', 'LANG':'C.UTF-8'}

@@ -1,6 +1,7 @@
 """CLI envelopes for managed configuration, native hooks and bound work."""
 from pathlib import Path
 import uuid
+import time
 from ..common import PoiseError,exact_keys,load_config
 from ..infrastructure.hook_transport import HookService, HookSettings, matches_repository_scope
 from ..infrastructure.goal_config import strict_json,atomic_write
@@ -24,10 +25,29 @@ def _write(service,result,output):
     output.write(bounded_envelope(result,path,settings.raw['output_chars'],{}, {}, []))
 
 
-def execute(command,args,stream,output,error):
+def _write_native(service,result,definition_path,output):
+    cfg=service.settings.raw
+    if 'systemMessage' in result and 'hookSpecificOutput' in result:
+        path=_save_response(service,result)
+        notice=service.definition(definition_path).data['unknown_outcome_message']
+        text=native_context_view(result,path,cfg['output_chars'],notice)
+    else:
+        text=utf8_json_text(result)+'\n'
+        if len(text)>cfg['output_chars']:
+            raise PoiseError('Configured hook context cannot fit output limit')
+    output.write(text)
+
+
+def execute(command,args,stream,output,error, *, started_at=None):
+    started_at=time.monotonic() if started_at is None else started_at
     service=None
     try:
         settings=HookSettings(args.settings);cfg=settings.raw
+        if command=='hook' and getattr(args,'retry',None) is not None:
+            service=HookService(args.settings)
+            result=service.retry_lifecycle(args.definition,args.retry)
+            _write_native(service,result,args.definition,output)
+            return cfg['exit_codes']['success']
         raw=stream.read(cfg['max_input_bytes']+1)
         if len(raw)>cfg['max_input_bytes']:raise PoiseError('Hook/adapter packet exceeds configured input limit')
         packet=strict_json(raw.decode('utf-8'))
@@ -38,16 +58,8 @@ def execute(command,args,stream,output,error):
             return cfg['exit_codes']['success']
         service=HookService(args.settings)
         if command=='hook':
-            result=service.event(args.definition,packet)
-            if 'systemMessage' in result and 'hookSpecificOutput' in result:
-                path=_save_response(service,result)
-                notice=service.definition(args.definition).data['unknown_outcome_message']
-                text=native_context_view(result,path,cfg['output_chars'],notice)
-            else:
-                text=utf8_json_text(result)+'\n'
-                if len(text)>cfg['output_chars']:
-                    raise PoiseError('Configured hook context cannot fit output limit')
-            output.write(text)
+            result=service.event(args.definition,packet,started_at=started_at)
+            _write_native(service,result,args.definition,output)
             return cfg['exit_codes']['success']
         if command=='hook-work':
             require_result_budget('',cfg['output_chars'],'rejected')
@@ -61,7 +73,8 @@ def execute(command,args,stream,output,error):
         if packet['operation'] in ('install','reconcile','reconfigure'):
             action=getattr(service,packet['operation'])
             result=action(packet['input'])
-            if packet['operation'] == 'reconfigure':
+            if (packet['operation'] == 'reconfigure'
+                    and 'repository_scope' in packet['input']['settings']):
                 current=HookSettings(args.settings)
                 workspace=current.raw['repository_scope']['repository']
             else:

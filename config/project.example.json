@@ -297,7 +297,7 @@
       },
       {
         "class": "narrow",
-        "id": "project-config-domain",
+        "id": "project-configuration",
         "responsibility": "project-configuration"
       }
     ]

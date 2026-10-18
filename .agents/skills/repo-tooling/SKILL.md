@@ -89,3 +89,15 @@ responses and distinguish visible bytes from confirmed durability. Follow the
 protocol](../../../docs/configuration/result-placement.md#подготовка-проекта-и-вызов)
 and [recovery contract](../../../docs/configuration/result-placement.md#отказы-и-повтор);
 do not create another selector, state registry or cleanup controller.
+
+## General project-file content
+
+Compose the installed `content-read` API for explicit project/checkout/policy reads without a Task;
+reuse its existing domain, registry, native authority and saved-response owners. Preserve complete
+JSON/text byte frames and truthful partial effects. Do not replace genuine caller/native admission
+with a supplied session identifier. Follow the canonical
+[reader contract](../../../docs/configuration/project-file-reading.md#семь-операций),
+[operator options](../../../docs/configuration/project-file-reading.md#справочник-опций) and
+[resource lifecycle](../../../docs/workflows/file-intake-lifecycle.md#допуск-и-владение).
+Keep specialized acknowledged reading separate; this adapter does not grant generic tool-result
+interception, automatic compaction handling, publication or integration authority.

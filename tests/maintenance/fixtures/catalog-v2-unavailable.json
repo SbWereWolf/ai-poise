@@ -1,0 +1,9 @@
+{
+  "python_version_recommendations": [
+    "Выберите поддерживаемый интерпретатор в параметрах профиля."
+  ],
+  "directory_type_recommendations": [
+    "Укажите каталог для выбранного ресурса вместо файла и повторите проверку."
+  ],
+  "retained_file": "Operator-owned file must survive refused directory actions.\n"
+}

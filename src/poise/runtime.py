@@ -1145,7 +1145,8 @@ class Poise:
                 raise PoiseError(FileProjectContext(Path(__file__).resolve().parents[1]).lookup_failure(
                     self.config_path, self.cfg, task['id']))
             if selected['status']=='newborn':
-                self.ownership.acquire_task(selected['id'])
+                self.ownership.acquire_task(selected['id'],
+                                           expected_newborn_revision=selected['revision'])
                 return self.task_queries.record(selected['id'])
             if not is_terminal_task_status(selected['status']):
                 self.task_commands.execution_preflight(selected['id'])
@@ -1317,10 +1318,8 @@ class Poise:
 
     def _cleanup_runtime(self):
         self.result_views.finish()
-        try:
-            shutil.rmtree(self.runtime)
-        except FileNotFoundError:
-            pass
+        from .infrastructure.session_establishment import remove_session_runtime
+        remove_session_runtime(self.runtime)
 
     def _select_checks(self, data: dict, changed: list[str]) -> list[dict]:
         stage_id = self._stage(data)['id']

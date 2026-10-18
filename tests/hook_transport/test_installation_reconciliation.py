@@ -2,6 +2,8 @@
 from copy import deepcopy
 import io
 import json
+import os
+import shlex
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -18,14 +20,19 @@ from .helpers import definition, install, settings
 def drift(project, tmp_path):
     service = HookService(settings(project, tmp_path))
     legacy = definition(); legacy['id'] = 'harness-main'
-    install(service, legacy)
+    installed = install(service, legacy)
+    historical_command = shlex.join([
+        'env', 'PYTHONPATH='+service.settings.raw['source_root'], service.settings.raw['python'],
+        '-m', 'harness', 'hook', '--settings', str(service.settings.path),
+        '--definition', installed['definition_path'],
+    ])
     # The historical registry used the former module name; no production repair
     # is allowed to require this fixture-only registry mutation.
     with service.registry.transaction() as db:
         row = json.loads(db.execute('SELECT data FROM installations WHERE id=?',
                                     ('harness-main',)).fetchone()[0])
         for _, group in row['groups']:
-            group['hooks'][0]['command'] = group['hooks'][0]['command'].replace('-B -m poise', '-m harness')
+            group['hooks'][0]['command'] = historical_command
         db.execute('UPDATE installations SET data=? WHERE id=?', (encoded(row), 'harness-main'))
     live = definition(); live['id'] = 'poise-main'
     live['events'][0]['status_message'] = 'Previous Poise binding'
@@ -58,7 +65,7 @@ def assert_single_current(service, receipt, foreign):
         managed = [g for g in groups if g != foreign]
         assert len(managed) == 1, (kind, groups)
         assert receipt['definition_path'] in managed[0]['hooks'][0]['command']
-        assert ' -B -m poise hook ' in managed[0]['hooks'][0]['command']
+        assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook ") in managed[0]['hooks'][0]['command']
 
 
 def test_ordinary_install_does_not_append_duplicate_after_identity_drift(project, tmp_path):
@@ -160,11 +167,16 @@ def test_reconcile_retry_after_file_replace_before_registry_commit(project, tmp_
 
 def test_live_drift_may_use_prior_direct_no_bytecode_form(project, tmp_path):
     service, packet, foreign = drift(project, tmp_path)
+    historical_command = shlex.join([
+        'env', 'PYTHONPATH='+service.settings.raw['source_root'], service.settings.raw['python'],
+        '-m', 'poise', 'hook', '--settings', str(service.settings.path),
+        '--definition', packet['live_definition_path'],
+    ])
     doc = json.loads(service.settings.hooks_file.read_text())
     for groups in doc['hooks'].values():
         for group in groups:
             if group != foreign:
-                group['hooks'][0]['command'] = group['hooks'][0]['command'].replace(' -B -m poise', ' -m poise')
+                group['hooks'][0]['command'] = historical_command
     write_json(service.settings.hooks_file, doc)
     packet['expected_revision'] = service.revision()
     result = service.reconcile(packet)

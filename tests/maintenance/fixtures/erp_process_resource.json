@@ -1,0 +1,13 @@
+{
+  "kind": "tool",
+  "argv": [
+    "selected-python",
+    "-B",
+    "selected-fixture",
+    "parent",
+    "selected-directory"
+  ],
+  "cwd": "selected-directory",
+  "bound_seconds": 2,
+  "expected": {}
+}

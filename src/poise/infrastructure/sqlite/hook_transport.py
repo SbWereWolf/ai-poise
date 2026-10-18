@@ -1,10 +1,12 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
 import sqlite3
+import errno
+from pathlib import Path
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded,load_config_limits
-from ...modules.hook_transport.domain import MissingHookBinding
+from ...modules.hook_transport.domain import MissingHookBinding, binding_context
 from .transaction import write_transaction
 
 
@@ -61,20 +63,84 @@ class HookRegistry:
             old=db.execute('SELECT data FROM bindings WHERE id=?',(record['session_id'],)).fetchone()
             if old is not None:
                 prior=json.loads(old[0])
-                if prior!=record:raise PoiseError('Session binding changed; restart explicitly with a new configured actor')
+                if binding_context(prior)!=binding_context(record):
+                    raise PoiseError('Session binding identifies another actor or settings path; select its matching configuration')
+                return prior
             else:db.execute('INSERT INTO bindings VALUES(?,?,NULL)',(record['session_id'],encoded(record)))
         return record
 
     def record_event(self,binding,kind,turn,message,metadata=None):
         with self.transaction() as db:
             if message is not None:db.execute('UPDATE bindings SET latest_message=? WHERE id=?',(encoded(message),binding))
-            return self.event_in(db,binding,kind,{'turn_id':turn, **({} if metadata is None else metadata)})
+            data={'turn_id':turn, **({} if metadata is None else metadata)}
+            if kind == 'SessionEnd':
+                row=db.execute('SELECT data FROM bindings WHERE id=?',(binding,)).fetchone()
+                if row is None:raise PoiseError('Cannot commit End without its observed native binding')
+                data['binding_record']=json.loads(row[0])
+            return self.event_in(db,binding,kind,data)
+
+    @staticmethod
+    def _lifecycle_binding(db, receipt):
+        if receipt.get('event') == 'SessionEnd':
+            row=db.execute("SELECT data FROM hook_events WHERE binding=? AND id=? AND event='SessionEnd'",
+                           (receipt['binding_id'],receipt['event_id'])).fetchone()
+            data=None if row is None else json.loads(row[0]).get('binding_record')
+        else:
+            row=db.execute('SELECT data FROM bindings WHERE id=?',(receipt['binding_id'],)).fetchone()
+            data=None if row is None else json.loads(row[0])
+        if not isinstance(data,dict):
+            raise PoiseError('Lifecycle binding is unavailable; select its genuine committed native delivery')
+        return data
+
+    def lifecycle_binding(self, receipt):
+        if (not isinstance(receipt,dict) or not isinstance(receipt.get('binding_id'),str)
+                or receipt.get('event') not in ('SessionStart','SessionEnd')
+                or type(receipt.get('event_id')) is not int or receipt['event_id']<=0):
+            raise PoiseError('Invalid lifecycle receipt; select its genuine committed native delivery')
+        with self.read_transaction() as db:
+            return self._lifecycle_binding(db,receipt)
 
     def get(self,session):
         with self.read_transaction() as db:
             row=db.execute('SELECT data,latest_message FROM bindings WHERE id=?',(session,)).fetchone()
             if row is None:raise PoiseError('Unknown hook session binding')
             return json.loads(row[0]),None if row[1] is None else json.loads(row[1])
+
+    def release_ended(self, record, end_event_id, prepare_files):
+        """Release one exact ended episode and its owner-validated projections."""
+        session = record['session_id']
+        with self.transaction() as db:
+            row = db.execute('SELECT data FROM bindings WHERE id=?', (session,)).fetchone()
+            last = db.execute('SELECT id,event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
+                              (session,)).fetchone()
+            if last is None or tuple(last) != (end_event_id, 'SessionEnd'):
+                return {'status': 'skipped', 'session_id': session}
+            if row is None:
+                return {'status': 'already_released', 'session_id': session}
+            if json.loads(row[0]) != record:
+                return {'status': 'skipped', 'session_id': session}
+            files = prepare_files()
+            for path, before in files.items():
+                current = path.read_bytes() if path.exists() else None
+                if current != before:
+                    raise PoiseError('Session projection changed before release: ' + str(path) +
+                                     '; Recovery: preserve edited files, refresh the exact cleanup preview '
+                                     'and retry only unchanged owned projections')
+            try:
+                for path in files:
+                    path.unlink(missing_ok=True)
+                directory = Path(record['binding_path']).parent
+                try:
+                    directory.rmdir()
+                except OSError as exc:
+                    if exc.errno not in (errno.ENOTEMPTY, errno.EEXIST, errno.ENOENT):
+                        raise
+            except OSError as exc:
+                raise PoiseError('Cannot release generated session files: ' + str(exc) +
+                                 '; Recovery: correct access to the session directory and retry cleanup') from exc
+            db.execute('DELETE FROM bindings WHERE id=?', (session,))
+            return {'status': 'released', 'session_id': session,
+                    'removed_files': [str(path) for path, before in files.items() if before is not None]}
 
     def session_workspace(self, session):
         with self.read_transaction() as db:
@@ -101,13 +167,13 @@ class HookRegistry:
     def binding_liveness(db, binding):
         from ...modules.ownership.domain import Liveness
         known=db.execute('SELECT 1 FROM bindings WHERE id=?',(binding,)).fetchone()
-        if known is None:return Liveness.UNCERTAIN
         row=db.execute(
             'SELECT event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
             (binding,),
         ).fetchone()
-        if row is None:return Liveness.UNCERTAIN
-        return Liveness.DEAD if row[0]=='SessionEnd' else Liveness.LIVE
+        if row is not None and row[0]=='SessionEnd':return Liveness.DEAD
+        if known is None or row is None:return Liveness.UNCERTAIN
+        return Liveness.LIVE
 
     def runner_cancellation_check(self, binding):
         """Capture one native session episode, not a PID or another launch registry.
@@ -135,6 +201,20 @@ class HookRegistry:
         requested.observation = None
         return requested
 
+    @staticmethod
+    def _observed_installation(db, definition_id, limit):
+        from ..diagnostic_io import json_record
+        row = db.execute('SELECT substr(data,1,?) FROM installations WHERE id=?',
+                         (limit+1, definition_id)).fetchone()
+        return None if row is None else json_record(row[0], limit)
+
+    def observed_installation(self, definition_id):
+        from ..diagnostic_io import readonly_database
+        with readonly_database(self.settings.database) as db:
+            if db.execute('PRAGMA user_version').fetchone()[0] != 1:
+                raise PoiseError('Unsupported hook registry schema; no migrations')
+            return self._observed_installation(db, definition_id, self.settings.raw['max_input_bytes'])
+
     def observe(self, definition_id, session, event, event_id):
         """Existing committed owner state only; never create a missing registry."""
         from ..diagnostic_io import readonly_database, json_record
@@ -142,7 +222,6 @@ class HookRegistry:
         with readonly_database(self.settings.database) as db:
             if db.execute('PRAGMA user_version').fetchone()[0] != 1:
                 raise PoiseError('Unsupported hook registry schema; no migrations')
-            installed = db.execute('SELECT substr(data,1,?) FROM installations WHERE id=?', (limit+1, definition_id)).fetchone()
             binding = db.execute('SELECT substr(data,1,?) FROM bindings WHERE id=?', (limit+1, session)).fetchone()
             params = [limit+1, session, event]
             suffix = ''
@@ -151,7 +230,7 @@ class HookRegistry:
             row = db.execute('SELECT id,at,binding,event,substr(data,1,?) AS data FROM hook_events WHERE binding=? AND event=?'
                              + suffix + ' ORDER BY id DESC LIMIT 1', params).fetchone()
             return {
-                'installation': None if installed is None else json_record(installed[0], limit),
+                'installation': self._observed_installation(db, definition_id, limit),
                 'binding': None if binding is None else json_record(binding[0], limit),
                 'event': None if row is None else {**dict(row), 'data': json_record(row['data'], limit)},
             }
@@ -165,3 +244,55 @@ class HookRegistry:
                 "SELECT 1 FROM hook_events WHERE binding=? AND event='SessionStart' AND id=? AND id<?",
                 (session, start_id, end_id),
             ).fetchone() is not None
+
+    def preceding_start(self, binding, event_id):
+        with self.read_transaction() as db:
+            return db.execute("SELECT max(id) FROM hook_events WHERE binding=? AND event='SessionStart' AND id<=?",
+                              (binding,event_id)).fetchone()[0]
+
+    def require_lifecycle_metadata(self, receipt, metadata):
+        with self.read_transaction() as db:
+            row=db.execute('SELECT data FROM hook_events WHERE binding=? AND id=? AND event=?',
+                           (receipt['binding_id'],receipt['event_id'],receipt['event'])).fetchone()
+            if row is None:
+                raise PoiseError('Committed lifecycle event is unavailable; select its genuine native delivery and retry recovery')
+            committed=json.loads(row[0])
+            for field, value in metadata.items():
+                observed=committed.get(field)
+                same=(isinstance(observed,str) and Path(observed).is_absolute() and Path(value).is_absolute()
+                      and Path(observed).resolve()==Path(value).resolve()) if field=='workspace' else observed==value
+                if not same:
+                    raise PoiseError(f'Lifecycle {field} differs from the committed event; select its genuine native delivery and retry recovery')
+
+    def bind_lifecycle_receipt(self, receipt, episode, definition_id, project_id):
+        fields=('project_id','session_id','binding_id')
+        if (not isinstance(receipt,dict) or not isinstance(episode,dict)
+                or type(receipt.get('schema_version')) is not int or receipt['schema_version']!=1
+                or receipt.get('event') not in ('SessionStart','SessionEnd')
+                or any(not isinstance(item.get(key),str) or not item[key]
+                       for item in (receipt,episode) for key in fields)
+                or any(type(value) is not int or value<=0 for value in
+                       (receipt.get('event_id'),receipt.get('native_start_event_id'),episode.get('start_event_id')))):
+            raise PoiseError('Invalid lifecycle event receipt or episode; select a genuine SessionStart and retry recovery')
+        if any(receipt[key]!=episode[key] for key in fields) or receipt['project_id']!=project_id:
+            raise PoiseError('Lifecycle receipt identifies another episode')
+        binding,event_id,start_id=receipt['binding_id'],receipt['event_id'],episode['start_event_id']
+        with self.read_transaction() as db:
+            installed=db.execute('SELECT 1 FROM installations WHERE id=?',(definition_id,)).fetchone()
+            if installed is None:
+                raise PoiseError('Lifecycle installation is unavailable; restore its configured native owner')
+            data=self._lifecycle_binding(db,receipt)
+            if data['project']!=project_id or data['external_session']!=receipt['session_id']:
+                raise PoiseError('Lifecycle binding identifies another episode')
+            actual=db.execute('SELECT event FROM hook_events WHERE binding=? AND id=?',(binding,event_id)).fetchone()
+            anchor=db.execute("SELECT 1 FROM hook_events WHERE binding=? AND id=? AND event='SessionStart'",
+                              (binding,start_id)).fetchone()
+            preceding=db.execute("SELECT max(id) FROM hook_events WHERE binding=? AND event='SessionStart' AND id<=?",
+                                 (binding,event_id)).fetchone()[0]
+            interrupted=db.execute("SELECT 1 FROM hook_events WHERE binding=? AND event='SessionEnd' AND id>=? AND id<? LIMIT 1",
+                                   (binding,start_id,event_id)).fetchone()
+            if (actual is None or actual[0]!=receipt['event'] or anchor is None
+                    or preceding!=receipt['native_start_event_id'] or start_id>preceding or interrupted is not None):
+                raise PoiseError('Lifecycle event does not belong to the selected episode; verify native delivery and retry recovery')
+        return {'schema_version':1,'event':receipt['event'],'event_id':event_id,
+                'episode':{key:episode[key] for key in (*fields,'start_event_id')}}

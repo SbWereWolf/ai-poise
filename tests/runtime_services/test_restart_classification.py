@@ -47,14 +47,15 @@ def prepare_documentation_restart(project):
     assert registry_before["current"] == []
     newborn = restart_task(tools, "T1")
     workflow = deepcopy(newborn["workflow"])
-    # Two real documentation stages; no verification-registry schema owner.
-    workflow["stages"] = workflow["stages"][:2]
-    first, second = workflow["stages"]
-    first["sections"].pop("test_registry")
-    first["allowed_paths"] = ["docs/**"]
-    second["transitions"] = {"clear": None, "changes_requested": first["id"]}
+    # Preserve the route and stage identities; remove the registry capability.
     for stage in workflow["stages"]:
-        stage["rework_targets"] = [first["id"], second["id"]]
+        stage["sections"].pop("test_registry", None)
+        stage["required_sections"] = [
+            section for section in stage.get("required_sections", [])
+            if section != "test_registry"
+        ]
+        if not stage["read_only"]:
+            stage["allowed_paths"] = ["docs/**"]
     patch = workflow_contract(newborn["draft"]["goal_type"], workflow)
     patch["workflow"] = workflow
     edited = tools.invoke(request("task", {
@@ -87,6 +88,10 @@ def test_public_ready_reclassifies_empty_registry_and_replays_without_work(proje
     assert after["worktree"] == str(root)
     assert after["requirements_snapshot"] == before["requirements_snapshot"]
     assert after["requirements_agreement"] == before["requirements_agreement"]
+    expected_stages = json.loads((Path(__file__).parents[1] / "fixtures/invalid-check-recovery.json").read_text())["restart_stage_identities"]
+    assert [[stage["id"], stage["purpose"]] for stage in after["workflow"]["stages"]] == expected_stages
+    assert after["workflow"]["route"] == before["workflow"]["route"]
+    assert all("test_registry" not in stage["sections"] for stage in after["workflow"]["stages"])
     current = projection(tools)
     assert current["current"] == []
     assert current["executable_obligations"] == []
@@ -102,7 +107,7 @@ def test_public_ready_reclassifies_empty_registry_and_replays_without_work(proje
         assert saved[key] == rows[key]
     assert saved["events"][:len(rows["events"])] == rows["events"]
     assert work_state(root, wip) == work
-    assert ready_task(tools, "T1", edited["revision"]) == response
+    assert ready_task(tools, "T1", edited["revision"]) == {**response, "replayed": True}
     assert persisted(tools, "T1") == saved
     assert projection(tools) == current
     assert work_state(root, wip) == work

@@ -1,4 +1,6 @@
 import json
+import os
+import shlex
 import subprocess
 import sys
 from copy import deepcopy
@@ -75,7 +77,7 @@ def test_session_launcher_is_quoted_and_executable(project,tmp_path):
     context=native_out['hookSpecificOutput']['additionalContext']
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);assert str(path) in context and path.is_file()
-    assert ' -B -m poise hook-work ' in path.read_text()
+    assert (" -P -B -X pycache_prefix=" + os.devnull + " -m poise hook-work ") in path.read_text()
     p=subprocess.run([str(path)],input=json.dumps(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None})),text=True,capture_output=True,timeout=15)
     assert p.returncode==0,p.stderr
     assert json.loads(p.stdout)['status']=='read_only'
@@ -86,7 +88,11 @@ def test_existing_owned_launcher_is_upgraded_to_bytecode_safe_command(project,tm
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);current=path.read_text()
     # The historical entry neither used -B nor forwarded caller arguments.
-    legacy=current.replace(' -B -m poise ',' -m poise ').removesuffix(' "$@"\n')+'\n'
+    legacy='#!/bin/sh\nexec '+shlex.join([
+        'env','PYTHONPATH='+s.settings.raw['source_root'],s.settings.raw['python'],
+        '-m','poise','hook-work','--settings',str(s.settings.path),
+        '--binding',str(binding['binding_path']),
+    ])+'\n'
     assert legacy!=current
     path.write_text(legacy);path.chmod(s.settings.raw['executable_mode'])
     native(s,out)
@@ -144,10 +150,10 @@ def test_public_native_dead_owner_recovery_moves_both_claims(project,tmp_path,mo
         'task':project['task'],'decision':None,'feedback':None,'rework_stage':None}))
     acquire=request('bootstrap',{
         'task':{'id':started['task']},'decision':None,'feedback':None,'rework_stage':None})
+    owner_runtime=s.bound_runtime(owner['binding_path'])
 
     def claims():
-        h=s.bound_runtime(owner['binding_path'])
-        with h.store.transaction() as db:
+        with owner_runtime.store.transaction() as db:
             return (
                 dict(db.execute('SELECT id,claimed_by FROM tasks')),
                 dict(db.execute('SELECT id,task_id FROM sessions')),
@@ -166,6 +172,98 @@ def test_public_native_dead_owner_recovery_moves_both_claims(project,tmp_path,mo
     assert worktrees[owner['session_id']] is None
     assert worktrees[contender['session_id']]==started['task']
     assert list(worktrees.values()).count(started['task'])==1
+
+
+def test_session_end_releases_files_and_actual_working_entry_restores_access(project,tmp_path):
+    s=service(project,tmp_path);out=install(s)
+    native(s,out,session='released-session')
+    binding=s.latest_binding('released-session','primary')
+    session_runtime=s.bound_runtime(binding['binding_path']).runtime
+    session_runtime.mkdir(parents=True,exist_ok=True)
+    marker=session_runtime/'temporary-agent-data.txt'
+    marker.write_text('session transient\n')
+    assert marker.read_text()=='session transient\n'
+    directory=Path(binding['binding_path']).parent
+    unrelated=directory/'delivered-result.txt'
+    unrelated.write_text('accepted result\n')
+    assert (directory/'capabilities.json').is_file()
+
+    native(s,out,'SessionEnd',session='released-session')
+
+    with s.registry.read_transaction() as db:
+        assert db.execute('SELECT id FROM bindings WHERE id=?',(binding['session_id'],)).fetchall()==[]
+    assert not Path(binding['binding_path']).exists()
+    assert not Path(binding['launcher']).exists()
+    assert not (directory/'capabilities.json').exists()
+    assert not session_runtime.exists()
+    assert unrelated.read_text()=='accepted result\n'
+    assert s.registry.liveness(binding['session_id']) is Liveness.DEAD
+    assert s.registry.liveness('never-observed') is Liveness.UNCERTAIN
+
+    assert native(s,out,'SessionEnd',session='released-session')=={}
+    assert native(s,out,'Stop',session='released-session')=={}
+    assert not Path(binding['launcher']).exists()
+    resumed=native(s,out,'UserPromptSubmit',session='released-session')
+    restored=s.latest_binding('released-session','primary')
+    assert restored['session_id']==binding['session_id']
+    assert restored['launcher']==binding['launcher']
+    assert Path(restored['launcher']).is_file()
+    assert Path(restored['binding_path']).is_file()
+    assert s.registry.liveness(binding['session_id']) is Liveness.LIVE
+    assert restored['launcher'] in resumed['hookSpecificOutput']['additionalContext']
+    assert unrelated.read_text()=='accepted result\n'
+
+
+def test_active_prompt_recreates_missing_binding_and_issues_usable_entry(project,tmp_path,monkeypatch):
+    s=service(project,tmp_path);out=install(s)
+    native(s,out,session='active-missing-binding')
+    binding=s.latest_binding('active-missing-binding','primary')
+    with s.registry.transaction() as db:
+        start_id=db.execute("SELECT id FROM hook_events WHERE binding=? AND event='SessionStart' ORDER BY id DESC LIMIT 1",(binding['session_id'],)).fetchone()[0]
+        db.execute('DELETE FROM bindings WHERE id=?',(binding['session_id'],))
+    Path(binding['binding_path']).unlink()
+    Path(binding['launcher']).unlink()
+
+    delivered=native(s,out,'UserPromptSubmit',session='active-missing-binding')
+
+    restored=s.latest_binding('active-missing-binding','primary')
+    assert restored==binding
+    assert Path(binding['binding_path']).is_file()
+    assert Path(binding['launcher']).is_file()
+    assert binding['launcher'] in delivered['hookSpecificOutput']['additionalContext']
+    assert 'systemMessage' not in delivered
+    with s.registry.read_transaction() as db:
+        assert [tuple(row) for row in db.execute("SELECT id FROM hook_events WHERE binding=? AND event='SessionStart'",(binding['session_id'],))]==[(start_id,)]
+    monkeypatch.setenv('CODEX_THREAD_ID','active-missing-binding')
+    observed=s.work(binding['binding_path'],request('show',{'queries':[{'id':'m','kind':'messages'}]}))
+    assert observed['status']=='read_only'
+
+
+def test_releasing_task_preserves_continuing_session_access(project,tmp_path,monkeypatch):
+    s=service(project,tmp_path);out=install(s)
+    native(s,out,session='continuing-session')
+    binding=s.latest_binding('continuing-session','primary')
+    monkeypatch.setenv('CODEX_THREAD_ID','continuing-session')
+    started=s.work(binding['binding_path'],request('bootstrap',{
+        'task':project['task'],'decision':None,'feedback':None,'rework_stage':None}))
+    runtime=s.bound_runtime(binding['binding_path'])
+    current=runtime.task_queries.record(started['task'])
+    released=s.work(binding['binding_path'],request('release',{
+        'request_id':'release-for-next-task','reason':'Release Task while the session continues.',
+        'task_id':started['task'],'expected_version':current['version']}))
+    assert released['status']=='ownership_released'
+    with runtime.store.transaction() as db:
+        assert tuple(db.execute('SELECT claimed_by FROM tasks WHERE id=?',(started['task'],)).fetchone())==(None,)
+        assert tuple(db.execute('SELECT task_id FROM sessions WHERE id=?',(binding['session_id'],)).fetchone())==(None,)
+    assert Path(binding['launcher']).is_file()
+    assert s.registry.liveness(binding['session_id']) is Liveness.LIVE
+    again=s.work(binding['binding_path'],request('bootstrap',{
+        'task':{'id':started['task']},'decision':None,'feedback':None,'rework_stage':None}))
+    assert again['task']==started['task']
+    assert again['worktree']==started['worktree']
+    with runtime.store.transaction() as db:
+        assert tuple(db.execute('SELECT claimed_by FROM tasks WHERE id=?',(started['task'],)).fetchone())==(binding['session_id'],)
+        assert tuple(db.execute('SELECT task_id FROM sessions WHERE id=?',(binding['session_id'],)).fetchone())==(started['task'],)
 
 
 def test_missing_turn_id_is_not_invented(project,tmp_path):

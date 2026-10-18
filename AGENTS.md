@@ -2,7 +2,7 @@ In Russian for humans, in English for AI
 
 ## Shared Task execution rules
 
-Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение). Registration requires the stated goal only; existing requirements and criteria are optional source material. Develop requirements and achievable DoD when beginning authorized work, after successful local prerequisites. Freeze requirements at the stage after ready. A Sprint may start with one ready root while other members remain newborn. The executor writes plans, results and fixes; the reviewer approves plans and accepts results. These rules apply independently of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers from hypothetical implementation choices.
+Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение). Registration requires the stated goal only; existing requirements and criteria are optional source material. Develop requirements and achievable DoD when beginning authorized work, after successful local prerequisites. Preserve the registered goal; agree revisions to other conditions as facts evolve. Design only the imminent stage immediately before execution, independently review its design and execution, and do not restart a Task for ordinary refinement of an unstarted stage. Follow [just-in-time stage design](docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом). A Sprint may start with one ready root while other members remain newborn. The executor writes plans, results and fixes; the reviewer approves plans and accepts results. These rules apply independently of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers from hypothetical implementation choices.
 
 Do not give the final answer until every result has been verified
 -Eliminate: filler, hype, soft asks, conversational transitions, call-to-action appendixes.
@@ -36,7 +36,7 @@ and [launcher contract](docs/configuration/stride-launcher.md#имена-и-вл
 
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
-When beginning actual execution, establish the refined goal, requirements, achievable definition of done and how completion will be demonstrated. Registration requires only the stated goal and optional existing materials; do not perform execution preparation to register a Task. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; the normative requirement-freezing boundary is the following stage, equally for standalone and Sprint Tasks. Preserve tool integrity without treating that implementation limit as permission to perform future stages.
+Initial formulation records the goal, draft DoR/DoD and a feasible overall path from available facts; bounded source inspection is allowed, prototype implementation is not. The registration API may accept only the stated goal and existing material. When beginning execution, preserve that goal and establish the current agreed requirements, achievable definition of done and how completion will be demonstrated. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; future unstarted-stage criteria have their own proposal/decision owner. That storage limitation does not require routine Task restarts or premature future-stage work; use the existing recovery contract for an inadequate tool route.
 Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
 target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
 and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
@@ -45,12 +45,9 @@ were inventoried. Design exact future test methods and provenance at their ownin
 
 Separate Sprint graph planning, bounded Task formulation and detailed execution
 design. Do not implement a prototype merely to approve a Task formulation or demand
-future test names at creation. Before the first substantive Task result is confirmed
-by an independent reviewer, an inadequate goal may be clarified during review through
-an authorized restart. After that confirmation, do not change the same Task's goal,
-even if restart returns it to newborn and the API permits the edit. Ready, start,
-baseline observations, plans and unconfirmed results do not by themselves establish
-this boundary. Follow the
+future test names at creation. Preserve the registered Task goal throughout its lifetime, including after restart,
+even when the API permits goal edits. Agree the necessary stage sequence before
+Task execution; design only the imminent stage immediately before doing it. Follow the
 [canonical goal rule](docs/governance/development-rules.md#task-goal-preservation).
 Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
@@ -113,6 +110,10 @@ decisions only in conversation history.
 Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the same business
+result without duplicate effects. Refusals identify a concrete obstacle and an executable remedy/continuation;
+unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal investigation.
+Follow [atomicity, idempotency and actionable refusals](docs/governance/development-rules.md#атомарность-идемпотентность-и-понятный-отказ).
 Reconcile a stale completion status with an actually completed, independently reviewed, accepted and integrated
 result through its public owner or an authorized audited manual correction. Preserve historical stages and native
 receipts; distinguish manual reconciliation from native lifecycle completion. Follow
@@ -126,6 +127,8 @@ For changed documentation or rule targets, follow [local links and exact
 headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to
 changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.
 
+
+Follow [supported use and sufficient design](docs/workflows/task-execution-contract.md#поддерживаемое-использование-и-достаточность-решения): implement the agreed behavior under documented proper use; do not invent hostile-administrator or universal misuse obligations, or automatic application self-repair. Preserve actual data and authority obligations. Documentation teaches correct procedures and uses correct examples.
 
 Deliver the working path rather than delaying it for speculative combinations of conditions. Handle the ordinary routes
 and failures implied by the rules; resolve uncertain edge cases using actual usage and measurements. State current
@@ -258,6 +261,10 @@ Keep this English projection and its Russian source consistent in the same chang
 - Continue authorized work to its stated outcome, without expanding scope. Do not delegate to sub-agents without
   explicit user authorization in the current request. Ask only for a genuinely blocking decision; use existing
   authorization for routine work.
+- In paired executor/reviewer work, communicate only when handing the Task between participants. The executor
+  performs stage work, makes working decisions and applies corrections; the reviewer checks handed-over designs
+  and results. Include decisions and questions in the saved stage result and handoff, rather than sending separate
+  approval requests during execution. Follow [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 - For a user-started Task, known executor/reviewer counterparts continue autonomously within AI poise gates and user
   limits. In both directions, save results, confirm public Task release, then send the counterpart a direct handoff
   message; the recipient acquires before working. No per-review user command is required. Follow [direct role
@@ -268,6 +275,10 @@ Keep this English projection and its Russian source consistent in the same chang
   role boundaries and separately controlled publish acceptance; after ordinary public release, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
+  Continue the current verified result through its proved ownership history: a receiver's self-cycle
+  preserves an earlier transfer, while the original author alone does not establish one. Keep the same
+  progression intent and existing source/claim/unknown/review gates; follow
+  [verified-result continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 - Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New
   messages add to the working plan unless they explicitly change an assignment; preserve pending work and blockers
   across checkpoints and compaction. Reading or acknowledging a message does not complete its assignment.
@@ -428,22 +439,41 @@ Keep this English projection and its Russian source consistent in the same chang
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
   unchanged.
-- Before terminal handling, agree the permanent delivery of every result (or explicit no_result). After terminal status,
-  confirmed delivery and closure of required consumers/resources, the owning runtime removes the complete Task folder,
+- Before a terminal transition, decide and perform the required result integration/delivery or refuse it through
+  cancellation. Cancellation itself authorizes refusal and Task-owned cleanup; do not demand a separate no_result
+  decision. The owning runtime removes the complete Task folder,
   including raw evidence, temporary artifacts and checkpoints, without a hidden archive. Preserve minimal DB history,
   delivered results, shared Sprint material, foreign resources and operator backups. Follow
   [terminal material delivery](docs/workflows/terminal-materials.md#договор-и-граница-хранения). Deliberate replacement
   with an ordinary directory at the configured Task path is allowed; saved device/inode is audit only. Preserve actual
   owner/path/type/link boundaries; do not add root-substitution hardening. Follow the
   [operator contract](docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).
-- The commit disposition requires a separate explicit decision. Cleanup itself authorizes neither publication to
-  the configured target branch nor destruction of unique commits and does not prescribe merge or discard. Clean
-  accepted successful work
-  only after its separately authorized integration completes. On cancellation, record a separate commit-disposition
-  decision before removing a resource would destroy unique commits.
+- A decision to transition a Task to a status authorizes every action defined by that transition's contract,
+  including its cleanup and commit disposition; do not request separate approval for those actions.
+  Decide the result before any terminal transition: integrate it or refuse integration. Integration includes a
+  commit into the selected working branch (not necessarily master) and/or delivery of materials to the customer's
+  destination. Cancellation means refusal and authorizes removal of all Task-owned working materials, worktree and
+  temporary branch, including undelivered changes and unique commits, without another decision or hidden archive.
+  Preserve already delivered results, accounting history and foreign resources.
+  Existing runtime demands for another approval are an implementation gap, not continuing policy. Follow
+  [status transition authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
+- Every stage must explicitly declare whether it requires a worktree. On stage entry or Task acquisition, use the
+  current stage's contract: create an absent required worktree from available saved state and continue; an absent
+  worktree must not block or trigger creation for a stage that does not require one. Runtime code consumes only
+  the explicit stage flag; it must not infer it from stage names, purpose, position or material type.
+  The current Task-wide worktree_required does not implement this contract; do not invent unsupported API fields.
+  Lost changes require neither a separate record nor recovery before continuing.
+  Preserve Task identity, available history/results and foreign work; obtain current verification
+  for the new state. Follow [continuation authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
+- Set worktree flags during stage design. Initial goal/requirement formulation needs no worktree. For versioned
+  changes, plan it for implementation, verification, acceptance and integration preparation; after confirmed
+  fast-forward remove it, and assign later changes to a new Task. Tasks on materials outside version control
+  require no worktree at any stage. These are planning principles, not runtime heuristics. Follow
+  [stage worktree design](docs/workflows/task-planning.md#потребность-этапа-в-рабочем-дереве).
 - Use public delivery/agree and delivery/settle rather than manually deleting managed Task material. Terminal status,
-  verified checks, delivery completion, resource cleanup and integration are distinct observations. Existing Tasks
-  without an agreement are not silently assigned one or retired. Preserve their actual blocked/incomplete status.
+  verified checks, delivery completion, resource cleanup and integration are distinct observations. Cancellation
+  itself records refusal; a missing earlier delivery agreement must not demand another user decision. Report actual
+  technical blockers and continue the authorized transition through its owners.
 - Never use the main checkout or foreign WIP for preparation or conflict resolution, and never `stash`, `reset`,
   `restore`, `checkout`, `clean`, stage, commit, or delete their state. The sole publication effect is the serialized
   `git merge --ff-only`; a dirty or unfinished checkout may block it without being modified. After confirmed

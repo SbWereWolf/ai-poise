@@ -1,0 +1,230 @@
+[
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "fast",
+      "changed_paths": null
+    },
+    "suite_ids": [
+      "suite-core",
+      "suite-ui",
+      "suite-fast-only"
+    ],
+    "markers": [
+      "core-1:1",
+      "core-2:1",
+      "ui-1:1",
+      "fast-1:1"
+    ],
+    "reason": "all_profile_members"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "release",
+      "changed_paths": null
+    },
+    "suite_ids": [
+      "suite-core",
+      "suite-ui",
+      "suite-release"
+    ],
+    "markers": [
+      "core-1:1",
+      "core-2:1",
+      "ui-1:1",
+      "release-1:1"
+    ],
+    "reason": "all_profile_members"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "fast",
+      "changed_paths": [
+        "src/core/a.py"
+      ]
+    },
+    "suite_ids": [
+      "suite-core"
+    ],
+    "markers": [
+      "core-1:1",
+      "core-2:1"
+    ],
+    "reason": "matching_sources"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "release",
+      "changed_paths": [
+        "src/core/a.py"
+      ]
+    },
+    "suite_ids": [
+      "suite-core",
+      "suite-release"
+    ],
+    "markers": [
+      "core-1:1",
+      "core-2:1",
+      "release-1:1"
+    ],
+    "reason": "matching_sources"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "fast",
+      "changed_paths": [
+        "src/core/sub/a.py",
+        "tests/core/check.py",
+        "src/core/sub/b.py"
+      ]
+    },
+    "suite_ids": [
+      "suite-core",
+      "suite-fast-only"
+    ],
+    "markers": [
+      "core-1:1",
+      "core-2:1",
+      "fast-1:1"
+    ],
+    "reason": "matching_sources",
+    "source_matches": [
+      {
+        "suite_id": "suite-core",
+        "sources": [
+          "src/core",
+          "tests/core"
+        ],
+        "changed_paths": [
+          "src/core/sub/a.py",
+          "tests/core/check.py",
+          "src/core/sub/b.py"
+        ]
+      },
+      {
+        "suite_id": "suite-fast-only",
+        "sources": [
+          "src/core/sub"
+        ],
+        "changed_paths": [
+          "src/core/sub/a.py",
+          "src/core/sub/b.py"
+        ]
+      }
+    ]
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "fast",
+      "changed_paths": [
+        "src/ui/view.py"
+      ]
+    },
+    "suite_ids": [
+      "suite-ui"
+    ],
+    "markers": [
+      "ui-1:1"
+    ],
+    "reason": "matching_sources"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "fast",
+      "changed_paths": [
+        "src/security/check.py"
+      ]
+    },
+    "suite_ids": [],
+    "markers": [],
+    "reason": "no_matching_source"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "release",
+      "changed_paths": [
+        "src/security/check.py"
+      ]
+    },
+    "suite_ids": [
+      "suite-release"
+    ],
+    "markers": [
+      "release-1:1"
+    ],
+    "reason": "matching_sources"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "fast",
+      "changed_paths": [
+        "src/core-other/check.py",
+        "docs/readme.md"
+      ]
+    },
+    "suite_ids": [],
+    "markers": [],
+    "reason": "no_matching_source",
+    "unmatched_paths": [
+      "src/core-other/check.py",
+      "docs/readme.md"
+    ]
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "release",
+      "changed_paths": []
+    },
+    "suite_ids": [],
+    "markers": [],
+    "reason": "empty_change_set"
+  },
+  {
+    "selection": {
+      "kind": "suite",
+      "id": "suite-fast-only"
+    },
+    "suite_ids": [
+      "suite-fast-only"
+    ],
+    "markers": [
+      "fast-1:1"
+    ],
+    "reason": "direct_id"
+  },
+  {
+    "selection": {
+      "kind": "suite_set",
+      "profile": "release",
+      "changed_paths": [
+        "src/core/a.py"
+      ]
+    },
+    "suite_ids": [
+      "suite-core",
+      "suite-release"
+    ],
+    "core-1_exit": 7,
+    "markers": [
+      "core-1:1"
+    ],
+    "not_executed_steps": [
+      "core-2"
+    ],
+    "not_executed_suites": [
+      "suite-release"
+    ],
+    "status": "failed",
+    "reason": "matching_sources"
+  }
+]

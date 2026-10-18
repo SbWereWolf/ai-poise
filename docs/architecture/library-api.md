@@ -2,6 +2,27 @@
 
 Обновлено: **2026-10-08**. Исходный срез **POISE-DDD-04B** и последующие API.
 
+## Именованные проверки проекта
+
+`interfaces.project_checks.execute(config_path, checkout, policy_path, stream,
+output, error_output, clock)` — полный JSON-порт обычных проверок. Семь аргументов
+выбираются явно; CLI `checks` использует тот же порт и `SystemClock`, а представление
+делегирует общему `SavedResponse`/`saved_result_view`.
+
+`project_checks_tools` связывает чистые `ProfileCatalogue`, `GeneralPackageCatalogue`,
+`SuiteCatalogue`, `TimingPolicy`, парсеры и admission сохранённых DTO из
+`modules.project_checks.records` с прикладным `ProjectChecks`. Infrastructure
+владеет выбранными файлами, executable/cwd/environment, Git inputs/subject,
+`NamedRunLedger`, необязательным `NamedResultCache`, evidence и публикацией
+калибровки. Capture/spawn/cleanup выполняет существующий `RegisteredCheckRunner`;
+semantic progress подключается его opt-in observer.
+
+Сессионный владелец устанавливает подлинного вызывающего без Task. Операция не
+меняет lifecycle/claims Task/Sprint. Generic run/result/history/cache имеют свои
+семантику и хранение, поэтому не заменяют CheckRegistry, Task evidence или C018.
+Точная форма семи операций, настройка, результаты и отказы описаны один раз в
+[справочнике проверок](../configuration/named-project-checks.md).
+
 ## Локальные assets — 2026-10-04
 
 `RestoreRequest.parse`, `AssetDeclaration.parse` и `AssetSpec.parse` в
@@ -429,3 +450,38 @@ python examples/project_execution.py \
 для новых методов и выполняют раннюю route-проверку. `from_items` восстанавливает
 исторические снимки без плана; автоматическая migration и двойная запись не
 вводятся.
+
+## Общее чтение файлов выбранного проекта
+
+`poise.interfaces.content_reader.execute(config_path, checkout, policy_path, stream,
+output, error_output, clock) -> int` — полный JSON-порт. Все семь аргументов заданы явно:
+абсолютные config/checkout/policy, бинарный вход JSON, текстовые output/error_output и Clock.
+CLI `content-read --format json|text` использует ту же композицию; text rendering принадлежит
+адаптеру, параметра формата в Python JSON-порт не добавлено.
+
+```python
+import sys
+from poise.interfaces.content_reader import execute
+from poise.infrastructure.clock import SystemClock
+
+code = execute(
+    "/absolute/project/config.json",
+    "/absolute/project/checkout",
+    "/absolute/operator/reader.json",
+    sys.stdin.buffer,
+    sys.stdout,
+    sys.stderr,
+    SystemClock(),
+)
+raise SystemExit(code)
+```
+
+Передайте на stdin один из [полных запросов](../configuration/project-file-reading.md#семь-операций)
+и сохраните настоящую caller identity среды. Код примера не создаёт native lifecycle и не
+получает право на чужой episode. Production composition передаёт SystemClock явно, тест —
+свой Clock. `ContentReader` связывает выборку, сессию, реестр и бюджет через ports; schema2,
+файловая система, HookService и представление остаются инфраструктурными владельцами.
+Полный output и error stream сохраняются без внутреннего clipping; late sink failure даёт
+правдивый отказ. [JSON/text контракт](../configuration/project-file-reading.md#полный-json-и-text-framing)
+и [recovery](../workflows/file-intake-lifecycle.md#завершение-и-восстановление) принадлежат каноническим
+страницам. Старый специализированный SourceReader/ack API сохраняется.

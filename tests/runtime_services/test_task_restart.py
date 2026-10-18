@@ -113,7 +113,11 @@ def workflow_contract(goal_type, workflow):
                     item["id"] for item in requirements
                     if stage["id"] in item["stages"] and item["phase"] == "post"
                 ],
-                "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
+                "criteria": {
+                    "requirements": [],
+                    "definition_of_ready": [],
+                    "definition_of_done": [],
+                },
             }
             for stage in workflow["stages"]
         ],

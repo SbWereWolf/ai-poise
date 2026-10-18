@@ -47,11 +47,13 @@ Use the selected paired workflow' [stage
 descriptions](../../../docs/workflows/paired-task-stages.md#шесть-пар-разработки):
 inspect and plan, design checks, implement tests, design code, implement code, then
 design and update documentation. Every substantive executor result has independent
-review. Preserve the accepted goal. Do not change product code while writing tests,
+review. Preserve the registered goal. Do not change product code while writing tests,
 accepted tests while writing code, or either while documenting. The reviewer checks
 the full diff and next-stage allowed_paths. Earlier-stage defects require an agreed
 restart, not a hidden correction. Do not substitute this projection for the actual
 current Task graph; existing frozen snapshots need their own authorized migration.
+
+Before executing each logical stage, design only that imminent stage's goal, result requirements and acceptance criteria, then obtain independent design review. Execution receives its own independent review. Agree the overall stage sequence at Task entry; do not design all later stages in advance. Ordinary refinement of an unstarted stage uses its criteria owner and does not restart the Task. Follow [the canonical contract](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом).
 
 1. Establish the authorized outcome, DoD and current stage. For any duplicate Task, the same library
    method resolves its
@@ -134,6 +136,9 @@ current Task graph; existing frozen snapshots need their own authorized migratio
    result, confirm public release, then follow the [handoff
    contract](../../references/context-handoff-contract.md).
    There are only executor and reviewer; self-review does not impersonate the other role.
+   In paired work, communicate only at Task handoff. The executor owns working decisions and
+   applies corrections; the reviewer checks the handed-over design or result. Save questions and
+   decisions with that result instead of requesting separate approvals during execution.
 7. Diagnose failures from saved evidence. Before retrying an effectful action, determine what
    completed and how the owning API resumes it idempotently. If the frozen requirements/rules make
    success impossible or the available workaround is not adequate to the Task, preserve the evidence

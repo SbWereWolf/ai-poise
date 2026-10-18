@@ -6,6 +6,26 @@
 версий](storage-lifecycle.md#владельцы-и-версии). Числа проверок и сведения о review в датированных
 разделах ниже относятся к соответствующим историческим задачам, а не к новой проверке всей поставки.
 
+## Именованные проверки проекта
+
+Реализован явный `poise checks` с list/describe/preview/run/result/calibrate/impact,
+профилями, зависимостями и шагами пакетов, fast/release наборами, выбором по source
+областям и обычной работой без Task. Сохраняются реальные argv/cwd/runtime, исход,
+полный доступный capture/evidence, прогресс и сравнимая история. Доступны выбранные
+семантические парсеры, явная калибровка, однократная диагностика, content reuse и fresh.
+
+Проверен реальный POSIX Linux-путь, включая относительные executable/PATH,
+необязательный cache failure, authoritative malformed rows и потерю доставки.
+Windows invocation data/preview не подтверждают Windows execution; внешние PHP/npm
+и документационный проверяющий требуют собственных установленных предпосылок.
+Переданное preview.available и валидный пример не являются успешным запуском.
+
+Общий capture/представление переиспользованы, Task/CheckRegistry/C018 сохранены.
+Это явный API выбранной проверки, а не MCP/универсальный output interception.
+Новая возможность исходников не обновляет установленную поставку потребителя
+или live hooks автоматически. Настройка, точные эффекты полей и ограничения:
+[именованные проверки проекта](../configuration/named-project-checks.md).
+
 ## Типы и критерии этапов
 
 Реализованы явные назначения `design`, `execution`, `observation`, `other`,
@@ -314,3 +334,21 @@ retirement повторно наблюдает постоянный резуль
 неявный договор, полномочия приёмки/интеграции не выводятся из settlement.
 Точные формы и ограничения — в [договоре
 поставки](../workflows/terminal-materials.md#публичный-договор-поставки).
+
+## Общее чтение частей файлов проекта
+
+Реализован `content-read` и Python JSON-порт общего чтения зарегистрированного checkout без
+Task/Sprint. Поддержаны UTF-8 complete/lines, SHA выбранного текста, строгие packet/policy поля,
+current-generation repeat и явный manual переход, консервативный полный budget preflight,
+поэлементные факты и полные JSON/text результаты. Пустой schema2 template поставляется
+versioned Python resource; native admission и exact-End recovery используют существующий owner.
+Stale recovery прежнего episode сохраняет нового владельца; неверный JSON root owner record
+возвращает structured ownership_unknown с сохранением данных.
+
+Поставка проверяется offline wheel/noneditable install, изолированным `-I` CLI consumer и
+настоящим isolated SDK lifecycle, включая оба обезличенных профиля. Ссылки на
+[политику и исполняемые примеры](../configuration/project-file-reading.md#проверка-поставленных-примеров)
+и [жизненный цикл](../workflows/file-intake-lifecycle.md#границы-поставки-и-проверка) определяют
+текущую возможность. Это не общий перехват всех tool results и не автоматический reset при
+compaction; специализированный acknowledged SourceReader сохраняет собственный API.
+Регистрация текста не является доказательством памяти модели, доставки или provider billing.

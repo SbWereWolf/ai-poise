@@ -318,3 +318,24 @@ bash "$native_launcher" --project "$project_id" < "$packet"
 [у её владельца](../configuration/project-file-reading.md#подготовка-политики-и-примеры), admission
 и actual End/recover — [в жизненном цикле](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
 Специализированный `tools/source_read.py` с acknowledgement остаётся отдельным интерфейсом.
+
+
+### Обычное чтение и состояние покрытия
+
+Новых верхнеуровневых команд не требуется. После явного
+[подключения шести событий](../configuration/runtime-hooks.md#подключение-событий-чтения)
+обычный поддержанный Bash-вызов проходит установленный `hook` adapter до и после выполнения.
+Агент не вызывает synthetic Start/End для допуска; hook CLI принимает настоящие host события.
+
+`content-read --config ABS_CONFIG --checkout ABS_CHECKOUT --policy ABS_COMMAND_READER
+--format json` принимает отдельный пакет `{"operation":"coverage"}` на stdin, без Work
+input/messages. JSON-SDK execute имеет тот же пакет. Это metadata-only состояние своего
+поколения: documents/ranges/operations, stale/pending/settled counts и omissions; items пустой.
+Полный JSON, response_path, reason/action и error читаются без clipping. Exit/error различает
+успех от admission/configuration/registry отказа; Post warning не отзывает выполненное чтение.
+
+[Полная исполняемая форма](../configuration/project-file-reading.md#сводка-покрытия),
+[options/examples](../configuration/project-file-reading.md#параметры-политики-обычных-команд) и
+[продолжение после отказов](../configuration/project-file-reading.md#решения-и-восстановление-учёта-команд)
+принадлежат каноническому reader owner. Рабочий каталог доказан literal absolute cd prefix
+либо независимым absolute operand; ambient cwd не угадывается.

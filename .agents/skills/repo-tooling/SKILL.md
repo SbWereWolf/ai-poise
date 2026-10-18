@@ -99,5 +99,20 @@ with a supplied session identifier. Follow the canonical
 [reader contract](../../../docs/configuration/project-file-reading.md#семь-операций),
 [operator options](../../../docs/configuration/project-file-reading.md#справочник-опций) and
 [resource lifecycle](../../../docs/workflows/file-intake-lifecycle.md#допуск-и-владение).
-Keep specialized acknowledged reading separate; this adapter does not grant generic tool-result
-interception, automatic compaction handling, publication or integration authority.
+Keep specialized acknowledged reading separate. Explicit ordinary Bash events reuse this
+resource; universal tool-result interception, automatic compaction handling, publication
+and integration authority do not follow from it.
+
+
+### Explicit ordinary-read event adapter
+
+Compose the existing HookService and shared document-intake owners; keep
+[full configuration and installed examples](../../../docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд)
+at their canonical operator owner. Use actual revision/immutable admission before genuine
+Start and preserve the configured project/checkout/native caller. Keep
+[proved source projection and cwd](../../../docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог),
+[metadata-only coverage](../../../docs/configuration/project-file-reading.md#сводка-покрытия)
+and [pending/settlement/recovery](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
+with their current owners. Preserve complete machine results and truthful pre-refusal versus
+post-accounting warnings; do not introduce a second ledger, runner, native identity or lifecycle.
+Check installed-consumer claims independently from actual host event delivery.

@@ -340,7 +340,7 @@ retirement повторно наблюдает постоянный резуль
 Реализован `content-read` и Python JSON-порт общего чтения зарегистрированного checkout без
 Task/Sprint. Поддержаны UTF-8 complete/lines, SHA выбранного текста, строгие packet/policy поля,
 current-generation repeat и явный manual переход, консервативный полный budget preflight,
-поэлементные факты и полные JSON/text результаты. Пустой schema2 template поставляется
+поэлементные факты и полные JSON/text результаты. Пустой schema-2 template поставляется
 versioned Python resource; native admission и exact-End recovery используют существующий owner.
 Stale recovery прежнего episode сохраняет нового владельца; неверный JSON root owner record
 возвращает structured ownership_unknown с сохранением данных.
@@ -349,6 +349,26 @@ Stale recovery прежнего episode сохраняет нового влад
 настоящим isolated SDK lifecycle, включая оба обезличенных профиля. Ссылки на
 [политику и исполняемые примеры](../configuration/project-file-reading.md#проверка-поставленных-примеров)
 и [жизненный цикл](../workflows/file-intake-lifecycle.md#границы-поставки-и-проверка) определяют
-текущую возможность. Это не общий перехват всех tool results и не автоматический reset при
-compaction; специализированный acknowledged SourceReader сохраняет собственный API.
+текущую возможность. Универсального перехвата всех tool results и автоматического reset при compaction нет;
+поддержанный Bash adapter подключается явно к тому же ресурсу. Специализированный
+acknowledged SourceReader сохраняет собственный API.
 Регистрация текста не является доказательством памяти модели, доставки или provider billing.
+
+
+### Учёт поддержанных обычных чтений
+
+Поставлены явные command policy/profile/settings и парные PreToolUse/PostToolUse для Bash
+через существующий HookService. Поддержаны настроенная классификация/объём, доказанные
+проекции source/output records, effective cwd, повтор/novelty/generation, pending/пригодный
+Post/replay/conflict/expiry и ограниченная metadata-only coverage. Прямое и обычное чтение
+используют общий реестр/эпизод. Программного универсального shell interpreter не заявлено.
+
+Полные [опции, примеры и ограничения](../configuration/project-file-reading.md#обычные-команды-чтения),
+[event wiring](../configuration/runtime-hooks.md#подключение-событий-чтения) и
+[восстановление](../workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
+описывают реализованный путь. Python package contract — >=3.15,<3.16. Изолированный offline
+noneditable wheel consumer проверяет CLI/SDK, настоящий отдельный SDK lifecycle, реальные
+Bash bytes, совместное покрытие и recovery; live host delivery остаётся not_observed.
+Обязательный audit.record_allowed_readers сейчас проверяется и сохраняется, отдельной
+ветки runtime аудита по нему нет. Никакого вывода о model memory/billing/ACK или автоматическом
+compaction reset из результатов учёта не делается.

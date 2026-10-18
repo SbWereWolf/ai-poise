@@ -1070,3 +1070,18 @@ or model-memory proof. New context transitions accept only reason `manual`; repl
 saved transition generation without rolling back live state. The specialized acknowledged source
 reader retains its existing owner. This API does not intercept arbitrary tools or automatically
 reset general context after compaction.
+
+
+### Ordinary command reads and shared coverage
+
+Use the explicitly installed Bash PreToolUse/PostToolUse adapter only through its genuine
+host events. Keep the settings → reader profile → command policy and immutable authority
+links from the [operator setup](../../../docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд).
+The same F04 episode/ledger serves direct reads and supported ordinary commands without a Task.
+Use [coverage](../../../docs/configuration/project-file-reading.md#сводка-покрытия) for bounded
+metadata, and select needed ranges using the actual reason/action. A pending Pre is not
+confirmed coverage; a Post warning cannot undo an executed command. Preserve the
+[proved cwd and reader limits](../../../docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог)
+and the [existing recovery owner](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения).
+Do not infer host delivery, model memory, acknowledgements or automatic compaction handling
+from recorded metadata. This guidance grants no Task acceptance, publication or integration.

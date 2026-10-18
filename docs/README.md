@@ -153,3 +153,11 @@
 и [жизненный цикл](workflows/file-intake-lifecycle.md#допуск-и-владение) описывают настоящий native
 admission, состояние чтения и восстановление. Специализированный acknowledged reader сохраняет
 [свой контракт](workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).
+
+
+- [Обычные Bash-чтения](configuration/project-file-reading.md#обычные-команды-чтения):
+  четыре полных примера, явные classifier/registry modes и пределы, общий ledger.
+- [Native tool events](configuration/runtime-hooks.md#подключение-событий-чтения):
+  установка до Start, действительная authority и CLI/SDK wiring.
+- [Coverage и продолжение](configuration/project-file-reading.md#сводка-покрытия):
+  ограниченные metadata своего checkout/поколения без Task и без повторного source body.

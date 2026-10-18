@@ -21,3 +21,10 @@
 
 - [project-file-reading.md](project-file-reading.md) — общий reader, обе политики, операции, рамки и ошибки.
 - [Жизненный цикл reader](../workflows/file-intake-lifecycle.md) — шаблон, native admission и восстановление.
+
+- [Учёт обычных команд](project-file-reading.md#подключение-учёта-обычных-команд) — полный
+  command-enabled комплект, справочник всех options и совместная работа с прямым reader.
+- [Подключение tool events](runtime-hooks.md#подключение-событий-чтения) — observed revision,
+  immutable definition, admission и настоящий native lifecycle.
+- [Coverage](project-file-reading.md#сводка-покрытия) — восьмая операция при включённом
+  профиле, bounded metadata и ошибки/продолжение.

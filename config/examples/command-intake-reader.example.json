@@ -1,0 +1,47 @@
+{
+  "schema": "poise-content-reader-policy-1",
+  "version": "command-enabled-reader-1",
+  "complete": {
+    "max_bytes": 4096,
+    "max_lines": 200
+  },
+  "bounded": {
+    "max_bytes": 4096,
+    "max_lines": 160
+  },
+  "output": {
+    "max_bytes": 32768,
+    "max_lines": 512
+  },
+  "registry": {
+    "filename": "reads.sqlite",
+    "schema_version": 2,
+    "busy_timeout_ms": 40
+  },
+  "session": {
+    "temporary_root": "@ROOT@/reader-tmp",
+    "coordination_root": "@ROOT@/reader-control",
+    "diagnostic_file": "@ROOT@/reader-diagnostics.jsonl",
+    "registry_template": "@ROOT@/command-reader-template.sqlite",
+    "registry_directory": "registry",
+    "response_directory": "responses",
+    "ownership_filename": "ownership.json"
+  },
+  "admission": {
+    "hook_settings": "@ROOT@/hook-settings.json",
+    "definition_path": "@ROOT@/definition-pending.json"
+  },
+  "coordination": {
+    "wait_seconds": 30,
+    "poll_seconds": 0.01,
+    "recovery_budget_seconds": 60,
+    "host_event_budget_seconds": 60,
+    "end_observation_poll_seconds": 0.01
+  },
+  "storage": {
+    "control_response_root": "@ROOT@/reader-control-responses"
+  },
+  "command_intake": {
+    "policy": "@COMMAND_POLICY@"
+  }
+}

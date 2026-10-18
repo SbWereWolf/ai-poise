@@ -1,0 +1,117 @@
+{
+  "schema": "poise-command-intake-policy-1",
+  "version": "command-intake-1",
+  "classifier": {
+    "mode": "enforce",
+    "complete_reads": {
+      "max_files_per_call": 1,
+      "small_bundle_max_files": 3,
+      "small_bundle_max_bytes": 200,
+      "small_bundle_max_lines": 40
+    },
+    "bounded_reads": {
+      "max_files_per_call": 4,
+      "max_lines_per_file": 200,
+      "max_total_lines": 400,
+      "max_bytes_per_file": 4096,
+      "max_total_bytes": 8192
+    },
+    "unknown_expansion": {
+      "deny_globs": true,
+      "deny_reader_loops": true,
+      "deny_find_exec_readers": true,
+      "deny_xargs_readers": true,
+      "deny_nested_shell_readers": true,
+      "deny_obvious_interpreter_bypass": true,
+      "deny_command_substitutions": true,
+      "deny_eval_readers": true,
+      "unclassified_behavior": "deny"
+    },
+    "readers": {
+      "complete": [
+        "bat",
+        "batcat",
+        "cat",
+        "nl",
+        "tac"
+      ],
+      "range_capable": [
+        "head",
+        "tail",
+        "sed"
+      ],
+      "conservative": [
+        "awk",
+        "perl"
+      ],
+      "nested_shells": [
+        "bash",
+        "dash",
+        "ksh",
+        "sh",
+        "zsh"
+      ],
+      "interpreter_bypass_patterns": [
+        "open\\(.*\\.read\\(",
+        "read_text\\(",
+        "readFileSync\\("
+      ],
+      "interpreter_metadata_patterns": [
+        "stat\\("
+      ]
+    },
+    "parser": {
+      "max_nested_shell_depth": 2,
+      "max_reader_invocations_per_call": 4,
+      "max_reader_arguments_per_invocation": 12
+    }
+  },
+  "registry": {
+    "mode": "enforce",
+    "versioning": {
+      "hash_max_bytes": 1024
+    },
+    "same_generation": {
+      "deny_exact_repeats": true,
+      "deny_fully_covered_ranges": true,
+      "min_new_lines": 8,
+      "min_new_fraction_percent": 20
+    },
+    "post_generation": {
+      "allow_targeted_reread": true,
+      "deny_complete_reread": true,
+      "max_lines_per_file": 4,
+      "max_total_lines": 8,
+      "unknown_repeat_behavior": "deny"
+    },
+    "post_result": {
+      "minimum_response_bytes": 1,
+      "unknown_exit_code_is_success": false,
+      "output_field": "output",
+      "stream_fields": [
+        "stdout",
+        "stderr"
+      ],
+      "exit_fields": [
+        "exit_code",
+        "exitCode"
+      ]
+    },
+    "retention": {
+      "max_pending_age_seconds": 300.0
+    }
+  },
+  "context": {
+    "max_documents": 20,
+    "max_ranges_per_document": 20,
+    "max_pending_records": 20,
+    "max_bytes": 16000
+  },
+  "feedback": {
+    "max_bytes": 1800,
+    "max_lines": 20
+  },
+  "audit": {
+    "record_allowed_readers": true
+  }
+}

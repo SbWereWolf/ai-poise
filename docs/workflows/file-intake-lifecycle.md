@@ -98,8 +98,8 @@ Coordination record/gate, внешний diagnostic log, template и control res
 
 Общий read API, schema-2 template, реестр, native episode admission и recovery доступны через
 установленный пакет; поддерживается [полный JSON и text framing](../configuration/project-file-reading.md#полный-json-и-text-framing).
-Произвольные обычные инструменты не перехватываются этим API; общего автоматического ledger
-всех tool results и автоматического compaction reset здесь нет.
+Поддержанные обычные Bash-чтения учитывает отдельно включаемая пара native tool events
+в том же ресурсе; общего автоматического ledger всех tool results и compaction reset нет.
 [Специализированный SourceReader](source-reader.md#явные-диапазоны-и-поколения-контекста)
 с его acknowledgement/reset сохраняет собственный контракт.
 
@@ -107,3 +107,62 @@ Coordination record/gate, внешний diagnostic log, template и control res
 SDK Start/End; рабочие hook settings пользователя для этой проверки не меняются. Регрессии
 отдельно проверяют malformed/non-object owner и чередование старого recovery с новым episode,
 а также нормальное incomplete/cleanup/replay. Проверки ссылок не заменяют эти поведенческие факты.
+
+
+## Ожидание и завершение обычного чтения
+
+[Command-enabled профиль](../configuration/project-file-reading.md#подключение-учёта-обычных-команд)
+подключает тот же HookService, native episode, EpisodeResources, schema2 registry и generation.
+Task/Sprint для чтений не требуются. Namespace разделяет выбранные project/checkout,
+действительного caller и эпизод; generation отделяет контекст внутри него. Прямой F04 read
+и обычный Bash читают общий ledger, специализированный acknowledged reader остаётся отдельным.
+
+До настоящего Start согласуйте полную authority: settings → reader profile → command policy,
+установленное определение → фактический admission.definition_path. Подготовка пустого template
+допустима до Start; prepare ресурса — после. Переключение определения при уже созданном
+ресурсе не считается продолжением прежней authority.
+
+PreToolUse разбирает команду и наблюдает source version до короткого gate, затем допускает
+актуального owner и фиксирует pending с generation, policy snapshot, Clock и планами.
+Разрешённый Pre ещё не означает доставку текста или новое coverage. При реальном нарушении
+enforce запрещает чтение, audit разрешает с причиной; отсутствие планов не создаёт ложный
+pending. Допуск/повреждение данных не превращаются в allow через audit.
+
+PostToolUse проверяет тот же call, normalizes пригодность configured response fields, затем
+фиксирует terminal состояние и только действительные планы. Известная ненулевая ошибка,
+неверный/недостаточный текст и неизвестный exit при соответствующей политике снимают pending
+без coverage. Изменившаяся версия пропускается отдельно для каждого плана; другое текущее
+generation отбрасывает старый pending. Counts eligible/skipped/registered не являются
+обязательной partition: registered считает уникальные `(path, operation_digest)`.
+
+Возраст проверяется при Post через monotonic_ns только в том же comparison domain Clock.
+По истечении max_pending_age_seconds результат discarded/pending_expired; нет фонового
+таймера, который удаляет pending при запросе coverage. Несравнимый Clock даёт честный
+incomparable_clock вместо выдуманного возраста. UTC audit timestamp не заменяет monotonic.
+
+Тот же Pre возвращает сохранённый результат при совпадающих command/tool/turn; иначе
+call_conflict. Идентичное завершение terminal call возвращает сохранённый Post; другой
+fingerprint конфликтует. Cached control проходит строгую schema/state/context/path проверку
+до replay и coverage. Неисправный control остаётся данными для диагностики; не очищайте БД
+и не меняйте response ownership для получения успеха. Post без соответствующего Pre
+даёт unmatched, без присвоения чужих планов.
+
+Pre failure может запретить ещё не выполненную команду. Post failure сообщает о неподтверждённом
+учёте уже выполненного чтения и не блокирует его задним числом. Сохранение полного control
+может отказать после фактических registry effects; replay/диагностика проверяют текущее
+состояние, а не обещают откат содержимого. Поздняя ошибка supplemental command-ledger записи
+прямого read также не отменяет уже совершённое основное чтение; ответ различает
+coverage_unconfirmed и реальный результат.
+
+`advance_context` остаётся явным manual переходом общего владельца. Старый replay receipt
+не откатывает живое generation; старые plans не зачисляются новому контексту. Сводка
+[coverage](../configuration/project-file-reading.md#сводка-покрытия) показывает объединённые
+диапазоны/полные версии/неизвестные операции и ограниченные pending/counters/omissions;
+она не возвращает source text и не доказывает память модели, billing или ACK.
+
+Реальный End закрывает прежний native episode; [recover](#завершение-и-восстановление)
+прежнего owner проверяет exact End и удаляет только его ресурс. Post после End не создаёт
+новый ресурс. При active/unknown End, чужой authority, lock или corruption сохраняйте полные
+ответы и diagnostics, устраняйте причину через владельца и повторяйте тот же допустимый
+запрос. Не фабрикуйте End и не удаляйте lock/owner/историю. Поддержанный event adapter
+проверен изолированными CLI/SDK; доставка live host и универсальный reset не заявлены.

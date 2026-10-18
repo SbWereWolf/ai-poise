@@ -921,7 +921,7 @@ Placement декларации не заменяют immutable artifact publicat
 поэлементную регистрацию и сохранение полного ответа. `IntakeSessions` связывает session операции.
 
 Инфраструктурные `ProjectContentSource`, `PreparedRegistry`, `PreparedTemplate`, `EpisodeResources`
-и rendering реализуют ports. Пустая schema2 — versioned ресурс пакета; чтение live registry не
+и rendering реализуют ports. Пустая schema-2 — versioned ресурс пакета; чтение live registry не
 мигрирует схему. Настоящий native episode/End остаётся у существующего HookService. Общие
 SessionEstablisher/CallerIdentity и SavedResponse переиспользуются с другими потребителями;
 новый Task/Sprint/evidence lifecycle не создаётся.
@@ -935,5 +935,37 @@ temporary tree, внешние control/diagnostic/coordination/template сохр
 [Публичный контракт](../configuration/project-file-reading.md#назначение-и-явные-входы) и
 [жизненный цикл](../workflows/file-intake-lifecycle.md#допуск-и-владение) отделены от
 [специализированного acknowledged reader](../workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).
-Общий перехват обычных инструментов и автоматический compaction reset не являются поведением
-этой композиции.
+Поддержанные обычные Bash-чтения подключаются отдельным event adapter к тому же ресурсу.
+Универсальный перехват инструментов и автоматический compaction reset не заявлены.
+
+
+### Общий учёт обычных команд чтения
+
+Чистые CommandPolicy/CommandClassifier/SourceProjection/coverage decisions принадлежат
+`modules.document_intake`. Они определяют поддержанную грамматику, исходные вклады
+и emitted line volume, range union/novelty/generation, пригодность ответа и строгий cached
+control codec. Файловая система, время, SQL и HookService не импортируются в домен.
+
+`CommandSource` наблюдает доказанные bytes/EOF/final separator/version и передаёт неизменяемые
+факты classifier. Одна SourceProjection задаёт фактические byte contributions и source ranges;
+повторные emissions увеличивают объём, ledger объединяет покрытие. Effective cwd требует
+доказательства внешнего literal cd; nested cd инвалидирует inherited relative base.
+Неразрешённая проекция/база следует явной policy без выдуманных планов.
+
+`application.CommandIntake` согласует Pre pending, Post settlement, current-source eligibility,
+replay/conflict, Clock и bounded coverage. Он использует существующие IntakeSessions,
+EpisodeResources/PreparedRegistry и общий generation; нового ledger, schema upgrade, Task
+или session lifecycle не создаёт. Direct ContentReader добавляет сведения в тот же ledger;
+его фактические partial effects сохраняются при позднем отказе supplemental учёта.
+
+`infrastructure.document_intake.command_transport` связывает настоящие HookService/binding,
+явные project/checkout/policy, caller и установленное immutable definition. Полный control
+публикует существующий SavedResponse; только native feedback ограничивается отдельно.
+Обратный поток coverage/решения содержит metadata/reason/action, а не повторное source body.
+Pre может запретить выполнение, Post только сообщает о состоянии уже совершённого чтения.
+
+[Настройки и границы](../configuration/project-file-reading.md#обычные-команды-чтения),
+[event wiring](../configuration/runtime-hooks.md#подключение-событий-чтения) и
+[settlement/recovery](../workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
+принадлежат своим каноническим страницам. Поставляемый adapter доказан isolated installed
+consumer; live host delivery, model memory, ACK и universal compaction reset не следуют из этого.

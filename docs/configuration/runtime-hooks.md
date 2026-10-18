@@ -167,7 +167,8 @@ Codex/IDE.
 Полная последняя сводка сохраняется в данных сессии; её можно прочитать без новых
 проверок либо явно обновить. Порядок описан в [сводке готовности](#сводка-готовности-сессии).
 
-Поддерживаются SessionStart, UserPromptSubmit, Stop и SessionEnd основного агента.
+Поддерживаются SessionStart, UserPromptSubmit, Stop и SessionEnd основного агента;
+при явном включении учёта чтения — парные PreToolUse/PostToolUse для Bash.
 SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не поддерживаются этим адаптером. Configured
 `agent_id` выбирает профиль hook, но не создаёт отдельного исполнителя. Файлы launcher учитывают
 проект, источник, внешнюю сессию и профиль; Task caller определяется реальной native session через
@@ -633,7 +634,7 @@ Taskless read-only bootstrap не блокируется отсутствующ�
 заданные gates. Чтение, handoff и отмена не заперты за этими gates.
 
 ## Прямая проверка на WSL
-1. В своём WSL убедиться, что выбранный CPython 3.13 и Git запускаются. Подготовить project manifest
+1. В своём WSL убедиться, что выбранный CPython 3.15 и Git запускаются. Подготовить project manifest
    с явным `batch.message_source` текущего hook-источника (`mode=runtime_event`). Не включать
    одновременно JSONL importer для тех же сообщений.
 2. В одном пакете `runtime-setup` указать свои фактические пути и definition. Для JetBrains взять
@@ -787,3 +788,55 @@ SessionStart и launcher, затем публичные handoff/bootstrap по
 При отсутствии такой сессии delegated Task mutation не выполняется; обычная работа текущего
 владельца остаётся доступной. Описание native payload: [Codex
 hooks](https://learn.chatgpt.com/docs/hooks).
+
+
+## Подключение событий чтения
+
+[Полный command-enabled комплект](project-file-reading.md#подключение-учёта-обычных-команд)
+сохраняет существующие четыре lifecycle события и добавляет ровно пару `PreToolUse`/`PostToolUse`.
+У обоих `matcher="Bash"`, `async=false`, явные положительные `timeout_seconds`/`context_limit`
+и непустой `status_message`. Пример задаёт15 секунд / 2000 контекстных единиц; это значения установки,
+не скрытые defaults. Один event без второго либо другой matcher отклоняются.
+
+Hook settings явно содержат абсолютный `tool_intake.reader_policy`. Полный reader profile
+содержит абсолютный `command_intake.policy`; command policy проверяется до установки
+определения с tool events. Остальные обязательные настройки сохраняются по
+[основному справочнику](#настройки-установки). Generic четырёхсобытийные шаблоны остаются
+отдельным выбором и сами учёт обычных команд не включают. Их пробы и command example
+согласованы с выбранным package runtime Python 3.15 (`>=3.15,<3.16`).
+
+Для существующего native файла прочитайте `HookService(settings_path).revision()`,
+передайте наблюдённое значение в установленный `HookService.install` либо
+`runtime-config` packet:
+
+```json
+{"operation":"install","input":{"request_id":"operator-selected-install-id","expected_revision":"OBSERVED_REVISION","definition":{}}}
+```
+
+Здесь `{}` обозначает место полного объекта из command hooks example, а не готовое
+определение для отправки. `OBSERVED_REVISION` заменяется фактическим значением; null
+допустим только при реальном отсутствии файла. Пакет `runtime-setup` для новой установки
+содержит полные settings/installation по [основному интерфейсу](#интерфейсы).
+Установка возвращает immutable `definition_path`; именно его заполните в reader admission
+вместе с фактическим settings path до нового настоящего Start/prepare ресурса.
+Не заменяйте authority внутри действующего ресурса и не переименовывайте profile/session
+для обхода revision/admission. Рабочие настройки/привязки не копируются в source Git.
+
+Native transport остаётся `poise hook --settings PATH --definition IMMUTABLE_PATH`,
+один настоящий host event на stdin. Tool payload содержит `session_id`, `cwd`,
+`hook_event_name`, `turn_id`, `tool_use_id`, `tool_name="Bash"`, `tool_input.command`;
+Post дополнительно содержит `tool_response`. Метаданные определяются настоящим вызовом,
+а не назначаются агентом ради допуска. SessionStart/End и проектная binding принадлежат
+прежнему owner. Доказанный внешний `cd` может выбрать другой зарегистрированный checkout,
+но native event checkout допускается независимо; произвольный ambient cwd не подставляется.
+
+Pre возвращает `hookSpecificOutput` с `hookEventName="PreToolUse"`,
+`permissionDecision=allow|deny` и ограниченной `permissionDecisionReason`. Post не выдаёт
+разрешение задним числом: при ошибке учёта возвращает неблокирующий `systemMessage`.
+Полный control JSON сохраняется отдельно, когда это удалось; краткий feedback и полные
+machine bytes имеют разные бюджеты. Нет Task acquisition/advance из этих событий.
+Семантика pending, пригодного результата, replay и recovery —
+[у владельца чтений](../workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения).
+
+Поставляемый adapter проверен установленным пакетом и изолированным SDK lifecycle.
+Подтверждения доставки этой пары событий настоящим хостом эта проверка не даёт.

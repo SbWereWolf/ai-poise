@@ -7,7 +7,7 @@
 не нужны. Инструмент поставляется версионированным пакетом `ai-poise`; рабочая политика,
 реестры и настройки native owner принадлежат конкретной установке.
 
-Требуется выбранная установка Python 3.13 (`>=3.13,<3.14`) с явно установленной версией пакета.
+Требуется выбранная установка Python 3.15 (`>=3.15,<3.16`) с явно установленной версией пакета.
 CLI получает обязательные абсолютные `--config`, `--checkout`, `--policy` и обязательный
 `--format json|text`; аргументы выбора не повторяются. Config связывает проект с его
 зарегистрированным checkout. Рабочая папка процесса не выбирает другой проект автоматически.
@@ -159,8 +159,9 @@ Namespace определяется проектом, checkout, caller и native 
 `summary` содержит `cache_entries`, `event_count`, `content_events`, `unchanged_events`,
 `model_content_bytes`, `avoided_bytes` по этому namespace. Названия обозначают факты регистрации,
 а не provider billing, tokens, подтверждённую доставку или содержимое памяти модели.
-Переход контекста здесь явный. Автоматическое перехватывание произвольных инструментов и общий
-автоматический reset при compaction в этот интерфейс не включены.
+Переход контекста здесь явный. Для обычных Bash-чтений существует отдельно включаемый
+[адаптер событий](#обычные-команды-чтения). Универсального перехвата инструментов и автоматического
+reset при compaction этот интерфейс не выполняет.
 
 ## Полный JSON и text framing
 
@@ -275,3 +276,241 @@ Top status: `ready` при успехе, `partial` при mixed items, `failed` 
 полных installed proofs с source commit/tree, wheel SHA/version/module path и 15 command receipts
 каждый. Успешный link checker сам по себе не подтверждает выполнение примеров. Полные машинные
 результаты сохраняются владельцем проверки, а не сокращаются до текста для агента.
+
+
+## Обычные команды чтения
+
+Явный `content-read read` и обычные поддержанные Bash-команды используют один ресурс эпизода,
+поколение и реестр F04. Обычная команда читает файл сама; Poise перед выполнением проверяет
+запрос, а после пригодного результата регистрирует его покрытие. Task/Sprint не требуются.
+Оператор отдельно подключает `PreToolUse` и `PostToolUse`; установка только четырёх lifecycle
+событий не включает этот учёт. Проверен поставляемый обработчик через изолированные CLI/SDK
+и установленный пакет. Доставка этих событий настоящим хостом не наблюдалась; универсального
+перехвата всех инструментов, автоматического compaction reset и acknowledgement здесь нет.
+
+## Подключение учёта обычных команд
+
+Четыре полных файла образуют один пример установки:
+
+- [Политика команд](../../config/examples/command-intake-policy.example.json).
+- [Профиль reader](../../config/examples/command-intake-reader.example.json).
+- [Определение шести событий](../../config/examples/command-intake-hooks.example.json).
+- [Настройки hook owner](../../config/examples/command-intake-settings.example.json).
+
+Скопируйте их в рабочие операторские пути вне Git. Значения чисел — выбранные значения примера,
+не встроенные defaults. Общие параметры reader описаны [выше](#справочник-опций), настройки
+установки — [у hook owner](runtime-hooks.md#настройки-установки). Сохраните соответствие:
+`settings.tool_intake.reader_policy` → полный reader profile → `command_intake.policy` →
+полная command policy. Обе новые ссылки требуют абсолютных путей. `settings.project_config`
+остаётся относительным путём внутри `settings.root`: пример использует `project.json`.
+
+| Маркер примера | Чем заменить |
+| --- | --- |
+| `@ROOT@` | Существующий абсолютный корень установки/данных; оператор проверяет все относительные пути settings. |
+| `@PYTHON@` | Абсолютный Python выбранной установленной версии, сейчас 3.15. |
+| `@SOURCE_ROOT@` | Абсолютный корень установленного пакета, содержащий `poise/__main__.py`; не checkout читаемого проекта. |
+| `@CHECKOUT@` | Зарегистрированный абсолютный checkout, разрешённый `cwd_roots`. |
+| `@READER_POLICY@` | Абсолютный адрес рабочей копии reader profile. |
+| `@COMMAND_POLICY@` | Абсолютный адрес рабочей копии command policy. |
+
+Это явные текстовые маркеры; runtime их не раскрывает. Аргумент CLI `--config` задаёт фактический
+абсолютный manifest, соответствующий относительному `settings.project_config`; условное
+`/absolute/project/config.json` в командах ниже нужно заменить на этот адрес.
+
+1. Установите явно выбранную версию пакета и заполните policy/profile/settings/definition.
+   Укажите в профиле фактический `admission.hook_settings`; исходный `definition-pending.json`
+   является только временным адресом до установки. Проверьте root, project association,
+   свободный template path и разделение temporary/control ресурсов.
+2. До нового настоящего Start установите полное определение шести событий через
+   [существующий hook owner](runtime-hooks.md#подключение-событий-чтения). Для существующего
+   native файла получите действительный revision, затем передайте его как `expected_revision`.
+   Сохраните фактические ID установки/профиля существующего владельца: другое имя не присваивает
+   его группы. Не устанавливайте второй конкурирующий набор поверх первого.
+3. Запишите возвращённый неизменяемый `definition_path` в `admission.definition_path` профиля;
+   он и hook settings должны совпадать с фактической authority. Подготовьте пустой шаблон
+   операцией `prepare_template`. Эта операция не требует активного эпизода.
+4. После настоящего SessionStart того же установленного определения выполните `prepare`.
+   Затем используйте обычное чтение и `coverage`. Сначала полностью подготовьте authority;
+   замена определения после Start/создания ресурса не является активацией существующего эпизода.
+
+Оператор устанавливает адаптер; агент сохраняет действительную caller identity и получает
+нативные события от хоста. Он не фабрикует Start/End или tool IDs для допуска. Схемы событий
+и порядок восстановления принадлежат [жизненному циклу](../workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения).
+
+## Параметры политики обычных команд
+
+`command_intake.policy` у reader profile указывает полный JSON нижеуказанной схемы.
+Все известные leaves обязательны; неизвестные сохраняются в raw и игнорируются.
+SHA политики вычисляется по исходным UTF-8 bytes, включая форматирование/неизвестные значения.
+Целые положительны и исключают `bool`, если не указан иной диапазон. Списки строк содержат
+уникальные непустые строки; parser допускает пустой список readers, а stream/exit lists непусты.
+Длительность — положительное конечное число, исключая `bool`, NaN и бесконечность.
+
+| Поле | Тип, допустимое значение и фактическое назначение |
+| --- | --- |
+| `schema` | Точно `poise-command-intake-policy-1`. |
+| `version` | Непустая строка; пример `command-intake-1`. |
+| `classifier.mode` | `audit` или `enforce`: применение нарушения разбора/объёма. |
+| `classifier.complete_reads.max_files_per_call` | Целое >0; число полных/смешанных входов, допускаемое основной веткой, пример 1. Это не безусловный byte cap. |
+| `classifier.complete_reads.small_bundle_max_files` | Целое >0; условный предел числа нескольких полных файлов, пример 3. |
+| `classifier.complete_reads.small_bundle_max_bytes` | Целое >0; суммарные bytes small bundle, пример 200. |
+| `classifier.complete_reads.small_bundle_max_lines` | Целое >0; суммарные строки small bundle, пример 40. Small bundle требует доказанных размеров всех полных входов и отсутствия bounded входов. |
+| `classifier.bounded_reads.max_files_per_call` | Целое >0; число различных файлов ограниченного чтения, пример 4. |
+| `classifier.bounded_reads.max_lines_per_file` | Целое >0; предел выдаваемых строк вклада reader, пример 200. |
+| `classifier.bounded_reads.max_total_lines` | Целое >0; суммарный предел выдаваемых строк, пример 400. |
+| `classifier.bounded_reads.max_bytes_per_file` | Целое >0; доказанный предел bytes вклада reader, пример 4096. |
+| `classifier.bounded_reads.max_total_bytes` | Целое >0; суммарный доказанный byte предел, пример 8192. Неизвестная проекция не становится точным числом. |
+| `classifier.unknown_expansion.deny_globs` | Bool; запрет неизвестного набора файлов glob/brace expansion. |
+| `classifier.unknown_expansion.deny_reader_loops` | Bool; запрет циклов с reader. |
+| `classifier.unknown_expansion.deny_find_exec_readers` | Bool; запрет reader через `find -exec`. |
+| `classifier.unknown_expansion.deny_xargs_readers` | Bool; запрет reader через `xargs`. |
+| `classifier.unknown_expansion.deny_nested_shell_readers` | Bool; запрет чтения вложенной shell; `false` разрешает разбор в пределах глубины. |
+| `classifier.unknown_expansion.deny_obvious_interpreter_bypass` | Bool; запрет совпавшего content-read pattern интерпретатора. |
+| `classifier.unknown_expansion.deny_command_substitutions` | Bool; запрет подстановок команд с reader. |
+| `classifier.unknown_expansion.deny_eval_readers` | Bool; запрет `eval` с reader. |
+| `classifier.unknown_expansion.unclassified_behavior` | `allow`, `deny`, `allow_with_audit`; неразобранное чтение. `allow` и `allow_with_audit` текущий classifier возвращает как audit. |
+| `classifier.readers.complete` | Список имён; пример `bat`, `batcat`, `cat`, `nl`, `tac`. |
+| `classifier.readers.range_capable` | Список имён; пример `head`, `tail`, `sed`. |
+| `classifier.readers.conservative` | Список имён; пример `awk`, `perl`. |
+| `classifier.readers.nested_shells` | Список имён; пример `bash`, `dash`, `ksh`, `sh`, `zsh`. |
+| `classifier.readers.interpreter_bypass_patterns` | Список компилируемых regex content-read patterns. |
+| `classifier.readers.interpreter_metadata_patterns` | Список компилируемых regex metadata patterns. |
+| `classifier.parser.max_nested_shell_depth` | Целое >0, пример 2; предел рекурсивного разбора shell. |
+| `classifier.parser.max_reader_invocations_per_call` | Целое >0, пример 4; число reader-вызовов. |
+| `classifier.parser.max_reader_arguments_per_invocation` | Целое >0, пример 12; число reader-аргументов. |
+| `registry.mode` | `audit` или `enforce`: применение решения повторного чтения. |
+| `registry.versioning.hash_max_bytes` | Целое >0, пример 1024; SHA всего файла до этого размера включительно; выше — size/mtime_ns. |
+| `registry.same_generation.deny_exact_repeats` | Bool; exact complete/operation repeat текущего поколения. |
+| `registry.same_generation.deny_fully_covered_ranges` | Bool; запрет полностью покрытого диапазона текущего поколения. |
+| `registry.same_generation.min_new_lines` | Целое >0, пример 8; порог новых строк при частичном пересечении. |
+| `registry.same_generation.min_new_fraction_percent` | Целое 0..100, пример 20; порог доли новых строк. Mostly-redundant решение возникает, когда новые строки меньше обоих порогов. |
+| `registry.post_generation.allow_targeted_reread` | Bool; разрешение повторного targeted диапазона из прежних поколений. |
+| `registry.post_generation.deny_complete_reread` | Bool; запрет complete reread ранее полностью учтённого материала. |
+| `registry.post_generation.max_lines_per_file` | Целое >0, пример 4; число всех строк повторного targeted запроса, а не только пересечение. |
+| `registry.post_generation.max_total_lines` | Целое >0, пример 8; суммарный предел таких повторных targeted запросов в вызове. |
+| `registry.post_generation.unknown_repeat_behavior` | `deny`, `allow`, `allow_with_audit`; повтор operation с неизвестным диапазоном после смены поколения. |
+| `registry.post_result.minimum_response_bytes` | Целое >0, пример 1; минимум UTF-8 bytes пригодного ответа. |
+| `registry.post_result.unknown_exit_code_is_success` | Bool; пригодность достаточного текста при отсутствии известного exit code. |
+| `registry.post_result.output_field` | Непустая строка, пример `output`; текст этого поля имеет приоритет. |
+| `registry.post_result.stream_fields` | Непустой список строк, пример `stdout`, `stderr`; при отсутствии output строки соединяются в этом порядке. Нестроковое значение ошибочно. |
+| `registry.post_result.exit_fields` | Непустой список строк, пример `exit_code`, `exitCode`; значения — согласованные целые, исключая bool. |
+| `registry.retention.max_pending_age_seconds` | Положительное конечное число секунд, пример 300; допустимый возраст pending по сравнимому Clock. |
+| `context.max_documents` | Целое >0, пример 20; число видимых documents. |
+| `context.max_ranges_per_document` | Целое >0, пример 20; число видимых ranges каждого документа. |
+| `context.max_pending_records` | Целое >0, пример 20; число видимых pending records. |
+| `context.max_bytes` | Целое >0, пример 16000; предел canonical UTF-8 bytes объекта coverage details. |
+| `feedback.max_bytes` | Целое >0, пример 1800; предел краткой native reason/action строки, дополнительно ограниченный event.context_limit. |
+| `feedback.max_lines` | Целое >0, пример 20; предел строк краткой native строки, также ограниченный event.context_limit. |
+| `audit.record_allowed_readers` | Bool; сейчас валидируется и сохраняется в policy snapshot. Отдельной ветки записи аудита по этому флагу runtime не реализует. |
+
+Parser проверяет `max_lines_per_file <= max_total_lines` у bounded/post-generation и
+`max_bytes_per_file <= max_total_bytes` у bounded. Другие предполагаемые соотношения
+не заменяют явную политику. `classifier.mode` и `registry.mode` независимы: audit разрешает
+соответствующее нарушение с причиной, enforce запрещает его. Ошибка допуска/настроек/реестра
+не превращается в разрешение от выбора audit.
+
+## Поддержанные запросы и рабочий каталог
+
+Поддержан конфигурируемый инвентарь readers, явные полные входы, ограниченные `head`/`tail`,
+числовые диапазоны `sed`, распознаваемые bounded `awk`/`perl`, конвейеры полного reader с
+поддержанным фильтром. Это разбор объявленной грамматики, не выполнение произвольной shell.
+Пути вне выбранного checkout не создают покрытие; stdin-only reader не читает файл проекта.
+Discovery/metadata не означает доставку содержимого и не создаёт выдуманный диапазон.
+
+Для относительных reader paths требуется доказанный внешний префикс:
+
+```sh
+cd -- /absolute/registered/checkout && sed -n '3,4p' docs/sample.txt
+```
+
+Литерал абсолютного пути и успешный `&&` задают base. Сам event `cwd` допускает native checkout,
+но не доказывает каталог произвольного shell reader. Последующий `cd`, а также первый `cd`
+дочерней/внучатой shell разрушает inherited relative base: `unresolved_execution_cwd` следует
+classifier mode без ложных ROOT ranges. Абсолютный operand имеет самостоятельную базу;
+здоровые вложенные команды разбираются, когда это явно разрешено policy и глубиной.
+
+`sed` по умолчанию адресует конкатенированный поток нескольких входов; `-s` адресует каждый
+отдельно. Переданный диапазон не копируется на каждый файл. Для `tac | head/tail/sed` проекция
+возвращается к исходным source lines, когда наблюдение доказывает EOF и последний разделитель.
+Файл с bytes `A\nB` выдаёт через `tac | head -n 1` bytes `BA\n`: 3 bytes, одна выходная строка,
+покрытие исходных строк 1–2. У terminated `A\nB\n` тот же фильтр выдаёт `B\n`, покрытие строки 2.
+Повторная выдача строки увеличивает byte/line объём; ledger объединяет диапазоны.
+Если ограниченное наблюдение не доказывает преобразование, `unresolved_source_projection`
+применяет настроенный unclassified путь; неизвестный record boundary не считается newline.
+Byte-bounded/неизвестные диапазоны учитываются как operation, не точные строки.
+Неподдержанные transform flags/произвольные программы не получают обещания точной проекции.
+
+## Сводка покрытия
+
+Включённый command profile добавляет к семи базовым операциям восьмую, без новых CLI-аргументов:
+
+```sh
+/path/to/selected/venv/bin/python -I -B -m poise content-read \
+  --config /absolute/project/config.json \
+  --checkout /absolute/registered/checkout \
+  --policy /absolute/operator/command-reader.json \
+  --format json <<'JSON'
+{"operation":"coverage"}
+JSON
+```
+
+Python JSON-порт `poise.interfaces.content_reader.execute` получает те же config/checkout/policy,
+бинарный stdin, текстовые stdout/stderr и явный Clock. Запрос содержит только `operation`.
+Результат имеет прежний `poise-content-read-result-1`, `items=[]`, context своего checkout и
+`details.schema="poise-read-coverage-1"`; обычный context/read summary остаётся отдельным.
+
+| Поле details | Значение |
+| --- | --- |
+| `documents` | Текущие версии/поколение: `path`, `version_key`, `complete`, объединённые `ranges`, `operation_count`, `last_generation`. |
+| `pending` | Ожидающие результаты: `tool_use_id`, `pre_turn_id`, `generation`. Истечение возраста проверяется при Post, а не таймером сводки. |
+| `counts` | Полные `current_documents`, `stale_documents`, `pending`, `settled` до усечения списков. Stale — изменившиеся известные версии, не их source text. |
+| `omitted` | Число опущенных `documents`, `ranges`, `pending`, а не число несуществующих фактов. |
+
+Сначала ограничиваются documents/pending/ranges соответствующими count limits. Если canonical
+`details` ещё больше `context.max_bytes`, удаляются pending с конца, затем documents с конца;
+учитываются omissions. Если даже пустые списки с counters не помещаются —
+`coverage_budget_too_small`. Этот byte limit относится к details; полный envelope/control не объявляется ограниченным
+этим пределом или бюджетом content-read read.
+Сводка передаёт только метаданные учёта; содержимое, память модели, ACK и billing не доказывает.
+
+## Решения и восстановление учёта команд
+
+Полный управляющий файл имеет `schema="poise-tool-intake-result-1"`, `phase=pre|post`, `status`,
+`context`, `call`, `decision`, `counts`, `error`, `response_path`. `call` различает tool_use_id,
+tool_name, pre_turn_id и post_turn_id. `decision` содержит action, reason_code, message,
+action_hint. Сохранённые machine JSON не обрезаются лимитами feedback; краткая native строка
+указывает причину, действие и путь полного ответа, когда его публикация подтверждена.
+
+| Условие | Наблюдаемый исход и продолжение |
+| --- | --- |
+| Допустимый Pre с известными планами | `pending`/allow либо audit; покрытие ещё не добавлено. Выполнить разрешённое чтение, получить настоящий Post. |
+| Полный/точный/покрытый/преимущественный повтор | `duplicate_complete_document`, `duplicate_document_operation`, `duplicate_document_range`, `mostly_redundant_document_range`; запросить coverage, выбрать нужные новые диапазоны. |
+| Новый generation | `complete_reread_after_generation`, `post_generation_reread_disabled`, `post_generation_file_budget_exceeded`, `post_generation_total_budget_exceeded`, `unbounded_reread_after_generation` по соответствующей policy. Targeted reread в пределах разрешения/обоих бюджетов допустим. |
+| Некорректный/неполный вызов, конфликт ID/input/turn | `invalid_event` или `call_conflict`; сохранить реальный ID и исправить источник метаданных, не выдумывать другой session. |
+| Нет либо неверны ссылки/поля policy | `policy_missing`/`invalid_policy`, конкретный field; исправить рабочую конфигурацию у владельца. |
+| Несовпадающая installed authority/checkout/episode | `authority_mismatch` либо существующая admission диагностика; восстановить соответствие выбранному настоящему owner. |
+| Недоступный/повреждённый реестр или cached control/path | `registry_invalid` либо инфраструктурная ошибка; Pre deny, Post unconfirmed/warning. Сохранить bytes, диагностировать owner, не сбрасывать данные. |
+| Пригодный Post | `settled`, reason `usable_result`; зарегистрированы только ещё действительные планы. |
+| Известная ошибка, слишком малый/неверный ответ, неизвестный exit по policy | `discarded`: `known_failure`, `insufficient_response`, `invalid_response`, `unknown_exit_code`; ожидание снято, coverage не выдумывается. |
+| Просроченный pending, другое поколение/версия | `pending_expired`, `generation_changed`; версия проверяется для каждого плана, изменившиеся пропускаются. При несравнимом Clock — `incomparable_clock`, без выдуманного времени/учёта. |
+| Post без Pre или другое завершение уже settled ID | `unmatched_call` либо `call_conflict`; Post не блокирует уже выполненную команду. Повтор идентичного завершения возвращает сохранённый control. |
+| Ошибка публикации полного control | `result_save_failed`, response_path может быть null; учитывать фактические частичные эффекты, прочитать сохранённые diagnostics. |
+
+Проверка версии использует SHA маленького файла либо size/mtime большого; это ограниченная
+идентичность, не доказательство неизменности всех больших bytes. Переход generation выполняет
+прежний явный `advance_context(reason="manual")`; повтор старого request_id не откатывает живое
+поколение. Повтор доставки Pre/Post идемпотентен по действительному call и fingerprint; изменённое
+завершение конфликтует. `eligible`, `skipped`, `registered` не обязаны складываться как partition:
+eligible считает пригодные планы, registered — уникальные `(path, operation_digest)`.
+
+Pre отказ означает решение до выполнения. Ошибка Post сообщает о неподтверждённом учёте уже
+исполненного чтения; тело команды не отзывается. End/recover выполняет прежний
+[владелец ресурса](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+Удаление lock/owner/БД и синтетический End не являются способом восстановления.
+
+Все четыре command примера исполняет неизменённый
+`tests/command_intake/test_documented_examples.py::test_actual_command_intake_examples`:
+offline wheel, noneditable install, `-I` CLI/SDK, isolated Start/End, direct/ordinary read,
+pending/settled coverage, recovery и полные source/wheel/command receipts. Это изолированный
+consumer; его события не являются доказательством доставки live-хостом. Generic Python probes
+проверяются по фактическим определениям выбранным интерпретатором без установки live hooks.

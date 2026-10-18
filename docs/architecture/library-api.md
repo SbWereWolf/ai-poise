@@ -495,3 +495,29 @@ raise SystemExit(code)
 правдивый отказ. [JSON/text контракт](../configuration/project-file-reading.md#полный-json-и-text-framing)
 и [recovery](../workflows/file-intake-lifecycle.md#завершение-и-восстановление) принадлежат каноническим
 страницам. Старый специализированный SourceReader/ack API сохраняется.
+
+
+### Обычные чтения и coverage через существующие порты
+
+`poise.interfaces.content_reader.execute(config_path, checkout, policy_path, stream,
+output, error_output, clock)` сохраняет семь аргументов и возвращаемый int; JSON-порт не получает
+нового format argument. `execute_cli` дополнительно получает representation в существующей
+позиции. С command-enabled profile передайте бинарный JSON `{"operation":"coverage"}`
+через тот же execute: full result содержит context, items=[], metadata details, error/response_path.
+CLI использует прежние явные аргументы `content-read --config --checkout --policy --format`.
+Оба порта сохраняют полные streams; [контракт coverage](../configuration/project-file-reading.md#сводка-покрытия)
+определяет counts, omissions, ошибки и лимиты. Пример execute выше применим без смены imports.
+
+Native SDK остаётся `poise.infrastructure.hook_transport.HookService(settings_path)`: публичные
+`revision()`, `install({request_id, expected_revision, definition})`,
+`event(definition_path, event)` обслуживают установленную authority. Adapter CLI —
+`poise hook --settings PATH --definition IMMUTABLE_PATH` с настоящим event на stdin.
+[Установка](../configuration/runtime-hooks.md#подключение-событий-чтения) требует полной policy
+цепочки и observed revision; дефиниция/допуск согласуются до SessionStart/prepare.
+`CommandIntake` — внутренний application owner этой композиции, не отдельный предложенный SDK.
+
+Сохраняются действительная caller/native identity, зарегистрированный checkout и явный Clock.
+Проверки используют собственный изолированный native episode, не подменяя live binding.
+Pre проверяет запрос/pending, Post нормализует пригодность результата и согласует coverage;
+[жизненный цикл](../workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
+владеет replay/races/End/recovery. Регистрация — факт учёта, не delivery ACK.

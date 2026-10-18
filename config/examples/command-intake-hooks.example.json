@@ -1,0 +1,91 @@
+{
+  "agent_id": "primary",
+  "context_template": "Use Bash to invoke {launcher} with one work JSON packet on stdin and messages=[]. Native hooks are the only user-message source; do not manually report or replay user messages. Current state: {state}.",
+  "events": [
+    {
+      "async": false,
+      "context_limit": 2000,
+      "event": "SessionStart",
+      "matcher": "startup|resume|compact|clear|fork",
+      "status_message": "Bind AI poise session",
+      "timeout_seconds": 15
+    },
+    {
+      "async": false,
+      "context_limit": 2000,
+      "event": "UserPromptSubmit",
+      "matcher": "",
+      "status_message": "Record user turn",
+      "timeout_seconds": 15
+    },
+    {
+      "async": false,
+      "context_limit": null,
+      "event": "Stop",
+      "matcher": "",
+      "status_message": "Report AI poise state",
+      "timeout_seconds": 5
+    },
+    {
+      "async": false,
+      "context_limit": null,
+      "event": "SessionEnd",
+      "matcher": "other",
+      "status_message": "Record session end",
+      "timeout_seconds": 3
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe ordinary read"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe ordinary read"
+    }
+  ],
+  "gate_operations": [
+    "bootstrap",
+    "verify",
+    "artifacts"
+  ],
+  "id": "primary-hooks",
+  "message_source": "codex-hook-main",
+  "probes": [
+    {
+      "argv": [
+        "@PYTHON@",
+        "-B",
+        "-c",
+        "import sys; print(\"ready\" if sys.version_info[:2] == (3,15) else \"unsupported\")"
+      ],
+      "cwd": "${workspace}",
+      "environment": {},
+      "expected_exit_code": 0,
+      "id": "python",
+      "json_assertions": [],
+      "kind": "command",
+      "max_output_bytes": 65536,
+      "mcp": null,
+      "project_bound": false,
+      "remediation": "Install CPython 3.15 and select its executable in the explicit settings.",
+      "required": true,
+      "stderr_contains": [],
+      "stdout_contains": [
+        "ready"
+      ],
+      "timeout_seconds": 5,
+      "tool_ref": "CPython"
+    }
+  ],
+  "schema": "hook-definition-1",
+  "stop_template": "Current AI poise state: {state}; no acceptance or transition was performed.",
+  "unknown_outcome_message": "Native hook failed; inspect the local operational record."
+}

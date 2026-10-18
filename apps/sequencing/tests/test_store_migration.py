@@ -1,0 +1,363 @@
+"""Independent SQLite and external CLI checks for the owned historical migration."""
+from contextlib import closing
+import importlib.util
+import json
+import os
+from pathlib import Path
+import sqlite3
+import subprocess
+import sys
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[3]
+FIXTURES = ROOT / 'apps/sequencing/fixtures'
+DATA = json.loads((FIXTURES / 'store-migration.json').read_text())
+MIGRATION = ROOT / 'apps/sequencing/migrations/v1.py'
+
+
+def canonical(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def quoted(value):
+    return '"' + value.replace('"', '""') + '"'
+
+
+def rendered(value, root):
+    if isinstance(value, str):
+        return value.replace('$ROOT', str(root))
+    if isinstance(value, list):
+        return [rendered(item, root) for item in value]
+    if isinstance(value, dict):
+        return {key: rendered(item, root) for key, item in value.items()}
+    return value
+
+
+def migration():
+    assert MIGRATION.is_file(), 'T040 historical migration capability is not implemented'
+    spec = importlib.util.spec_from_file_location('sequencing_historical_v1_under_test', MIGRATION)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.migrate
+
+
+def connect(path):
+    db = sqlite3.connect(path)
+    db.execute('PRAGMA foreign_keys=ON')
+    return db
+
+
+def insert_rows(db, rows, columns):
+    for table, values in rows.items():
+        names = ','.join(map(quoted, columns[table]))
+        slots = ','.join('?' for name in columns[table])
+        db.executemany('INSERT INTO ' + quoted(table) + '(' + names + ') VALUES(' + slots + ')', values)
+
+
+def precursor(db):
+    db.executescript((FIXTURES / 'precursor-store.sql').read_text())
+    insert_rows(db, DATA['source_rows'], DATA['source_columns'])
+    db.commit()
+
+
+def snapshot(db, columns):
+    tables = {}
+    for table, fields in columns.items():
+        selected = ','.join(map(quoted, fields))
+        tables[table] = sorted([list(row) for row in db.execute(
+            'SELECT ' + selected + ' FROM ' + quoted(table))], key=canonical)
+    return {'tables': tables, 'schema': db.execute(
+        'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name').fetchall(),
+        'version': db.execute('PRAGMA user_version').fetchone()[0]}
+
+
+def assert_rows(db, expected):
+    actual = snapshot(db, DATA['columns'])['tables']
+    assert actual == {table: sorted(rows, key=canonical) for table, rows in expected.items()}
+
+
+def assert_schema(db):
+    assert db.execute('PRAGMA user_version').fetchone()[0] == 1
+    tables = {row[0] for row in db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+    assert tables == set(DATA['columns'])
+    for table, columns in DATA['columns'].items():
+        info = db.execute('PRAGMA table_info(' + quoted(table) + ')').fetchall()
+        assert {row[1] for row in info} == set(columns), table
+        assert [row[1] for row in sorted(info, key=lambda row: row[5]) if row[5]] == DATA['primary_keys'][table], table
+        groups = {}
+        for row in db.execute('PRAGMA foreign_key_list(' + quoted(table) + ')'):
+            groups.setdefault(row[0], []).append(row)
+        actual = [[rows[0][2], [[row[3], row[4]] for row in sorted(rows, key=lambda row: row[1])]]
+                  for rows in groups.values()]
+        assert sorted(actual, key=canonical) == sorted(DATA['foreign_keys'][table], key=canonical), table
+    assert db.execute('PRAGMA foreign_key_check').fetchall() == []
+
+
+def populated(db, root):
+    migration()(db)
+    db.execute('DELETE FROM meta')
+    insert_rows(db, rendered(DATA['target_rows'], root), DATA['columns'])
+    db.commit()
+    assert_rows(db, rendered(DATA['target_rows'], root))
+
+
+def physical_wip(root):
+    repository = root / 'source-repository'
+    subprocess.run(['git', 'init', '-q', '--initial-branch=fixture', str(repository)], check=True, capture_output=True)
+    subprocess.run(['git', '-C', str(repository), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                    'commit', '-q', '--allow-empty', '-m', 'Independent fixture'], check=True, capture_output=True)
+    worktree = root / 'code one'
+    subprocess.run(['git', '-C', str(repository), 'worktree', 'add', '--detach', str(worktree), 'HEAD'],
+                   check=True, capture_output=True)
+    for relative in ('code one', 'code two', 'main one', 'main two', 'artifacts/one', 'artifacts/two'):
+        directory = root / relative
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / 'wip.txt').write_bytes(('Uncommitted material: ' + relative).encode())
+    return repository, worktree
+
+
+def wip_state(root, repository, worktree):
+    files = {str(path.relative_to(root)): path.read_bytes() for path in root.rglob('wip.txt')}
+    return {'files': files,
+        'worktrees': subprocess.check_output(['git', '-C', str(repository), 'worktree', 'list', '--porcelain', '-z']),
+        'head': subprocess.check_output(['git', '-C', str(worktree), 'rev-parse', 'HEAD']),
+        'dirty': subprocess.check_output(['git', '-C', str(worktree), 'status', '--porcelain'])}
+
+
+def test_fresh_schema_and_idempotent_reopen(tmp_path):
+    path = tmp_path / 'sequencing.sqlite'
+    with closing(connect(path)) as db:
+        assert migration()(db) is None
+        assert not db.in_transaction
+        assert_schema(db)
+        expected = {table: [] for table in DATA['columns']}
+        expected['meta'] = [['revision', 0]]
+        assert_rows(db, expected)
+        before = snapshot(db, DATA['columns'])
+    with closing(connect(path)) as db:
+        assert migration()(db) is None
+        assert snapshot(db, DATA['columns']) == before
+        assert not db.in_transaction
+
+
+def test_populated_supported_precursor_preserves_references_and_receipts(tmp_path):
+    with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
+        precursor(db)
+        assert migration()(db) is None
+        assert not db.in_transaction
+        assert_schema(db)
+        assert_rows(db, DATA['migrated_rows'])
+
+
+@pytest.mark.parametrize('case', ['sprint_id', 'claim_json', 'workspace_json', 'terminal_json',
+                                 'state', 'unknown-version', 'foreign-format'])
+def test_unsupported_source_refuses_without_loss(tmp_path, case):
+    with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
+        columns = DATA['source_columns']
+        if case == 'foreign-format':
+            db.execute('CREATE TABLE foreign_records(key TEXT PRIMARY KEY,value TEXT NOT NULL)')
+            db.execute('INSERT INTO foreign_records(key,value) VALUES(?,?)', ('preserved', 'Original unrelated data'))
+            columns = {'foreign_records': ['key', 'value']}
+        else:
+            precursor(db)
+            if case == 'unknown-version':
+                db.execute('PRAGMA user_version=9')
+            else:
+                value = {'sprint_id': 'SPR-A', 'claim_json': '{"claimant":"S-A"}',
+                         'workspace_json': '{"path":"$ROOT/code one"}',
+                         'terminal_json': '{"kind":"completed"}', 'state': 'claimed'}[case]
+                db.execute('UPDATE tasks SET ' + quoted(case) + '=? WHERE task_id=?', (value, '0043'))
+        db.commit()
+        before = snapshot(db, columns)
+        with pytest.raises(ValueError) as error:
+            migration()(db)
+        assert str(error.value).strip()
+        assert not db.in_transaction
+        assert snapshot(db, columns) == before
+
+
+@pytest.mark.parametrize('source', ['fresh', 'precursor'])
+def test_partial_ddl_failure_is_atomic(tmp_path, source):
+    with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
+        columns = {}
+        if source == 'precursor':
+            precursor(db)
+            columns = DATA['source_columns']
+        before = snapshot(db, columns)
+        creates, traces = [], []
+        def deny_third_create(action, first, second, database, trigger):
+            if action == sqlite3.SQLITE_CREATE_TABLE:
+                creates.append(first)
+                if len(creates) == 3:
+                    return sqlite3.SQLITE_DENY
+            return sqlite3.SQLITE_OK
+        db.set_trace_callback(traces.append)
+        db.set_authorizer(deny_third_create)
+        try:
+            with pytest.raises(sqlite3.Error):
+                migration()(db)
+        finally:
+            db.set_authorizer(None)
+            db.set_trace_callback(None)
+        assert len(creates) == 3
+        assert len([sql for sql in traces if sql.lstrip().upper().startswith('CREATE TABLE')]) >= 2
+        assert not db.in_transaction
+        assert snapshot(db, columns) == before
+
+
+def test_late_marker_failure_restores_data_schema_and_physical_wip(tmp_path):
+    repository, worktree = physical_wip(tmp_path)
+    files_before = wip_state(tmp_path, repository, worktree)
+    with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
+        precursor(db)
+        before = snapshot(db, DATA['source_columns'])
+        traces, denied = [], []
+        def deny_marker(action, first, second, database, trigger):
+            if action == sqlite3.SQLITE_PRAGMA and first == 'user_version' and second is not None:
+                denied.append((first, second))
+                return sqlite3.SQLITE_DENY
+            return sqlite3.SQLITE_OK
+        db.set_trace_callback(traces.append)
+        db.set_authorizer(deny_marker)
+        try:
+            with pytest.raises(sqlite3.Error):
+                migration()(db)
+        finally:
+            db.set_authorizer(None)
+            db.set_trace_callback(None)
+        assert denied == [('user_version', '1')]
+        assert any('tasks' in sql.lower() and sql.lstrip().upper().startswith(('INSERT', 'ALTER')) for sql in traces)
+        assert any(sql.lstrip().upper().startswith('CREATE TABLE') for sql in traces)
+        assert not db.in_transaction
+        assert snapshot(db, DATA['source_columns']) == before
+    assert wip_state(tmp_path, repository, worktree) == files_before
+
+
+def test_populated_target_history_roots_and_ownership_survive_repeat(tmp_path):
+    path = tmp_path / 'sequencing.sqlite'
+    with closing(connect(path)) as db:
+        populated(db, tmp_path)
+        assert_schema(db)
+        before = snapshot(db, DATA['columns'])
+    with closing(connect(path)) as db:
+        assert migration()(db) is None
+        assert not db.in_transaction
+        assert_schema(db)
+        assert snapshot(db, DATA['columns']) == before
+        assert_rows(db, rendered(DATA['target_rows'], tmp_path))
+
+
+@pytest.mark.parametrize('case', ['active-task', 'active-session', 'double-membership', 'cross-sprint-edge',
+                                 'missing-task', 'missing-root-workspace', 'workspace-session', 'workspace-task'])
+def test_real_relational_and_ownership_constraints(tmp_path, case):
+    with closing(connect(tmp_path / 'sequencing.sqlite')) as db:
+        populated(db, tmp_path)
+        before = snapshot(db, DATA['columns'])
+        db.execute('SAVEPOINT constraint_probe')
+        if case in ('double-membership', 'cross-sprint-edge'):
+            db.execute('INSERT INTO sprints(sprint_id,revision,state) VALUES(?,?,?)', ('SPR-B', 1, 'draft'))
+        if case == 'cross-sprint-edge':
+            db.execute('INSERT INTO sprint_members(sprint_id,task_id) VALUES(?,?)', ('SPR-B', '0047'))
+        with pytest.raises(sqlite3.IntegrityError):
+            if case == 'active-task':
+                db.execute('INSERT INTO task_claims(claim_id,task_id,claimant,status) VALUES(?,?,?,?)',
+                           ('C-OTHER', '0042', 'S-NEW', 'active'))
+            elif case == 'active-session':
+                db.execute('INSERT INTO task_claims(claim_id,task_id,claimant,status) VALUES(?,?,?,?)',
+                           ('C-OTHER', '0047', 'S-A', 'active'))
+            elif case == 'double-membership':
+                db.execute('INSERT INTO sprint_members(sprint_id,task_id) VALUES(?,?)', ('SPR-B', '0042'))
+            elif case == 'cross-sprint-edge':
+                db.execute('INSERT INTO sprint_dependencies(sprint_id,predecessor,successor,kind) VALUES(?,?,?,?)',
+                           ('SPR-A', '0042', '0047', 'completion'))
+            elif case == 'missing-task':
+                db.execute('INSERT INTO sprint_members(sprint_id,task_id) VALUES(?,?)', ('SPR-A', '9999'))
+            elif case == 'missing-root-workspace':
+                db.execute('INSERT INTO workspace_roots(workspace_id,kind,position,path) VALUES(?,?,?,?)',
+                           ('WS-MISSING', 'code', 0, str(tmp_path / 'other')))
+            elif case == 'workspace-session':
+                db.execute('INSERT INTO workspace_bindings(workspace_id,session_id) VALUES(?,?)', ('WS46', 'S-B'))
+            else:
+                db.execute('INSERT INTO workspaces(workspace_id,task_id,repository_id,base_commit,branch,status,read_only) '
+                           'VALUES(?,?,?,?,?,?,?)', ('WS-OTHER', '0042', 'repo-1', '5' * 40, 'tasks/other', 'ready', 0))
+        db.execute('ROLLBACK TO constraint_probe')
+        db.execute('RELEASE constraint_probe')
+        assert snapshot(db, DATA['columns']) == before
+
+
+def cli_root(root):
+    (root / 'config').mkdir()
+    (root / 'state').mkdir()
+    config = root / 'config/sequencing.json'
+    config.write_bytes((FIXTURES / 'sequencing-config.json').read_bytes())
+    return config, root / 'state/sequencing.sqlite'
+
+
+def invoke(root, config, packet):
+    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    return subprocess.run([sys.executable, '-B', str(ROOT / 'apps/sequencing/bin/sequencing'),
+        '--config', str(config)], input=json.dumps(packet, ensure_ascii=False), cwd=root,
+        env=environment, text=True, capture_output=True)
+
+
+def assert_response(process, expected):
+    assert process.returncode == 0, (process.stdout, process.stderr)
+    assert process.stderr == ''
+    assert canonical(json.loads(process.stdout)) == canonical(expected)
+
+
+def test_cli_precursor_query_and_exact_historical_replay(tmp_path):
+    config, path = cli_root(tmp_path)
+    with closing(connect(path)) as db:
+        precursor(db)
+    assert_response(invoke(tmp_path, config, DATA['packets']['source_query']), DATA['responses']['source_query'])
+    with closing(connect(path)) as db:
+        assert_schema(db)
+        assert_rows(db, DATA['migrated_rows'])
+        before = snapshot(db, DATA['columns'])
+    assert_response(invoke(tmp_path, config, DATA['packets']['source_replay']), DATA['responses']['source_replay'])
+    with closing(connect(path)) as db:
+        assert snapshot(db, DATA['columns']) == before
+
+
+def test_cli_populated_nonempty_projection_is_complete_and_read_only(tmp_path):
+    config, path = cli_root(tmp_path)
+    with closing(connect(path)) as db:
+        populated(db, tmp_path)
+        before = snapshot(db, DATA['columns'])
+    packet = DATA['packets']['populated_query']
+    assert_response(invoke(tmp_path, config, packet), rendered(DATA['responses']['populated_query'], tmp_path))
+    with closing(connect(path)) as db:
+        assert snapshot(db, DATA['columns']) == before
+
+
+@pytest.mark.parametrize('source', ['unknown-version', 'foreign-format'])
+def test_cli_migration_refusal_is_described_and_preserves_wip(tmp_path, source):
+    config, path = cli_root(tmp_path)
+    repository, worktree = physical_wip(tmp_path)
+    wip_before = wip_state(tmp_path, repository, worktree)
+    with closing(connect(path)) as db:
+        if source == 'unknown-version':
+            precursor(db)
+            db.execute('PRAGMA user_version=9')
+            columns = DATA['source_columns']
+        else:
+            db.execute('CREATE TABLE foreign_records(key TEXT PRIMARY KEY,value TEXT NOT NULL)')
+            db.execute('INSERT INTO foreign_records(key,value) VALUES(?,?)', ('original', 'Preserved source'))
+            columns = {'foreign_records': ['key', 'value']}
+        db.commit()
+        before = snapshot(db, columns)
+    process = invoke(tmp_path, config, DATA['packets']['source_query'])
+    assert process.returncode == 2
+    assert process.stderr == ''
+    response = json.loads(process.stdout)
+    assert set(response) == {'schema', 'status', 'reason'}
+    assert response['schema'] == 'stride-sequencing/v1'
+    assert response['status'] == 'rejected'
+    assert isinstance(response['reason'], str) and response['reason'].strip()
+    with closing(connect(path)) as db:
+        assert snapshot(db, columns) == before
+    assert wip_state(tmp_path, repository, worktree) == wip_before

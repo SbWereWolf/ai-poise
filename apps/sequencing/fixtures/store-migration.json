@@ -1,0 +1,915 @@
+{
+  "columns": {
+    "meta": [
+      "key",
+      "value"
+    ],
+    "tasks": [
+      "task_id",
+      "requirements_snapshot_revision",
+      "state",
+      "terminal_json"
+    ],
+    "requests": [
+      "request_id",
+      "digest",
+      "response_json"
+    ],
+    "sprints": [
+      "sprint_id",
+      "revision",
+      "state"
+    ],
+    "sprint_revisions": [
+      "sprint_id",
+      "revision",
+      "state",
+      "data"
+    ],
+    "sprint_members": [
+      "sprint_id",
+      "task_id"
+    ],
+    "sprint_dependencies": [
+      "sprint_id",
+      "predecessor",
+      "successor",
+      "kind"
+    ],
+    "task_claims": [
+      "claim_id",
+      "task_id",
+      "claimant",
+      "status"
+    ],
+    "workspaces": [
+      "workspace_id",
+      "task_id",
+      "repository_id",
+      "base_commit",
+      "branch",
+      "status",
+      "read_only"
+    ],
+    "workspace_roots": [
+      "workspace_id",
+      "kind",
+      "position",
+      "path"
+    ],
+    "workspace_bindings": [
+      "workspace_id",
+      "session_id"
+    ],
+    "sequencing_history": [
+      "seq",
+      "task_id",
+      "sprint_id",
+      "workspace_id",
+      "actor",
+      "event",
+      "data",
+      "at"
+    ]
+  },
+  "primary_keys": {
+    "meta": [
+      "key"
+    ],
+    "tasks": [
+      "task_id"
+    ],
+    "requests": [
+      "request_id"
+    ],
+    "sprints": [
+      "sprint_id"
+    ],
+    "sprint_revisions": [
+      "sprint_id",
+      "revision"
+    ],
+    "sprint_members": [
+      "sprint_id",
+      "task_id"
+    ],
+    "sprint_dependencies": [
+      "sprint_id",
+      "predecessor",
+      "successor"
+    ],
+    "task_claims": [
+      "claim_id"
+    ],
+    "workspaces": [
+      "workspace_id"
+    ],
+    "workspace_roots": [
+      "workspace_id",
+      "kind",
+      "position"
+    ],
+    "workspace_bindings": [
+      "workspace_id"
+    ],
+    "sequencing_history": [
+      "seq"
+    ]
+  },
+  "foreign_keys": {
+    "meta": [],
+    "tasks": [],
+    "requests": [],
+    "sprints": [],
+    "sprint_revisions": [
+      [
+        "sprints",
+        [
+          [
+            "sprint_id",
+            "sprint_id"
+          ]
+        ]
+      ]
+    ],
+    "sprint_members": [
+      [
+        "sprints",
+        [
+          [
+            "sprint_id",
+            "sprint_id"
+          ]
+        ]
+      ],
+      [
+        "tasks",
+        [
+          [
+            "task_id",
+            "task_id"
+          ]
+        ]
+      ]
+    ],
+    "sprint_dependencies": [
+      [
+        "sprint_members",
+        [
+          [
+            "sprint_id",
+            "sprint_id"
+          ],
+          [
+            "predecessor",
+            "task_id"
+          ]
+        ]
+      ],
+      [
+        "sprint_members",
+        [
+          [
+            "sprint_id",
+            "sprint_id"
+          ],
+          [
+            "successor",
+            "task_id"
+          ]
+        ]
+      ]
+    ],
+    "task_claims": [
+      [
+        "tasks",
+        [
+          [
+            "task_id",
+            "task_id"
+          ]
+        ]
+      ]
+    ],
+    "workspaces": [
+      [
+        "tasks",
+        [
+          [
+            "task_id",
+            "task_id"
+          ]
+        ]
+      ]
+    ],
+    "workspace_roots": [
+      [
+        "workspaces",
+        [
+          [
+            "workspace_id",
+            "workspace_id"
+          ]
+        ]
+      ]
+    ],
+    "workspace_bindings": [
+      [
+        "workspaces",
+        [
+          [
+            "workspace_id",
+            "workspace_id"
+          ]
+        ]
+      ]
+    ],
+    "sequencing_history": [
+      [
+        "tasks",
+        [
+          [
+            "task_id",
+            "task_id"
+          ]
+        ]
+      ],
+      [
+        "sprints",
+        [
+          [
+            "sprint_id",
+            "sprint_id"
+          ]
+        ]
+      ],
+      [
+        "workspaces",
+        [
+          [
+            "workspace_id",
+            "workspace_id"
+          ]
+        ]
+      ]
+    ]
+  },
+  "source_columns": {
+    "meta": [
+      "key",
+      "value"
+    ],
+    "tasks": [
+      "task_id",
+      "requirements_snapshot_revision",
+      "state",
+      "sprint_id",
+      "claim_json",
+      "workspace_json",
+      "terminal_json"
+    ],
+    "requests": [
+      "request_id",
+      "digest",
+      "response_json"
+    ]
+  },
+  "source_rows": {
+    "meta": [
+      [
+        "revision",
+        2
+      ]
+    ],
+    "tasks": [
+      [
+        "0042",
+        2,
+        "available",
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "0043",
+        7,
+        "available",
+        null,
+        null,
+        null,
+        null
+      ]
+    ],
+    "requests": [
+      [
+        "source-register-0042",
+        "948409a074d2f221a58c877384965bae5f1fa61065e544c6bd9fb14f67ae2642",
+        "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":1,\"replayed\":false,\"results\":[{\"id\":\"register-0042\",\"kind\":\"register_task\",\"changed\":true,\"task_id\":\"0042\",\"requirements_snapshot_revision\":2}]}"
+      ],
+      [
+        "source-register-0043",
+        "23ce01dfd16cf6103c333e0fa2c2317890f615119e6a03ab20bdbb43d9579e3d",
+        "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":2,\"replayed\":false,\"results\":[{\"id\":\"register-0043\",\"kind\":\"register_task\",\"changed\":true,\"task_id\":\"0043\",\"requirements_snapshot_revision\":7}]}"
+      ]
+    ]
+  },
+  "migrated_rows": {
+    "meta": [
+      [
+        "revision",
+        2
+      ]
+    ],
+    "tasks": [
+      [
+        "0042",
+        2,
+        "available",
+        null
+      ],
+      [
+        "0043",
+        7,
+        "available",
+        null
+      ]
+    ],
+    "requests": [
+      [
+        "source-register-0042",
+        "948409a074d2f221a58c877384965bae5f1fa61065e544c6bd9fb14f67ae2642",
+        "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":1,\"replayed\":false,\"results\":[{\"id\":\"register-0042\",\"kind\":\"register_task\",\"changed\":true,\"task_id\":\"0042\",\"requirements_snapshot_revision\":2}]}"
+      ],
+      [
+        "source-register-0043",
+        "23ce01dfd16cf6103c333e0fa2c2317890f615119e6a03ab20bdbb43d9579e3d",
+        "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":2,\"replayed\":false,\"results\":[{\"id\":\"register-0043\",\"kind\":\"register_task\",\"changed\":true,\"task_id\":\"0043\",\"requirements_snapshot_revision\":7}]}"
+      ]
+    ],
+    "sprints": [],
+    "sprint_revisions": [],
+    "sprint_members": [],
+    "sprint_dependencies": [],
+    "task_claims": [],
+    "workspaces": [],
+    "workspace_roots": [],
+    "workspace_bindings": [],
+    "sequencing_history": []
+  },
+  "target_rows": {
+    "meta": [
+      [
+        "revision",
+        17
+      ]
+    ],
+    "tasks": [
+      [
+        "0042",
+        2,
+        "claimed",
+        null
+      ],
+      [
+        "0043",
+        7,
+        "claimed",
+        null
+      ],
+      [
+        "0044",
+        3,
+        "available",
+        null
+      ],
+      [
+        "0045",
+        4,
+        "completed",
+        "{\"terminal_id\":\"DONE-0045\",\"task_id\":\"0045\",\"kind\":\"completed\",\"result_commit\":null,\"source_ref\":{\"owner\":\"execution\",\"id\":\"OUTCOME-0045\"}}"
+      ],
+      [
+        "0046",
+        5,
+        "available",
+        null
+      ],
+      [
+        "0047",
+        6,
+        "available",
+        null
+      ]
+    ],
+    "requests": [
+      [
+        "source-register-0042",
+        "948409a074d2f221a58c877384965bae5f1fa61065e544c6bd9fb14f67ae2642",
+        "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":1,\"replayed\":false,\"results\":[{\"id\":\"register-0042\",\"kind\":\"register_task\",\"changed\":true,\"task_id\":\"0042\",\"requirements_snapshot_revision\":2}]}"
+      ],
+      [
+        "source-register-0043",
+        "23ce01dfd16cf6103c333e0fa2c2317890f615119e6a03ab20bdbb43d9579e3d",
+        "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":2,\"replayed\":false,\"results\":[{\"id\":\"register-0043\",\"kind\":\"register_task\",\"changed\":true,\"task_id\":\"0043\",\"requirements_snapshot_revision\":7}]}"
+      ]
+    ],
+    "sprints": [
+      [
+        "SPR-A",
+        2,
+        "published"
+      ]
+    ],
+    "sprint_revisions": [
+      [
+        "SPR-A",
+        1,
+        "draft",
+        "{\"sprint_id\":\"SPR-A\",\"sprint_revision\":1,\"members\":[\"0042\",\"0043\"],\"dependencies\":[{\"predecessor\":\"0042\",\"successor\":\"0043\",\"kind\":\"completion\"}]}"
+      ],
+      [
+        "SPR-A",
+        2,
+        "published",
+        "{\"sprint_id\":\"SPR-A\",\"sprint_revision\":2,\"members\":[\"0042\",\"0043\",\"0044\",\"0045\",\"0046\"],\"dependencies\":[{\"predecessor\":\"0042\",\"successor\":\"0043\",\"kind\":\"completion\"},{\"predecessor\":\"0042\",\"successor\":\"0044\",\"kind\":\"result\"}]}"
+      ]
+    ],
+    "sprint_members": [
+      [
+        "SPR-A",
+        "0042"
+      ],
+      [
+        "SPR-A",
+        "0043"
+      ],
+      [
+        "SPR-A",
+        "0044"
+      ],
+      [
+        "SPR-A",
+        "0045"
+      ],
+      [
+        "SPR-A",
+        "0046"
+      ]
+    ],
+    "sprint_dependencies": [
+      [
+        "SPR-A",
+        "0042",
+        "0043",
+        "completion"
+      ],
+      [
+        "SPR-A",
+        "0042",
+        "0044",
+        "result"
+      ]
+    ],
+    "task_claims": [
+      [
+        "C42-OLD",
+        "0042",
+        "S-OLD",
+        "released"
+      ],
+      [
+        "C42",
+        "0042",
+        "S-A",
+        "active"
+      ],
+      [
+        "C43",
+        "0043",
+        "S-C",
+        "active"
+      ],
+      [
+        "C45-OLD",
+        "0045",
+        "S-A",
+        "released"
+      ]
+    ],
+    "workspaces": [
+      [
+        "WS42",
+        "0042",
+        "repo-1",
+        "1111111111111111111111111111111111111111",
+        "tasks/0042",
+        "ready",
+        0
+      ],
+      [
+        "WS44",
+        "0044",
+        "repo-1",
+        "2222222222222222222222222222222222222222",
+        "poise-stride-v2",
+        "ready",
+        1
+      ],
+      [
+        "WS45-OLD",
+        "0045",
+        "repo-1",
+        "3333333333333333333333333333333333333333",
+        "tasks/0045",
+        "released",
+        0
+      ],
+      [
+        "WS46",
+        "0046",
+        "repo-1",
+        "4444444444444444444444444444444444444444",
+        "tasks/0046",
+        "reserved",
+        0
+      ]
+    ],
+    "workspace_roots": [
+      [
+        "WS42",
+        "code",
+        0,
+        "$ROOT/code one"
+      ],
+      [
+        "WS42",
+        "code",
+        1,
+        "$ROOT/code two"
+      ],
+      [
+        "WS42",
+        "main",
+        0,
+        "$ROOT/main one"
+      ],
+      [
+        "WS42",
+        "main",
+        1,
+        "$ROOT/main two"
+      ],
+      [
+        "WS42",
+        "artifact",
+        0,
+        "$ROOT/artifacts/one"
+      ],
+      [
+        "WS42",
+        "artifact",
+        1,
+        "$ROOT/artifacts/two"
+      ],
+      [
+        "WS44",
+        "code",
+        0,
+        "$ROOT/readonly"
+      ],
+      [
+        "WS44",
+        "main",
+        0,
+        "$ROOT/readonly"
+      ],
+      [
+        "WS45-OLD",
+        "code",
+        0,
+        "$ROOT/released"
+      ]
+    ],
+    "workspace_bindings": [
+      [
+        "WS42",
+        "S-B"
+      ],
+      [
+        "WS44",
+        "S-D"
+      ]
+    ],
+    "sequencing_history": [
+      [
+        10,
+        null,
+        "SPR-A",
+        null,
+        "S-PLAN",
+        "sprint.changed",
+        "{\"revision\":2}",
+        "2026-10-18T00:00:00Z"
+      ],
+      [
+        11,
+        "0042",
+        "SPR-A",
+        "WS42",
+        "S-B",
+        "workspace.ready",
+        "{\"roots_recorded\":true}",
+        "2026-10-18T00:01:00Z"
+      ],
+      [
+        12,
+        "0045",
+        "SPR-A",
+        "WS45-OLD",
+        "S-OLD",
+        "workspace.released",
+        "{\"retained\":true}",
+        "2026-10-18T00:02:00Z"
+      ]
+    ]
+  },
+  "packets": {
+    "source_query": {
+      "schema": "stride-sequencing/v1",
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "source",
+            "kind": "task",
+            "task_id": "0042"
+          }
+        ]
+      }
+    },
+    "source_replay": {
+      "schema": "stride-sequencing/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "source-register-0042",
+        "expected_revision": 0,
+        "operations": [
+          {
+            "id": "register-0042",
+            "kind": "register_task",
+            "task_id": "0042",
+            "requirements_snapshot_revision": 2
+          }
+        ]
+      }
+    },
+    "populated_query": {
+      "schema": "stride-sequencing/v1",
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "query-0047",
+            "kind": "task",
+            "task_id": "0047"
+          },
+          {
+            "id": "query-0046",
+            "kind": "task",
+            "task_id": "0046"
+          },
+          {
+            "id": "query-0045",
+            "kind": "task",
+            "task_id": "0045"
+          },
+          {
+            "id": "query-0044",
+            "kind": "task",
+            "task_id": "0044"
+          },
+          {
+            "id": "query-0043",
+            "kind": "task",
+            "task_id": "0043"
+          },
+          {
+            "id": "query-0042",
+            "kind": "task",
+            "task_id": "0042"
+          }
+        ]
+      }
+    }
+  },
+  "responses": {
+    "source_query": {
+      "schema": "stride-sequencing/v1",
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "source",
+          "value": {
+            "task_id": "0042",
+            "requirements_snapshot_revision": 2,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null
+          }
+        }
+      ]
+    },
+    "source_replay": {
+      "schema": "stride-sequencing/v1",
+      "status": "applied",
+      "revision": 1,
+      "replayed": true,
+      "results": [
+        {
+          "id": "register-0042",
+          "kind": "register_task",
+          "changed": true,
+          "task_id": "0042",
+          "requirements_snapshot_revision": 2
+        }
+      ]
+    },
+    "populated_query": {
+      "schema": "stride-sequencing/v1",
+      "status": "read_only",
+      "revision": 17,
+      "results": [
+        {
+          "id": "query-0047",
+          "value": {
+            "task_id": "0047",
+            "requirements_snapshot_revision": 6,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0046",
+          "value": {
+            "task_id": "0046",
+            "requirements_snapshot_revision": 5,
+            "state": "available",
+            "sprint_id": "SPR-A",
+            "claim": null,
+            "workspace": {
+              "workspace_id": "WS46",
+              "task_id": "0046",
+              "repository_id": "repo-1",
+              "base_commit": "4444444444444444444444444444444444444444",
+              "branch": "tasks/0046",
+              "path": null,
+              "status": "reserved",
+              "read_only": false,
+              "owner_session_id": null,
+              "roots": []
+            },
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0045",
+          "value": {
+            "task_id": "0045",
+            "requirements_snapshot_revision": 4,
+            "state": "completed",
+            "sprint_id": "SPR-A",
+            "claim": null,
+            "workspace": null,
+            "terminal": {
+              "terminal_id": "DONE-0045",
+              "task_id": "0045",
+              "kind": "completed",
+              "result_commit": null,
+              "source_ref": {
+                "owner": "execution",
+                "id": "OUTCOME-0045"
+              }
+            }
+          }
+        },
+        {
+          "id": "query-0044",
+          "value": {
+            "task_id": "0044",
+            "requirements_snapshot_revision": 3,
+            "state": "available",
+            "sprint_id": "SPR-A",
+            "claim": null,
+            "workspace": {
+              "workspace_id": "WS44",
+              "task_id": "0044",
+              "repository_id": "repo-1",
+              "base_commit": "2222222222222222222222222222222222222222",
+              "branch": "poise-stride-v2",
+              "path": "$ROOT/readonly",
+              "status": "ready",
+              "read_only": true,
+              "owner_session_id": "S-D",
+              "roots": [
+                {
+                  "kind": "code",
+                  "position": 0,
+                  "path": "$ROOT/readonly"
+                },
+                {
+                  "kind": "main",
+                  "position": 0,
+                  "path": "$ROOT/readonly"
+                }
+              ]
+            },
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0043",
+          "value": {
+            "task_id": "0043",
+            "requirements_snapshot_revision": 7,
+            "state": "claimed",
+            "sprint_id": "SPR-A",
+            "claim": {
+              "claim_id": "C43",
+              "task_id": "0043",
+              "claimant": "S-C",
+              "status": "active"
+            },
+            "workspace": null,
+            "terminal": null
+          }
+        },
+        {
+          "id": "query-0042",
+          "value": {
+            "task_id": "0042",
+            "requirements_snapshot_revision": 2,
+            "state": "claimed",
+            "sprint_id": "SPR-A",
+            "claim": {
+              "claim_id": "C42",
+              "task_id": "0042",
+              "claimant": "S-A",
+              "status": "active"
+            },
+            "workspace": {
+              "workspace_id": "WS42",
+              "task_id": "0042",
+              "repository_id": "repo-1",
+              "base_commit": "1111111111111111111111111111111111111111",
+              "branch": "tasks/0042",
+              "path": "$ROOT/code one",
+              "status": "ready",
+              "read_only": false,
+              "owner_session_id": "S-B",
+              "roots": [
+                {
+                  "kind": "artifact",
+                  "position": 0,
+                  "path": "$ROOT/artifacts/one"
+                },
+                {
+                  "kind": "artifact",
+                  "position": 1,
+                  "path": "$ROOT/artifacts/two"
+                },
+                {
+                  "kind": "code",
+                  "position": 0,
+                  "path": "$ROOT/code one"
+                },
+                {
+                  "kind": "code",
+                  "position": 1,
+                  "path": "$ROOT/code two"
+                },
+                {
+                  "kind": "main",
+                  "position": 0,
+                  "path": "$ROOT/main one"
+                },
+                {
+                  "kind": "main",
+                  "position": 1,
+                  "path": "$ROOT/main two"
+                }
+              ]
+            },
+            "terminal": null
+          }
+        }
+      ]
+    }
+  }
+}

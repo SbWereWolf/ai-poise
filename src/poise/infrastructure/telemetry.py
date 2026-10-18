@@ -20,14 +20,15 @@ class TelemetryDatabase:
         self.path,self.lock,self.wait,self.poll=path,lock,wait,poll
         self.project_fence=project_fence
         self._database=None
-        self._initialization=Lock()
 
     def _ready(self):
-        if self._database is None:
-            with self._initialization:
-                if self._database is None:
-                    self._database=Database(self.path,self.lock,self.wait,self.poll,self.project_fence)
-        return self._database
+        database = self._database
+        if database is None:
+            # Schema initialization is serialized by Database's own transaction.
+            # A cache mutex could retain a vanished thread owner after fork.
+            database = Database(self.path,self.lock,self.wait,self.poll,self.project_fence)
+            self._database = database
+        return database
 
     @contextmanager
     def transaction(self):

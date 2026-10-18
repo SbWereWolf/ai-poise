@@ -43,18 +43,15 @@ class OperandSnapshot:
         if re.search(r'[*?\[]|\{[^{}]*,[^{}]*\}|[$`]|[<>]\(', token):
             return FileOperand('glob', '<unresolved:' + identity(token) + '>', None, None, None)
         path = PurePath(token) if PurePath(token).is_absolute() else PurePath(cwd) / token
-        return FileOperand('explicit', str(path), path, None, None)
+        return FileOperand('explicit', str(path), path, None, None,
+                           relative=not PurePath(token).is_absolute())
 
-    def projected_bytes(self, reader, operand):
+    def projected_bytes(self, reader, operand, index):
         lines = self.lines.get(operand.path)
         if lines is None:
             return None
-        ranges = reader.line_ranges
-        if not ranges and reader.reader == 'tail' and operand.line_count_exact:
-            count = reader.requested_lines_per_file
-            if count is not None:
-                ranges = ((max(1, operand.line_count - count + 1), operand.line_count),)
-        if not ranges:
+        ranges = reader.source_ranges(index)
+        if ranges is None:
             return None
         if any(last > len(lines) for _, last in ranges) and not operand.line_count_exact:
             return None
@@ -105,16 +102,18 @@ class CommandSource:
         except (OSError, CommandFailure):
             return FileOperand('unreadable', label, PurePath(path), None, None)
         operand = FileOperand('explicit', label, PurePath(path), version['size'],
-                              len(lines), len(lines) <= limit)
+                              len(lines), len(lines) <= limit, symbolic.relative)
         self.snapshot.lines[operand.path] = lines
         self.versions[operand.path] = version
         return operand
 
     def classify(self, command, cwd):
         classifier = CommandClassifier(self.snapshot)
-        classifier._collect_reader_uses(command, cwd=PurePath(cwd),
-                                        repository_root=PurePath(self.checkout),
-                                        policy=self.policy['classifier'], depth=0)
+        _, immediate = classifier._collect_reader_uses(command, cwd=PurePath(cwd),
+                                                      repository_root=PurePath(self.checkout),
+                                                      policy=self.policy['classifier'], depth=0)
+        if immediate is not None:
+            return immediate
         if not self.cwd_proved and any(not PurePath(key[0]).is_absolute()
                                       and key[0] != '-' for key in self.snapshot.requests):
             return classifier._decision('deny', 'unresolved_execution_cwd',
@@ -129,23 +128,16 @@ class CommandSource:
     def plans(self, readers, command_digest, generation, *, origin='native'):
         plans = []
         for reader in readers:
-            for operand in reader.operands:
+            for index, operand in enumerate(reader.operands):
                 if operand.classification != 'explicit' or operand.path not in self.versions:
                     continue
-                ranges = [list(r) for r in reader.line_ranges]
+                projected = reader.source_ranges(index)
+                if reader.mode == 'bounded' and projected == ():
+                    continue
+                ranges = [list(r) for r in projected] if projected is not None else []
                 kind = 'complete' if reader.mode == 'complete' else 'operation'
-                if ranges:
+                if ranges and kind != 'complete':
                     kind = 'lines'
-                    if operand.line_count_exact:
-                        ranges = [[first, min(last, operand.line_count)] for first, last in ranges
-                                  if first <= operand.line_count]
-                elif reader.reader == 'tail' and reader.mode == 'bounded' and operand.line_count_exact:
-                    count = reader.requested_lines_per_file
-                    if count is not None and operand.line_count:
-                        kind = 'lines'
-                        ranges = [[max(1, operand.line_count - count + 1), operand.line_count]]
-                if kind == 'complete' and operand.line_count_exact and operand.line_count:
-                    ranges = [[1, operand.line_count]]
                 version = self.versions[operand.path]
                 operation = identity([reader.reader, reader.mode, reader.source,
                                       ranges, reader.requested_bytes_per_file,

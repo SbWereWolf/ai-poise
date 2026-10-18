@@ -34,6 +34,7 @@ class FileOperand:
     size_bytes: int | None
     line_count: int | None
     line_count_exact: bool | None = None
+    relative: bool = False
 
 @dataclass(frozen=True)
 class ReaderUse:
@@ -46,6 +47,52 @@ class ReaderUse:
     output_capped_by_input: bool = False
     source: str = 'direct'
     line_ranges: tuple[tuple[int, int], ...] = ()
+    address_space: str = 'file'
+    reversed_input: bool = False
+
+    def source_ranges(self, index):
+        """Project output addresses onto one observed original input.
+
+        None means unproved coordinates; an empty tuple proves no contribution.
+        Keep repeated ranges here: budgeting counts emitted duplicates, while
+        the ledger separately unions the same canonical source intervals.
+        """
+        operand = self.operands[index]
+        if self.requested_bytes_per_file is not None:
+            return None
+        ranges = self.line_ranges
+        if not ranges:
+            if self.mode == 'complete' and operand.line_count_exact:
+                return ((1, operand.line_count),) if operand.line_count else ()
+            if self.reader != 'tail' or not operand.line_count_exact:
+                return None
+            count = self.requested_lines_per_file
+            if count is None:
+                return None
+            ranges = ((max(1, operand.line_count - count + 1), operand.line_count),)
+        offset = 0
+        if self.address_space == 'stream':
+            preceding = self.operands[:index]
+            if any(p.line_count is None for p in preceding):
+                return None
+            offset = sum(p.line_count for p in preceding)
+            if any(not p.line_count_exact for p in preceding):
+                return () if all(last <= offset for _, last in ranges) else None
+        if self.reversed_input and not operand.line_count_exact:
+            return None
+        projected = []
+        for first, last in ranges:
+            first, last = max(1, first - offset), last - offset
+            if operand.line_count_exact:
+                last = min(last, operand.line_count)
+            elif operand.line_count is None or last > operand.line_count:
+                return None
+            if first > last:
+                continue
+            if self.reversed_input:
+                first, last = operand.line_count - last + 1, operand.line_count - first + 1
+            projected.append((first, last))
+        return tuple(projected)
 
 @dataclass(frozen=True)
 class IntakeDecision:
@@ -356,6 +403,7 @@ class CommandClassifier:
         if any((token == '-i' or token.startswith('-i.') or token.startswith('--in-place') for token in tokens)):
             return None
         quiet = any((token in {'-n', '--quiet', '--silent'} for token in tokens))
+        separate = False
         scripts: list[str] = []
         file_tokens: list[str] = []
         program_declared = False
@@ -374,6 +422,10 @@ class CommandClassifier:
                 continue
             if not options_done and token in {'-n', '--quiet', '--silent'}:
                 quiet = True
+                index += 1
+                continue
+            if not options_done and token == '--separate':
+                separate = True
                 index += 1
                 continue
             if not options_done and token in {'-e', '--expression'}:
@@ -404,6 +456,8 @@ class CommandClassifier:
                 flag_prefix = flags if marker_position < 0 else flags[:marker_position + 1]
                 if 'n' in flag_prefix:
                     quiet = True
+                if 's' in flag_prefix:
+                    separate = True
                 if marker_position >= 0:
                     program_declared = True
                     remainder = flags[marker_position + 1:]
@@ -440,7 +494,7 @@ class CommandClassifier:
             return ReaderUse('sed', 'unknown', operands)
         ranges = tuple((numeric_range for script_ranges in parsed_ranges if script_ranges is not None for numeric_range in script_ranges))
         requested = sum((end - start + 1 for start, end in ranges))
-        return ReaderUse('sed', 'bounded', operands, requested_lines_per_file=requested, output_capped_by_input=self._ranges_do_not_overlap(ranges), line_ranges=ranges)
+        return ReaderUse('sed', 'bounded', operands, requested_lines_per_file=requested, output_capped_by_input=self._ranges_do_not_overlap(ranges), line_ranges=ranges, address_space='file' if separate else 'stream')
 
     def _awk_use(self, tokens: Sequence[str], *, cwd: Path, repository_root: Path, line_limit: int) -> ReaderUse:
         script = ''
@@ -547,7 +601,7 @@ class CommandClassifier:
             upstream, separator = segments[index]
             downstream = segments[index + 1][0] if index + 1 < len(segments) else None
             if upstream is not None and downstream is not None and (separator == '|') and (upstream.mode == 'complete') and (len(upstream.operands) == 1) and (upstream.operands[0].classification != 'stdin') and (downstream.mode == 'bounded') and (not tuple((operand for operand in downstream.operands if operand.classification != 'stdin'))):
-                output.append(ReaderUse(reader=downstream.reader, mode='bounded', operands=upstream.operands, requested_lines_per_file=downstream.requested_lines_per_file, requested_bytes_per_file=downstream.requested_bytes_per_file, output_capped_by_input=downstream.output_capped_by_input and upstream.reader in _LINE_PRESERVING_COMPLETE_READERS, source='pipeline:' + upstream.reader + '|' + downstream.reader, line_ranges=downstream.line_ranges))
+                output.append(ReaderUse(reader=downstream.reader, mode='bounded', operands=upstream.operands, requested_lines_per_file=downstream.requested_lines_per_file, requested_bytes_per_file=downstream.requested_bytes_per_file, output_capped_by_input=downstream.output_capped_by_input and upstream.reader in _LINE_PRESERVING_COMPLETE_READERS, source='pipeline:' + upstream.reader + '|' + downstream.reader, line_ranges=downstream.line_ranges, address_space=downstream.address_space, reversed_input=upstream.reader == 'tac'))
                 index += 2
                 continue
             if upstream is not None:
@@ -608,7 +662,7 @@ class CommandClassifier:
             return ('unbounded_file_expansion', 'Blocked repository document intake: command substitution based on find can expand to an unbounded file set. Discover paths first and read selected files explicitly.')
         return None
 
-    def _collect_reader_uses(self, command: str, *, cwd: Path, repository_root: Path, policy: Mapping[str, Any], depth: int) -> tuple[list[ReaderUse], IntakeDecision | None]:
+    def _collect_reader_uses(self, command: str, *, cwd: Path, repository_root: Path, policy: Mapping[str, Any], depth: int, cwd_invalidated: bool = False) -> tuple[list[ReaderUse], IntakeDecision | None]:
         try:
             tokens = self._shell_tokens(command)
         except ValueError as error:
@@ -621,13 +675,16 @@ class CommandClassifier:
         nested_shells = set(policy['readers']['nested_shells'])
         readers: list[ReaderUse] = []
         classified_segments: list[tuple[ReaderUse | None, str | None]] = []
-        for segment, separator_after in self._segments_with_separators(tokens):
+        changed_cwd = cwd_invalidated
+        for position, (segment, separator_after) in enumerate(self._segments_with_separators(tokens)):
             stripped = self._strip_prefixes(segment)
             if not stripped:
                 classified_segments.append((None, separator_after))
                 continue
             executable = self._basename(stripped[0])
             arguments = stripped[1:]
+            if executable == 'cd' and position > 0:
+                changed_cwd = True
             if executable in nested_shells:
                 command_index = next((index for index, token in enumerate(arguments) if token in {'-c', '-lc', '-cl'}), None)
                 if command_index is None or command_index + 1 >= len(arguments):
@@ -638,7 +695,7 @@ class CommandClassifier:
                 if not policy['unknown_expansion']['deny_nested_shell_readers']:
                     nested_readers, nested_decision = self._collect_reader_uses(
                         arguments[command_index + 1], cwd=cwd, repository_root=repository_root,
-                        policy=policy, depth=depth + 1)
+                        policy=policy, depth=depth + 1, cwd_invalidated=changed_cwd)
                     if nested_decision is not None:
                         return (readers, nested_decision)
                     readers.extend(nested_readers)
@@ -648,7 +705,7 @@ class CommandClassifier:
                     nested_command = arguments[command_index + 1]
                     if depth >= policy['parser']['max_nested_shell_depth']:
                         return (readers, self._decision('deny', 'nested_shell_depth_exceeded', 'Blocked repository document intake: nested shell depth exceeds the configured classifier budget. Run the content reader directly.', readers, policy))
-                    nested_readers, nested_decision = self._collect_reader_uses(nested_command, cwd=cwd, repository_root=repository_root, policy=policy, depth=depth + 1)
+                    nested_readers, nested_decision = self._collect_reader_uses(nested_command, cwd=cwd, repository_root=repository_root, policy=policy, depth=depth + 1, cwd_invalidated=changed_cwd)
                     if nested_decision is not None and nested_decision.reason_code == 'nested_shell_depth_exceeded':
                         return (readers, nested_decision)
                     if nested_decision is not None and nested_decision.decision == 'deny':
@@ -666,6 +723,9 @@ class CommandClassifier:
                 return (readers, self._decision('deny', 'reader_invocation_budget_exceeded', 'Blocked repository document intake: the Bash call exceeds the configured number of content-reader invocations. Narrow the read to one decision at a time.', readers, policy))
             use = self._reader_use(executable, arguments, cwd=cwd, repository_root=repository_root, policy=policy)
             if use is not None:
+                if changed_cwd and any(operand.relative for operand in use.operands):
+                    return ([], self._decision('deny', 'unresolved_execution_cwd',
+                        'A later directory change invalidates the proven relative source base.', (), policy))
                 readers.append(use)
                 classified_segments.append((use, separator_after))
             else:
@@ -681,7 +741,10 @@ class CommandClassifier:
         operands = [operand for reader in readers if reader.mode in {'complete', 'unknown'} for operand in reader.operands if operand.classification != 'stdin']
         return (operands, self._sum_known([operand.size_bytes for operand in operands]), self._sum_known([operand.line_count if operand.line_count_exact is True else None for operand in operands]))
 
-    def _effective_bounded_lines(self, reader: ReaderUse, operand: FileOperand) -> int | None:
+    def _effective_bounded_lines(self, reader: ReaderUse, operand: FileOperand, index: int) -> int | None:
+        ranges = reader.source_ranges(index)
+        if ranges is not None:
+            return sum(last - first + 1 for first, last in ranges)
         requested = reader.requested_lines_per_file
         if requested is None:
             return None
@@ -689,16 +752,16 @@ class CommandClassifier:
             return min(requested, operand.line_count)
         return requested
 
-    def _effective_bounded_bytes(self, reader: ReaderUse, operand: FileOperand) -> int | None:
+    def _effective_bounded_bytes(self, reader: ReaderUse, operand: FileOperand, index: int) -> int | None:
         requested = reader.requested_bytes_per_file
         if requested is None:
-            return self.facts.projected_bytes(reader, operand)
+            return self.facts.projected_bytes(reader, operand, index)
         if operand.size_bytes is not None:
             return min(requested, operand.size_bytes)
         return requested
 
     def _bounded_projections(self, readers: Sequence[ReaderUse]) -> list[tuple[ReaderUse, FileOperand, int | None, int | None]]:
-        return [(reader, operand, self._effective_bounded_lines(reader, operand), self._effective_bounded_bytes(reader, operand)) for reader in readers if reader.mode == 'bounded' for operand in reader.operands if operand.classification != 'stdin']
+        return [(reader, operand, self._effective_bounded_lines(reader, operand, index), self._effective_bounded_bytes(reader, operand, index)) for reader in readers if reader.mode == 'bounded' for index, operand in enumerate(reader.operands) if operand.classification != 'stdin']
 
     def _bounded_metrics(self, readers: Sequence[ReaderUse]) -> tuple[list[FileOperand], int | None, int | None, list[tuple[ReaderUse, FileOperand, int | None, int | None]]]:
         projections = self._bounded_projections(readers)
@@ -727,6 +790,13 @@ class CommandClassifier:
                 details = '; '.join((advice for kind, advice in recovery if kind in unresolved_kinds))
                 return self._decision('deny', 'unresolved_multi_file_read', f'Blocked repository document intake: {details}.', readers, policy)
             return self._unclassified('dynamic_single_file_read', 'One reader operand could not be resolved before execution.', readers, policy)
+        if any(reader.mode == 'bounded' and reader.requested_bytes_per_file is None
+               and (reader.reversed_input or reader.address_space == 'stream')
+               and reader.source_ranges(index) is None
+               for reader in readers for index, operand in enumerate(reader.operands)
+               if operand.classification != 'stdin'):
+            return self._unclassified('unresolved_source_projection',
+                'The observed source does not prove transformed output coordinates.', (), policy)
         complete_operands, complete_bytes, complete_lines = self._complete_metrics(readers)
         bounded_operands, bounded_bytes, bounded_lines, bounded_projections = self._bounded_metrics(readers)
         if complete_operands:

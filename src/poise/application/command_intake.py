@@ -34,6 +34,7 @@ class CommandIntake:
             r.admit(observed, existing_only=phase == 'post')
             result['context'], _ = self.sessions.context()
             generation, calls, history = r.registry.command_snapshot(r.scope)
+            self._validate_cached_paths(calls)
             previous = calls.get(event['tool_use_id'])
             if previous is not None:
                 if (previous['input_digest'] != identity(event['tool_input']['command'])
@@ -52,6 +53,14 @@ class CommandIntake:
         r = self.resources
         return (r.target / r.session['response_directory'] / r.scope.checkout_key
                 / identity([event['tool_use_id'], phase]) / r.bound.config['paths']['response'])
+
+    def _validate_cached_paths(self, calls):
+        for record in calls.values():
+            event = {'tool_use_id': record['scope']['tool_use_id']}
+            for phase in ['pre', 'post']:
+                result = record[phase + '_result']
+                if result is not None and result['response_path'] != str(self._path(event, phase)):
+                    raise CommandFailure('registry_invalid')
 
     def _call(self, event, *, pre_turn=None, post_turn=None):
         return dict(tool_use_id=event['tool_use_id'], tool_name=event['tool_name'],
@@ -141,6 +150,7 @@ class CommandIntake:
         with r.store.locked():
             r.admit(observed, existing_only=True)
             generation, calls, history = r.registry.command_snapshot(r.scope)
+            self._validate_cached_paths(calls)
             context, _ = self.sessions.context()
             documents = {}
             stale = set()

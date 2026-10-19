@@ -642,7 +642,8 @@ class TaskCommands:
         execution_write = None
         if not drafted and execution is not None:
             execution_write = facade.prepare_execution(inputs, task_id,
-                {**execution[0], 'attempts':0, 'publication':None, 'pending':None})
+                {**execution[0], 'attempts':0, 'publication':None, 'pending':None,
+                 'last_report':None})
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt_raw(task_id, request_id, identity)
             if replay is None:

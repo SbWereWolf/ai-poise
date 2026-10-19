@@ -152,7 +152,10 @@ class SqliteTaskInputs:
         return SqliteTaskRepository._restore_state(self.tasks[task_id].header)
 
     def newborn(self, task_id):
-        row = self.tasks[task_id].header
+        raw = self.tasks[task_id]
+        if raw is None:
+            raise PoiseError(f'Задача не найдена: {task_id}')
+        row = raw.header
         if row['status'] != 'newborn':
             raise PoiseError('Task is not newborn')
         return NewbornTask.restore(task_id, row['claimed_by'], row['version'],

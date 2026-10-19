@@ -131,8 +131,9 @@ class Poise:
             self.requirements_store,
             self.cfg['batch']['max_items'],
         )
-        requirements_gate = TaskRequirementsGate.enabled(
-            self.requirements_store.registry,
+        from .infrastructure.requirements_registry import SqliteRegistrySnapshotProvider
+        requirements_gate = TaskRequirementsGate.from_provider(
+            SqliteRegistrySnapshotProvider(self.requirements_store),
             TaskRequirementsMetadataStore(self.store.unit_of_work),
         )
         self.task_commands, self.task_queries = task_tools(

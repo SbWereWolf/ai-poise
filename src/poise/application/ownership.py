@@ -1,7 +1,9 @@
 from __future__ import annotations
+from dataclasses import dataclass
 
-from ..modules.foundation.errors import PoiseError
+from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.ownership.domain import Liveness, OwnershipChange
+from ..modules.tasks.ports import TaskReadSet, TaskSourcesChanged
 
 
 def _conflict(owner, liveness):
@@ -25,37 +27,34 @@ def release_dependent_worktree_in(uow, actor, task_id):
 
 
 
-def reconcile_integrated_worktree_in(uow, actor, task_id, expected_pending, verify_cleanup):
-    """Release only an obsolete dependent binding, with proof and audit in one UoW.
-
-    Integration supplies its read-only Git/filesystem proof under its publication
-    lock. This owner neither changes Task results nor deletes any resource.
-    """
-    from ..modules.tasks.domain import TaskStatus
-
-    if not uow.ownership.worktree_required(task_id):
-        return
-    observed = uow.ownership.preflight(actor, task_id)
-    if observed.worktree_owner is None:
+def reconcile_integrated_worktree(unit_of_work, actor, task_id, expected_pending, verify_cleanup):
+    facade = unit_of_work()
+    with unit_of_work() as uow:
+        observed = uow.ownership.preflight(actor, task_id)
+    actors = (actor,) if observed.worktree_owner in (None, actor) else (actor, observed.worktree_owner)
+    inputs = facade.capture(TaskReadSet((task_id,), actors=actors, execution_ids=(task_id,)))
+    if not inputs.worktree_required(task_id) or observed.worktree_owner is None:
         return
     if observed.task_owner is not None:
         raise PoiseError('Terminal ownership reconciliation cannot release a claimed Task')
-    task = uow.tasks.load(task_id)
-    if task.state.status != TaskStatus.COMPLETED:
+    if inputs.task(task_id).state.status != 'completed':
         raise PoiseError('Terminal ownership reconciliation requires an unclaimed completed Task')
-    execution, _ = uow.execution.load(task_id)
+    execution, _ = inputs.required_execution(task_id)
     if execution['pending'] != expected_pending:
         raise PoiseError('Cleanup proof changed during ownership reconciliation')
     verify_cleanup(execution)
     owner = observed.worktree_owner
-    release_dependent_worktree_in(uow, owner, task_id)
-    uow.ownership.record_integrated_worktree_reconciliation(actor, task_id, {
-        'released_owner': owner,
-        'request_id': expected_pending['intent']['request_id'],
-        'accepted_commit': expected_pending['accepted_commit'],
-        'published_commit': expected_pending['target_after'],
-        'cleanup': dict(expected_pending['cleanup']),
-    })
+    proof = facade.prepare_ownership_reconciliation({
+        'released_owner':owner, 'request_id':expected_pending['intent']['request_id'],
+        'accepted_commit':expected_pending['accepted_commit'],
+        'published_commit':expected_pending['target_after'], 'cleanup':dict(expected_pending['cleanup'])})
+    with unit_of_work() as uow:
+        uow.require_inputs(inputs)
+        if uow.ownership.preflight(actor, task_id) != observed:
+            raise VersionConflict('Terminal ownership changed; repeat reconciliation')
+        if inputs.ownership(owner).worktree_task_id == task_id:
+            uow.ownership.bind_worktree(owner, None)
+        uow.ownership.record_prepared_reconciliation(actor, task_id, proof)
 
 
 def _release_task_in(uow, actor, task_id):
@@ -166,123 +165,175 @@ class OwnershipCommands:
             return result
 
     def _preflight(self, actor, task_id):
+        inputs = self.uow().capture(TaskReadSet((task_id,), review_ids=(task_id,)))
+        if inputs.state(task_id).status != 'newborn':
+            from .tasks import require_reviewer_identity
+            task = inputs.task(task_id)
+            task._require_stage_contracts()
+            require_reviewer_identity(inputs, task, actor, acquiring=True)
         with self.uow() as uow:
-            if not uow.tasks.is_newborn(task_id):
-                from .tasks import require_reviewer_identity_in
-                task = uow.tasks.load(task_id)
-                task._require_stage_contracts()
-                require_reviewer_identity_in(uow, task, actor, acquiring=True)
             observed = uow.ownership.preflight(actor, task_id)
         self.after_preflight(observed)
         return observed
 
-    def _recover(self, uow, owner, task_id, recovered):
-        if owner is None or owner in recovered:
-            return
-        if not _conflict(owner, self.liveness):
-            return
-        snapshot = uow.ownership.snapshot(owner)
-        if snapshot.task_id == task_id:
-            _release_task_in(uow, owner, task_id)
-        elif snapshot.worktree_task_id == task_id:
-            uow.ownership.bind_worktree(owner, None)
-        recovered.add(owner)
-
     def acquire_task(self, actor, task_id, *, force_duplicate_start=False,
                      expected_newborn_revision=None):
-        self._preflight(actor, task_id)
-        with self.uow() as uow:
-            if expected_newborn_revision is not None:
-                if (type(expected_newborn_revision) is not int
-                        or not uow.tasks.is_newborn(task_id)):
-                    raise PoiseError('Newborn Task changed before acquisition')
-                newborn = uow.tasks.load_newborn(task_id)
-                if newborn.version != expected_newborn_revision:
-                    raise PoiseError('Newborn Task version changed before acquisition')
-            if not uow.tasks.is_newborn(task_id):
-                from .tasks import require_reviewer_identity_in
-                require_reviewer_identity_in(uow, uow.tasks.load(task_id), actor, acquiring=True)
-                from .duplicate_tasks import require_duplicate_start_in
-                require_duplicate_start_in(uow, task_id, actor,
-                    force_duplicate_start=force_duplicate_start)
-            before = uow.ownership.snapshot(actor)
-            target = uow.ownership.preflight(actor, task_id)
-            recovered = set()
-            for owner in (target.task_owner, target.worktree_owner):
-                if owner not in (None, actor):
-                    self._recover(uow, owner, task_id, recovered)
-            target = uow.ownership.preflight(actor, task_id)
-            if target.task_owner not in (None, actor):
-                _conflict(target.task_owner, self.liveness)
-            required = uow.ownership.worktree_required(task_id)
-            if required and target.worktree_owner not in (None, actor):
-                _conflict(target.worktree_owner, self.liveness)
-            if before.task_id not in (None, task_id):
-                _release_task_in(uow, actor, before.task_id)
-            current = uow.ownership.preflight(actor, task_id)
-            if current.task_owner is None:
-                if uow.tasks.is_newborn(task_id):
-                    uow.tasks.acquire_newborn(task_id, actor)
-                else:
-                    task = uow.tasks.load(task_id)
-                    uow.tasks.save(task.acquire_ownership(actor), task.state.version)
-            if required:
-                uow.ownership.bind_worktree(actor, task_id)
-            elif before.worktree_task_id is None:
-                uow.ownership.bind_worktree(actor, None)
-            after = uow.ownership.snapshot(actor)
-            return OwnershipChange(before, after, tuple(sorted(recovered)))
+        return self._acquire(actor, task_id, True, force_duplicate_start,
+                             expected_newborn_revision)
 
     def acquire_worktree(self, actor, task_id):
+        return self._acquire(actor, task_id, False, False, None)
+
+    def _acquire(self, actor, task_id, claim_task, force_duplicate_start, expected_newborn_revision):
         self._preflight(actor, task_id)
+        facade = self.uow()
         with self.uow() as uow:
-            before = uow.ownership.snapshot(actor)
             target = uow.ownership.preflight(actor, task_id)
-            recovered = set()
-            if target.worktree_owner not in (None, actor):
-                self._recover(uow, target.worktree_owner, task_id, recovered)
-            target = uow.ownership.preflight(actor, task_id)
-            if target.worktree_owner not in (None, actor):
-                _conflict(target.worktree_owner, self.liveness)
-            uow.ownership.bind_worktree(actor, task_id)
-            return OwnershipChange(before, uow.ownership.snapshot(actor), tuple(sorted(recovered)))
+        foreign = tuple(sorted({owner for owner in (target.task_owner, target.worktree_owner)
+                                if owner not in (None, actor)}))
+        inputs = facade.capture(TaskReadSet((task_id,), actors=(actor, *foreign),
+            review_ids=(task_id,), family_ids=(task_id,) if claim_task else ()))
+        state = inputs.state(task_id)
+        newborn = state.status == 'newborn'
+        if claim_task and expected_newborn_revision is not None:
+            if type(expected_newborn_revision) is not int or not newborn:
+                raise PoiseError('Newborn Task changed before acquisition')
+            if state.version != expected_newborn_revision:
+                raise PoiseError('Newborn Task version changed before acquisition')
+        if state.claimed_by != target.task_owner:
+            raise VersionConflict('Ownership changed before preparation; repeat the request')
+        if not newborn:
+            from .tasks import require_reviewer_identity
+            task = inputs.task(task_id)
+            require_reviewer_identity(inputs, task, actor, acquiring=True)
+            if claim_task:
+                from .duplicate_tasks import require_duplicate_start
+                require_duplicate_start(inputs, task_id, actor,
+                    force_duplicate_start=force_duplicate_start)
+        required = inputs.worktree_required(task_id)
+        before = inputs.ownership(actor)
+        recovered = set()
+        owners = (target.task_owner, target.worktree_owner) if claim_task else (target.worktree_owner,)
+        for owner in owners:
+            if owner not in (None, actor) and owner not in recovered:
+                _conflict(owner, self.liveness)
+                recovered.add(owner)
+        release = prepare_actor_release(facade, inputs, actor, task_id) if claim_task else None
+        changes = []
+        newborn_changes = []
+        current = inputs.newborn(task_id) if newborn else task
+        for owner in sorted(recovered):
+            if inputs.ownership(owner).task_id == task_id:
+                if newborn:
+                    released = current.release(owner)
+                    newborn_changes.append((released, current.version, 'ownership_released'))
+                    current = released
+                else:
+                    change = current.release_ownership(owner)
+                    changes.append(change)
+                    current = change.task
+        if claim_task and (current.claimed_by if newborn else current.state.claimed_by) is None:
+            if newborn:
+                acquired = current.acquire(actor)
+                newborn_changes.append((acquired, current.version, 'ownership_acquired'))
+            else:
+                changes.append(current.acquire_ownership(actor))
+        writes = facade.prepare_claim_changes(inputs, tuple(changes)) if changes else ()
+        try:
+            with self.uow() as uow:
+                uow.require_inputs(inputs)
+                if uow.ownership.preflight(actor, task_id) != target:
+                    raise VersionConflict('Ownership changed during preparation; repeat the request')
+                if release is not None:
+                    release.save(uow)
+                for value, version, event in newborn_changes:
+                    uow.tasks.save_newborn_ownership(value, version, event)
+                for write in writes:
+                    uow.tasks.save_prepared(write)
+                for owner in sorted(recovered):
+                    snapshot = inputs.ownership(owner)
+                    if (snapshot.worktree_task_id == task_id and
+                            (snapshot.task_id != task_id or required)):
+                        uow.ownership.bind_worktree(owner, None)
+                if not claim_task or required:
+                    uow.ownership.bind_worktree(actor, task_id)
+                elif before.worktree_task_id is None:
+                    uow.ownership.bind_worktree(actor, None)
+                after = uow.ownership.snapshot(actor)
+        except TaskSourcesChanged as conflict:
+            if claim_task and not newborn:
+                require_duplicate_start(conflict.current, task_id, actor,
+                    force_duplicate_start=force_duplicate_start)
+            raise
+        return OwnershipChange(before, after, tuple(sorted(recovered)))
+
+    @staticmethod
+    def _release_replay(raw, actor, intent):
+        import json
+        receipt = json.loads(raw)
+        if receipt['actor'] != actor or receipt['request'] != intent:
+            raise PoiseError('Ordinary release caller or request conflict')
+        return {**receipt['result'], 'replayed': True}
 
     def release(self, actor, request):
-        from dataclasses import asdict
+        from dataclasses import asdict, replace
         from ..modules.ownership.domain import parse_ordinary_release
-
         intent = parse_ordinary_release(request)
         task_id = intent['task_id']
+        facade = self.uow()
         with self.uow() as uow:
-            receipt = uow.ownership.ordinary_release_receipt(intent['request_id'])
-            if receipt is not None:
-                if receipt['actor'] != actor or receipt['request'] != intent:
-                    raise PoiseError('Ordinary release caller or request conflict')
-                return {**receipt['result'], 'replayed': True}
-            before = uow.ownership.snapshot(actor)
+            receipt = uow.ownership.ordinary_release_receipt_raw(intent['request_id'])
+        if receipt is not None:
+            return self._release_replay(receipt, actor, intent)
+        inputs = facade.capture(TaskReadSet((task_id,), actors=(actor,), cycle_releases=((actor, task_id),)))
+        before = inputs.ownership(actor)
+        with self.uow() as uow:
             target = uow.ownership.preflight(actor, task_id)
-            if target.task_owner != actor or before.task_id != task_id:
-                raise PoiseError('Release requires the named Task owned by the current caller')
-            state = uow.tasks.load_state(task_id)
-            if state.version != intent['expected_version']:
-                raise PoiseError('Release version conflict; refresh the current Task version')
-            if (uow.ownership.worktree_required(task_id)
-                    and target.worktree_owner not in (None, actor)):
-                raise PoiseError('Release rejected inconsistent foreign dependent worktree ownership')
-            uow.accounting_cycles.release(actor, task_id)
-            _release_task_in(uow, actor, task_id)
-            after = uow.ownership.snapshot(actor)
-            result = {'status': 'ownership_released', 'task': task_id,
-                      'request_id': intent['request_id'], 'replayed': False,
-                      'before': asdict(before), 'after': asdict(after)}
-            uow.ownership.record_ordinary_release(intent, actor, result)
-            return result
+        if target.task_owner != actor or before.task_id != task_id:
+            raise PoiseError('Release requires the named Task owned by the current caller')
+        if inputs.state(task_id).version != intent['expected_version']:
+            raise PoiseError('Release version conflict; refresh the current Task version')
+        required = inputs.worktree_required(task_id)
+        if required and target.worktree_owner not in (None, actor):
+            raise PoiseError('Release rejected inconsistent foreign dependent worktree ownership')
+        release = prepare_actor_release(facade, inputs, actor, None)
+        after = replace(before, task_id=None,
+            worktree_task_id=None if release.release_worktree else before.worktree_task_id)
+        result = {'status':'ownership_released', 'task':task_id,
+            'request_id':intent['request_id'], 'replayed':False,
+            'before':asdict(before), 'after':asdict(after)}
+        encoded = facade.prepare_release_receipt(intent, actor, result)
+        cycle = facade.prepare_cycle_release(inputs, actor, task_id)
+        with self.uow() as uow:
+            receipt = uow.ownership.ordinary_release_receipt_raw(intent['request_id'])
+            if receipt is None:
+                uow.require_inputs(inputs)
+                if uow.ownership.preflight(actor, task_id) != target:
+                    raise VersionConflict('Release ownership changed; repeat the request')
+                uow.accounting_cycles.release_prepared(cycle)
+                release.save(uow)
+                uow.ownership.record_prepared_release(task_id, actor, encoded)
+        return result if receipt is None else self._release_replay(receipt, actor, intent)
 
     def release_task(self, actor, task_id):
+        facade = self.uow()
+        inputs = facade.capture(TaskReadSet((task_id,), actors=(actor,)))
+        before = inputs.ownership(actor)
+        release = (prepare_actor_release(facade, inputs, actor, None)
+                   if before.task_id == task_id else None)
+        # Explicit release validates the named Task even when no claim remains.
+        if inputs.state(task_id).status == 'newborn':
+            inputs.newborn(task_id).release(actor)
+        else:
+            inputs.task(task_id).release_ownership(actor)
         with self.uow() as uow:
-            before = uow.ownership.snapshot(actor)
-            _release_task_in(uow, actor, task_id)
-            return OwnershipChange(before, uow.ownership.snapshot(actor), ())
+            uow.require_inputs(inputs)
+            if release is not None:
+                release.save(uow)
+            if (inputs.worktree_required(task_id) and before.worktree_task_id == task_id):
+                uow.ownership.bind_worktree(actor, None)
+            after = uow.ownership.snapshot(actor)
+        return OwnershipChange(before, after, ())
 
 
 class BoundOwnership:
@@ -331,6 +382,13 @@ def reserve_reuse_in(uow, task, change, actor):
     before = uow.ownership.snapshot(actor)
     target = uow.ownership.preflight(actor, task_id)
     required = uow.ownership.worktree_required(task_id)
+    require_reuse_ownership(before, target, required, task_id, actor)
+    uow.tasks.save(change, task.state.version)
+    if required:
+        uow.ownership.bind_worktree(actor, task_id)
+
+
+def require_reuse_ownership(before, target, required, task_id, actor):
     if before.task_id not in (None, task_id):
         raise PoiseError("Reuse caller already owns another Task")
     if target.task_owner not in (None, actor):
@@ -338,6 +396,41 @@ def reserve_reuse_in(uow, task, change, actor):
     if required and (target.worktree_owner not in (None, actor)
                      or before.worktree_task_id not in (None, task_id)):
         raise PoiseError("Reuse cannot replace independent or foreign worktree ownership")
-    uow.tasks.save(change, task.state.version)
-    if required:
-        uow.ownership.bind_worktree(actor, task_id)
+
+
+@dataclass(frozen=True)
+class PreparedClaimRelease:
+    actor: str
+    task_id: str
+    write: object | None
+    newborn: object | None
+    release_worktree: bool
+    expected_version: int
+
+    def save(self, uow):
+        if self.newborn is not None:
+            uow.tasks.save_newborn_ownership(
+                self.newborn, self.expected_version, 'ownership_released')
+        else:
+            uow.tasks.save_prepared(self.write)
+        if self.release_worktree:
+            uow.ownership.bind_worktree(self.actor, None)
+
+
+def prepare_actor_release(facade, inputs, actor, target):
+    snapshot = inputs.ownership(actor)
+    task_id = snapshot.task_id
+    if task_id in (None, target):
+        return None
+    # Ownership selection is captured atomically with this Task's raw state.
+    from ..modules.tasks.domain import TaskStatus
+    state = inputs.state(task_id)
+    if state.status == TaskStatus.NEWBORN:
+        newborn = inputs.newborn(task_id).release(actor)
+        write = None
+    else:
+        task = inputs.task(task_id)
+        write = facade.prepare_change(inputs, task.release_ownership(actor))
+        newborn = None
+    return PreparedClaimRelease(actor, task_id, write, newborn,
+        inputs.worktree_required(task_id) and snapshot.worktree_task_id == task_id, state.version)

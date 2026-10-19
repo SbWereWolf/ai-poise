@@ -12,6 +12,15 @@ def encode(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
 
 
+def worktree_required(status, metadata):
+    if status == 'newborn' and not metadata.get('restart_history'):
+        return False
+    value = metadata['workflow'].get('worktree_required')
+    if type(value) is not bool:
+        raise PoiseError('Stored workflow requires exact worktree_required bool')
+    return value
+
+
 def legacy_conflicts(db):
     """Connected ownership components; Task and worktree claims stay independent."""
     if db.execute('PRAGMA user_version').fetchone()[0] != 12:
@@ -79,19 +88,24 @@ def upgrade_legacy_ownership(db, *, clear_terminal=True):
     db.execute('PRAGMA user_version=13')
 
 
+def capture_actor_snapshot(db, actor):
+    tasks = [row[0] for row in db.execute(
+        "SELECT id FROM tasks WHERE claimed_by=? ORDER BY id", (actor,)
+    )]
+    if len(tasks) > 1:
+        raise PoiseError(f"Session {actor} owns more than one Task; use show ownership_conflicts and recover_ownership")
+    row = db.execute("SELECT task_id FROM sessions WHERE id=?", (actor,)).fetchone()
+    return tasks[0] if tasks else None, None if row is None else row[0]
+
+
+
 class SqliteOwnershipRepository:
     def __init__(self, connection, workflows):
         self.db = connection
         self.workflows = workflows
 
     def snapshot(self, actor):
-        tasks = [row[0] for row in self.db.execute(
-            "SELECT id FROM tasks WHERE claimed_by=? ORDER BY id", (actor,)
-        )]
-        if len(tasks) > 1:
-            raise PoiseError(f"Session {actor} owns more than one Task; use show ownership_conflicts and recover_ownership")
-        row = self.db.execute("SELECT task_id FROM sessions WHERE id=?", (actor,)).fetchone()
-        return OwnershipSnapshot(actor, tasks[0] if tasks else None, None if row is None else row[0])
+        return OwnershipSnapshot(actor, *capture_actor_snapshot(self.db, actor))
 
     def preflight(self, actor, task_id):
         require_unambiguous(self.db, task_id)
@@ -111,13 +125,7 @@ class SqliteOwnershipRepository:
         if row is None:
             raise PoiseError(f"Unknown ownership Task: {task_id}")
         metadata = json.loads(row['metadata'])
-        if row['status'] == 'newborn' and not metadata.get('restart_history'):
-            return False
-        workflow = metadata["workflow"]
-        value = workflow.get("worktree_required")
-        if type(value) is not bool:
-            raise PoiseError("Stored workflow requires exact worktree_required bool")
-        return value
+        return worktree_required(row['status'], metadata)
 
     def bind_worktree(self, actor, task_id):
         self.db.execute(
@@ -127,11 +135,13 @@ class SqliteOwnershipRepository:
         )
 
     def record_integrated_worktree_reconciliation(self, actor, task_id, proof):
+        self.record_prepared_reconciliation(actor, task_id, encode(proof))
+
+    def record_prepared_reconciliation(self, actor, task_id, proof):
         self.db.execute(
             'INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
             (datetime.now(timezone.utc).isoformat(), actor, task_id,
-             'ownership.integrated_worktree_reconciled', encode(proof)),
-        )
+             'ownership.integrated_worktree_reconciled', proof))
 
     def conflicts(self):
         pending = legacy_conflicts(self.db)
@@ -139,12 +149,16 @@ class SqliteOwnershipRepository:
                 'schema_version': self.db.execute('PRAGMA user_version').fetchone()[0],
                 'conflicts': pending}
 
-    def ordinary_release_receipt(self, request_id):
+    def ordinary_release_receipt_raw(self, request_id):
         row = self.db.execute(
             "SELECT data FROM journal WHERE event='ownership.ordinary_released' "
             "AND json_extract(data,'$.request.request_id')=? ORDER BY seq DESC LIMIT 1",
             (request_id,)).fetchone()
-        return None if row is None else json.loads(row[0])
+        return None if row is None else row[0]
+
+    def ordinary_release_receipt(self, request_id):
+        raw = self.ordinary_release_receipt_raw(request_id)
+        return None if raw is None else json.loads(raw)
 
     def latest_ordinary_release(self, task_id):
         row = self.db.execute(
@@ -152,13 +166,20 @@ class SqliteOwnershipRepository:
             (task_id,)).fetchone()
         return None if row is None else json.loads(row[0])
 
+    @staticmethod
+    def prepare_ordinary_release(intent, actor, result):
+        return encode({'request': intent, 'actor': actor, 'before': result['before'],
+                       'after': result['after'], 'result': result})
+
     def record_ordinary_release(self, intent, actor, result):
+        self.record_prepared_release(intent['task_id'], actor,
+                                     self.prepare_ordinary_release(intent, actor, result))
+
+    def record_prepared_release(self, task_id, actor, data):
         self.db.execute(
             'INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
-            (datetime.now(timezone.utc).isoformat(), actor, intent['task_id'],
-             'ownership.ordinary_released',
-             encode({'request': intent, 'actor': actor, 'before': result['before'],
-                     'after': result['after'], 'result': result})))
+            (datetime.now(timezone.utc).isoformat(), actor, task_id,
+             'ownership.ordinary_released', data))
 
     def legacy_receipt(self, request_id):
         row = self.db.execute(

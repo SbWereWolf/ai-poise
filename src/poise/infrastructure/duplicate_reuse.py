@@ -122,10 +122,11 @@ class DuplicateReuseWorkspace:
             raise PoiseError('Accepted artifact stage is not in the local workflow')
         check_counts(records, context['contract']['artifact_requirements'])
         check_counts(records, stage['artifact_requirements'])
-        with self.h.store.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            for assessment in task.assess_artifact_delivery(stage_id, self.h._artifact_facts(records)):
-                assessment.require()
+        from ..modules.tasks.ports import TaskReadSet
+        inputs = self.h.store.unit_of_work().capture(TaskReadSet((task_id,)))
+        task = inputs.task(task_id)
+        for assessment in task.assess_artifact_delivery(stage_id, self.h._artifact_facts(records)):
+            assessment.require()
 
     def plan_artifacts(self, task_id, context, source):
         roots, owners = self._artifact_locations(task_id, context['sprint_id'])
@@ -205,11 +206,12 @@ class DuplicateReuseWorkspace:
     def check(self, task_id, methods):
         h = self.h
         data, checks, tree, invocations, key = self._context(task_id, methods)
-        with h.store.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            candidate_digest = task.check_candidate_digest
-            batch = task.evidence_book.submission_batch(
-                task.stage.stage_id, task.state.iteration, candidate_digest, tree, key)
+        from ..modules.tasks.ports import TaskReadSet
+        inputs = h.store.unit_of_work().capture(TaskReadSet((task_id,)))
+        task = inputs.task(task_id)
+        candidate_digest = task.check_candidate_digest
+        batch = task.evidence_book.submission_batch(
+            task.stage.stage_id, task.state.iteration, candidate_digest, tree, key)
         if batch is not None:
             if not h._intact_receipts(task_id, batch['receipts'], invocations, tree):
                 raise PoiseError('Reuse receipt files changed; do not retry blindly')

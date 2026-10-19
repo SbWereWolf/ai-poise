@@ -1041,17 +1041,16 @@ class RuntimeResultIntegration:
             raise PoiseError('Task branch cleanup could not be verified')
 
     def _reconcile_terminal_ownership(self, run, repository):
-        from ..application.ownership import reconcile_integrated_worktree_in
+        from ..application.ownership import reconcile_integrated_worktree
 
         with exclusive_lock(
             self._publication_lock(), self.h.cfg['limits']['lock_seconds'],
             self.h.cfg['limits']['lock_poll_seconds'],
         ):
-            with self.h.store.unit_of_work() as uow:
-                reconcile_integrated_worktree_in(
-                    uow, self.h.session, run.intent.task_id, run.to_storage(),
-                    lambda execution: self._verify_terminal_cleanup(run, repository, execution),
-                )
+            reconcile_integrated_worktree(
+                self.h.store.unit_of_work, self.h.session, run.intent.task_id, run.to_storage(),
+                lambda execution: self._verify_terminal_cleanup(run, repository, execution),
+            )
 
     def apply(self, intent):
         self._validate_message(intent)

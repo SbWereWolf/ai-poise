@@ -40,22 +40,29 @@ class Store:
             db.execute('INSERT INTO sessions(id,task_id) VALUES(?,NULL) ON CONFLICT(id) DO NOTHING', (session,))
 
     def current(self, session: str) -> dict | None:
+        from .infrastructure.sqlite.task_record import capture_record_in
         with self.database.read_transaction() as db:
             rows=db.execute('SELECT id FROM tasks WHERE claimed_by=? ORDER BY id',(session,)).fetchall()
             if len(rows)>1:raise PoiseError(f'Session {session} owns more than one Task')
-            return None if not rows else self.queries.record_in(db,rows[0][0])
+            capture = None if not rows else capture_record_in(db, rows[0][0])
+        return self.queries.project_record(capture)
 
     def save(self, data: dict) -> None:
         # Runner can persist ONLY execution bookkeeping; never lifecycle or content.
+        from .modules.tasks.ports import TaskReadSet
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((data['id'],), execution_ids=(data['id'],)))
+        task_state = inputs.task(data['id']).state
+        expected = {'status':task_state.status.value,'stage_index':task_state.stage_index,
+                    'iteration':task_state.iteration,'claimed_by':task_state.claimed_by,
+                    '_version':task_state.version}
+        if any(data[key] != value for key,value in expected.items()):
+            raise PoiseError('Execution writer не может менять или игнорировать stale Task lifecycle')
+        prepared = facade.prepare_execution(inputs, data['id'], {key:data[key] for key in EXECUTION_FIELDS})
         with self.unit_of_work() as uow:
-            task_state = uow.tasks.load(data['id']).state
-            expected = {'status':task_state.status.value,'stage_index':task_state.stage_index,
-                        'iteration':task_state.iteration,'claimed_by':task_state.claimed_by,
-                        '_version':task_state.version}
-            if any(data[key] != value for key,value in expected.items()):
-                raise PoiseError('Execution writer не может менять или игнорировать stale Task lifecycle')
-            data['_execution_version']=uow.execution.save(data['id'],
-                {key:data[key] for key in EXECUTION_FIELDS},data['_execution_version'])
+            uow.require_inputs(inputs)
+            version = uow.execution.save_prepared(data['id'], prepared, data['_execution_version'])
+        data['_execution_version'] = version
 
     def artifact_records(self, task_id: str) -> list[dict]:
         with self.transaction() as db:

@@ -12,25 +12,26 @@ def digest(value):
 
 
 def accepted_sources(db, task_id):
-    events = [(row['seq'], json.loads(row['data'])) for row in db.execute(
-        'SELECT seq,data FROM task_events WHERE task_id=? ORDER BY seq', (task_id,))]
+    from .task_history import capture_history
+    from .task_snapshot import capture_task
+    return project_accepted_sources(capture_history(db, task_id), capture_task(db, task_id))
+
+
+def project_accepted_sources(history, task):
+    events = [(row['seq'], json.loads(row['data'])) for row in history.events]
     boundaries = [seq for seq, event in events if event['event'] == 'restarted_newborn']
     if not boundaries:
         return None
     boundary = boundaries[-1]
     events = [event for seq, event in events if seq < boundary]
-    workflow = json.loads(db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()[0])
-    definitions = [json.loads(row[0])['method'] for row in db.execute(
-        'SELECT data FROM task_methods WHERE task_id=? ORDER BY method_id', (task_id,))]
-    for history in workflow['registry']['history']:
-        definitions.extend(entry['method'] for entry in history['entries'])
+    workflow = json.loads(task.workflow)
+    definitions = [value['method'] for value in sorted(map(json.loads, task.methods),
+                                                      key=lambda v: v['method']['id'])]
+    for registry_history in workflow['registry']['history']:
+        definitions.extend(entry['method'] for entry in registry_history['entries'])
     submitted = {event['submission'] for event in events if event['event'] == 'submitted'}
     sources = {}
-    for row in db.execute(
-        'SELECT s.seq,s.stage,s.iteration,s.digest,s.data,r.data AS report,w.data AS workflow '
-        'FROM submissions s LEFT JOIN task_results r ON r.task_id=s.task_id AND r.submission_id=s.seq '
-        'LEFT JOIN workflow_layers w ON w.task_id=s.task_id AND w.submission_id=s.seq '
-        'WHERE s.task_id=? ORDER BY s.seq', (task_id,)):
+    for row in history.submissions:
         if row['seq'] not in submitted:
             continue
         verified = [event for event in events if event['event'] == 'verified'

@@ -221,7 +221,10 @@ class Poise:
         task = self.task_queries.record(task_id)
         if task is None:
             raise PoiseError('Historical receipt Task unavailable')
-        return is_terminal_task_status(task['status'])
+        if not is_terminal_task_status(task['status']):
+            return False
+        delivery = self.delivery_tools.state(task_id)
+        return delivery is not None and delivery.data['status'] == 'delivery_complete'
 
     def delivery_after(self,result,operation):
         task_id=result['task']

@@ -20,14 +20,15 @@ class TelemetryDatabase:
         self.path,self.lock,self.wait,self.poll=path,lock,wait,poll
         self.project_fence=project_fence
         self._database=None
-        self._initialization=Lock()
 
     def _ready(self):
-        if self._database is None:
-            with self._initialization:
-                if self._database is None:
-                    self._database=Database(self.path,self.lock,self.wait,self.poll,self.project_fence)
-        return self._database
+        database = self._database
+        if database is None:
+            # Schema initialization is serialized by Database's own transaction.
+            # A cache mutex could retain a vanished thread owner after fork.
+            database = Database(self.path,self.lock,self.wait,self.poll,self.project_fence)
+            self._database = database
+        return database
 
     @contextmanager
     def transaction(self):
@@ -108,17 +109,15 @@ class AsyncTelemetryDispatcher:
             raise ValueError("max_pending must be a positive integer")
         self.processor = processor
         self.max_pending = max_pending
-        self._pending = deque()
         self._seen = set()
         self._recent_ids = deque()
         self._inflight = 0
         self._lock = Lock()
         self._changed = Condition(self._lock)
-        self._worker = None
-        self._receipts = []
+        self._receipts = {}
+        self._active_ids = set()
+        self._flush_lock = Lock()
         self._captures = 0
-        self._capture_pending = deque()
-        self._capture_worker = None
         self._closed = False
         self._stats = {
             "submitted": 0,
@@ -133,39 +132,57 @@ class AsyncTelemetryDispatcher:
             self._stats["submitted"] += 1
             return self._accept(envelope)
 
-    def _accept(self, envelope):
-        self._harvest()
-        if envelope.identity in self._seen:
-            self._stats["duplicates"] += 1
-            return True
-        outstanding = len(self._pending) + len(self._receipts) + self._captures + self._inflight
-        if self._closed or outstanding >= self.max_pending:
-            self._stats["dropped"] += 1
-            return False
-        self._seen.add(envelope.identity)
-        self._recent_ids.append(envelope.identity)
+    def _outstanding(self):
+        return len(self._receipts) + self._captures + self._inflight
+
+    def _known(self, identity):
+        return identity in self._seen or identity in self._active_ids
+
+    def _remember(self, identity):
+        self._active_ids.add(identity)
+        self._seen.add(identity)
+        self._recent_ids.append(identity)
         if len(self._recent_ids) > self.max_pending * 2:
             self._seen.discard(self._recent_ids.popleft())
+
+    def _rollback_identity(self, identity):
+        self._active_ids.discard(identity)
+        self._seen.discard(identity)
+        self._recent_ids.remove(identity)
+
+    def _accept(self, envelope):
+        self._harvest()
+        if self._known(envelope.identity):
+            self._stats["duplicates"] += 1
+            return True
+        if self._closed or self._outstanding() >= self.max_pending:
+            self._stats["dropped"] += 1
+            return False
+        self._remember(envelope.identity)
         if getattr(self.processor, "detached", False):
             try:
-                self._receipts.append(self._spawn(envelope))
+                self._receipts[self._spawn(envelope)] = envelope.identity
             except OSError:
-                self._seen.remove(envelope.identity)
+                self._rollback_identity(envelope.identity)
                 self._stats["dropped"] += 1
                 return False
             return True
-        self._pending.append(envelope)
-        if self._worker is None:
-            self._worker = Thread(target=self._run, daemon=True)
-            self._worker.start()
+        self._inflight += 1
+        try:
+            Thread(target=self._run, args=(envelope,), daemon=True).start()
+        except (OSError, RuntimeError):
+            self._inflight -= 1
+            self._rollback_identity(envelope.identity)
+            self._stats["dropped"] += 1
+            self._changed.notify_all()
+            return False
         return True
 
     def begin_capture(self, clock, base, builder):
         with self._changed:
             self._stats["submitted"] += 1
             self._harvest()
-            outstanding = len(self._pending) + len(self._receipts) + self._captures + self._inflight
-            if self._closed or outstanding >= self.max_pending:
+            if self._closed or self._outstanding() >= self.max_pending:
                 self._stats["dropped"] += 1
                 return None
             if (
@@ -177,14 +194,17 @@ class AsyncTelemetryDispatcher:
                 except OSError:
                     self._stats["dropped"] += 1
                     return None
-                self._receipts.append(receipt)
+                self._receipts[receipt] = None
                 return token
             token = _ThreadCapture(clock, base, builder)
             self._captures += 1
-            self._capture_pending.append(token)
-            if self._capture_worker is None:
-                self._capture_worker = Thread(target=self._run_captures, daemon=True)
-                self._capture_worker.start()
+            try:
+                Thread(target=self._run_capture, args=(token,), daemon=True).start()
+            except (OSError, RuntimeError):
+                self._captures -= 1
+                self._stats["dropped"] += 1
+                self._changed.notify_all()
+                return None
             return token
 
     def finish_capture(self, token, final):
@@ -202,42 +222,33 @@ class AsyncTelemetryDispatcher:
             token.ready.notify_all()
         return True
 
-    def _run_captures(self):
-        while True:
+    def _run_capture(self, token):
+        identity = None
+        outcome = "failed"
+        try:
+            started = token.clock.observe()
+            with token.ready:
+                while token.final is None:
+                    token.ready.wait()
+                final = token.final
+            envelope = token.builder(token.base, started, token.clock.observe(), final)
             with self._changed:
-                if not self._capture_pending:
-                    self._capture_worker = None
-                    self._changed.notify_all()
+                if self._known(envelope.identity):
+                    outcome = "duplicates"
                     return
-                token = self._capture_pending.popleft()
-            try:
-                started = token.clock.observe()
-                with token.ready:
-                    while token.final is None:
-                        token.ready.wait()
-                    final = token.final
-                envelope = token.builder(
-                    token.base,
-                    started,
-                    token.clock.observe(),
-                    final,
-                )
-                if getattr(self.processor, "detached", False):
-                    self.processor(envelope)
-                    with self._changed:
-                        self._captures -= 1
-                        self._stats["processed"] += 1
-                        self._changed.notify_all()
-                else:
-                    with self._changed:
-                        self._captures -= 1
-                        self._accept(envelope)
-                        self._changed.notify_all()
-            except Exception:
-                with self._changed:
-                    self._captures -= 1
-                    self._stats["failed"] += 1
-                    self._changed.notify_all()
+                self._remember(envelope.identity)
+                identity = envelope.identity
+            self.processor(envelope)
+            outcome = "processed"
+        except Exception:
+            pass
+        finally:
+            with self._changed:
+                self._captures -= 1
+                if identity is not None:
+                    self._active_ids.discard(identity)
+                self._stats[outcome] += 1
+                self._changed.notify_all()
 
     def _spawn(self, envelope):
         read_fd, write_fd = os.pipe()
@@ -345,27 +356,19 @@ class AsyncTelemetryDispatcher:
                 continue
         return _DetachedCapture(final_write), receipt_read
 
-    def _run(self):
-        while True:
+    def _run(self, envelope):
+        outcome = "failed"
+        try:
+            self.processor(envelope)
+            outcome = "processed"
+        except Exception:
+            pass
+        finally:
             with self._changed:
-                if not self._pending:
-                    self._worker = None
-                    self._changed.notify_all()
-                    return
-                envelope = self._pending.popleft()
-                self._inflight += 1
-            try:
-                self.processor(envelope)
-            except Exception:
-                with self._changed:
-                    self._stats["failed"] += 1
-            else:
-                with self._changed:
-                    self._stats["processed"] += 1
-            finally:
-                with self._changed:
-                    self._inflight -= 1
-                    self._changed.notify_all()
+                self._inflight -= 1
+                self._active_ids.discard(envelope.identity)
+                self._stats[outcome] += 1
+                self._changed.notify_all()
 
     def _harvest(self):
         if not self._receipts:
@@ -374,36 +377,47 @@ class AsyncTelemetryDispatcher:
         for descriptor in self._receipts:
             poller.register(descriptor, select.POLLIN | select.POLLHUP | select.POLLERR)
         for receipt, _ in poller.poll(0):
+            outcome = b""
             try:
                 outcome = os.read(receipt, 1)
+            except OSError:
+                pass
             finally:
                 os.close(receipt)
-                self._receipts.remove(receipt)
+                identity = self._receipts.pop(receipt)
+                if identity is not None:
+                    self._active_ids.discard(identity)
             self._stats["processed" if outcome == b"1" else "failed"] += 1
+        self._changed.notify_all()
 
     def flush(self):
-        while True:
-            with self._changed:
-                while self._capture_worker is not None or self._worker is not None:
-                    self._changed.wait()
-                receipts = self._receipts
-                self._receipts = []
-            if not receipts:
-                return
-            outcomes = []
-            for receipt in receipts:
+        # Duplicates protect the poll snapshot against concurrent harvest/FD reuse.
+        # Only _harvest reads receipts and releases the admission budget.
+        with self._flush_lock:
+            while True:
+                receipts = []
                 try:
-                    outcomes.append(os.read(receipt, 1))
+                    with self._changed:
+                        self._harvest()
+                        while self._captures or self._inflight:
+                            self._changed.wait()
+                            self._harvest()
+                        if not self._receipts:
+                            return
+                        for descriptor in self._receipts:
+                            receipts.append(os.dup(descriptor))
+                    poller = select.poll()
+                    for descriptor in receipts:
+                        poller.register(descriptor, select.POLLIN | select.POLLHUP | select.POLLERR)
+                    poller.poll()
                 finally:
-                    os.close(receipt)
-            with self._changed:
-                self._stats["processed"] += outcomes.count(b"1")
-                self._stats["failed"] += len(outcomes) - outcomes.count(b"1")
+                    for descriptor in receipts:
+                        os.close(descriptor)
 
     def close(self):
-        self.flush()
         with self._changed:
             self._closed = True
+        self.flush()
 
     def summary(self):
         with self._changed:

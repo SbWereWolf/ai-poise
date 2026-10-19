@@ -80,9 +80,11 @@ request, an agent may propose the option, but may investigate, design, implement
 Follow [explicit agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
 
 Present historical receipts of terminal Tasks using the exact Russian retirement message
-defined by the linked canonical terminal-history contract, based on the owning Task's state,
-including when log files remain. Resolve ownership through stage evidence or the saved integration
-result;
+defined by the linked canonical terminal-history contract only after the existing delivery
+owner confirms actual removal of that Task's materials and logs. For a result intended for
+integration, retirement follows confirmed integration and completion of required material
+consumers. A terminal Task status alone does not establish removal; report retained materials
+truthfully. Resolve ownership through stage evidence or the saved integration result;
 show state/owner lookup errors explicitly. Preserve complete receipt history in the saved
 full response. Keep brief and expanded agent views distinct and bounded; full output is
 always a file link, never an inline payload even when it fits. History size must not

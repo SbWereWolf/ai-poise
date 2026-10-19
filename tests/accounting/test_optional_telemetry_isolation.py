@@ -244,6 +244,8 @@ def _configure_production_accounting(project):
             {
                 "id": "write",
                 "handler": "produce", "role": "executor",
+                "purpose": "execution",
+                "criteria_authority": {"propose": [], "decide": []},
                 "transitions": {"complete": None},
                 "rework_targets": ["write"],
                 "instruction": "Выполнить один этап и доложить.",
@@ -260,6 +262,9 @@ def _configure_production_accounting(project):
     project["cfg"]["schema"] = "ddd-accounting-12"
     project["cfg"]["accounting"] = policy()
     project["cfg"]["automatic_checks"] = []
+    project["cfg"]["batch"]["message_source"] = {
+        "id": "chat-visible", "mode": "agent_reported",
+    }
     write_json(project["root"] / "config/workflows/development.json", process)
     write_json(project["config_path"], project["cfg"])
     task = deepcopy(project["task"])
@@ -275,6 +280,11 @@ def _configure_production_accounting(project):
             "allowed_paths": ["src/**", "tests/**", "docs/**"],
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {
+                "requirements": [],
+                "definition_of_ready": [],
+                "definition_of_done": [],
+            },
         }
     ]
     task["evidence_plan"] = {

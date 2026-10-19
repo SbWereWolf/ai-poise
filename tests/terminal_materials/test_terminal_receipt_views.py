@@ -72,13 +72,19 @@ def notice(value):
         'Terminal presentation must report deleted service materials')
 
 
+def retained(brief, full):
+    assert 'historical_receipts' not in full
+    assert 'historical_receipts' not in brief.get('summary', {})
+    assert DESTROYED not in json.dumps((brief, full), ensure_ascii=False)
+
+
 def brief_history(value, failed, expected_total):
     assert 'historical_receipts' not in value
     assert value['summary']['historical_receipts'] == {
         'total': expected_total, 'shown': 0, 'omitted': expected_total, 'failed': failed}
 
 
-def integration_arrangement(project, failed=False, identifier='T1'):
+def integration_arrangement(project, failed=False, identifier='T1', retire=False):
     counter = project['root'] / (identifier + '-receipt-executions.txt')
     method = {
         'id': 'RECEIPT_PROBE',
@@ -92,6 +98,16 @@ def integration_arrangement(project, failed=False, identifier='T1'):
         tree / 'src/feature.py').write_text('VALUE = 2\n')
     tools, worktree, commit = prepare_completed_task(
         project, change, task_id=identifier, methods=[method], checks=['RECEIPT_PROBE'])
+    if retire:
+        record = tools.runtime.task_queries.record(identifier)
+        tools.invoke(request('delivery', {
+            'action': 'agree', 'request_id': 'agree-integration-history',
+            'task_id': identifier, 'expected_version': record['version'],
+            'authorization': 'Deliver the exact fixture commit before removing logs.',
+            'declaration': declaration([{'id': 'source', 'kind': 'git',
+                'repository': str(project['app']), 'target_ref': 'refs/heads/main',
+                'commit': commit}]),
+        }))
     if failed:
         (project['app'] / 'reject-integration').write_text('fixture rejection\n')
         git(project['app'], 'add', 'reject-integration')
@@ -102,7 +118,7 @@ def integration_arrangement(project, failed=False, identifier='T1'):
 
 @pytest.mark.parametrize('status', ['completed', 'cancelled'])
 @pytest.mark.parametrize('removed', [False, True], ids=['retained', 'removed'])
-def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, status, removed):
+def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, status, removed, monkeypatch):
     tools, root, source, commit, receipt, _ = checked(project)
     integration_receipt = None
     if removed:
@@ -117,10 +133,18 @@ def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, s
             assert integration_receipt['passed'] is True
         assert not root.exists()
     else:
-        operation = request('accept', {}) if status == 'completed' else request(
-            'cancel', {'reason': 'Keep fixture logs for terminal presentation.'})
-        assert tools.invoke(operation)['status'] == status
-        assert Path(receipt['stdout']).is_file()
+        if status == 'completed':
+            assert tools.invoke(request('accept', {}))['status'] == status
+        else:
+            # Cancellation normally retires immediately. Interrupt only the local
+            # filesystem effect to arrange a real persisted partial retirement.
+            def interrupted(state):
+                raise PoiseError('Retain logs before filesystem removal')
+            monkeypatch.setattr(tools.runtime.delivery_effects, 'remove_owned_root', interrupted)
+            with pytest.raises(PoiseError, match='Retain logs before filesystem removal'):
+                tools.invoke(request('cancel', {'reason': 'Arrange interrupted fixture retirement.'}))
+            assert tools.runtime.delivery_tools.query('T1')['status'] == 'delivery_partial'
+        assert root.is_dir() and Path(receipt['stdout']).is_file()
     reader = WorkPoise(project['config_path'], 'terminal-stage-reader')
     packet = request('bootstrap', {
         'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None})
@@ -131,7 +155,11 @@ def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, s
         assert record['method'] == 'CHECK'
         assert record['actual_exit_code'] == 0 and record['passed'] is True
         historical_outcome(full, receipt['id'], 'CHECK', 0, True)
-        brief_history(brief, 0, 2 if removed and status == 'completed' else 1)
+        if removed:
+            brief_history(brief, 0, 2 if status == 'completed' else 1)
+        else:
+            retained(brief, full)
+            assert full['notice'] == 'Stored historical material; not fresh verification or an executable contract'
         if integration_receipt is not None:
             assert len(full['historical_receipts']) == 1
             group = full['historical_receipts'][0]
@@ -143,15 +171,17 @@ def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, s
                 assert row == {'id': row['id'], 'method': 'CHECK',
                                'actual_exit_code': 0, 'passed': True}
             historical_outcome(full, integration_receipt['id'], 'CHECK', 0, True)
-        notice(brief)
+        if removed:
+            notice(brief)
+            notice(full)
         assert 'T1' in task_ids(full)
-        notice(full)
     if removed:
         assert not root.exists(), 'Historical display must preserve the retired Task location'
 
 
-def test_integration_first_display_and_exact_replay_keep_history_and_notice(project):
-    tools, worktree, counter, packet = integration_arrangement(project)
+@pytest.mark.parametrize('retire', [False, True], ids=['retained', 'retired'])
+def test_integration_first_display_and_exact_replay_keep_history_and_notice(project, retire):
+    tools, worktree, counter, packet = integration_arrangement(project, retire=retire)
     observations = [display(tools.runtime, packet), display(tools.runtime, packet)]
     assert counter.read_text().splitlines() == ['executed', 'executed']
     # One source verification and one actual integration verification; exact replay is historical.
@@ -165,10 +195,13 @@ def test_integration_first_display_and_exact_replay_keep_history_and_notice(proj
         assert receipt['method'] == 'RECEIPT_PROBE'
         assert receipt['actual_exit_code'] == 0 and receipt['passed'] is True
         historical_outcome(full, receipt['id'], 'RECEIPT_PROBE', 0, True)
-        brief_history(brief, 0, 1)
-        notice(brief)
+        if retire:
+            brief_history(brief, 0, 1)
+            notice(brief)
+            notice(full)
+        else:
+            retained(brief, full)
         assert 'T1' in task_ids(full)
-        notice(full)
 
 
 def test_receipt_owner_resolves_stage_and_integration_provenance(project):
@@ -209,10 +242,8 @@ def test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query(p
         stored = full['results'][0]['value']
         assert stored['task'] == 'T1' and stored['checks'][0] == original
         historical_outcome(full, original['id'], 'RECEIPT_PROBE', 7, False)
-        brief_history(brief, 1, 1)
-        notice(brief)
+        retained(brief, full)
         assert 'T1' in task_ids(full)
-        notice(full)
 
 
 def test_receipt_state_read_failure_is_explicit_in_saved_and_short_response(project, monkeypatch):
@@ -232,7 +263,7 @@ def test_receipt_state_read_failure_is_explicit_in_saved_and_short_response(proj
 
 
 def test_bounded_terminal_notice_survives_omission_of_all_command_views(project):
-    tools, worktree, counter, packet = integration_arrangement(project)
+    tools, worktree, counter, packet = integration_arrangement(project, retire=True)
     done = tools.invoke(packet)
     runtime = WorkPoise(project['config_path'], 'bounded-terminal-reader')
     predicted = runtime.runtime / runtime.paths['runs'] / ('0' * 36) / runtime.paths['response']

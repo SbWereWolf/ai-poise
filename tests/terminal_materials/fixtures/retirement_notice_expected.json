@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "notice": "Служебные материалы задачи удалены. Служебные журналы уничтожены",
+    "historical_receipts": [
+      {
+        "task": "T1",
+        "checks": [
+          {
+            "id": "fixture-receipt-id",
+            "method": "CHECK",
+            "actual_exit_code": 0,
+            "passed": true
+          }
+        ]
+      }
+    ]
+  },
+  "views": [
+    {
+      "id": "fixture-receipt-id",
+      "method": "CHECK",
+      "actual_exit_code": 0,
+      "passed": true,
+      "availability": "retired",
+      "primary": "Служебные материалы задачи удалены. Служебные журналы уничтожены"
+    }
+  ]
+}

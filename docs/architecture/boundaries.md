@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-10-18**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-10-20**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -8,8 +8,8 @@
 | workflow/handlers | produce/inspect/revise/observe/check | goal-type branching, присваивание lifecycle |
 | verification/CheckRegistry | точные команды, current revision/история, расписание, `source_under_test`, executable-классификация/покрытие и семантические конфликты | изобретение команд или разрешение filesystem paths |
 | evidence | план, immutable observations/arguments/decisions, механическая достаточность | I/O, оценка истинности вместо агента |
-| application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
-| SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
+| application/TaskCommands + EvidenceCommands | координация снимка, доменной подготовки, авторизации и короткой записи | прямое управление таблицами и исполнение внешних команд |
+| SQLite repositories/UoW | согласованный raw capture, проверка источников, подготовленная запись с FK/optimistic version и внешний lock writer | сами принимать proof или переходить этап |
 | runtime/execution/artifacts | реальные наблюдения Git/команд/files; publication и transport | прямые UPDATE Task/evidence state |
 | Optional telemetry | неизменяемый `TelemetryEnvelope`, отдельные SQLite database/lock, асинхронная best-effort запись и partial coverage | брать authoritative Task DB lock, задерживать либо отменять результат WorkTools |
 
@@ -61,6 +61,36 @@ Task применяет переход только после этих пров
 общий сохранённый output owner и выбранные семантические парсеры; это не реализация
 универсального перехвата. В DDD-04 capture адресуемый и durable у задачи;
 сама форма EvidenceBook не доказывает дополнительные runtime integrations.
+
+## Подготовка независимых записей
+
+`TaskReadSet` объявляет нужные источники операции. SQLite UoW читает их согласованно
+и возвращает `SqliteTaskInputs` после закрытия собственного снимка и project fence.
+Полное восстановление доменных объектов, проверка намерения, внешние наблюдения через
+существующие порты и кодирование подготовленных значений выполняются вне этого контекста.
+В окончательном writer сначала проверяется квитанция запроса, затем выбранные источники
+и полномочия; сохраняются готовые изменения. Domain владеет переходом, application —
+координацией, SQLite adapter — сравнением сохранённых фактов и атомарностью записи.
+
+`task_snapshot` сохраняет прежнее полное восстановление Task, `task_record` — собственную
+проекцию record, `task_writes` — подготовленные SQL-значения. Публичные TaskQueries
+`record/content/evidence_view/verification_registry` закрывают снимок перед соответствующим
+восстановлением/проекцией; content, evidence и активный registry сохраняют полную
+Task-валидацию. Record, Store и accounting сохраняют
+собственные проверки, без добавления чужой полной проверки Task. Locations, methods и
+история захватываются в том же снимке там, где их использует конкретный DTO.
+
+При restart текущий execution очищает attempts, publication, pending и last_report в
+общей транзакции с перезапуском, а immutable submissions/results и реестр сохраняют
+историю. Getter newborn распознаёт объявленное отсутствие Task и возвращает предметный
+отказ с ID до записи; существующая проверка newborn status сохраняется.
+
+Requirements использует отдельный SQL provider, а Task сохраняет собственный исторический
+requirements snapshot. Проверка двух файлов не становится общей транзакцией. Пакетный
+Requirements CRUD сохраняет свою [описанную границу](../workflows/requirements-registry.md#конкурентная-запись).
+Явно транзакционные библиотечные helpers продолжают работать в контексте вызывающего кода.
+Закрытие снимка не меняет Task/worktree ownership и не даёт полномочий на приёмку.
+Подробный алгоритм, ожидания и повторы принадлежат [контракту SQLite-записи](sqlite-write-boundary-design.md#подготовка-и-короткая-запись).
 
 ## Подготовка Task-worktree
 
@@ -609,16 +639,19 @@ receipt: первый запрос не удаляет уже существую
 ## Task identity allocation — 2026-09-11T06:55:21+05:00
 
 `modules/tasks/allocation` владеет чистой моделью numeric namespace, display width,
-progression, creation intent и request digest. `TaskCommands` координирует allocation,
-creation validation, Task aggregate и execution reservation в одной короткой UoW.
-`TaskRepository.allocate` — единственная граница, которая сопоставляет policy с уже занятыми
-Task/Sprint IDs; runtime, planning и Sprint adapters не вычисляют номер и не пробуют Git/paths.
+progression, creation intent и request digest. `TaskCommands` получает закрытый снимок
+пространства ID и выполняет preflight/creation validation до окончательной UoW.
+Preview распределения не резервирует ID. Runtime, planning и Sprint используют того же
+чистого владельца allocation; они не вычисляют номера через Git или filesystem.
 
 Пакетные application services передают владельцу полный набор зарезервированных explicit IDs,
-поскольку только они знают ещё не опубликованный состав Task/Sprint intent. Это не второй
-allocator: они не обходят candidates и не повторяют запросы с увеличенным номером. SQLite
-adapter сериализует allocation и insert прежним внешним lock; отдельный sequence/counter и
-новый lifecycle writer не вводятся.
+поскольку только они знают ещё не опубликованный состав Task/Sprint intent. Окончательный
+SQLite writer проверяет квитанцию и фактическую доступность выбранного ID перед insert.
+Изменение всего namespace само по себе не служит общим veto. При коллизии автоматически
+распределяемого ID application повторяет только выбор и чистую компиляцию зависимых значений
+из сохранённого preflight, без повторения внешней подготовки. Явный занятый ID отклоняется;
+допустимое пространство задаётся policy. Отдельный sequence/counter не вводится. Группа
+публикации сохраняет детей, родительский результат, Sprint и receipts атомарно.
 
 Git и filesystem начинаются после durable `worktree_setup` reservation. Runtime adapter может
 только сверить сохранённые task ID, branch, base и worktree и завершить совпавшее состояние;

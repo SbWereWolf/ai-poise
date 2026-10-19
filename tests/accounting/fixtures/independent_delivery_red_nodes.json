@@ -1,0 +1,9 @@
+[
+  "tests/accounting/test_independent_delivery.py::test_capture_wait_does_not_block_independent_completed_capture",
+  "tests/accounting/test_independent_delivery.py::test_detached_processor_with_injected_clock_delivers_second_before_first_release",
+  "tests/accounting/test_independent_delivery.py::test_linux_detached_spool_delivers_second_before_first_release",
+  "tests/accounting/test_independent_delivery.py::test_spool_batch_delivers_second_before_first_release",
+  "tests/accounting/test_independent_delivery.py::test_spool_consumer_delivers_other_record_while_first_inflight",
+  "tests/accounting/test_independent_delivery.py::test_thread_processor_delivers_second_before_first_release",
+  "tests/accounting/test_independent_delivery.py::test_worktools_verify_saves_second_record_while_first_sink_delayed"
+]

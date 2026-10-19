@@ -1,0 +1,68 @@
+{
+  "clock": {
+    "audit_utc": "2026-10-19T00:00:00+00:00",
+    "monotonic_ns": 1,
+    "comparison_domain": "independent-test"
+  },
+  "delivery_policy": {
+    "max_entries": 4,
+    "max_bytes": 65536,
+    "max_event_bytes": 8192,
+    "max_attempts": 3,
+    "batch_items": 1,
+    "retry_seconds": 5,
+    "lock_seconds": 0.05,
+    "lock_poll_seconds": 0.005
+  },
+  "first_usage": {
+    "usage": [
+      {
+        "source": "test",
+        "stream": "independent-first",
+        "event_id": "usage-first",
+        "sequence": 1,
+        "mode": "delta",
+        "occurred_at": "2026-10-19T00:00:00+00:00",
+        "counters": {
+          "input_tokens": 5,
+          "output_tokens": 3,
+          "total_tokens": 8,
+          "cached_input_tokens": 2,
+          "reasoning_tokens": 1
+        }
+      }
+    ],
+    "intervals": [],
+    "cause": "initial",
+    "finding_targets": []
+  },
+  "second_usage": {
+    "usage": [
+      {
+        "source": "test",
+        "stream": "independent-second",
+        "event_id": "usage-second",
+        "sequence": 1,
+        "mode": "delta",
+        "occurred_at": "2026-10-19T00:00:00+00:00",
+        "counters": {
+          "input_tokens": 5,
+          "output_tokens": 3,
+          "total_tokens": 8,
+          "cached_input_tokens": 2,
+          "reasoning_tokens": 1
+        }
+      }
+    ],
+    "intervals": [],
+    "cause": "initial",
+    "finding_targets": []
+  },
+  "expected_counters": {
+    "input_tokens": 5,
+    "output_tokens": 3,
+    "total_tokens": 8,
+    "cached_input_tokens": 2,
+    "reasoning_tokens": 1
+  }
+}

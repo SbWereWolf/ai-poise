@@ -2,6 +2,7 @@ from __future__ import annotations
 from ..modules.actions.domain import CommitMessagePolicy
 
 import hashlib
+from copy import deepcopy
 import json
 import os
 from pathlib import Path

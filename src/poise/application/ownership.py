@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import deepcopy
 from dataclasses import dataclass
 
 from ..modules.foundation.errors import PoiseError, VersionConflict
@@ -27,32 +28,89 @@ def release_dependent_worktree_in(uow, actor, task_id):
 
 
 
+def _reconciliation_conflict(condition):
+    raise PoiseError(
+        f'Terminal ownership reconciliation {condition}; repeat the saved integrate request.'
+    )
+
+
 def reconcile_integrated_worktree(unit_of_work, actor, task_id, expected_pending, verify_cleanup):
+    """Keep terminal proof detached and recheck its authority before atomic release."""
     facade = unit_of_work()
-    with unit_of_work() as uow:
-        observed = uow.ownership.preflight(actor, task_id)
-    actors = (actor,) if observed.worktree_owner in (None, actor) else (actor, observed.worktree_owner)
-    inputs = facade.capture(TaskReadSet((task_id,), actors=actors, execution_ids=(task_id,)))
+
+    def capture():
+        with unit_of_work() as uow:
+            observed = uow.ownership.preflight(actor, task_id)
+        actors = ((actor,) if observed.worktree_owner in (None, actor)
+                  else (actor, observed.worktree_owner))
+        inputs = facade.capture(TaskReadSet((task_id,), actors=actors, execution_ids=(task_id,)))
+        return observed, inputs
+
+    observed, inputs = capture()
     if not inputs.worktree_required(task_id) or observed.worktree_owner is None:
         return
     if observed.task_owner is not None:
-        raise PoiseError('Terminal ownership reconciliation cannot release a claimed Task')
-    if inputs.task(task_id).state.status != 'completed':
-        raise PoiseError('Terminal ownership reconciliation requires an unclaimed completed Task')
-    execution, _ = inputs.required_execution(task_id)
+        _reconciliation_conflict('cannot release a claimed Task')
+    task = inputs.task(task_id)
+    if task.state.status != 'completed':
+        _reconciliation_conflict('requires an unclaimed completed Task')
+    execution, version = inputs.required_execution(task_id)
     if execution['pending'] != expected_pending:
-        raise PoiseError('Cleanup proof changed during ownership reconciliation')
-    verify_cleanup(execution)
+        _reconciliation_conflict('cleanup proof changed')
     owner = observed.worktree_owner
+    try:
+        verify_cleanup(deepcopy(execution))
+    except PoiseError as exc:
+        raise PoiseError(
+            f'Terminal ownership reconciliation: {exc}; repeat the saved '
+            'integrate request after resolving the reported conflict.'
+        ) from exc
+
+    observed, current = capture()
+    if not current.worktree_required(task_id) or observed.worktree_owner is None:
+        return
+    if observed.worktree_owner != owner:
+        _reconciliation_conflict('owner changed')
+    if observed.task_owner is not None:
+        _reconciliation_conflict('cannot release a claimed Task')
+    current_task = current.task(task_id)
+    if current_task.state.status != 'completed':
+        _reconciliation_conflict('requires an unclaimed completed Task')
+    current_execution, current_version = current.required_execution(task_id)
+    if current_execution['pending'] != execution['pending']:
+        _reconciliation_conflict('cleanup proof changed')
+    if current_execution['last_report'] != execution['last_report']:
+        _reconciliation_conflict('accepted result changed')
+    if (current_execution['worktree'] != execution['worktree']
+            or current_execution['branch'] != execution['branch']):
+        _reconciliation_conflict('cleanup identity changed')
+    if current_task.state.version != task.state.version:
+        _reconciliation_conflict('Task version changed')
+    if current_version != version:
+        _reconciliation_conflict('execution version changed')
     proof = facade.prepare_ownership_reconciliation({
         'released_owner':owner, 'request_id':expected_pending['intent']['request_id'],
         'accepted_commit':expected_pending['accepted_commit'],
         'published_commit':expected_pending['target_after'], 'cleanup':dict(expected_pending['cleanup'])})
     with unit_of_work() as uow:
-        uow.require_inputs(inputs)
-        if uow.ownership.preflight(actor, task_id) != observed:
-            raise VersionConflict('Terminal ownership changed; repeat reconciliation')
-        if inputs.ownership(owner).worktree_task_id == task_id:
+        # A binding that became independent or moved away is preserved as a no-op.
+        if not uow.ownership.worktree_required(task_id):
+            return
+        latest = uow.ownership.preflight(actor, task_id)
+        if latest.worktree_owner is None:
+            return
+        if latest.worktree_owner != owner:
+            _reconciliation_conflict('owner changed')
+        if latest.task_owner is not None:
+            _reconciliation_conflict('cannot release a claimed Task')
+        try:
+            uow.require_inputs(current)
+        except TaskSourcesChanged as exc:
+            raise PoiseError(
+                'Terminal ownership reconciliation basis changed; '
+                'repeat the saved integrate request.'
+            ) from exc
+        if current.ownership(owner).worktree_task_id == task_id:
             uow.ownership.bind_worktree(owner, None)
         uow.ownership.record_prepared_reconciliation(actor, task_id, proof)
 

@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-24.
+Updated: 2026-10-19.
 
 ## Declarative, reusable tools
 
@@ -423,3 +423,11 @@ one body execution with an explicit read wait independent of writer admission.
 Caller/message admission retains its write owner; detached failures
 must terminate within the worker. Follow the [development skill](../.agents/skills/poise-development/SKILL.md#development-method),
 which links to the observation instruction and canonical operator contract.
+
+Prepare hook installation/reconciliation candidates outside registry writer
+transactions, then revalidate the affected configuration before persisting intent.
+Keep the shared native-file writer lock and serialized publication with their
+existing owners. Pending reconfiguration adopts live arrivals and retires only
+owner-proven released native End episodes; preserve messages/history and never
+recreate released projections. Follow the canonical
+[hook preparation and retry contract](../docs/configuration/runtime-hooks.md#независимые-события-при-подготовке-настройки).

@@ -1,0 +1,61 @@
+{
+  "collected": 11,
+  "failed": [
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-COMPETITOR",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_competing_publication_is_preserved[install]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-COMPETITOR",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_competing_publication_is_preserved[reconcile]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[SessionEnd-install]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[SessionEnd-reconcile]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[SessionStart-install]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[SessionStart-reconcile]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[Stop-install]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[Stop-reconcile]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[UserPromptSubmit-install]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PREP-WRITER-BLOCKS-EVENT",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_native_event_finishes_before_preparation[UserPromptSubmit-reconcile]",
+      "phase": "call"
+    },
+    {
+      "cause": "HOOK-PENDING-END-CANNOT-RESUME",
+      "nodeid": "tests/hook_transport/test_independent_operations.py::test_pending_reconfiguration_handles_session_end",
+      "phase": "call"
+    }
+  ],
+  "passed": 0
+}

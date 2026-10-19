@@ -106,6 +106,21 @@ class HookRegistry:
             if row is None:raise PoiseError('Unknown hook session binding')
             return json.loads(row[0]),None if row[1] is None else json.loads(row[1])
 
+    @staticmethod
+    def released_binding_record(db,session):
+        """Read the native End anchor only after its binding was released."""
+        if db.execute('SELECT id FROM bindings WHERE id=?',(session,)).fetchone() is not None:
+            return None
+        last=db.execute(
+            'SELECT id,event,data FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
+            (session,)).fetchone()
+        if last is None or last[1]!='SessionEnd':
+            return None
+        record=json.loads(last[2]).get('binding_record')
+        if not isinstance(record,dict) or record.get('session_id')!=session:
+            return None
+        return last[0],record
+
     def release_ended(self, record, end_event_id, prepare_files):
         """Release one exact ended episode and its owner-validated projections."""
         session = record['session_id']

@@ -5,6 +5,7 @@ import json
 from dataclasses import replace
 from ..modules.sprints.domain import SprintPolicy, SprintPlan, Sprint, task_identity
 from ..modules.tasks.definition import path_identifier, validate_creation
+from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
 from ..modules.result_integration.domain import IntegrationHistoricalBackupScope
 from .tasks import creation_batch_reservations, rewrite_task_plan, validate_creation_intent

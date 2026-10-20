@@ -171,6 +171,8 @@ def direct_interop(i):
 def generation_row(i, row, mode):
     i.restart_episode()
     i.policy=fixture('policy.json'); i.mode(mode)
+    # This checks generation policy; expiration has its own controlled-clock case.
+    i.configure(**{'registry.retention.max_pending_age_seconds':60})
     # Seed the old completed reads with a policy admitting two complete files.
     for name, selection in row['prior'].items():
         if selection=='complete':i.read('cat docs/'+name+'.txt')

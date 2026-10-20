@@ -136,10 +136,16 @@ Receipt exact replay — исторический результат, а не с
 | `claim_task`, `resume_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed` |
 | `switch_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed`, `previous_task_id`, `previous_claim_id`, `handoff_id` |
 | `release_claim`, `recover_claim` | `task_id`, `claim_id`, `handoff_id` |
-| `record_terminal`, `cancel_task` | `task_id`, `terminal_id`, `state` |
+| `record_stage_label` | `task_id`, `label_id`, `fact_replayed` |
+| `record_execution_outcome` | `task_id`, `outcome_id`, `state`, `fact_replayed` |
+| `record_terminal`, `cancel_task` (целевые) | `task_id`, `terminal_id`, `state` |
 
-`changed` и `claim_replayed` — boolean. `handoff_id` непуст: release всегда сохраняет
-owner handoff, включая Task без Workspace. Terminal `state` — `completed|cancelled`.
+`changed`, `claim_replayed` и `fact_replayed` — boolean.
+Поле `state` результата `record_execution_outcome` — `available|completed|cancelled`;
+при inner replay это состояние исходного факта. У целевых `record_terminal` и
+`cancel_task` диапазон поля `state` — `completed|cancelled`.
+`handoff_id` непуст: release всегда сохраняет
+owner handoff, включая Task без Workspace.
 Новая Sprint имеет `sprint_revision=1`; accepted revise увеличивает её на один.
 Эта таблица и envelope §5 определяют полный wire result; последующие literal
 responses включают обязательные поля своих variants.

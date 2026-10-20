@@ -1,0 +1,475 @@
+{
+  "schema": "stride-sequencing/v1",
+  "task_ids": [
+    "0042",
+    "0043",
+    "0044",
+    "0045",
+    "0046"
+  ],
+  "owners": [
+    "SESSION-A",
+    "SESSION-B"
+  ],
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "marker": "Retained working data\n",
+  "contexts": [
+    [
+      "statement",
+      "independent"
+    ],
+    [
+      "statement",
+      "sprint"
+    ],
+    [
+      "snapshot",
+      "independent"
+    ],
+    [
+      "snapshot",
+      "sprint"
+    ]
+  ],
+  "mapping_cases": [
+    [
+      "positive",
+      null,
+      "statement",
+      "independent",
+      "completed"
+    ],
+    [
+      "positive",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "snapshot",
+      "sprint",
+      "completed"
+    ],
+    [
+      "negative",
+      null,
+      "snapshot",
+      "independent",
+      "available"
+    ],
+    [
+      "cancelled",
+      null,
+      "statement",
+      "sprint",
+      "cancelled"
+    ]
+  ],
+  "workspace_cases": [
+    [
+      "positive",
+      "ready"
+    ],
+    [
+      "positive",
+      "failed"
+    ],
+    [
+      "positive",
+      "released"
+    ],
+    [
+      "positive",
+      "reserved"
+    ],
+    [
+      "positive",
+      "release_pending"
+    ],
+    [
+      "negative",
+      "reserved"
+    ],
+    [
+      "negative",
+      "release_pending"
+    ],
+    [
+      "cancelled",
+      "reserved"
+    ],
+    [
+      "cancelled",
+      "release_pending"
+    ]
+  ],
+  "graph": [
+    {
+      "predecessor": "0042",
+      "successor": "0045",
+      "kind": "completion"
+    },
+    {
+      "predecessor": "0043",
+      "successor": "0045",
+      "kind": "completion"
+    },
+    {
+      "predecessor": "0044",
+      "successor": "0045",
+      "kind": "result"
+    }
+  ],
+  "apply": {
+    "schema": "stride-sequencing/v1",
+    "operation": "apply",
+    "input": {
+      "request_id": "$REQUEST",
+      "expected_revision": "$REVISION",
+      "operations": "$OPERATIONS"
+    }
+  },
+  "query": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "read",
+          "kind": "$QUERY_KIND",
+          "task_id": "$TASK"
+        }
+      ]
+    }
+  },
+  "next": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "read",
+          "kind": "next",
+          "claimant": "SESSION-A",
+          "scope": {
+            "kind": "sprint",
+            "sprint_id": "SPR-FACTS"
+          }
+        }
+      ]
+    }
+  },
+  "eligibility": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "read",
+          "kind": "eligibility",
+          "task_id": "$TASK",
+          "claimant": "SESSION-A"
+        }
+      ]
+    }
+  },
+  "register": {
+    "id": "$TASK",
+    "kind": "register_task",
+    "task_id": "$TASK",
+    "$REFERENCE": 2
+  },
+  "sprint": {
+    "id": "sprint",
+    "kind": "register_sprint",
+    "sprint_id": "SPR-FACTS",
+    "members": [
+      "0042",
+      "0043",
+      "0044",
+      "0045",
+      "0046"
+    ],
+    "dependencies": "$EDGES"
+  },
+  "claim": {
+    "id": "claim",
+    "kind": "claim_task",
+    "task_id": "$TASK",
+    "claimant": "$OWNER",
+    "claim_request_id": "$INTENT"
+  },
+  "release": {
+    "id": "release",
+    "kind": "release_claim",
+    "task_id": "$TASK",
+    "claim_id": "$CLAIM",
+    "claimant": "$OWNER",
+    "reason": "Continue through public handoff"
+  },
+  "resume": {
+    "id": "resume",
+    "kind": "resume_claim",
+    "task_id": "$TASK",
+    "claimant": "$OWNER",
+    "handoff_id": "$HANDOFF"
+  },
+  "label": {
+    "id": "label",
+    "kind": "record_stage_label",
+    "task_id": "$TASK",
+    "claim_id": "$CLAIM",
+    "claimant": "$OWNER",
+    "label_id": "$LABEL_ID",
+    "label": "$LABEL",
+    "source_ref": {
+      "owner": "execution",
+      "id": "$SOURCE"
+    }
+  },
+  "outcome": {
+    "id": "outcome",
+    "kind": "record_execution_outcome",
+    "outcome": {
+      "outcome_id": "$OUTCOME_ID",
+      "task_id": "$TASK",
+      "kind": "$OUTCOME_KIND",
+      "result_commit": "$COMMIT",
+      "source_ref": {
+        "owner": "execution",
+        "id": "$SOURCE"
+      }
+    }
+  },
+  "label_value": {
+    "task_id": "$TASK",
+    "label_id": "$LABEL_ID",
+    "label": "$LABEL",
+    "source_ref": {
+      "owner": "execution",
+      "id": "$SOURCE"
+    }
+  },
+  "outcome_value": {
+    "outcome_id": "$OUTCOME_ID",
+    "task_id": "$TASK",
+    "kind": "$OUTCOME_KIND",
+    "result_commit": "$COMMIT",
+    "source_ref": {
+      "owner": "execution",
+      "id": "$SOURCE"
+    }
+  },
+  "label_result": {
+    "id": "label",
+    "kind": "record_stage_label",
+    "changed": "$CHANGED",
+    "task_id": "$TASK",
+    "label_id": "$LABEL_ID",
+    "fact_replayed": "$FACT_REPLAYED"
+  },
+  "outcome_result": {
+    "id": "outcome",
+    "kind": "record_execution_outcome",
+    "changed": "$CHANGED",
+    "task_id": "$TASK",
+    "outcome_id": "$OUTCOME_ID",
+    "state": "$STATE",
+    "fact_replayed": "$FACT_REPLAYED"
+  },
+  "apply_value": {
+    "schema": "stride-sequencing/v1",
+    "status": "applied",
+    "revision": "$REVISION",
+    "replayed": false,
+    "results": "$RESULTS"
+  },
+  "query_value": {
+    "schema": "stride-sequencing/v1",
+    "status": "read_only",
+    "revision": "$REVISION",
+    "results": [
+      {
+        "id": "read",
+        "value": "$VALUE"
+      }
+    ]
+  },
+  "facts_value": {
+    "task_id": "$TASK",
+    "stage_label": "$LABEL_VALUE",
+    "outcome": "$OUTCOME_VALUE"
+  },
+  "task_value": {
+    "task_id": "$TASK",
+    "$REFERENCE": 2,
+    "state": "$STATE",
+    "sprint_id": "$SPRINT",
+    "claim": "$CLAIM_VALUE",
+    "workspace": "$WORKSPACE_VALUE",
+    "terminal": "$TERMINAL"
+  },
+  "claim_value": {
+    "claim_id": "$CLAIM",
+    "task_id": "$TASK",
+    "claimant": "$OWNER",
+    "status": "active"
+  },
+  "positive_terminal": {
+    "terminal_id": "$OUTCOME_ID",
+    "task_id": "$TASK",
+    "kind": "completed",
+    "result_commit": "$COMMIT",
+    "source_ref": {
+      "owner": "execution",
+      "id": "$SOURCE"
+    }
+  },
+  "cancelled_terminal": {
+    "terminal_id": "$OUTCOME_ID",
+    "task_id": "$TASK",
+    "kind": "cancelled",
+    "result_commit": null,
+    "source_ref": {
+      "owner": "execution",
+      "id": "$SOURCE"
+    }
+  },
+  "eligibility_value": {
+    "task_id": "$TASK",
+    "eligible": "$ELIGIBLE",
+    "blockers": "$BLOCKERS",
+    "result_provenance": "$PROVENANCE"
+  },
+  "workspace_value": {
+    "workspace_id": "$WORKSPACE",
+    "task_id": "$TASK",
+    "repository_id": "fixture-repo",
+    "base_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "branch": "$BRANCH",
+    "status": "$STATUS",
+    "read_only": false,
+    "roots": [
+      {
+        "kind": "artifact",
+        "position": 0,
+        "path": "$ARTIFACT"
+      },
+      {
+        "kind": "code",
+        "position": 0,
+        "path": "$CODE"
+      },
+      {
+        "kind": "main",
+        "position": 0,
+        "path": "$MAIN"
+      }
+    ],
+    "path": "$CODE",
+    "owner_session_id": "$BINDING"
+  },
+  "blockers": {
+    "all": [
+      {
+        "predecessor": "0042",
+        "kind": "completion",
+        "reason": "predecessor_not_completed"
+      },
+      {
+        "predecessor": "0043",
+        "kind": "completion",
+        "reason": "predecessor_not_completed"
+      },
+      {
+        "predecessor": "0044",
+        "kind": "result",
+        "reason": "predecessor_not_completed"
+      }
+    ],
+    "bc": [
+      {
+        "predecessor": "0043",
+        "kind": "completion",
+        "reason": "predecessor_not_completed"
+      },
+      {
+        "predecessor": "0044",
+        "kind": "result",
+        "reason": "predecessor_not_completed"
+      }
+    ],
+    "c": [
+      {
+        "predecessor": "0044",
+        "kind": "result",
+        "reason": "predecessor_not_completed"
+      }
+    ],
+    "missing": [
+      {
+        "predecessor": "0044",
+        "kind": "result",
+        "reason": "missing_predecessor_result"
+      }
+    ],
+    "cancelled_b": [
+      {
+        "predecessor": "0043",
+        "kind": "completion",
+        "reason": "predecessor_not_completed"
+      }
+    ]
+  },
+  "result_provenance": [
+    {
+      "predecessor": "0044",
+      "result_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "bad_values": {
+    "label": [
+      null,
+      [],
+      {},
+      false,
+      "",
+      "\u0000"
+    ],
+    "kind": [
+      "completed",
+      null,
+      0,
+      []
+    ],
+    "commit": [
+      "bad",
+      false,
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ]
+  },
+  "next_ids": {
+    "all": [
+      "0042",
+      "0043",
+      "0044",
+      "0046"
+    ],
+    "bc": [
+      "0043",
+      "0044",
+      "0046"
+    ],
+    "c": [
+      "0044",
+      "0046"
+    ],
+    "missing": [
+      "0046"
+    ],
+    "eligible": [
+      "0045",
+      "0046"
+    ],
+    "cancelled_b": [
+      "0046"
+    ]
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "operations": {
+    "claim_task": {
+      "id": "claim",
+      "kind": "claim_task",
+      "task_id": "0041",
+      "claimant": "SESSION-A",
+      "claim_request_id": "initial-claim"
+    },
+    "switch_claim": {
+      "id": "switch",
+      "kind": "switch_claim",
+      "from_task_id": "0041",
+      "from_claim_id": "CLAIM-A",
+      "task_id": "0042",
+      "claimant": "SESSION-A",
+      "claim_request_id": "switch-A-B",
+      "reason": "Перейти к следующей работе."
+    },
+    "release_claim": {
+      "id": "release",
+      "kind": "release_claim",
+      "task_id": "0041",
+      "claim_id": "CLAIM-A",
+      "claimant": "SESSION-A",
+      "reason": "Передача работы."
+    },
+    "resume_claim": {
+      "id": "resume",
+      "kind": "resume_claim",
+      "task_id": "0041",
+      "claimant": "SESSION-B",
+      "handoff_id": "HANDOFF-A"
+    },
+    "recover_claim": {
+      "id": "recover",
+      "kind": "recover_claim",
+      "task_id": "0041",
+      "claim_id": "CLAIM-A",
+      "operator": "SESSION-OPERATOR",
+      "decision": "Оператор подтвердил восстановление.",
+      "writers_stopped": true,
+      "reason": "Предыдущий исполнитель остановлен."
+    }
+  },
+  "query_task": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "task",
+          "kind": "task",
+          "task_id": "0041"
+        }
+      ]
+    }
+  },
+  "query_eligibility": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "availability",
+          "kind": "eligibility",
+          "task_id": "0041",
+          "claimant": "SESSION-A"
+        }
+      ]
+    }
+  },
+  "registration_operations_statement": [
+    {
+      "id": "register-0041",
+      "kind": "register_task",
+      "task_id": "0041",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "register-0042",
+      "kind": "register_task",
+      "task_id": "0042",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "register-0043",
+      "kind": "register_task",
+      "task_id": "0043",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "register-0044",
+      "kind": "register_task",
+      "task_id": "0044",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "register-0045",
+      "kind": "register_task",
+      "task_id": "0045",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "register-0046",
+      "kind": "register_task",
+      "task_id": "0046",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "sprint",
+      "kind": "register_sprint",
+      "sprint_id": "SPR-OWN",
+      "members": [
+        "0041",
+        "0042",
+        "0043",
+        "0044",
+        "0045",
+        "0046"
+      ],
+      "dependencies": []
+    }
+  ],
+  "registered_statement": {
+    "schema": "stride-sequencing/v1",
+    "status": "applied",
+    "revision": 1,
+    "replayed": false,
+    "results": [
+      {
+        "id": "register-0041",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0041",
+        "requirements_statement_revision": 1
+      },
+      {
+        "id": "register-0042",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0042",
+        "requirements_statement_revision": 1
+      },
+      {
+        "id": "register-0043",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0043",
+        "requirements_statement_revision": 1
+      },
+      {
+        "id": "register-0044",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0044",
+        "requirements_statement_revision": 1
+      },
+      {
+        "id": "register-0045",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0045",
+        "requirements_statement_revision": 1
+      },
+      {
+        "id": "register-0046",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0046",
+        "requirements_statement_revision": 1
+      },
+      {
+        "id": "sprint",
+        "kind": "register_sprint",
+        "changed": true,
+        "sprint_id": "SPR-OWN",
+        "sprint_revision": 1
+      }
+    ]
+  },
+  "registration_operations_snapshot": [
+    {
+      "id": "register-0041",
+      "kind": "register_task",
+      "task_id": "0041",
+      "requirements_snapshot_revision": 1
+    },
+    {
+      "id": "register-0042",
+      "kind": "register_task",
+      "task_id": "0042",
+      "requirements_snapshot_revision": 1
+    },
+    {
+      "id": "register-0043",
+      "kind": "register_task",
+      "task_id": "0043",
+      "requirements_snapshot_revision": 1
+    },
+    {
+      "id": "register-0044",
+      "kind": "register_task",
+      "task_id": "0044",
+      "requirements_snapshot_revision": 1
+    },
+    {
+      "id": "register-0045",
+      "kind": "register_task",
+      "task_id": "0045",
+      "requirements_snapshot_revision": 1
+    },
+    {
+      "id": "register-0046",
+      "kind": "register_task",
+      "task_id": "0046",
+      "requirements_snapshot_revision": 1
+    },
+    {
+      "id": "sprint",
+      "kind": "register_sprint",
+      "sprint_id": "SPR-OWN",
+      "members": [
+        "0041",
+        "0042",
+        "0043",
+        "0044",
+        "0045",
+        "0046"
+      ],
+      "dependencies": []
+    }
+  ],
+  "registered_snapshot": {
+    "schema": "stride-sequencing/v1",
+    "status": "applied",
+    "revision": 1,
+    "replayed": false,
+    "results": [
+      {
+        "id": "register-0041",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0041",
+        "requirements_snapshot_revision": 1
+      },
+      {
+        "id": "register-0042",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0042",
+        "requirements_snapshot_revision": 1
+      },
+      {
+        "id": "register-0043",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0043",
+        "requirements_snapshot_revision": 1
+      },
+      {
+        "id": "register-0044",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0044",
+        "requirements_snapshot_revision": 1
+      },
+      {
+        "id": "register-0045",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0045",
+        "requirements_snapshot_revision": 1
+      },
+      {
+        "id": "register-0046",
+        "kind": "register_task",
+        "changed": true,
+        "task_id": "0046",
+        "requirements_snapshot_revision": 1
+      },
+      {
+        "id": "sprint",
+        "kind": "register_sprint",
+        "changed": true,
+        "sprint_id": "SPR-OWN",
+        "sprint_revision": 1
+      }
+    ]
+  }
+}

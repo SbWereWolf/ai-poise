@@ -1,0 +1,23 @@
+{
+  "infra": [
+    "/selected/python",
+    "-I",
+    "-B",
+    "/selected/shared/app/bootstrap",
+    "infra"
+  ],
+  "deps": [
+    "/selected/python",
+    "-I",
+    "-B",
+    "/selected/shared/app/bootstrap",
+    "deps"
+  ],
+  "check": [
+    "/selected/python",
+    "-I",
+    "-B",
+    "/selected/shared/app/bootstrap",
+    "check"
+  ]
+}

@@ -1,0 +1,6 @@
+[
+  "config/stride.env",
+  "config/stride-launcher.json",
+  "config/bootstrap.json",
+  "config/environment-maintenance.json"
+]

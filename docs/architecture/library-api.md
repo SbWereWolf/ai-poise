@@ -609,14 +609,29 @@ Requirements выдаёт канонический ID и сохраняет по
 `Store._eligibility` объединяет эти факты с существующим `Store._active_claim`
 и одной domain-проекцией для обоих запросов.
 
-Текущий CLI выполняет `register_task`, `register_sprint` и четыре query-варианта:
+`apps.sequencing.domain.ownership` содержит чистые permissions источника,
+цели, handoff и immutable intent. `apps.sequencing.application.ownership.OwnershipCommands`
+получает repository, общую availability-функцию, генератор ID и часы явно;
+`execute(operation)` выполняет claim/switch/release/resume/recover внутри
+существующей транзакции `Store.apply`. `apps.sequencing.infrastructure.ownership_store.OwnershipRepository`
+читает Task/claims/Session capacity и сохраняет immutable intent/handoff/consumption
+в собственном SQLite connection. Shell владеет строгими wire fieldsets,
+композицией и outer receipt/revision/rollback. Переключение сначала проверяет
+обе стороны, затем одной локальной транзакцией меняет claims. Recovery использует
+явное операторское решение после остановки писателя и только освобождает claim;
+следующая Session возобновляет работу обычным resume. Task ownership и Workspace
+binding остаются независимыми. Точные поля, replay и порядок отказов принадлежат
+[контракту владения](../../apps/sequencing/docs/contract-seq.md#54-claim_task).
+
+Текущий CLI выполняет `register_task`, `register_sprint`, `claim_task`,
+`switch_claim`, `release_claim`, `resume_claim`, `recover_claim` и четыре query-варианта:
 Task, Sprint, `eligibility`, `next`. Явные caller и области выбора описаны в
 [руководстве доступности](../../apps/sequencing/docs/shell-seq.md#доступность-и-следующая-работа).
 Independent и явное Sprint membership используют одну Task identity. `Store.query`
 открывает одну read-транзакцию до чтения revision и собирает
 происхождение, членство, active claim, текущий Workspace, упорядоченные
 roots, независимую binding и terminal value только из своих таблиц. Изменение
-Sprint, claim и физического Workspace остаётся последующим срезом.
+Sprint и физического Workspace остаётся последующим срезом.
 Подробные предусловия, ограничения SQL, пошаговый откат и правильные примеры
 принадлежат [руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
 запуск и рабочие параметры — [руководству CLI](../../apps/sequencing/docs/shell-seq.md).

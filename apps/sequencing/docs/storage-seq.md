@@ -7,14 +7,14 @@ Workspace roots и историю в собственной SQLite БД. Кан�
 от Requirements и сохраняется как строка. Содержимое Requirements и состояние
 этапов Execution остаются у своих владельцев.
 
-Текущий CLI записывает `register_task`, `register_sprint` и читает `query` с
+Текущий CLI записывает `register_task`, `register_sprint`, `claim_task`,
+`switch_claim`, `release_claim`, `resume_claim`, `recover_claim` и читает `query` с
 `kind: "task"`, `kind: "sprint"`, `kind: "eligibility"` и `kind: "next"`.
 Текущий формат — 2. Зарегистрированная Task
 сохраняет ровно одну исходную ссылку: редакцию постановки либо опубликованного
 снимка Requirements. Независимая работа и работа в Sprint используют одну
 идентичность; membership задаётся явно. Последующее изменение Sprint,
-claim/release/resume, физического Workspace и terminal/transfer
-остаются будущими возможностями [целевого контракта](contract-seq.md).
+физического Workspace и terminal/transfer остаются будущими возможностями [целевого контракта](contract-seq.md).
 [Конфигурация и запуск](shell-seq.md) используют прежние обязательные параметры;
 новых параметров для подготовки схемы нет.
 
@@ -39,6 +39,51 @@ Sprint и применяет то же правило, что `eligibility`. П�
 [руководству CLI](shell-seq.md#доступность-и-следующая-работа),
 точные wire shapes — [контракту](contract-seq.md#72-eligibility).
 Проверки этого чтения находятся в `apps/sequencing/tests/test_eligibility.py`.
+
+## Атомарное владение и история
+
+Все пять операций владения используют существующую `Store.apply` транзакцию
+`BEGIN IMMEDIATE` и локальный lock собственного state на время операции.
+Уникальные active индексы `task_claims` обеспечивают одну Session на Task и одну
+Task на Session одновременно для Independent и Sprint. Полная проверка источника
+и доступности цели switch выполняется до освобождения прежнего claim. Отказ
+в любом месте пакета откатывает его claims, Task state, историю, receipt и revision.
+Формат 2, миграции и обязательная конфигурация остаются прежними.
+
+Чистые permissions принадлежат `domain.ownership`, последовательность действий —
+`application.ownership.OwnershipCommands`, явное чтение/запись собственных SQL
+фактов — `infrastructure.ownership_store.OwnershipRepository`. Adapter работает
+на переданном connection, транзакцию фиксирует существующий `Store.apply`.
+Зависимости проверяются общей проекцией доступности. Session передаётся как
+каноническая непрозрачная строка caller; её собственное хранилище остаётся у владельца.
+
+История append-only, с actual Task/Sprint/Workspace references, actor и временем:
+
+| Event | Содержимое `data` |
+| --- | --- |
+| `claim.created` | `claim_request_id`, полный `intent` без operation `id`, исходный `result` |
+| `claim.switched` | То же полное намерение и результат нового claim с ссылкой на handoff прежней Task |
+| `claim.released` | Канонический `handoff`, `previous_claim`, `reason`; также при switch |
+| `claim.resumed` | `consumed_handoff_id`, новый `claim` |
+| `claim.recovered` | `handoff`, `previous_claim`, `reason`, `decision`, `writers_stopped: true`; actor — оператор |
+
+Канонический `data.handoff` содержит `handoff_id`, `task_id`,
+`previous_claim_id`, ровно одну первоначальную statement/snapshot revision и
+`workspace_id` либо null. Сохранённый switch `data.result` ссылается на этот
+handoff. Resume добавляет consumption отдельным событием; прежние строки истории
+и handoff остаются неизменными. Смена Task ownership сохраняет независимые
+Workspace binding, metadata, roots и WIP. Release/recovery оставляют Task
+`available`, terminal прежним; recovery освобождает только старое владение.
+
+Новый `claim_request_id` сохраняет полное намерение. Его точный повтор новым
+внешним request возвращает прежние ID с `changed: false`, `claim_replayed: true`
+и сохраняет текущие бизнес-данные; новый outer receipt увеличивает revision на один.
+Точный повтор исходного outer packet возвращает прежний ответ с `replayed: true`
+до проверки revision и сохраняет всю БД. Текущие данные читаются через `query`.
+Подробные поля и порядок проверок находятся в [контракте](contract-seq.md#54-claim_task),
+правильная последовательность — в [руководстве владения](shell-seq.md#владение-переключение-и-восстановление).
+[71 проверка владения](../tests/test_ownership.py) использует оба вида требований,
+обе формы работы, реальные конкурентные CLI, rollback, replay и независимые ресурсы.
 
 ## Таблицы и ограничения
 

@@ -4,7 +4,8 @@
 
 Реализованный срез включает собственный CLI/config, хранилище формата 2,
 `register_task`, `register_sprint`, чтение полного текущего значения Task/Sprint,
-доступности `eligibility` и кандидатов `next` относительно явной Session.
+доступности `eligibility` и кандидатов `next` относительно явной Session,
+а также `claim_task`, `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`.
 Процедуры описаны в [руководстве CLI](shell-seq.md) и
 [руководстве хранилища](storage-seq.md). Независимая работа — Task вне Sprint;
 Sprint использует ту же выданную identity с явно зарегистрированным membership.
@@ -13,10 +14,15 @@ Sprint использует ту же выданную identity с явно за
 exit 2. Обычные смысловые конфликты используют `identity_conflict`,
 `already_exists`, `dependency_conflict`, `request_reuse_conflict`,
 `revision_conflict`; диагностика формы и типов содержит причину.
-Последующие разделы описывают также целевые команды revise, claims,
-Workspace, terminal и transfer, а также расширенный профиль структурированных
-ошибок. Этот целевой профиль и будущие команды не заявлены как реализованные
-нынешним CLI. Правила уже доступных вариантов уточнены ниже.
+Текущие операции владения используют также `task_not_found`, `claim_conflict`,
+`session_claim_conflict`, `claim_owner_mismatch`, `switch_target_conflict`,
+`not_eligible`, `handoff_not_found`. Их порядок описан в §5.4–5.6, §5.9–5.10;
+детали blockers читаются через `eligibility`. Последующие разделы описывают
+также целевые команды revise, Workspace, terminal и transfer и расширенный
+профиль структурированных ошибок. Эти будущие команды и профиль не заявлены
+как реализованные нынешним CLI. Примеры ниже с условными claim/handoff ID
+показывают строки: реально выделенные идентификаторы непрозрачны, caller
+сохраняет возвращённые значения без предположений об их формате.
 
 ## 1. Граница владельца
 
@@ -123,7 +129,8 @@ Receipt exact replay — исторический результат, а не с
 | `register_task` | `task_id` и ровно одно из `requirements_statement_revision`, `requirements_snapshot_revision` |
 | `register_sprint`, `revise_sprint` | `sprint_id`, `sprint_revision` |
 | `claim_task`, `resume_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed` |
-| `release_claim` | `task_id`, `claim_id`, `handoff_id` |
+| `switch_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed`, `previous_task_id`, `previous_claim_id`, `handoff_id` |
+| `release_claim`, `recover_claim` | `task_id`, `claim_id`, `handoff_id` |
 | `record_terminal`, `cancel_task` | `task_id`, `terminal_id`, `state` |
 
 `changed` и `claim_replayed` — boolean. `handoff_id` непуст: release всегда сохраняет
@@ -434,12 +441,13 @@ Sequencing внутри той же transaction сначала проверяе�
 exact inner replay возвращает historical result по правилу ниже; changed intent
 отклоняется. Только для нового inner intent выполняет:
 
-1. читает current dependency/terminal state;
-2. подтверждает Task eligibility;
+1. находит Task; неизвестная identity даёт `task_not_found`;
+2. проверяет terminal state: `completed`/`cancelled` дают `not_eligible`;
 3. убеждается в отсутствии active claim у выбранной Task; иначе `claim_conflict`;
-4. убеждается в отсутствии другой active Task у этого claimant; иначе
+4. применяет общее правило всех зависимостей; отказ даёт `not_eligible`;
+5. убеждается в отсутствии другой active Task у этого claimant; иначе
    `session_claim_conflict`;
-5. создаёт claim identity и меняет owner state на `claimed`.
+6. создаёт claim identity и меняет owner state на `claimed`.
 
 При одновременной применимости domain отказов действует этот порядок. Stale outer
 revision отклоняется ещё раньше по §2.1. Отказ не расходует claim identity и не
@@ -459,11 +467,17 @@ Result:
 }
 ```
 
-`claim_request_id` immutable по `{task_id, claimant}`. Exact повтор этого намерения
-возвращает тот же historical claim с `claim_replayed: true`, без новой активации;
-changed intent — `request_reuse_conflict`. Первый claim имеет `claim_replayed: false`.
-Blocked Task — `not_eligible` с explicit blockers. Для нового владения после release
-используется `resume_claim`, а не повтор прежнего creation intent.
+`claim_request_id` общий для `claim_task` и `switch_claim`. Он навсегда связывается
+с полным operation, кроме correlation-поля `id`: `kind` и все бизнес-поля входят
+в намерение. Exact inner replay возвращает прежние ID с `changed: false`,
+`claim_replayed: true`; новое внешнее `request_id` сохраняет один новый receipt
+и увеличивает revision на один. Текущие claims, Task, history и ресурсы остаются
+прежними, в том числе после release, нового владельца или terminal. Changed
+intent даёт `request_reuse_conflict` до проверки текущего владения. Первый claim
+имеет `changed: true`, `claim_replayed: false`. Для нового владения после release
+используется `resume_claim`. Подробности доступности читаются через `eligibility`.
+Exact outer replay возвращает весь прежний ответ с `replayed: true`, включая
+прежние `changed`/`claim_replayed`, до проверки revision и без новой записи.
 
 ### 5.5 `release_claim`
 
@@ -480,13 +494,14 @@ Blocked Task — `not_eligible` с explicit blockers. Для нового вла
 
 Claimant/claim ID должны совпасть с текущим active claim; иначе
 `claim_owner_mismatch`. `reason` — непустой текст основания, не terminal outcome.
-Pending Workspace intent даёт `workspace_conflict` до reconciliation: нельзя передать
-claim посреди незавершённой физической mutation и объявить Workspace готовой.
 Release атомарно меняет Task на `available`, claim на `released` и создаёт immutable
 owner handoff; result возвращает его `handoff_id`. Handoff содержит `handoff_id`,
-`task_id`, `previous_claim_id`, `requirements_snapshot_revision`, `workspace_id`.
-Последнее поле explicit null для Task без Workspace. Сохранённая Workspace binding
-остаётся собственностью той же Task, не предыдущей Session.
+`task_id`, `previous_claim_id`, ровно одно исходное поле
+`requirements_statement_revision` либо `requirements_snapshot_revision`, и `workspace_id`.
+Последнее поле explicit null для Task без unreleased Workspace. Каноническая
+запись находится в `sequencing_history.data.handoff`; ссылка из результата switch
+обозначает эту же запись. Task claim и Workspace binding — независимые ресурсы:
+все Workspace bindings, статусы, roots и файлы остаются прежними.
 
 Это owner-state запись, **не** Git snapshot, commit или backup: release не изменяет
 файлы и не утверждает, что текущий WIP уже помещён в durable storage. Экспорт Git/WIP
@@ -511,16 +526,17 @@ destructive cleanup — отдельная Workspace operation. Exact outer repl
 Resume допустим только для unclaimed currently eligible non-terminal Task с exact
 не consumed `handoff_id` этой Task и неизменной Requirements provenance. Claimant не
 должен владеть другой Task; действуют те же `claim_conflict`, `not_eligible` и
-`session_claim_conflict`, что при claim. Unknown handoff — `not_found`, consumed или
-чужой handoff — `claim_owner_mismatch`.
+`session_claim_conflict`, что при claim. После поиска Task (`task_not_found`)
+сначала проверяется handoff: неизвестный даёт `handoff_not_found`, consumed,
+чужой либо с другим исходным Requirements reference — `claim_owner_mismatch`.
+Затем выполняются terminal/Task claim/зависимости/Session capacity в порядке §5.4.
 
-Sequencing атомарно создаёт новый claim, consumes handoff и сохраняет Task/Workspace
-binding. `claim_replayed: false`; exact outer replay возвращает historical result.
-Workspace baseline не перевычисляется. Проверяется сохранённая owner metadata
-`workspace_id/task_id/branch/base_commit`, а **не** равенство текущего Git HEAD baseline:
-законные Task commits и WIP могут быть новее. Физическую действительность ready
-Workspace caller проверяет через `workspace inspect/acquire`; эти external проверки
-не подменяются claim receipt. Task без Workspace может возобновиться с null binding.
+Sequencing атомарно создаёт новый claim и добавляет `claim.resumed` с
+`consumed_handoff_id`. Исходный handoff сохраняется неизменным; факт consumption
+следует из новой записи истории. `claim_replayed: false`; exact outer replay
+возвращает historical result. Все Workspace metadata, binding, roots и файлы
+сохраняются; эти Task-операции выполняются только в собственном хранилище.
+Физические команды Workspace — отдельная будущая возможность §6.
 
 ### 5.7 `record_terminal`
 
@@ -567,6 +583,70 @@ Cancelled predecessor не удовлетворяет completion/result edge; su
 blocked, пока graph policy явно не изменена. У уже terminal Task допускается только
 exact immutable fact; conflicting fact получает `terminal_conflict`. В `record_terminal`
 те же запреты на active claim/pending Workspace и тот же validation order.
+
+### 5.9 `switch_claim`
+
+Реализованная атомарная передача одной Session с Task A на Task B:
+
+```json
+{
+  "id": "switch-1",
+  "kind": "switch_claim",
+  "from_task_id": "0042",
+  "from_claim_id": "claim-0042-agent-a-1",
+  "task_id": "0043",
+  "claimant": "agent-a",
+  "claim_request_id": "switch-0042-0043-agent-a",
+  "reason": "Перейти к следующей доступной работе"
+}
+```
+
+Inner intent проверяется первым по §5.4. Для нового намерения находятся A и её
+current active claim: несовпадение `from_claim_id`/`claimant` даёт
+`claim_owner_mismatch`. Одинаковые A/B дают `switch_target_conflict`. Затем B
+проходит полный порядок §5.4; текущая A разрешена как единственная уже занятая
+Task этой Session. Все эти проверки завершаются перед первым изменением.
+
+Одна существующая транзакция освобождает claim A, сохраняет её handoff и создаёт
+новый claim B с историей полного switch intent/result. Result содержит
+`id`, `kind`, `changed: true`, `task_id` B, её `claim_id`, `claimant`,
+`claim_replayed: false`, `previous_task_id` A, `previous_claim_id`, `handoff_id` A.
+Отказ любой операции всего пакета откатывает обе Task, claims, историю, receipt
+и revision. Workspace bindings и файлы остаются прежними. Применяются те же
+правила исторического inner/outer replay, что в §5.4.
+
+### 5.10 `recover_claim`
+
+Оператор сначала останавливает прежнего писателя и читает текущее владение.
+Затем передаёт собственное явное решение, основание и точный active claim:
+
+```json
+{
+  "id": "recover-1",
+  "kind": "recover_claim",
+  "task_id": "0043",
+  "claim_id": "claim-0043-agent-b-1",
+  "operator": "operator-session",
+  "decision": "Освободить владение остановленной Session",
+  "writers_stopped": true,
+  "reason": "Оператор завершил прежний процесс"
+}
+```
+
+`writers_stopped` — JSON boolean `true`; остальные поля строковые и непустые.
+Оператор подтверждает фактическую остановку; Sequencing использует это явное
+решение. После поиска Task сверяется точный current claim, иначе
+`claim_owner_mismatch`. Операция освобождает только этот claim, делает Task
+`available` и сохраняет handoff с `claim.recovered`, оператором, решением,
+основанием и подтверждением остановки. Result имеет тот же полный набор полей,
+что `release_claim`, с `kind: "recover_claim"`.
+
+Оператор сохраняет своё уже существующее владение другой Task, если оно есть.
+Для продолжения работы выбранная Session отдельно вызывает обычный
+`resume_claim` с возвращённым handoff; все её gates применяются вновь.
+Exact outer replay recovery возвращает прежний результат с сохранением текущего
+владения. Полная правильная последовательность исполняется в
+[руководстве владения](shell-seq.md#владение-переключение-и-восстановление).
 
 ## 6. Workspace operation: `workspace`
 

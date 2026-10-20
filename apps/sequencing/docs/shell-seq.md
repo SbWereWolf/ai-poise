@@ -12,13 +12,14 @@ apps/sequencing/bin/sequencing --config /absolute/path/sequencing.json
 и возвращает один JSON response через stdout. Wire schema — `stride-sequencing/v1`.
 Провайдер находит код относительно собственного файла; `--config` задаётся явно.
 
-Реализованы `apply` с `register_task`, `register_sprint` и `query` с
-`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`. Независимая работа — зарегистрированная Task
-вне Sprint. Работа в Sprint использует ту же Task identity и явное membership.
-Обе формы доступны одновременно. Ссылка ведёт на постановку Requirements либо
-на её опубликованный снимок; содержимое остаётся у Requirements. Последующие
-claims, физические Workspace и transfer описаны в
-[целевом контракте](contract-seq.md) как будущие команды.
+Реализованы `apply` с `register_task`, `register_sprint`, `claim_task`,
+`switch_claim`, `release_claim`, `resume_claim`, `recover_claim` и `query` с
+`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`.
+Независимая работа — зарегистрированная Task вне Sprint. Работа в Sprint
+использует ту же Task identity и явное membership. Обе формы доступны одновременно.
+Ссылка ведёт на постановку Requirements либо на её опубликованный снимок;
+содержимое остаётся у Requirements. Изменение Sprint, физические Workspace,
+terminal и transfer описаны в [целевом контракте](contract-seq.md) как будущие команды.
 Точный реализованный формат, миграция и исполняемые примеры находятся в
 [руководстве по хранилищу](storage-seq.md).
 
@@ -364,3 +365,209 @@ PYTHONPATH=src python -B tools/check_documentation.py --checkout . --changed app
 `test_registration.py` и `test_store_migration.py`; их выбирают при изменении
 соответствующей границы. Проверки текущего чтения выполняют реальные CLI/SQLite операции, проверяют независимые значения,
 идентичности, типы, ownership, сохранность WIP и откат транзакций.
+
+## Владение, переключение и восстановление
+
+Передайте `claimant` как каноническую непрозрачную identity текущей Session,
+полученную от её владельца. Одна Session владеет одной Task, одна Task — одной
+Session во всём state, включая Independent и разные Sprint. Используйте реальные
+ID Task и исходную ссылку Requirements. Claim и handoff ID сохраняйте из ответа.
+
+Все операции идут внутри обычного `apply` с `request_id`, текущей
+`expected_revision` и `operations`. Каждое поле указанного варианта обязательно;
+дополнительных полей у него нет. `id`, caller, claim, handoff, намерение, решение
+и основание — непустые строки; Task ID соответствует `identifiers.task.pattern`.
+`writers_stopped` передаётся JSON boolean `true` после фактической остановки писателя.
+
+| `kind` | Поля operation, кроме общих `id`, `kind` |
+| --- | --- |
+| `claim_task` | `task_id`, `claimant`, `claim_request_id` |
+| `switch_claim` | `from_task_id`, `from_claim_id`, `task_id`, `claimant`, `claim_request_id`, `reason` |
+| `release_claim` | `task_id`, `claim_id`, `claimant`, `reason` |
+| `resume_claim` | `task_id`, `claimant`, `handoff_id` |
+| `recover_claim` | `task_id`, `claim_id`, `operator`, `decision`, `writers_stopped`, `reason` |
+
+1. Прочитайте `eligibility` выбранной Task и получите claim через `claim_task`.
+   Доступность при изменении проверяется заново вместе с ёмкостью Session.
+2. Для перехода с A на B используйте `switch_claim` с текущим claim A. Проверка
+   обеих сторон и изменение двух claims входят в одну транзакцию. Отказ сохраняет A.
+3. Передайте работу через `release_claim`, сохранив возвращённый `handoff_id`.
+   Получатель вызывает `resume_claim`, создающий новый claim и использующий handoff
+   один раз. Release оставляет Task доступной; завершение — отдельный факт.
+4. После остановки прежнего писателя оператор читает current claim и передаёт
+   явное решение в `recover_claim`. Операция освобождает только названный claim.
+   Следующая Session продолжает через обычный `resume_claim`.
+
+Перед каждым новым внешним пакетом берите актуальную revision. Повторяйте
+неопределённый исход тем же полным внешним пакетом и `request_id`: точный outer
+replay возвращает прежний receipt с `replayed: true` до проверки revision.
+Для `claim_task`/`switch_claim` `claim_request_id` сохраняет всё бизнес-намерение,
+кроме operation `id`. Повтор того же намерения новым внешним request возвращает
+исторические ID с `changed: false`, `claim_replayed: true`; новая revision и
+receipt сохраняются один раз, текущие бизнес-данные остаются прежними. Для
+следующего действия используйте current query и свежий current claim.
+
+Task claim и Workspace binding независимы. Эти пять операций сохраняют Workspace
+metadata, bindings, roots и файлы. Последовательность не требует физического
+Workspace. Полные результаты, причины отказов и их порядок принадлежат
+[контракту](contract-seq.md#54-claim_task), история —
+[руководству хранилища](storage-seq.md#атомарное-владение-и-история).
+
+Следующий пример использует две уже выданные Task identity и известную исходную
+редакцию Requirements. Он запускает реальный CLI на четырёх отдельных временных
+state: statement/snapshot × Independent/Sprint. Две Session и оператор представлены
+явными непрозрачными строками. Все команды синхронны и завершают свой процесс;
+к моменту операторского recovery прежний CLI-писатель уже остановлен.
+Запустите из корня рабочей копии с Python 3.13:
+
+```python
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+def cli(path, packet):
+    result = subprocess.run(
+        [sys.executable, '-B', 'apps/sequencing/bin/sequencing', '--config', str(path)],
+        input=json.dumps(packet, ensure_ascii=False) + '\n',
+        text=True, capture_output=True, check=True,
+    )
+    assert result.stderr == ''
+    return json.loads(result.stdout)
+
+
+def claim_result(operation, result, task_id, caller, extra=None):
+    claim_id = result['claim_id']
+    assert isinstance(claim_id, str) and claim_id
+    expected = {'id': operation['id'], 'kind': operation['kind'], 'changed': True,
+                'task_id': task_id, 'claim_id': claim_id, 'claimant': caller,
+                'claim_replayed': False, **(extra or {})}
+    assert result == expected
+    return claim_id
+
+
+for reference in ['statement', 'snapshot']:
+    for form in ['independent', 'sprint']:
+        with tempfile.TemporaryDirectory(prefix='sequencing-ownership-guide-') as directory:
+            root = Path(directory)
+            config = json.loads(Path('apps/sequencing/config/sequencing.example.json').read_text())
+            config['paths']['state'] = str(root / 'state')
+            config['repository']['path'] = str(Path.cwd())
+            config['worktree']['root'] = str(root / 'worktrees')
+            config['transfer']['root'] = str(root / 'transfer')
+            config['identifiers']['task']['pattern'] = '^[0-9]{4}$'
+            path = root / 'sequencing.json'
+            path.write_text(json.dumps(config))
+            revision, sequence = 0, 0
+            field = 'requirements_' + reference + '_revision'
+            owner, receiver, operator = 'SESSION-A', 'SESSION-B', 'SESSION-OPERATOR'
+
+            def apply(operation):
+                global revision, sequence
+                sequence += 1
+                packet = {'schema': 'stride-sequencing/v1', 'operation': 'apply',
+                          'input': {'request_id': 'guide-' + str(sequence),
+                                    'expected_revision': revision, 'operations': [operation]}}
+                response = cli(path, packet)
+                assert response == {'schema': 'stride-sequencing/v1', 'status': 'applied',
+                                    'revision': revision + 1, 'replayed': False,
+                                    'results': [response['results'][0]]}
+                revision = response['revision']
+                return response['results'][0], packet, response
+
+            def tasks():
+                response = cli(path, {'schema': 'stride-sequencing/v1', 'operation': 'query',
+                    'input': {'queries': [{'id': identifier, 'kind': 'task', 'task_id': identifier}
+                                          for identifier in ['0042', '0043']]}})
+                assert set(response) == {'schema', 'status', 'revision', 'results'}
+                assert response['schema'] == 'stride-sequencing/v1'
+                assert response['status'] == 'read_only' and response['revision'] == revision
+                values = [item['value'] for item in response['results']]
+                for identifier, item, value in zip(['0042', '0043'], response['results'], values):
+                    assert item == {'id': identifier, 'value': value}
+                    assert set(value) == {'task_id', field, 'state', 'sprint_id', 'claim',
+                                          'workspace', 'terminal'}
+                    assert value['task_id'] == identifier and value[field] == 2
+                    assert value['sprint_id'] == (None if form == 'independent' else 'SPR-OWNERSHIP')
+                    assert value['workspace'] is None and value['terminal'] is None
+                return values
+
+            for identifier in ['0042', '0043']:
+                result, _, _ = apply({'id': 'register-' + identifier, 'kind': 'register_task',
+                                      'task_id': identifier, field: 2})
+                assert result == {'id': 'register-' + identifier, 'kind': 'register_task',
+                                  'task_id': identifier, field: 2, 'changed': True}
+            if form == 'sprint':
+                result, _, _ = apply({'id': 'sprint', 'kind': 'register_sprint',
+                    'sprint_id': 'SPR-OWNERSHIP', 'members': ['0042', '0043'], 'dependencies': []})
+                assert result == {'id': 'sprint', 'kind': 'register_sprint', 'changed': True,
+                                  'sprint_id': 'SPR-OWNERSHIP', 'sprint_revision': 1}
+            claim = {'id': 'claim-a', 'kind': 'claim_task', 'task_id': '0042',
+                     'claimant': owner, 'claim_request_id': 'start-a'}
+            result, original_packet, original_response = apply(claim)
+            claim_a = claim_result(claim, result, '0042', owner)
+            switch = {'id': 'switch-b', 'kind': 'switch_claim', 'from_task_id': '0042',
+                      'from_claim_id': claim_a, 'task_id': '0043', 'claimant': owner,
+                      'claim_request_id': 'move-a-b', 'reason': 'Перейти к доступной Task B'}
+            result, _, _ = apply(switch)
+            handoff_a = result['handoff_id']
+            assert isinstance(handoff_a, str) and handoff_a
+            claim_b = claim_result(switch, result, '0043', owner, {
+                'previous_task_id': '0042', 'previous_claim_id': claim_a, 'handoff_id': handoff_a})
+            before = tasks()
+            assert before[0]['state'] == 'available' and before[0]['claim'] is None
+            assert before[1]['state'] == 'claimed'
+            assert before[1]['claim'] == {'claim_id': claim_b, 'task_id': '0043',
+                                           'claimant': owner, 'status': 'active'}
+            assert cli(path, original_packet) == {**original_response, 'replayed': True}
+            assert tasks() == before
+            replay, _, _ = apply({**claim, 'id': 'historical-a'})
+            assert replay == {**original_response['results'][0], 'id': 'historical-a',
+                              'changed': False, 'claim_replayed': True}
+            assert tasks() == before
+
+            release = {'id': 'release-b', 'kind': 'release_claim', 'task_id': '0043',
+                       'claim_id': claim_b, 'claimant': owner, 'reason': 'Передать работу'}
+            result, _, _ = apply(release)
+            handoff_b = result['handoff_id']
+            assert isinstance(handoff_b, str) and handoff_b
+            assert result == {'id': 'release-b', 'kind': 'release_claim', 'changed': True,
+                              'task_id': '0043', 'claim_id': claim_b, 'handoff_id': handoff_b}
+            resume = {'id': 'resume-b', 'kind': 'resume_claim', 'task_id': '0043',
+                      'claimant': receiver, 'handoff_id': handoff_b}
+            result, _, _ = apply(resume)
+            resumed = claim_result(resume, result, '0043', receiver)
+            assert resumed != claim_b
+            recovery = {'id': 'recover-b', 'kind': 'recover_claim', 'task_id': '0043',
+                        'claim_id': resumed, 'operator': operator, 'writers_stopped': True,
+                        'decision': 'Освободить остановленного писателя',
+                        'reason': 'Прежний процесс завершён оператором'}
+            result, _, _ = apply(recovery)
+            recovered_handoff = result['handoff_id']
+            assert isinstance(recovered_handoff, str) and recovered_handoff
+            assert result == {'id': 'recover-b', 'kind': 'recover_claim', 'changed': True,
+                              'task_id': '0043', 'claim_id': resumed,
+                              'handoff_id': recovered_handoff}
+            assert tasks()[1]['state'] == 'available' and tasks()[1]['claim'] is None
+            continuation = {'id': 'continue-b', 'kind': 'resume_claim', 'task_id': '0043',
+                            'claimant': owner, 'handoff_id': recovered_handoff}
+            result, _, _ = apply(continuation)
+            final_claim = claim_result(continuation, result, '0043', owner)
+            assert final_claim not in [claim_b, resumed]
+            result, _, _ = apply({'id': 'finish-handoff', 'kind': 'release_claim', 'task_id': '0043',
+                'claim_id': final_claim, 'claimant': owner, 'reason': 'Сохранить результат этапа'})
+            assert result == {'id': 'finish-handoff', 'kind': 'release_claim', 'changed': True,
+                'task_id': '0043', 'claim_id': final_claim, 'handoff_id': result['handoff_id']}
+            assert isinstance(result['handoff_id'], str) and result['handoff_id']
+            assert all(value['state'] == 'available' and value['claim'] is None for value in tasks())
+            print(json.dumps({'reference': reference, 'form': form, 'revision': revision,
+                              'status': 'ownership-guide-passed'}, ensure_ascii=False))
+```
+
+Успешный пример печатает четыре записи `ownership-guide-passed`. Во всех случаях
+Task сохраняют исходный вид/номер Requirements reference и membership. Внешний
+replay сохраняет revision, inner replay новым пакетом увеличивает её на один,
+а текущее владение B остаётся прежним. После операторского решения обычный
+resume создаёт новый claim; заключительный release сохраняет доступную работу.

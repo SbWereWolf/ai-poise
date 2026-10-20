@@ -83,6 +83,8 @@ class Work:
         after = self.snapshot()
         assert before[0]['schema'] == after[0]['schema'] and before[0]['version'] == after[0]['version'] == 2
         assert before[1] == after[1]
+        self.assert_untargeted_tasks(before[0], after[0], {
+            operation.get('task_id'), operation.get('from_task_id')})
         changed = {'tasks', 'task_claims', 'requests', 'meta', 'sequencing_history'}
         for table, rows in before[0]['rows'].items():
             if table not in changed:
@@ -100,6 +102,12 @@ class Work:
         assert [row for row in before[0]['rows']['meta'] if row[0] != 'revision'] == [
             row for row in after[0]['rows']['meta'] if row[0] != 'revision']
         return value, packet, result
+
+    @staticmethod
+    def assert_untargeted_tasks(before, after, targets):
+        expected = {row[0]: row for row in before['rows']['tasks'] if row[0] not in targets}
+        actual = {row[0]: row for row in after['rows']['tasks'] if row[0] not in targets}
+        assert actual == expected
 
     def reject(self, operation, reason=None, packet=None):
         before = self.snapshot()
@@ -281,6 +289,7 @@ def test_C1_claim_exclusivity_and_current_views(tmp_path, form, reference):
     w.assert_task(A, 'claimed', {'claim_id': claim, 'task_id': A,
                               'claimant': OWNER, 'status': 'active'})
     w.audited(before, OWNER, [A, claim])
+    w.assert_task(D, 'available')
     assert w.availability(A, OWNER) == {
         'task_id': A, 'eligible': True, 'blockers': [], 'result_provenance': []}
     assert w.availability(A, OTHER) == {'task_id': A, 'eligible': False,
@@ -348,6 +357,7 @@ def test_C4_real_concurrent_cli_writers_preserve_both_exclusivities(tmp_path, ax
                              OTHER if axis == 'same-task' else OWNER, 'race-second')]
     packets = [w.packet([op], 'race-' + str(index), 1) for index, op in enumerate(operations)]
     before = w.history()
+    before_state = w.snapshot()[0]
 
     def run(packet):
         barrier.wait(timeout=10)
@@ -373,6 +383,11 @@ def test_C4_real_concurrent_cli_writers_preserve_both_exclusivities(tmp_path, ax
     op = operations[winner]
     w.claim_value(value, op['task_id'], op['claimant'])
     w.active([(op['task_id'], op['claimant'], value['claim_id'])])
+    w.assert_untargeted_tasks(before_state, w.snapshot()[0], {op['task_id']})
+    w.assert_task(D, 'available')
+    w.assert_task(op['task_id'], 'claimed', {
+        'claim_id': value['claim_id'], 'task_id': op['task_id'],
+        'claimant': op['claimant'], 'status': 'active'})
     assert w.rows('SELECT request_id FROM requests ORDER BY request_id') == [
         ('race-' + str(winner),), ('seed',)]
     w.audited(before, op['claimant'], [op['task_id'], value['claim_id']])
@@ -483,12 +498,14 @@ def test_C8_changed_inner_intent_is_rejected_without_effects(tmp_path, kind):
     claim, packet, _ = w.claim()
     if kind == 'switch':
         _, packet, _ = w.switch(claim)
-    operation = deepcopy(packet['input']['operations'][0])
-    if kind == 'switch':
-        operation['reason'] = 'Другая причина.'
-    else:
-        operation['task_id'] = B
-    w.reject(operation, 'request_reuse_conflict')
+    saved = packet['input']['operations'][0]
+    changes = [('task_id', B), ('claimant', OTHER)] if kind == 'claim' else [
+        ('from_task_id', C), ('from_claim_id', 'OTHER-CLAIM'),
+        ('task_id', C), ('claimant', OTHER), ('reason', 'Другая причина.')]
+    for field, value in changes:
+        operation = {**saved, field: value}
+        w.reject(operation, 'request_reuse_conflict')
+
 
 
 @pytest.mark.parametrize('failure', ['same-task', 'same-session', 'missing-task'])

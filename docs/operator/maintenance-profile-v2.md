@@ -638,12 +638,15 @@ roots и код отказа. Не меняйте старые установл�
 selector="$poise_root/config/stride-launcher.json"
 prepared_new="$poise_root/operator/selectors/Snew.json"
 prepared_legacy="$poise_root/operator/selectors/Slegacy.json"
-cp -- "$prepared_new" "$selector.next"
-mv -T -- "$selector.next" "$selector"
+cp -- "$prepared_new" "$selector.next" &&
+  mv -T -- "$selector.next" "$selector"
 ```
 
 Соседний `selector.next` находится на той же файловой системе: стандартный rename
 выбирает целое содержимое одного файла. Это не транзакция установки, профилей и БД.
+Связка `&&` допускает переименование только после успешного полного копирования.
+При ошибке копирования команда возвращает ненулевой код, действующий selector
+остаётся прежним; перед повтором оператор устраняет указанную причину staging-ошибки.
 Шаблон команды рендерится существующим стандартным механизмом Bootstrap;
 для перехода не нужен собственный renderer, gate engine или менеджер версий.
 
@@ -658,8 +661,8 @@ mv -T -- "$selector.next" "$selector"
 Возврат выполняется тем же выбором целого файла, без удаления новой поставки:
 
 ```bash
-cp -- "$prepared_legacy" "$selector.next"
-mv -T -- "$selector.next" "$selector"
+cp -- "$prepared_legacy" "$selector.next" &&
+  mv -T -- "$selector.next" "$selector"
 ```
 
 Проверьте реальный retained consumer с его документированными входами.

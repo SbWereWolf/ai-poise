@@ -13,14 +13,17 @@ apps/sequencing/bin/sequencing --config /absolute/path/sequencing.json
 Провайдер находит код относительно собственного файла; `--config` задаётся явно.
 
 Реализованы `apply` с `register_task`, `register_sprint`, `claim_task`,
-`switch_claim`, `release_claim`, `resume_claim`, `recover_claim` и `query` с
-`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`.
+`switch_claim`, `release_claim`, `resume_claim`, `recover_claim`,
+`record_stage_label`, `record_execution_outcome` и `query` с
+`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`,
+`kind: "execution_facts"`.
 Независимая работа — зарегистрированная Task вне Sprint. Работа в Sprint
 использует ту же Task identity и явное membership. Обе формы доступны одновременно.
 Ссылка ведёт на постановку Requirements либо на её опубликованный снимок;
 содержимое остаётся у Requirements. Реализован `workspace/prepare` для постоянного
 контекста Task. Изменение Sprint, независимое владение и освобождение Workspace,
-terminal и transfer описаны в [целевом контракте](contract-seq.md) как будущие команды.
+отдельные целевые terminal-команды и transfer описаны в
+[целевом контракте](contract-seq.md) как будущие возможности.
 Точный реализованный формат, миграция и исполняемые примеры находятся в
 [руководстве по хранилищу](storage-seq.md).
 
@@ -701,4 +704,142 @@ with tempfile.TemporaryDirectory(prefix='sequencing-workspace-guide-') as direct
     current = cli('query', {'queries': [{'id': 'current', 'kind': 'task', 'task_id': '0042'}]})
     assert current['results'][0]['value']['workspace'] == second['workspace']
     print('workspace=ready replay=true resume=same-context readonly=repository wip=preserved')
+```
+
+## Приём меток и исходов
+
+Получите канонический ID и ссылку требований у Requirements и зарегистрируйте
+Task в Sequencing. Для новой метки получите текущий Task claim, передайте
+`record_stage_label` с сохранёнными claim_id/claimant и явным source_ref.
+Сохраняйте выданные идентификаторы полностью. Label, ID и поля происхождения —
+непустые строки без NUL. Метка сохраняется как переданный текст; решение о ходе
+процесса и артефактах выполняет Execution.
+
+После завершения работы и любой pending подготовки Workspace освободите Task
+claim. Передайте полученный явный исход через `record_execution_outcome` с новым
+outcome_id и фактическим source_ref.owner/id. Positive сохраняет completed,
+negative — available с возможностью нового законного claim, cancelled — cancelled.
+Для зависимости result передайте фактическую ссылку результата. Текущий формат
+ссылки — полный 40-символьный Git ID из строчных hex-символов; positive с явным null
+принимается для completion, а result-edge сохраняет `missing_predecessor_result`.
+Negative/cancelled используют явный null. Конфигурация остаётся прежней.
+
+Caller доверенно передаёт уже решённые факты. Приём этих данных в Sequencing
+отдельный от решения acceptance у производителя. Точные поля находятся в
+[контракте](contract-seq.md#512-record_execution_outcome). Читайте текущие Task,
+execution_facts и eligibility перед следующим решением; старый replay item
+содержит исторический state. Для продолжения исходного запроса сохраняйте весь
+packet: точный outer replay возвращает его прежний ответ без записи. Для нового
+пакета используйте актуальную revision. При новом outer request с прежним фактом
+inner replay сохраняет текущее последнее значение, создавая одну новую квитанцию.
+
+Пример ниже демонстрирует самостоятельный приёмник и локального caller с заданными
+каноническими ID и ссылками во временном state. Он исполняет реальные команды
+Sequencing. Получение принятого исхода в Execution остаётся обязанностью вызывающей
+стороны; пример не заявляет выполнение производителя или его gate. Из корня
+рабочей копии используйте Python 3.13 и Git с полными 40-символьными ID. Git-ссылка
+наблюдается caller через rev-parse и передаётся как значение; приложение её сохраняет.
+
+<!-- execution-facts-example -->
+```python
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+with tempfile.TemporaryDirectory(prefix='sequencing-facts-guide-') as directory:
+    root = Path(directory)
+    config = json.loads(Path('apps/sequencing/config/sequencing.example.json').read_text())
+    config['paths']['state'] = str(root / 'state')
+    config['repository']['path'] = str(Path.cwd())
+    config['worktree']['root'] = str(root / 'worktrees')
+    config['transfer']['root'] = str(root / 'transfer')
+    config_path = root / 'sequencing.json'
+    config_path.write_text(json.dumps(config))
+    revision = 0
+    result_reference = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+
+    def cli(packet):
+        response = subprocess.run(
+            [sys.executable, '-B', 'apps/sequencing/bin/sequencing', '--config', str(config_path)],
+            input=json.dumps(packet, ensure_ascii=False) + '\n',
+            text=True, capture_output=True, check=True)
+        assert response.stderr == ''
+        return json.loads(response.stdout)
+
+    def apply(request_id, operations):
+        global revision
+        packet = {'schema': 'stride-sequencing/v1', 'operation': 'apply', 'input': {
+            'request_id': request_id, 'expected_revision': revision, 'operations': operations}}
+        response = cli(packet)
+        assert response['status'] == 'applied' and response['revision'] == revision + 1
+        revision = response['revision']
+        return response, packet
+
+    def one(request_id, operation):
+        response, _ = apply(request_id, [operation])
+        return response['results'][0]
+
+    def query(kind, task_id):
+        return cli({'schema': 'stride-sequencing/v1', 'operation': 'query', 'input': {
+            'queries': [{'id': 'read', 'kind': kind, 'task_id': task_id}]}})['results'][0]['value']
+
+    def label(claim, claimant, label_id, text):
+        return {'id': 'label', 'kind': 'record_stage_label', 'task_id': '0042',
+                'claim_id': claim, 'claimant': claimant, 'label_id': label_id, 'label': text,
+                'source_ref': {'owner': 'execution', 'id': label_id + '-source'}}
+
+    def outcome(task, identifier, kind, commit=None):
+        return {'id': 'outcome', 'kind': 'record_execution_outcome', 'outcome': {
+            'outcome_id': identifier, 'task_id': task, 'kind': kind, 'result_commit': commit,
+            'source_ref': {'owner': 'orchestrator', 'id': identifier + '-source'}}}
+
+    operations = [{'id': task, 'kind': 'register_task', 'task_id': task,
+                   'requirements_statement_revision': 1} for task in ('0042', '0043', '0044', '0045')]
+    operations.append({'id': 'sprint', 'kind': 'register_sprint', 'sprint_id': 'SPR-FACTS-GUIDE',
+        'members': ['0042', '0043', '0045'], 'dependencies': [
+            {'predecessor': '0042', 'successor': '0045', 'kind': 'completion'},
+            {'predecessor': '0043', 'successor': '0045', 'kind': 'result'}]})
+    apply('register', operations)
+    claim = one('claim-A', {'id': 'claim', 'kind': 'claim_task', 'task_id': '0042',
+                'claimant': 'SESSION-A', 'claim_request_id': 'claim-A-intent'})['claim_id']
+    first_label = label(claim, 'SESSION-A', 'label-A1', 'Подготовка результата')
+    one('label-A1', first_label)
+    handoff = one('release-A', {'id': 'release', 'kind': 'release_claim', 'task_id': '0042',
+                  'claim_id': claim, 'claimant': 'SESSION-A', 'reason': 'Передача явного исхода'})
+    negative = outcome('0042', 'negative-A', 'negative')
+    negative_response, negative_packet = apply('negative-A', [negative])
+    assert query('task', '0042')['state'] == 'available'
+    resumed = one('resume-A', {'id': 'resume', 'kind': 'resume_claim', 'task_id': '0042',
+                  'claimant': 'SESSION-B', 'handoff_id': handoff['handoff_id']})['claim_id']
+    latest_label = label(resumed, 'SESSION-B', 'label-A2', 'Результат подготовлен')
+    one('label-A2', latest_label)
+    one('release-B', {'id': 'release', 'kind': 'release_claim', 'task_id': '0042',
+        'claim_id': resumed, 'claimant': 'SESSION-B', 'reason': 'Передача положительного исхода'})
+    positive = outcome('0042', 'positive-A', 'positive')
+    one('positive-A', positive)
+    one('positive-result-B', outcome('0043', 'positive-B', 'positive', result_reference))
+    cancelled = outcome('0044', 'cancelled-C', 'cancelled')
+    one('cancelled-C', cancelled)
+    assert query('task', '0044')['state'] == 'cancelled'
+    assert query('task', '0044')['terminal']['source_ref'] == cancelled['outcome']['source_ref']
+    eligible = cli({'schema': 'stride-sequencing/v1', 'operation': 'query', 'input': {'queries': [
+        {'id': 'ready', 'kind': 'eligibility', 'task_id': '0045', 'claimant': 'SESSION-A'}]}})
+    assert eligible['results'][0]['value'] == {'task_id': '0045', 'eligible': True, 'blockers': [],
+        'result_provenance': [{'predecessor': '0043', 'result_commit': result_reference}]}
+    assert query('task', '0045')['claim'] is None
+    replay = one('negative-A-inner-replay', negative)
+    assert replay['fact_replayed'] is True and replay['state'] == 'available'
+    assert one('label-A1-inner-replay', first_label)['fact_replayed'] is True
+    assert cli(negative_packet) == {**negative_response, 'replayed': True}
+    current = query('task', '0042')
+    facts = query('execution_facts', '0042')
+    assert current['state'] == 'completed' and current['claim'] is None
+    assert current['terminal']['result_commit'] is None
+    assert current['terminal']['source_ref'] == positive['outcome']['source_ref']
+    assert facts['outcome'] == positive['outcome']
+    assert facts['stage_label']['label'] == 'Результат подготовлен'
+    print('facts=received negative=available positive=completed cancelled=cancelled successor=eligible replay=stable provenance=preserved')
 ```

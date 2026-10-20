@@ -6,7 +6,8 @@
 `register_task`, `register_sprint`, чтение полного текущего значения Task/Sprint,
 доступности `eligibility` и кандидатов `next` относительно явной Session,
 а также `claim_task`, `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`
-и `workspace` с `action: "prepare"`.
+и `workspace` с `action: "prepare"`, `record_stage_label`,
+`record_execution_outcome`, чтение `execution_facts`.
 Процедуры описаны в [руководстве CLI](shell-seq.md) и
 [руководстве хранилища](storage-seq.md). Независимая работа — Task вне Sprint;
 Sprint использует ту же выданную identity с явно зарегистрированным membership.
@@ -19,10 +20,12 @@ exit 2. Обычные смысловые конфликты использую�
 `session_claim_conflict`, `claim_owner_mismatch`, `switch_target_conflict`,
 `not_eligible`, `handoff_not_found`. Их порядок описан в §5.4–5.6, §5.9–5.10;
 детали blockers читаются через `eligibility`. Последующие разделы описывают
-также целевые команды revise, независимого владения и освобождения Workspace, terminal и transfer и
-расширенный
-профиль структурированных ошибок. Эти будущие команды и профиль не заявлены
-как реализованные нынешним CLI. Примеры ниже с условными claim/handoff ID
+также целевые команды revise, независимого владения и освобождения Workspace,
+`record_terminal`, `cancel_task`, transfer и расширенный профиль структурированных ошибок. Эти
+будущие команды и профиль не заявлены
+как реализованные нынешним CLI. Текущие операции фактов описаны в §5.11–5.12,
+их чтение — в §7.5; целевые `record_terminal` и `cancel_task` остаются будущими
+операциями. Примеры ниже с условными claim/handoff ID
 показывают строки: реально выделенные идентификаторы непрозрачны, caller
 сохраняет возвращённые значения без предположений об их формате.
 
@@ -310,9 +313,12 @@ Sequencing принимает только явный fact, уже решённ�
 }
 ```
 
-`kind` — `completed` или `cancelled`. Для `completed` `result_commit` MAY быть null, если ни
-один dependency kind `result` не требует Git provenance; если result-edge должен быть
-удовлетворён, commit обязателен. Для `cancelled` `result_commit` обязан быть null.
+`kind` этой проекции — `completed` или `cancelled`. Текущий
+`record_execution_outcome` принимает positive с явным `result_commit: null` и
+сохраняет completed. Для удовлетворения result-edge требуется переданный commit;
+при null проекция доступности возвращает `missing_predecessor_result`. Completion-edge
+требует только completed. Для cancelled ссылка результата равна null.
+`terminal_id` текущей проекции равен принятому `outcome_id` из §5.12.
 
 Sequencing не вычисляет Execution success и не принимает log/evidence как completion.
 `terminal_id` immutable по canonical payload; conflicting reuse отклоняется.
@@ -543,6 +549,9 @@ Sequencing атомарно создаёт новый claim и добавляе�
 
 ### 5.7 `record_terminal`
 
+Целевой будущий интерфейс. Текущий приём исходов выполняется через §5.12
+`record_execution_outcome` с правилами приёмника и проекции §4.5.
+
 ```json
 {
   "id": "terminal-1",
@@ -563,6 +572,9 @@ Exact terminal replay idempotent; changed payload with same `terminal_id` пол
 создаёт claim successor и не запускает Execution.
 
 ### 5.8 `cancel_task`
+
+Целевой будущий интерфейс. Текущий переданный исход отмены принимается
+через `record_execution_outcome` с `kind: "cancelled"` из §5.12.
 
 ```json
 {
@@ -650,6 +662,104 @@ Task этой Session. Все эти проверки завершаются п�
 Exact outer replay recovery возвращает прежний результат с сохранением текущего
 владения. Полная правильная последовательность исполняется в
 [руководстве владения](shell-seq.md#владение-переключение-и-восстановление).
+
+### 5.11 `record_stage_label`
+
+Текущая операция передаётся в обычном `apply` с `request_id`,
+`expected_revision` и массивом `operations`. Полный operation:
+
+```json
+{
+  "id": "label-1",
+  "kind": "record_stage_label",
+  "task_id": "0042",
+  "claim_id": "returned-current-claim",
+  "claimant": "SESSION-A",
+  "label_id": "stage-label-0042-1",
+  "label": "Подготовка результата",
+  "source_ref": {"owner": "execution", "id": "stage-reference-0042-1"}
+}
+```
+
+Все показанные поля обязательны, наборы полей точные. Task ID соответствует
+настроенной policy. `claim_id`, `claimant`, `label_id`, `label` и оба поля source_ref
+содержат непустые строки без NUL, сохраняемые целиком. Метка — непрозрачные данные.
+Граф процесса, смысл gate и артефактов принадлежат Execution.
+
+Новая метка требует известную Task и её точный active claim указанной Session.
+Success item содержит ровно `id`, `kind`, `changed`, `task_id`, `label_id`,
+`fact_replayed`. Новый факт имеет `changed: true`, `fact_replayed: false`.
+Полный неизменяемый факт — `task_id`, `label_id`, `label`, `source_ref`;
+operation id и переданные поля текущего владения относятся к команде.
+
+`label_id` уникален среди меток всех Task. Точный повтор факта с новым outer
+request возвращает `changed: false`, `fact_replayed: true` до проверки текущего
+владения. Старый факт сохраняет своё место в истории: последнее принятое значение,
+Task state, claim, Workspace и доступность остаются текущими. Изменение полного
+факта, включая только owner или id происхождения, даёт `label_conflict`.
+
+### 5.12 `record_execution_outcome`
+
+Текущий приёмник получает явный исход от доверенного локального вызывающего.
+Решение об исходе и его основании принимает соответствующий владелец. Caller
+передаёт фактическое происхождение и заранее освобождает Task claim после
+завершения подготовки Workspace.
+
+```json
+{
+  "id": "outcome-1",
+  "kind": "record_execution_outcome",
+  "outcome": {
+    "outcome_id": "outcome-0042-1",
+    "task_id": "0042",
+    "kind": "positive",
+    "result_commit": null,
+    "source_ref": {"owner": "orchestrator", "id": "accepted-outcome-0042-1"}
+  }
+}
+```
+
+Поля operation и outcome обязательны и точны. `source_ref` имеет ровно owner/id;
+это непрозрачные непустые строки без NUL. Owner сохраняется как переданное
+происхождение записи.
+`outcome_id` — непрозрачная непустая строка без NUL; Task ID следует policy.
+
+| Переданный kind | result_commit | Task state | Task terminal |
+| --- | --- | --- | --- |
+| `positive` | Явный null либо полный 40-символьный Git ID из строчных hex-символов | `completed` | Проекция §4.5 с kind completed |
+| `negative` | Явный null | `available` | null |
+| `cancelled` | Явный null | `cancelled` | Проекция §4.5 с kind cancelled |
+
+Это формат текущего потребителя. Формат GitObject производителя и целевой
+`record_terminal` имеют собственный договор. Приёмник сохраняет ссылку как
+переданные данные; получение реального результата и решение об acceptance
+выполняются вызывающей стороной и Execution. Для result-edge передайте ссылку
+результата: положительный исход с null принимается, а такое ребро сохраняет
+`missing_predecessor_result`.
+
+Новый исход требует известную Task, свободный Task claim и Workspace вне
+`reserved`/`release_pending`. Ready, failed и released контекст сохраняются.
+Success item содержит ровно `id`, `kind`, `changed`, `task_id`, `outcome_id`,
+`state`, `fact_replayed`. После negative возможны новое законное владение и новый
+positive с другим outcome_id. Completed/cancelled сохраняют своё терминальное
+решение; следующий новый исход получает `outcome_conflict`.
+
+`outcome_id` уникален среди исходов всех Task; пространство ID меток независимо.
+Точный полный факт возвращает исторический результат с `changed: false`,
+`fact_replayed: true` до проверки текущих условий. Изменение факта, включая только
+source_ref.owner/id или допустимый result_commit, даёт `outcome_conflict`.
+Историческое поле state в item относится к исходному факту; текущие значения
+читаются через Task и execution_facts. Полное source_ref сохраняется и в terminal.
+
+После проверки формы apply сначала проверяет общий outer request, затем revision.
+В операции порядок такой: inner replay/conflict, известная Task, terminal state,
+claim, подготовка Workspace; у метки после known Task проверяется claim.
+Точное повторение outer request возвращает старый ответ с `replayed: true` и
+исходной revision без записи. Новый outer request с историческим фактом сохраняет
+свою квитанцию и увеличивает revision один раз. Отказ любой операции откатывает
+весь пакет. Текущие причины: `label_conflict`, `outcome_conflict`, `task_not_found`,
+`claim_owner_mismatch`, `claim_conflict`, `workspace_conflict`; форма/типы дают
+диагностический reason в текущем трёхпольном rejected/exit 2.
 
 ## 6. Workspace operation: `workspace`
 
@@ -999,12 +1109,13 @@ Query item всегда имеет непустой уникальный `id` и
 | `dependencies` | `task_id` | `{task_id, predecessors, successors}`; arrays edges §4.2 |
 | `eligibility` | `task_id`, `claimant` | `{task_id, eligible, blockers, result_provenance}` из §7.2 |
 | `next` | `claimant`, `scope` | `{task_ids}` из §7.2 |
+| `execution_facts` | `task_id` | `{task_id, stage_label, outcome}` из §7.5 |
 | `claim` | `task_id` | `{task_id, active_claim, latest_handoff}`; последние два — модель или null |
 | `workspace` | `task_id` | `{task_id, workspace}`; reservation §4.4 или null |
 | `resumable` | `sprint_id` | Array `{task_id, handoff_id, workspace_id}` для unclaimed non-terminal Tasks с не consumed handoff |
 | `work_overview` | `sprint_id` | `{sprint_id, tasks, counts}` по правилам ниже |
 
-Текущий CLI поддерживает строки `task`, `sprint`, `eligibility`, `next`;
+Текущий CLI поддерживает строки `task`, `sprint`, `eligibility`, `next`, `execution_facts`;
 остальные строки таблицы описывают будущие варианты. Для `next` обязательны
 точные tagged scopes §7.2. В двух последних целевых запросах `sprint_id=null` явно означает все
 Sprint и standalone Tasks;
@@ -1024,6 +1135,20 @@ Sprint и standalone Tasks;
 
 Успех §7 содержит типизированные `value` для Task, заблокированной единственным
 незавершённым result predecessor, и соответствующей Sprint revision 1.
+
+### 7.5 Текущее чтение полученных фактов
+
+Полный query item: `{"id":"facts","kind":"execution_facts","task_id":"0042"}`.
+Он использует обычный query packet и общий read-only ответ с текущей revision.
+`value` имеет ровно `task_id`, `stage_label`, `outcome`. Значения двух фактов равны
+null до их первого приёма. Stage label содержит ровно `task_id`, `label_id`, `label`,
+`source_ref`; outcome — ровно все поля принятого outcome из §5.12. Неизвестная Task
+даёт `task_not_found`.
+
+Последний факт выбирается по принятому порядку записи отдельно для меток и исходов.
+Точный replay сохраняет текущее последнее значение. Чтение использует один снимок
+Sequencing и сохраняет данные. Прежний Task DTO остаётся прежним; его terminal
+отражает positive/cancelled, а отрицательный исход виден в execution_facts.
 
 ## 8. Transfer operation
 
@@ -1227,9 +1352,11 @@ revision `11`, same Task identity, `replayed=true`.
 Sprint `S` содержит `0042 -> 0043` kind `result`. Пока `0042` не completed,
 `eligibility(0043)` возвращает `eligible=false` и blocker `0042`.
 
-После explicit `record_terminal` для `0042` с result commit `aaa...`, тот же query на новой
+После текущего `record_execution_outcome` с positive для `0042` и полным result commit,
+тот же query на новой
 revision возвращает `eligible=true`, no blockers и result provenance
-`{predecessor:"0042", result_commit:"aaa..."}`. Sequencing не merge-ит этот commit в
+`{predecessor:"0042", result_commit:"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`. Sequencing не
+merge-ит этот commit в
 Workspace successor автоматически.
 
 ### F2b — несколько predecessors требуют всех completion

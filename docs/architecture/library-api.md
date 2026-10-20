@@ -628,8 +628,8 @@ binding остаются независимыми. Точные поля, replay
 
 Текущий CLI выполняет `register_task`, `register_sprint`, `claim_task`,
 `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`,
-`workspace/prepare` и четыре query-варианта:
-Task, Sprint, `eligibility`, `next`. Явные caller и области выбора описаны в
+`workspace/prepare`, `record_stage_label`, `record_execution_outcome` и пять query-вариантов:
+Task, Sprint, `eligibility`, `next`, `execution_facts`. Явные caller и области выбора описаны в
 [руководстве доступности](../../apps/sequencing/docs/shell-seq.md#доступность-и-следующая-работа).
 Independent и явное Sprint membership используют одну Task identity. `Store.query`
 открывает одну read-транзакцию до чтения revision и собирает
@@ -663,3 +663,34 @@ binding, подготовка её сохраняет. Read-only использ�
 Подробности slot незавершённого запроса, окончательных квитанций, revision и
 операторского продолжения принадлежат [модели
 хранения](../../apps/sequencing/docs/storage-seq.md#постоянная-подготовка-workspace).
+
+### Приём явных фактов исполнения
+
+`apps.sequencing.domain.execution_facts` содержит чистые правила полной
+идентичности факта, условий исхода и отображения в собственные state/terminal.
+`label_fact` выделяет метаданные без transient claim, `require_same_fact` сравнивает
+полное происхождение и ссылку результата, `terminal_for_outcome` сохраняет
+переданные owner/id. Правила процессного графа и acceptance принадлежат Execution.
+
+`apps.sequencing.application.execution_facts.ExecutionFactsCommands.execute`
+получает repository и clock. Исторический факт проверяется до текущих условий;
+новая метка использует существующий `require_source`, исход — свободный Task claim
+и состояние подготовки Workspace. Проекция negative остаётся available/null,
+positive/cancelled сохраняются явно. Прикладной слой работает внутри прежней
+`Store.apply` транзакции.
+
+`apps.sequencing.infrastructure.execution_facts_store.ExecutionFactsRepository`
+владеет явными SQL lookup/history/latest и адресованным state/terminal update.
+Он повторно использует OwnershipRepository для Task/claim/history и
+WorkspaceRepository.saved для контекста. Прежний Store.apply сохраняет общий
+request/revision/rollback; Store.query возвращает новую fact-проекцию в одном
+снимке. Доменные и прикладные функции получают зависимости явно.
+
+Полный текущий wire, порядок и происхождение принадлежат
+[контракту фактов](../../apps/sequencing/docs/contract-seq.md#511-record_stage_label),
+история и revision — [модели
+хранения](../../apps/sequencing/docs/storage-seq.md#полученные-метки-и-исходы),
+порядок вызывающей стороны — [инструкции
+CLI](../../apps/sequencing/docs/shell-seq.md#приём-меток-и-исходов).
+Текущий приёмник принимает явный null либо 40-символьную Git-ссылку из своего договора;
+формат и решение производителя имеют отдельную область ответственности.

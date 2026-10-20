@@ -8,14 +8,17 @@ Workspace roots и историю в собственной SQLite БД. Кан�
 этапов Execution остаются у своих владельцев.
 
 Текущий CLI записывает `register_task`, `register_sprint`, `claim_task`,
-`switch_claim`, `release_claim`, `resume_claim`, `recover_claim`, подготавливает
+`switch_claim`, `release_claim`, `resume_claim`, `recover_claim`,
+`record_stage_label`, `record_execution_outcome`, подготавливает
 Workspace через `workspace/prepare` и читает `query` с
-`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"` и `kind: "next"`.
+`kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`,
+`kind: "execution_facts"`.
 Текущий формат — 2. Зарегистрированная Task
 сохраняет ровно одну исходную ссылку: редакцию постановки либо опубликованного
 снимка Requirements. Независимая работа и работа в Sprint используют одну
 идентичность; membership задаётся явно. Изменение Sprint, независимое
-владение и освобождение Workspace, terminal/transfer остаются будущими возможностями [целевого
+владение и освобождение Workspace, отдельные целевые terminal-команды и transfer
+остаются будущими возможностями [целевого
 контракта](contract-seq.md).
 [Конфигурация и запуск](shell-seq.md) используют прежние обязательные параметры;
 новых параметров для подготовки схемы нет.
@@ -405,3 +408,40 @@ Task claim. Нормальный фильтр Git должен завершат�
 квитанции. Самостоятельные acquire/release Workspace, cleanup и transfer остаются
 будущими возможностями; prepare создаёт контекст, независимое владение сохраняет
 прежнего владельца либо null.
+
+## Полученные метки и исходы
+
+[Текущие команды фактов](contract-seq.md#511-record_stage_label) используют формат 2
+и исходную транзакцию `Store.apply`. Новые таблицы и параметры конфигурации для них
+не нужны. Поля требований, членство, claim, Workspace roots/bindings и чужие Task
+сохраняются; исход меняет только state/terminal_json адресованной Task.
+
+`execution.stage_label_recorded` и `execution.outcome_recorded` добавляются в
+`sequencing_history`. Data содержит точные `fact` и первоначальный `result`.
+Actor метки — переданный claimant, actor исхода — переданный source_ref.owner;
+это происхождение записи. Время задаёт переданный приложению clock. Событие
+сохраняет Task/Sprint references через существующего владельца истории.
+
+ID метки/исхода ищется глобально внутри своего вида. Полное сравнение факта
+охватывает source_ref.owner/id и result_commit. Проверка и добавление находятся
+в одной прежней write-транзакции. Ранее записанные строки истории остаются
+неизменными. Latest-проекция выбирает последний новый факт своего вида по seq;
+исторический replay возвращает прежний result без добавления нового события.
+
+Positive сохраняет completed и terminal с terminal_id=outcome_id, переданной
+ссылкой результата и полным source_ref. Negative сохраняет available и null
+terminal, оставляя возможность следующей законной работы. Cancelled сохраняет
+cancelled и null result_commit в terminal. При чтении Task используется прежняя
+проекция; [execution_facts](contract-seq.md#75-текущее-чтение-полученных-фактов)
+отдельно возвращает последние метку/исход либо null. Доступность использует
+прежнего владельца правил всех необходимых completed-предшественников и result
+provenance. Positive с null принимается; для result-edge в таком случае сохраняется
+`missing_predecessor_result`.
+
+Новый пакет сохраняет одну outer-квитанцию и увеличивает revision один раз,
+включая пакет из нескольких фактов и точный inner replay. Полный outer replay
+сохраняет revision и всю БД. Ошибка любой операции откатывает историю, Task state,
+квитанцию и revision всего пакета. Общий requests namespace, включая незавершённую
+подготовку Workspace, остаётся прежним. Git и соседние хранилища в этой транзакции
+не вызываются. [Правильная последовательность](shell-seq.md#приём-меток-и-исходов)
+принадлежит руководству CLI.

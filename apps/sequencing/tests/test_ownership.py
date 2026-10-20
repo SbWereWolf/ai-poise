@@ -239,16 +239,14 @@ class Work:
         return payloads
 
     def handoff(self, handoff_id, claim_id):
-        def dictionaries(value):
-            if isinstance(value, dict):
-                yield value
-                for item in value.values():
-                    yield from dictionaries(item)
-            elif isinstance(value, list):
-                for item in value:
-                    yield from dictionaries(item)
-        matches = [item for row in self.history() for item in dictionaries(json.loads(row[6]))
-                   if item.get('handoff_id') == handoff_id and 'previous_claim_id' in item]
+        matches = []
+        for row in self.history():
+            payload = json.loads(row[6])
+            if 'handoff' in payload:
+                canonical = payload['handoff']
+                assert isinstance(canonical, dict)
+                if canonical.get('handoff_id') == handoff_id:
+                    matches.append(canonical)
         expected = {'handoff_id': handoff_id, 'task_id': A, 'previous_claim_id': claim_id,
                     self.reference: 1,
                     'workspace_id': None if self.workspace_expected is None else 'WORKSPACE-A'}

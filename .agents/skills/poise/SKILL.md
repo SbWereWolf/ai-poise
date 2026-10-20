@@ -83,6 +83,12 @@ Do not invent resolution proposals or native stage completion before actual fixe
 
 ### Environment maintenance
 
+Use the [five-gate cutover and explicit return procedure](../../../docs/operator/maintenance-profile-v2.md#переход-на-новый-маршрут-и-возврат)
+before selecting the prepared Stride maintenance overrides. The configured
+absolute Bootstrap entry uses `-I -B`; source `-m poise` uses `-P -s -B`.
+See [Stride arguments and examples](../../../docs/operator/poise-command-reference.md#обслуживание-catalogv2-через-stride).
+Example after accepted cutover: `bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" "$stride_settings" check --config "$bootstrap_config" --catalog-dir "$profile"`.
+
 [Task-worktree preparation](../../../docs/operator/worktree-preparation.md#подготовка-рабочей-области)
 owns the working configuration, all options/placeholders, plugin contract, full
 inputs/results and retry/reconciliation procedure. Use the selected native
@@ -119,6 +125,10 @@ For observed harness limitations, use the [replay](../../../docs/operations/know
 [lock](../../../docs/operations/known-bugs.md#aip-external-lock-diagnostics-001--отказ-не-называет-держателя)
 and [IDE source-preservation](../../../docs/operations/known-bugs.md#aip-ide-format-source-preservation-001--потеря-правок-после-форматирования)
 guidance; apply the actual current-stage recovery owner, not a blanket restart.
+For historical snapshot metadata refusals, follow the
+[verified recovery procedure](../../../docs/operations/known-bugs.md#восстановление-сохранённых-снимков-этапов):
+inventory Sprint drafts as well as Tasks, use the public owner first, and preserve
+the exact authorized scope and audit for a necessary manual correction.
 Before an agreed restart, both roles check the actual
 [progression and current position](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
 Publish permanent proofs while ACTIVE before verify; use saved native receipts

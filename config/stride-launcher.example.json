@@ -13,6 +13,27 @@
     "poise"
   ],
   "overrides": {
+    "infra": [
+      "${PYTHON_EXECUTABLE}",
+      "-I",
+      "-B",
+      "${POISE_SOURCE_ROOT}/bootstrap",
+      "infra"
+    ],
+    "deps": [
+      "${PYTHON_EXECUTABLE}",
+      "-I",
+      "-B",
+      "${POISE_SOURCE_ROOT}/bootstrap",
+      "deps"
+    ],
+    "check": [
+      "${PYTHON_EXECUTABLE}",
+      "-I",
+      "-B",
+      "${POISE_SOURCE_ROOT}/bootstrap",
+      "check"
+    ],
     "next": [
       "${PYTHON_EXECUTABLE}",
       "-P",

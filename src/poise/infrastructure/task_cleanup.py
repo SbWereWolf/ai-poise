@@ -7,7 +7,8 @@ import os
 from pathlib import Path
 
 from ..artifacts import inspect_paths
-from ..application.task_cleanup import initialize_cleanup_in
+from ..application.task_cleanup import initialize_cleanup_in, prepare_cleanup_execution
+from ..modules.tasks.ports import TaskReadSet
 from ..modules.foundation.errors import PoiseError
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, TaskOwnedResource
 from .git_transport import run_git_receipt
@@ -23,8 +24,6 @@ class RuntimeTaskResourceCleanup:
     def __init__(self, runtime):
         self.h = runtime
 
-    def material_scope(self):
-        return self.h.delivery_effects.locked()
 
     def material_gate(self, task_id):
         return self.h.delivery_tools.resource_gate(task_id)
@@ -128,30 +127,41 @@ class RuntimeTaskResourceCleanup:
             if not uow.execution.exists(task_id):
                 return None
             data, _ = uow.execution.load(task_id)
-            return data["pending"]
+            return data.get("pending")
 
     def save(self, task_id, pending):
+        facade = self.h.store.unit_of_work()
+        inputs = facade.capture(TaskReadSet((), execution_ids=(task_id,)))
+        data, version = inputs.execution(task_id)
+        current = data['pending']
+        if not isinstance(current, dict) or current.get('kind') != 'task_cleanup':
+            raise PoiseError('Task cleanup state changed concurrently')
+        saved, received = CleanupRun.restore(current), CleanupRun.restore(pending)
+        if received.version != saved.version + 1:
+            if pending == current:
+                return
+            raise PoiseError('Task cleanup state changed concurrently')
+        prepared = facade.prepare_execution(inputs, task_id, {**data, 'pending':pending})
         with self.h.store.unit_of_work() as uow:
-            data, version = uow.execution.load(task_id)
-            current = data["pending"]
-            if not isinstance(current, dict) or current.get("kind") != "task_cleanup":
-                raise PoiseError("Task cleanup state changed concurrently")
-            saved = CleanupRun.restore(current)
-            received = CleanupRun.restore(pending)
-            if received.version != saved.version + 1:
-                if pending == current: return
-                raise PoiseError("Task cleanup state changed concurrently")
-            data["pending"] = pending
-            uow.execution.save(task_id, data, version)
+            uow.require_inputs(inputs)
+            uow.execution.save_prepared(task_id, prepared, version)
 
     def initialize(self, task_id, pending):
+        facade = self.h.store.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
+        state = inputs.state(task_id)
+        if state.status != 'cancelled' and not (
+                state.status == 'completed' and inputs.task(task_id).duplicate_reuse is not None):
+            raise PoiseError('Cleanup initialization requires a terminal cancelled Task')
+        current = inputs.execution(task_id)
+        data = prepare_cleanup_execution(None if current is None else current[0], pending)
+        prepared = facade.prepare_execution(inputs, task_id, data)
         with self.h.store.unit_of_work() as uow:
-            state = uow.tasks.load_state(task_id)
-            if state.status.value != "cancelled" and not (
-                state.status.value == "completed" and uow.tasks.load(task_id).duplicate_reuse is not None
-            ):
-                raise PoiseError("Cleanup initialization requires a terminal cancelled Task")
-            initialize_cleanup_in(uow, task_id, pending)
+            uow.require_inputs(inputs)
+            if current is None:
+                uow.execution.create_prepared(task_id, prepared)
+            else:
+                uow.execution.save_prepared(task_id, prepared, current[1])
 
     def finish(self, task_id):
         root = self.resource_root(task_id)

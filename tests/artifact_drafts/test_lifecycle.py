@@ -82,6 +82,46 @@ def protected_state(runtime, task_root: Path) -> dict:
     return {"database": database, "files": files}
 
 
+def assert_refused_use_preserved(runtime, task_root, before, request_id, *, action):
+    """Allow only this exact request's admission/refusal pair, preserving all else."""
+    after = protected_state(runtime, task_root)
+    old_journal = before['database']['journal']
+    new_journal = after['database']['journal']
+    assert new_journal[:len(old_journal)] == old_journal
+    added = new_journal[len(old_journal):]
+    assert len(added) == 2, (request_id, action, added)
+    values = []
+    for row in added:
+        assert row[1:4] == (runtime.session, 'T1', 'task_delivery.material_use')
+        value = json.loads(row[4])
+        assert set(value) == {'schema', 'key', 'revision', 'intent', 'source',
+                             'task_version', 'epoch', 'attempts', 'outcome', 'actor'}
+        assert value['schema'] == 'task-material-use-1'
+        assert value['source'] == 'T1' and value['actor'] == runtime.session
+        assert value['task_version'] == task_record(runtime)['_version']
+        assert value['epoch'] is None
+        assert value['intent']['operation'] == 'artifact_drafts'
+        assert value['intent']['task_id'] == 'T1'
+        assert value['intent']['request_id'] == request_id
+        assert set(value['intent']) == {'operation', 'task_id', 'request_id', 'intent_digest'}
+        assert len(value['intent']['intent_digest']) == 64
+        values.append(value)
+    admitted, refused = values
+    assert admitted['revision'] == 0 and admitted['outcome'] is None
+    assert len(admitted['attempts']) == 1 and len(admitted['attempts'][0]) == 32
+    assert refused == {**admitted, 'revision': 1, 'attempts': [], 'outcome': 'refused'}
+    key_input = {key: admitted['intent'][key] for key in ('operation', 'task_id', 'request_id')}
+    assert admitted['key'] == hashlib.sha256(json.dumps(
+        key_input, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    # Bind the recorded digest to the actual complete public input, not only its ID.
+    packet = runtime._test_refused_draft_input
+    assert packet['action'] == action and packet['request_id'] == request_id
+    assert admitted['intent']['intent_digest'] == hashlib.sha256(json.dumps(
+        packet, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    after['database']['journal'] = old_journal
+    assert after == before
+
+
 def declare(
     tools,
     runtime,
@@ -100,7 +140,7 @@ def declare(
 
 
 def decide(tools, runtime, action: str, artifact_id: str, request_id: str) -> dict:
-    return tools.invoke(request("artifact_drafts", {
+    payload = {
         "action": action,
         "request_id": request_id,
         "task_id": "T1",
@@ -108,7 +148,9 @@ def decide(tools, runtime, action: str, artifact_id: str, request_id: str) -> di
         "artifact_ids": [artifact_id],
         "reason": f"The authorized reviewer records the {action} decision.",
         "authorization": f"Independent reviewer explicitly authorized {action} for this draft.",
-    }))
+    }
+    runtime._test_refused_draft_input = payload
+    return tools.invoke(request("artifact_drafts", payload))
 
 
 def recover(tools, runtime, artifact_id: str, **changes) -> dict:
@@ -126,6 +168,7 @@ def recover(tools, runtime, artifact_id: str, **changes) -> dict:
         "authorization": "The user explicitly authorized same-path correction of ERP-AI-ANALYSIS v6.",
     }
     payload.update(changes)
+    runtime._test_refused_draft_input = payload
     return tools.invoke(request("artifact_drafts", payload))
 
 
@@ -145,25 +188,25 @@ def rework(tools) -> dict:
 
 
 def release(tools, request_id: str) -> dict:
-    return tools.invoke(request("handoff", {
+    return tools.invoke(request("release", {
         "request_id": request_id,
         "reason": "Release the verified Task for an independent artifact decision.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": tools.runtime.current_task()['id'],
+        "expected_version": tools.runtime.current_task()['_version'],
     }))
 
 
 def acquire_and_rework(project, session: str) -> tuple[WorkPoise, WorkTools, dict]:
     runtime = WorkPoise(project["config_path"], session)
     tools = WorkTools(runtime)
-    tools.invoke(request("bootstrap", {
+    context = tools.invoke(request("bootstrap", {
         "task": {"id": "T1"},
         "decision": None,
         "feedback": None,
         "rework_stage": None,
     }))
-    return runtime, tools, rework(tools)
+    # Recovery may resume the stage already opened by its original owner.
+    return runtime, tools, context if context['status'] == 'active' else rework(tools)
 
 
 def test_artifact_drafts_public_operation_exists(project):
@@ -312,7 +355,9 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
         result(context, "Register the prematurely frozen ERP v6 file."),
         [text_artifact("task", "ERP-AI-ANALYSIS-v6.md", "premature immutable review\n")],
     )
-    artifact = artifact_records(owner_runtime)[0]
+    artifact = next(item for item in artifact_records(owner_runtime)
+                    if item["path"] == str(Path(context["task_root"]) / "artifacts" / "ERP-AI-ANALYSIS-v6.md"))
+    assert artifact["owner"] == "T1" and artifact["scope"] == "task"
     original_digest = artifact["digest"]
 
     task_root = Path(context["task_root"])
@@ -327,8 +372,13 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
     else:
         pytest.fail("Foreign recovery unexpectedly changed a claimed Task.")
     assert protected_state(owner_runtime, task_root) == before_claimed
+    rework(owner)
+    assert task_record(owner_runtime)["status"] == "active"
+    assert task_record(owner_runtime)["claimed_by"] == owner_runtime.session
+    before_declare = protected_state(owner_runtime, task_root)
     with pytest.raises(PoiseError, match="immutable|registered|recover"):
         declare(owner, owner_runtime, "ERP-AI-ANALYSIS-v6.md", "declare-frozen-v6")
+    assert protected_state(owner_runtime, task_root) == before_declare
 
     release(owner, "release-erp-v6")
     recovery_runtime = WorkPoise(project["config_path"], "erp-recovery")
@@ -376,9 +426,14 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
                 request_id=request_id,
                 artifacts=[target],
             )
-        assert protected_state(recovery_runtime, task_root) == before_invalid
+        if target['scope'] == 'sprint':
+            # Invalid scope is rejected by input parsing before use admission.
+            assert protected_state(recovery_runtime, task_root) == before_invalid
+        else:
+            assert_refused_use_preserved(recovery_runtime, task_root, before_invalid,
+                                         request_id, action="recover")
 
-    artifact_path = Path(verified["artifacts"][0]["path"])
+    artifact_path = Path(artifact['path'])
     artifact_path.write_text("conflicting unreviewed bytes\n", encoding="utf-8")
     before_conflict = protected_state(recovery_runtime, task_root)
     with pytest.raises(PoiseError, match="digest|conflict|changed"):
@@ -388,7 +443,8 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
             artifact["id"],
             request_id="conflicting-erp-v6",
         )
-    assert protected_state(recovery_runtime, task_root) == before_conflict
+    assert_refused_use_preserved(recovery_runtime, task_root, before_conflict,
+                                 "conflicting-erp-v6", action="recover")
     artifact_path.write_text("premature immutable review\n", encoding="utf-8")
 
     recovered = recover(recovery_tools, recovery_runtime, artifact["id"])
@@ -528,7 +584,8 @@ def test_review_rejects_preexisting_hardlinked_snapshot(project):
             WorkTools(reviewer_runtime), reviewer_runtime, "review", artifact_id,
             "reject-hardlinked-review",
         )
-    assert protected_state(reviewer_runtime, Path(context["task_root"])) == before
+    assert_refused_use_preserved(reviewer_runtime, Path(context["task_root"]), before,
+                                 "reject-hardlinked-review", action="review")
 
 
 def test_finalize_rejects_tampered_registered_snapshot(project):
@@ -557,7 +614,8 @@ def test_finalize_rejects_tampered_registered_snapshot(project):
             reviewer, reviewer_runtime, "finalize", artifact_id,
             "reject-tampered-history",
         )
-    assert protected_state(reviewer_runtime, Path(context["task_root"])) == before
+    assert_refused_use_preserved(reviewer_runtime, Path(context["task_root"]), before,
+                                 "reject-tampered-history", action="finalize")
 
 
 def _run_as_registered_check() -> int:

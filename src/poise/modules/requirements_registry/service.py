@@ -1,22 +1,54 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
+from collections.abc import Callable
+from .domain import RequirementsRegistry
+from .ports import RegistrySnapshotProvider, TaskRequirementsSnapshots
 
 from ..foundation.errors import DomainError
+
+
+@dataclass(frozen=True)
+class RegistryGuard:
+    provider: RegistrySnapshotProvider
+    identity: object
+
+    def require(self):
+        self.provider.require_same(self.identity)
+
+
+class CallableRegistryProvider:
+    """Explicit pure-loader backend; native SQLite uses its own snapshot provider."""
+    def __init__(self, loader):
+        self.loader = loader
+
+    def prepare_identity(self, expected):
+        return deepcopy(expected)
+
+    def require_same(self, expected):
+        if self.loader().to_dict() != expected:
+            raise DomainError('Task requirements registry changed after creation preflight')
 
 
 class TaskRequirementsGate:
     """Validate live chains and persist the immutable Task-owned snapshot."""
 
-    def __init__(self, registry_loader, snapshots):
+    def __init__(self, registry_loader: Callable[[], RequirementsRegistry],
+                 snapshots: TaskRequirementsSnapshots | None, provider: RegistrySnapshotProvider):
         self._registry_loader = registry_loader
         self._snapshots = snapshots
+        self._registry_provider = provider
 
     @classmethod
     def enabled(cls, registry_loader, snapshots=None):
         if not callable(registry_loader):
             raise DomainError("Requirements registry loader must be callable")
-        return cls(registry_loader, snapshots)
+        return cls(registry_loader, snapshots, CallableRegistryProvider(registry_loader))
+
+    @classmethod
+    def from_provider(cls, provider, snapshots=None):
+        return cls(provider.registry, snapshots, provider)
 
     def prepare_contract(self, intent):
         candidate, body = self._candidate(intent)
@@ -30,10 +62,13 @@ class TaskRequirementsGate:
         return prepared, context
 
     def require_current_registry(self, context):
+        self.prepare_current_guard(context).require()
+
+    def prepare_current_guard(self, context):
         if not isinstance(context, dict) or "registry" not in context:
             raise DomainError("Task creation preflight has no Requirements registry identity")
-        if self._registry_loader().to_dict() != context["registry"]:
-            raise DomainError("Task requirements registry changed after creation preflight")
+        return RegistryGuard(self._registry_provider,
+                             self._registry_provider.prepare_identity(context['registry']))
 
     def prepare_restarted_contract(self, intent, persisted_snapshot, persisted_agreement):
         """Validate only the immutable context selected by the Task restart/replay owner."""
@@ -134,21 +169,31 @@ class TaskRequirementsGate:
 
     def publish_created(self, uow, task_id, context):
         if context is None:
-            raise DomainError("Task publication requires Requirements agreement context")
+            raise DomainError('Task publication requires Requirements agreement context')
         stored = uow.tasks.restart_context(task_id)
-        if (
-            stored.get("requirements_snapshot") is None
-            and stored.get("requirements_agreement") is None
-        ):
-            uow.tasks.publish_requirements_context(
-                task_id, context["snapshot"], context["agreement"]
-            )
+        prepared = self.prepare_created_metadata(stored, context)
+        if (stored.get('requirements_snapshot') is None
+                and stored.get('requirements_agreement') is None):
+            uow.tasks.publish_requirements_context(task_id,
+                prepared['requirements_snapshot'], prepared['requirements_agreement'])
             stored = uow.tasks.restart_context(task_id)
-        if (
-            stored.get("requirements_snapshot") != context["snapshot"]
-            or stored.get("requirements_agreement") != context["agreement"]
-        ):
-            raise DomainError("Task publication did not persist its Requirements agreement")
+        if (stored.get('requirements_snapshot') != prepared['requirements_snapshot']
+                or stored.get('requirements_agreement') != prepared['requirements_agreement']):
+            raise DomainError('Task publication did not persist its Requirements agreement')
+
+    @staticmethod
+    def prepare_created_metadata(metadata, context):
+        if context is None:
+            raise DomainError('Task publication requires Requirements agreement context')
+        result = deepcopy(metadata)
+        if (result.get('requirements_snapshot') is None
+                and result.get('requirements_agreement') is None):
+            result['requirements_snapshot'] = deepcopy(context['snapshot'])
+            result['requirements_agreement'] = deepcopy(context['agreement'])
+        if (result.get('requirements_snapshot') != context['snapshot']
+                or result.get('requirements_agreement') != context['agreement']):
+            raise DomainError('Task publication did not persist its Requirements agreement')
+        return result
 
     def snapshot(self, task_id):
         if self._snapshots is None:

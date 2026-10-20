@@ -80,16 +80,17 @@ def test_failed_check_rework_registry_rejection_preserves_every_table(project, e
     assert not list(Path(context['task_root']).rglob('not-materialized.md'))
 
 
-def test_rejected_registry_still_allows_public_handoff_and_restart(project):
+def test_rejected_registry_still_allows_public_release_and_restart(project):
     tools, context = registry_case(project)
     payload = result(context)
     payload['method_additions'] = change(operation('reschedule', 'RED', stages=['test_remediation']))
     with pytest.raises(PoiseError, match='active observe'):
         tools.invoke(request('verify', {'result': payload, 'artifacts': []}))
-    handed = tools.invoke(request('handoff', {'request_id': 'registry-preserve',
+    current = tools.runtime.current_task()
+    released = tools.invoke(request('release', {'request_id': 'registry-preserve',
         'reason': 'Preserve the rejected candidate without changing the registry.',
-        'result': None, 'commit_message': None, 'artifact_paths': []}))
-    assert handed['status'] == 'handed_off'
+        'task_id': current['id'], 'expected_version': current['_version']}))
+    assert released['status'] == 'ownership_released'
     current = tools.runtime.task_queries.record(context['task'])
     restarted = tools.invoke(request('task', {'action': 'restart',
         'request_id': 'registry-restart', 'task_id': context['task'],

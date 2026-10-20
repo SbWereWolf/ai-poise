@@ -11,7 +11,7 @@ import poise.execution as execution
 from runtime_services.test_check_termination_proof import assert_proof, state
 from runtime_services.test_durable_check_attempts import candidate
 from runtime_services.test_task_restart import restart
-from runtime_services.test_uncertain_check_transfer import _handoff
+from runtime_services.test_uncertain_check_transfer import _release
 
 
 @pytest.mark.parametrize('stream', ['stdout', 'stderr'])
@@ -64,7 +64,7 @@ def test_preview_read_failure_preserves_stopped_run_for_transfer_and_archive(
         verify(tools, deepcopy(payload))
     assert state(tools) == before
     assert calls == [pending['runs'][0]['run_id']]
-    assert _handoff(tools, pending, request_id=f'preview-{stream}-transfer')['status'] == 'handed_off'
+    assert _release(tools, request_id=f'preview-{stream}-release')['status'] == 'ownership_released'
     reviewer = WorkTools(WorkPoise(project['config_path'], f'preview-{stream}-reviewer'))
     reviewer.runtime.bootstrap({'id': 'T1'})
     current = reviewer.runtime.current_task()

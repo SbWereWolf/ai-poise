@@ -120,7 +120,7 @@ def test_moved_hook_root_requires_dead_native_owner(project, tmp_path, liveness)
     assert immutable(case['tools'].runtime) == before
 
 
-def test_dead_hook_owner_is_preserved_and_new_session_uses_new_root(project, tmp_path):
+def test_dead_hook_owner_is_retired_and_new_session_uses_new_root(project, tmp_path):
     from poise.infrastructure.hook_transport import HookService
     case = prepare(project, tmp_path, native_hooks=True)
     service = configured_hook(case, tmp_path)
@@ -132,14 +132,16 @@ def test_dead_hook_owner_is_preserved_and_new_session_uses_new_root(project, tmp
     assert service.registry.liveness(binding['session_id']) is Liveness.DEAD
     moved = relocate(case)
     target = HookService(case['hook_target'])
-    assert target.registry.get(binding['session_id'])[0] == binding
+    with pytest.raises(PoiseError, match='Unknown hook session binding'):
+        target.registry.get(binding['session_id'])
     assert target.registry.liveness(binding['session_id']) is Liveness.DEAD
     native(target, definition, case, session='fixture-new-hook-owner')
     new = target.latest_binding('fixture-new-hook-owner', 'primary')
     assert Path(new['binding_path']).is_relative_to(case['destination'])
     assert Path(new['binding_path']).is_file()
     assert new['session_id'] != binding['session_id']
-    assert target.registry.get(binding['session_id'])[0] == binding
+    with pytest.raises(PoiseError, match='Unknown hook session binding'):
+        target.registry.get(binding['session_id'])
     assert not case['source'].exists()
     assert moved.runtime._receipt_files_intact(case['receipt'], case['method'])
 

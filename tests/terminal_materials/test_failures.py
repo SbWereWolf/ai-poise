@@ -151,7 +151,9 @@ def test_missing_source_before_retirement_is_integrity_failure_not_retired_evide
     tools, root, source, commit = arrange(project)
     agree(tools, declaration([file_output(source, project["root"] / "result.txt")]))
     source.unlink()
-    finish(project, tools, commit, "cancelled")
+    cancelled = tools.invoke(request("cancel", {"reason": "Cancel while retaining the missing-source delivery blocker."}))
+    assert cancelled["status"] == "cancelled"
+    assert cancelled["delivery"]["status"] == "delivery_blocked"
     result = settle(fresh(project))
     assert result["status"] == "delivery_blocked"
     assert result["reason"] == "source_integrity_failed"
@@ -205,7 +207,9 @@ def test_customer_effect_without_ack_remains_unknown_then_ack_continues_without_
     # stops before acknowledgement. No product coordinator/receipt is mocked.
     received.write_bytes(b"customer result\n")
     inode = received.stat().st_ino
-    finish(project, tools, commit, "cancelled")
+    cancelled = tools.invoke(request("cancel", {"reason": "Cancel while preserving the unacknowledged external effect."}))
+    assert cancelled["status"] == "cancelled"
+    assert cancelled["delivery"]["status"] == "delivery_blocked"
     state = delivery_status(fresh(project))
     assert state["status"] == "delivery_blocked"
     assert state["reason"] == "customer_acknowledgement_required"

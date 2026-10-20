@@ -1,0 +1,32 @@
+{
+  "id": "T2",
+  "methods": [],
+  "method_inputs": [],
+  "checks": {
+    "write": []
+  },
+  "stage_contracts": [
+    {
+      "stage_id": "write",
+      "allowed_paths": [
+        "src/**",
+        "tests/**",
+        "docs/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    }
+  ],
+  "evidence_plan": {
+    "write": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  }
+}

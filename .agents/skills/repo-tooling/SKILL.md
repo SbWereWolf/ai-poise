@@ -74,7 +74,7 @@ for explicit roots, policy, refresh and readiness.
 The implemented tool contract and focused tests, exact input/result/exit/error behavior,
 replay/recovery evidence, source/runtime identity and bounded diagnostic links in the existing
 Task/evidence/artifact owners. Link remaining external capabilities, not invented successes.
-Transfer via public handoff; this skill does not authorize acceptance, master integration or
+Transfer via ordinary public release; this skill does not authorize acceptance, master integration or
 publication.
 
 ## Working-result placement

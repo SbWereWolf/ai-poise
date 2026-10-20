@@ -26,7 +26,7 @@ The current Poise Task/stage/scope and session-selected worktree, changed operat
 5. Separate unrelated specialties into focused Tasks. Use an integration Task with actual dependencies and a joint observable scenario for cross-boundary runtime/browser/queue/database/application behavior, rather than hiding all work inside one infrastructure label.
 6. Follow the [infrastructure standard](references/infrastructure-standard.md). Exercise the changed scenario with targeted checks plus maintained fast smoke; full suites belong only to an explicitly scoped release-preparation Task. Investigate resource/timeouts with evidence instead of widening limits or treating skips as success.
 7. Check relevant failure, second-run and recovery paths. For irreversible effects state the rollback limit, restore/forward-recovery plan and exact evidence; do not imply a backup exists or restoration was tested without doing it. Production-like checks and actual deployment each require their own target/access authority.
-8. Update the real owner documentation when invocation, environment, operation results/errors or recovery changes. Record impact through existing Poise content/evidence. Do not create DOC-IMPACT.md. Perform executor self-review and public handoff; stale operational guidance or an unexercised required boundary prevents a full completion claim.
+8. Update the real owner documentation when invocation, environment, operation results/errors or recovery changes. Record impact through existing Poise content/evidence. Do not create DOC-IMPACT.md. Perform executor self-review and ordinary public release; stale operational guidance or an unexercised required boundary prevents a full completion claim.
 
 ## Output
 

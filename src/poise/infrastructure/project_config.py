@@ -600,10 +600,6 @@ class FileProjectConfigUpdate:
                 moving = request['state_relocation'] is not None
                 if moving:
                     state = Path(request['state_relocation']['expected_source']).resolve()
-                if moving and state.exists():
-                    locks.enter_context(exclusive_lock(
-                        descendant(state, live_config['batch']['artifact_lock']),
-                        live_config['limits']['lock_seconds'], live_config['limits']['lock_poll_seconds']))
                 state_lock = descendant(state, live_config["paths"]["lock"])
                 if not moving or state.exists():
                     locks.enter_context(exclusive_lock(

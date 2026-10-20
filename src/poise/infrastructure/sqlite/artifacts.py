@@ -133,16 +133,22 @@ class SqliteArtifactRepository:
             self._register(item)
             self._link_sprint(item)
 
-    def recovery_snapshot(self, intent, digest):
+    def recovery_request(self, task_id, request_id, digest):
         saved = self.db.execute(
             "SELECT data FROM journal WHERE task_id=? AND event='artifacts.recovered' "
             "AND json_extract(data,'$.request_id')=? ORDER BY seq DESC LIMIT 1",
-            (intent.task_id,intent.request_id)).fetchone()
+            (task_id,request_id)).fetchone()
         if saved is not None:
             prior = json.loads(saved['data'])
             if prior['digest'] != digest:
                 raise PoiseError('Artifact recovery request conflict')
-            return {'replay': prior['result']}
+            return prior['result']
+        return None
+
+    def recovery_snapshot(self, intent, digest):
+        replay = self.recovery_request(intent.task_id, intent.request_id, digest)
+        if replay is not None:
+            return {'replay': replay}
         row = self.db.execute('SELECT id,version,claimed_by,metadata FROM tasks WHERE id=?',
                               (intent.task_id,)).fetchone()
         if row is None:

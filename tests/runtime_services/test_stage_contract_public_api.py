@@ -27,6 +27,7 @@ def _contracts(project, *, scope=None):
             "allowed_paths": list(stage["allowed_paths"] if scope is None or index else scope),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
         })
     return values
 
@@ -291,12 +292,11 @@ def test_stage_contract_audit_and_replay_survive_task_restart_and_ready(project)
 
 def test_reviewer_can_repair_released_inspection_gate_without_bootstrap(project):
     owner, context = _boot(project, session="executor", inspection=True)
-    owner.invoke(request("handoff", {
+    owner.invoke(request("release", {
         "request_id": "release-broken-inspection",
         "reason": "The reviewer must repair the blocked inspection contract.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": "T1",
+        "expected_version": owner.runtime.current_task()['_version'],
     }))
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
     current = reviewer.runtime.task_queries.record("T1")

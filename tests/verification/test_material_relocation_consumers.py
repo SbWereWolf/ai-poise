@@ -124,18 +124,22 @@ def test_bad_confirmed_material_blocks_real_consumer(project, tmp_path, kind, fa
     assert decoy.read_bytes() == trusted
 
 
-def test_relocated_handoff_uses_same_task_and_registered_material(project, tmp_path):
+def test_relocated_release_uses_same_task_and_registered_material(project, tmp_path):
     case = prepare(project, tmp_path)
     original = deepcopy(case['receipt'])
     moved = relocate(case)
     required(moved.invoke, request('bootstrap', {
         'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None,
     }))
-    handoff = required(moved.invoke, request('handoff', {
-        'request_id': 'after-relocation', 'reason': 'Read retained evidence and transfer ownership.',
-        'result': None, 'commit_message': 'Preserve relocated evidence', 'artifact_paths': [],
+    current = moved.runtime.current_task()
+    report_before_release = deepcopy(moved.runtime.task_queries.record('T1')['last_report'])
+    assert report_before_release['commit'] == case['done']['commit']
+    released = required(moved.invoke, request('release', {
+        'request_id': 'after-relocation', 'reason': 'Continue the same Task with its registered evidence.',
+        'task_id': current['id'], 'expected_version': current['_version'],
     }))
-    assert handoff['status'] == 'handed_off' and handoff['verified'] is True
+    assert released['status'] == 'ownership_released'
+    assert moved.runtime.task_queries.record('T1')['last_report'] == report_before_release
     assert moved.runtime.evidence_commands.list_for('T1')[0] == original
     assert not case['source'].exists()
 
@@ -189,15 +193,3 @@ def test_public_integration_reads_preserved_receipt_and_new_physical_input(proje
     assert case['marker'].read_text() == 'run\nrun\n'
     assert placed(case, case['receipt']['acceptance_manifest']['path']).read_bytes() == original_manifest
     assert not case['source'].exists()
-
-
-def test_transfer_proof_reader_validates_the_same_moved_material(project, tmp_path):
-    case = prepare(project, tmp_path)
-    moved = relocate(case)
-    # Actual export proof reader; no synthetic imported-history permission or map.
-    required(moved.runtime.transfer_tools.port._proof_outputs, case['receipt'], None, {})
-    target = placed(case, case['receipt']['outputs'][0]['path'])
-    target.write_bytes(b'changed export proof\n')
-    with pytest.raises(PoiseError, match='digest|Changed'):
-        moved.runtime.transfer_tools.port._proof_outputs(case['receipt'], None, {})
-    assert case['marker'].read_text() == 'run\n'

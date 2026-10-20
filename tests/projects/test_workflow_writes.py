@@ -108,8 +108,8 @@ def test_stale_external_workflow_write_preserves_current_file(project, tmp_path)
 
 def test_reduced_config_graph_boundary_does_not_require_harness_services(project, tmp_path):
     path, config, workflow, selected, unrelated, settings = external_case(project, tmp_path)
-    config['runtime_services'].pop('handoff')
-    config['runtime_services'].pop('transfer')
+    config['runtime_services'].pop('handoff', None)
+    config['runtime_services'].pop('transfer', None)
     write_json(path, config)
     from poise.infrastructure import workflow_files
 

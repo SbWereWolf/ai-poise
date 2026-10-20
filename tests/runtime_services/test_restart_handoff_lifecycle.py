@@ -54,14 +54,17 @@ def restarted_task(project, *, include_baseline=False):
     return runtime, tools, resumed
 
 
-def handoff(tools, *, request_id="transfer-restarted", payload=None, commit_message=None):
-    return tools.invoke(request("handoff", {
+def release_request(tools, request_id="continue-restarted"):
+    current = tools.runtime.current_task()
+    return request("release", {
         "request_id": request_id,
         "reason": "Another agent continues the restarted task.",
-        "result": payload,
-        "commit_message": commit_message,
-        "artifact_paths": [],
-    }))
+        "task_id": current['id'], "expected_version": current['_version'],
+    })
+
+
+def release_current(tools, *, request_id="continue-restarted"):
+    return tools.invoke(release_request(tools, request_id))
 
 
 def submissions(runtime, task_id):
@@ -127,9 +130,9 @@ def test_restart_retains_historical_result_without_making_it_current(project):
     assert receipts[0]["tree"] == results[0]["verified_tree"]
     assert resumed["result_template"]["sections"]["report"] != "Historical result"
 
-    receipt = handoff(tools)
+    receipt = release_current(tools)
 
-    assert receipt["status"] == "handed_off"
+    assert receipt["status"] == "ownership_released"
     assert runtime.task_queries.record(task_id)["claimed_by"] is None
     assert submissions(runtime, task_id) == historical
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
@@ -152,9 +155,9 @@ def test_null_handoff_does_not_resubmit_pre_restart_result(project):
     task_id = resumed["task"]
     historical = submissions(runtime, task_id)
 
-    receipt = handoff(tools)
+    receipt = release_current(tools)
 
-    assert receipt["status"] == "handed_off"
+    assert receipt["status"] == "ownership_released"
     assert runtime.task_queries.record(task_id)["claimed_by"] is None
     assert submissions(runtime, task_id) == historical
 
@@ -167,14 +170,13 @@ def test_changed_source_keeps_old_proof_with_its_original_commit(project):
     source = Path(resumed["worktree"]) / "src/double.py"
     source.write_text("def double(n):\n    return n * 3\n", encoding="utf-8")
 
-    receipt = handoff(tools, request_id="changed-source-transfer",
-                      commit_message="Preserve changed source after restart")
+    receipt = release_current(tools, request_id="changed-source-release")
 
-    assert receipt["commit"] != original_commit
+    assert receipt["status"] == "ownership_released"
     assert historical_proof(runtime, task_id) == previous
     assert submissions(runtime, task_id)[:len(baseline["submissions"])] == baseline["submissions"]
     assert source.read_text(encoding="utf-8") == "def double(n):\n    return n * 3\n"
-    assert git(resumed["worktree"], "rev-parse", "HEAD") == receipt["commit"]
+    assert git(resumed["worktree"], "rev-parse", "HEAD") == original_commit
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
     acquired = receiver.invoke(request("bootstrap", {
         "task": {"id": task_id}, "decision": None,
@@ -192,9 +194,10 @@ def test_new_result_after_restart_is_transferred_without_replacing_history(proje
     fresh = deepcopy(resumed["result_template"])
     fresh["sections"]["report"] = "New result after restart"
 
-    receipt = handoff(tools, payload=fresh)
+    runtime.runner.submit(task_id, runtime.session, fresh)
+    receipt = release_current(tools)
 
-    assert receipt["status"] == "handed_off"
+    assert receipt["status"] == "ownership_released"
     assert submissions(runtime, task_id)[:1] == historical
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
     acquired = receiver.invoke(request("bootstrap", {
@@ -216,10 +219,10 @@ def test_ready_restarted_task_preserves_contract_and_working_bytes_on_transfer(p
     fresh = deepcopy(resumed["result_template"])
     fresh["sections"]["report"] = "New result after restart"
 
-    receipt = handoff(tools, request_id="ready-work-transfer", payload=fresh,
-                      commit_message="Preserve current restarted work")
+    runtime.runner.submit(task_id, runtime.session, fresh)
+    receipt = release_current(tools, request_id="ready-work-release")
 
-    assert receipt["worktree"] == str(worktree)
+    assert receipt["status"] == "ownership_released"
     assert receipt["task"] == task_id
     assert note.read_bytes() == b"Current work after restart\n"
     assert git(worktree, "branch", "--show-current") == branch
@@ -258,14 +261,17 @@ def test_newborn_handoff_preserves_same_task_contract_and_three_wip_kinds(projec
     untracked.write_bytes(b"untracked bytes\n")
     expected = {path: path.read_bytes() for path in (staged, unstaged, untracked)}
 
-    receipt = handoff(tools, request_id="newborn-wip-transfer",
-                      commit_message="Preserve restarted draft work")
+    before_git = (git(worktree, 'rev-parse', 'HEAD'), git(worktree, 'status', '--porcelain=v1'),
+                  git(worktree, 'ls-files', '--stage'))
+    receipt = release_current(tools, request_id="newborn-wip-release")
 
-    assert receipt["stage"] is None
-    assert receipt["task_status"] == "newborn"
-    assert receipt["worktree"] == str(worktree)
+    assert receipt["status"] == "ownership_released"
+    assert runtime.task_queries.record(task_id)['status'] == 'newborn'
     assert runtime.ownership.snapshot("executor").task_id is None
     assert git(worktree, "branch", "--show-current") == branch
+
+    assert (git(worktree, 'rev-parse', 'HEAD'), git(worktree, 'status', '--porcelain=v1'),
+            git(worktree, 'ls-files', '--stage')) == before_git
     assert {path: path.read_bytes() for path in expected} == expected
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
     acquired = receiver.invoke(request("bootstrap", {
@@ -283,75 +289,30 @@ def test_newborn_handoff_preserves_same_task_contract_and_three_wip_kinds(projec
 
 def test_replayed_transfer_has_no_new_effect_and_changed_replay_is_rejected(project):
     runtime, tools, resumed = restarted_task(project)
-    first = handoff(tools)
+    packet = release_request(tools)
+    first = tools.invoke(packet)
     task_id = resumed["task"]
     after = runtime.task_queries.record(task_id)
     saved = submissions(runtime, task_id)
 
-    assert handoff(tools) == {**first, "replayed": True}
-    with pytest.raises(PoiseError, match="different content"):
-        tools.invoke(request("handoff", {
-            "request_id": "transfer-restarted",
-            "reason": "Changed transfer content.",
-            "result": None,
-            "commit_message": None,
-            "artifact_paths": [],
-        }))
+    assert tools.invoke(packet) == {**first, "replayed": True}
+    changed = deepcopy(packet)
+    changed['input']['reason'] = 'Changed release content.'
+    with pytest.raises(PoiseError, match="Ordinary release caller or request conflict"):
+        tools.invoke(changed)
     assert runtime.task_queries.record(task_id) == after
     assert submissions(runtime, task_id) == saved
 
 
-@pytest.mark.parametrize("drift,diagnostic", [
-    ("missing_bundle", "bundle missing or changed"),
-    ("changed_bundle", "bundle missing or changed"),
-    ("changed_worktree", "Worktree changed since handoff"),
-    ("changed_head", "Worktree changed since handoff"),
-])
-def test_changed_preserved_material_blocks_receiver_then_allows_exact_recovery(
-    project, drift, diagnostic,
-):
+def test_restarted_participant_reads_current_work_without_restoring_a_snapshot(project):
     runtime, tools, resumed = restarted_task(project)
-    receipt = handoff(tools)
+    assert release_current(tools)['status'] == 'ownership_released'
     task_id = resumed["task"]
-    worktree = Path(receipt["worktree"])
-    bundle = Path(receipt["bundle_path"])
-    original_bundle = bundle.read_bytes()
+    worktree = Path(resumed["worktree"])
     original_head = git(worktree, "rev-parse", "HEAD")
-    foreign = worktree / "foreign-note.txt"
-    if drift == "missing_bundle":
-        bundle.unlink()
-    elif drift == "changed_bundle":
-        bundle.write_bytes(b"changed-bundle")
-    elif drift == "changed_worktree":
-        foreign.write_text("foreign working bytes\n", encoding="utf-8")
-    else:
-        git(worktree, "commit", "--allow-empty", "-m", "foreign test commit")
-    before = runtime.task_queries.record(task_id)
+    current = worktree / "current-unsubmitted.txt"
+    current.write_bytes(b"current unfinished working bytes\n")
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
-
-    with pytest.raises(PoiseError, match=diagnostic):
-        receiver.invoke(request("bootstrap", {
-            "task": {"id": task_id},
-            "decision": None,
-            "feedback": None,
-            "rework_stage": None,
-        }))
-    assert runtime.task_queries.record(task_id) == before
-    assert runtime.ownership.snapshot("receiver").task_id is None
-    assert runtime.ownership.snapshot("executor").task_id is None
-    if drift == "changed_worktree":
-        assert foreign.read_text(encoding="utf-8") == "foreign working bytes\n"
-        foreign.unlink()
-    elif drift == "changed_head":
-        assert git(worktree, "rev-parse", "HEAD") != original_head
-        # This is the disposable test repository, not a task or operator checkout.
-        git(worktree, "reset", "--hard", original_head)
-    else:
-        if drift == "changed_bundle":
-            assert bundle.read_bytes() == b"changed-bundle"
-        else:
-            assert not bundle.exists()
-        bundle.write_bytes(original_bundle)
 
     acquired = receiver.invoke(request("bootstrap", {
         "task": {"id": task_id}, "decision": None,
@@ -360,7 +321,7 @@ def test_changed_preserved_material_blocks_receiver_then_allows_exact_recovery(
     assert acquired["task"] == task_id
     assert acquired["worktree"] == str(worktree)
     assert git(worktree, "rev-parse", "HEAD") == original_head
-    assert bundle.read_bytes() == original_bundle
+    assert current.read_bytes() == b"current unfinished working bytes\n"
 
 
 def test_handoff_keeps_open_findings_for_the_receiving_agent(project):
@@ -378,7 +339,7 @@ def test_handoff_keeps_open_findings_for_the_receiving_agent(project):
     assert [item["id"] for item in correction["workflow"]["feedback"]["open_findings"]] == ["OPEN-1"]
 
     sender = WorkTools(runtime)
-    assert handoff(sender, request_id="open-finding-transfer")["status"] == "handed_off"
+    assert release_current(sender, request_id="open-finding-release")["status"] == "ownership_released"
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
     acquired = receiver.invoke(request("bootstrap", {
         "task": {"id": correction["task"]},
@@ -426,16 +387,11 @@ def test_restart_transfer_retains_prior_finding_without_reusing_old_correction(p
     }))
     note = Path(resumed["worktree"]) / "unsubmitted-correction.txt"
     note.write_bytes(b"Current unsubmitted correction\n")
-    before = runtime.task_queries.record(task_id)
-    with pytest.raises(PoiseError, match="WIP requires explicit"):
-        handoff(sender, request_id="missing-wip-message")
-    assert runtime.task_queries.record(task_id) == before
     assert sender_runtime.ownership.snapshot("S1").task_id == task_id
     assert note.read_bytes() == b"Current unsubmitted correction\n"
     assert feedback_history(runtime, task_id) == old_history
 
-    assert handoff(sender, request_id="finding-restart-transfer",
-                   commit_message="Preserve current correction and findings")["status"] == "handed_off"
+    assert release_current(sender, request_id="finding-restart-release")["status"] == "ownership_released"
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
     acquired = receiver.invoke(request("bootstrap", {
         "task": {"id": task_id}, "decision": None,

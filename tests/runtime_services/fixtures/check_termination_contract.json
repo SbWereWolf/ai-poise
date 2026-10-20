@@ -3,8 +3,8 @@
     "schema": "task-planning-1",
     "template": null,
     "restart_revision_policy": {
-      "reviewer": ["process"],
-      "user": ["process"]
+      "reviewer": ["workflow"],
+      "user": ["workflow"]
     }
   },
   "runner": {

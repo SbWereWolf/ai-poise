@@ -1,0 +1,378 @@
+{
+  "publication": {
+    "cursor": 1,
+    "status": "complete",
+    "steps": [
+      {
+        "before": {
+          "parent_task": "PLAN",
+          "source_section": "planned_tasks"
+        },
+        "index": 0,
+        "result": {
+          "allocations": [
+            {
+              "replayed": false,
+              "request_id": "child-a",
+              "task_id": "0001"
+            },
+            {
+              "replayed": false,
+              "request_id": "child-b",
+              "task_id": "0002"
+            }
+          ],
+          "authorization": "Publish reviewed children.",
+          "effect": "published",
+          "sprint_id": null,
+          "task_ids": [
+            "0001",
+            "0002"
+          ]
+        }
+      }
+    ],
+    "before": null,
+    "current": null,
+    "version": 2,
+    "attempts": 1
+  },
+  "sprint": {
+    "status": "planned",
+    "eligible": [
+      "0001"
+    ],
+    "blocked": [
+      {
+        "task": "0002",
+        "reasons": [
+          {
+            "predecessor": "0001",
+            "reason": "predecessor_incomplete"
+          }
+        ]
+      }
+    ],
+    "active": [],
+    "resumable": [],
+    "result_provenance": {},
+    "sprint": "S",
+    "goal": "Publish connected results.",
+    "revision": 2,
+    "dependencies": [
+      {
+        "predecessor": "0001",
+        "successor": "0002",
+        "kind": "completion"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "0001",
+        "status": "available",
+        "version": 1,
+        "goal": "First child result.",
+        "goal_type": "development",
+        "stage": "work",
+        "iteration": 1,
+        "claimed_by": null,
+        "result_commit": null,
+        "worktree": null,
+        "pending": null,
+        "publication": null,
+        "worktree_owner": null
+      },
+      {
+        "id": "0002",
+        "status": "available",
+        "version": 1,
+        "goal": "Second child result.",
+        "goal_type": "development",
+        "stage": "work",
+        "iteration": 1,
+        "claimed_by": null,
+        "result_commit": null,
+        "worktree": null,
+        "pending": null,
+        "publication": null,
+        "worktree_owner": null
+      }
+    ],
+    "counts": {
+      "newborn": 0,
+      "available": 2,
+      "active": 0,
+      "verified": 0,
+      "accepted": 0,
+      "completed": 0,
+      "cancelled": 0
+    },
+    "errors": [],
+    "next_work": "Выбрать одну доступную задачу; продолжать поручение через advance с действующими ограничениями",
+    "active_task": null
+  },
+  "child_contract": {
+    "id": "A",
+    "sprint_id": null,
+    "goal_type": "development",
+    "goal": "First child result.",
+    "requirements": [
+      "Save the child result."
+    ],
+    "definition_of_done": [
+      "The report is saved."
+    ],
+    "methods": [
+      {
+        "id": "M",
+        "argv": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "input.py"
+        ],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": "."
+            }
+          ]
+        },
+        "verification_plan": {
+          "responsibility": "Verify the child result.",
+          "change_surface": [
+            "src/**"
+          ],
+          "red_stages": [],
+          "green_stages": [
+            "work"
+          ],
+          "red_failure": null
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": []
+      }
+    ],
+    "method_inputs": [
+      {
+        "method_id": "M",
+        "repository_inputs": [
+          "input.py"
+        ],
+        "future_outputs": [],
+        "reference_profile": {
+          "runner": "pytest",
+          "parser": "positional-paths",
+          "version": 1
+        }
+      }
+    ],
+    "checks": {
+      "work": [
+        "M"
+      ]
+    },
+    "artifact_requirements": [],
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "evidence_plan": {
+      "work": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "work",
+        "allowed_paths": [
+          "src/**"
+        ],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [],
+          "definition_of_ready": [],
+          "definition_of_done": []
+        }
+      }
+    ],
+    "decomposition": {
+      "kind": "ordinary",
+      "phases": [
+        {
+          "stage": "work",
+          "skills": [
+            "task-domain"
+          ],
+          "areas": [
+            "src/**"
+          ]
+        }
+      ],
+      "integration": null
+    }
+  },
+  "errors": {
+    "digest": "Creation request digest conflict; immutable intent changed",
+    "exhaustion": "Task ID allocation namespace is exhausted",
+    "preflight": "method M: path input.py отсутствует в base tree; исправьте repository_inputs или используйте новый request_id"
+  },
+  "rows": {
+    "direct": [
+      [
+        "0001",
+        "available",
+        null,
+        1,
+        "First child result.",
+        "create-a",
+        0,
+        1
+      ]
+    ],
+    "competitor": [
+      [
+        "0001",
+        "available",
+        null,
+        1,
+        "Second child result.",
+        "create-b",
+        0,
+        1
+      ]
+    ],
+    "collision": [
+      [
+        "0001",
+        "available",
+        null,
+        1,
+        "Second child result.",
+        "create-b",
+        0,
+        1
+      ],
+      [
+        "0002",
+        "available",
+        null,
+        1,
+        "First child result.",
+        "create-a",
+        0,
+        1
+      ]
+    ],
+    "publication": [
+      [
+        "0001",
+        "available",
+        null,
+        0,
+        "First child result.",
+        "child-a",
+        0,
+        1
+      ],
+      [
+        "0002",
+        "available",
+        null,
+        0,
+        "Second child result.",
+        "child-b",
+        0,
+        1
+      ]
+    ],
+    "promotion": [
+      [
+        "0001",
+        "available",
+        null,
+        1,
+        "First child result.",
+        null,
+        0,
+        1
+      ],
+      [
+        "0002",
+        "available",
+        null,
+        1,
+        "Second child result.",
+        null,
+        0,
+        1
+      ]
+    ],
+    "batch": [
+      [
+        "0002",
+        "available",
+        null,
+        0,
+        "Explicit child result.",
+        null,
+        0,
+        1
+      ],
+      [
+        "0003",
+        "available",
+        null,
+        0,
+        "First child result.",
+        "child-a",
+        0,
+        1
+      ],
+      [
+        "0004",
+        "available",
+        null,
+        0,
+        "Second child result.",
+        "child-b",
+        0,
+        1
+      ]
+    ]
+  },
+  "batch_allocations": [
+    {
+      "request_id": "child-a",
+      "task_id": "0003",
+      "replayed": false
+    },
+    {
+      "request_id": "child-b",
+      "task_id": "0004",
+      "replayed": false
+    }
+  ],
+  "publication_intents": {
+    "tasks": {
+      "kind": "tasks",
+      "section": "planned_tasks",
+      "authorization": "Publish reviewed children."
+    },
+    "sprint": {
+      "kind": "sprint",
+      "section": "planned_tasks",
+      "authorization": "Publish reviewed children."
+    }
+  }
+}

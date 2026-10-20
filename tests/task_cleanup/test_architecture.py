@@ -89,8 +89,10 @@ def test_one_cleanup_owner_is_shared_by_terminal_and_integration_paths():
 def test_cleanup_implementation_contains_no_force_or_transport_owned_deletion():
     infrastructure = source("src/poise/infrastructure/task_cleanup.py")
     transport = source("src/poise/application/work.py")
-    forbidden = ("--force", "branch\", \"-D", "reset\", \"--hard", "git clean", "git push")
+    # A disposition never authorizes destruction of dirty working material.
+    forbidden = ("--force", "branch\", \"-D", "branch\", \"--force", "branch\", \"-f",
+                 "reset\", \"--hard", "git clean", "git push")
 
-    assert not any(token in infrastructure for token in forbidden)
+    assert not any(token in infrastructure for token in forbidden), "FORCE_DELETE_IS_FORBIDDEN"
     assert "worktree\", \"remove" not in transport
     assert "UPDATE tasks" not in transport

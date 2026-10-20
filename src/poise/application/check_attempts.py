@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from ..modules.foundation.errors import DomainError
 from ..modules.tasks.domain import TaskStatus
+from ..modules.tasks.ports import TaskReadSet
 from .evidence import check_receipts_by_id
 
 
@@ -66,12 +67,16 @@ def require_quiescence(attempt):
 
 
 def validate_preserved_attempt_in(uow, task, actor, attempt):
+    return validate_preserved_attempt(uow.tasks, task, actor, attempt)
+
+
+def validate_preserved_attempt(source, task, actor, attempt):
     task._owned(actor)
     original_version = attempt.get('task_version')
     if (type(original_version) is not int or original_version < 0
             or original_version > task.state.version
             or (original_version == task.state.version and attempt.get('actor') != actor)
-            or (original_version != task.state.version and not uow.tasks.ownership_event_suffix(
+            or (original_version != task.state.version and not source.ownership_event_suffix(
                 task.state.task_id, original_version, task.state.version))):
         raise DomainError('Check attempt context changed or protocol is unsupported; drift cause undetermined')
     original = replace(task, state=replace(
@@ -146,102 +151,112 @@ class CheckAttempts:
     def __init__(self, unit_of_work):
         self.unit_of_work = unit_of_work
 
+    def _save_execution(self, facade, inputs, task_id, execution, version):
+        prepared = facade.prepare_execution(inputs, task_id, execution)
+        with self.unit_of_work() as uow:
+            uow.require_inputs(inputs)
+            uow.execution.save_prepared(task_id, prepared, version)
+
     def begin(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity):
         validate_identity(identity)
-        with self.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            execution, version = uow.execution.load(task_id)
-            if (task.state.version != expected_version
-                    or task.check_candidate_digest != submission_digest):
-                raise DomainError('Check candidate changed before attempt reservation')
-            if execution['pending'] is not None:
-                raise DomainError('An external attempt is already pending')
-            if execution['attempts'] >= limit:
-                raise DomainError('Достигнут явный лимит verify_attempts; требуется решение пользователя')
-            attempt = {
-                'kind': 'check_attempt', 'version': 2, 'attempt_id': str(uuid4()),
-                'task_id': task_id, 'task_version': task.state.version, 'actor': actor,
-                'stage': task.stage.stage_id, 'iteration': task.state.iteration,
-                'submission_digest': task.check_candidate_digest,
-                'verified_tree': tree, 'execution_key': execution_key,
-                'identity': deepcopy(identity),
-                'runs': [{'run_id': str(uuid4()), 'method_id': method, 'started': False, 'termination': None}
-                         for method in methods],
-            }
-            validate_attempt(task, actor, attempt, tree, execution_key, methods)
-            uow.execution.save(task_id, {
-                **execution, 'pending': attempt, 'publication': None,
-                'attempts': execution['attempts'] + 1,
-            }, version)
-            return deepcopy(attempt)
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
+        task = inputs.task(task_id)
+        execution, version = inputs.required_execution(task_id)
+        if (task.state.version != expected_version
+                or task.check_candidate_digest != submission_digest):
+            raise DomainError('Check candidate changed before attempt reservation')
+        if execution['pending'] is not None:
+            raise DomainError('An external attempt is already pending')
+        if execution['attempts'] >= limit:
+            raise DomainError('Достигнут явный лимит verify_attempts; требуется решение пользователя')
+        attempt = {
+            'kind': 'check_attempt', 'version': 2, 'attempt_id': str(uuid4()),
+            'task_id': task_id, 'task_version': task.state.version, 'actor': actor,
+            'stage': task.stage.stage_id, 'iteration': task.state.iteration,
+            'submission_digest': task.check_candidate_digest,
+            'verified_tree': tree, 'execution_key': execution_key,
+            'identity': deepcopy(identity),
+            'runs': [{'run_id': str(uuid4()), 'method_id': method, 'started': False, 'termination': None}
+                     for method in methods],
+        }
+        validate_attempt(task, actor, attempt, tree, execution_key, methods)
+        self._save_execution(facade, inputs, task_id, {
+            **execution, 'pending': attempt, 'publication': None,
+            'attempts': execution['attempts'] + 1,
+        }, version)
+        return deepcopy(attempt)
 
     def current(self, task_id, actor, tree, execution_key, methods):
-        with self.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            execution, _ = uow.execution.load(task_id)
-            return deepcopy(validate_attempt(
-                task, actor, execution['pending'], tree, execution_key, methods))
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
+        task = inputs.task(task_id)
+        execution, _ = inputs.required_execution(task_id)
+        return deepcopy(validate_attempt(
+            task, actor, execution['pending'], tree, execution_key, methods))
 
     def start_run(self, task_id, actor, expected, run_id):
         """A committed started bit permits one caller, not an inferred retry."""
-        with self.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            execution, version = uow.execution.load(task_id)
-            current = validate_attempt(task, actor, execution['pending'],
-                                       expected['verified_tree'], expected['execution_key'])
-            if current != expected:
-                raise DomainError('Check attempt changed before run permission')
-            if current['version'] != 2:
-                raise DomainError('Historical check protocol grants no new run permission')
-            records = check_receipts_by_id(uow.evidence.list_for(task_id))
-            for run in current['runs']:
-                if run['run_id'] == run_id:
-                    if run['started'] or run_id in records:
-                        raise DomainError(f'Unknown or already started check run {run_id}')
-                    run['started'] = True
-                    uow.execution.save(task_id, {**execution, 'pending': current}, version)
-                    return deepcopy(current)
-                if not run['started'] or not receipt_matches(current, run, records.get(run['run_id'])):
-                    raise DomainError('Previous check run is not durably finished')
-            raise DomainError('Run is not in the reserved check attempt')
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,), evidence_ids=(task_id,)))
+        task = inputs.task(task_id)
+        execution, version = inputs.required_execution(task_id)
+        current = validate_attempt(task, actor, execution['pending'],
+                                   expected['verified_tree'], expected['execution_key'])
+        if current != expected:
+            raise DomainError('Check attempt changed before run permission')
+        if current['version'] != 2:
+            raise DomainError('Historical check protocol grants no new run permission')
+        records = check_receipts_by_id(inputs.evidence(task_id))
+        for run in current['runs']:
+            if run['run_id'] == run_id:
+                if run['started'] or run_id in records:
+                    raise DomainError(f'Unknown or already started check run {run_id}')
+                run['started'] = True
+                self._save_execution(facade, inputs, task_id, {**execution, 'pending': current}, version)
+                return deepcopy(current)
+            if not run['started'] or not receipt_matches(current, run, records.get(run['run_id'])):
+                raise DomainError('Previous check run is not durably finished')
+        raise DomainError('Run is not in the reserved check attempt')
 
     def record_termination(self, task_id, actor, expected, run_id, outcome):
-        with self.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            execution, version = uow.execution.load(task_id)
-            current = validate_attempt(task, actor, execution['pending'],
-                                       expected['verified_tree'], expected['execution_key'])
-            if current['version'] != 2:
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
+        task = inputs.task(task_id)
+        execution, version = inputs.required_execution(task_id)
+        current = validate_attempt(task, actor, execution['pending'],
+                                   expected['verified_tree'], expected['execution_key'])
+        if current['version'] != 2:
+            raise DomainError('Check attempt changed before termination proof')
+        terminal = outcome.get('termination')
+        if (not isinstance(terminal, dict)
+                or set(terminal) != {'schema', 'child_reaped', 'process_group_stopped', 'capture_complete'}
+                or terminal['schema'] != 'run-termination-1'
+                or type(outcome.get('actual_exit_code')) is not int):
+            raise DomainError('Actual runner termination metadata required')
+        for index, run in enumerate(current['runs']):
+            if run['run_id'] != run_id:
+                continue
+            proof = {key: current[key] for key in (
+                'task_id', 'actor', 'attempt_id', 'stage', 'iteration',
+                'submission_digest', 'execution_key')}
+            proof.update(schema='check-run-termination-1', run_id=run_id,
+                         tree=current['verified_tree'], actual_exit_code=outcome['actual_exit_code'])
+            proof.update({key: terminal[key] for key in (
+                'child_reaped', 'process_group_stopped', 'capture_complete')})
+            candidate = deepcopy(expected)
+            candidate['runs'][index]['termination'] = run['termination']
+            if candidate != current:
                 raise DomainError('Check attempt changed before termination proof')
-            terminal = outcome.get('termination')
-            if (not isinstance(terminal, dict)
-                    or set(terminal) != {'schema', 'child_reaped', 'process_group_stopped', 'capture_complete'}
-                    or terminal['schema'] != 'run-termination-1'
-                    or type(outcome.get('actual_exit_code')) is not int):
-                raise DomainError('Actual runner termination metadata required')
-            for index, run in enumerate(current['runs']):
-                if run['run_id'] != run_id:
-                    continue
-                proof = {key: current[key] for key in (
-                    'task_id', 'actor', 'attempt_id', 'stage', 'iteration',
-                    'submission_digest', 'execution_key')}
-                proof.update(schema='check-run-termination-1', run_id=run_id,
-                             tree=current['verified_tree'], actual_exit_code=outcome['actual_exit_code'])
-                proof.update({key: terminal[key] for key in (
-                    'child_reaped', 'process_group_stopped', 'capture_complete')})
-                candidate = deepcopy(expected)
-                candidate['runs'][index]['termination'] = run['termination']
-                if candidate != current:
-                    raise DomainError('Check attempt changed before termination proof')
-                if run['termination'] is not None and run['termination'] != proof:
-                    raise DomainError('Cannot replace durable termination proof')
-                if run['termination'] == proof:
-                    return deepcopy(current)
-                run['termination'] = proof
-                validate_termination(current, run)
-                uow.execution.save(task_id, {**execution, 'pending': current}, version)
+            if run['termination'] is not None and run['termination'] != proof:
+                raise DomainError('Cannot replace durable termination proof')
+            if run['termination'] == proof:
                 return deepcopy(current)
-            raise DomainError('Termination run is not in this attempt')
+            run['termination'] = proof
+            validate_termination(current, run)
+            self._save_execution(facade, inputs, task_id, {**execution, 'pending': current}, version)
+            return deepcopy(current)
+        raise DomainError('Termination run is not in this attempt')
 
     @staticmethod
     def abandon_for_restart_in(uow, task, actor, validate_quiescent):
@@ -261,13 +276,19 @@ class CheckAttempts:
     def finish_in(uow, task, actor, tree, execution_key, receipts):
         """Batch and pending removal share the caller's single Unit of Work."""
         execution, version = uow.execution.load(task.state.task_id)
+        change = CheckAttempts.finish(task, actor, execution, uow.evidence.list_for(task.state.task_id),
+                                      tree, execution_key, receipts)
+        uow.tasks.save(change, task.state.version)
+        uow.execution.save(task.state.task_id, {**execution, 'pending': None}, version)
+
+    @staticmethod
+    def finish(task, actor, execution, records, tree, execution_key, receipts):
         attempt = validate_attempt(task, actor, execution['pending'], tree, execution_key)
-        recorded = check_receipts_by_id(uow.evidence.list_for(task.state.task_id))
+        recorded = check_receipts_by_id(records)
         if (len(receipts) != len(attempt['runs']) or any(
                 not run['started'] or not receipt_matches(attempt, run, receipt)
                 or recorded.get(run['run_id']) != receipt
                 for run, receipt in zip(attempt['runs'], receipts, strict=True))):
             raise DomainError('Check attempt requires its exact immutable receipts')
         change = task.record_observations(actor, tree, execution_key, receipts)
-        uow.tasks.save(change, task.state.version)
-        uow.execution.save(task.state.task_id, {**execution, 'pending': None}, version)
+        return change

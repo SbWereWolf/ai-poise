@@ -195,7 +195,7 @@ def command_receipts(result):
 
 
 def terminal_materials_notice():
-    """The agreed public message for terminal historical receipts."""
+    """The agreed public message after confirmed physical material retirement."""
     return 'Служебные материалы задачи удалены. Служебные журналы уничтожены'
 
 

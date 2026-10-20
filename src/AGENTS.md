@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-24.
+Updated: 2026-10-19.
 
 ## Declarative, reusable tools
 
@@ -106,7 +106,7 @@ backups.
 Stage progression belongs to Tasks: keep the durable target and replay identity in the Task journal,
 for new work read role boundaries from explicit role fields in the frozen Task route, and perform
 every move through the existing Task transition. Application services may coordinate progression,
-entry-gate preflight and confirmed handoff resumption; transport only parses and presents it. Never
+entry-gate preflight and ordinary same-area reacquisition; transport only parses and presents it. Never
 add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
 
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type
@@ -272,13 +272,13 @@ Use the existing OwnershipCommands/SQLite UoW and Task repository; recovery must
 not mutate Git/WIP. Read the [canonical public
 contract](../docs/workflows/batch-work.md#восстановление-неоднозначного-владения).
 
-Newborn inspection and handoff must branch before reading an execution contract or
-stage, even after a workflow has been selected. Use the same handoff journal and
-ownership transaction to save/release and resume drafts. Keep staged candidates out
-of newborn handoff, preserve opaque metadata on ownership-only changes, and validate
-saved WIP/bundle before reacquiring a released draft. The registry projection must
-label draft methods and historical state as inactive; never synthesize readiness.
-See [newborn handoff](../docs/workflows/local-handoff.md#сохранение-незавершённого-newborn).
+Newborn inspection and ordinary release must branch before reading an execution
+contract or stage, even after a workflow has been selected. Ownership-only changes
+preserve opaque draft metadata, current revision, shared WIP and history without
+creating a transport receipt, bundle or implicit result. Acquisition rechecks the
+observed newborn revision and claims through OwnershipCommands. The registry
+projection labels historical state as inactive, without synthesizing readiness.
+See [draft continuation](../docs/workflows/local-handoff.md#сохранение-незавершённого-newborn).
 
 Verification must validate the full registered artifact set, not only submitted
 paths, before materializing files or saving a submission. Use the same artifact
@@ -342,7 +342,7 @@ historical commits. Historical visits and commits are provenance, not fresh PASS
 Validate compatibility with the current method, expectations, schedule and evidence
 plan; never substitute historical conditions for a changed current contract.
 Required current materials remain mandatory. Authenticated historical omissions
-are allowed only by the explicit compact-transfer contract. Mechanical replay is role-neutral; new
+never become new missing-proof exemptions. Mechanical replay is role-neutral; new
 substantive work retains
 independent review. Omit the target for maximum progress; an explicit target stops
 on entry before its checks. Never rerun an unknown command outcome. A completed
@@ -355,8 +355,7 @@ contract](../docs/workflows/batch-work.md#автоматическая-пром�
 TaskDeliveryCommands owns explicit delivery intent and its minimal journal; RuntimeTaskDelivery
 observes configured
 permanent outputs, required consumers and confined Task-root removal. Task lifecycle, integration,
-resource cleanup,
-transfer and binary publication retain their existing owners. ArtifactMaterialResolver selects
+resource cleanup and binary publication retain their existing owners. ArtifactMaterialResolver selects
 permanent physical
 bytes without changing logical registrations. Follow the
 [canonical boundaries](../docs/workflows/terminal-materials.md#владельцы-механики).
@@ -424,3 +423,11 @@ one body execution with an explicit read wait independent of writer admission.
 Caller/message admission retains its write owner; detached failures
 must terminate within the worker. Follow the [development skill](../.agents/skills/poise-development/SKILL.md#development-method),
 which links to the observation instruction and canonical operator contract.
+
+Prepare hook installation/reconciliation candidates outside registry writer
+transactions, then revalidate the affected configuration before persisting intent.
+Keep the shared native-file writer lock and serialized publication with their
+existing owners. Pending reconfiguration adopts live arrivals and retires only
+owner-proven released native End episodes; preserve messages/history and never
+recreate released projections. Follow the canonical
+[hook preparation and retry contract](../docs/configuration/runtime-hooks.md#независимые-события-при-подготовке-настройки).

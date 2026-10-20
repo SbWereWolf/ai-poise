@@ -187,15 +187,14 @@ def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomi
             return dict(db.execute("SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL", (runtime.session,)).fetchone())
 
     before = row()
-    packet = request("handoff", {
+    packet = request("release", {
         "request_id": "atomic-cycle-release",
         "reason": "verify ownership and authoritative accounting atomicity",
-        "result": None,
-        "commit_message": "test: preserve authoritative ownership cycle",
-        "artifact_paths": [],
+        "task_id": runtime.current_task()['id'],
+        "expected_version": runtime.current_task()['_version'],
     })
     with runtime.store.transaction() as db:
-        db.execute("CREATE TRIGGER fail_handoff BEFORE UPDATE ON handoffs BEGIN SELECT RAISE(ABORT,'test-fault'); END")
+        db.execute("CREATE TRIGGER fail_release BEFORE UPDATE ON tasks WHEN NEW.claimed_by IS NULL BEGIN SELECT RAISE(ABORT,'test-fault'); END")
     try:
         with pytest.raises(sqlite3.IntegrityError, match="test-fault"):
             work.invoke(packet)
@@ -203,14 +202,14 @@ def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomi
         with runtime.store.transaction() as db:
             after = dict(db.execute("SELECT * FROM accounting_cycles WHERE id=?", (before["id"],)).fetchone())
         if after != before:
-            raise NonAtomicRelease("failed handoff changed the authoritative accounting row")
+            raise NonAtomicRelease("failed release changed the authoritative accounting row")
     finally:
         with runtime.store.transaction() as db:
-            db.execute("DROP TRIGGER fail_handoff")
+            db.execute("DROP TRIGGER fail_release")
         runtime.telemetry.flush()
 
     result = work.invoke(packet)
-    assert result["status"] == "handed_off"
+    assert result["status"] == "ownership_released"
     assert runtime.current_task() is None
     with runtime.store.transaction() as db:
         after = dict(db.execute("SELECT * FROM accounting_cycles WHERE id=?", (before["id"],)).fetchone())
@@ -218,11 +217,7 @@ def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomi
     assert after["ended_at"] == last.audit_utc
     assert data["timing"]["elapsed_microseconds"] == 1_000_000
     assert data["closed_by"] == "handoff_at_last_observation"
-    other = deepcopy(project["task"])
-    other.update(id="T2", methods=[], method_inputs=[], checks={"write": []},
-                 stage_contracts=[{"stage_id": "write", "allowed_paths": ["src/**", "tests/**", "docs/**"],
-                                   "entry_requirements": [], "exit_requirements": []}],
-                 evidence_plan={"write": {"subject_methods": {}, "arguments": [], "review_arguments": []}})
+    other = _following_task(project)
     result = work.invoke(request("bootstrap", {"task": other, "decision": None, "feedback": None, "rework_stage": None}))
     assert result["status"] == "active"
     authoritative_cycles.start(runtime.session, runtime.current_task(), last, "same-native-turn")
@@ -475,6 +470,41 @@ def main(mode, evidence_root):
               "green": "TELEMETRY_STORAGE_GREEN", "guard": "TELEMETRY_RUNNER_GREEN"}[mode]
     return _finish_run(directory, captured.getvalue(), errors, expected=matched,
                        marker=marker, exit_code=1 if mode == "red" else 0)
+
+
+def _following_task(project):
+    task = deepcopy(project["task"])
+    overrides = Path(__file__).parent / "fixtures" / "following_task_overrides.json"
+    task.update(json.loads(overrides.read_text()))
+    return task
+
+
+def test_following_task_fixture_can_start_after_release(project):
+    runtime, work, _ = setup(project)
+    try:
+        first_id = runtime.current_task()["id"]
+        released = work.invoke(request("release", {
+            "request_id": "following-task-fixture-release",
+            "reason": "Release the initial fixture before starting the following Task.",
+            "task_id": first_id,
+            "expected_version": runtime.current_task()["_version"],
+        }))
+        assert released["status"] == "ownership_released"
+        assert runtime.current_task() is None
+        with runtime.store.transaction() as db:
+            assert db.execute("SELECT claimed_by FROM tasks WHERE id=?", (first_id,)).fetchone()[0] is None
+        resumed = work.invoke(request("bootstrap", {
+            "task": _following_task(project), "decision": None,
+            "feedback": None, "rework_stage": None,
+        }))
+        assert resumed["status"] == "active"
+        assert resumed["task"] == "T2"
+        assert runtime.current_task()["id"] == "T2"
+        with runtime.store.transaction() as db:
+            assert db.execute("SELECT claimed_by FROM tasks WHERE id=?", ("T2",)).fetchone()[0] == "A"
+            assert db.execute("SELECT claimed_by FROM tasks WHERE id=?", (first_id,)).fetchone()[0] is None
+    finally:
+        runtime.telemetry.dispatcher.close()
 
 
 if __name__ == "__main__":

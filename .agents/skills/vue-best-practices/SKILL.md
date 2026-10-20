@@ -274,4 +274,4 @@ Apply the complete architecture, decomposition, accessibility and verification m
 
 ## Output
 
-Component and state ownership decisions, changed typed contracts, exact focused test/browser observations and limitations through existing Poise result/artifact/evidence APIs, followed by public handoff. The source Vue methodology and vue-target-architecture reference are retained, not generalized into a weaker policy. Skill file discovery and these workflow links do not prove the still-required automatic routing owner.
+Component and state ownership decisions, changed typed contracts, exact focused test/browser observations and limitations through existing Poise result/artifact/evidence APIs, followed by ordinary public release. The source Vue methodology and vue-target-architecture reference are retained, not generalized into a weaker policy. Skill file discovery and these workflow links do not prove the still-required automatic routing owner.

@@ -23,4 +23,4 @@ Required source and target schema/data, accepted change contract and invariants,
 
 ## Output
 
-The historical migration, explicit source→target contract, preconditions/locks/recovery decisions, independent direct-SQL evidence and exact command/source/DBMS/runtime identity in current Task/evidence owners. Report untested production-volume/concurrency conditions. Public handoff is not deployment authority, and direct migration/test SQL never authorizes editing the managed Poise Task DB.
+The historical migration, explicit source→target contract, preconditions/locks/recovery decisions, independent direct-SQL evidence and exact command/source/DBMS/runtime identity in current Task/evidence owners. Report untested production-volume/concurrency conditions. Ordinary public release is not deployment authority, and direct migration/test SQL never authorizes editing the managed Poise Task DB.

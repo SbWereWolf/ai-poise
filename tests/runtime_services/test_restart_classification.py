@@ -202,12 +202,12 @@ def test_restart_without_classification_grant_rejects_edit_atomically(project):
 
 def test_reviewer_grant_reclassifies_history_without_resurrecting_methods(project):
     tools, registry_before = setup_current(project)
-    release = tools.invoke(request("handoff", {
-        "request_id": "release-classification-review", "result": None,
+    release = tools.invoke(request("release", {
+        "request_id": "release-classification-review", "task_id": "T1",
         "reason": "Let the distinct fixture reviewer grant the exact classification change.",
-        "commit_message": "Preserve verified fixture before reviewer grant", "artifact_paths": [],
+        "expected_version": tools.runtime.current_task()['_version'],
     }))
-    assert release["status"] == "handed_off"
+    assert release["status"] == "ownership_released"
     tools = public_tools(project, "classification-reviewer")
     tools.invoke(request("bootstrap", {
         "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,

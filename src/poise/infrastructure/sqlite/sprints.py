@@ -1,66 +1,102 @@
 """Sprint-owned writes. Uses the existing externally locked SQLite transaction."""
 import json
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from ...modules.foundation.errors import PoiseError, VersionConflict
 from ...modules.sprints.domain import task_identity
 from .tasks import encode
 
 
+@dataclass(frozen=True)
+class PreparedSprintRecord:
+    sprint_id: str
+    project: str
+    actor: str
+    state: str
+    revision: int
+    data: str
+    event: str
+    members: tuple
+    dependencies: tuple
+
+
 class SqliteSprintRepository:
     def __init__(self, connection):self.db=connection
 
-    def restore_snapshot(self,tables,binding):
-        from .transfer_records import restore_sprints
-        if any(self.get(row['id']) is not None for row in tables['sprints']):
-            raise PoiseError('Sprint snapshot cannot replace an existing aggregate')
-        restore_sprints(self.db,tables,binding)
 
     def get(self,sprint_id):
         row=self.db.execute('SELECT data FROM sprints WHERE id=?',(sprint_id,)).fetchone()
         return None if row is None else json.loads(row[0])
 
     def save(self,record,expected_revision):
-        s=record['aggregate'];sid=s['plan']['id'];version=s['revision']
-        prior=self.get(sid)
+        self.save_prepared(self.prepare(record), expected_revision)
+
+    @staticmethod
+    def prepare(record):
+        aggregate = record['aggregate']
+        sid, revision, state = aggregate['plan']['id'], aggregate['revision'], aggregate['state']
+        return PreparedSprintRecord(sid, record['project'], record['actor'], state, revision,
+                                    encode(record), encode({'sprint': sid, 'revision': revision,
+                                                            'state': state}),
+            tuple((sid, task_identity(t)) for t in aggregate['plan']['tasks']),
+            tuple((sid, e['predecessor'], e['successor'], e['kind']) for e in aggregate['plan']['dependencies']))
+
+    def save_prepared(self, prepared, expected_revision):
+        sid, version = prepared.sprint_id, prepared.revision
+        prior = self.db.execute('SELECT revision FROM sprints WHERE id=?', (sid,)).fetchone()
         if expected_revision is None:
             if prior is not None:raise VersionConflict('Sprint already exists')
             if self.db.execute('SELECT 1 FROM tasks WHERE id=?',(sid,)).fetchone():raise PoiseError('Task/sprint ID collision')
-            self.db.execute('INSERT INTO sprints VALUES(?,?,?,?,?)',(sid,record['project'],s['state'],version,encode(record)))
+            self.db.execute('INSERT INTO sprints VALUES(?,?,?,?,?)',
+                            (sid, prepared.project, prepared.state, version, prepared.data))
         else:
-            if prior is None or prior['aggregate']['revision']!=expected_revision or version!=expected_revision+1:
+            if prior is None or prior['revision']!=expected_revision or version!=expected_revision+1:
                 raise VersionConflict('Sprint revision changed; no overwrite')
             self.db.execute('UPDATE sprints SET state=?,revision=?,data=? WHERE id=? AND revision=?',
-                            (s['state'],version,encode(record),sid,expected_revision))
-        self.db.execute('INSERT INTO sprint_layers VALUES(?,?,?,?)',(sid,version,encode(record),datetime.now(timezone.utc).isoformat()))
+                            (prepared.state,version,prepared.data,sid,expected_revision))
+        self.db.execute('INSERT INTO sprint_layers VALUES(?,?,?,?)',
+                        (sid,version,prepared.data,datetime.now(timezone.utc).isoformat()))
         self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
-                        (datetime.now(timezone.utc).isoformat(),record['actor'],None,'sprint.changed',
-                         encode({'sprint':sid,'revision':version,'state':s['state']})))
+                        (datetime.now(timezone.utc).isoformat(),prepared.actor,None,'sprint.changed',
+                         prepared.event))
 
-    def publish_members(self,record):
-        plan=record['aggregate']['plan'];sid=plan['id']
-        dependencies=[(sid,e['predecessor'],e['successor'],e['kind']) for e in plan['dependencies']]
-        existing={tuple(row) for row in self.db.execute(
-            'SELECT sprint_id,predecessor,successor,kind FROM sprint_dependencies WHERE sprint_id=?',(sid,))}
-        if existing-set(dependencies):
+    def publish_members(self, record):
+        self.publish_prepared_members(self.prepare(record))
+
+    def publish_prepared_members(self, prepared):
+        existing = {tuple(row) for row in self.db.execute(
+            'SELECT sprint_id,predecessor,successor,kind FROM sprint_dependencies WHERE sprint_id=?',
+            (prepared.sprint_id,))}
+        if existing - set(prepared.dependencies):
             raise PoiseError('Existing sprint dependency projection conflicts with the draft plan')
-        self.db.executemany('INSERT OR IGNORE INTO sprint_members VALUES(?,?)',
-                            [(sid,task_identity(t)) for t in plan['tasks']])
-        self.db.executemany('INSERT OR IGNORE INTO sprint_dependencies VALUES(?,?,?,?)',dependencies)
+        self.db.executemany('INSERT OR IGNORE INTO sprint_members VALUES(?,?)', prepared.members)
+        self.db.executemany('INSERT OR IGNORE INTO sprint_dependencies VALUES(?,?,?,?)', prepared.dependencies)
 
-    def replace_dependencies(self,record):
-        plan=record['aggregate']['plan'];sid=plan['id']
-        self.db.execute('DELETE FROM sprint_dependencies WHERE sprint_id=?',(sid,))
-        self.db.executemany('INSERT INTO sprint_dependencies VALUES(?,?,?,?)',
-            [(sid,e['predecessor'],e['successor'],e['kind']) for e in plan['dependencies']])
+    def replace_dependencies(self, record):
+        self.replace_prepared_dependencies(self.prepare(record))
 
-    def receipt(self,sprint_id,request_id,digest):
-        row=self.db.execute('SELECT digest,data FROM sprint_requests WHERE sprint_id=? AND request_id=?',(sprint_id,request_id)).fetchone()
-        if row is None:return None
-        if row[0]!=digest:raise PoiseError('Request ID already used with another sprint intent')
-        return json.loads(row[1])
+    def replace_prepared_dependencies(self, prepared):
+        self.db.execute('DELETE FROM sprint_dependencies WHERE sprint_id=?', (prepared.sprint_id,))
+        self.db.executemany('INSERT INTO sprint_dependencies VALUES(?,?,?,?)', prepared.dependencies)
 
-    def remember(self,sprint_id,request_id,digest,result):
-        self.db.execute('INSERT INTO sprint_requests VALUES(?,?,?,?)',(sprint_id,request_id,digest,encode(result)))
+    def receipt_raw(self, sprint_id, request_id, digest):
+        row = self.db.execute('SELECT digest,data FROM sprint_requests WHERE sprint_id=? AND request_id=?',
+                              (sprint_id, request_id)).fetchone()
+        if row is None:
+            return None
+        if row[0] != digest:
+            raise PoiseError('Request ID already used with another sprint intent')
+        return row[1]
+
+    def receipt(self, sprint_id, request_id, digest):
+        raw = self.receipt_raw(sprint_id, request_id, digest)
+        return None if raw is None else json.loads(raw)
+
+    def remember(self, sprint_id, request_id, digest, result):
+        self.remember_prepared(sprint_id, request_id, digest, encode(result))
+
+    def remember_prepared(self, sprint_id, request_id, digest, result):
+        self.db.execute('INSERT INTO sprint_requests VALUES(?,?,?,?)', (sprint_id, request_id, digest, result))
 
     def bind(self,session,sprint_id):
         self.db.execute('INSERT INTO session_sprints VALUES(?,?) ON CONFLICT(session_id) DO UPDATE SET sprint_id=excluded.sprint_id',(session,sprint_id))
@@ -69,19 +105,41 @@ class SqliteSprintRepository:
         row=self.db.execute('SELECT sprint_id FROM session_sprints WHERE session_id=?',(session,)).fetchone()
         return None if row is None else row[0]
 
-    def facts(self,sprint_id):
-        record=self.get(sprint_id)
-        if record is None:return {}
-        current={task_identity(t) for t in record['aggregate']['plan']['tasks']}
-        if not current:return {}
-        placeholders=','.join('?' for _ in current)
-        rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.version,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
-            "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available, "
-            "(SELECT id FROM sessions WHERE task_id=t.id) AS worktree_owner "
+    @staticmethod
+    def capture_task_facts(db, task_ids):
+        from .task_facts import capture_task_facts
+        return capture_task_facts(db, task_ids)
+
+    @staticmethod
+    def capture_facts(db, sprint_id):
+        ids = tuple(r[0] for r in db.execute(
+            "SELECT CASE WHEN j.type='text' THEN j.value ELSE "
+            "COALESCE(json_extract(j.value,'$.request_id'),json_extract(j.value,'$.id')) END "
+            "FROM sprints s,json_each(s.data,'$.aggregate.plan.tasks') j WHERE s.id=?", (sprint_id,)))
+        return SqliteSprintRepository.capture_task_facts(db, ids)
+
+    @staticmethod
+    def capture_eligibility(db, sprint_id):
+        return tuple(dict(r) for r in db.execute(
+            "SELECT t.id,t.status,t.claimed_by,json_extract(e.data,'$.last_report.commit') AS result_commit "
             'FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id '
-            f'WHERE t.id IN ({placeholders}) ORDER BY t.id',tuple(sorted(current))).fetchall()
+            "WHERE json_extract(t.metadata,'$.sprint_id')=? AND t.id IN "
+            "(SELECT CASE WHEN j.type='text' THEN j.value ELSE "
+            "COALESCE(json_extract(j.value,'$.request_id'),json_extract(j.value,'$.id')) END "
+            "FROM sprints s,json_each(s.data,'$.aggregate.plan.tasks') j WHERE s.id=?) ORDER BY t.id",
+            (sprint_id, sprint_id)))
+
+    def facts(self, sprint_id):
+        return self.restore_facts(self.get(sprint_id), self.capture_facts(self.db, sprint_id))
+
+    @staticmethod
+    def restore_facts(record, rows):
+        if record is None:
+            return {}
+        sprint_id = record['aggregate']['plan']['id']
+        current = {task_identity(t) for t in record['aggregate']['plan']['tasks']}
         result={}
-        for r in rows:
+        for r in sorted(rows, key=lambda row: row['id']):
             if r['id'] not in current:continue
             meta=json.loads(r['metadata']);exe=None if r['execution'] is None else json.loads(r['execution'])
             if meta['sprint_id'] != sprint_id:continue
@@ -91,7 +149,7 @@ class SqliteSprintRepository:
                 result[r['id']] = {
                     'status':'newborn','version':r['version'],'goal':draft.get('goal',''),
                     'goal_type':draft.get('goal_type'),'stage':'newborn','iteration':1,
-                    'claimed_by':r['claimed_by'],'handoff_available':False,
+                    'claimed_by':r['claimed_by'],
                     'result_commit':None,'worktree':None if exe is None else exe['worktree'],
                     'pending':None if exe is None else exe['pending'],
                     'publication':None if exe is None else exe['publication'],
@@ -105,7 +163,7 @@ class SqliteSprintRepository:
             report=None if exe is None else exe['last_report']
             result[r['id']]={'status':r['status'],'version':r['version'],'goal':meta['goal'],'goal_type':meta['contract']['goal_type'],
                 'stage':meta['workflow']['stages'][r['stage_index']]['id'],'iteration':r['iteration'],
-                'claimed_by':r['claimed_by'],'handoff_available':bool(r['handoff_available']),'result_commit':None if report is None else report['commit'],
+                'claimed_by':r['claimed_by'],'result_commit':None if report is None else report['commit'],
                 'worktree':None if exe is None else exe['worktree'],
                 'pending':None if exe is None else exe['pending'],
                 'publication':None if exe is None else exe['publication'],

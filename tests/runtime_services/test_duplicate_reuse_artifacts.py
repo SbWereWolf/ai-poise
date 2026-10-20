@@ -13,6 +13,36 @@ from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 
 
+def payload_records(runtime, task_id):
+    """Account for every native proof explicitly; leave all other rows visible."""
+    proof_paths = {}
+    for receipt in runtime._recorded_check_receipts(task_id).values():
+        for stream in ('stdout', 'stderr'):
+            proof_paths[receipt[stream]] = receipt[stream + '_digest']
+        for system in receipt.get('systems', {}).values():
+            for config in system['configs']:
+                proof_paths[config['captured_path']] = config['digest']
+        timeout = receipt.get('timeout_maintenance')
+        if timeout is not None:
+            proof_paths[timeout['path']] = timeout['digest']
+    records = runtime.store.artifact_records(task_id)
+    proofs = {row['path']: row for row in records if row['path'] in proof_paths}
+    assert set(proofs) == set(proof_paths)
+    for path, row in proofs.items():
+        assert row['scope'] == 'task' and row['owner'] == task_id
+        assert row['digest'] == proof_paths[path]
+        assert hashlib.sha256(Path(path).read_bytes()).hexdigest() == proof_paths[path]
+    return [row for row in records if row['path'] not in proof_paths]
+
+
+def accepted_payload(runtime, task_id, name='result.txt'):
+    records = [row for row in payload_records(runtime, task_id)
+               if Path(row['path']).name == name]
+    assert len(records) == 1
+    assert Path(records[0]['path']).parent.name == 'artifacts'
+    return records[0]
+
+
 def artifact_family(project, *, scope='task', content_rule=False, optional=False, binary=False, extra=False,
                     command='print("checked")', before_accept=None):
     setup(project)
@@ -74,20 +104,20 @@ def test_native_reuse_delivers_local_files_and_accepts(project, scope, content_r
     c = WorkTools(h)
     verified = reuse(c)
     assert verified['status'] == 'reuse_verified'
-    records = h.store.artifact_records('D')
+    records = payload_records(h, 'D')
     assert len(records) == 1
     local = records[0]
     assert local['owner'] == ('D' if scope == 'task' else 'S')
     assert local['scope'] == scope
-    assert local['id'] != source_records[0]['id']
-    assert local['path'] != source_records[0]['path']
+    assert local['id'] != accepted_payload(h, 'P')['id']
+    assert local['path'] != accepted_payload(h, 'P')['path']
     assert Path(local['path']).read_bytes() == b'accepted family result\n'
     assert local['digest'] == hashlib.sha256(b'accepted family result\n').hexdigest()
     assert verified['artifacts'] == [{'id': local['id'], 'path': local['path']}]
     assert c.invoke(request('accept', {}))['status'] == 'completed'
     assert h.task_queries.record('P') == before_parent
     assert h.store.artifact_records('P') == source_records
-    assert Path(source_records[0]['path']).read_bytes() == b'accepted family result\n'
+    assert Path(accepted_payload(h, 'P')['path']).read_bytes() == b'accepted family result\n'
 
 
 @pytest.mark.parametrize('content_rule', [False, True])
@@ -97,7 +127,7 @@ def test_optional_empty_artifact_contract_can_reuse(project, content_rule):
     verified = reuse(c)
     assert verified['status'] == 'reuse_verified'
     assert verified['artifacts'] == []
-    assert h.store.artifact_records('D') == []
+    assert payload_records(h, 'D') == []
     assert c.invoke(request('accept', {}))['status'] == 'completed'
 
 
@@ -108,7 +138,7 @@ def target_path(h):
 @pytest.mark.parametrize('fault', ['missing', 'changed', 'symlink', 'foreign_owner', 'unregistered'])
 def test_source_failure_has_no_claim_execution_or_delivery(project, fault):
     h, source = artifact_family(project)
-    record = h.store.artifact_records('P')[0]
+    record = accepted_payload(h, 'P')
     path = Path(record['path'])
     if fault == 'missing':
         path.unlink()
@@ -128,7 +158,7 @@ def test_source_failure_has_no_claim_execution_or_delivery(project, fault):
     with pytest.raises(PoiseError, match='(?i)artifact|registered'):
         reuse(WorkTools(h))
     assert h.task_queries.record('D') == before
-    assert h.store.artifact_records('D') == []
+    assert payload_records(h, 'D') == []
     assert not target_path(h).exists()
     assert h.current_task() is None
     with h.store.unit_of_work() as uow:
@@ -156,7 +186,7 @@ def test_destination_conflict_preserves_existing_files(project, fault):
         reuse(WorkTools(h))
     assert h.task_queries.record('D') == before
     assert foreign.read_bytes() == b'preserve this content'
-    assert h.store.artifact_records('D') == []
+    assert payload_records(h, 'D') == []
     if fault == 'changed':
         assert target.read_bytes() == b'preserve this content'
 
@@ -166,7 +196,7 @@ def test_binary_delivery_and_identical_retry_preserve_own_file(project):
     c = WorkTools(h)
     first = reuse(c)
     path = target_path(h)
-    source = Path(h.store.artifact_records('P')[0]['path'])
+    source = Path(accepted_payload(h, 'P')['path'])
     assert path.read_bytes() == b'\x00\xffaccepted\x80'
     assert path.stat().st_ino != source.stat().st_ino
     inode = path.stat().st_ino
@@ -216,14 +246,14 @@ def test_partial_delivery_retries_identical_candidate_without_false_registration
         patch.setattr(os, 'link', fail_second)
         with pytest.raises(PoiseError, match='injected copy failure'):
             c.invoke(packet)
-    assert h.store.artifact_records('D') == []
+    assert payload_records(h, 'D') == []
     assert h.task_queries.record('D')['status'] == 'active'
     delivered = list(target_path(h).parent.glob('*.txt'))
     assert len(delivered) == 1
     inode = delivered[0].stat().st_ino
     finished = c.invoke(packet)
     assert finished['status'] == 'reuse_verified'
-    assert len(h.store.artifact_records('D')) == 2
+    assert len(payload_records(h, 'D')) == 2
     assert delivered[0].stat().st_ino == inode
     assert c.invoke(request('accept', {}))['status'] == 'completed'
 
@@ -240,28 +270,34 @@ def test_registration_rollback_preserves_files_and_reuses_own_checks(project, mo
         executed.append(args[0])
         return run(*args, **kwargs)
     monkeypatch.setattr(h.check_runner, 'run', counted)
+    from poise.artifacts import artifact_identity
+    payload_id = artifact_identity('task', 'D', 'artifacts/result.txt')
     with h.store.transaction() as db:
         db.execute("CREATE TRIGGER reject_local BEFORE INSERT ON task_artifacts "
-                   "WHEN NEW.task_id='D' BEGIN SELECT RAISE(ABORT,'injected link failure'); END")
+                   f"WHEN NEW.task_id='D' AND NEW.artifact_id='{payload_id}' "
+                   "BEGIN SELECT RAISE(ABORT,'injected link failure'); END")
     with pytest.raises((PoiseError, sqlite3.IntegrityError), match='injected link failure'):
         c.invoke(packet)
     assert target_path(h).read_bytes() == b'accepted family result\n'
-    assert h.store.artifact_records('D') == []
+    assert payload_records(h, 'D') == []
     assert h.task_queries.record('D')['status'] == 'active'
     with h.store.transaction() as db:
         db.execute('DROP TRIGGER reject_local')
+    before_retry_proofs = deepcopy(h.store.artifact_records('D'))
+    assert before_retry_proofs and payload_records(h, 'D') == []
     assert c.invoke(packet)['status'] == 'reuse_verified'
+    assert all(row in h.store.artifact_records('D') for row in before_retry_proofs)
     assert len(executed) == 1
-    assert len(h.store.artifact_records('D')) == 1
+    assert len(payload_records(h, 'D')) == 1
     assert c.invoke(request('accept', {}))['status'] == 'completed'
 
 
-def test_artifact_reuse_handoff_keeps_local_delivery_and_explicit_accept(project):
+def test_artifact_reuse_participant_change_keeps_local_delivery_and_explicit_accept(project):
     h, _ = artifact_family(project)
     c = WorkTools(h)
     first = reuse(c)
-    c.invoke(request('handoff', {'request_id': 'artifact-handoff', 'reason': 'Continue local acceptance',
-        'result': None, 'commit_message': None, 'artifact_paths': []}))
+    c.invoke(request('release', {'request_id': 'artifact-release', 'reason': 'Continue local acceptance',
+        'task_id': h.current_task()['id'], 'expected_version': h.current_task()['_version']}))
     other = WorkPoise(project['config_path'], 'receiver')
     resumed = WorkTools(other).invoke(request('reuse', first['request']))
     assert resumed['artifacts'] == first['artifacts'] and resumed['checks'] == first['checks']
@@ -303,9 +339,9 @@ def test_child_result_can_deliver_again_to_sister_in_another_sprint(project):
     output = c.invoke(request('reuse', {'task_id': 'E', 'source_task_id': 'D', 'request_id': 'reuse-E',
         'expected_version': h.task_queries.record('E')['version']}))
     assert output['status'] == 'reuse_verified'
-    own = h.store.artifact_records('E')
+    own = payload_records(h, 'E')
     assert len(own) == 1 and own[0]['owner'] == 'E'
-    assert own[0]['id'] != h.store.artifact_records('D')[0]['id']
+    assert own[0]['id'] != accepted_payload(h, 'D')['id']
     assert Path(own[0]['path']).read_bytes() == b'accepted family result\n'
     assert c.invoke(request('accept', {}))['status'] == 'completed'
 
@@ -321,13 +357,13 @@ def test_local_check_cannot_change_delivered_artifact(project, monkeypatch):
     with pytest.raises(PoiseError, match='(?i)artifact|digest'):
         reuse(WorkTools(h))
     assert h.task_queries.record('D')['status'] != 'verified'
-    assert h.store.artifact_records('D') == []
+    assert payload_records(h, 'D') == []
 
 
 def test_registered_but_unaccepted_file_is_not_delivered(project):
     from poise.artifacts import inspect_paths
     h, _ = artifact_family(project)
-    source = Path(h.store.artifact_records('P')[0]['path'])
+    source = Path(accepted_payload(h, 'P')['path'])
     extra = source.with_name('not-in-accepted-report.txt')
     extra.write_text('not a member of the accepted result')
     roots = {'task': source.parent.parent}
@@ -337,7 +373,7 @@ def test_registered_but_unaccepted_file_is_not_delivered(project):
     verified = reuse(WorkTools(h))
     assert len(verified['artifacts']) == 1
     assert not target_path(h).with_name(extra.name).exists()
-    assert len(h.store.artifact_records('D')) == 1
+    assert len(payload_records(h, 'D')) == 1
 
 
 def test_failed_artifact_reuse_restart_repairs_code_in_same_branch(project):
@@ -369,7 +405,7 @@ def test_failed_artifact_reuse_restart_repairs_code_in_same_branch(project):
     assert c.invoke(request('accept', {}))['status'] == 'completed'
     assert h.sprint_tools.overview('S')['status'] == 'completed'
     assert h.task_queries.record('P') == parent
-    assert h.store.artifact_records('D')[0]['owner'] == 'D'
+    assert accepted_payload(h, 'D')['owner'] == 'D'
     git(worktree, 'merge-base', '--is-ancestor', source['commit'], 'HEAD')
 
 
@@ -377,7 +413,7 @@ def test_missing_source_artifact_can_be_recreated_after_normal_restart(project):
     from runtime_services.test_task_restart import restart
     from runtime_services.test_restart_local_repair import ready
     h, source = artifact_family(project)
-    source_path = Path(h.store.artifact_records('P')[0]['path'])
+    source_path = Path(accepted_payload(h, 'P')['path'])
     source_path.unlink()  # Test-only simulation of a missing external deliverable.
     c = WorkTools(h)
     before = deepcopy(h.task_queries.record('D'))

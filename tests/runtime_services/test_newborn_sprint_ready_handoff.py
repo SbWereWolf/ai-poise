@@ -6,9 +6,8 @@ from pathlib import Path
 from batch.helpers import request
 from conftest import WorkPoise
 from poise.application.work import WorkTools
-from runtime_services.test_newborn_handoff import configure_handoff, handoff
 from runtime_services.test_newborn_handoff_eligibility import (
-    events, handoffs, select, state,
+    events, preserve, release_rows, select, state,
 )
 from sprints.helpers import changes, setup
 from tasks.test_newborn_lifecycle import create, edit, sprint_complete_patch, task_action
@@ -16,7 +15,6 @@ from tasks.test_newborn_lifecycle import create, edit, sprint_complete_patch, ta
 
 def test_ready_unpublished_member_continues_after_lawful_edit(project):
     setup(project)
-    configure_handoff(project)
     owner = WorkTools(WorkPoise(project['config_path'], 'owner'))
     owner.invoke(request('sprint', {
         'action': 'draft', 'sprint_id': 'S', 'request_id': 'draft-ready-sprint',
@@ -28,14 +26,9 @@ def test_ready_unpublished_member_continues_after_lawful_edit(project):
          sprint_complete_patch(project, 'MEMBER', 'S') | {'goal_type': 'development'},
          'complete-member')
     runtime = owner.runtime
-    runtime.runtime.mkdir(parents=True, exist_ok=True)
-    note = runtime.runtime / 'sprint-ready-note.txt'
-    note.write_bytes(b'Continue the current Sprint member.\n')
-    saved = handoff(owner, request_id='preserve-member', artifact_paths=[str(note)])
-    receipt_path = Path(saved['receipt_path'])
-    preserved_note = Path(saved['preserved_artifacts'][0])
-    receipt_bytes = receipt_path.read_bytes()
-    assert preserved_note.read_bytes() == b'Continue the current Sprint member.\n'
+    saved = preserve(owner, 'preserve-member', note=True)
+    note = saved['note']
+    assert note.read_bytes() == b'Keep this working note.\n'
 
     editor = WorkTools(WorkPoise(project['config_path'], 'editor'))
     current = runtime.task_queries.record('MEMBER')
@@ -51,7 +44,7 @@ def test_ready_unpublished_member_continues_after_lawful_edit(project):
     assert before['claimed_by'] is None and before['worktree'] is None
     assert before['sprint_id'] == 'S'
     assert before['draft']['goal'] == 'Результат MEMBER'
-    old_events, old_handoffs = events(runtime, 'MEMBER'), handoffs(runtime, 'MEMBER')
+    old_events, old_releases = events(runtime, 'MEMBER'), release_rows(runtime, 'MEMBER')
     assert [item['event'] for item in before['history']] == [
         'created_newborn', 'newborn_edited', 'ownership_released',
         'newborn_edited', 'newborn_ready', 'ownership_released',
@@ -74,12 +67,11 @@ def test_ready_unpublished_member_continues_after_lawful_edit(project):
     assert acquired['history'][:-1] == before['history']
     assert acquired['history'][-1]['event'] == 'ownership_acquired'
     assert events(runtime, 'MEMBER')[:-1] == old_events
-    assert handoffs(runtime, 'MEMBER') == old_handoffs
+    assert release_rows(runtime, 'MEMBER') == old_releases
     assert state(runtime, 'MEMBER')[0][5] == metadata
     with runtime.store.transaction() as db:
         assert db.execute('SELECT data FROM sprints WHERE id=?', ('S',)).fetchone()[0] == sprint
     assert editor.runtime.current_task() == other
     assert receiver.runtime.ownership.snapshot('receiver').task_id == 'MEMBER'
     assert receiver.runtime.ownership.snapshot('receiver').worktree_task_id is None
-    assert receipt_path.read_bytes() == receipt_bytes
-    assert preserved_note.read_bytes() == b'Continue the current Sprint member.\n'
+    assert note.read_bytes() == b'Keep this working note.\n'

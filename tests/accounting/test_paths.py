@@ -19,7 +19,8 @@ def setup(project, clock=None):
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     t['stage_contracts']=[{'stage_id':'write','allowed_paths':['src/**','tests/**','docs/**'],
-        'entry_requirements':[],'exit_requirements':[]}]
+        'entry_requirements':[],'exit_requirements':[],
+        'criteria':{'requirements':[],'definition_of_ready':[],'definition_of_done':[]}}]
     t['decomposition']={**t['decomposition'],'phases':[{'stage':'write','skills':['task-domain'],'areas':[]}]}
     project['task']=deepcopy(t)
     h=Poise(project['config_path'],'A',clock=DeterministicClock() if clock is None else clock)

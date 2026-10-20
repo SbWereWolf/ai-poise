@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 
-from ..foundation.errors import DomainError
+from ..foundation.errors import DomainError, PoiseError
 from ..foundation.validation import configuration_fields
 
 
@@ -82,6 +82,25 @@ class Allocation:
             "task_id": self.task_id,
             "replayed": self.replayed,
         }
+
+
+def allocate_identity(intent, policy, occupied, receipts, reserved_ids=()):
+    request_id, task, request_digest = creation_parts(intent)
+    if request_id is None:
+        return Allocation(None, task['id'], None, False)
+    if policy is None:
+        raise PoiseError('task_ids allocation policy is required for automatic creation')
+    for identifier, saved_request, saved_digest in receipts:
+        if saved_request != request_id:
+            continue
+        if saved_digest != request_digest:
+            raise PoiseError('Creation request digest conflict; immutable intent changed')
+        return Allocation(request_id, identifier, request_digest, True)
+    used = set(occupied) | set(reserved_ids)
+    for candidate in policy.candidates():
+        if candidate not in used:
+            return Allocation(request_id, candidate, request_digest, False)
+    raise PoiseError('Task ID allocation namespace is exhausted')
 
 
 def creation_parts(intent):

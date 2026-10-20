@@ -147,17 +147,41 @@ def _pending_state(service, db, operation, *, allow_arrivals=False):
     return selected
 
 
-def _adopt_arrivals(service, proposed, operation):
-    # The existing project/native leases are held. Inspect normal new bindings
-    # outside a registry transaction because their owner opens its own read.
+def _refresh_bindings(service, proposed, operation):
+    # The native-file leases protect publication. Events retain their own writer.
     with service.registry.transaction() as db:
-        selected = _pending_state(service, db, operation, allow_arrivals=True)
+        saved = db.execute('SELECT data FROM operations WHERE id=?',
+                           (operation['receipt']['request_id'],)).fetchone()
+        if saved is None or json.loads(saved[0]) != operation:
+            raise PoiseError('Pending reconfiguration intent changed; retry the same request through its current installation owner')
+        selected = _bindings(db, service.settings.path)
+        retired = {}
+        for item in operation['bindings']:
+            if item['id'] in selected:
+                continue
+            proof = service.registry.released_binding_record(db, item['id'])
+            if proof is None or proof[1] not in (json.loads(item['before']), json.loads(item['after'])):
+                raise PoiseError('Binding inventory changed during pending reconfiguration: '
+                                 + item['id'] + '; restore or finish that session through its matching native entry, then retry the same request')
+            retired[item['id']] = proof
     arrivals = set(selected) - {item['id'] for item in operation['bindings']}
-    if not arrivals:
-        return operation
     previous = json.loads(operation['installation_before'])
     definitions = {previous['receipt']['definition_path'], operation['receipt']['definition_path']}
     expanded = deepcopy(operation)
+    removed_paths = set()
+    file_paths = {item['path'] for item in operation['files']}
+    for key, (_, record) in retired.items():
+        paths = {record['binding_path'], record['launcher']}
+        if not paths.issubset(file_paths):
+            raise PoiseError('Released binding does not match its pending file entries: ' + key
+                             + '; preserve the pending journal and restore the matching session projections before retry')
+        for path in paths:
+            if Path(path).exists():
+                raise PoiseError('Released session projection still exists: ' + path
+                                 + '; preserve its content and resolve ownership through the session cleanup owner before retry')
+        removed_paths.update(paths)
+    expanded['bindings'] = [item for item in expanded['bindings'] if item['id'] not in retired]
+    expanded['files'] = [item for item in expanded['files'] if item['path'] not in removed_paths]
     for key in sorted(arrivals):
         if json.loads(selected[key])['definition_path'] not in definitions:
             raise PoiseError('New binding does not belong to the pending native entries: ' + key)
@@ -165,19 +189,28 @@ def _adopt_arrivals(service, proposed, operation):
             operation['receipt']['definition_path'], operation['installation_id'])
         expanded['bindings'].append(change)
         expanded['files'].extend(files)
-    expanded['receipt']['binding_count'] = len(expanded['bindings'])
-    installation = json.loads(expanded['installation_after'])
-    installation['receipt'] = expanded['receipt']
-    expanded['installation_after'] = encoded(installation)
+    if arrivals or retired:
+        expanded['receipt']['binding_count'] = len(expanded['bindings'])
+        installation = json.loads(expanded['installation_after'])
+        installation['receipt'] = expanded['receipt']
+        expanded['installation_after'] = encoded(installation)
     request_id = operation['receipt']['request_id']
+    body = encoded(expanded)
     with service.registry.transaction() as db:
         saved = db.execute('SELECT data FROM operations WHERE id=?', (request_id,)).fetchone()
         if saved is None or json.loads(saved[0]) != operation:
-            raise PoiseError('Pending reconfiguration intent changed during binding adoption')
+            raise PoiseError('Pending reconfiguration intent changed during binding refresh; retry the same request through its current installation owner')
+        if any(service.registry.released_binding_record(db, key) != proof for key, proof in retired.items()):
+            raise PoiseError('Released session changed during binding refresh; retry the same reconfiguration request against its current session inventory')
         if _pending_state(service, db, expanded) != selected:
-            raise PoiseError('Binding inventory changed during binding adoption')
-        # Journal every added before/after byte before its first file effect.
-        db.execute('UPDATE operations SET data=? WHERE id=?', (encoded(expanded), request_id))
+            raise PoiseError('Binding inventory changed during binding refresh; retry the same reconfiguration request')
+        for path in removed_paths:
+            if Path(path).exists():
+                raise PoiseError('Released session projection changed during binding refresh: ' + path
+                                 + '; preserve its content and resolve its session ownership before retry')
+        if arrivals or retired:
+            # Journal every added/retired projection before the next file effect.
+            db.execute('UPDATE operations SET data=? WHERE id=?', (body, request_id))
     return expanded
 
 
@@ -236,5 +269,5 @@ def reconfigure(settings_path, packet):
             if operation is None:
                 operation = _prepare(service, proposed, definition, packet, request_digest, locks)
             else:
-                operation = _adopt_arrivals(service, proposed, operation)
+                operation = _refresh_bindings(service, proposed, operation)
             return _publish(service, operation)

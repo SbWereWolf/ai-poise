@@ -23,4 +23,4 @@ The requirement and observable result, declared unit/integration/acceptance boun
 
 ## Output
 
-Tests with explicit subject declarations, independent fixtures, meaningful RED/GREEN, actual boundary-checker and reviewer evidence, exact effects and command/source/runtime identity in existing Poise owners. State missing review/check capabilities rather than certifying them, then public handoff; no self-acceptance or publication is authorized.
+Tests with explicit subject declarations, independent fixtures, meaningful RED/GREEN, actual boundary-checker and reviewer evidence, exact effects and command/source/runtime identity in existing Poise owners. State missing review/check capabilities rather than certifying them, then ordinary public release; no self-acceptance or publication is authorized.

@@ -52,7 +52,7 @@ persistent binding in a separate direct process without native session variables
 Do not combine those identities or change the session launcher to prepare a check.
 For independently reviewing test-only RED in an unfinished `revise` stage, use the
 existing [partial-material handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
-save immutable materials through public artifacts, then public null-result handoff.
+save immutable materials through public artifacts, then ordinary release of the same Task.
 Do not invent resolution proposals or native stage completion before actual fixes.
 
 ### Project and workflow configuration
@@ -385,12 +385,12 @@ replacement projection.
 Follow [post-restart handoff](../../../docs/workflows/local-handoff.md#передача-после-перезапуска):
 restart preserves historical results, proof and provenance; restart alone does not make
 proof inapplicable. Apply the existing source/condition/provenance rules. A historical
-submission is not new work. Current templates and null-result handoff use only the Task's
-authoritative current submission, never a latest historical stage/iteration match.
+submission is not new work. Current templates use only the Task's authoritative current submission, never a latest
+historical stage/iteration match. Save partial material through the artifact owner before release.
 Without a new current result, preserve actual Task state; with one, transfer that result.
 Ready preserves the feedback book, including open findings and previous review decisions;
 do not reapply rejected historical corrections or manufacture finding closure.
-Use public handoff to release a restarted Task, including newborn work; restart itself
+Use ordinary public release to release a restarted Task, including newborn work; restart itself
 retains ownership. Preserve ordinary refusal, material-integrity and exact-replay gates.
 
 Task restart atomically invalidates every mutable current `work-packet identity` for that
@@ -524,8 +524,8 @@ acceptance/publication/integration.
 Use public `advance` with a stable `request_id` and exact Task ID. Supply an exact
 `target_stage` to stop on entry, or omit it for maximum progression. For ordinary new work, replay
 that exact request after completing and verifying each current-role
-stage, after a lawful correction or restart, and after the receiving session bootstraps a public
-handoff. Treat
+stage, after a lawful correction or restart, and after the receiving session bootstraps the
+released Task in its existing working area. Treat
 `progression_work_required`, `role_handoff_required` and `user_acceptance_required` as pauses, not
 success. At a role
 boundary, include the active progression identity in the direct handoff message. Never change its
@@ -536,7 +536,7 @@ publication authority. A publish stage opens only through the separately authori
 acceptance path.
 
 Continue the exact current verified result through its proved ownership history after an
-authorized ordinary release/acquire or preserved handoff/resume. A receiver's later self-cycle
+authorized ordinary release/acquire or authenticated historical ownership events. A receiver's later self-cycle
 retains the already proved transfer; the original verified author alone does not establish one.
 Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
 Follow the canonical [verified-result continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
@@ -673,8 +673,7 @@ authorized accept completes it. Replay the original packet, including its origin
 without inventing a
 stage result. Before acceptance replay validates local inputs; after completion it returns the
 historical accepted
-receipt without reacquiring a Task/worktree. Native handoff resume repeats reuse and validates the
-preserved bundle.
+receipt without reacquiring a Task/worktree. Ordinary release/bootstrap resumes the same working area and validates saved reuse provenance.
 Reuse automatically delivers the accepted permanent Task/Sprint artifact set into local owner roots.
 It preserves bytes,
 assigns local identities, checks the active delivery obligations and refuses conflicting paths.
@@ -744,8 +743,8 @@ boundary](../../../docs/architecture/storage-lifecycle.md#резервное-к�
 User Task start authorizes routine reviewer work as well as execution; no separate command is needed
 for each review. At
 every executor/reviewer boundary, the sender preserves the result or findings and required evidence,
-uses one public
-`handoff` package, verifies that ownership was released, and stops modifying the Task. The receiver
+uses one ordinary public
+`release` packet, verifies that ownership was released, and stops modifying the Task. The receiver
 claims/resumes it
 through public bootstrap before mutation. A chat message is not release; report a failed handoff as
 failed. Read [Local
@@ -756,12 +755,12 @@ When the Task's counterpart executor/reviewer is known, apply [Direct role
 handoff](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим)
 in both directions:
 
-1. Save the result, evidence and findings, complete your required checks, and confirm that public
-   `handoff` actually
+1. Save the result, evidence and findings, complete your required checks, and confirm that ordinary public
+   `release` actually
    released the Task.
 2. Stop Task/worktree changes, then use the available direct-message tool to notify that known
    counterpart. Include
-   project/Task ID, stage and receiving role, result/findings and handoff receipt links, next action
+   project/Task ID, stage and receiving role, result/findings and ownership-release receipt links, next action
    and any limits of
    the user's Task-start instruction. Do not ask the user to relay the message or authorize each
    ordinary review.
@@ -808,9 +807,9 @@ rely on another message to restart work that has already been assigned; duplicat
 not require repeating
 completed work.
 
-For another store/environment, use `transfer`; do not merge task databases manually. Read [Transfer
-→ Batch
-API](../../../docs/workflows/transfer.md#пакетный-api).
+Scoped export/import is removed. Continue the same Task and working area through ordinary
+release/bootstrap; do not merge task databases or copy work materials between participants.
+See [removed transport](../../../docs/workflows/transfer.md#пакетный-api).
 
 ## Observed usage
 
@@ -899,9 +898,10 @@ is a concrete dependency for the owning Poise work, not a reason to invent a par
 
 ## Output boundary for migrated skills
 
-Persist the current skill's result through the existing Task/content/evidence/artifact owners and
-release via public
-handoff. Saving remains distinct from acceptance. Universal phase recovery remains
+Persist the current skill's result through the existing Task/content/evidence/artifact owners.
+After saving, use ordinary public release and directly notify the counterpart for bootstrap of
+the same Task and existing working area. Saving remains distinct from acceptance.
+Universal phase recovery remains
 capability-dependent. The implemented
 [cross-project next
 overview](../../../docs/configuration/project-setup.md#доступные-задачи-во-всех-проектах) is
@@ -974,7 +974,7 @@ Native caller isolation: a session launcher is not caller identity. Use only the
 for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
 Never set these values to impersonate a stored binding or combine native identity with
 POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
-parent-only signals must not mutate the parent's Task. The sender uses public handoff;
+parent-only signals must not mutate the parent's Task. The sender uses ordinary public release;
 a genuinely separate native session obtains its own SessionStart launcher and bootstraps
 the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
@@ -1027,14 +1027,12 @@ contract](../../../docs/workflows/batch-work.md#автоматическая-п�
 
 ## Compact Task recovery
 
-Classify materials explicitly in the versioned mapping; record a compatible placement decision
-when versions differ. Restore current Task state and components through the declared pipeline;
-restore validates readiness, while authorized work checks the current stage on current systems.
-Preserve both full proof configuration sets and system commit IDs as provenance, without rollback.
-Authenticated historical omissions never excuse missing current material. Follow
-[recovery](../../../docs/governance/development-rules.md#переносимое-состояние-задачи)
-and [proof
-configurations](../../../docs/workflows/evidence.md#конфигурационные-наборы-и-повторные-проверки).
+Continue one Task in its existing working area through ordinary release/bootstrap.
+Scoped export/import, participant transport and automatic bundle creation are removed.
+Preserve current source/proof identity, explicit companion configurations when declared,
+and unknown outcomes through their existing owners. Separate state relocation, library
+distribution and explicitly authorized backups retain their own contracts.
+See [same-area continuation](../../../docs/workflows/local-handoff.md#пакет).
 
 ## Permanent delivery and terminal material retirement
 

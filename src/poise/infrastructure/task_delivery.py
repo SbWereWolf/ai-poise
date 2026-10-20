@@ -1,11 +1,9 @@
 """Configured material observations and confined effects, not Task lifecycle writes."""
 import json
-from contextlib import contextmanager
 import os
 import shutil
 from pathlib import Path
 from .file_publication import BinaryFilePublisher
-from .locking import exclusive_lock
 from .task_paths import task_root
 from ..common import PoiseError, descendant
 from ..modules.task_cleanup.domain import CleanupRun
@@ -14,14 +12,6 @@ from ..modules.task_cleanup.domain import CleanupRun
 class RuntimeTaskDelivery:
     def __init__(self, runtime):
         self.h = runtime
-
-    @contextmanager
-    def locked(self):
-        h = self.h
-        with h.project_fence.locked():
-            with exclusive_lock(descendant(h.state, h.cfg['batch']['artifact_lock']),
-                                h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds']):
-                yield
 
     def admission(self, task_id, actor):
         record = self.h.task_queries.record(task_id)
@@ -45,7 +35,7 @@ class RuntimeTaskDelivery:
     def prepare(self, record, args):
         root = self._root(record)
         # A never-started draft may have no material directory yet.
-        if not os.path.lexists(root) and record['status'] == 'newborn':
+        if not os.path.lexists(root) and record['status'] in ('newborn', 'cancelled'):
             root.mkdir(parents=True, exist_ok=True)
         root_identity = self.root_identity(root)
         for output in args['declaration']['outputs']:
@@ -83,10 +73,24 @@ class RuntimeTaskDelivery:
 
     def ensure_resources(self, record, state):
         pending = record.get('pending')
-        if record['status'] == 'cancelled' and isinstance(pending, dict) and pending.get('kind') == 'task_cleanup':
-            run = CleanupRun.restore(pending)
-            if not run.complete and run.intent.commit_disposition is not None:
-                self.h.cleanup_tools.apply(run.intent.to_dict(), internal=True)
+        if record['status'] == 'cancelled':
+            if isinstance(pending, dict) and pending.get('kind') == 'task_cleanup':
+                run = CleanupRun.restore(pending)
+                intent = run.intent.to_dict()
+                if intent['commit_disposition'] is None:
+                    branch = next((r for r in run.resources if r.kind == 'branch'), None)
+                    intent['commit_disposition'] = ({'kind': 'no_resources'} if branch is None else
+                        {'kind': 'discard_authorized', 'expected_commit': branch.commit})
+            elif pending is None:
+                intent = {'task_id': record['id'], 'request_id': 'cancelled-owned-resources',
+                    'authorization': state.data['agreement']['authorization'], 'commit_disposition': None}
+                resources = self.h.cleanup_tools.adapter.resources(record['id'])
+                branch = next((r for r in resources if r['kind'] == 'branch'), None)
+                if branch is not None:
+                    intent['commit_disposition'] = {'kind': 'discard_authorized', 'expected_commit': branch['commit']}
+            else:
+                return
+            self.h.cleanup_tools.apply(intent, internal=True)
             return
         if (record['status'] != 'completed' or record.get('duplicate_reuse') is None
                 or record.get('pending') is not None or state.data['retirement_started']):
@@ -103,29 +107,8 @@ class RuntimeTaskDelivery:
             'commit_disposition':{'kind':'integrated','expected_commit':commit,
                 'target_commit':target,'integration_request_id':record['duplicate_reuse']['candidate']['request_id']}},internal=True)
 
-    def preparing_consumer(self, task_id):
-        return self.h.transfer_repository.preparing_consumers(task_id)
-
-    def consumer_blocker(self, record):
-        pending = record.get('pending')
-        if isinstance(pending, dict) and pending.get('kind') == 'check_attempt':
-            return 'checks_pending'
-        with self.h.store.unit_of_work() as uow:
-            if any(d['state'] != 'finalized' for d in uow.artifacts.drafts(record['id']).values()):
-                return 'artifact_draft_open'
-            handoff = uow.handoffs.latest_recovery_candidate(record['id'])
-            if handoff is not None and handoff['state'] == 'released':
-                return 'handoff_pending'
-            if uow.tasks.pending_artifact_consumers(record['id']):
-                return 'artifact_consumer_pending'
-        if self.h.transfer_repository.pending_consumers(record['id']):
-            return 'transfer_pending'
-        return None
 
     def blocker(self, record, state):
-        reason = self.consumer_blocker(record)
-        if reason:
-            return reason
         pending = record.get('pending')
         if record['status'] not in ('completed', 'cancelled'):
             return 'task_not_terminal'
@@ -226,11 +209,6 @@ class RuntimeTaskDelivery:
             return None, reason
         return {k: v for k, v in output.items() if k != 'source'}, None
 
-    def retiring_artifacts(self, state):
-        root = Path(state.data['root'])
-        return [r['id'] for r in self.h.store.artifact_records(state.data['task'])
-                if Path(r['path']).is_relative_to(root)]
-
     def remove_owned_root(self, state):
         root = Path(state.data['root'])
         self.h.result_views.finish()
@@ -240,6 +218,8 @@ class RuntimeTaskDelivery:
             def removal_error(function, path, error):
                 # shutil may attach a filename to an errno-less OSError and
                 # obscure its original message. Preserve the actual failure.
+                if isinstance(error, FileNotFoundError):
+                    return
                 raise PoiseError(f'Task removal failed at {path}: {error.args}') from error
             shutil.rmtree(root, onexc=removal_error)
             BinaryFilePublisher.sync_parent(root)

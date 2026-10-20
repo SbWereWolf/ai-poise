@@ -404,12 +404,11 @@ class FileHookRepository:
                         raise PoiseError('Unregistered managed hook groups: use runtime-config reconcile '
                                          'with explicit previous installation identity and live definition')
 
-    def _reconciled_groups(self,db,document,previous,definition,reconciliation):
+    def _reconciled_groups(self,prior_raw,document,previous,definition,reconciliation):
         old_id=reconciliation['previous_installation_id']
         if old_id==definition.data['id']:raise PoiseError('Reconciliation requires distinct old/new installation identities')
-        row=db.execute('SELECT data FROM installations WHERE id=?',(old_id,)).fetchone()
-        if row is None:raise PoiseError('Unknown previous installation identity')
-        old=json.loads(row[0])
+        if prior_raw is None:raise PoiseError('Unknown previous installation identity')
+        old=json.loads(prior_raw)
         if old.get('migrated_to') is not None:raise PoiseError('Previous installation identity already migrated')
         if old['receipt']['hooks_path']!=str(self.settings.hooks_file):
             raise PoiseError('Previous installation belongs to another native hooks file')
@@ -437,7 +436,7 @@ class FileHookRepository:
         self._reject_unregistered_groups(document,removed,definition)
         proof={**reconciliation,'installation_id':definition.data['id'],
                'group_fingerprints':[{'event':event,'sha256':digest(group)} for event,group in removed]}
-        return removed,proof,row[0]
+        return removed,proof,prior_raw
 
     def install(self,request_id,expected_revision,definition):
         with self.settings.native_file_locked():
@@ -458,49 +457,86 @@ class FileHookRepository:
         intent=[request_id,expected_revision,definition.data,str(s.hooks_file)]
         if reconciliation is not None:intent.append(reconciliation)
         packet=digest(intent)
-        # External file effects are protected by the same bounded installer lock.
-        # Pending intent is committed before replacement, so a retry can reconcile it.
+        state=self._installation_state(request_id,definition,reconciliation)
+        if state['installation'] is not None:
+            owned=json.loads(state['installation'])
+            if owned.get('migrated_to') is not None:
+                raise PoiseError(f"Installation identity migrated to {owned['migrated_to']}")
+        if state['operation'] is None:
+            operation=self._prepare_installation(request_id,expected_revision,definition,reconciliation,packet,state)
+            self._save_installation_intent(request_id,definition,reconciliation,packet,state,operation)
+        elif json.loads(state['operation']).get('digest')!=packet:
+            raise PoiseError('Request id reused with conflicting hook definition/destination')
+        return self._publish_installation(request_id,packet)
+
+    def _installation_state(self,request_id,definition,reconciliation):
+        """Capture only the rows whose configuration this request can replace."""
         with self.registry.transaction() as db:
             identity=db.execute('SELECT data FROM installations WHERE id=?',(definition.data['id'],)).fetchone()
-            if identity is not None and json.loads(identity[0]).get('migrated_to') is not None:
-                raise PoiseError(f"Installation identity migrated to {json.loads(identity[0])['migrated_to']}")
+            row=db.execute('SELECT data FROM operations WHERE id=?',(request_id,)).fetchone()
+            prior=(None if reconciliation is None else db.execute(
+                'SELECT data FROM installations WHERE id=?',
+                (reconciliation['previous_installation_id'],)).fetchone())
+        return {'installation':None if identity is None else identity[0],
+                'operation':None if row is None else row[0],
+                'previous':None if prior is None else prior[0]}
+
+    def _prepare_installation(self,request_id,expected_revision,definition,reconciliation,packet,state):
+        """Build and serialize the candidate without holding registry admission."""
+        s=self.settings
+        before=self.revision()
+        if before!=expected_revision:
+            raise PoiseError(f'Hook configuration revision changed: {before}; read the current revision and submit a new request with that expected input')
+        owned=None if state['installation'] is None else json.loads(state['installation'])
+        previous=[] if owned is None else owned['groups']
+        document=None if before is None else read_document(s.hooks_file)
+        proof=None;prior_installation=None
+        if reconciliation is None:self._reject_unregistered_groups(document,previous,definition)
+        else:
+            previous,proof,prior_installation=self._reconciled_groups(
+                state['previous'],document,previous,definition,reconciliation)
+        definition_path=descendant(s.definitions,digest(definition.data)+'.json')
+        desired=self._groups(definition,definition_path)
+        candidate=merge_hook_document(document,previous,desired)
+        body=(json.dumps(candidate,ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode()
+        import hashlib
+        revision=hashlib.sha256(body).hexdigest()
+        receipt={'status':'installed','request_id':request_id,'revision':revision,
+            'definition_path':str(definition_path),'hooks_path':str(s.hooks_file),
+            'events':[e['event'] for e in definition.data['events']],
+            'trust_status':'requires_user_review','live_codex':'not_observed'}
+        if proof is not None:receipt['reconciliation']=proof
+        operation={'digest':packet,'phase':'pending','before':before,'candidate':candidate,
+            'groups':desired,'definition':definition.data,'receipt':receipt}
+        if proof is not None:operation['prior_installation']=prior_installation
+        return operation
+
+    def _save_installation_intent(self,request_id,definition,reconciliation,packet,state,operation):
+        body=encoded(operation)
+        with self.registry.transaction() as db:
             row=db.execute('SELECT data FROM operations WHERE id=?',(request_id,)).fetchone()
             if row is not None:
-                operation=json.loads(row[0])
-                if operation['digest']!=packet:raise PoiseError('Request id reused with conflicting hook definition/destination')
-            else:
-                before=self.revision()
-                if before!=expected_revision:raise PoiseError(f'Hook configuration revision changed: {before}')
-                old=db.execute('SELECT data FROM installations WHERE id=?',(definition.data['id'],)).fetchone()
-                owned=None if old is None else json.loads(old[0])
-                if owned is not None and owned.get('migrated_to') is not None:
-                    raise PoiseError(f"Installation identity migrated to {owned['migrated_to']}")
-                previous=[] if owned is None else owned['groups']
-                document=None if before is None else read_document(s.hooks_file)
-                proof=None;prior_installation=None
-                if reconciliation is None:self._reject_unregistered_groups(document,previous,definition)
-                else:
-                    previous,proof,prior_installation=self._reconciled_groups(
-                        db,document,previous,definition,reconciliation)
-                definition_path=descendant(s.definitions,digest(definition.data)+'.json')
-                desired=self._groups(definition,definition_path)
-                candidate=merge_hook_document(document,previous,desired)
-                body=(json.dumps(candidate,ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode()
-                import hashlib
-                revision=hashlib.sha256(body).hexdigest()
-                receipt={'status':'installed','request_id':request_id,'revision':revision,
-                    'definition_path':str(definition_path),'hooks_path':str(s.hooks_file),
-                    'events':[e['event'] for e in definition.data['events']],
-                    'trust_status':'requires_user_review','live_codex':'not_observed'}
-                if proof is not None:receipt['reconciliation']=proof
-                operation={'digest':packet,'phase':'pending','before':before,'candidate':candidate,
-                    'groups':desired,'definition':definition.data,'receipt':receipt}
-                if proof is not None:operation['prior_installation']=prior_installation
-                db.execute('INSERT INTO operations VALUES(?,?)',(request_id,encoded(operation)))
-                self.registry.event_in(db,None,'install.pending',{'request_id':request_id})
+                if json.loads(row[0]).get('digest')!=packet:
+                    raise PoiseError('Request id reused with conflicting hook definition/destination')
+                return
+            identity=db.execute('SELECT data FROM installations WHERE id=?',(definition.data['id'],)).fetchone()
+            prior=(None if reconciliation is None else db.execute(
+                'SELECT data FROM installations WHERE id=?',
+                (reconciliation['previous_installation_id'],)).fetchone())
+            if ((None if identity is None else identity[0])!=state['installation']
+                    or (None if prior is None else prior[0])!=state['previous']
+                    or self.revision()!=operation['before']):
+                raise PoiseError('Hook installation changed during preparation; preserve the newer publication, read its current revision and submit a new request with matching expected inputs')
+            db.execute('INSERT INTO operations VALUES(?,?)',(request_id,body))
+            self.registry.event_in(db,None,'install.pending',{'request_id':request_id})
+
+    def _publish_installation(self,request_id,packet):
+        s=self.settings
         with self.registry.transaction() as db:
             # Reload after acquiring the lock: concurrent retries see the same receipt.
             operation=json.loads(db.execute('SELECT data FROM operations WHERE id=?',(request_id,)).fetchone()[0])
+            if operation.get('digest')!=packet:
+                raise PoiseError('Request id reused with conflicting hook definition/destination')
             receipt=operation['receipt'];now=self.revision()
             if operation['phase']=='completed':
                 if now!=receipt['revision']:raise PoiseError('Installed hooks changed since the saved receipt')

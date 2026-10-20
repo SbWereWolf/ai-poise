@@ -141,8 +141,8 @@ def test_handoff_resume_rechecks_family_and_force_is_narrow(project):
     planner=related_pair(project)
     one=WorkPoise(project['config_path'],'one')
     one.bootstrap({'id':'A'})
-    WorkTools(one).invoke(request('handoff',{'request_id':'leave-A','reason':'Pass current Task',
-        'result':None,'commit_message':None,'artifact_paths':[]}))
+    WorkTools(one).invoke(request('release',{'request_id':'leave-A','reason':'Pass current Task',
+        'task_id':'A','expected_version':one.current_task()['_version']}))
     two=WorkPoise(project['config_path'],'two');two.bootstrap({'id':'B'})
     three=WorkPoise(project['config_path'],'three')
     before=deepcopy(planner.task_queries.record('A'))

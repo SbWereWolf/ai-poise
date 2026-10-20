@@ -95,12 +95,12 @@ def test_replay_preserves_history_and_normal_verify_handoff(project):
             ("T1",),
         )]
     assert preserved[:3] == case["historical_results"]
-    released = case["client"].invoke(request("handoff", {
+    released = case["client"].invoke(request("release", {
         "request_id": "ordinary-after-replay", "reason": "Normal stage handoff after replay.",
-        "result": None, "commit_message": None, "artifact_paths": [],
+        "task_id": "T1", "expected_version": case['client'].runtime.current_task()['_version'],
     }))
-    assert released["status"] == "handed_off"
-    assert released["verified"] is True
+    assert released["status"] == "ownership_released"
+    assert case['client'].runtime.task_queries.record('T1')['status'] == 'verified'
     assert case["client"].runtime.task_queries.record("T1")["claimed_by"] is None
     assert git(case["root"], "rev-parse", response["replay"]["recovery_ref"]) == case["saved"]
 

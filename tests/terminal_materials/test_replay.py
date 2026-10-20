@@ -117,34 +117,6 @@ def test_cleanup_exact_cli_replay_after_retirement_preserves_native_receipt(proj
     absent(root)
 
 
-@pytest.mark.parametrize("corrupt", [False, True])
-def test_export_exact_replay_uses_permanent_package_integrity_after_retirement(project, corrupt):
-    from pathlib import Path
-    from transfer.helpers import enabled, export
-    enabled(project)
-    tools, root, source, commit = arrange(project)
-    agree(tools, declaration([file_output(source, project["root"] / "result.txt")]))
-    tools.invoke(request("accept", {}))
-    exported = export(tools, ids=["T1"], request_id="permanent-customer-export")
-    package = Path(exported["package_path"])
-    assert not package.is_relative_to(root)
-    original = package.read_bytes()
-    from result_integration.helpers import integration_input
-    tools.invoke(request("integrate", integration_input(project, commit)))
-    absent(root)
-    if corrupt:
-        package.write_bytes(b"corrupt permanent input\n")
-        with pytest.raises(PoiseError, match="digest|integrity|package"):
-            export(tools, ids=["T1"], request_id="permanent-customer-export")
-        assert package.read_bytes() == b"corrupt permanent input\n"
-    else:
-        replay = export(tools, ids=["T1"], request_id="permanent-customer-export")
-        assert replay["status"] == "exported" and replay["replayed"] is True
-        assert replay["package_digest"] == exported["package_digest"]
-        assert package.read_bytes() == original
-    absent(root)
-
-
 def test_completed_reuse_exact_cli_replay_does_not_rebuild_working_materials(project):
     from pathlib import Path
     from conftest import git

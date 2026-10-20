@@ -1,0 +1,15 @@
+{
+  "request_id": "apply-b",
+  "expected_revision": 0,
+  "operations": [
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-B",
+        "level": "application",
+        "status": "current",
+        "text": "Updated B."
+      }
+    }
+  ]
+}

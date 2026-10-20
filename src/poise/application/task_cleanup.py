@@ -7,25 +7,33 @@ from ..modules.foundation.errors import DomainError, PoiseError
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 
 
+def prepare_cleanup_execution(execution, pending):
+    if execution is None:
+        return {'worktree':None, 'branch':None, 'base':None, 'attempts':0,
+                'publication':None, 'pending':pending, 'entry_tree':None, 'last_report':None}
+    if execution.get('pending') is not None:
+        raise DomainError('External operation outcome must be resolved first')
+    return {**execution, 'pending':pending}
+
+
 def initialize_cleanup_in(uow, task_id, pending):
-    if not uow.execution.exists(task_id):
-        uow.execution.create(task_id, {"worktree": None, "branch": None, "base": None, "attempts": 0,
-            "publication": None, "pending": pending, "entry_tree": None, "last_report": None})
-        return
-    execution, version = uow.execution.load(task_id)
-    if execution["pending"] is not None:
-        raise DomainError("External operation outcome must be resolved first")
-    execution["pending"] = pending
-    uow.execution.save(task_id, execution, version)
+    current = uow.execution.load(task_id) if uow.execution.exists(task_id) else None
+    data = prepare_cleanup_execution(None if current is None else current[0], pending)
+    if current is None:
+        uow.execution.create(task_id, data)
+    else:
+        uow.execution.save(task_id, data, current[1])
 
 
 class TaskResourceCleanup:
     def __init__(self, adapter):
         self.adapter = adapter
 
-    def prepare_terminal(self, task_id: str, request_id: str, authorization: str) -> CleanupRun:
+    def prepare_terminal(self, task_id: str, request_id: str, authorization: str, *, discard=False) -> CleanupRun:
         resources = self.adapter.resources(task_id)
-        run = CleanupRun.new(CleanupIntent(request_id, task_id, authorization, None), resources)
+        branch = next((r for r in resources if r['kind'] == 'branch'), None)
+        disposition = CommitDisposition('discard_authorized', expected_commit=branch['commit']) if discard and branch else None
+        run = CleanupRun.new(CleanupIntent(request_id, task_id, authorization, disposition), resources)
         try:
             self.adapter.validate(task_id, run)
         except PoiseError as exc:
@@ -55,8 +63,7 @@ class TaskResourceCleanup:
     def apply(self, args: dict, *, internal=False) -> dict:
         if internal:
             return self._apply(args, internal=True)
-        with self.adapter.material_scope():
-            return self._apply(args, internal=False)
+        return self._apply(args, internal=False)
 
     def _apply(self, args, *, internal):
         intent = CleanupIntent.parse(args, internal=internal)
@@ -98,7 +105,7 @@ class TaskResourceCleanup:
             if (run.intent.task_id, run.intent.authorization) != (intent.task_id, intent.authorization):
                 raise PoiseError("Cleanup request immutable intent changed")
             saved = run.intent.commit_disposition.to_dict()
-            received = intent.commit_disposition.to_dict()
+            received = (None if intent.commit_disposition is None else intent.commit_disposition.to_dict())
             if run.intent.commit_disposition.bundle_path is not None:
                 saved = {k: v for k, v in saved.items() if k != "bundle_path"}
             if saved != received:

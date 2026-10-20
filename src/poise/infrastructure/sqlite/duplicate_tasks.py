@@ -1,15 +1,17 @@
-"""One consistent, bounded-query family read through the Task repository."""
+"""Raw family capture followed by its connection-free Task projection."""
 import json
 from ...modules.foundation.errors import PoiseError
 
 
 def read_duplicate_family(db, task_id):
-    # The caller supplies the existing Task UoW / read transaction. Do not open
-    # independent transactions per relative or commit somebody else's UoW.
-    row = db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
+    return restore_duplicate_family(capture_duplicate_family(db, task_id), task_id)
+
+
+def capture_duplicate_family(db, task_id):
+    row = db.execute("SELECT CASE WHEN json_type(metadata,'$.duplicate_parent_id') IS NULL THEN id ELSE json_extract(metadata,'$.duplicate_parent_id') END AS parent_id FROM tasks WHERE id=?", (task_id,)).fetchone()
     if row is None:
         raise PoiseError('Unknown Task')
-    parent_id = json.loads(row['metadata']).get('duplicate_parent_id', task_id)
+    parent_id = row['parent_id']
     children = [r['id'] for r in db.execute(
         "SELECT id FROM tasks WHERE json_extract(metadata,'$.duplicate_parent_id')=? ORDER BY id",
         (parent_id,),
@@ -19,12 +21,23 @@ def read_duplicate_family(db, task_id):
     ids = sorted(set([parent_id, *children]))
     # json_each keeps the bind count constant even for large families.
     rows = db.execute(
-        'SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.metadata, '
+        "SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version, "
+        "json_object('duplicate_parent_id',json_extract(t.metadata,'$.duplicate_parent_id'),"
+        "'sprint_id',json_extract(t.metadata,'$.sprint_id'),'workflow',json_extract(t.metadata,'$.workflow'),"
+        "'restart_history',CASE WHEN json_type(t.metadata,'$.restart_history') IS NULL "
+        "THEN json('[]') ELSE json_extract(t.metadata,'$.restart_history') END) AS metadata, "
         "json_extract(e.data,'$.last_report.commit') AS result_commit FROM tasks t "
         'LEFT JOIN task_execution e ON e.task_id=t.id '
         'WHERE t.id IN (SELECT value FROM json_each(?)) ORDER BY t.id', (json.dumps(ids),),
     ).fetchall()
-    if {row['id'] for row in rows} != set(ids) or task_id not in ids:
+    return parent_id, tuple(ids), tuple(dict(row) for row in rows)
+
+
+def restore_duplicate_family(capture, task_id):
+    if capture is None:
+        return None
+    parent_id, expected_ids, rows = capture
+    if {row['id'] for row in rows} != set(expected_ids) or task_id not in expected_ids:
         raise PoiseError('Incomplete duplicate family')
     members = []
     for row in rows:

@@ -409,14 +409,13 @@ def continue_as(project, tools, task_id, actor, request_id, *, legacy_contract=F
     """Explicitly transfer this positive fixture at a configured role boundary."""
     from tests.batch.helpers import request
 
-    handed_off = tools.invoke(request("handoff", {
+    handed_off = tools.invoke(request("release", {
         "request_id": request_id,
         "reason": "The fixture crosses an executor/reviewer role boundary.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": tools.runtime.current_task()['id'],
+        "expected_version": tools.runtime.current_task()['_version'],
     }))
-    assert handed_off["status"] == "handed_off"
+    assert handed_off["status"] == "ownership_released"
     assert tools.runtime.current_task() is None
     successor = public_tools(project, actor)
     # Supply the test-owned original approved contract, not its mutable query projection.

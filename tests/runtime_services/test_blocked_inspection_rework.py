@@ -18,7 +18,7 @@ from tests.verification.test_current_registry_mutation import (
     configure_public_registry_case, public_tools, change, operation,
     focused_product_registration, OBLIGATIONS,
 )
-from .test_handoff import transfer
+from .test_participant_continuity import release_packet
 
 
 CONTRACT = json.loads(
@@ -47,7 +47,7 @@ def blocked_inspection(project, *, incomplete_coverage=False):
         payload['method_additions'] = change(operation('remove', 'GREEN'),
                                             operation('remove', 'CLEANUP_FULL_GREEN'))
     assert verify(executor, payload)['status'] == 'verified'
-    transfer(executor, None, message_=None)
+    executor.invoke(release_packet(executor))
     reviewer = public_tools(project, 'registry-reviewer')
     reviewer.invoke(request('bootstrap', {
         'task': {'id': context['task']}, 'decision': None,
@@ -120,7 +120,7 @@ def test_public_registry_repair_preserves_candidate_findings_evidence_and_wip(bl
     assert event['actor'] == 'registry-reviewer'
     show = tools.invoke(request('show', {'queries': [{'id': 'task', 'kind': 'task'}]}))
     assert show['results'][0]['value']['task'] == inspection['task']
-    assert transfer(tools, None, id='preserve-registry-repair', message_='WIP: registry repair')['status'] == 'handed_off'
+    assert tools.invoke(release_packet(tools, 'preserve-registry-repair'))['status'] == 'ownership_released'
 
 
 @pytest.mark.parametrize('target', ['implementation', 'absent', None])

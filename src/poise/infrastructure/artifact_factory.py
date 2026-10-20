@@ -1,16 +1,12 @@
 """Confined, non-overwriting file publication. No task lifecycle writes."""
 from dataclasses import dataclass
-from contextlib import contextmanager, nullcontext
 from pathlib import Path
-import os
 import hashlib
 import stat
-import tempfile
 import io
 from ..modules.artifact_factory.domain import ArtifactPlan, FileArtifactSource, RegisteredArtifactMaterial, relative
 from ..artifacts import artifact_identity
 from ..common import PoiseError
-from .locking import exclusive_lock
 from .file_publication import BinaryFilePublisher
 
 
@@ -24,17 +20,9 @@ class PreparedFile:
 
 
 class FileArtifactFactory:
-    def __init__(self, roots, config, lock, wait, poll, project_fence=None):
-        self.roots=dict(roots)
-        self.config=config
-        self.lock,self.wait,self.poll=lock,wait,poll
-        self.project_fence=project_fence
-
-    @contextmanager
-    def _locked(self):
-        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-            with exclusive_lock(self.lock, self.wait, self.poll):
-                yield
+    def __init__(self, roots, config):
+        self.roots = dict(roots)
+        self.config = config
 
     def _observe_destination(self, scope, name, *, directory):
         if scope not in self.roots:
@@ -98,35 +86,23 @@ class FileArtifactFactory:
             raise PoiseError(f'Artifact source file missing or unreadable: {path}: {exc}') from exc
 
     def materialize(self, prepared):
-        with self._locked():
-            # Validate the entire batch again before publishing any member.
+        # Preflight every member before the first irreversible publication.
+        for item in prepared:
+            if item.source is not None and self._source_bytes(item.source) != item.content:
+                raise PoiseError(f'Artifact source changed after preparation: {item.source.path}')
+            if self._destination(item.scope, item.relative) != item.path:
+                raise PoiseError('Artifact destination changed')
+            if item.path.exists() and self._read_registered(item.path, 'Artifact destination') != hashlib.sha256(item.content).hexdigest():
+                raise PoiseError('Artifact changed after preparation')
+        completed = []
+        try:
             for item in prepared:
-                if item.source is not None and self._source_bytes(item.source) != item.content:
-                    raise PoiseError(f'Artifact source changed after preparation: {item.source.path}')
-                if self._destination(item.scope,item.relative)!=item.path:
-                    raise PoiseError('Artifact destination changed')
-                if item.path.exists() and self._read_registered(item.path, 'Artifact destination') != hashlib.sha256(item.content).hexdigest():
-                    raise PoiseError('Artifact changed after preparation')
-            completed=[]
-            try:
-                for item in prepared:
-                    if not item.path.exists():
-                        item.path.parent.mkdir(parents=True,exist_ok=True)
-                        fd,name=tempfile.mkstemp(dir=item.path.parent)
-                        try:
-                            with os.fdopen(fd,'wb') as stream:
-                                os.fchmod(stream.fileno(),self.config['file_mode'])
-                                stream.write(item.content);stream.flush();os.fsync(stream.fileno())
-                            self._destination(item.scope,item.relative)
-                            # Hard-link publication never overwrites an existing file.
-                            os.link(name,item.path)
-                        finally:
-                            Path(name).unlink(missing_ok=True)
-                    completed.append(str(item.path))
-            except OSError as exc:
-                raise PoiseError(f'Artifact publication incomplete; preserved paths={completed}; retry identical batch: {exc}') from exc
-            return completed
-
+                BinaryFilePublisher.publish_bytes(item.content, item.path,
+                                                  self.config['file_mode'])
+                completed.append(str(item.path))
+        except (OSError, PoiseError) as exc:
+            raise PoiseError(f'Artifact publication incomplete; preserved paths={completed}; retry identical batch: {exc}') from exc
+        return completed
 
     _without_links = staticmethod(BinaryFilePublisher.without_links)
     _read_registered = staticmethod(BinaryFilePublisher.read)
@@ -222,26 +198,25 @@ class FileArtifactFactory:
         """One non-overwriting binary publication path for recovery and delivery."""
         completed = []
         try:
-            with self._locked():
-                planned = self._registered_plan(records, source_roots, owners, materials)
-                if destination_owners is not None:
-                    # Validate all owner mappings before the first file effect.
-                    for row, source, name, target in planned:
-                        self._copy_record(row, source, name, target, destination_owners)
-                # The complete batch was checked before the first publication.
+            planned = self._registered_plan(records, source_roots, owners, materials)
+            if destination_owners is not None:
+                # Validate all owner mappings before the first file effect.
                 for row, source, name, target in planned:
-                    self._recovery_destination(row['scope'], name)
-                    BinaryFilePublisher.publish(source, target, row['digest'], self.config['file_mode'])
-                    completed.append(
-                        {**row, 'path': str(target), 'source_path': str(source), 'relative_path': name}
-                        if destination_owners is None else
-                        self._copy_record(row, source, name, target, destination_owners))
-                # Ordinary validation still checks content on future use; this
-                # validates the exact publication set immediately before rebind.
-                for row in completed:
-                    path = self._recovery_destination(row['scope'], row['relative_path'])
-                    if self._read_registered(path, 'Artifact destination') != row['digest']:
-                        raise PoiseError(f'Artifact destination digest changed: {path}')
+                    self._copy_record(row, source, name, target, destination_owners)
+            # The complete batch was checked before the first publication.
+            for row, source, name, target in planned:
+                self._recovery_destination(row['scope'], name)
+                BinaryFilePublisher.publish(source, target, row['digest'], self.config['file_mode'])
+                completed.append(
+                    {**row, 'path': str(target), 'source_path': str(source), 'relative_path': name}
+                    if destination_owners is None else
+                    self._copy_record(row, source, name, target, destination_owners))
+            # Ordinary validation still checks content on future use; this
+            # validates the exact publication set immediately before rebind.
+            for row in completed:
+                path = self._recovery_destination(row['scope'], row['relative_path'])
+                if self._read_registered(path, 'Artifact destination') != row['digest']:
+                    raise PoiseError(f'Artifact destination digest changed: {path}')
         except OSError as exc:
             raise PoiseError(f'Artifact recovery file publication incomplete; preserved={completed}; '
                              f'retry identical request: {exc}') from exc

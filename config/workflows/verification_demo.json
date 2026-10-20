@@ -32,7 +32,12 @@
       },
       "rework_targets": [
         "measure"
-      ]
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     },
     {
       "id": "audit",
@@ -56,7 +61,12 @@
       "rework_targets": [
         "audit",
         "measure"
-      ]
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
     }
   ],
   "benefit": {

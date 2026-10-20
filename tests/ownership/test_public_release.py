@@ -86,14 +86,6 @@ def test_public_release_preserves_unknown_attempt_and_untracked_wip(project, mon
     head = subprocess.check_output(["git", "-C", str(worktree), "rev-parse", "HEAD"])
     status = subprocess.check_output(["git", "-C", str(worktree), "status", "--porcelain=v1"])
 
-    with pytest.raises(PoiseError, match="pending|unknown|attempt"):
-        owner.invoke(request("handoff", {
-            "request_id": "blocked-handoff",
-            "reason": "Reviewer needs a distinct actor",
-            "result": None,
-            "commit_message": "Preserve pending work",
-            "artifact_paths": [],
-        }))
     before = owner.runtime.task_queries.record("T1")
     saved_execution = execution_state(owner)
     released = owner.invoke(release_packet(before["version"]))

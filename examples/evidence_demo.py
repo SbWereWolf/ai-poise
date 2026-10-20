@@ -32,7 +32,8 @@ def run(directory: Path, scenario: str):
     # matching evidence requirements through the existing registry owner.
     task['stage_contracts'] = [
         {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
-         'entry_requirements': [], 'exit_requirements': []}
+         'entry_requirements': [], 'exit_requirements': [],
+         'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
         for stage in workflow['stages']
     ]
     task['decomposition'] = {
@@ -70,7 +71,7 @@ def run(directory: Path, scenario: str):
     executor = WorkClient(env, 30)
     reviewer = WorkClient({**env, 'POISE_CALLER_BINDING': str(home / 'reviewer-caller.json')}, 30)
     # These are synthetic scenario roles. Distinct bindings and the public
-    # handoff exercise the identity gates; they are not independent reviewers.
+    # ordinary release exercises the identity gates; they are not independent reviewers.
     executor.calls = reviewer.calls = calls
     client = executor
     artifact_specs = []
@@ -86,13 +87,12 @@ def run(directory: Path, scenario: str):
             value['stage_work'] = {'coverage': 'Осмотрены факты, предпосылки и вывод.', 'findings': [], 'resolution_decisions': []}
         return value
     def hand_over(sender, receiver, request_id):
-        receipt = sender.invoke('handoff', {
-            'request_id': request_id,
-            'reason': 'Transfer between synthetic evidence-demo participants.',
-            'result': None, 'commit_message': 'Preserve evidence scenario state',
-            'artifact_paths': [],
+        state = sender.invoke('show', {'queries': [{'id': 'task', 'kind': 'task'}]})['results'][0]['value']
+        receipt = sender.invoke('release', {
+            'request_id': request_id, 'task_id': task['id'], 'expected_version': state['version'],
+            'reason': 'The next synthetic participant continues in the same working area.',
         })
-        assert receipt['status'] == 'handed_off'
+        assert receipt['status'] == 'ownership_released'
         receiver.bootstrap({'id': task['id']})
         return receiver.bootstrap(None, decision='continue')
 

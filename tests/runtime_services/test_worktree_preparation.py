@@ -149,19 +149,24 @@ def test_completed_request_replay_does_not_run_again(project, monkeypatch, outco
     assert again['worktree'] == initial['worktree']
 
 
-def test_handoff_resume_is_not_a_new_preparation_attempt(project, monkeypatch):
-    project['cfg']['runtime_services']['handoff'] = read_json(
-        Path(__file__).parents[1] / 'sprints/fixtures/file-handoff.json')
+def test_release_resume_is_not_a_new_preparation_attempt(project, monkeypatch):
     case = arrange(project, monkeypatch)
     initial = boot(case)
     before = events(case)
-    handoff = case['tools'].invoke(request('handoff', read_json(FIXTURES / 'handoff-input.json')))
-    assert handoff['status'] == 'handed_off'
+    before_materials = material_bytes(case)
+    current = case['tools'].invoke(request('show', {
+        'queries': [{'id': 'prepared-task', 'kind': 'task'}],
+    }))['results'][0]['value']
+    release_input = read_json(FIXTURES / 'handoff-input.json')
+    release_input.update(task_id=current['task'], expected_version=current['version'])
+    released = case['tools'].invoke(request('release', release_input))
+    assert released['status'] == 'ownership_released'
     other = WorkTools(WorkPoise(project['config_path'], 'P004-REVIEWER'))
     resumed = boot(case, again=True, tools=other)
     assert resumed['preparation'] == initial['preparation']
     assert resumed['worktree'] == initial['worktree']
     assert events(case) == before
+    assert material_bytes(case) == before_materials
 
 
 @pytest.mark.parametrize('handler,marker,status', [

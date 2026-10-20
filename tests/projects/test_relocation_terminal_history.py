@@ -74,14 +74,16 @@ def test_unbound_terminal_history_preserves_receipt_and_live_files(project, tmp_
         assert Path(row['path']).read_bytes() == expected[row['id']]
     full, history, views = moved.runtime.result_views.present_result(
         {'checks': [receipt]}, moved.runtime.retired_receipt, moved.runtime.task_queries.receipt_task)
-    expected_history = json.loads((Path(__file__).parent / 'fixtures/terminal_relocation_history.json').read_text())
-    expected_history['historical_receipts'][0]['checks'][0]['id'] = receipt['id']
-    assert history == expected_history
-    assert full == {'checks': [receipt], **history}
-    assert len(views) == 1 and views[0]['id'] == receipt['id']
-    assert views == [{**expected_history['historical_receipts'][0]['checks'][0],
-                     'availability': 'retired', 'primary': expected_history['notice']}]
-    assert 'presentation_error' not in views[0]
+    expected = json.loads((Path(__file__).parent / 'fixtures/terminal_relocation_history.json').read_text())
+    expected['receipt']['id'] = receipt['id']
+    assert history == expected['metadata']
+    assert full == {'checks': [receipt]}
+    assert len(views) == 1
+    assert {key: views[0][key] for key in expected['receipt']} == expected['receipt']
+    assert views[0].get('availability') != 'retired'
+    assert 'Служебные журналы уничтожены' not in str((full, history, views))
+    if missing:
+        assert views[0]['presentation_error']
     for stream in ('stdout', 'stderr'):
         assert placed(case, receipt[stream]).exists() == (stream not in missing)
     assert required(update_tools(case['settings']).apply, case['packet'])['replayed'] is True
@@ -222,9 +224,7 @@ def test_required_permanent_material_remains_guarded_after_relocation(project, t
     sentinel = consumer / 'operator.txt'
     sentinel.write_bytes(b'existing consumer work\n')
     cfg = moved.runtime.cfg
-    factory = FileArtifactFactory(
-        {'task': consumer}, cfg['batch'], tmp_path / 'material-consumer.lock',
-        cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'])
+    factory = FileArtifactFactory({'task': consumer}, cfg['batch'])
 
     def consume():
         materials = ArtifactMaterialResolver(moved.runtime.delivery_tools).resolve('T1', [record])

@@ -118,7 +118,7 @@ class RequirementsStore:
                 yield connection
 
     @staticmethod
-    def _registry(connection):
+    def _capture_registry(connection):
         requirements = [
             dict(row)
             for row in connection.execute(
@@ -132,20 +132,41 @@ class RequirementsStore:
                 "ORDER BY system_id,application_id"
             )
         ]
-        return RequirementsRegistry.restore(requirements, links)
+        return requirements, links
+
+    @staticmethod
+    def _restore_registry(capture):
+        return RequirementsRegistry.restore(*capture)
+
+    @classmethod
+    def _registry(cls, connection):
+        return cls._restore_registry(cls._capture_registry(connection))
+
+    @contextmanager
+    def _preparation(self):
+        from .diagnostic_io import preparation_transaction
+        if self.read_only:
+            with self._transaction() as connection:
+                yield connection
+            return
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with preparation_transaction(self.database, self.lock_seconds, self.poll_seconds) as connection:
+                yield connection
 
     def revision(self):
         with self._transaction() as connection:
             return connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
 
     def registry(self):
-        with self._transaction() as connection:
-            return self._registry(connection)
+        with self._preparation() as connection:
+            capture = self._capture_registry(connection)
+        return self._restore_registry(capture)
 
     def read(self):
-        with self._transaction() as connection:
-            revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
-            return revision, self._registry(connection)
+        with self._preparation() as connection:
+            revision = connection.execute('SELECT revision FROM requirements_meta').fetchone()[0]
+            capture = self._capture_registry(connection)
+        return revision, self._restore_registry(capture)
 
     @staticmethod
     def read_bootstrap(path):
@@ -234,7 +255,7 @@ class RequirementsStore:
         if type(request["expected_revision"]) is not int or request["expected_revision"] < 0:
             raise DomainError("Requirements expected_revision must be nonnegative")
         digest = hashlib.sha256(_encoded(request).encode()).hexdigest()
-        with self._transaction() as connection:
+        with self._preparation() as connection:
             previous = connection.execute(
                 "SELECT digest,response FROM requirement_requests WHERE request_id=?",
                 (request_id,),
@@ -246,10 +267,22 @@ class RequirementsStore:
             revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
             if revision != request["expected_revision"]:
                 raise VersionConflict("Requirements revision changed")
-            current = self._registry(connection)
-            registry = current.apply(request["operations"], max_items)
-            before = current.to_dict()
-            after = registry.to_dict()
+            capture = self._capture_registry(connection)
+        current = self._restore_registry(capture)
+        registry = current.apply(request['operations'], max_items)
+        before = current.to_dict()
+        after = registry.to_dict()
+        with self._transaction() as connection:
+            previous = connection.execute(
+                'SELECT digest,response FROM requirement_requests WHERE request_id=?',
+                (request_id,)).fetchone()
+            if previous is not None:
+                if previous['digest'] != digest:
+                    raise DomainError('Requirements request_id was used for another request')
+                return {**json.loads(previous['response']), 'replayed': True}
+            latest = connection.execute('SELECT revision FROM requirements_meta').fetchone()[0]
+            if latest != revision:
+                raise VersionConflict('Requirements revision changed')
             for requirement in after["requirements"].values():
                 if before["requirements"].get(requirement["id"]) == requirement:
                     continue
@@ -283,6 +316,30 @@ class RequirementsStore:
             return deepcopy(response)
 
 
+class SqliteRegistrySnapshotProvider:
+    """Registry semantics only; CRUD presentation revisions are not Task vetoes."""
+    def __init__(self, store):
+        self.store = store
+
+    def registry(self):
+        return self.store.registry()
+
+    @staticmethod
+    def prepare_identity(expected):
+        return (tuple((r['id'], r['level'], r['status'], r['text'])
+                      for _, r in sorted(expected['requirements'].items())),
+                tuple(sorted((r['system'], r['application']) for r in expected['links'])))
+
+    def require_same(self, expected):
+        with self.store._preparation() as db:
+            actual = (tuple(tuple(r) for r in db.execute(
+                'SELECT id,level,status,text FROM requirements ORDER BY id')),
+                tuple(tuple(r) for r in db.execute('SELECT system_id,application_id '
+                    'FROM requirement_links ORDER BY system_id,application_id')))
+        if actual != expected:
+            raise DomainError('Task requirements registry changed after creation preflight')
+
+
 class TaskRequirementsMetadataStore:
     """Immutable Requirements context stored in the existing Task metadata."""
 
@@ -290,16 +347,23 @@ class TaskRequirementsMetadataStore:
         self.unit_of_work = unit_of_work
 
     def exists(self, task_id):
-        with self.unit_of_work() as uow:
-            return uow.tasks.restart_context(task_id)["requirements_snapshot"] is not None
+        from ..modules.tasks.ports import TaskReadSet
+        inputs = self.unit_of_work().capture(TaskReadSet((task_id,)))
+        return inputs.restart_context(task_id)['requirements_snapshot'] is not None
 
     def create(self, task_id, snapshot, agreement):
+        from ..modules.tasks.ports import TaskReadSet
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,)))
+        prepared = facade.prepare_requirements_context(inputs, task_id, snapshot, agreement)
         with self.unit_of_work() as uow:
-            uow.tasks.publish_requirements_context(task_id, snapshot, agreement)
+            uow.require_inputs(inputs)
+            uow.tasks.patch_prepared_requirements(prepared)
 
     def read(self, task_id):
-        with self.unit_of_work() as uow:
-            snapshot = uow.tasks.restart_context(task_id)["requirements_snapshot"]
+        from ..modules.tasks.ports import TaskReadSet
+        inputs = self.unit_of_work().capture(TaskReadSet((task_id,)))
+        snapshot = inputs.restart_context(task_id)['requirements_snapshot']
         if snapshot is None:
-            raise DomainError("Task requirements snapshot does not exist")
+            raise DomainError('Task requirements snapshot does not exist')
         return snapshot

@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-10-18**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-10-20**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -8,8 +8,8 @@
 | workflow/handlers | produce/inspect/revise/observe/check | goal-type branching, присваивание lifecycle |
 | verification/CheckRegistry | точные команды, current revision/история, расписание, `source_under_test`, executable-классификация/покрытие и семантические конфликты | изобретение команд или разрешение filesystem paths |
 | evidence | план, immutable observations/arguments/decisions, механическая достаточность | I/O, оценка истинности вместо агента |
-| application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
-| SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
+| application/TaskCommands + EvidenceCommands | координация снимка, доменной подготовки, авторизации и короткой записи | прямое управление таблицами и исполнение внешних команд |
+| SQLite repositories/UoW | согласованный raw capture, проверка источников, подготовленная запись с FK/optimistic version и внешний lock writer | сами принимать proof или переходить этап |
 | runtime/execution/artifacts | реальные наблюдения Git/команд/files; publication и transport | прямые UPDATE Task/evidence state |
 | Optional telemetry | неизменяемый `TelemetryEnvelope`, отдельные SQLite database/lock, асинхронная best-effort запись и partial coverage | брать authoritative Task DB lock, задерживать либо отменять результат WorkTools |
 
@@ -61,6 +61,36 @@ Task применяет переход только после этих пров
 общий сохранённый output owner и выбранные семантические парсеры; это не реализация
 универсального перехвата. В DDD-04 capture адресуемый и durable у задачи;
 сама форма EvidenceBook не доказывает дополнительные runtime integrations.
+
+## Подготовка независимых записей
+
+`TaskReadSet` объявляет нужные источники операции. SQLite UoW читает их согласованно
+и возвращает `SqliteTaskInputs` после закрытия собственного снимка и project fence.
+Полное восстановление доменных объектов, проверка намерения, внешние наблюдения через
+существующие порты и кодирование подготовленных значений выполняются вне этого контекста.
+В окончательном writer сначала проверяется квитанция запроса, затем выбранные источники
+и полномочия; сохраняются готовые изменения. Domain владеет переходом, application —
+координацией, SQLite adapter — сравнением сохранённых фактов и атомарностью записи.
+
+`task_snapshot` сохраняет прежнее полное восстановление Task, `task_record` — собственную
+проекцию record, `task_writes` — подготовленные SQL-значения. Публичные TaskQueries
+`record/content/evidence_view/verification_registry` закрывают снимок перед соответствующим
+восстановлением/проекцией; content, evidence и активный registry сохраняют полную
+Task-валидацию. Record, Store и accounting сохраняют
+собственные проверки, без добавления чужой полной проверки Task. Locations, methods и
+история захватываются в том же снимке там, где их использует конкретный DTO.
+
+При restart текущий execution очищает attempts, publication, pending и last_report в
+общей транзакции с перезапуском, а immutable submissions/results и реестр сохраняют
+историю. Getter newborn распознаёт объявленное отсутствие Task и возвращает предметный
+отказ с ID до записи; существующая проверка newborn status сохраняется.
+
+Requirements использует отдельный SQL provider, а Task сохраняет собственный исторический
+requirements snapshot. Проверка двух файлов не становится общей транзакцией. Пакетный
+Requirements CRUD сохраняет свою [описанную границу](../workflows/requirements-registry.md#конкурентная-запись).
+Явно транзакционные библиотечные helpers продолжают работать в контексте вызывающего кода.
+Закрытие снимка не меняет Task/worktree ownership и не даёт полномочий на приёмку.
+Подробный алгоритм, ожидания и повторы принадлежат [контракту SQLite-записи](sqlite-write-boundary-design.md#подготовка-и-короткая-запись).
 
 ## Подготовка Task-worktree
 
@@ -141,15 +171,15 @@ preflight, liveness и повторную проверку в UoW. SQLite adapte
 Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
 
 Workflow snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork
-и handoff компонуют API владельца, не реализуют отдельные алгоритмы захвата. Native hook
+компонуют API владельца, не реализуют отдельные алгоритмы захвата. Native hook
 registry предоставляет подтверждённые события liveness: `SessionEnd` означает DEAD,
 незавершённая наблюдаемая сессия — LIVE, недостающая запись — UNCERTAIN. Runtime без
 наблюдателя не получает скрытого разрешения на перехват. Сами claims не выполняют Git,
 filesystem cleanup, chdir или смену launch root.
 
 Для Task без worktree runtime использует настроенный repository как среду проверок,
-сохраняет закреплённую базу и результат без ветки. Handoff receipt имеет null worktree
-и bundle; resume проверяет сохранённые факты, не создаёт искусственное дерево.
+сохраняет закреплённую базу и результат без ветки. Обычное освобождение не создаёт
+worktree или bundle; bootstrap читает сохранённые факты, не создаёт искусственное дерево.
 Accounting не измеряет несуществующий Git delta, но продолжает измерять объявленные
 полезные секции относительно их baseline. Это не изменение Clock или полноты телеметрии.
 
@@ -428,13 +458,10 @@ lifecycle у
 остаётся единым
 прикладным входом. CLI `runtime` только получает packet, вызывает adapter и общий presenter.
 
-RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands меняет жизненный цикл только через
-Task API и UoW.
-LocalHandoff — инфраструктурная последовательность Git/files с receipts; session release согласован
-с Task и receipt в
-одной короткой транзакции. Sprint читает подтверждённое release через Repository и вычисляет
-resumable как часть
-собственного overview.
+RuntimeRegistry владеет binding/cursor, не Task. OwnershipCommands.release проверяет
+собственный claim и expected_version, закрывает accounting cycle и снимает зависимое владение
+в одной UoW с receipt. Существующий WIP остаётся на месте; Git/files transport удалён.
+Sprint вычисляет доступность участников через существующий repository/overview.
 
 Парсер не исполняет исходную команду повторно и не записывает бизнес-таблицы. Async worker создаёт
 лишь представления;
@@ -444,21 +471,17 @@ Task verdict и Incident имеют разные источники. Разде�
 
 
 ## DDD-07B — scoped Transfer
-Обновлено: **2026-09-07T00:25:38+05:00**. Transfer владеет протоколом пакета, выбором владельцев,
-локальными receipts и
-location mapping. Он не выбирает следующий этап и не подтверждает evidence. Application
-TransferCommands зависит от
-порта, не SQLite/файлов. Rehydration существующего same-schema snapshot проходит через специальные
-Task/Sprint
-repository методы и валидируется существующей доменной моделью. Совпадающие owner IDs не
-перезаписываются. Короткая
-транзакция публикует весь выбранный набор, внешние файлы/Git подготавливаются заранее.
 
-Тексты секций и исходные evidence неизменны; machine paths читаются через location adapter. Artifact
-ID основан на
-owner-relative location и переживает перенос. Runtime sessions/cursors источника не переносятся.
-Подробно:
-[transfer](../workflows/transfer.md) и [библиотечный API](library-api.md).
+Scoped transport удалён: нет текущих TransferCommands, snapshot export/import или
+копирования рабочей области при смене участника. Обычный ownership owner освобождает
+свой Task и зависимый binding в одной UoW, сохраняя существующие WIP и историю;
+получатель захватывает ту же область через bootstrap.
+
+`CheckConfigurationSystems` владеет явным необязательным `check_runner.systems`,
+а material-location owner разрешает механические пути исторических receipts.
+Он не переписывает содержательный текст/argv и не создаёт новый перенос.
+Постоянная доставка, интеграция и TaskCleanup сохраняют отдельные полномочия.
+[Протокол смены участника](../workflows/local-handoff.md#пакет).
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
 - `modules/capabilities` и `modules/hook_transport`: pure contracts; нет subprocess, времени и
@@ -616,16 +639,19 @@ receipt: первый запрос не удаляет уже существую
 ## Task identity allocation — 2026-09-11T06:55:21+05:00
 
 `modules/tasks/allocation` владеет чистой моделью numeric namespace, display width,
-progression, creation intent и request digest. `TaskCommands` координирует allocation,
-creation validation, Task aggregate и execution reservation в одной короткой UoW.
-`TaskRepository.allocate` — единственная граница, которая сопоставляет policy с уже занятыми
-Task/Sprint IDs; runtime, planning и Sprint adapters не вычисляют номер и не пробуют Git/paths.
+progression, creation intent и request digest. `TaskCommands` получает закрытый снимок
+пространства ID и выполняет preflight/creation validation до окончательной UoW.
+Preview распределения не резервирует ID. Runtime, planning и Sprint используют того же
+чистого владельца allocation; они не вычисляют номера через Git или filesystem.
 
 Пакетные application services передают владельцу полный набор зарезервированных explicit IDs,
-поскольку только они знают ещё не опубликованный состав Task/Sprint intent. Это не второй
-allocator: они не обходят candidates и не повторяют запросы с увеличенным номером. SQLite
-adapter сериализует allocation и insert прежним внешним lock; отдельный sequence/counter и
-новый lifecycle writer не вводятся.
+поскольку только они знают ещё не опубликованный состав Task/Sprint intent. Окончательный
+SQLite writer проверяет квитанцию и фактическую доступность выбранного ID перед insert.
+Изменение всего namespace само по себе не служит общим veto. При коллизии автоматически
+распределяемого ID application повторяет только выбор и чистую компиляцию зависимых значений
+из сохранённого preflight, без повторения внешней подготовки. Явный занятый ID отклоняется;
+допустимое пространство задаётся policy. Отдельный sequence/counter не вводится. Группа
+публикации сохраняет детей, родительский результат, Sprint и receipts атомарно.
 
 Git и filesystem начинаются после durable `worktree_setup` reservation. Runtime adapter может
 только сверить сохранённые task ID, branch, base и worktree и завершить совпавшее состояние;
@@ -657,8 +683,8 @@ entry gate сохраняет цель для correction/restart, но не ме
 
 Граница ролей берётся из явных `role` соседних узлов сохранённого route. Чистый
 `crossed_role_boundary` подтверждает передачу текущего проверенного результата другому участнику
-по его истории владения: обычные release/acquire и сохранённые handoff/resume имеют свои реальные
-события. Уже доказанная передача сохраняется при повторном получении тем же получателем;
+по его истории владения: обычные release/acquire и исторические события прежних передач проверяются
+по их реальному происхождению. Уже доказанная передача сохраняется при повторном получении тем же получателем;
 цикл только исходного автора не создаёт её. Событие освобождения хранит `actor=None`, поэтому
 отправитель определяется из предыдущего доказанного владельца. Конечный владелец сверяется с Task.
 
@@ -673,8 +699,8 @@ UoW, что прежние identity/content/report/tree/unknown/duplicate gates,
 Общий приватный `_event_range` обслуживает также прежний `ownership_event_suffix`, сохраняя
 его отдельный ownership-only tuple contract для recovery. `review_identity` по-прежнему определяет
 последнего non-inspect производителя для независимости проверки, а не автора текущего review.
-`SqliteHandoffRepository.latest` выбирает последнюю запись Task до проверки её состояния;
-`latest_recovery_candidate` сохраняет собственный договор. Исторические строки остаются неизменными.
+Исторические строки прежнего transport сохраняются неизменными; новый
+`release` не создаёт transport receipt или bundle.
 Новые таблицы, миграция или сохраняемая привилегия не вводятся. Runtime и transport не получают
 второго lifecycle; операция не отправляет сообщения и не исполняет работу этапа. Публичная
 процедура принадлежит [контракту продолжения](../workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).

@@ -4,7 +4,6 @@
     "sprint": "artifacts",
     "task": "artifacts"
   },
-  "artifact_lock": "artifact.lock",
   "file_mode": 384,
   "initial_read_lines": 50,
   "max_artifact_bytes": 262144,

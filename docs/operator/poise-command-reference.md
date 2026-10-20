@@ -263,6 +263,38 @@ cd "$poise_root"
 описаны в [руководстве Bootstrap](bootstrap-catalog-v2.md).
 Оператор отдельно выбирает и устанавливает профиль эксплуатационного каталога.
 
+### Обслуживание catalog/v2 через Stride
+
+Заполненный [пример launcher](../configuration/stride-launcher.md#выполнение-команды)
+направляет `infra`, `deps`, `check` в корневой Bootstrap. Это другой маршрут,
+чем прямой делегированный `poise check --catalog` выше. Перед его выбором пройдите
+[процедуру перехода и возврата](maintenance-profile-v2.md#переход-на-новый-маршрут-и-возврат).
+Значения ниже — явно выбранные пути установки; рабочие настройки остаются вне Git:
+
+```bash
+stride_entry=/srv/poise/app/stride.sh
+poise_root=/srv/poise/app
+project_id=example
+stride_settings="$poise_root/config/stride.env"
+profile="$poise_root/operator/poise-profile"
+bootstrap_config="$poise_root/config/bootstrap.json"
+bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" \
+  "$stride_settings" check --config "$bootstrap_config" --catalog-dir "$profile"
+bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" \
+  "$stride_settings" infra --config "$bootstrap_config" --catalog-dir "$profile" \
+  --values "$profile/values.json" --set python=/srv/poise/actions/bin/python --dry-run
+bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" \
+  "$stride_settings" deps --config "$bootstrap_config" --catalog-dir "$profile"
+```
+
+Префикс уже содержит имя операции; launcher заменяет только первый её token,
+остальные аргументы передаёт буквально. Для ERP выбирают его собственные
+`profile` и `bootstrap_config="$profile/bootstrap.json"`.
+`--config` выбирает рабочую команду и плагин, `--catalog-dir` — полный профиль,
+`--values` — значения каталога, `--set` — явное переопределение, `--dry-run` —
+наблюдение без исправления. Повторяемость, приоритет и все аргументы описаны
+в [контракте Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды).
+
 ## Локальные файлы, резервные копии и миграции
 
 Эти операции выполняются по отдельному операторскому поручению.

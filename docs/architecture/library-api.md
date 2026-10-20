@@ -137,7 +137,8 @@ obsolete и вызывает исходный `RequirementsRegistry.plan_task` �
 `work_choice` остаётся декларацией создания в исходном intent. Соседние membership,
 claim и execution записи создают их отдельные публичные владельцы.
 
-Полные [текущие CLI-пакеты](../../apps/requirements/docs/graph-req.md#создание-task-и-канонический-id)
+Полные [текущие
+CLI-пакеты](../../apps/requirements/docs/graph-req.md#создание-task-и-канонический-id)
 показывают оригинальное создание и последующую постановку. Shell компонует новый
 app use case для `create_task`; общий `RequirementsCommands` продолжает обслуживать
 `apply/query/import_bootstrap`, включая реализованную `publish_task` внутри `apply`.
@@ -379,7 +380,8 @@ probes и наблюдения часов. `refresh(session_id, workspace, probe
 сводку. `FileCapabilitySummary` реализует bounded JSON I/O через существующие владельцы.
 `HookService.read_summary/refresh_summary` проверяют прежнюю native ownership, а
 `HookRegistry.session_workspace` читает наблюдённый workspace независимо от файла сводки.
-Контракт и команды — [сводка готовности](../configuration/runtime-hooks.md#сводка-готовности-сессии).
+Контракт и команды — [сводка
+готовности](../configuration/runtime-hooks.md#сводка-готовности-сессии).
 
 
 ## Accounting API — DDD-08
@@ -613,7 +615,8 @@ Requirements выдаёт канонический ID и сохраняет по
 цели, handoff и immutable intent. `apps.sequencing.application.ownership.OwnershipCommands`
 получает repository, общую availability-функцию, генератор ID и часы явно;
 `execute(operation)` выполняет claim/switch/release/resume/recover внутри
-существующей транзакции `Store.apply`. `apps.sequencing.infrastructure.ownership_store.OwnershipRepository`
+существующей транзакции `Store.apply`.
+`apps.sequencing.infrastructure.ownership_store.OwnershipRepository`
 читает Task/claims/Session capacity и сохраняет immutable intent/handoff/consumption
 в собственном SQLite connection. Shell владеет строгими wire fieldsets,
 композицией и outer receipt/revision/rollback. Переключение сначала проверяет
@@ -624,14 +627,39 @@ binding остаются независимыми. Точные поля, replay
 [контракту владения](../../apps/sequencing/docs/contract-seq.md#54-claim_task).
 
 Текущий CLI выполняет `register_task`, `register_sprint`, `claim_task`,
-`switch_claim`, `release_claim`, `resume_claim`, `recover_claim` и четыре query-варианта:
+`switch_claim`, `release_claim`, `resume_claim`, `recover_claim`,
+`workspace/prepare` и четыре query-варианта:
 Task, Sprint, `eligibility`, `next`. Явные caller и области выбора описаны в
 [руководстве доступности](../../apps/sequencing/docs/shell-seq.md#доступность-и-следующая-работа).
 Independent и явное Sprint membership используют одну Task identity. `Store.query`
 открывает одну read-транзакцию до чтения revision и собирает
 происхождение, членство, active claim, текущий Workspace, упорядоченные
 roots, независимую binding и terminal value только из своих таблиц. Изменение
-Sprint и физического Workspace остаётся последующим срезом.
+Sprint и независимого владения/освобождения Workspace остаётся последующим срезом.
 Подробные предусловия, ограничения SQL, пошаговый откат и правильные примеры
 принадлежат [руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
 запуск и рабочие параметры — [руководству CLI](../../apps/sequencing/docs/shell-seq.md).
+
+### Подготовка постоянного рабочего пространства
+
+`apps.sequencing.application.workspace.WorkspaceCommands.prepare(packet, digest)`
+получает короткую transaction-фабрику, Git adapter, resolver корней, генератор ID,
+часы и публичную schema. Он координирует проверку request/claim, сохранение
+постоянного контекста и незавершённого намерения, внешний Git и окончательный ответ.
+Публичный вход — `Store.prepare_workspace`; точные поля и полный Workspace DTO
+принадлежат [текущему
+контракту](../../apps/sequencing/docs/contract-seq.md#60-реализованная-подготовка).
+
+`apps.sequencing.domain.workspace` владеет чистыми правилами состояния и
+совместимости контекста. `WorkspaceRepository` в infrastructure.workspace_store
+владеет явными SQL-фактами и единственной проекцией Workspace для prepare/query;
+Task и claim читает через существующий OwnershipRepository. Транзакцию задаёт
+shell через `Store.workspace_transaction`, Git туда не входит.
+`GitWorkspace` в infrastructure.workspace_git наблюдает начальный commit и
+выполняет обычные Git операции по сохранённым path/branch/base. Код application
+и domain получает эти зависимости явно. Полный ответ содержит текущую независимую
+binding, подготовка её сохраняет. Read-only использует существующий repository.
+
+Подробности slot незавершённого запроса, окончательных квитанций, revision и
+операторского продолжения принадлежат [модели
+хранения](../../apps/sequencing/docs/storage-seq.md#постоянная-подготовка-workspace).

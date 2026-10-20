@@ -18,7 +18,8 @@ apps/sequencing/bin/sequencing --config /absolute/path/sequencing.json
 Независимая работа — зарегистрированная Task вне Sprint. Работа в Sprint
 использует ту же Task identity и явное membership. Обе формы доступны одновременно.
 Ссылка ведёт на постановку Requirements либо на её опубликованный снимок;
-содержимое остаётся у Requirements. Изменение Sprint, физические Workspace,
+содержимое остаётся у Requirements. Реализован `workspace/prepare` для постоянного
+контекста Task. Изменение Sprint, независимое владение и освобождение Workspace,
 terminal и transfer описаны в [целевом контракте](contract-seq.md) как будущие команды.
 Точный реализованный формат, миграция и исполняемые примеры находятся в
 [руководстве по хранилищу](storage-seq.md).
@@ -80,9 +81,9 @@ terminal и transfer описаны в [целевом контракте](contr
 | `batch.max_input_bytes`, `batch.max_items` | Положительные целые пределы запроса и операций |
 | `read.max_queries` | Положительный целый предел запросов чтения |
 | `lock.seconds`, `lock.poll_seconds` | Положительные конечные timeout и интервал повторного захвата локального lock |
-| `repository.id`, `repository.path`, `repository.base_ref` | Идентичность repository, его путь и ветка будущих Workspace |
-| `worktree.root`, `worktree.branch_prefix` | Каталог и префикс веток будущих рабочих деревьев |
-| `worktree.fs_timeout_seconds`, `worktree.git_timeout_seconds` | Положительные конечные пределы файловых и Git операций |
+| `repository.id`, `repository.path`, `repository.base_ref` | Идентичность repository, его путь и исходная ссылка writable Workspace |
+| `worktree.root`, `worktree.branch_prefix` | Каталог и префикс веток writable рабочих деревьев |
+| `worktree.fs_timeout_seconds`, `worktree.git_timeout_seconds` | Положительные конечные значения: Git timeout применяется; fs timeout зарезервирован |
 | `transfer.root`, `transfer.max_package_bytes`, `transfer.max_files`, `transfer.max_file_bytes`, `transfer.file_mode` | Каталог, положительные лимиты и режим файлов будущего transfer (целое 0–511) |
 | `identifiers.task.pattern`, `identifiers.sprint.pattern` | Регулярные выражения идентификаторов |
 
@@ -95,7 +96,8 @@ Repository, worktree и transfer пути разрешаются относит�
 Sequencing использует только свой `database` и `lock`. Requirements и Execution
 передают идентичности через публичные договоры; их конфигурации и БД этим CLI
 не читаются. Разные state roots дают независимые хранилища. Lock принадлежит
-одному Sequencing state и удерживается на время текущей операции.
+одному Sequencing state. Apply удерживает его на время транзакции; prepare
+использует только короткие транзакции до и после Git. Во время Git lock освобождён.
 
 Перед обращением к данным `Store.connect` включает foreign keys и вызывает
 [исторические переходы](storage-seq.md#переход-к-формату-2). Пустая БД и
@@ -363,7 +365,8 @@ PYTHONPATH=src python -B tools/check_documentation.py --checkout . --changed app
 
 Исторические проверки регистрации и переходов хранилища находятся в
 `test_registration.py` и `test_store_migration.py`; их выбирают при изменении
-соответствующей границы. Проверки текущего чтения выполняют реальные CLI/SQLite операции, проверяют независимые значения,
+соответствующей границы. Проверки текущего чтения выполняют реальные CLI/SQLite операции, проверяют
+независимые значения,
 идентичности, типы, ownership, сохранность WIP и откат транзакций.
 
 ## Владение, переключение и восстановление
@@ -409,7 +412,8 @@ receipt сохраняются один раз, текущие бизнес-да
 
 Task claim и Workspace binding независимы. Эти пять операций сохраняют Workspace
 metadata, bindings, roots и файлы. Последовательность не требует физического
-Workspace. Полные результаты, причины отказов и их порядок принадлежат
+Workspace. Подготовленный контекст сохраняется при release/resume и используется
+новым законным claim через prepare. Полные результаты, причины отказов и их порядок принадлежат
 [контракту](contract-seq.md#54-claim_task), история —
 [руководству хранилища](storage-seq.md#атомарное-владение-и-история).
 
@@ -571,3 +575,130 @@ Task сохраняют исходный вид/номер Requirements referenc
 replay сохраняет revision, inner replay новым пакетом увеличивает её на один,
 а текущее владение B остаётся прежним. После операторского решения обычный
 resume создаёт новый claim; заключительный release сохраняет доступную работу.
+
+## Подготовка постоянного Workspace
+
+Зарегистрируйте Task и получите действующий claim своей Session. Подготовьте
+дополнительные каталоги контекста, main и artifacts. Передайте полный
+[пакет prepare](contract-seq.md#60-реализованная-подготовка): три массива roots
+содержат дополнительные code и все main/artifact пути в нужном порядке; допускаются
+пустые массивы. Относительные пути считаются от каталога рабочего config. Встроенный
+code-root добавляется автоматически первым. Публичные roots сортируются по kind,
+position, а порядок внутри каждой группы сохраняется.
+
+Для writable выберите repository.base_ref и собственный worktree.root: создаются
+ветка branch_prefix + task_id и дерево worktree.root/task_id. Исходный commit
+сохраняется до Git и используется при продолжении. Для read_only: true контекст
+указывает на существующий repository.path с его фактическим HEAD, branch — пустая
+строка; дополнительное рабочее дерево и Task branch не выделяются. Read-only —
+режим контекста, файловые разрешения repository сохраняются.
+
+Одна Task использует одного писателя подготовки. Держите её claim до завершения.
+Сохраните исходный пакет целиком для точного повтора. После прерывания или Git
+timeout сначала остановите исходного писателя, затем повторите пакет. При
+`workspace_checkout_incomplete:` завершите checkout по сохранённым path/branch/base,
+проверьте файлы, снимите initializing-lock через `git worktree unlock` и повторите
+пакет. [Модель продолжения](storage-seq.md#продолжение-физической-подготовки)
+описывает реальные состояния Git и сохранение материалов.
+
+Пример ниже запускается из корня рабочей копии с Python 3.13 и установленным Git.
+Он создаёт отдельные временные repository/config/state и дополнительные корни,
+использует реальные CLI и освобождает временное окружение после проверок.
+
+<!-- workspace-prepare-example -->
+```python
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+with tempfile.TemporaryDirectory(prefix='sequencing-workspace-guide-') as directory:
+    root = Path(directory)
+    repo = root / 'repository'
+    repo.mkdir()
+
+    def git(*arguments):
+        return subprocess.run(['git', '-C', str(repo), *arguments], text=True,
+                              capture_output=True, check=True).stdout.strip()
+
+    git('init', '-q', '--initial-branch=sprint')
+    git('config', 'user.name', 'Workspace guide')
+    git('config', 'user.email', 'workspace@example.test')
+    git('config', 'core.hooksPath', '/dev/null')
+    (repo / 'source.txt').write_text('Исходный код\n')
+    git('add', 'source.txt')
+    git('commit', '-qm', 'Initial source')
+    config = json.loads(Path('apps/sequencing/config/sequencing.example.json').read_text())
+    config['paths']['state'] = str(root / 'state')
+    config['repository'].update(path=str(repo), base_ref='refs/heads/sprint')
+    config['worktree']['root'] = str(root / 'worktrees')
+    config['transfer']['root'] = str(root / 'transfer')
+    config_path = root / 'sequencing.json'
+    config_path.write_text(json.dumps(config))
+    revision = 0
+
+    def cli(operation, inputs):
+        response = subprocess.run(
+            [sys.executable, '-B', 'apps/sequencing/bin/sequencing',
+             '--config', str(config_path)],
+            input=json.dumps({'schema': 'stride-sequencing/v1',
+                              'operation': operation, 'input': inputs}) + '\n',
+            text=True, capture_output=True, check=True)
+        assert response.stderr == ''
+        return json.loads(response.stdout)
+
+    def apply(request_id, operation):
+        global revision
+        response = cli('apply', {'request_id': request_id, 'expected_revision': revision,
+                                 'operations': [operation]})
+        revision = response['revision']
+        return response['results'][0]
+
+    for task in ('0042', '0043'):
+        apply('register-' + task, {'id': 'register', 'kind': 'register_task',
+              'task_id': task, 'requirements_statement_revision': 1})
+    claim = apply('claim-first', {'id': 'claim', 'kind': 'claim_task', 'task_id': '0042',
+                  'claimant': 'SESSION-A', 'claim_request_id': 'claim-intent-first'})
+    roots = {'code': ['additional-code'], 'main': ['main-context'],
+             'artifact': ['task-artifacts', 'sprint-artifacts']}
+    for paths in roots.values():
+        for path in paths:
+            (root / path).mkdir()
+    inputs = {'action': 'prepare', 'request_id': 'prepare-first', 'task_id': '0042',
+              'claim_id': claim['claim_id'], 'claimant': 'SESSION-A',
+              'read_only': False, 'roots': roots}
+    first = cli('workspace', inputs)
+    revision = first['revision']
+    assert first['status'] == 'workspace_ready'
+    assert len(first['workspace']['roots']) == 5
+    assert cli('workspace', inputs) == {**first, 'replayed': True}
+    tree = Path(first['workspace']['path'])
+    (tree / 'working-notes.txt').write_text('Рабочие записи\n')
+    handoff = apply('release-first', {'id': 'release', 'kind': 'release_claim',
+                    'task_id': '0042', 'claim_id': claim['claim_id'],
+                    'claimant': 'SESSION-A', 'reason': 'Передача следующей Session'})
+    resumed = apply('resume-second', {'id': 'resume', 'kind': 'resume_claim',
+                    'task_id': '0042', 'claimant': 'SESSION-B',
+                    'handoff_id': handoff['handoff_id']})
+    second = cli('workspace', {**inputs, 'request_id': 'prepare-second',
+                 'claim_id': resumed['claim_id'], 'claimant': 'SESSION-B'})
+    revision = second['revision']
+    assert second['workspace'] == first['workspace']
+    assert (tree / 'working-notes.txt').read_text() == 'Рабочие записи\n'
+    readonly_claim = apply('claim-readonly', {'id': 'claim', 'kind': 'claim_task',
+                           'task_id': '0043', 'claimant': 'SESSION-A',
+                           'claim_request_id': 'claim-intent-readonly'})
+    readonly = cli('workspace', {'action': 'prepare', 'request_id': 'prepare-readonly',
+                   'task_id': '0043', 'claim_id': readonly_claim['claim_id'],
+                   'claimant': 'SESSION-A', 'read_only': True,
+                   'roots': {'code': [], 'main': [], 'artifact': []}})
+    assert readonly['workspace']['path'] == str(repo)
+    assert readonly['workspace']['branch'] == ''
+    assert len(readonly['workspace']['roots']) == 1
+    assert len(git('worktree', 'list', '--porcelain').split('worktree ')) - 1 == 2
+    current = cli('query', {'queries': [{'id': 'current', 'kind': 'task', 'task_id': '0042'}]})
+    assert current['results'][0]['value']['workspace'] == second['workspace']
+    print('workspace=ready replay=true resume=same-context readonly=repository wip=preserved')
+```

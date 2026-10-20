@@ -5,7 +5,8 @@
 Реализованный срез включает собственный CLI/config, хранилище формата 2,
 `register_task`, `register_sprint`, чтение полного текущего значения Task/Sprint,
 доступности `eligibility` и кандидатов `next` относительно явной Session,
-а также `claim_task`, `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`.
+а также `claim_task`, `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`
+и `workspace` с `action: "prepare"`.
 Процедуры описаны в [руководстве CLI](shell-seq.md) и
 [руководстве хранилища](storage-seq.md). Независимая работа — Task вне Sprint;
 Sprint использует ту же выданную identity с явно зарегистрированным membership.
@@ -18,7 +19,8 @@ exit 2. Обычные смысловые конфликты использую�
 `session_claim_conflict`, `claim_owner_mismatch`, `switch_target_conflict`,
 `not_eligible`, `handoff_not_found`. Их порядок описан в §5.4–5.6, §5.9–5.10;
 детали blockers читаются через `eligibility`. Последующие разделы описывают
-также целевые команды revise, Workspace, terminal и transfer и расширенный
+также целевые команды revise, независимого владения и освобождения Workspace, terminal и transfer и
+расширенный
 профиль структурированных ошибок. Эти будущие команды и профиль не заявлены
 как реализованные нынешним CLI. Примеры ниже с условными claim/handoff ID
 показывают строки: реально выделенные идентификаторы непрозрачны, caller
@@ -536,7 +538,8 @@ Sequencing атомарно создаёт новый claim и добавляе�
 следует из новой записи истории. `claim_replayed: false`; exact outer replay
 возвращает historical result. Все Workspace metadata, binding, roots и файлы
 сохраняются; эти Task-операции выполняются только в собственном хранилище.
-Физические команды Workspace — отдельная будущая возможность §6.
+Подготовка постоянного физического контекста реализована в §6.0.
+Независимое владение и освобождение Workspace описаны как будущие команды §6.1–6.3.
 
 ### 5.7 `record_terminal`
 
@@ -652,6 +655,68 @@ Exact outer replay recovery возвращает прежний результа
 
 Workspace имеет отдельную operation, потому что Git/filesystem side effects не должны
 маскироваться как owner-only SQLite batch.
+
+### 6.0 Реализованная подготовка
+
+Текущая команда `prepare` создаёт постоянный контекст Task. Следующие §6.1–6.3
+описывают будущие acquire/release/inspect/reconcile с отдельным владением Workspace;
+они сохраняются как целевой договор. Реализованный `prepare` использует этот пакет:
+
+```json
+{
+  "schema": "stride-sequencing/v1",
+  "operation": "workspace",
+  "input": {
+    "action": "prepare",
+    "request_id": "prepare-0042-1",
+    "task_id": "0042",
+    "claim_id": "returned-current-claim",
+    "claimant": "SESSION-A",
+    "read_only": false,
+    "roots": {
+      "code": ["../shared-code"],
+      "main": ["../main-context"],
+      "artifact": ["../task-artifacts", "../sprint-artifacts"]
+    }
+  }
+}
+```
+
+Все показанные поля обязательны, fieldsets точные. `read_only` — boolean.
+Три группы roots — массивы путей; каждый массив может быть пустым. Строки путей
+содержат непустой путь без NUL. Task ID соответствует настроенной policy;
+request/claim/claimant — непустые непрозрачные строки без NUL. Сохраняйте выданные
+идентификаторы целиком. Пути разрешаются относительно каталога конфигурации.
+
+Встроенный `code[0]` — физическое рабочее дерево либо repository в read-only
+режиме. `roots.code` задаёт дополнительные корни с position 1…N; main/artifact
+имеют position 0…N−1. Порядок внутри каждой группы сохраняется; DTO сортирует
+записи по kind,position. Полный успешный ответ имеет ровно поля `schema`,
+`status: "workspace_ready"`, `revision`, `workspace`, `replayed`.
+`workspace` содержит `workspace_id`, `task_id`, `repository_id`, `base_commit`,
+`branch`, `status`, `read_only`, `roots`, `path`, `owner_session_id`.
+Последнее поле отражает существующую независимую binding; новый контекст имеет null.
+
+Writable подготовка наблюдает настроенный base_ref один раз, сохраняет этот commit,
+путь и ветку перед Git. Read-only использует фактический HEAD repository и пустую
+строку branch. Освобождение Task claim и следующий законный claim сохраняют этот
+контекст. Новый совместимый запрос возвращает его с новой revision и receipt.
+
+Проверка формы предшествует данным. Затем общий request slot проверяет точное
+намерение: изменённый пакет с тем же ID получает `request_reuse_conflict`.
+Завершённый точный replay возвращает исходный ответ с `replayed: true` до проверки
+текущего claim, сохраняя данные и revision. Новый либо незавершённый запрос требует
+известную Task и точный действующий claim указанной Session. Порядок последующих
+проверок: состояние Workspace, затем совпадение режима и корней.
+
+Причины текущего отказа: `task_not_found`, `claim_owner_mismatch`,
+`workspace_pending`, `workspace_failed`, `workspace_release_pending`,
+`workspace_released`, `workspace_conflict`. Ошибки Git используют диагностические
+строки с префиксами `workspace_git_failed:`, `workspace_git_timeout:` либо
+`workspace_checkout_incomplete:`. Действует текущий трёхпольный rejected/exit 2,
+а не будущий расширенный error profile. Точное хранение и операторское продолжение
+описаны в [модели подготовки](storage-seq.md#постоянная-подготовка-workspace),
+правильный запуск — в [инструкции](shell-seq.md#подготовка-постоянного-workspace).
 
 ### 6.1 Acquire
 
@@ -811,7 +876,8 @@ Request:
 
 Все queries одного packet наблюдают одну Sequencing `revision` в общей read-транзакции.
 Подготовленное хранилище формата 2 сохраняет данные и revision при чтении.
-Первоначальная подготовка схемы описана в [руководстве хранилища](storage-seq.md#переход-к-формату-2).
+Первоначальная подготовка схемы описана в [руководстве
+хранилища](storage-seq.md#переход-к-формату-2).
 Caller передаёт уже выданный публичным владельцем Session канонический ID в `claimant`;
 Sequencing использует его как непрозрачную непустую строку.
 
@@ -940,7 +1006,8 @@ Query item всегда имеет непустой уникальный `id` и
 
 Текущий CLI поддерживает строки `task`, `sprint`, `eligibility`, `next`;
 остальные строки таблицы описывают будущие варианты. Для `next` обязательны
-точные tagged scopes §7.2. В двух последних целевых запросах `sprint_id=null` явно означает все Sprint и standalone Tasks;
+точные tagged scopes §7.2. В двух последних целевых запросах `sprint_id=null` явно означает все
+Sprint и standalone Tasks;
 строка выбирает ровно одну существующую Sprint. Для остальных queries null ID недопустим.
 Число текущих queries ограничено `read.max_queries`; список непустой,
 `id` уникальны в пределах packet. Точные обязательные поля каждого текущего

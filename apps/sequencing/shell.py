@@ -17,14 +17,18 @@ import time
 from uuid import uuid4
 
 from apps.sequencing.application.ownership import OwnershipCommands
+from apps.sequencing.application.workspace import WorkspaceCommands
 from apps.sequencing.domain.eligibility import project_eligibility
 from apps.sequencing.domain.ownership import OwnershipError
+from apps.sequencing.domain.workspace import WorkspaceError
 from apps.sequencing.domain.registration import (
     Dependency, RegistrationError, RequirementsReference, SprintDefinition,
 )
 from apps.sequencing.infrastructure.eligibility_read import EligibilityReadRepository
 from apps.sequencing.infrastructure.registration_store import RegistrationRepository
 from apps.sequencing.infrastructure.ownership_store import OwnershipRepository
+from apps.sequencing.infrastructure.workspace_store import WorkspaceRepository
+from apps.sequencing.infrastructure.workspace_git import GitWorkspace
 from apps.sequencing.migrations.v1 import migrate as migrate_v1
 from apps.sequencing.migrations.v2 import migrate as migrate_v2
 
@@ -165,6 +169,7 @@ def load_config(config_path):
         raise SequencingError("Sequencing config transfer.file_mode: required integer between 0 and 511")
 
     return {
+        "config_directory": path.parent,
         "state": state,
         "database": database,
         "lock_path": lock_path,
@@ -207,8 +212,26 @@ def _packet(value, config):
         raise SequencingError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise SequencingError("Sequencing packet input must be an object")
-    if value["operation"] not in {"apply", "query"}:
+    if value["operation"] not in {"apply", "query", "workspace"}:
         raise SequencingError(f"Unknown Sequencing operation: {value['operation']}")
+    if value['operation'] == 'workspace':
+        inputs = value['input']
+        _exact(inputs, {'action', 'request_id', 'task_id', 'claim_id', 'claimant', 'read_only', 'roots'},
+               'Sequencing workspace input')
+        if inputs['action'] != 'prepare':
+            raise SequencingError('Unknown Workspace action')
+        for key in ('request_id', 'claim_id', 'claimant'):
+            _nonempty(inputs[key], 'Sequencing workspace ' + key)
+        _identifier(inputs['task_id'], config['task_pattern'], 'Task')
+        if type(inputs['read_only']) is not bool:
+            raise SequencingError('Sequencing workspace read_only requires a boolean')
+        _exact(inputs['roots'], {'code', 'main', 'artifact'}, 'Sequencing workspace roots')
+        for kind, paths in inputs['roots'].items():
+            if not isinstance(paths, list):
+                raise SequencingError('Sequencing workspace roots.' + kind + ' requires a list')
+            for path in paths:
+                _path_text(path, 'Sequencing workspace root path')
+        return value
     if value["operation"] == "apply":
         _exact(value["input"], {"request_id", "expected_revision", "operations"}, "Sequencing apply input")
         _nonempty(value["input"]["request_id"], "Sequencing apply request_id")
@@ -338,6 +361,34 @@ class Store:
     def revision(conn):
         return int(conn.execute("SELECT value FROM meta WHERE key='revision'").fetchone()[0])
 
+    @contextlib.contextmanager
+    def workspace_transaction(self):
+        with self.locked():
+            conn = self.connect()
+            try:
+                conn.execute('BEGIN IMMEDIATE')
+                yield WorkspaceRepository(conn)
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+
+    def _workspace_roots(self, intrinsic, requested):
+        roots = [{'kind': 'code', 'position': 0, 'path': str(intrinsic)}]
+        for kind, paths in requested.items():
+            for position, path in enumerate(paths, start=1 if kind == 'code' else 0):
+                roots.append({'kind': kind, 'position': position,
+                              'path': str(_resolve_from(self.config['config_directory'], path))})
+        return sorted(roots, key=lambda root: (root['kind'], root['position']))
+
+    def prepare_workspace(self, packet):
+        commands = WorkspaceCommands(self.workspace_transaction, GitWorkspace(self.config),
+                                     self._workspace_roots, lambda: uuid4().hex,
+                                     lambda: datetime.now(timezone.utc).isoformat(), WIRE_SCHEMA)
+        return commands.prepare(packet, hashlib.sha256(_canonical(packet)).hexdigest())
+
     def apply(self, packet):
         request_id = packet["input"]["request_id"]
         digest = hashlib.sha256(_canonical(packet)).hexdigest()
@@ -396,21 +447,7 @@ class Store:
 
     @staticmethod
     def _workspace(conn, task_id):
-        row = conn.execute(
-            'SELECT workspace_id,task_id,repository_id,base_commit,branch,status,read_only '
-            'FROM workspaces WHERE task_id=? AND status<>?', (task_id, 'released'),
-        ).fetchone()
-        if row is None:
-            return None
-        roots = [dict(root) for root in conn.execute(
-            'SELECT kind,position,path FROM workspace_roots WHERE workspace_id=? ORDER BY kind,position',
-            (row['workspace_id'],),
-        )]
-        binding = conn.execute('SELECT session_id FROM workspace_bindings WHERE workspace_id=?',
-                               (row['workspace_id'],)).fetchone()
-        return {**dict(row), 'read_only': bool(row['read_only']), 'roots': roots,
-                'path': next((root['path'] for root in roots if root['kind'] == 'code'), None),
-                'owner_session_id': None if binding is None else binding['session_id']}
+        return WorkspaceRepository(conn).value(task_id)
 
     def _task_value(self, conn, row):
         membership = conn.execute('SELECT sprint_id FROM sprint_members WHERE task_id=?',
@@ -478,9 +515,12 @@ def execute(config_path, stream, output):
             raise SequencingError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
+        if packet['operation'] == 'workspace':
+            result = store.prepare_workspace(packet)
+        else:
+            result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
         code = 0
-    except (SequencingError, RegistrationError, OwnershipError, OSError, sqlite3.Error) as exc:
+    except (SequencingError, RegistrationError, OwnershipError, WorkspaceError, OSError, sqlite3.Error) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2
     output.write(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")

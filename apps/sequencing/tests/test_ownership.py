@@ -109,6 +109,21 @@ class Work:
         actual = {row[0]: row for row in after['rows']['tasks'] if row[0] not in targets}
         assert actual == expected
 
+    @staticmethod
+    def assert_inner_replay_business(before, after):
+        assert before[0]['schema'] == after[0]['schema']
+        assert before[0]['version'] == after[0]['version']
+        assert before[1] == after[1]
+        for table, rows in before[0]['rows'].items():
+            if table not in ('meta', 'requests'):
+                assert after[0]['rows'][table] == rows, table
+        old_meta = dict(before[0]['rows']['meta'])
+        assert dict(after[0]['rows']['meta']) == {**old_meta, 'revision': old_meta['revision'] + 1}
+        old_requests = before[0]['rows']['requests']
+        new_requests = after[0]['rows']['requests']
+        assert len(new_requests) == len(old_requests) + 1
+        assert all(row in new_requests for row in old_requests)
+
     def reject(self, operation, reason=None, packet=None):
         before = self.snapshot()
         response = self.client.invoke(packet or self.packet([operation]), exit_code=2)
@@ -451,8 +466,10 @@ def test_C6_historical_inner_and_outer_replay_never_reactivate_claims(tmp_path, 
     assert w.client.invoke(packet) == {**response, 'replayed': True}
     assert w.snapshot() == before
     op = packet['input']['operations'][0]
+    before_inner = w.snapshot()
     replay, _, _ = w.apply(op)
     assert replay == {**saved, 'changed': False, 'claim_replayed': True}
+    w.assert_inner_replay_business(before_inner, w.snapshot())
     w.active([(task, OTHER, new)])
     assert w.history() == prior_history
     assert w.rows('SELECT status FROM task_claims WHERE claim_id=?', (old,)) == [('released',)]

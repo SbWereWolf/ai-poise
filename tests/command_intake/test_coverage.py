@@ -36,6 +36,8 @@ def test_coverage_contract(case, project, tmp_path, monkeypatch):
         'V16':generation_total_budget,
     }
     for i in each_port(project, tmp_path, monkeypatch):
+        # Coverage checks use real observations; expiry has its own controlled clock.
+        i.configure(**{'registry.retention.max_pending_age_seconds':60})
         functions[case['id'][:3]](i)
 
 
@@ -169,8 +171,6 @@ def direct_interop(i):
 def generation_row(i, row, mode):
     i.restart_episode()
     i.policy=fixture('policy.json'); i.mode(mode)
-    # This checks generation policy; expiration has its own controlled-clock case.
-    i.configure(**{'registry.retention.max_pending_age_seconds':60})
     # Seed the old completed reads with a policy admitting two complete files.
     for name, selection in row['prior'].items():
         if selection=='complete':i.read('cat docs/'+name+'.txt')

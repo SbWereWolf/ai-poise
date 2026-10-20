@@ -93,10 +93,10 @@ class Family:
         assert self.snapshot() == before
 
     def duplicate(self, task=D, parent=P, field='requirements_statement_revision', reference=7,
-                  sprint_revision=2, claimant='CALLER-A', changed=True):
+                  sprint_revision=2, claimant='CALLER-A', changed=True, op_id='duplicate'):
         operation = deepcopy(DATA['base_operation'])
         operation.pop('requirements_statement_revision')
-        operation.update(task_id=task, parent_id=parent, claimant=claimant)
+        operation.update(id=op_id, task_id=task, parent_id=parent, claimant=claimant)
         operation[field] = reference
         result = render(DATA['duplicate_result'], {'$OP': operation['id'], '$CHANGED': changed,
                         '$TASK': task, '$SPRINT_REV': sprint_revision})
@@ -190,7 +190,7 @@ def test_historical_outer_and_business_replay_keep_current_family_and_result(tmp
     expected = dict(response, replayed=True)
     assert case.client.invoke(packet) == expected
     assert case.snapshot() == before
-    case.duplicate(parent=E, claimant='CALLER-B', changed=False)
+    case.duplicate(parent=E, claimant='CALLER-B', changed=False, op_id='fresh-duplicate')
     case.family(view, (P, D, E))
 
 

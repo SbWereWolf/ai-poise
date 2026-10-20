@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
@@ -13,18 +14,31 @@ import re
 import sqlite3
 import sys
 import time
+from uuid import uuid4
 
+from apps.sequencing.application.ownership import OwnershipCommands
 from apps.sequencing.domain.eligibility import project_eligibility
+from apps.sequencing.domain.ownership import OwnershipError
 from apps.sequencing.domain.registration import (
     Dependency, RegistrationError, RequirementsReference, SprintDefinition,
 )
 from apps.sequencing.infrastructure.eligibility_read import EligibilityReadRepository
 from apps.sequencing.infrastructure.registration_store import RegistrationRepository
+from apps.sequencing.infrastructure.ownership_store import OwnershipRepository
 from apps.sequencing.migrations.v1 import migrate as migrate_v1
 from apps.sequencing.migrations.v2 import migrate as migrate_v2
 
 CONFIG_SCHEMA = "stride-sequencing-config/v1"
 WIRE_SCHEMA = "stride-sequencing/v1"
+OWNERSHIP_FIELDS = {
+    'claim_task': {'id', 'kind', 'task_id', 'claimant', 'claim_request_id'},
+    'switch_claim': {'id', 'kind', 'from_task_id', 'from_claim_id', 'task_id',
+                     'claimant', 'claim_request_id', 'reason'},
+    'release_claim': {'id', 'kind', 'task_id', 'claim_id', 'claimant', 'reason'},
+    'resume_claim': {'id', 'kind', 'task_id', 'claimant', 'handoff_id'},
+    'recover_claim': {'id', 'kind', 'task_id', 'claim_id', 'operator', 'decision',
+                      'writers_stopped', 'reason'},
+}
 
 
 class SequencingError(Exception):
@@ -231,6 +245,16 @@ def _packet(value, config):
                     _identifier(edge['successor'], config['task_pattern'], 'Task')
                     if edge['kind'] not in ('completion', 'result'):
                         raise SequencingError('Sequencing dependency kind must be completion or result')
+            elif isinstance(kind, str) and kind in OWNERSHIP_FIELDS:
+                fields = OWNERSHIP_FIELDS[kind]
+                _exact(op, fields, 'Sequencing ' + kind)
+                _identifier(op['task_id'], config['task_pattern'], 'Task')
+                if kind == 'switch_claim':
+                    _identifier(op['from_task_id'], config['task_pattern'], 'Task')
+                for field in fields - {'id', 'kind', 'task_id', 'from_task_id', 'writers_stopped'}:
+                    _nonempty(op[field], 'Sequencing ' + kind + ' ' + field)
+                if kind == 'recover_claim' and op['writers_stopped'] is not True:
+                    raise SequencingError('Sequencing recovery requires writers_stopped=true')
             else:
                 raise SequencingError(f'Unsupported Sequencing operation kind: {kind}')
             _nonempty(op['id'], 'Sequencing operation id')
@@ -334,6 +358,10 @@ class Store:
                     raise SequencingError("revision_conflict")
                 results = []
                 repository = RegistrationRepository(conn)
+                reader = EligibilityReadRepository(conn)
+                ownership = OwnershipCommands(OwnershipRepository(conn),
+                    lambda task_id, claimant: self._eligibility(conn, reader, task_id, claimant),
+                    lambda: uuid4().hex, lambda: datetime.now(timezone.utc).isoformat())
                 for op in packet['input']['operations']:
                     if op['kind'] == 'register_task':
                         kind = 'statement' if 'requirements_statement_revision' in op else 'snapshot'
@@ -342,12 +370,14 @@ class Store:
                         changed = repository.register_task(op['task_id'], reference)
                         results.append({'id': op['id'], 'kind': 'register_task', 'changed': changed,
                                         'task_id': op['task_id'], field: reference.revision})
-                    else:
+                    elif op['kind'] == 'register_sprint':
                         definition = SprintDefinition.create(op['sprint_id'], op['members'],
                             [Dependency(**edge) for edge in op['dependencies']])
                         changed, sprint_revision = repository.register_sprint(definition)
                         results.append({'id': op['id'], 'kind': 'register_sprint', 'changed': changed,
                                         'sprint_id': op['sprint_id'], 'sprint_revision': sprint_revision})
+                    else:
+                        results.append({'id': op['id'], 'kind': op['kind'], **ownership.execute(op)})
                 revision = current + 1
                 response = {"schema": WIRE_SCHEMA, "status": "applied", "revision": revision, "replayed": False, "results": results}
                 conn.execute("UPDATE meta SET value=? WHERE key='revision'", (revision,))
@@ -362,11 +392,7 @@ class Store:
 
     @staticmethod
     def _active_claim(conn, task_id):
-        row = conn.execute(
-            'SELECT claim_id,task_id,claimant,status FROM task_claims WHERE task_id=? AND status=?',
-            (task_id, 'active'),
-        ).fetchone()
-        return None if row is None else dict(row)
+        return OwnershipRepository(conn).active_for_task(task_id)
 
     @staticmethod
     def _workspace(conn, task_id):
@@ -454,7 +480,7 @@ def execute(config_path, stream, output):
         store = Store(config)
         result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
         code = 0
-    except (SequencingError, RegistrationError, OSError, sqlite3.Error) as exc:
+    except (SequencingError, RegistrationError, OwnershipError, OSError, sqlite3.Error) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2
     output.write(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")

@@ -628,17 +628,55 @@ binding остаются независимыми. Точные поля, replay
 
 Текущий CLI выполняет `register_task`, `register_sprint`, `claim_task`,
 `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`,
-`workspace/prepare`, `record_stage_label`, `record_execution_outcome` и пять query-вариантов:
-Task, Sprint, `eligibility`, `next`, `execution_facts`. Явные caller и области выбора описаны в
+`workspace/prepare`, `record_stage_label`, `record_execution_outcome`,
+`register_duplicate` и шесть query-вариантов:
+Task, Sprint, `eligibility`, `next`, `execution_facts`, `duplicate_family`. Явные caller и области выбора описаны в
 [руководстве доступности](../../apps/sequencing/docs/shell-seq.md#доступность-и-следующая-работа).
 Independent и явное Sprint membership используют одну Task identity. `Store.query`
 открывает одну read-транзакцию до чтения revision и собирает
 происхождение, членство, active claim, текущий Workspace, упорядоченные
-roots, независимую binding и terminal value только из своих таблиц. Изменение
-Sprint и независимого владения/освобождения Workspace остаётся последующим срезом.
+roots, независимую binding и terminal value только из своих таблиц. Добавление
+нового ребёнка в черновик Sprint реализовано через `register_duplicate`; произвольная
+редакция Sprint и независимое владение/освобождение Workspace остаются последующим срезом.
 Подробные предусловия, ограничения SQL, пошаговый откат и правильные примеры
 принадлежат [руководству хранилища](../../apps/sequencing/docs/storage-seq.md),
 запуск и рабочие параметры — [руководству CLI](../../apps/sequencing/docs/shell-seq.md).
+
+### Семейство задач Sequencing
+
+`apps.sequencing.domain.duplicates.DuplicateIdentity` задаёт неизменное равенство
+исходного родителя, точного Requirements reference и назначения; новый Task ID
+выбирает сохранённую запись. `family_projection` извлечена из исходного Task domain
+и строит parent/child/children/siblings. Процесс, расстояния до стадий и принятие
+результата остаются у Execution.
+
+`apps.sequencing.application.duplicates.DuplicateCommands.register` адаптирует
+исходную последовательность создания дубля к отдельным владельцам: Requirements
+готовит новый ID/постановку, команда нормализует явный источник и координирует
+регистрацию Task/членства/редакции. `SprintDefinition.with_member` сохраняет
+отсортированный состав и исходный граф; `RegistrationRepository.add_member`
+записывает полную новую редакцию черновика. `DuplicateRepository` хранит связь и
+исходный результат одним immutable событием `task.duplicate_registered` в имеющейся
+истории. Схема и формат 2 остаются прежними. Caller-owned `Store.apply` владеет
+общей транзакцией, outer replay/receipt/revision и откатом всего пакета;
+внутреннее повторение сравнивает исходную business identity.
+
+`apps.sequencing.infrastructure.task_read.TaskReadRepository` владеет общей
+карточкой Task для `task` и `duplicate_family`. Полное семейство собирается за семь
+SQL-чтений независимо от числа детей в одном переданном снимке: известная Task,
+запись её родства, дети корня, общие Task/membership/active claims, текущие Workspace
+с независимой binding, упорядоченные roots и последние opaque факты исполнения.
+`WorkspaceRepository.values` и `ExecutionFactsRepository.values` сохраняют общие
+DTO для отдельной записи и пакетного чтения. Действительный Workspace owner
+берётся из binding, Task owner — из claim. Eligibility использует прежние факты
+конкретных предшественников; собственный результат ребёнка остаётся отдельным.
+
+Поля и поддержанные сценарии принадлежат [контракту
+семейства](../../apps/sequencing/docs/contract-seq.md#513-register_duplicate),
+последовательность вызовов — [руководству
+CLI](../../apps/sequencing/docs/shell-seq.md#регистрация-семейства-задач).
+Текущий перенос сохраняет исходное решение о retired supersession; исторические
+решения остаются у прежнего владельца.
 
 ### Подготовка постоянного рабочего пространства
 

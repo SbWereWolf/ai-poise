@@ -7,7 +7,8 @@
 доступности `eligibility` и кандидатов `next` относительно явной Session,
 а также `claim_task`, `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`
 и `workspace` с `action: "prepare"`, `record_stage_label`,
-`record_execution_outcome`, чтение `execution_facts`.
+`record_execution_outcome`, `register_duplicate`, чтение `execution_facts`
+и `duplicate_family`.
 Процедуры описаны в [руководстве CLI](shell-seq.md) и
 [руководстве хранилища](storage-seq.md). Независимая работа — Task вне Sprint;
 Sprint использует ту же выданную identity с явно зарегистрированным membership.
@@ -24,7 +25,8 @@ exit 2. Обычные смысловые конфликты использую�
 `record_terminal`, `cancel_task`, transfer и расширенный профиль структурированных ошибок. Эти
 будущие команды и профиль не заявлены
 как реализованные нынешним CLI. Текущие операции фактов описаны в §5.11–5.12,
-их чтение — в §7.5; целевые `record_terminal` и `cancel_task` остаются будущими
+их чтение — в §7.5; регистрация и чтение семейства — в §5.13 и §7.6.
+Целевые `record_terminal` и `cancel_task` остаются будущими
 операциями. Примеры ниже с условными claim/handoff ID
 показывают строки: реально выделенные идентификаторы непрозрачны, caller
 сохраняет возвращённые значения без предположений об их формате.
@@ -132,6 +134,7 @@ Receipt exact replay — исторический результат, а не с
 | kind | Дополнительные поля результата |
 | --- | --- |
 | `register_task` | `task_id` и ровно одно из `requirements_statement_revision`, `requirements_snapshot_revision` |
+| `register_duplicate` | `task_id`, `parent_id`, `sprint_id`, `sprint_revision` |
 | `register_sprint`, `revise_sprint` | `sprint_id`, `sprint_revision` |
 | `claim_task`, `resume_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed` |
 | `switch_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed`, `previous_task_id`, `previous_claim_id`, `handoff_id` |
@@ -328,6 +331,56 @@ Sequencing принимает только явный fact, уже решённ�
 
 Sequencing не вычисляет Execution success и не принимает log/evidence как completion.
 `terminal_id` immutable по canonical payload; conflicting reuse отклоняется.
+
+### 4.6 Семейство задач
+
+Requirements готовит постановку новой задачи и выдаёт её канонический ID и ссылку.
+Sequencing регистрирует этот ID как самостоятельную Task с явным исходным родителем
+и выбранным черновиком Sprint. Источник может быть независимой Task, участником того
+же или другого Sprint, в том числе уже завершённым. При указании дочерней Task
+родителем новой записи становится исходный корень семейства.
+
+Каждая Task сохраняет собственные постановку, состояние, членство, claim, Workspace
+и результат. Новая дочерняя Task получает `available`, переданную ссылку требований
+и выбранный Sprint; её claim, Workspace, terminal и полученные факты равны null.
+Чтение семейства показывает текущие сведения родственников. У его участников
+полная карточка Task дополнена одним полем `duplicate`:
+
+```json
+{
+  "kind": "duplicate",
+  "role": "parent",
+  "parent_id": "0042",
+  "children": ["0043"]
+}
+```
+
+Для дочерней Task того же семейства:
+
+```json
+{
+  "kind": "duplicate",
+  "role": "child",
+  "parent_id": "0042",
+  "siblings": []
+}
+```
+
+`children` и `siblings` отсортированы по ID; siblings содержит остальных детей.
+Обычная Task сохраняет форму §4.1. Родство неизменно, а состояния и владельцы
+читаются актуальными. Task claim и Workspace binding независимы: карточка сохраняет
+действительного владельца каждого ресурса, включая null binding при active claim.
+
+Execution владеет процессом, сравнением стадий и решением о принятии результата.
+Sequencing показывает переданные метки/исходы как факты. Для dependency `result`
+применяется собственный результат указанного predecessor после успешного выполнения
+всех необходимых предшественников (§7.2); родство сохраняет отдельность этих результатов.
+Регистрация семейства добавляет только явное членство нового ребёнка.
+
+Сохранено исходное решение о выводе активного замещения (`replace_task`) из
+эксплуатации. Текущая работа использует регистрацию семейства и явные зависимости;
+исторические решения остаются у прежнего владельца истории. Эта поставка описывает
+перенос родства, а не перенос исторических данных или новый механизм замещения.
 
 ## 5. Mutation batch: `apply`
 
@@ -767,6 +820,70 @@ claim, подготовка Workspace; у метки после known Task пр�
 `claim_owner_mismatch`, `claim_conflict`, `workspace_conflict`; форма/типы дают
 диагностический reason в текущем трёхпольном rejected/exit 2.
 
+### 5.13 `register_duplicate`
+
+Используйте обычный `apply` (§5), выданный Requirements новый `task_id`, существующий
+`parent_id` и существующий Sprint в состоянии `draft`. Полный operation item:
+
+```json
+{
+  "id": "duplicate",
+  "kind": "register_duplicate",
+  "task_id": "0043",
+  "parent_id": "0042",
+  "sprint_id": "SPR-FAMILY",
+  "claimant": "SESSION-A",
+  "requirements_statement_revision": 7
+}
+```
+
+Для опубликованного снимка замените только поле ссылки на
+`requirements_snapshot_revision` с его фактическим положительным integer-номером.
+Используется ровно один вид ссылки. `task_id`, `parent_id`, `sprint_id` следуют
+настроенной политике идентификаторов; `claimant` — переданная непустая непрозрачная
+строка без NUL, контекст вызова, а не автоматически создаваемый claim новой Task.
+Полный результат operation:
+
+```json
+{
+  "id": "duplicate",
+  "kind": "register_duplicate",
+  "changed": true,
+  "task_id": "0043",
+  "parent_id": "0042",
+  "sprint_id": "SPR-FAMILY",
+  "sprint_revision": 2
+}
+```
+
+В одной существующей транзакции создаются новая Task, членство, текущая и полная
+историческая редакция назначения и один факт родства. Sprint revision увеличивается
+на один; прежние участники, рёбра и снимки сохраняются. Общая store revision и
+outer receipt изменяются по §2.1 ровно один раз на новый успешный пакет.
+Ошибка последующей операции откатывает весь пакет.
+
+Business identity состоит из нового `task_id`, нормализованного исходного родителя,
+точного вида/номера Requirements reference и Sprint назначения. Новый outer request
+с той же identity возвращает первоначальные `parent_id`, `sprint_id`,
+`sprint_revision` и `changed: false`. ID operation и claimant относятся к контексту
+запроса. В качестве источника допустим любой участник того же семейства.
+Такое повторение сохраняет членов, историю родства и Sprint revision; новая outer
+квитанция увеличивает только общую store revision. Сохранённый номер Sprint в
+результате регистрации относится к моменту регистрации, текущий состав читается
+через `sprint` и `duplicate_family`.
+
+Для точного outer replay сохраняйте весь исходный packet. Он возвращает исходный
+ответ с `replayed: true` до проверки текущей revision и сохраняет всю БД. Перед
+следующим решением читайте текущее семейство (§7.6), как и после других historical
+replay (§2.1).
+
+Диагностика неизвестного источника — `task_not_found`, назначения —
+`sprint_not_found`; для существующего назначения требуется `draft`
+(`sprint_not_draft`). Новый ID принадлежит новой Task: занятая обычная identity
+даёт `identity_conflict`; изменение сохранённой identity семейства —
+`duplicate_conflict`. Общие проверки формы и типов действуют по §2.1.
+[Правильная процедура](shell-seq.md#регистрация-семейства-задач) описывает запуск.
+
 ## 6. Workspace operation: `workspace`
 
 Workspace имеет отдельную operation, потому что Git/filesystem side effects не должны
@@ -1110,18 +1227,20 @@ Query item всегда имеет непустой уникальный `id` и
 
 | kind | Поля после id/kind | `value` |
 | --- | --- | --- |
-| `task` | `task_id` | Полная Task record §4.1; claim/workspace/terminal — модель или null |
+| `task` | `task_id` | Полная Task record §4.1, у участника семейства также `duplicate` §4.6; claim/workspace/terminal — модель или null |
 | `sprint` | `sprint_id` | Полная Sprint record §4.2, включая `sprint_revision` |
 | `dependencies` | `task_id` | `{task_id, predecessors, successors}`; arrays edges §4.2 |
 | `eligibility` | `task_id`, `claimant` | `{task_id, eligible, blockers, result_provenance}` из §7.2 |
 | `next` | `claimant`, `scope` | `{task_ids}` из §7.2 |
 | `execution_facts` | `task_id` | `{task_id, stage_label, outcome}` из §7.5 |
+| `duplicate_family` | `task_id` | Полное семейство §7.6 либо null для обычной Task |
 | `claim` | `task_id` | `{task_id, active_claim, latest_handoff}`; последние два — модель или null |
 | `workspace` | `task_id` | `{task_id, workspace}`; reservation §4.4 или null |
 | `resumable` | `sprint_id` | Array `{task_id, handoff_id, workspace_id}` для unclaimed non-terminal Tasks с не consumed handoff |
 | `work_overview` | `sprint_id` | `{sprint_id, tasks, counts}` по правилам ниже |
 
-Текущий CLI поддерживает строки `task`, `sprint`, `eligibility`, `next`, `execution_facts`;
+Текущий CLI поддерживает строки `task`, `sprint`, `eligibility`, `next`,
+`execution_facts`, `duplicate_family`;
 остальные строки таблицы описывают будущие варианты. Для `next` обязательны
 точные tagged scopes §7.2. В двух последних целевых запросах `sprint_id=null` явно означает все
 Sprint и standalone Tasks;
@@ -1153,8 +1272,38 @@ null до их первого приёма. Stage label содержит ров�
 
 Последний факт выбирается по принятому порядку записи отдельно для меток и исходов.
 Точный replay сохраняет текущее последнее значение. Чтение использует один снимок
-Sequencing и сохраняет данные. Прежний Task DTO остаётся прежним; его terminal
+Sequencing и сохраняет данные. Обычная Task сохраняет прежний DTO; её terminal
 отражает positive/cancelled, а отрицательный исход виден в execution_facts.
+
+### 7.6 Текущее чтение семейства
+
+Полный запрос использует общую read-only оболочку:
+
+```json
+{
+  "schema": "stride-sequencing/v1",
+  "operation": "query",
+  "input": {
+    "queries": [
+      {"id": "family", "kind": "duplicate_family", "task_id": "0043"}
+    ]
+  }
+}
+```
+
+`value` имеет ровно `parent_id` и отсортированный по `task.task_id` массив `members`.
+Каждый элемент содержит ровно `task` — полную текущую карточку §4.1 с `duplicate`
+из §4.6 — и `execution_facts` из §7.5. Запрос исходного родителя и любого ребёнка
+возвращает одно полное семейство в пределах того же снимка. Отдельный `task`
+возвращает ту же карточку участника, отдельный `execution_facts` — те же его факты.
+Для зарегистрированной обычной Task `duplicate_family` возвращает null;
+неизвестный ID даёт `task_not_found`. Envelope содержит текущую store revision.
+
+Чтение использует одну транзакцию для родства, Task, membership, active claims,
+Workspace/независимых bindings/roots и последних принятых меток/исходов. В данных
+отражается фактический текущий ресурс каждого участника. Переданные метки остаются
+непрозрачными; процесс и правила допуска стадий принадлежат Execution. Номер Sprint
+из исторического результата регистрации читается отдельно от текущего семейства.
 
 ## 8. Transfer operation
 

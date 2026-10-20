@@ -9,14 +9,15 @@ Workspace roots и историю в собственной SQLite БД. Кан�
 
 Текущий CLI записывает `register_task`, `register_sprint`, `claim_task`,
 `switch_claim`, `release_claim`, `resume_claim`, `recover_claim`,
-`record_stage_label`, `record_execution_outcome`, подготавливает
+`record_stage_label`, `record_execution_outcome`, `register_duplicate`, подготавливает
 Workspace через `workspace/prepare` и читает `query` с
 `kind: "task"`, `kind: "sprint"`, `kind: "eligibility"`, `kind: "next"`,
-`kind: "execution_facts"`.
+`kind: "execution_facts"`, `kind: "duplicate_family"`.
 Текущий формат — 2. Зарегистрированная Task
 сохраняет ровно одну исходную ссылку: редакцию постановки либо опубликованного
 снимка Requirements. Независимая работа и работа в Sprint используют одну
-идентичность; membership задаётся явно. Изменение Sprint, независимое
+идентичность; membership задаётся явно. Добавление нового ребёнка семейства
+в черновик Sprint реализовано; произвольная редакция Sprint, независимое
 владение и освобождение Workspace, отдельные целевые terminal-команды и transfer
 остаются будущими возможностями [целевого
 контракта](contract-seq.md).
@@ -228,6 +229,53 @@ Claim содержит `claim_id`, `task_id`, `claimant`, `status`. Workspace с
 без code-root. `owner_session_id` берётся из независимой Workspace binding,
 либо равен null. Terminal возвращается как сохранённое JSON значение, либо null.
 
+Для участника семейства карточка дополнена `duplicate` с исходным родителем и
+children/siblings по [модели семейства](contract-seq.md#46-семейство-задач).
+Общий `TaskReadRepository` собирает карточки для отдельного `task` и семейства;
+`WorkspaceRepository.values` сохраняет прежний DTO и настоящую независимую binding.
+`ExecutionFactsRepository.values` возвращает последние полученные факты по seq.
+Все чтения используют соединение существующей query-транзакции.
+
+## Семейство задач и редакция Sprint
+
+[Регистрация семейства](contract-seq.md#513-register_duplicate) сохраняет один
+неизменяемый факт `task.duplicate_registered` в существующей `sequencing_history`.
+Формат БД остаётся 2; таблицы, параметры и исторические миграции сохраняются.
+Data события содержит:
+
+- `identity`: исходный `parent_id`, `reference` с точными `kind` (`statement` либо
+  `snapshot`) и `revision`, выбранный `sprint_id`;
+- `result`: первоначальные `changed: true`, `task_id`, нормализованный `parent_id`,
+  `sprint_id`, `sprint_revision`.
+
+Task reference указывает на нового ребёнка, Sprint reference — на назначение,
+actor — переданный claimant; время задаётся существующими часами приложения.
+Чтение связи использует именно этот факт. Корень и список детей определяются из
+неизменяемых записей; текущие состояния, claims, Workspace bindings и полученные
+исходы читаются из своих владельцев в одном снимке. Число SQL-чтений полного
+семейства ограничено независимо от числа детей.
+
+Транзакцией владеет `Store.apply`. `DuplicateCommands` нормализует явный источник,
+проверяет сохранённую identity, существующий черновик назначения и координирует
+запись. `RegistrationRepository.register_task` создаёт каноническую новую Task,
+а `add_member` сохраняет членство, текущую и полную историческую следующую
+редакцию Sprint. Полный исторический снимок содержит отсортированные прежние и нового
+участников и сохранённые рёбра. Другие Sprint и прежние снимки сохраняются.
+Та же транзакция добавляет факт и outer receipt либо откатывает весь пакет.
+
+Новый запрос с той же business identity читает первоначальный result, возвращая
+`changed: false`: членство, история и редакция Sprint сохраняются. Повтор исходного
+outer packet возвращает прежний ответ с `replayed: true` и сохраняет всю БД.
+Текущие сведения после повторения читаются через `duplicate_family`, `task`,
+`execution_facts` и `sprint`. Заполненные поддержанные хранилища формата 2
+продолжают работу с прежними строками, claims, Workspace, фактами и квитанциями.
+
+Новая Task начинает с собственными пустыми claim/Workspace/terminal/facts.
+Доступность применяет прежние правила всех необходимых предшественников и
+собственный result commit адресованного производителя. Родство и изменение
+членства сохраняют явный dependency graph. Историческое активное замещение
+остаётся выведенным из эксплуатации согласно принятому распределению владельцев.
+
 ## Текущее значение Sprint
 
 Чтение возвращает `sprint_id`, `sprint_revision`, `members`, `dependencies`.
@@ -235,6 +283,8 @@ Members отсортированы лексикографически; зави�
 successor, kind. Первая регистрация создаёт revision 1 и её запись в
 `sprint_revisions`. Новый пакет с тем же составом и рёбрами возвращает
 `changed: false`; порядок входных списков не меняет desired set.
+`register_duplicate` добавляет нового участника в draft и сохраняет следующую
+полную редакцию; произвольный `revise_sprint` остаётся целевой возможностью.
 
 ## Правильный запуск на отдельном state
 

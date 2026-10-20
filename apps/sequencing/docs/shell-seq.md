@@ -248,6 +248,144 @@ with tempfile.TemporaryDirectory(prefix='sequencing-registration-guide-') as dir
 точный повтор использует весь исходный пакет. Владелец сохраняет атомарность
 пакета и его receipt.
 
+## Регистрация семейства задач
+
+1. Получите исходный Task ID. В Requirements подготовьте постановку новой задачи,
+   её новый канонический ID и выбранную statement/snapshot revision.
+2. Выберите существующий Sprint в состоянии `draft`. Зарегистрируйте исходную Task
+   в Sequencing через `register_task`, если её регистрация ещё предстоит; новую
+   дочернюю Task создайте сразу через `register_duplicate`.
+3. Передайте полный [operation регистрации](contract-seq.md#513-register_duplicate)
+   внутри обычного `apply` с текущей store revision и сохраните весь packet/ответ.
+   `parent_id` может указывать на исходного родителя или его ребёнка. Результат
+   возвращает исходный корень и редакцию Sprint на момент создания нового участника.
+4. Для продолжения исходного вызова повторите сохранённый packet. Для нового
+   запроса той же регистрации используйте новую request identity и текущую revision:
+   результат содержит `changed: false` и первоначальную Sprint revision. Новое
+   outer receipt увеличивает только общую revision. Caller и ID operation —
+   контекст запроса; родство определяется ID новой Task, корнем, ссылкой и назначением.
+5. Читайте `duplicate_family` по исходному родителю или любому ребёнку, а также
+   нужные текущие `task`, `execution_facts`, `sprint` и `eligibility`. Семейство
+   содержит полные актуальные карточки и факты; Workspace binding и Task claim
+   сохраняют своих владельцев. Execution использует эти факты для своих решений.
+
+Новая Task начинает работу с собственными пустыми claim/Workspace/terminal/facts
+и переданной ссылкой требований. Исходная Task может быть независимой, участником
+того же или другого Sprint, в том числе завершённой. Отдельность результатов
+сохраняется: dependency `result` получает результат конкретного указанного
+предшественника после всех необходимых успехов. Правила доступности описаны в
+[следующем разделе](#доступность-и-следующая-работа).
+Формат хранилища и параметры запуска остаются прежними; [хранение
+родства](storage-seq.md#семейство-задач-и-редакция-sprint) использует существующую историю.
+Активное замещение сохранено как выведенная из эксплуатации исходная возможность;
+для текущей работы применяются явное родство и dependency graph.
+
+Пример выполняется из корня рабочей копии с настроенным Python 3.13. Он использует
+реальный CLI и отдельный временный state. Входные ID и ссылки считаются уже
+выданными Requirements: исходная `0042`/StatementRef1, участник назначения
+`0047`/SnapshotRef2, новые `0043`/StatementRef7 и `0044`/SnapshotRef8. Пример
+показывает приёмник этих значений; подготовку постановок и принятие результата
+выполняют соответствующие приложения в рабочем процессе.
+
+<!-- duplicate-family-example -->
+```python
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+with tempfile.TemporaryDirectory(prefix='sequencing-family-guide-') as directory:
+    root = Path(directory)
+    config = json.loads(Path('apps/sequencing/config/sequencing.example.json').read_text())
+    config['paths']['state'] = str(root / 'state')
+    config['repository']['path'] = str(Path.cwd())
+    config['worktree']['root'] = str(root / 'worktrees')
+    config['transfer']['root'] = str(root / 'transfer')
+    config_path = root / 'sequencing.json'
+    config_path.write_text(json.dumps(config, ensure_ascii=False))
+    revision = 0
+
+    def cli(packet):
+        completed = subprocess.run(
+            [sys.executable, '-B', 'apps/sequencing/bin/sequencing', '--config', str(config_path)],
+            input=json.dumps(packet, ensure_ascii=False) + '\n',
+            text=True, capture_output=True, check=True)
+        assert completed.stderr == ''
+        return json.loads(completed.stdout)
+
+    def apply(request_id, operations):
+        global revision
+        packet = {'schema': 'stride-sequencing/v1', 'operation': 'apply', 'input': {
+            'request_id': request_id, 'expected_revision': revision, 'operations': operations}}
+        response = cli(packet)
+        assert response['status'] == 'applied' and response['revision'] == revision + 1
+        revision = response['revision']
+        return packet, response
+
+    apply('register-source-and-destination', [
+        {'id': 'source', 'kind': 'register_task', 'task_id': '0042',
+         'requirements_statement_revision': 1},
+        {'id': 'anchor', 'kind': 'register_task', 'task_id': '0047',
+         'requirements_snapshot_revision': 2},
+        {'id': 'sprint', 'kind': 'register_sprint', 'sprint_id': 'SPR-FAMILY',
+         'members': ['0047'], 'dependencies': []}])
+    first_operation = {'id': 'first', 'kind': 'register_duplicate', 'task_id': '0043',
+        'parent_id': '0042', 'sprint_id': 'SPR-FAMILY', 'claimant': 'SESSION-A',
+        'requirements_statement_revision': 7}
+    first_packet, first_response = apply('first-child', [first_operation])
+    assert first_response['results'] == [{'id': 'first', 'kind': 'register_duplicate',
+        'changed': True, 'task_id': '0043', 'parent_id': '0042',
+        'sprint_id': 'SPR-FAMILY', 'sprint_revision': 2}]
+    _, second = apply('second-child', [{'id': 'second', 'kind': 'register_duplicate',
+        'task_id': '0044', 'parent_id': '0043', 'sprint_id': 'SPR-FAMILY',
+        'claimant': 'SESSION-A', 'requirements_snapshot_revision': 8}])
+    assert second['results'][0]['parent_id'] == '0042'
+    assert second['results'][0]['sprint_revision'] == 3
+    _, repeated = apply('first-child-current-request', [dict(first_operation,
+        id='first-again', parent_id='0044', claimant='SESSION-B')])
+    assert repeated['results'] == [{'id': 'first-again', 'kind': 'register_duplicate',
+        'changed': False, 'task_id': '0043', 'parent_id': '0042',
+        'sprint_id': 'SPR-FAMILY', 'sprint_revision': 2}]
+    assert cli(first_packet) == dict(first_response, replayed=True)
+    current = cli({'schema': 'stride-sequencing/v1', 'operation': 'query', 'input': {
+        'queries': [
+            {'id': 'root', 'kind': 'duplicate_family', 'task_id': '0042'},
+            {'id': 'child', 'kind': 'duplicate_family', 'task_id': '0043'},
+            {'id': 'sibling', 'kind': 'duplicate_family', 'task_id': '0044'},
+            {'id': 'sprint', 'kind': 'sprint', 'sprint_id': 'SPR-FAMILY'},
+            {'id': 'card', 'kind': 'task', 'task_id': '0043'},
+            {'id': 'facts', 'kind': 'execution_facts', 'task_id': '0043'}]}})
+    assert current['status'] == 'read_only' and current['revision'] == revision == 4
+    family = current['results'][0]['value']
+    assert family == current['results'][1]['value'] == current['results'][2]['value']
+    assert family['parent_id'] == '0042'
+    assert [member['task']['task_id'] for member in family['members']] == ['0042', '0043', '0044']
+    assert family['members'][0]['task'] == {'task_id': '0042',
+        'requirements_statement_revision': 1, 'state': 'available', 'sprint_id': None,
+        'claim': None, 'workspace': None, 'terminal': None, 'duplicate': {
+            'kind': 'duplicate', 'role': 'parent', 'parent_id': '0042',
+            'children': ['0043', '0044']}}
+    child = family['members'][1]
+    assert child['task'] == current['results'][4]['value'] == {'task_id': '0043',
+        'requirements_statement_revision': 7, 'state': 'available', 'sprint_id': 'SPR-FAMILY',
+        'claim': None, 'workspace': None, 'terminal': None, 'duplicate': {
+            'kind': 'duplicate', 'role': 'child', 'parent_id': '0042', 'siblings': ['0044']}}
+    assert child['execution_facts'] == current['results'][5]['value'] == {
+        'task_id': '0043', 'stage_label': None, 'outcome': None}
+    assert family['members'][2]['task']['requirements_snapshot_revision'] == 8
+    assert family['members'][2]['task']['duplicate']['siblings'] == ['0043']
+    assert current['results'][3]['value'] == {'sprint_id': 'SPR-FAMILY', 'sprint_revision': 3,
+        'members': ['0043', '0044', '0047'], 'dependencies': []}
+    print('family=consistent root=0042 children=0043,0044 sprint_revision=3 registration_revision=2 replay=stable')
+```
+
+Вывод подтверждает актуальное семейство из трёх Task и текущую Sprint revision 3.
+Результат повторённой первой регистрации сохраняет revision 2, а общее текущее
+состояние после нового outer receipt имеет revision 4. Все вызовы используют
+настоящий CLI; исходные и новые постановки остаются у Requirements.
+
 ## Доступность и следующая работа
 
 Передайте канонический ID текущей Session, уже выданный её публичным владельцем,
@@ -363,6 +501,7 @@ with tempfile.TemporaryDirectory(prefix='sequencing-availability-guide-') as dir
 python -B apps/sequencing/tests/test_shell.py --suite behavior
 python -B apps/sequencing/tests/test_shell.py --suite documentation
 python -B -m pytest -q apps/sequencing/tests/test_eligibility.py
+python -B -m pytest -q apps/sequencing/tests/test_duplicate_family.py
 PYTHONPATH=src python -B tools/check_documentation.py --checkout . --changed apps/sequencing/docs --changed docs/architecture/library-api.md
 ```
 

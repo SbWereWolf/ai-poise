@@ -305,6 +305,7 @@ class Work:
         return value['workspace_id']
 
     def adds(self):
+        """Observe attempted invocations, including a stopped before-Git call."""
         path = Path(self.boundary_values['trace'])
         calls = [] if not path.exists() else [json.loads(line) for line in path.read_text().splitlines()]
         return [args for args in calls if any(args[index:index + 2] == ['worktree', 'add']
@@ -488,7 +489,11 @@ def test_retry_preserves_reserved_identity(tmp_path, boundary):
     else:
         assert work.git(work.target, 'rev-parse', 'HEAD') == new_task
         assert (work.target / 'uncommitted.txt').read_text() == DATA['marker']
-    assert len(work.adds()) == 1
+    # The before-Git attempt was logged before it was stopped, then retried.
+    assert len(work.adds()) == (2 if boundary == 'before' else 1)
+    assert work.git(work.repo, 'worktree', 'list', '--porcelain').count(
+        'worktree ' + str(work.target) + '\n') == 1
+    assert work.rows('SELECT workspace_id,task_id FROM workspaces WHERE task_id=?', (A,)) == [(identity, A)]
     state = work.snapshot()
     assert_exact(work.invoke(packet), {**response, 'replayed': True})
     assert work.snapshot() == state
@@ -627,7 +632,7 @@ def test_pending_request_namespace_does_not_hold_database_during_git(tmp_path):
 def test_prepare_authority_and_packet_admission(tmp_path):
     work = Work(tmp_path)
     valid = work.packet()
-    assert len(DATA['admission']) == 28
+    assert len(DATA['admission']) == 30
     for case in DATA['admission']:
         packet = deepcopy(valid)
         if 'remove' in case:
@@ -638,6 +643,8 @@ def test_prepare_authority_and_packet_admission(tmp_path):
             packet['input']['roots'][case['root_group']] = deepcopy(case['value'])
         if 'root_entry' in case:
             packet['input']['roots'][case['root_entry']] = [deepcopy(case['value'])]
+        if 'remove_root_kind' in case:
+            packet['input']['roots'].pop(case['remove_root_kind'])
         work.reject(packet)
     for values, reason in [({'task_id': '0099'}, 'task_not_found'),
                            ({'claim_id': 'different-claim'}, 'claim_owner_mismatch'),

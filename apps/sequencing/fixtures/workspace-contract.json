@@ -197,6 +197,15 @@
       "set": {
         "request_id": "request\u0000bad"
       }
+    },
+    {
+      "label": "missing-root-kind",
+      "remove_root_kind": "artifact"
+    },
+    {
+      "label": "extra-root-kind",
+      "root_group": "other",
+      "value": []
     }
   ],
   "legacy_states": [

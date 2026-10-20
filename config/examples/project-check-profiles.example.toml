@@ -200,3 +200,56 @@ version = 1
 mode = "committed"
 mode_argument = "--mode"
 environment_key = "POISE_CHECK_DOCUMENTATION_SCOPE_JSON"
+
+[[commands]]
+command_id = "native-hook-regression"
+workload_class = "hooks-runner-named-checks"
+runtime_class = "python"
+platforms = ["linux"]
+invocation = "exec"
+argv = [
+  "env",
+  "PYTHONPATH=.:src",
+  "tools/.venv/bin/python",
+  "-P",
+  "-s",
+  "-B",
+  "-m",
+  "pytest",
+  "tests/hook_transport",
+  "tests/runner/test_registered_check_runner.py",
+  "tests/named_checks",
+  "--basetemp",
+  ".runtime/native-checks",
+  "-q",
+  "--tb=short",
+]
+cwd = "."
+parser = "generic"
+require_parser_confirmation = false
+execution_timeout_seconds = 1239
+observed_max_success_seconds = 1125.571379616
+observed_max_progress_gap_seconds = 0.0
+stall_timeout_seconds = 0
+initial_limit_reason = "Первый полный запуск исходников Poise на CPython 3.15 без начального предела; следующий предел публикуется по успешному измерению."
+last_calibrated_at = "2026-10-17T20:20:38.084098+00:00"
+[commands.progress]
+mode = "unavailable"
+[commands.output]
+success_bytes = 1500
+failure_bytes = 5000
+timeout_bytes = 3000
+max_failures = 20
+[commands.prerequisites]
+executables = ["tools/.venv/bin/python"]
+files = [
+  "tests/hook_transport/test_lifecycle_composition.py",
+  "tests/runner/test_registered_check_runner.py",
+  "tests/named_checks/test_history.py",
+]
+environment = []
+[commands.cache]
+enabled = false
+input_paths = ["src/**", "tests/**", "config/examples/**"]
+environment = []
+input_selection = "filesystem-glob"

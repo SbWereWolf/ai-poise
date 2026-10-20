@@ -1,4 +1,4 @@
-"""Shared binary, non-overwriting publication; callers own admission and locks."""
+"""Shared binary, non-overwriting publication; callers own admission."""
 import os
 import stat
 import hashlib
@@ -54,7 +54,18 @@ class BinaryFilePublisher:
 
     @classmethod
     def publish(cls, source, target, digest, mode):
-        source, target = Path(source), Path(target)
+        def write(output):
+            if cls.read(Path(source), 'Source', output) != digest:
+                raise PoiseError('Source digest changed')
+        cls._publish(Path(target), digest, mode, write)
+
+    @classmethod
+    def publish_bytes(cls, content, target, mode):
+        cls._publish(Path(target), hashlib.sha256(content).hexdigest(), mode,
+                     lambda output: output.write(content))
+
+    @classmethod
+    def _publish(cls, target, digest, mode, write):
         cls.without_links(target, 'Destination')
         if target.exists():
             if cls.read(target, 'Destination') != digest:
@@ -66,8 +77,7 @@ class BinaryFilePublisher:
         try:
             with os.fdopen(fd, 'wb') as output:
                 os.fchmod(output.fileno(), mode)
-                if cls.read(source, 'Source', output) != digest:
-                    raise PoiseError('Source digest changed')
+                write(output)
                 output.flush()
                 os.fsync(output.fileno())
             cls.without_links(target, 'Destination')

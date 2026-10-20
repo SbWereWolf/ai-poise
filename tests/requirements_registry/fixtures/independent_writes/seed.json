@@ -1,0 +1,26 @@
+[
+  [
+    "SYS-A",
+    "system",
+    "current",
+    "System A."
+  ],
+  [
+    "APP-A",
+    "application",
+    "current",
+    "Application A."
+  ],
+  [
+    "SYS-B",
+    "system",
+    "current",
+    "System B."
+  ],
+  [
+    "APP-B",
+    "application",
+    "current",
+    "Application B."
+  ]
+]

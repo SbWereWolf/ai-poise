@@ -1,0 +1,22 @@
+{
+  "progress": {
+    "visits": {
+      "work": 1
+    },
+    "transitions": 0,
+    "outcome": null,
+    "stage_work": null
+  },
+  "feedback": {
+    "findings": [],
+    "resolutions": [],
+    "decisions": []
+  },
+  "registry": {
+    "revision": 0,
+    "history": [],
+    "requests": [],
+    "executable_obligations": []
+  },
+  "action_assessment": null
+}

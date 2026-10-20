@@ -76,7 +76,7 @@ def settings(project,tmp_path):
         resources = deepcopy(current['runtime_resources'])
         resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
         revision = digest({'config': current, 'workflows': workflows})
-        selected_options = {key: candidate[key] for key in ('source_reader', 'telemetry_delivery')
+        selected_options = {key: candidate[key] for key in ('source_reader', 'telemetry_delivery', 'task_ids')
                             if key in candidate}
         identity = 'fixture-hook-resources-' + digest([revision, resources, selected_options])
         packet = update_request(project['config_path'], revision, request_id=identity,

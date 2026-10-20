@@ -8,15 +8,17 @@ from ..application.check_attempts import is_check_attempt
 from ..artifacts import check_counts
 from .artifact_factory import FileArtifactFactory
 from .task_paths import task_root, sprint_root
-from ..common import descendant
 
 
 class DuplicateReuseWorkspace:
     def __init__(self, runtime):
         self.h = runtime
 
-    def material_scope(self):
-        return self.h.delivery_effects.locked()
+    def admit_use_in(self, uow, intent, sources, *, permanent_sources):
+        return self.h.delivery_tools.admit_use_in(uow, intent, sources, permanent_sources=permanent_sources)
+
+    def complete_use_in(self, uow, token, *, accepted):
+        self.h.delivery_tools.complete_use_in(uow, token, accepted=accepted)
 
     def admit_material(self, task_id, source_task_id):
         self.h.delivery_tools.material_admission(task_id, 'reuse')
@@ -97,12 +99,6 @@ class DuplicateReuseWorkspace:
                     raise PoiseError('Reuse workspace changed after candidate preparation')
         return observation, execution
 
-    def handoff_preflight(self, task_id):
-        data = self.h.task_queries.record(task_id)
-        if self.h.handoff_tools.commands.latest(task_id) is None:
-            return None
-        return self.h.handoff_tools.validate_resume(data)
-
     def reconcile(self, task_id):
         self.h._reconcile_task_worktree(self.h.task_queries.record(task_id))
 
@@ -117,9 +113,7 @@ class DuplicateReuseWorkspace:
 
     def _artifact_factory(self, roots):
         h = self.h
-        return FileArtifactFactory(roots, h.cfg['batch'],
-            descendant(h.state, h.cfg['batch']['artifact_lock']),
-            h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds'])
+        return FileArtifactFactory(roots, h.cfg['batch'])
 
     def _artifact_rules(self, task_id, context, stage_id, records):
         # Reuse delivers the accepted result, not artifacts for simulated prior stages.
@@ -128,10 +122,11 @@ class DuplicateReuseWorkspace:
             raise PoiseError('Accepted artifact stage is not in the local workflow')
         check_counts(records, context['contract']['artifact_requirements'])
         check_counts(records, stage['artifact_requirements'])
-        with self.h.store.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            for assessment in task.assess_artifact_delivery(stage_id, self.h._artifact_facts(records)):
-                assessment.require()
+        from ..modules.tasks.ports import TaskReadSet
+        inputs = self.h.store.unit_of_work().capture(TaskReadSet((task_id,)))
+        task = inputs.task(task_id)
+        for assessment in task.assess_artifact_delivery(stage_id, self.h._artifact_facts(records)):
+            assessment.require()
 
     def plan_artifacts(self, task_id, context, source):
         roots, owners = self._artifact_locations(task_id, context['sprint_id'])
@@ -211,11 +206,12 @@ class DuplicateReuseWorkspace:
     def check(self, task_id, methods):
         h = self.h
         data, checks, tree, invocations, key = self._context(task_id, methods)
-        with h.store.unit_of_work() as uow:
-            task = uow.tasks.load(task_id)
-            candidate_digest = task.check_candidate_digest
-            batch = task.evidence_book.submission_batch(
-                task.stage.stage_id, task.state.iteration, candidate_digest, tree, key)
+        from ..modules.tasks.ports import TaskReadSet
+        inputs = h.store.unit_of_work().capture(TaskReadSet((task_id,)))
+        task = inputs.task(task_id)
+        candidate_digest = task.check_candidate_digest
+        batch = task.evidence_book.submission_batch(
+            task.stage.stage_id, task.state.iteration, candidate_digest, tree, key)
         if batch is not None:
             if not h._intact_receipts(task_id, batch['receipts'], invocations, tree):
                 raise PoiseError('Reuse receipt files changed; do not retry blindly')

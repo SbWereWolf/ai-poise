@@ -142,16 +142,18 @@ def test_benefit_is_editable_in_same_declarative_config_batch(project):
     assert r.data['benefit']['sections']==['report']
 
 
-def test_metrics_survive_transfer_and_retry_without_double_counting(project,tmp_path):
-    from tests.transfer.helpers import destination,export,restore,pick,handoff_args
+def test_metrics_survive_participant_change_and_replay_without_double_counting(project,tmp_path):
+    from runtime_services.test_participant_continuity import release_packet
     h,w,c=setup(project);send(w,[sample()],cause='initial')
     p=deepcopy(c['result_template']);p['sections']['report']='WIP';p['commit_message']='WIP: save'
-    saved=export(w,handoff=handoff_args(p))
-    dst=destination(project,tmp_path/'receiver');other=WorkTools(Poise(dst['config_path'],'B',DeterministicClock()))
-    restore(other,saved['package_path'],saved['package_digest']);pick(other,'T1')
+    h.runner.submit(c['task'], h.session, p)
+    packet=release_packet(w)
+    assert w.invoke(packet)['status']=='ownership_released'
+    other=WorkTools(Poise(project['config_path'],'B',DeterministicClock()))
+    other.invoke(request('bootstrap',{'task':{'id':'T1'},'decision':None,'feedback':None,'rework_stage':None}))
     send(other,[sample()])
     assert settled_metrics(other)['totals']['model_tokens']==120
-    restore(other,saved['package_path'],saved['package_digest'])
+    assert w.invoke(packet)['replayed'] is True
     assert settled_metrics(other)['totals']['model_tokens']==120
 
 

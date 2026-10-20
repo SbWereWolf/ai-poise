@@ -2,7 +2,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
-from threading import Event
+from threading import Event, Lock
 
 import pytest
 
@@ -254,23 +254,62 @@ def test_operator_cli_is_explicit_and_read_only_until_replay(project, tmp_path):
 def test_two_consumers_do_not_concurrently_deliver_the_same_record(tmp_path):
     from concurrent.futures import ThreadPoolExecutor
     entered, release = Event(), Event()
+    counter_lock = Lock()
+    now = [100]
+    active = maximum = calls = 0
     delivered = []
     def blocked(item):
-        entered.set()
-        release.wait()
-        delivered.append(item.identity)
-    first = spool(tmp_path, blocked)
+        nonlocal active, maximum, calls
+        with counter_lock:
+            active += 1
+            calls += 1
+            maximum = max(maximum, active)
+            first_call = calls == 1
+        try:
+            if first_call:
+                entered.set()
+                release.wait()
+            delivered.append(item.identity)
+        finally:
+            with counter_lock:
+                active -= 1
+    first = spool(tmp_path, blocked, now=lambda: now[0], batch_items=1, max_attempts=3)
     first.enqueue(envelope())
-    second = spool(tmp_path, lambda _: pytest.fail('second consumer must not enter sink'))
+    second = spool(tmp_path, blocked, now=lambda: now[0], batch_items=1, max_attempts=3)
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(first.replay)
-        assert entered.wait(5)
         try:
-            with pytest.raises(PoiseError, match='lock'):
-                second.replay()
+            if not entered.wait(5):
+                pytest.fail('first same-record delivery did not reach its gate')
+            record = first.status()['records'][0]
+            assert record['attempts'] == 1
+            assert record['next_attempt_at'] == 105
+            assert record['last_error'] == 'attempt_without_ack'
+            now[0] = 105
+            assert active == 1 and not release.is_set()
+            # A retry becomes due while the previous sink invocation is still active.
+            try:
+                replay = second.replay()
+            except PoiseError as error:
+                if 'lock' not in str(error):
+                    raise
+            else:
+                assert replay['attempted'] == 0
+            assert maximum == 1 and calls == 1 and active == 1
+            record = first.status()['records'][0]
+            assert record['attempts'] == 1
+            assert record['next_attempt_at'] == 105
+            assert record['last_error'] == 'attempt_without_ack'
+            assert delivered == []
         finally:
             release.set()
-        assert future.result()['delivered'] == 1
+        assert future.result() == {'attempted': 1, 'delivered': 1, 'failed': 0, 'corrupt': 0}
+    assert delivered == ['one']
+    assert maximum == 1 and calls == 1 and active == 0
+    assert list((tmp_path/'spool').glob('*.event.json')) == []
+    status = first.status()
+    assert status['pending'] == status['exhausted'] == status['failed_attempts'] == status['corrupt'] == 0
+    assert second.replay()['attempted'] == 0
     assert delivered == ['one']
 
 

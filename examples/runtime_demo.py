@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local runtime binding, observed JSONL messages, WIP handoff and durable views.
+"""Local runtime binding, observed JSONL messages, in-place WIP continuation and durable views.
 
 The rollout and review decisions are test fixtures, not a live Codex installation.
 No network, user repository, Gmail or external system changes are made.
@@ -56,14 +56,15 @@ def run(directory):
     ctx=begin(a,task,None);worktree=Path(ctx['worktree'])
     (worktree/'tests').mkdir()
     (worktree/'tests/test_double.py').write_text('import unittest\nfrom src.double import double\nclass Regression(unittest.TestCase):\n    def test_double(self):\n        self.assertEqual(double(2), 4)\n')
-    files=a.invoke('artifacts',{'items':[{'scope':'runtime','path':'note.txt',
+    files=a.invoke('artifacts',{'items':[{'scope':'task','path':'note.txt',
         'source':{'kind':'text','text':'Prepared regression; not yet verified.'}}]})
     payload=deepcopy(ctx['result_template']);payload['sections']['report']='Unfinished test stage, preserve before verification.'
     payload['artifact_paths']=files['artifact_paths']
-    user('Hand off to another agent')
-    handoff=a.invoke('handoff',{'request_id':'handoff-A','reason':'Continue with B',
-                    'result':payload,'commit_message':'WIP: regression','artifact_paths':[]})
-    assert not handoff['verified'] and Path(handoff['bundle_path']).is_file()
+    user('Continue with another agent')
+    state=a.invoke('show',{'queries':[{'id':'task','kind':'task'}]})['results'][0]['value']
+    release=a.invoke('release',{'request_id':'release-A','task_id':task['id'],
+                    'expected_version':state['version'],'reason':'Continue with B in this working area'})
+    assert release['status']=='ownership_released'
     user('Resume saved task')
     ctx=begin(b,{'id':task['id']},None)
     assert ctx['worktree']==str(worktree) and ctx['stage']=='tests'
@@ -91,7 +92,7 @@ def run(directory):
     user('Accept final result')
     final=b.invoke('accept',{})
     assert final['status']=='completed' and final['interaction']['user_messages_count']==7
-    out={'status':'PASS','handoff':handoff,'final_status':final['status'],'messages':final['interaction'],
+    out={'status':'PASS','release':release,'final_status':final['status'],'messages':final['interaction'],
          'same_worktree':True,'same_iteration_resumed':True,'reports':len(reports),
          'red_exit':reports[0]['checks'][0]['actual_exit_code'],'green_exit':reports[2]['checks'][0]['actual_exit_code'],
          'full_read_after_cleanup':full_read['total_bytes'],'calls_A':a.calls,'calls_B':b.calls,
@@ -103,4 +104,4 @@ def run(directory):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--directory',type=Path,required=True)
     result=run(parser.parse_args().directory.resolve())
-    print(json.dumps({k:v for k,v in result.items() if k not in ('calls_A','calls_B','handoff')},ensure_ascii=False,indent=2))
+    print(json.dumps({k:v for k,v in result.items() if k not in ('calls_A','calls_B','release')},ensure_ascii=False,indent=2))

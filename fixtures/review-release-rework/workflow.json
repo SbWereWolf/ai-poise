@@ -1,0 +1,135 @@
+{
+  "goal_type": "development",
+  "worktree_required": true,
+  "route": {
+    "entry": "draft"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": [
+    {
+      "id": "draft",
+      "handler": "produce",
+      "role": "executor",
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Use the public command boundary and preserve independent review authorship.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the actual current result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "audit"
+      },
+      "rework_targets": [
+        "draft"
+      ]
+    },
+    {
+      "id": "audit",
+      "handler": "inspect",
+      "role": "reviewer",
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Use the public command boundary and preserve independent review authorship.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the actual current result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "amend"
+      },
+      "rework_targets": [
+        "audit"
+      ]
+    },
+    {
+      "id": "amend",
+      "handler": "revise",
+      "role": "executor",
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Use the public command boundary and preserve independent review authorship.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the actual current result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "follow_up"
+      },
+      "rework_targets": [
+        "amend"
+      ]
+    },
+    {
+      "id": "follow_up",
+      "handler": "inspect",
+      "role": "reviewer",
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Use the public command boundary and preserve independent review authorship.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the actual current result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "amend"
+      },
+      "rework_targets": [
+        "follow_up"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
+  }
+}

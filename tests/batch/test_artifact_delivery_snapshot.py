@@ -1,7 +1,5 @@
 """Artifact batches reuse one delivery lookup without losing file validation."""
 from pathlib import Path
-import json
-from unittest.mock import patch
 
 import pytest
 
@@ -42,13 +40,10 @@ def inspect(runtime, data, records, entry):
 
 
 @pytest.mark.parametrize('entry', ['candidate', 'existing', 'replay'])
-def test_artifact_batch_reads_delivery_once_and_preserves_each_file(registered, entry):
+def test_artifact_batch_preserves_each_registered_file(registered, entry):
     runtime, context, records = registered
     data = runtime.task_queries.record(context['task'])
-    repository = runtime.transfer_repository
-    with patch.object(repository, 'delivery_for_task', wraps=repository.delivery_for_task) as lookup:
-        actual = inspect(runtime, data, records, entry)
-    assert lookup.call_args_list == [((context['task'],), {})]
+    actual = inspect(runtime, data, records, entry)
     assert len(actual) == 3
     for i, record in enumerate(sorted(actual, key=lambda item: item['path'])):
         assert (record['id'], record['digest']) == EXPECTED[i]
@@ -60,15 +55,13 @@ def test_artifact_batch_reads_delivery_once_and_preserves_each_file(registered, 
         assert Path(record['path']).read_bytes() == f'proof-{i}'.encode()
 
 
-def test_existing_empty_batch_does_not_read_delivery(project):
+def test_existing_empty_batch_preserves_the_current_task(project):
     tools = public_tools(project, 'empty-delivery-snapshot-owner')
     context = bootstrap(tools, project)
     runtime = tools.runtime
     data = runtime.task_queries.record(context['task'])
-    repository = runtime.transfer_repository
-    with patch.object(repository, 'delivery_for_task', wraps=repository.delivery_for_task) as lookup:
-        assert runtime._existing_artifacts(data) == []
-    lookup.assert_not_called()
+    assert runtime._existing_artifacts(data) == []
+    assert runtime.task_queries.record(context['task']) == data
 
 
 @pytest.mark.parametrize('fault', ['missing', 'bytes'])
@@ -87,47 +80,3 @@ def test_snapshot_keeps_candidate_existing_and_replay_damage_guards(registered, 
     assert runtime._check_replay_files(data['id'], {'report': {'artifacts': records}}) == (
         'evidence_missing' if fault == 'missing' else 'evidence_changed'
     )
-
-
-@pytest.mark.parametrize('entry', ['candidate', 'existing', 'replay'])
-@pytest.mark.parametrize('omit_last', [False, True])
-def test_delivery_keeps_logical_identity_at_changed_physical_paths(registered, entry, omit_last):
-    runtime, context, records = registered
-    data = runtime.task_queries.record(context['task'])
-    source_root = '/source/task/T1'
-    locations = {}
-    files = []
-    for i, record in enumerate(records):
-        physical = Path(record['path']).with_name(f'relocated-{i}.md')
-        Path(record['path']).rename(physical)
-        placement = f'{source_root}/artifacts/snapshot-{i}.md'
-        locations[placement] = str(physical)
-        files.append({'task_id': 'T1', 'placement': placement})
-        with runtime.store.transaction() as db:
-            db.execute('UPDATE artifacts SET path=? WHERE id=?', (str(physical), record['id']))
-        record['path'] = str(physical)
-    # Arrange the persisted projection, not a claimed export/import execution.
-    delivery = {'binding': {'locations': locations}, 'manifest': {
-        'owners': {'task': {'T1': source_root}}, 'files': files,
-        'omitted_artifacts': [EXPECTED[2][0]] if omit_last else [],
-    }}
-    saved = {'task_ids': ['T1'], 'package_digest': 'e' * 64, 'delivery': delivery}
-    with runtime.store.transaction() as db:
-        db.execute('INSERT INTO transfer_imports(package_digest,data) VALUES(?,?)',
-                   ('e' * 64, json.dumps(saved)))
-    if omit_last:
-        Path(records[2]['path']).unlink()
-    repository = runtime.transfer_repository
-    with patch.object(repository, 'delivery_for_task', wraps=repository.delivery_for_task) as lookup:
-        actual = inspect(runtime, data, records, entry)
-    assert lookup.call_args_list == [(('T1',), {})]
-    if entry != 'replay':
-        assert len(actual) == (2 if omit_last else 3)
-        assert [(item['id'], item['digest']) for item in actual] == list(EXPECTED[:len(actual)])
-        for i, record in enumerate(actual):
-            assert record['relative_path'] == f'artifacts/snapshot-{i}.md'
-            assert Path(record['path']).name == f'relocated-{i}.md'
-            assert record['owner'] == 'T1' and record['scope'] == 'task'
-    for i, record in enumerate(records[:2 if omit_last else 3]):
-        assert (record['id'], record['digest']) == EXPECTED[i]
-        assert Path(record['path']).read_bytes() == f'proof-{i}'.encode()

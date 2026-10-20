@@ -1,0 +1,7 @@
+{
+  "default": {"status": "ready", "exit_code": 0},
+  "operations": {},
+  "payload_unit": "full stream Ω value\n",
+  "stderr_unit": "full diagnostic π\n",
+  "repetitions": 256
+}

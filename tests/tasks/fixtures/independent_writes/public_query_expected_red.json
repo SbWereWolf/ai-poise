@@ -1,0 +1,41 @@
+{
+  "R-PUBLIC-QUERY-PREP": {
+    "errors": [],
+    "failures": [
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_accounting_nonblocking_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_accounting_snapshot_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_content_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_criteria_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_current_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_evidence_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_history_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_pending_receipt_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_record_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_registry_preparation_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_resolve_path_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_result_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_standalone_summary_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_submission_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_summary_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_terminal_projection_allows_independent_commit",
+      "test_public_query_independent_preparation.IndependentPublicQueryPreparation.test_trace_projection_allows_independent_commit"
+    ],
+    "tests_run": 17
+  },
+  "R-PUBLIC-QUERY-SNAPSHOT": {
+    "errors": [],
+    "failures": [
+      "test_public_query_snapshot_coherence.PublicQuerySnapshotCoherence.test_evidence_and_locations_are_one_snapshot",
+      "test_public_query_snapshot_coherence.PublicQuerySnapshotCoherence.test_registry_context_and_rows_are_one_snapshot"
+    ],
+    "tests_run": 2
+  },
+  "R-TASK-INTENT-INTERLEAVING": {
+    "errors": [],
+    "failures": [
+      "test_task_preparation_interleavings.TaskIntentInterleavings.test_completed_same_request_during_preparation_replays_receipt",
+      "test_task_preparation_interleavings.TaskIntentInterleavings.test_owner_change_during_preparation_rejects_candidate"
+    ],
+    "tests_run": 2
+  }
+}

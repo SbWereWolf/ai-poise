@@ -177,6 +177,11 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
     configuration_fields(cfg, keys, 'project config')
+    if 'worktree_preparation' in cfg:
+        selection = configuration_fields(cfg['worktree_preparation'], {'configuration'}, 'worktree_preparation')
+        value = selection['configuration']
+        if not isinstance(value, str) or not value.strip() or '\0' in value:
+            raise PoiseError('worktree_preparation.configuration requires an explicit path')
     if 'task_planning' in cfg:
         from .modules.tasks.planning import validate_planning
         settings = cfg['task_planning']

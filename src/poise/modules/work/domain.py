@@ -57,7 +57,6 @@ def parse_request(value, config):
             'recover_missing_worktree':{'task_id','reason'},
             'recover_ownership':{'request_id','task_ids','expected_snapshot','task_claims','worktree_bindings','reason','authorization'},
             'recover_artifacts':{'request_id','task_id','expected_version','artifact_ids','source_roots','reason','authorization'},
-            'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'artifact_drafts':None,
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},
@@ -67,10 +66,17 @@ def parse_request(value, config):
             'revise_stage_contract':{
                 'request_id','task_id','expected_version','stage_id','contract','reason','authorization'
             },
-            'task':None,'sprint':None,'transfer':None,'delivery':None}
+            'task':None,'sprint':None,'delivery':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
+    if op == 'bootstrap' and isinstance(value['input'], dict) and 'preparation_request_id' in value['input']:
+        preparation = value['input']['preparation_request_id']
+        if not isinstance(preparation, str) or not preparation.strip():
+            raise DomainError('preparation_request_id must be a nonempty string')
+        if value['input'].get('decision') is not None or value['input'].get('rework_stage') is not None:
+            raise DomainError('preparation_request_id requires bootstrap without a stage decision')
+        shapes[op] = shapes[op] | {'preparation_request_id'}
     if op == 'recover_ownership' and isinstance(value['input'], dict) and 'mode' in value['input']:
         from ..ownership.domain import CRASH_RECOVERY_FIELDS
         shapes[op] = set(CRASH_RECOVERY_FIELDS)
@@ -83,15 +89,7 @@ def parse_request(value, config):
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
         shapes[op] = shapes[op] | {'force_duplicate_start'}
-    if op == 'handoff' and isinstance(value['input'], dict) and 'uncertain_check_recovery' in value['input']:
-        recovery = value['input']['uncertain_check_recovery']
-        exact(recovery, {'attempt_id', 'quiescence_evidence', 'effects_evidence'}, 'uncertain check recovery')
-        if any(not isinstance(item, str) or not item.strip() for item in recovery.values()):
-            raise DomainError('Uncertain check recovery requires explicit nonempty evidence and attempt ID')
-        if value['input']['result'] is not None:
-            raise DomainError('Uncertain check recovery requires null result')
-        shapes[op] = shapes[op] | {'uncertain_check_recovery'}
-    if op not in ('task','sprint','transfer','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
+    if op not in ('task','sprint','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')
@@ -108,9 +106,6 @@ def parse_request(value, config):
             raise DomainError('result must be an object or explicit null')
         if not isinstance(value['input']['artifacts'],list):
             raise DomainError('artifacts must be a list')
-    if op=='handoff':
-        if not isinstance(value['input']['artifact_paths'],list):raise DomainError('handoff paths must be a list')
-        if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):raise DomainError('handoff result must be an object or null')
     if op=='artifacts' and not isinstance(value['input']['items'],list):
         raise DomainError('items must be a list')
     if op=='release':
@@ -216,14 +211,13 @@ def read_range(text, requested, initial_lines):
 def validate_config(config):
     from string import Template
     from ..foundation.validation import configuration_fields
-    configuration_fields(config,{'max_input_bytes','max_items','max_artifact_bytes','file_mode','artifact_lock',
+    configuration_fields(config,{'max_input_bytes','max_items','max_artifact_bytes','file_mode',
                   'artifact_directories','templates','message_source','message_reasons','initial_read_lines'},'batch config', DomainError)
     for key in ('max_input_bytes','max_items','max_artifact_bytes','initial_read_lines'):
         if type(config[key]) is not int or config[key]<=0:
             raise DomainError(f'batch.{key} must be an explicit positive integer')
     if type(config['file_mode']) is not int or not 0<=config['file_mode']<=0o777:
         raise DomainError('batch.file_mode is required')
-    relative(config['artifact_lock'])
     for value in configuration_fields(config['artifact_directories'],{'runtime','task','sprint'},'artifact_directories', DomainError).values():relative(value)
     if not isinstance(config['templates'],dict):raise DomainError('templates must be an explicit dictionary')
     for name,item in config['templates'].items():

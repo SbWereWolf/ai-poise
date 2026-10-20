@@ -41,8 +41,15 @@ def readonly_database(path):
     path = Path(path)
     if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode):
         raise PoiseError('Observation database must be an existing regular file')
+    with _readonly_connection(path.resolve()) as db:
+        yield db
+
+
+@contextmanager
+def _readonly_connection(path):
+    """Open an existing configured SQLite store without adding path policy."""
     # No immutable=1: the last committed WAL snapshot must remain visible.
-    db = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True,
+    db = sqlite3.connect(Path(path).absolute().as_uri() + '?mode=ro', uri=True,
                          timeout=0, isolation_level=None)
     db.row_factory = sqlite3.Row
     try:
@@ -63,4 +70,13 @@ def readonly_transaction(path, wait, poll):
         # BEGIN is deferred. Pin the read snapshot here, where a short physical
         # writer conflict can use the existing explicit boundary budget.
         _boundary(db, 'PRAGMA user_version', Path(path), wait, poll, limit_name='sqlite_read_seconds')
+        yield db
+
+
+@contextmanager
+def preparation_transaction(path, wait, poll):
+    """A write owner's committed input view, using its existing lock budget."""
+    from .sqlite.transaction import _boundary
+    with _readonly_connection(path) as db:
+        _boundary(db, 'PRAGMA user_version', Path(path), wait, poll, limit_name='lock_seconds')
         yield db

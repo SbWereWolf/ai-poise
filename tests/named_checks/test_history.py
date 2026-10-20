@@ -8,7 +8,7 @@ import tomllib
 import threading
 import time
 
-from .support import FakeClock, Scene, clock_pair, digest, git, literal, snapshot, write_json
+from .support import FakeClock, Scene, clock_pair, digest, git, literal, schema, snapshot, write_json
 
 
 def calibrate(s, records, *, expected_sha=None, selection=None):
@@ -20,6 +20,25 @@ def calibrate(s, records, *, expected_sha=None, selection=None):
 def success_history(s):
     return [s.record(s.run(fresh=True, clock=clock_pair(1))),
             s.record(s.run(fresh=True, clock=clock_pair(2)))]
+
+
+def test_explicit_unlimited_measurement_becomes_success_plus_ten_percent(project, tmp_path, monkeypatch):
+    s = Scene(project, tmp_path, monkeypatch)
+    s.child(execution_timeout_seconds=0)
+    schema(s.profiles, s.contract['schemas']['configuration']['profiles_toml'])
+    first = s.record(s.run(fresh=True, clock=clock_pair(20)))
+    assert first['status'] == 'passed' and first['verified_success'] is True
+    assert first['timeout']['configured_seconds'] == 0
+    assert first['timeout']['effective_seconds'] is None
+    assert first['duration_seconds'] == 20
+    following = s.record(s.run(fresh=True, clock=clock_pair(1)))
+    assert following['timeout']['effective_seconds'] == 22
+    assert following['timeout']['basis'] == 'verified_success_history'
+    code, published, _ = s.invoke(calibrate(s, [first, following]))
+    assert code == 0 and published['status'] == 'published'
+    actual = tomllib.loads(s.profiles_path.read_text())['commands'][0]
+    assert actual['execution_timeout_seconds'] == 22
+    assert actual['observed_max_success_seconds'] == 20
 
 
 def test_initial_and_history_calibrated_limits(project, tmp_path, monkeypatch):

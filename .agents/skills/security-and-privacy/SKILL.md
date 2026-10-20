@@ -21,4 +21,4 @@ The affected scenario, actual subject/resource/action, ownership and trust/acces
 
 ## Output
 
-Concrete findings with conditions, violated contract, impact and actual evidence/checks, or a bounded no-finding result stating the inspected scenarios and limitations. Save through existing Task/feedback/evidence owners and public handoff. No-finding within this scope is not a claim that the whole application is secure.
+Concrete findings with conditions, violated contract, impact and actual evidence/checks, or a bounded no-finding result stating the inspected scenarios and limitations. Save through existing Task/feedback/evidence owners and ordinary public release. No-finding within this scope is not a claim that the whole application is secure.

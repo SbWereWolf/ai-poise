@@ -1,0 +1,665 @@
+{
+  "workflow": {
+    "goal_type": "development",
+    "worktree_required": false,
+    "route": {
+      "entry": "work"
+    },
+    "stages": [
+      {
+        "id": "work",
+        "handler": "produce",
+        "role": "executor",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "read_only": false,
+        "allowed_paths": [
+          "src/**"
+        ],
+        "sections": {
+          "report": "A report is required."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "normalization": "strip",
+        "instruction": "Produce a report.",
+        "rework_targets": [],
+        "transitions": {
+          "complete": null
+        },
+        "artifact_requirements": []
+      }
+    ],
+    "benefit": {
+      "git_categories": [],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "contract": {
+    "id": "A",
+    "sprint_id": null,
+    "goal_type": "development",
+    "goal": "First child result.",
+    "requirements": [
+      "Save the child result."
+    ],
+    "definition_of_done": [
+      "The report is saved."
+    ],
+    "methods": [
+      {
+        "id": "M",
+        "argv": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "input.py"
+        ],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": "."
+            }
+          ]
+        },
+        "verification_plan": {
+          "responsibility": "Verify the child result.",
+          "change_surface": [
+            "src/**"
+          ],
+          "red_stages": [],
+          "green_stages": [
+            "work"
+          ],
+          "red_failure": null
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": []
+      }
+    ],
+    "method_inputs": [
+      {
+        "method_id": "M",
+        "repository_inputs": [
+          "input.py"
+        ],
+        "future_outputs": [],
+        "reference_profile": {
+          "runner": "pytest",
+          "parser": "positional-paths",
+          "version": 1
+        }
+      }
+    ],
+    "checks": {
+      "work": [
+        "M"
+      ]
+    },
+    "artifact_requirements": [],
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "evidence_plan": {
+      "work": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "work",
+        "allowed_paths": [
+          "src/**"
+        ],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [],
+          "definition_of_ready": [],
+          "definition_of_done": []
+        }
+      }
+    ],
+    "decomposition": {
+      "kind": "ordinary",
+      "phases": [
+        {
+          "stage": "work",
+          "skills": [
+            "task-domain"
+          ],
+          "areas": [
+            "src/**"
+          ]
+        }
+      ],
+      "integration": null
+    },
+    "requirements_snapshot": {
+      "requirements": {
+        "APP": {
+          "id": "APP",
+          "level": "application",
+          "status": "current",
+          "text": "Children save their result."
+        },
+        "SYS": {
+          "id": "SYS",
+          "level": "system",
+          "status": "current",
+          "text": "Work results are preserved."
+        }
+      },
+      "links": [
+        {
+          "system": "SYS",
+          "application": "APP"
+        }
+      ],
+      "task_requirements": [
+        {
+          "text": "Save the child result.",
+          "applications": [
+            "APP"
+          ]
+        }
+      ]
+    },
+    "requirements_agreement": {
+      "accepted": true,
+      "chains": [
+        {
+          "task_text": "Save the child result.",
+          "applications": [
+            {
+              "id": "APP",
+              "level": "application",
+              "status": "current",
+              "text": "Children save their result."
+            }
+          ],
+          "systems": [
+            {
+              "id": "SYS",
+              "level": "system",
+              "status": "current",
+              "text": "Work results are preserved."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "parent_metadata": {
+    "contract": {
+      "id": "PLAN",
+      "sprint_id": null,
+      "goal_type": "planning",
+      "goal": "Publish reviewed children.",
+      "requirements": [
+        "Save the child result."
+      ],
+      "definition_of_done": [
+        "The report is saved."
+      ],
+      "methods": [],
+      "method_inputs": [],
+      "checks": {
+        "draft": [],
+        "review": [],
+        "publish": []
+      },
+      "artifact_requirements": [],
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "evidence_plan": {
+        "draft": {
+          "subject_methods": {},
+          "arguments": [],
+          "review_arguments": []
+        },
+        "review": {
+          "subject_methods": {},
+          "arguments": [],
+          "review_arguments": []
+        },
+        "publish": {
+          "subject_methods": {},
+          "arguments": [],
+          "review_arguments": []
+        }
+      },
+      "stage_contracts": [
+        {
+          "stage_id": "draft",
+          "allowed_paths": [],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "review",
+          "allowed_paths": [],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "publish",
+          "allowed_paths": [],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        }
+      ],
+      "decomposition": {
+        "kind": "ordinary",
+        "integration": null,
+        "phases": [
+          {
+            "stage": "draft",
+            "skills": [
+              "workflow"
+            ],
+            "areas": []
+          },
+          {
+            "stage": "review",
+            "skills": [
+              "workflow"
+            ],
+            "areas": []
+          },
+          {
+            "stage": "publish",
+            "skills": [
+              "workflow"
+            ],
+            "areas": []
+          }
+        ]
+      },
+      "requirements_snapshot": {
+        "requirements": {
+          "APP": {
+            "id": "APP",
+            "level": "application",
+            "status": "current",
+            "text": "Children save their result."
+          },
+          "SYS": {
+            "id": "SYS",
+            "level": "system",
+            "status": "current",
+            "text": "Work results are preserved."
+          }
+        },
+        "links": [
+          {
+            "system": "SYS",
+            "application": "APP"
+          }
+        ],
+        "task_requirements": [
+          {
+            "text": "Save the child result.",
+            "applications": [
+              "APP"
+            ]
+          }
+        ]
+      },
+      "requirements_agreement": {
+        "accepted": true,
+        "chains": [
+          {
+            "task_text": "Save the child result.",
+            "applications": [
+              {
+                "id": "APP",
+                "level": "application",
+                "status": "current",
+                "text": "Children save their result."
+              }
+            ],
+            "systems": [
+              {
+                "id": "SYS",
+                "level": "system",
+                "status": "current",
+                "text": "Work results are preserved."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "workflow": {
+      "goal_type": "planning",
+      "worktree_required": false,
+      "route": {
+        "entry": "draft"
+      },
+      "stages": [
+        {
+          "id": "draft",
+          "handler": "produce",
+          "role": "executor",
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "read_only": true,
+          "allowed_paths": [],
+          "sections": {
+            "planned_tasks": "Write children."
+          },
+          "required_sections": [
+            "planned_tasks"
+          ],
+          "normalization": "strip",
+          "instruction": "Produce a report.",
+          "rework_targets": [],
+          "transitions": {
+            "complete": "review"
+          },
+          "artifact_requirements": []
+        },
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "executor",
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "read_only": true,
+          "allowed_paths": [],
+          "sections": {
+            "report": "Review."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "normalization": "strip",
+          "instruction": "Produce a report.",
+          "rework_targets": [],
+          "transitions": {
+            "clear": "publish",
+            "changes_requested": "draft"
+          },
+          "artifact_requirements": []
+        },
+        {
+          "id": "publish",
+          "handler": "publish",
+          "role": "executor",
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "read_only": true,
+          "allowed_paths": [],
+          "sections": {},
+          "required_sections": [],
+          "normalization": "strip",
+          "instruction": "Produce a report.",
+          "rework_targets": [],
+          "transitions": {
+            "complete": null
+          },
+          "artifact_requirements": []
+        }
+      ],
+      "benefit": {
+        "git_categories": [],
+        "sections": []
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      }
+    },
+    "sprint_id": null,
+    "goal": "Publish reviewed children.",
+    "config_hash": "test-config",
+    "stage_criteria": {
+      "stages": {
+        "draft": {
+          "purpose": "execution",
+          "revision": 0,
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          },
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "source": {
+            "kind": "initial",
+            "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "execution": {
+            "state": "unstarted",
+            "epoch": 0,
+            "bound_revision": null
+          },
+          "proposals": [],
+          "history": [],
+          "revisions": []
+        },
+        "review": {
+          "purpose": "execution",
+          "revision": 0,
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          },
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "source": {
+            "kind": "initial",
+            "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "execution": {
+            "state": "unstarted",
+            "epoch": 0,
+            "bound_revision": null
+          },
+          "proposals": [],
+          "history": [],
+          "revisions": []
+        },
+        "publish": {
+          "purpose": "execution",
+          "revision": 0,
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          },
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "source": {
+            "kind": "initial",
+            "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "execution": {
+            "state": "started",
+            "epoch": 1,
+            "bound_revision": 0
+          },
+          "proposals": [],
+          "history": [],
+          "revisions": []
+        }
+      },
+      "requests": {}
+    }
+  },
+  "decomposition_policy": {
+    "skills": [
+      {
+        "id": "workflow",
+        "class": "meta",
+        "responsibility": null
+      },
+      {
+        "id": "task-domain",
+        "class": "narrow",
+        "responsibility": "tasks"
+      }
+    ],
+    "areas": [
+      {
+        "path": "src/**",
+        "responsibility": "tasks"
+      }
+    ]
+  },
+  "task_ids": {
+    "namespace": {
+      "minimum": 1,
+      "maximum": 20
+    },
+    "width": 4,
+    "progression": {
+      "first": 1,
+      "step": 1
+    }
+  },
+  "sprint_policy": {
+    "max_tasks": 10,
+    "max_dependencies": 20,
+    "acceptable_terminal_states": [
+      "completed",
+      "cancelled"
+    ],
+    "templates": {
+      "basic": {
+        "version": "1",
+        "goal": "",
+        "requirements": [],
+        "definition_of_done": [],
+        "sections": {
+          "plan": "Plan."
+        },
+        "tasks": [],
+        "dependencies": []
+      }
+    },
+    "section_rules": [
+      {
+        "name": "plan",
+        "template": "Plan.",
+        "normalization": "strip",
+        "required": true
+      }
+    ]
+  },
+  "sprint_plan": {
+    "id": "S",
+    "goal": "Publish connected results.",
+    "requirements": [
+      "Save both children."
+    ],
+    "definition_of_done": [
+      "Both children are available."
+    ],
+    "sections": {
+      "plan": "First child precedes second."
+    },
+    "tasks": [
+      "0001",
+      "0002"
+    ],
+    "dependencies": [
+      {
+        "predecessor": "0001",
+        "successor": "0002",
+        "kind": "completion"
+      }
+    ]
+  },
+  "reviewed_sprint_body": {
+    "sprint_id": "S",
+    "template": {
+      "id": "basic",
+      "version": "1"
+    },
+    "changes": [
+      {
+        "kind": "purpose",
+        "goal": "Publish connected results.",
+        "requirements": [
+          "Save both children."
+        ],
+        "definition_of_done": [
+          "Both children are available."
+        ]
+      },
+      {
+        "kind": "sections",
+        "values": {
+          "plan": "First child precedes second."
+        }
+      },
+      {
+        "kind": "upsert_tasks",
+        "tasks": []
+      },
+      {
+        "kind": "dependencies",
+        "items": [
+          {
+            "predecessor": "child-a",
+            "successor": "child-b",
+            "kind": "completion"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -123,9 +123,9 @@ def launch(binding, packet, session):
     return process, value
 
 
-def handoff(identity):
-    return request('handoff', {'request_id': identity, 'reason': 'explicit separate-session transfer',
-                              'result': None, 'commit_message': 'Preserve owner WIP', 'artifact_paths': []})
+def release(identity, context):
+    return request('release', {'request_id': identity, 'reason': 'Continue in the same working area',
+                              'task_id': context['task'], 'expected_version': context['version']})
 
 
 def claims(project):
@@ -136,10 +136,23 @@ def claims(project):
                 dict(db.execute('SELECT id,task_id FROM sessions')))
 
 
-@pytest.mark.parametrize('foreign_operation', ['bootstrap', 'handoff'])
+@pytest.mark.parametrize('foreign_operation', ['bootstrap', 'release'])
 def test_concurrent_copied_launcher_cannot_replace_or_release_sender(project, tmp_path, foreign_operation):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Barrier
+    from poise.common import digest, load_config
+    from poise.composition import project_config_tools
+    from projects.test_update import update_request
+    _, current, workflows = load_config(project['config_path'])
+    configured = update_request(project['config_path'], digest({'config': current, 'workflows': workflows}),
+        request_id='caller-isolation-handoff', manifest_edits=[{
+            'path': ['runtime_services'], 'value': {**current['runtime_services'], 'handoff': {
+                'directory': 'handoffs', 'preserved_directory': 'preserved',
+                'file_mode': 384, 'bundle': 'handoff.tar.gz', 'receipt': 'receipt.json',
+            }}}])
+    configured['receipt_path'] = 'operations/caller-isolation-handoff.json'
+    assert project_config_tools(current['runtime_resources']['project_setup']).apply(configured)['status'] == 'updated'
+    _, project['cfg'], _ = load_config(project['config_path'])
     service, installed = fixture_service(project, tmp_path)
     child = event(session='delegate'); child['cwd'] = str(project['root'])
     service.event(installed['definition_path'], child)
@@ -150,7 +163,7 @@ def test_concurrent_copied_launcher_cannot_replace_or_release_sender(project, tm
     wip = Path(context['worktree']) / 'owner-wip.txt'; wip.write_text('must survive')
     before = claims(project)
     other = deepcopy(project['task']); other['id'] = 'T2'
-    packet = bootstrap(other) if foreign_operation == 'bootstrap' else handoff('foreign-release')
+    packet = bootstrap(other) if foreign_operation == 'bootstrap' else release('foreign-release', context)
     ready = Barrier(2)
     def concurrent(binding, body, session):
         ready.wait(timeout=10)
@@ -167,8 +180,8 @@ def test_concurrent_copied_launcher_cannot_replace_or_release_sender(project, tm
     blocked, _ = launch(delegate, bootstrap({'id': context['task']}), 'delegate')
     assert blocked.returncode == 2 and 'live' in (blocked.stderr + blocked.stdout)
     assert claims(project) == before
-    saved, report = launch(sender, handoff('owner-release'), 'sender')
-    assert saved.returncode == 0 and report['status'] == 'handed_off', saved.stderr
+    saved, report = launch(sender, release('owner-release', context), 'sender')
+    assert saved.returncode == 0 and report['status'] == 'ownership_released', saved.stderr
     resumed, next_context = launch(delegate, bootstrap({'id': context['task']}), 'delegate')
     assert resumed.returncode == 0, resumed.stderr
     assert next_context['worktree'] == context['worktree'] and wip.read_text() == 'must survive'

@@ -300,32 +300,23 @@ def test_reuse_rejects_git_operation_in_progress_before_work(project):
     assert marker.exists()
 
 
-@pytest.mark.parametrize('tamper_bundle', [False, True])
-def test_verified_reuse_uses_native_handoff_owner_and_preserved_bundle(project, tamper_bundle):
+def test_verified_reuse_continues_in_place_after_ordinary_release(project):
     h, _ = family_result(project)
     c = WorkTools(h)
     first = reuse(c)
-    handoff_id = 'reuse-handoff'
-    receipt = c.invoke(request('handoff', {
-        'request_id': handoff_id, 'reason': 'Continue reuse verification in another session',
-        'result': None, 'commit_message': None, 'artifact_paths': [],
+    released = c.invoke(request('release', {
+        'request_id': 'reuse-release', 'reason': 'Continue reuse verification in another session',
+        'task_id': 'D', 'expected_version': h.current_task()['_version'],
     }))
-    assert h.handoff_tools.commands.lookup('consumer', handoff_id)['state'] == 'released'
+    assert released['status'] == 'ownership_released'
     next_h = WorkPoise(project['config_path'], 'receiver')
     next_c = WorkTools(next_h)
     before = deepcopy(next_h.task_queries.record('D'))
-    if tamper_bundle:
-        Path(receipt['bundle_path']).write_bytes(b'corrupted transfer')
-        with pytest.raises(PoiseError, match='bundle missing or changed'):
-            next_c.invoke(request('reuse', first['request']))
-        assert next_h.task_queries.record('D') == before
-        assert next_h.handoff_tools.commands.lookup('consumer', handoff_id)['state'] == 'released'
-    else:
-        resumed = next_c.invoke(request('reuse', first['request']))
-        assert resumed['status'] == 'reuse_verified'
-        assert resumed['checks'] == first['checks']
-        assert next_h.handoff_tools.commands.lookup('consumer', handoff_id)['state'] == 'resumed'
-        assert next_c.invoke(request('accept', {}))['status'] == 'completed'
+    resumed = next_c.invoke(request('reuse', first['request']))
+    assert resumed['status'] == 'reuse_verified'
+    assert resumed['checks'] == first['checks']
+    assert resumed['worktree'] == before['worktree']
+    assert next_c.invoke(request('accept', {}))['status'] == 'completed'
 
 
 def test_completed_reuse_replay_survives_authorized_workspace_cleanup(project):

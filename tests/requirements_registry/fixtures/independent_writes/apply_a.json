@@ -1,0 +1,20 @@
+{
+  "request_id": "apply-a",
+  "expected_revision": 0,
+  "operations": [
+    {
+      "kind": "put_requirement",
+      "requirement": {
+        "id": "APP-A",
+        "level": "application",
+        "status": "current",
+        "text": "Updated A."
+      }
+    },
+    {
+      "kind": "link",
+      "system": "SYS-A",
+      "application": "APP-A"
+    }
+  ]
+}

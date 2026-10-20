@@ -1,0 +1,19 @@
+{
+  "id": "python",
+  "workspace": "BOUND_BY_FIXTURE",
+  "kind": "command",
+  "timed_out": false,
+  "actual_exit_code": 0,
+  "timeout_reason": null,
+  "capture_complete": true,
+  "termination": {
+    "schema": "run-termination-1",
+    "child_reaped": true,
+    "process_group_stopped": true,
+    "capture_complete": true
+  },
+  "capture_reason": null,
+  "cancelled": false,
+  "cancellation_reason": null,
+  "status": "available"
+}

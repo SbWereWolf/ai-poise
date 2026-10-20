@@ -1,7 +1,6 @@
-"""Real same-schema packages carry initial and restarted native actions."""
+"""Ordinary participant changes preserve initial and restarted native actions."""
 from copy import deepcopy
 import json
-import shutil
 
 import pytest
 
@@ -9,14 +8,14 @@ from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.modules.actions.domain import PlanSpec
 from poise.modules.foundation.errors import PoiseError
-from transfer.helpers import destination, enabled, export, handoff_args, pick, restore
+from batch.helpers import request
+from runtime_services.test_participant_continuity import release_packet
 from .helpers import verify
 from .lifecycle_helpers import command_plan, metadata, prepare, restart_current, runtime
 
 
 def action_rows(client, task_id):
-    # Imported database-global sequence IDs may be reassigned by their owner;
-    # the physical identity, versions, full payloads and event order may not.
+    # Preserve physical identity, versions, full payloads and event order.
     with client.store.transaction() as database:
         runs = [tuple(row) for row in database.execute(
             "SELECT stage,iteration,version,data FROM action_runs WHERE task_id=? ORDER BY stage,iteration",
@@ -30,8 +29,7 @@ def action_rows(client, task_id):
 
 
 @pytest.mark.parametrize("restarted", [False, True], ids=["initial", "restarted"])
-def test_public_package_preserves_action_history_current_context_and_replay(project, tmp_path, restarted):
-    enabled(project)
+def test_same_workspace_preserves_action_history_current_context_and_replay(project, tmp_path, restarted):
     client, context = runtime(project)
     marker = tmp_path / "package-effects.txt"
     current = command_plan(marker, "current")
@@ -63,22 +61,17 @@ def test_public_package_preserves_action_history_current_context_and_replay(proj
     assert all(plan in actual_plans for plan in expected_plans)
     assert all(json.loads(row[3])["status"] == "complete" for row in before["runs"])
     assert marker.read_text() == ("prior\ncurrent\n" if restarted else "current\n")
-    saved = export(WorkTools(client), handoff=handoff_args(None))
-    assert saved["status"] == "exported"
-    transfer_project = {**project, "cfg": json.loads(project["config_path"].read_text())}
-    target = destination(transfer_project, tmp_path / "package-destination")
-    receiver = WorkPoise(target["config_path"], "PACKAGE-RECEIVER")
+    producer = WorkTools(client)
+    assert producer.invoke(release_packet(producer))["status"] == "ownership_released"
+    receiver = WorkPoise(project["config_path"], "NEXT-PARTICIPANT")
     tools = WorkTools(receiver)
-    imported = restore(tools, saved["package_path"], saved["package_digest"])
-    assert imported["status"] == "imported"
-    assert imported["task_ids"] == [context["task"]]
     assert action_rows(receiver, context["task"]) == before
     assert metadata(receiver, context["task"]).get("restart_history", []) == history
-    shutil.rmtree(project["root"])
-    resumed = pick(tools, context["task"])
+    resumed = tools.invoke(request('bootstrap', {
+        'task': {'id': context['task']}, 'decision': None, 'feedback': None, 'rework_stage': None}))
     assert resumed["status"] == "verified"
     assert resumed["stage"] == "apply" and resumed["iteration"] == 1
-    assert resumed["worktree"] != context["worktree"]
+    assert resumed["worktree"] == context["worktree"]
     assert resumed["action"]["plan"] == current
     assert resumed["action"]["status"] == "complete"
     after_pick = action_rows(receiver, context["task"])
@@ -92,8 +85,7 @@ def test_public_package_preserves_action_history_current_context_and_replay(proj
     assert marker.read_bytes() == effect
 
 
-def test_package_refuses_retained_prepared_action_when_current_is_complete(project, tmp_path):
-    enabled(project)
+def test_participant_change_preserves_historical_prepared_and_current_complete_actions(project, tmp_path):
     client, context = runtime(project)
     marker = tmp_path / "refused-package-effects.txt"
     prior = PlanSpec.parse(command_plan(marker, "never-applied"), 1)
@@ -106,10 +98,16 @@ def test_package_refuses_retained_prepared_action_when_current_is_complete(proje
     before = action_rows(client, context["task"])
     assert {json.loads(row[3])["status"] for row in before["runs"]} == {"prepared", "complete"}
     assert marker.read_text() == "current\n"
-    with pytest.raises(PoiseError, match="^Resolve the external action before transfer$"):
-        export(WorkTools(client), handoff=handoff_args(None))
-    # Combined handoff legitimately precedes export's all-action validation.
+    tools = WorkTools(client)
+    assert tools.invoke(release_packet(tools))["status"] == "ownership_released"
     assert client.current_task() is None
     assert action_rows(client, context["task"]) == before
     assert marker.read_text() == "current\n"
     assert list(project["root"].rglob("work.zip")) == []
+    next_tools = WorkTools(WorkPoise(project['config_path'], 'historical-action-next'))
+    resumed = next_tools.invoke(request('bootstrap', {
+        'task': {'id': context['task']}, 'decision': None, 'feedback': None, 'rework_stage': None}))
+    assert resumed['action']['status'] == 'complete'
+    assert resumed['action']['plan'] == current
+    assert action_rows(next_tools.runtime, context['task']) == before
+    assert marker.read_text() == 'current\n'

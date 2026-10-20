@@ -126,6 +126,13 @@ class Database:
             raise PoiseError(f'read-only: существующее хранилище недоступно: {self.path}: {exc}') from exc
 
     @contextmanager
+    def preparation_transaction(self):
+        from ..diagnostic_io import preparation_transaction
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with preparation_transaction(self.path, self.wait, self.poll) as db:
+                yield db
+
+    @contextmanager
     def write_transaction(self):
         with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
             with write_transaction(self.path, self.lock, self.wait, self.poll) as db:

@@ -131,8 +131,9 @@ class Poise:
             self.requirements_store,
             self.cfg['batch']['max_items'],
         )
-        requirements_gate = TaskRequirementsGate.enabled(
-            self.requirements_store.registry,
+        from .infrastructure.requirements_registry import SqliteRegistrySnapshotProvider
+        requirements_gate = TaskRequirementsGate.from_provider(
+            SqliteRegistrySnapshotProvider(self.requirements_store),
             TaskRequirementsMetadataStore(self.store.unit_of_work),
         )
         self.task_commands, self.task_queries = task_tools(
@@ -201,17 +202,14 @@ class Poise:
                                      self.saved_materials)
         self.check_runner=RegisteredCheckRunner(limits['preview_chars'])
         self.check_timeout_policy=RunnerTimeoutPolicy.parse(self.cfg['runtime_services']['check_runner'])
-        from .infrastructure.handoff import LocalHandoff
-        self.handoff_tools=LocalHandoff(self)
-        from .infrastructure.sqlite.transfers import SqliteTransferRepository
-        self.transfer_repository = SqliteTransferRepository(self.store.database)
+        self._check_configuration_systems()
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
         self.source_under_test_resolver = resolve_source_under_test
-        self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
+        integration_adapter=RuntimeResultIntegration(self)
+        self.integration_tools=ResultIntegrationCommands(integration_adapter)
         from .application.task_cleanup import TaskResourceCleanup
-        from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup
-        self.cleanup_tools=TaskResourceCleanup(RuntimeTaskResourceCleanup(self))
+        self.cleanup_tools=TaskResourceCleanup(integration_adapter.cleanup)
         from .application.task_delivery import TaskDeliveryCommands
         from .infrastructure.task_delivery import RuntimeTaskDelivery
         self.delivery_effects=RuntimeTaskDelivery(self)
@@ -224,20 +222,21 @@ class Poise:
         task = self.task_queries.record(task_id)
         if task is None:
             raise PoiseError('Historical receipt Task unavailable')
-        return is_terminal_task_status(task['status'])
-
-    @property
-    def transfer_tools(self):
-        """Compose the file-transfer adapter only for an explicit transfer request."""
-        if 'transfer' not in self.cfg['runtime_services']:
-            raise PoiseError('Файловый перенос задач не настроен')
-        from .application.transfers import TransferCommands
-        from .infrastructure.transfers import RuntimeTransfers
-        return TransferCommands(RuntimeTransfers(self), self.cfg['runtime_services']['transfer'])
+        if not is_terminal_task_status(task['status']):
+            return False
+        delivery = self.delivery_tools.state(task_id)
+        return delivery is not None and delivery.data['status'] == 'delivery_complete'
 
     def delivery_after(self,result,operation):
         task_id=result['task']
         state=self.delivery_tools.state(task_id)
+        if state is None and operation == 'cancel':
+            record = self.task_queries.record(task_id)
+            reason = next(item['reason'] for item in reversed(self.task_queries.history(task_id))
+                          if item['event'] in ('user_cancel', 'newborn_cancelled'))
+            state = self.delivery_tools.agree({'action': 'agree', 'request_id': 'cancel-no-result',
+                'task_id': task_id, 'expected_version': record['version'], 'authorization': reason,
+                'declaration': {'disposition': 'no_result', 'outputs': []}})
         if state is None:
             return result
         delivery=self.delivery_tools.settle({'action':'settle','task_id':task_id,
@@ -260,9 +259,6 @@ class Poise:
     def report_task(self,report):
         if isinstance(report.get('task'),str):return self.task_queries.record(report['task'])
         return self.current_task()
-
-    def handoff(self,args):
-        return self.handoff_tools.preserve(args)
 
     def initialize_stage_contracts(
         self, task_id, expected_version, request_id, contracts, reason, authorization
@@ -516,11 +512,7 @@ class Poise:
         owners = {'runtime': self.session, 'task': task_id}
         if data['sprint_id'] is not None:
             owners['sprint'] = data['sprint_id']
-        delivery = self.transfer_repository.delivery_for_task(task_id)
-        omitted = set() if delivery is None else set(delivery['manifest']['omitted_artifacts'])
         for accepted in source['report']['artifacts']:
-            if accepted['id'] in omitted:
-                continue
             original = registered.get(accepted['id'])
             if original is None or any(original[key] != accepted[key]
                                        for key in ('id', 'path')):
@@ -528,7 +520,7 @@ class Poise:
             if not Path(original['path']).exists():
                 return 'evidence_missing'
             try:
-                current = self._inspect_artifacts([original['path']], roots, owners, delivery)[0]
+                current = self._inspect_artifacts([original['path']], roots, owners)[0]
             except PoiseError:
                 return 'evidence_changed'
             if any(current[key] != original[key] for key in ('id', 'scope', 'owner', 'path', 'digest')):
@@ -943,12 +935,6 @@ class Poise:
         if prepare:
             self._roots(data)
             payload = self.task_queries.current_submission(data['id'])
-            if payload is not None:
-                delivery = self.transfer_repository.delivery_for_task(data['id'])
-                if delivery is not None:
-                    omitted = set(delivery['manifest']['omitted_artifacts'])
-                    missing = {item['path'] for item in self.store.artifact_records(data['id']) if item['id'] in omitted}
-                    payload['artifact_paths'] = [path for path in payload['artifact_paths'] if path not in missing]
             if payload is None:
                 payload = {'sections':stage['sections'].copy(),'artifact_paths':[], 'commit_message':'',
                     'content_additions':{'sections':[],'routes':[],'requirements':[]},'trace':{},'method_additions':[],
@@ -1131,15 +1117,44 @@ class Poise:
             uow.execution.patch(data['id'],{'pending':None,'entry_tree':tree})
 
     @duplicate_admission
-    def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
+    def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False, preparation_request_id: str | None = None) -> dict:
+        if preparation_request_id is not None:
+            if not isinstance(preparation_request_id, str) or not preparation_request_id.strip():
+                raise PoiseError('preparation_request_id must be a nonempty string')
+            if decision is not None or rework_stage is not None:
+                raise PoiseError('preparation_request_id requires bootstrap without a stage decision')
         selected_id = task.get('id') if isinstance(task, dict) else None
         selected = self.task_queries.record(selected_id) if selected_id is not None else self.store.current(self.session)
         if selected is not None and is_terminal_task_status(selected['status']):
             return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
-        with self.delivery_effects.locked():
-            if selected is not None:
-                self.delivery_tools.material_admission(selected['id'], 'bootstrap')
-            return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        if preparation_request_id is not None and self.cfg.get('worktree_preparation') is None:
+            raise PoiseError('worktree_preparation is not configured for this project')
+        if selected is not None:
+            self.delivery_tools.material_admission(selected['id'], 'bootstrap')
+        result = self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        return self._prepare_worktree(result, preparation_request_id)
+
+    def _prepare_worktree(self, result, request_id):
+        configured = self.cfg.get('worktree_preparation')
+        if configured is None:
+            return result
+        task = self.store.current(self.session)
+        if (task is None or task['status'] == 'newborn' or is_terminal_task_status(task['status'])
+                or result.get('task') != task['id'] or not result.get('worktree')
+                or result.get('failure') is not None
+                or not result.get('duplicate_gate', {}).get('allowed', True)):
+            return result
+        from .application.worktree_preparation import WorktreePreparation
+        from .infrastructure.worktree_preparation import FilePreparationEffects
+        coordinates = {name: task[name] for name in ('worktree', 'branch', 'base')}
+        coordinates.update(task_id=task['id'], project_id=self.cfg['project'], task_root=str(self._roots(task)['task']))
+        preparation = WorktreePreparation(self.store.unit_of_work, self.session,
+            FilePreparationEffects(self, task, configured['configuration'])).prepare(coordinates, request_id)
+        result['preparation'] = preparation
+        if preparation['status'] != 'ready':
+            result['task_status'] = task['status']
+            result['status'] = 'action_failed'
+        return result
 
     def _bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
         if type(force_duplicate_start) is not bool:
@@ -1163,11 +1178,6 @@ class Poise:
                 raise PoiseError(FileProjectContext(Path(__file__).resolve().parents[1]).lookup_failure(
                     self.config_path, self.cfg, task['id']))
             if selected['status']=='newborn':
-                if (selected['claimed_by'] is None
-                        and self.handoff_tools.commands.newborn_candidate(
-                            selected['id'], selected['revision']) is not None):
-                    self.handoff_tools.resume(selected)
-                    selected = self.task_queries.record(selected['id'])
                 self.ownership.acquire_task(selected['id'],
                                            expected_newborn_revision=selected['revision'])
                 return self.task_queries.record(selected['id'])
@@ -1209,11 +1219,7 @@ class Poise:
                 blocked = self._require_entry(data)
                 if blocked is not None:
                     return blocked
-                if data['claimed_by'] is None and not is_terminal_task_status(data['status']):
-                    released = self.handoff_tools.commands.latest(data['id'])
-                    if released is not None:
-                        self.handoff_tools.resume(data,force_duplicate_start=force_duplicate_start)
-                        data=self.task_queries.record(data['id'])
+                self.retention.validate_bundle(data, data['last_report'])
                 self._reconcile_task_worktree(data)
                 data=self.task_queries.record(data['id'])
             else:
@@ -1345,10 +1351,8 @@ class Poise:
 
     def _cleanup_runtime(self):
         self.result_views.finish()
-        try:
-            shutil.rmtree(self.runtime)
-        except FileNotFoundError:
-            pass
+        from .infrastructure.session_establishment import remove_session_runtime
+        remove_session_runtime(self.runtime)
 
     def _select_checks(self, data: dict, changed: list[str]) -> list[dict]:
         stage_id = self._stage(data)['id']
@@ -1379,20 +1383,15 @@ class Poise:
                 grouped[key]['observation_rules'].append(data['contract']['evidence_plan'][stage_id]['subject_methods'][method_id])
         return list(grouped.values())
 
-    def _inspect_artifacts(self, paths, roots, owners, delivery):
-        from .infrastructure.recovery_artifacts import artifact_placement
-        return artifact_placement(inspect_paths(paths, roots, owners), delivery)
+    def _inspect_artifacts(self, paths, roots, owners):
+        return inspect_paths(paths, roots, owners)
 
     def _candidate_artifacts(self, data: dict, submitted: list[str], roots: dict[str,Path]):
         owners = {'runtime':self.session, 'task':data['id']}
         if 'sprint' in roots: owners['sprint'] = data['sprint_id']
-        delivery = self.transfer_repository.delivery_for_task(data['id'])
-        records = self._inspect_artifacts(submitted, roots, owners, delivery)
+        records = self._inspect_artifacts(submitted, roots, owners)
         previous = self.store.artifact_records(data['id'])
         internal_materials = self.store.internal_material_ids(data['id'])
-        if delivery is not None:
-            omitted = set(delivery['manifest']['omitted_artifacts'])
-            previous = [item for item in previous if item['id'] not in omitted]
         drafts = self.store.artifact_drafts(data['id'])
         previous_ids = {item['id'] for item in previous}
         submitted_paths = {item['path'] for item in records}
@@ -1406,7 +1405,7 @@ class Poise:
             old = dict(prior)
             if old['scope'] not in roots:
                 raise PoiseError('Registered artifact scope has no current owner root; use explicit recover_artifacts')
-            current = self._inspect_artifacts([old['path']], roots, owners, delivery)[0]
+            current = self._inspect_artifacts([old['path']], roots, owners)[0]
             if any(current[key] != old[key] for key in ('id', 'owner', 'scope')):
                 raise PoiseError('Registered artifact identity/owner mismatch; inspect ownership before recovery')
             if current['digest'] != old['digest']:
@@ -1448,17 +1447,12 @@ class Poise:
             roots['sprint'] = sprint_root(self.state, self.paths, data['sprint_id'])
             owners['sprint'] = data['sprint_id']
         records = []
-        delivery_loaded = False
-        delivery = None
         for prior in self.store.artifact_records(data['id']):
             if prior['scope'] not in roots:
                 continue
             try:
-                if not delivery_loaded:
-                    delivery = self.transfer_repository.delivery_for_task(data['id'])
-                    delivery_loaded = True
-                current = self._inspect_artifacts([prior['path']], roots, owners, delivery)[0]
-            except PoiseError:
+                current = self._inspect_artifacts([prior['path']], roots, owners)[0]
+            except (PoiseError, OSError):
                 continue
             if current['digest'] != prior['digest']:
                 continue
@@ -1808,11 +1802,8 @@ class Poise:
         return invocations
 
     def _check_configuration_systems(self):
-        from .modules.transfers.domain import RecoveryPolicy
-        transfer = self.cfg['runtime_services'].get('transfer')
-        return RecoveryPolicy.configuration_systems(
-            transfer.get('recovery') if transfer is not None else None
-        )
+        from .modules.verification.check_configuration import CheckConfigurationSystems
+        return CheckConfigurationSystems.parse(self.cfg['runtime_services']['check_runner'])
 
     def _verification_execution(self, data, tree, checks, worktree):
         from .infrastructure.evidence_configuration import EvidenceConfigurationCapture
@@ -2125,7 +2116,6 @@ class Poise:
     def cancel(self, reason: str) -> dict:
         if not isinstance(reason,str) or not reason.strip(): raise PoiseError('Нужна инструкция пользователя об отмене')
         data = self._task()
-        self.require_closed_drafts(data['id'])
         if data['pending'] is not None: raise PoiseError('Сначала установить исход незавершённой операции')
         if data['status'] == 'newborn':
             self.task_commands.cancel_newborn(data['id'], self.session, reason)
@@ -2135,7 +2125,7 @@ class Poise:
             return {'status': 'cancelled', 'task': data['id'],
                     'worktree_preserved': True,
                     'cleanup': {'status': 'not_required', 'reason': 'never_started_draft'}}
-        run=self.cleanup_tools.prepare_terminal(data['id'],f"cancel-{data['_version']}",reason)
+        run=self.cleanup_tools.prepare_terminal(data['id'],f"cancel-{data['_version']}",reason, discard=True)
         self.task_commands.cancel(data['id'], self.session, reason,self.cleanup_tools.pending(run))
         self.store.event(self.session,data['id'],'task.cancelled',{'reason':reason,'worktree_preserved':True})
         self._cleanup_runtime()

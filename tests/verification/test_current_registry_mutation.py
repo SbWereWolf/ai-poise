@@ -229,6 +229,13 @@ def test_inspection_exit_requires_nonempty_complete_current_green_executable_cov
 def configure_public_registry_case(project: dict) -> None:
     from conftest import bind_task_requirements, write_json
 
+    project["cfg"]["runtime_services"]["handoff"] = {
+        "directory": "handoffs",
+        "preserved_directory": "preserved",
+        "file_mode": 384,
+        "bundle": "source.bundle",
+        "receipt": "receipt.json",
+    }
     stages = project["workflow"]["stages"]
     stage_ids = (
         "test_implementation",
@@ -324,6 +331,11 @@ def configure_public_registry_case(project: dict) -> None:
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {
+                "requirements": [],
+                "definition_of_ready": [],
+                "definition_of_done": [],
+            },
         }
         for stage in stages
     ]
@@ -397,14 +409,13 @@ def continue_as(project, tools, task_id, actor, request_id, *, legacy_contract=F
     """Explicitly transfer this positive fixture at a configured role boundary."""
     from tests.batch.helpers import request
 
-    handed_off = tools.invoke(request("handoff", {
+    handed_off = tools.invoke(request("release", {
         "request_id": request_id,
         "reason": "The fixture crosses an executor/reviewer role boundary.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": tools.runtime.current_task()['id'],
+        "expected_version": tools.runtime.current_task()['_version'],
     }))
-    assert handed_off["status"] == "handed_off"
+    assert handed_off["status"] == "ownership_released"
     assert tools.runtime.current_task() is None
     successor = public_tools(project, actor)
     # Supply the test-owned original approved contract, not its mutable query projection.

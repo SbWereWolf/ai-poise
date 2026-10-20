@@ -1,0 +1,8 @@
+{
+  "request_id": "upgrade-source-composition",
+  "expected_settings_digest": "BOUND_BY_FIXTURE",
+  "expected_revision": "BOUND_BY_FIXTURE",
+  "target_revision": "BOUND_BY_FIXTURE",
+  "settings": {},
+  "definition": {}
+}

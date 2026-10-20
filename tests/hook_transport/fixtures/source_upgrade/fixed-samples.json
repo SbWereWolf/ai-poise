@@ -1,0 +1,226 @@
+{
+  "plain": {
+    "coordinates": {
+      "code_root": "/fixture/code",
+      "python": "/fixture/python/bin/python",
+      "settings": "/fixture/config.json",
+      "binding": "/fixture/binding.json"
+    },
+    "forms": {
+      "H1": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/code/src",
+          "/fixture/python/bin/python",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": false
+      },
+      "H2": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "interpreter=$1; recovery_command=$2; source_root=$3; shift 3; if [ ! -x \"$interpreter\" ]; then printf \"%s\\n\" \"Configured Poise interpreter is unavailable: $interpreter\" >&2; printf \"%s\\n\" \"Recovery: $recovery_command\" >&2; exit 126; fi; exec env \"PYTHONPATH=$source_root\" \"$interpreter\" \"$@\"",
+          "poise-runtime-guard",
+          "/fixture/python/bin/python",
+          "bash /fixture/code/src/poise/recover_runtime.sh --settings /fixture/config.json --python /absolute/path/to/compatible/python",
+          "/fixture/code/src",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": false
+      },
+      "H3": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "interpreter=$1; recovery_command=$2; source_root=$3; shift 3; if [ ! -x \"$interpreter\" ]; then printf \"%s\\n\" \"Configured Poise interpreter is unavailable: $interpreter\" >&2; printf \"%s\\n\" \"Recovery: $recovery_command\" >&2; exit 126; fi; exec env \"PYTHONPATH=$source_root\" \"$interpreter\" \"$@\"",
+          "poise-runtime-guard",
+          "/fixture/python/bin/python",
+          "bash /fixture/code/src/poise/recover_runtime.sh --settings /fixture/config.json --python /absolute/path/to/compatible/python",
+          "/fixture/code/src",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": false
+      },
+      "H4": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/code/src",
+          "/fixture/python/bin/python",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": false
+      },
+      "H5": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/code/src",
+          "/fixture/python/bin/python",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": true
+      },
+      "current": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/code/src:/fixture/code",
+          "/fixture/python/bin/python",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/config.json",
+          "--binding",
+          "/fixture/binding.json"
+        ],
+        "forward": true
+      }
+    }
+  },
+  "unicode": {
+    "coordinates": {
+      "code_root": "/fixture/код Ω",
+      "python": "/fixture/runtime Ω/bin/python",
+      "settings": "/fixture/настройки Ω.json",
+      "binding": "/fixture/binding Ω.json"
+    },
+    "forms": {
+      "H1": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/код Ω/src",
+          "/fixture/runtime Ω/bin/python",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": false
+      },
+      "H2": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "interpreter=$1; recovery_command=$2; source_root=$3; shift 3; if [ ! -x \"$interpreter\" ]; then printf \"%s\\n\" \"Configured Poise interpreter is unavailable: $interpreter\" >&2; printf \"%s\\n\" \"Recovery: $recovery_command\" >&2; exit 126; fi; exec env \"PYTHONPATH=$source_root\" \"$interpreter\" \"$@\"",
+          "poise-runtime-guard",
+          "/fixture/runtime Ω/bin/python",
+          "bash '/fixture/код Ω/src/poise/recover_runtime.sh' --settings '/fixture/настройки Ω.json' --python /absolute/path/to/compatible/python",
+          "/fixture/код Ω/src",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": false
+      },
+      "H3": {
+        "argv": [
+          "/bin/sh",
+          "-c",
+          "interpreter=$1; recovery_command=$2; source_root=$3; shift 3; if [ ! -x \"$interpreter\" ]; then printf \"%s\\n\" \"Configured Poise interpreter is unavailable: $interpreter\" >&2; printf \"%s\\n\" \"Recovery: $recovery_command\" >&2; exit 126; fi; exec env \"PYTHONPATH=$source_root\" \"$interpreter\" \"$@\"",
+          "poise-runtime-guard",
+          "/fixture/runtime Ω/bin/python",
+          "bash '/fixture/код Ω/src/poise/recover_runtime.sh' --settings '/fixture/настройки Ω.json' --python /absolute/path/to/compatible/python",
+          "/fixture/код Ω/src",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": false
+      },
+      "H4": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/код Ω/src",
+          "/fixture/runtime Ω/bin/python",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": false
+      },
+      "H5": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/код Ω/src",
+          "/fixture/runtime Ω/bin/python",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": true
+      },
+      "current": {
+        "argv": [
+          "env",
+          "PYTHONPATH=/fixture/код Ω/src:/fixture/код Ω",
+          "/fixture/runtime Ω/bin/python",
+          "-B",
+          "-m",
+          "poise",
+          "hook-work",
+          "--settings",
+          "/fixture/настройки Ω.json",
+          "--binding",
+          "/fixture/binding Ω.json"
+        ],
+        "forward": true
+      }
+    }
+  }
+}

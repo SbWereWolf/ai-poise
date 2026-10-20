@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 from .common import PoiseError,load_config
 from .infrastructure.session_establishment import establish_direct_poise
@@ -49,7 +50,7 @@ def parser():
     for name in ('template','destination','request-id'):
         wizard.add_argument('--'+name,required=True)
     wizard.add_argument('--probe-repository',choices=('yes','no'),required=True)
-    sub.add_parser('work',help='work, sprint, handoff, transfer: один декларативный JSON-пакет')
+    sub.add_parser('work',help='work, sprint, release: один декларативный JSON-пакет')
     runtime=sub.add_parser('runtime',help='Explicit identity/capabilities/transcript plus one work packet')
     runtime.add_argument('--settings',type=Path,required=True)
     editor=sub.add_parser('goal-config',help='Создать/изменить workflow одним JSON-пакетом')
@@ -70,6 +71,7 @@ def parser():
     hook=sub.add_parser('hook',help='Codex native command-hook event (adapter, not a task API)')
     hook.add_argument('--settings',type=Path,required=True)
     hook.add_argument('--definition',type=Path,required=True)
+    hook.add_argument('--retry',type=Path,help='Retry one saved committed lifecycle delivery without replaying a native event')
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
     bound.add_argument('--settings',type=Path,required=True,action=SingleArgument)
     bound.add_argument('--binding',type=Path,required=True,action=SingleArgument)
@@ -98,6 +100,7 @@ def parser():
 
 
 def main():
+    started_at=time.monotonic()
     if len(sys.argv)>1 and sys.argv[1] in ('infra','deps','check'):
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
@@ -153,7 +156,7 @@ def main():
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)
     if args.command in ('runtime-config','hook','hook-work'):
         from .interfaces.hook_transport import execute
-        return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr)
+        return execute(args.command,args,sys.stdin.buffer,sys.stdout,sys.stderr,started_at=started_at)
     if args.command=='goal-config':
         from .interfaces.goal_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)

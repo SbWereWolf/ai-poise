@@ -13,7 +13,7 @@ from poise.modules.foundation.errors import PoiseError
 def test_retired_service_sections_are_not_required(project, removed):
     config = deepcopy(project['cfg'])
     for key in removed:
-        del config['runtime_services'][key]
+        config['runtime_services'].pop(key, None)
 
     _, observed, graphs = load_config_document(project['config_path'], config)
 
@@ -44,8 +44,8 @@ def test_runtime_composes_without_retired_filesystem_services(project):
     from conftest import DeterministicClock
     from poise.runtime import Poise
     config = deepcopy(project['cfg'])
-    del config['runtime_services']['handoff']
-    del config['runtime_services']['transfer']
+    config['runtime_services'].pop('handoff', None)
+    config['runtime_services'].pop('transfer', None)
     write_json(project['config_path'], config)
 
     runtime = Poise(project['config_path'], 'retired-services-test', DeterministicClock())

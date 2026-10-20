@@ -1,0 +1,12 @@
+[
+  "tests/accounting/test_telemetry_delivery.py::test_bad_queue_file_does_not_destroy_other_items",
+  "tests/accounting/test_telemetry_delivery.py::test_bounds_apply_to_events_bytes_and_drain_batch",
+  "tests/accounting/test_telemetry_delivery.py::test_crash_after_commit_before_ack_replays_idempotently",
+  "tests/accounting/test_telemetry_delivery.py::test_dispatch_dedup_memory_is_bounded",
+  "tests/accounting/test_telemetry_delivery.py::test_envelope_and_projection_are_atomic_on_sink_failure",
+  "tests/accounting/test_telemetry_delivery.py::test_inflight_counts_toward_dispatch_bound",
+  "tests/accounting/test_telemetry_delivery.py::test_production_dispatch_spools_failed_sink_and_restart_commits_once",
+  "tests/accounting/test_telemetry_delivery.py::test_restart_replays_due_item_without_rewriting_source",
+  "tests/accounting/test_telemetry_delivery.py::test_same_identity_conflict_capacity_and_exhaustion_are_explicit",
+  "tests/accounting/test_telemetry_delivery.py::test_two_consumers_do_not_concurrently_deliver_the_same_record"
+]

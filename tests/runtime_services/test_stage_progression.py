@@ -59,6 +59,7 @@ def configure_progression(project, *, gated=False):
         "allowed_paths": list(stage["allowed_paths"]),
         "entry_requirements": [],
         "exit_requirements": [],
+        "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
     } for stage in stages]
     if gated:
         requirement = {
@@ -103,13 +104,13 @@ def bootstrap(tools, task):
     }))
 
 
-def handoff(tools, request_id="executor-to-reviewer"):
-    return tools.invoke(request("handoff", {
+def release_current(tools, request_id="executor-to-reviewer"):
+    current = tools.runtime.current_task()
+    return tools.invoke(request("release", {
         "request_id": request_id,
         "reason": "The requested progression reached its reviewer boundary.",
-        "result": None,
-        "commit_message": None,
-        "artifact_paths": [],
+        "task_id": current['id'],
+        "expected_version": current['_version'],
     }))
 
 
@@ -213,8 +214,8 @@ def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(pro
     assert boundary["review_identity"]["distinct_actor"] is False
     assert boundary["review_identity"]["source"] == "verified_task_event"
     assert executor.runtime.current_task()["status"] == "verified"
-    receipt = handoff(executor)
-    assert receipt["status"] == "handed_off"
+    receipt = release_current(executor)
+    assert receipt["status"] == "ownership_released"
     assert executor.runtime.current_task() is None
     released = executor.runtime.task_queries.record("T1")
     assert released["claimed_by"] is None
@@ -248,7 +249,7 @@ def test_resumed_reviewer_crosses_boundary_after_ownership_only_suffix(project):
     assert verify(executor, result(implementation))["status"] == "verified"
     boundary = advance(executor)
     assert boundary["status"] == "role_handoff_required"
-    assert handoff(executor)["status"] == "handed_off"
+    assert release_current(executor)["status"] == "ownership_released"
 
     first_reviewer = WorkTools(Poise(project["config_path"], "first-reviewer"))
     resumed = bootstrap(first_reviewer, {"id": "T1"})
@@ -459,6 +460,7 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
         "allowed_paths": [],
         "entry_requirements": [],
         "exit_requirements": [],
+        "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
     })
     executor = WorkTools(Poise(project["config_path"], "executor"))
     first = bootstrap(executor, project["task"])
@@ -470,7 +472,7 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
     )
     assert verify(executor, result(implementation))["status"] == "verified"
     assert advance(executor, target="publication")["status"] == "role_handoff_required"
-    handoff(executor)
+    release_current(executor)
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
     bootstrap(reviewer, {"id": "T1"})
     review = advance(reviewer, target="publication")
@@ -479,7 +481,7 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
     review_result["stage_work"]["coverage"] = "Reviewed the implementation result."
     assert verify(reviewer, review_result)["status"] == "verified"
     assert advance(reviewer, target="publication")["status"] == "role_handoff_required"
-    handoff(reviewer, "reviewer-to-publisher")
+    release_current(reviewer, "reviewer-to-publisher")
     publisher = WorkTools(Poise(project["config_path"], "publisher"))
     bootstrap(publisher, {"id": "T1"})
 
@@ -514,7 +516,7 @@ def _released_review_boundary(project):
     )
     assert verify(executor, result(implementation))["status"] == "verified"
     assert advance(executor)["status"] == "role_handoff_required"
-    assert handoff(executor)["status"] == "handed_off"
+    assert release_current(executor)["status"] == "ownership_released"
     return executor
 
 
@@ -536,7 +538,7 @@ def test_reviewer_relay_does_not_erase_the_original_executor_identity(project):
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
     bootstrap(reviewer, {"id": "T1"})
     assert advance(reviewer)["stage"] == "code_review"
-    assert handoff(reviewer, "reviewer-session-archived")["status"] == "handed_off"
+    assert release_current(reviewer, "reviewer-session-archived")["status"] == "ownership_released"
     before = state_snapshot(reviewer.runtime, ("executor", "reviewer"))
     with pytest.raises(PoiseError, match="distinct native reviewer session"):
         bootstrap(executor, {"id": "T1"})
@@ -607,7 +609,7 @@ def test_completed_review_returns_to_original_executor_without_false_self_review
     add_test(first["worktree"])
     assert verify(executor, result(first))["status"] == "verified"
     assert advance(executor)["status"] == "role_handoff_required"
-    handoff(executor)
+    release_current(executor)
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
     bootstrap(reviewer, {"id": "T1"})
     inspection = advance(reviewer)
@@ -616,7 +618,7 @@ def test_completed_review_returns_to_original_executor_without_false_self_review
     payload["stage_work"]["coverage"] = "Reviewed the regression and its observed RED."
     assert verify(reviewer, payload)["status"] == "verified"
     assert advance(reviewer)["status"] == "role_handoff_required"
-    handoff(reviewer, "reviewer-back-to-original-executor")
+    release_current(reviewer, "reviewer-back-to-original-executor")
     bootstrap(executor, {"id": "T1"})
     implementation = advance(executor)
     assert implementation["stage"] == "implementation"

@@ -14,7 +14,6 @@ from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.modules.tasks.domain import TaskStatus, TERMINAL_TASK_STATUSES
-from poise.modules.transfers.domain import validate_saved_work
 from sprints.helpers import setup, draft, publish, task
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,12 +54,10 @@ def retired(project, tmp_path):
     return runtime, source, tmp_path/'candidate.sqlite', plan
 
 
-def test_domain_and_saved_work_reject_removed_outcome():
+def test_domain_rejects_removed_outcome():
     assert {s.value for s in TERMINAL_TASK_STATUSES} == {'completed','cancelled'}
     with pytest.raises((ValueError,PoiseError)):
         TaskStatus('superseded')
-    with pytest.raises(PoiseError, match='Unsupported saved Task state'):
-        validate_saved_work([{'id':'OLD','status':'superseded','claimed_by':None}],set())
 
 
 def test_repository_refuses_unknown_status_instead_of_accepting_legacy(retired):
@@ -155,17 +152,6 @@ def test_runtime_code_has_no_removed_task_status_or_relation_branch():
         assert 'TaskStatus.SUPERSEDED' not in text, path
         assert "'superseded'" not in text and '"superseded"' not in text, path
         assert "'task_replacement'" not in text and '"task_replacement"' not in text, path
-
-
-def test_repository_snapshot_rejects_retired_state_before_any_insert(retired):
-    runtime, source, _, _ = retired
-    before = source.read_bytes()
-    with runtime.store.unit_of_work() as unit:
-        row = dict(unit.tasks.db.execute("SELECT id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata FROM tasks WHERE id='OLD'").fetchone())
-        row['id'] = 'IMPORTED'
-        with pytest.raises(PoiseError, match='Unsupported Task status'):
-            unit.tasks.restore_snapshot({'tasks': [row]}, {})
-    assert source.read_bytes() == before
 
 
 @pytest.mark.parametrize('case,pattern', [('wal','sidecar'),('symlink','symlink'),('schema','schema'),('binding','binding')])

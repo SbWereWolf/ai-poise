@@ -1,17 +1,32 @@
 # Context and handoff
 
-Use the [public handoff](../../docs/workflows/local-handoff.md#пакет) and [direct role transfer](../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим). A conversation summary is not storage, release, acquisition or acceptance.
+Use the [ordinary release packet](../../docs/workflows/local-handoff.md#пакет) and
+[direct role handoff](../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+A conversation summary is not storage, release, acquisition or acceptance.
 
 ## Required context
 
-Preserve the selected project and Task, current stage/role, exact result and diff identity, process/allowed paths, relevant requirements, current findings/resolutions, actual check/evidence links, explicit routing/skill inputs, blockers and the next authorized action. Include the stable progression request/target where present. Link current sources instead of duplicating entire specifications or relying on predecessor memory.
+Preserve project/Task, current stage/role, exact source/result identity, actual allowed paths,
+requirements, findings/resolutions, full check/evidence links, blockers and next authorized action.
+Include the stable progression request/target, omitting the target when that is the actual intent.
+Link authoritative current sources instead of copying whole specifications.
 
 ## Transfer
 
-The sender saves results and artifacts, invokes the owning public handoff and confirms release before messaging the known counterpart. The recipient acquires/resumes through bootstrap before mutation and consumes the saved snapshot. Existing Task authorization covers ordinary stage continuation, not a new unrelated Task, acceptance, publication or integration.
+Save results, artifacts and findings through their existing owners before ordinary `release`.
+Read the current Task version; supply task_id/request_id/expected_version/reason. Release neither
+submits a result nor commits, copies, verifies or accepts work. Confirm ownership_released before
+messaging the known counterpart. The recipient acquires the same Task through its own bootstrap
+and continues in the existing working area with preserved WIP; no transport or bundle is created.
+Existing authorization covers ordinary continuation, not unrelated work or controlled publication.
 
-If there is no counterpart or messaging capability, preserve the released task and report exactly who must act next. Do not impersonate a reviewer, invent a session or claim notification succeeded. A failed release leaves responsibility with the sender; a message alone cannot repair it. Incomplete work may be saved with a truthful blocker.
+A failed release leaves responsibility with the sender. A message cannot repair it. After successful
+release, retry failed notification against the same saved result without silently reclaiming work.
+Do not impersonate a reviewer or caller. Preserve incomplete material and actual unknown outcomes.
 
 ## Resume
 
-Reuse the same authoritative Task state, source/evidence identity and public recovery route. Diagnose drift or unresolved side effects before a retry. Do not edit managed state, reconstruct a second lifecycle or silently select a different project/command source. Generic phase recovery and cross-project selection may be used only when actually implemented by the current installation.
+Use the same authoritative Task state and source/evidence identity. Inspect actual gates and pending
+effects before continuing. Do not merge stores, reconstruct a second lifecycle, copy another
+participant's work area or edit managed state. Removed handoff/transfer Work operations are not a
+fallback. Scope and authority remain with the current public owners.

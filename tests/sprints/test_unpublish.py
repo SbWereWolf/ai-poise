@@ -15,11 +15,7 @@ from sprints.helpers import bootstrap, draft, publish, setup, task, verify
 from sprints.test_membership_conversion import add_execution
 
 
-def client(project, actor, *, file_handoff=False):
-    if file_handoff:
-        # Only scenarios explicitly preserving work request this optional service.
-        project['cfg']['runtime_services']['handoff'] = json.loads(
-            (Path(__file__).parent / 'fixtures/file-handoff.json').read_text())
+def client(project, actor):
     configure(project)
     return WorkTools(Poise(project['config_path'], actor))
 
@@ -83,17 +79,18 @@ def unchanged(planner):
     return task_rows(planner), sprint_rows(planner)
 
 
-def handoff(worker, suffix):
-    released = worker.invoke(request('handoff', {
+def release_member(worker, suffix):
+    current = worker.runtime.current_task()
+    released = worker.invoke(request('release', {
         'request_id': f'release-{suffix}', 'reason': 'Release the actual fixture result.',
-        'result': None, 'commit_message': None, 'artifact_paths': [],
+        'task_id': current['id'], 'expected_version': current['_version'],
     }))
-    assert released['status'] == 'handed_off'
+    assert released['status'] == 'ownership_released'
     return released
 
 
 def prepare_member(project, state):
-    worker = client(project, 'executor', file_handoff=state in ('active', 'verified'))
+    worker = client(project, 'executor')
     context = bootstrap(worker, 'A')
     assert context['status'] == 'active'
     if state in ('verified', 'completed'):
@@ -104,7 +101,7 @@ def prepare_member(project, state):
     elif state == 'cancelled':
         assert worker.invoke(request('cancel', {'reason': 'Fixture cancellation.'}))['status'] == 'cancelled'
     else:
-        handoff(worker, state)
+        release_member(worker, state)
     return context
 
 
@@ -115,7 +112,7 @@ def git_state(path):
 
 
 def verified_materials(project):
-    worker = client(project, 'executor', file_handoff=True)
+    worker = client(project, 'executor')
     context = bootstrap(worker, 'A')
     payload = deepcopy(context['result_template'])
     payload['sections']['report'] = 'Original verified result with permanent proof.'
@@ -124,8 +121,8 @@ def verified_materials(project):
         text_artifact('task', 'original-proof.txt', 'original artifact bytes\n'),
     ]}))
     assert report['status'] == 'verified'
-    released = handoff(worker, 'material-proof')
-    paths = [Path(released['receipt_path'])]
+    release_member(worker, 'material-proof')
+    paths = []
     for check in report['checks']:
         paths.extend([Path(check['stdout']), Path(check['stderr'])])
     paths.extend(Path(item['path']) for item in report['artifacts'])
@@ -379,10 +376,10 @@ def test_draft_blocks_execution_and_republication_restores_admission(planned):
 def test_republish_retains_verified_and_completed_task_contracts(planned):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    worker = client(project, 'second-executor', file_handoff=True)
+    worker = client(project, 'second-executor')
     context = bootstrap(worker, 'B')
     assert verify(worker, context)['status'] == 'verified'
-    handoff(worker, 'B-verified')
+    release_member(worker, 'B-verified')
     assert planner.runtime.task_queries.record('A')['status'] == 'completed'
     assert planner.runtime.task_queries.record('B')['status'] == 'verified'
     before = task_rows(planner)
@@ -409,7 +406,7 @@ def test_verified_restart_ready_and_republish_preserve_history(planned):
     prior = deepcopy(planner.runtime.task_queries.record('A'))
     opened = reopen(planner, published['revision'])
     assert_materials(context, proof, files, git)
-    owner = client(project, 'restart-owner', file_handoff=True)
+    owner = client(project, 'restart-owner')
     restarted = restart(owner, 'A', prior['version'], request_id='revise-A')
     assert restarted['status'] == 'newborn'
     assert_materials(context, proof, files, git)
@@ -432,7 +429,7 @@ def test_verified_restart_ready_and_republish_preserve_history(planned):
     assert ready['status'] == 'newborn'
     assert ready['ready'] is True
     assert_materials(context, proof, files, git)
-    handoff(owner, 'readied-A')
+    release_member(owner, 'readied-A')
     assert_materials(context, proof, files, git)
     assert planner.runtime.task_queries.record('A')['status'] == 'newborn'
     republished = publish(planner, opened['revision'], 'republish-revised-A')
@@ -540,10 +537,10 @@ def test_draft_refuses_released_started_resume_then_republish_allows_it(planned,
 
 def test_draft_refuses_actual_verified_stage_advance_then_republish_allows_it(project):
     planner, published = two_stage_plan(project)
-    worker = client(project, 'executor', file_handoff=True)
+    worker = client(project, 'executor')
     context = bootstrap(worker, 'A')
     assert verify(worker, context)['status'] == 'verified'
-    handoff(worker, 'before-stage-advance')
+    release_member(worker, 'before-stage-advance')
     opened = reopen(planner, published['revision'])
     # Claiming ownership is distinct from permission to execute a stage.
     worker.runtime.ownership.acquire_task('A')
@@ -551,7 +548,7 @@ def test_draft_refuses_actual_verified_stage_advance_then_republish_allows_it(pr
     with pytest.raises(PoiseError, match='draft|published|чернов|опублик'):
         advance_member(worker)
     assert (unchanged(planner), git_state(Path(context['worktree']))) == before
-    handoff(worker, 'after-draft-advance-refusal')
+    release_member(worker, 'after-draft-advance-refusal')
     publish(planner, opened['revision'], 'republish-advance')
     assert bootstrap(worker, 'A')['status'] == 'verified'
     advanced = advance_member(worker)
@@ -587,12 +584,12 @@ def test_member_claim_race_refuses_publication_without_partial_writes(planned, m
 
 def test_fixture_guard_two_stages_permit_real_progression(project):
     planner, _ = two_stage_plan(project)
-    worker = client(project, 'executor', file_handoff=True)
+    worker = client(project, 'executor')
     context = bootstrap(worker, 'A')
     assert verify(worker, context)['status'] == 'verified'
-    handoff(worker, 'before-stage-advance')
+    release_member(worker, 'before-stage-advance')
     worker.runtime.ownership.acquire_task('A')
-    handoff(worker, 'after-draft-advance-refusal')
+    release_member(worker, 'after-draft-advance-refusal')
     resumed = bootstrap(worker, 'A')
     assert resumed['status'] == 'verified'
     assert resumed['worktree'] == context['worktree']

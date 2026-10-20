@@ -38,7 +38,8 @@ def setup_project(project, goal):
     contract["evidence_plan"]={s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in proc["stages"]}
     contract["stage_contracts"] = [
         {"stage_id": stage["id"], "allowed_paths": list(stage["allowed_paths"]),
-         "entry_requirements": [], "exit_requirements": []}
+         "entry_requirements": [], "exit_requirements": [],
+         "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []}}
         for stage in proc["stages"]
     ]
     contract["decomposition"] = {"kind": "ordinary", "integration": None,

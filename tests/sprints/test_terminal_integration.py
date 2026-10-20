@@ -11,7 +11,7 @@ from batch.helpers import request, text_artifact
 from poise.modules.foundation.errors import PoiseError
 from sprints.helpers import bootstrap
 from sprints.test_unpublish import (
-    client, git_state, handoff, intent, invoke, planned, prepare_member,
+    client, git_state, release_member, intent, invoke, planned, prepare_member,
     reopen, sprint_rows, task_rows, unchanged,
 )
 
@@ -69,6 +69,45 @@ def set_execution(planner, task_id, pending, publication=None):
                        (json.dumps(data), row[1] + 1, task_id, row[1]))
 
 
+def deliver_member(project):
+    """Create, publish and retire A through real public owners, without fixture receipts."""
+    from conftest import git
+    from result_integration.helpers import integration_input
+    worker = client(project, 'executor')
+    context = bootstrap(worker, 'A')
+    worktree = Path(context['worktree'])
+    branch = worker.runtime.current_task()['branch']
+    (worktree / 'src/ordered_result.py').write_bytes(b"ORDERED = 'delivered member result'\n")
+    payload = deepcopy(context['result_template'])
+    payload['sections']['report'] = 'Created the ordered member result.'
+    payload['commit_message'] = 'Create ordered member result'
+    verified = worker.invoke(request('verify', {'result': payload, 'artifacts': []}))
+    assert verified['status'] == 'verified'
+    commit = verified['commit']
+    worker.invoke(request('delivery', {
+        'action': 'agree', 'task_id': 'A', 'request_id': 'ordered-A-result',
+        'expected_version': worker.runtime.current_task()['_version'],
+        'authorization': 'The fixture customer ordered this exact Git result.',
+        'declaration': {'disposition': 'deliver', 'outputs': [{
+            'id': 'ordered-A-code', 'kind': 'git', 'repository': str(project['app']),
+            'target_ref': 'refs/heads/main', 'commit': commit,
+        }]},
+    }))
+    assert worker.invoke(request('accept', {}))['status'] == 'completed'
+    integrated = worker.invoke(request('integrate', integration_input(
+        project, commit, request_id='deliver-A', task_id='A')))
+    assert integrated['status'] == 'integrated'
+    assert integrated['delivery']['status'] == 'delivery_complete'
+    assert not Path(context['task_root']).exists()
+    assert not worktree.exists()
+    assert branch not in git(project['app'], 'for-each-ref', '--format=%(refname:short)', 'refs/heads').splitlines()
+    assert str(worktree) not in git(project['app'], 'worktree', 'list', '--porcelain')
+    assert (project['app'] / 'src/ordered_result.py').read_bytes() == b"ORDERED = 'delivered member result'\n"
+    record = worker.runtime.task_queries.record('A')
+    assert record['status'] == 'completed' and record['claimed_by'] is None
+    return context, deepcopy(record['pending'])
+
+
 def audit_rows(planner):
     with planner.runtime.store.transaction() as db:
         return {
@@ -98,7 +137,7 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
     set_execution(planner, 'A', receipt)
 
     # B owns retained work and evidence; A's delivery may legitimately remove A's tree.
-    worker = client(project, 'retained-worker', file_handoff=True)
+    worker = client(project, 'retained-worker')
     context = bootstrap(worker, 'B')
     payload = deepcopy(context['result_template'])
     payload['sections']['report'] = 'Retained participant evidence.'
@@ -106,8 +145,8 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
     verified = worker.invoke(request('verify', {'result': payload, 'artifacts': [
         text_artifact('task', 'retained-proof.txt', 'independent retained artifact\n'),
     ]}))
-    released = handoff(worker, 'retained-B')
-    outputs = [Path(released['receipt_path'])]
+    release_member(worker, 'retained-B')
+    outputs = []
     for check in verified['checks']:
         outputs.extend([Path(check['stdout']), Path(check['stderr'])])
     outputs.extend(Path(item['path']) for item in verified['artifacts'])
@@ -298,15 +337,18 @@ def test_foreign_target_or_publication_action_refuses_atomically(planned, case):
     assert_refused_unchanged(planner, published['revision'])
 
 
-def test_foreign_backup_scope_refuses_atomically(planned):
+def test_inert_historical_backup_reference_does_not_prevent_replanning(planned, tmp_path):
     project, planner, published = planned
-    prepare_member(project, 'completed')
-    set_execution(planner, 'A', prepared_receipt(planner, project))
+    context, receipt = deliver_member(project)
+    foreign = tmp_path / 'foreign-backups'
+    foreign.mkdir()
+    (foreign / 'keep.txt').write_bytes(b'unrelated active material\n')
+    set_execution(planner, 'A', receipt)
     with planner.runtime.store.transaction() as db:
         row = db.execute('SELECT data,version FROM task_execution WHERE task_id=?', ('A',)).fetchone()
         metadata = db.execute('SELECT metadata FROM tasks WHERE id=?', ('A',)).fetchone()[0]
         data = json.loads(row[0])
-        data['pending']['temporary_backup_directory'] = '/fixture/foreign-backups'
+        data['pending']['temporary_backup_directory'] = str(foreign)
         raw = json.dumps(data)
         changed = db.execute(
             'UPDATE task_execution SET data=?,version=? WHERE task_id=? AND version=?',
@@ -315,16 +357,13 @@ def test_foreign_backup_scope_refuses_atomically(planned):
         assert changed.rowcount == 1
         assert db.execute('SELECT data FROM task_execution WHERE task_id=?', ('A',)).fetchone()[0] == raw
         assert db.execute('SELECT metadata FROM tasks WHERE id=?', ('A',)).fetchone()[0] == metadata
-    before = snapshot(planner)
-    try:
-        result = reopen(planner, published['revision'])
-    except PoiseError as exc:
-        assert re.search(r'\bA\b', str(exc))
-        assert re.search('pending|publication|scope', str(exc), re.IGNORECASE)
-        assert snapshot(planner) == before
-        return
+    before = task_rows(planner)
+    result = reopen(planner, published['revision'])
     assert result['sprint'] == 'S'
     assert result['status'] == 'draft'
     assert result['revision'] == published['revision'] + 1
-    print('EXPECTED_RED: foreign-backup-scope')
-    pytest.fail('A foreign backup scope must refuse replanning.', pytrace=False)
+    assert task_rows(planner) == before
+    assert not Path(context['task_root']).exists()
+    assert not Path(context['worktree']).exists()
+    assert (foreign / 'keep.txt').read_bytes() == b'unrelated active material\n'
+    assert (project['app'] / 'src/ordered_result.py').read_bytes() == b"ORDERED = 'delivered member result'\n"

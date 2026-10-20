@@ -30,6 +30,7 @@ def _contracts(workflow, *, first_entry=(), first_scope=None):
             "allowed_paths": list(stage["allowed_paths"] if index or first_scope is None else first_scope),
             "entry_requirements": list(first_entry if index == 0 else ()),
             "exit_requirements": [],
+            "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
         })
     return values
 
@@ -319,19 +320,22 @@ def test_legacy_task_requires_explicit_stage_contract_initialization(project):
     tools, _, task = _bootstrap(project)
     runtime = tools.runtime
     _legacy(runtime)
-    runtime.handoff({
+    released = tools.invoke(request('release', {
         "request_id": "legacy-release",
         "reason": "exercise legacy reload",
-        "result": None,
-        "commit_message": "WIP: legacy fixture",
-        "artifact_paths": [],
-    })
+        'task_id': 'T1', 'expected_version': runtime.task_queries.record('T1')['_version'],
+    }))
+    assert released['status'] == 'ownership_released'
+    released_task = runtime.task_queries.record('T1')
+    assert released_task['claimed_by'] is None
+    assert 'stage_contracts' not in released_task['contract']
     resumed = WorkTools(Poise(project["config_path"], "next"))
     with pytest.raises(PoiseError, match="stage_contract_transition_required"):
         resumed.invoke(request("bootstrap", {
             "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
         }))
     assert task["stage_contracts"]
+    assert resumed.runtime.current_task() is None
 
 
 def test_stage_contract_initialization_replays_and_rejects_conflict(project):
@@ -651,13 +655,11 @@ def test_reopen_preserves_initialized_stage_contract(project):
     version = runtime.task_queries.record("T1")["version"]
     _transition(runtime, "initialize", request_id="init-reopen", expected_version=version,
                 contracts=task["stage_contracts"])
-    runtime.handoff({
+    tools.invoke(request('release', {
         "request_id": "reopen-release",
         "reason": "Reload initialized contracts",
-        "result": None,
-        "commit_message": "WIP: contract persistence",
-        "artifact_paths": [],
-    })
+        'task_id': 'T1', 'expected_version': runtime.task_queries.record('T1')['_version'],
+    }))
     restarted = Poise(project["config_path"], "reopener")
     WorkTools(restarted).invoke(request("bootstrap", {
         "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,

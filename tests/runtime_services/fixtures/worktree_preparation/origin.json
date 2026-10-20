@@ -1,0 +1,7 @@
+{
+  "task_id": "T1",
+  "project_id": "demo",
+  "worktree": "/selected/worktree",
+  "branch": "tasks/T1",
+  "base": "1111111111111111111111111111111111111111"
+}

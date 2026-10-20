@@ -1,0 +1,20 @@
+{
+  "sections": {
+    "report": "Report A."
+  },
+  "artifact_paths": [],
+  "commit_message": "Save the prepared report",
+  "content_additions": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "trace": {},
+  "method_additions": [],
+  "stage_work": {},
+  "evidence_work": {
+    "phase": "prepare",
+    "arguments": [],
+    "decisions": []
+  }
+}

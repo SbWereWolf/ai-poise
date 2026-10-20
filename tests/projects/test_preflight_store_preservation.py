@@ -31,11 +31,33 @@ def selected_stores(case):
     project, _, cfg, values = case
     setup(project)
     first = create_available(project, project['config_path'], 'EXISTS-HERE')
-    second_cfg = deepcopy(cfg)
-    second_cfg['paths']['state'] = 'other-state'
-    second = write_json(project['root'] / 'other-project.json', second_cfg)
-    seed_fixture_requirements(project['root'], second_cfg)
+    # Same project label, separately published authority and explicitly separate data.
+    # Copying the first managed manifest would leave its registry association invalid.
+    from poise.composition import project_tools
+    from .helpers import setup_case
+    arrangement = deepcopy(project)
+    arrangement['root'] = project['root'] / 'other-control'
+    arrangement['cfg'] = deepcopy(cfg)
+    arrangement['cfg']['paths']['state'] = str(project['root'] / 'other-state')
+    from poise.common import digest
+    sources = {}
+    for goal, relative in cfg['workflows'].items():
+        document = json.loads((project['root'] / relative).read_text())
+        target = f'config/workflows/{goal}.json'
+        write_json(arrangement['root'] / target, document)
+        arrangement['cfg']['workflows'][goal] = target
+        sources[goal] = {'path': target, 'digest': digest(document)}
+    settings, blueprint, creation = setup_case(arrangement)
+    blueprint['workflow_sources'] = sources
+    write_json(arrangement['root'] / 'config/project-blueprint.json', blueprint)
+    creation['edits'][0]['value'] = cfg['project']
+    published = project_tools(settings).apply(creation)
+    second = Path(published['config_path'])
+    second_cfg = json.loads(second.read_text())
+    seed_fixture_requirements(second.parent, second_cfg)
     other = WorkPoise(second, 'fixture-other-store')
+    WorkTools(other).invoke({'operation': 'bootstrap', 'input': {
+        'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}, 'messages': []})
     # A real domain-created Task plus exact persisted nonterminal ownership and
     # interrupted execution. Diagnostic must not repair either owner.
     with sqlite3.connect(values['task_db']) as db:
@@ -59,6 +81,9 @@ def selected_stores(case):
                    ('EXISTS-HERE', 'preserved-artifact'))
     (project['app'] / 'untracked-wip.txt').write_text('Uncommitted operator material\n')
     (project['app'] / 'src/double.py').write_text('def double(n):\n    return n + 7\n')
+    # Complete fixture-owned accounting before any byte/inode snapshot.
+    first.telemetry.dispatcher.flush()
+    other.telemetry.dispatcher.flush()
     return first, other, second
 
 
@@ -191,7 +216,7 @@ def test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, 
                 db.execute('UPDATE tasks SET claimed_by=? WHERE id=?', ('another-owner', 'OWNED'))
             else:
                 # Explicit pending metadata on this fixture's nonterminal row;
-                # active-work refusal must precede any publication or cleanup.
+                # configuration edits preserve interrupted Task execution.
                 db.execute('INSERT OR REPLACE INTO task_execution(task_id,data,version) VALUES(?,?,?)',
                            ('OWNED', '{"pending":{"kind":"checks","request_id":"preserved"}}', 0))
     packet = update_request(config, '0' * 64 if condition == 'stale' else created['revision'],
@@ -206,11 +231,40 @@ def test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, 
         lock.write_bytes(b'Preserve existing lock bytes\n')
         lock.chmod(0o640)
     before = snapshot(project['root'].parent)
-    with pytest.raises(PoiseError):
-        update_tools(settings).apply(packet)
+    if condition == 'stale':
+        with pytest.raises(PoiseError):
+            update_tools(settings).apply(packet)
+        assert snapshot(project['root'].parent) == before
+        assert json.loads(config.read_text())['git']['base_ref'] == 'main'
+        return
+    # A claim/pending record permits edits; a held resource lock still fences them.
+    import fcntl
+    with (config.parent / 'state/state.lock').open('a+b') as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(PoiseError):
+            update_tools(settings).apply(packet)
+        assert snapshot(project['root'].parent) == before
+    database_bytes = db_path.read_bytes()
+    state_before = snapshot(config.parent / 'state')
+    worktree_before = snapshot(project['app'])
+    locks = [path for path in config.parent.rglob('*.lock')]
+    lock_snapshots = {path: (path.read_bytes(), path.stat().st_mode, path.stat().st_ino)
+                      for path in locks}
+    result = update_tools(settings).apply(packet)
+    assert result['status'] == 'updated'
+    assert json.loads(config.read_text())['git']['base_ref'] == 'corrected-branch'
+    assert db_path.read_bytes() == database_bytes
+    assert snapshot(config.parent / 'state') == state_before
+    assert snapshot(project['app']) == worktree_before
+    assert set(config.parent.rglob('*.lock')) == set(locks)
+    assert {path: (path.read_bytes(), path.stat().st_mode, path.stat().st_ino)
+            for path in locks} == lock_snapshots
+    # A permitted edit still obeys optimistic revision, without touching Task data.
+    stale = {**packet, 'request_id': 'stale-after-permitted-edit'}
     after = snapshot(project['root'].parent)
-    assert after == before
-    assert json.loads(config.read_text())['git']['base_ref'] == 'main'
+    with pytest.raises(PoiseError):
+        update_tools(settings).apply(stale)
+    assert snapshot(project['root'].parent) == after
 
 
 @pytest.mark.parametrize('damage', ['corrupt', 'delete', 'unexpected-path'])

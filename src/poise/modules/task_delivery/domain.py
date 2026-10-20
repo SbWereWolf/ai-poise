@@ -144,3 +144,51 @@ class DeliveryState:
             result.update(reason=value['reason'], recovery={'operation': 'delivery', 'action': 'settle',
                           'task_id': value['task'], 'reason': value['reason']})
         return result
+
+
+@dataclass(frozen=True)
+class MaterialUseIntent:
+    """Original operation identity, independent of its caller's provenance."""
+    operation: str
+    task_id: str
+    request_id: str
+    intent_digest: str
+
+    def key(self):
+        return identity({k: v for k, v in self.__dict__.items() if k != "intent_digest"})
+
+
+@dataclass(frozen=True)
+class MaterialUseToken:
+    intent: MaterialUseIntent
+    attempt: str
+    sources: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class MaterialUseState:
+    data: dict
+
+    @classmethod
+    def restore(cls, value):
+        exact(value, {'schema', 'key', 'revision', 'intent', 'source', 'task_version',
+                      'epoch', 'attempts', 'outcome', 'actor'}, 'material use state')
+        if value['schema'] != 'task-material-use-1':
+            raise DomainError('Unknown material use state')
+        exact(value['intent'], {'operation', 'task_id', 'request_id', 'intent_digest'}, 'material use intent')
+        intent = MaterialUseIntent(**value['intent'])
+        for name, item in value['intent'].items():
+            text(item, name)
+        if intent.key() != value['key'] or type(value['revision']) is not int or value['revision'] < 0:
+            raise DomainError('Invalid material use identity/revision')
+        text(value['source'], 'material source')
+        text(value['actor'], 'material use provenance')
+        if (type(value['task_version']) is not int or value['task_version'] < 0
+                or value['epoch'] is not None and (type(value['epoch']) is not int or value['epoch'] < 0)
+                or not isinstance(value['attempts'], list)
+                or len(value['attempts']) != len(set(value['attempts']))
+                or any(not isinstance(a, str) or not a for a in value['attempts'])
+                or value['outcome'] not in (None, 'accepted', 'refused')
+                or value['outcome'] is not None and value['attempts']):
+            raise DomainError('Invalid material use state')
+        return cls(deepcopy(value))

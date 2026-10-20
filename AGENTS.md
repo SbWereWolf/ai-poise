@@ -79,10 +79,12 @@ Do not introduce symbolic-link checks by default. Such checks require an explici
 request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
 Follow [explicit agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
 
-Present historical receipts of terminal Tasks with the message
-"Служебные материалы задачи удалены. Служебные журналы уничтожены" based on the owning Task's state,
-including when log files remain. Resolve ownership through stage evidence or the saved integration
-result;
+Present historical receipts of terminal Tasks using the exact Russian retirement message
+defined by the linked canonical terminal-history contract only after the existing delivery
+owner confirms actual removal of that Task's materials and logs. For a result intended for
+integration, retirement follows confirmed integration and completion of required material
+consumers. A terminal Task status alone does not establish removal; report retained materials
+truthfully. Resolve ownership through stage evidence or the saved integration result;
 show state/owner lookup errors explicitly. Preserve complete receipt history in the saved
 full response. Keep brief and expanded agent views distinct and bounded; full output is
 always a file link, never an inline payload even when it fits. History size must not
@@ -110,6 +112,10 @@ decisions only in conversation history.
 Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the same business
+result without duplicate effects. Refusals identify a concrete obstacle and an executable remedy/continuation;
+unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal investigation.
+Follow [atomicity, idempotency and actionable refusals](docs/governance/development-rules.md#атомарность-идемпотентность-и-понятный-отказ).
 Reconcile a stale completion status with an actually completed, independently reviewed, accepted and integrated
 result through its public owner or an authorized audited manual correction. Preserve historical stages and native
 receipts; distinguish manual reconciliation from native lifecycle completion. Follow
@@ -149,7 +155,7 @@ project's configured repository checkout. See [worktree
 placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
 not register them manually.
 
-One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and agree the exact restart and Task-contract correction with the independent reviewer instead of bypassing the harness. The agents decide and execute a restart through the public Task action without seeking another user decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the exact Task fields in `authorization.revision_fields`; the executor must not impersonate the reviewer. Project/harness rule changes still require separate user authority. Stop for a real blocker, a decision about global rules, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
+One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and agree the exact restart and Task-contract correction with the independent reviewer instead of bypassing the harness. The agents decide and execute a restart through the public Task action without seeking another user decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the exact Task fields in `authorization.revision_fields`; the executor must not impersonate the reviewer. Project/harness rule changes still require separate user authority. Stop for a real blocker, a decision about global rules, or separately controlled acceptance/publication/integration. Before changing tasks, finish, release ownership through the ordinary public API, or safely discard the current work. A read-only query about another task does not switch ownership.
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
@@ -268,9 +274,13 @@ Keep this English projection and its Russian source consistent in the same chang
   ownership or independent review.
 - Use public `advance` with one stable request identity; omit the target for maximum progression or name a stage to stop on entry.
   For ordinary new work, replay it after each verified current-role stage or lawful correction. It stops for real work, entry gates,
-  role boundaries and separately controlled publish acceptance; after public handoff, the receiving session acquires the
+  role boundaries and separately controlled publish acceptance; after ordinary public release, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
+  Continue the current verified result through its proved ownership history: a receiver's self-cycle
+  preserves an earlier transfer, while the original author alone does not establish one. Keep the same
+  progression intent and existing source/claim/unknown/review gates; follow
+  [verified-result continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 - Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New
   messages add to the working plan unless they explicitly change an assignment; preserve pending work and blockers
   across checkpoints and compaction. Reading or acknowledging a message does not complete its assignment.
@@ -369,8 +379,8 @@ Keep this English projection and its Russian source consistent in the same chang
   explicit task_id, source_task_id, request_id and the original expected_version to verify an accepted, integrated
   family result locally. It returns reuse_verified, not completed; a separately authorized accept rechecks provenance
   and local receipts before completing the Task. Exact replay preserves the original packet; terminal replay returns
-  accepted history without reacquiring or recreating a cleaned worktree. Native handoff validates the preserved bundle
-  and consumes its receipt on reuse resume. Reuse now automatically delivers accepted permanent Task/Sprint artifacts
+  accepted history without reacquiring or recreating a cleaned worktree. Ordinary release/bootstrap preserves the same working area
+  and rechecks saved provenance on reuse continuation. Reuse now automatically delivers accepted permanent Task/Sprint artifacts
   through the existing publisher with local owner identities, no overwrites, digest checks and local registry links.
   Missing required files or conflicts reject reuse; optional empty sets are allowed by their actual contracts. Do not
   copy foreign runtime-session files or receipts. Use work/task action duplicate with an explicit parent_id and destination draft sprint_id;
@@ -648,7 +658,7 @@ Native caller isolation: a session launcher is not caller identity. Use only the
 for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
 Never set these values to impersonate a stored binding or combine native identity with
 POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
-parent-only signals must not mutate the parent's Task. The sender uses public handoff;
+parent-only signals must not mutate the parent's Task. The sender uses ordinary public release;
 a genuinely separate native session obtains its own SessionStart launcher and bootstraps
 the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
@@ -720,12 +730,12 @@ New work retains independent review. Follow the [canonical replay contract](docs
 
 ## Compact Task recovery
 
-Classify materials explicitly in the versioned mapping; record a compatible placement decision
-when versions differ. Restore current Task state and components through the declared pipeline;
-restore validates readiness, while authorized work checks the current stage on current systems.
-Preserve both full proof configuration sets and system commit IDs as provenance, without rollback.
-Authenticated historical omissions never excuse missing current material. Follow [recovery](docs/governance/development-rules.md#переносимое-состояние-задачи)
-and [proof configurations](docs/workflows/evidence.md#конфигурационные-наборы-и-повторные-проверки).
+Continue one Task in its existing working area through ordinary release/bootstrap.
+Scoped export/import, participant transport and automatic bundle creation are removed.
+Preserve current source/proof identity, explicit companion configurations when declared,
+and unknown outcomes through their existing owners. Separate state relocation, library
+distribution and explicitly authorized backups retain their own contracts.
+See [same-area continuation](docs/workflows/local-handoff.md#пакет).
 
 For native entry project selection, preserve the invoking binding and select the
 exact project explicitly. Follow the [selection contract](docs/configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher)

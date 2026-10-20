@@ -200,11 +200,11 @@ register/merge/receipt/refresh для модели не требуется. То
 - `OutputPolicy.parse/select` — чистая схема известных/unknown parser profiles.
 - `OutputParser.render(primary|materialize)` — один парсер над неизменным receipt.
 - `ResultViews.capture/finish` — запуск subprocess worker и финализационный barrier.
-- `HandoffCommands.prepare/release/resume` — короткие транзакции с Task.handoff/Task.resume_handoff.
-- `LocalHandoff.preserve/resume` — Git/file adapter; не присваивает lifecycle.
+- `OwnershipCommands.release` — собственный версионный claim, accounting cycle и receipt одной UoW.
+- Task bootstrap — захват того же сохранённого состояния и существующего worktree.
 - `EvidenceCommands.list_for` — адресный список receipts текущей задачи через UoW.
-- `Sprint.overview(states,resumable)` — явное множество подтверждённых handoff, без неизвестных task
-  claims.
+- `Sprint.overview(states,resumable)` — состояния и явно разрешённые освобождённые участники;
+  обычное продолжение не требует transport receipt.
 
 Протоколы: [runtime](../configuration/runtime-services.md),
 [handoff](../workflows/local-handoff.md), [перенос](../workflows/transfer.md).
@@ -212,27 +212,17 @@ register/merge/receipt/refresh для модели не требуется. То
 
 ## DDD-07B: перенос сохранённой работы
 
-Обновлено: **2026-10-09**. `WorkTools.invoke` передаёт `operation=transfer` через
-`TransferCommands`/`TransferRequest` в `RuntimeTransfers`. Существующий локальный
-handoff сохраняет владение/WIP; экспорт компактной копии не переносит его bundle.
+Scoped export/import и прежние `TransferCommands`/`RuntimeTransfers` удалены.
+Продолжение работы использует существующие `OwnershipCommands.release` и Task bootstrap
+в одной рабочей области; public Work grammar отклоняет `handoff` и `transfer`.
+`release` закрывает accounting cycle и снимает собственные claims в одной UoW,
+сохраняет исходный receipt для точного replay и не создаёт commit либо копии материалов.
 
-`TransferPolicy`/`RecoveryPolicy` владеют явным контрактом конфигурации;
-`placement_plan` — решением версии, `material_source`/`relocate_path` — чистыми
-привязками. `SqliteTransferRepository.capture/install` сохраняет scoped snapshot
-и публикует только отсутствующих владельцев. `SqliteTransferContext` получает
-импортную доставку отдельно по Task/Sprint; только Task-контекст обогащается
-`verification_opened`/`verification_origin`. Авторитет пропуска не угадывается по
-членству Task или совпавшему ID из другого scope.
-
-`WorkspaceRecoveryFlow` материализует явный flow, сохраняет запуск до эффекта и
-terminal-факты после ожидания. `RecoveryDelivery` размещает файлы/код, готовит
-компоненты и проверяет состояние. Неизвестный исход не порождает новый запуск;
-SQL-публикация не объявляет filesystem/Git атомарными. `TaskQueries` разрешает
-подтверждённые пути, сохраняя текст и происхождение. Текущий этап открывается через
-существующего владельца handoff/Task; импорт этапные проверки не выполняет.
-
-[Формат/API/конфигурация](../workflows/transfer.md#конфигурация) ·
-[Ошибки и исходы](../workflows/transfer.md#согласованность-и-ошибки).
+`CheckConfigurationSystems.parse` читает необязательный `check_runner.systems`:
+при наличии строго проверяет оба system companion. Исторические механические пути
+разрешаются material-location owner; текст/argv остаются исходными.
+[Пакет release](../workflows/local-handoff.md#пакет) и
+[удалённый transport](../workflows/transfer.md#назначение-и-граница).
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
 `HookCommands.install` принимает целый definition; `HookRepository` сохраняет candidate/receipt и
@@ -413,7 +403,7 @@ terminal receipt одного pytest-модуля; `parse_junit(...)` отдел
 report от нулевого кода процесса. Он не изменяет бизнес-состояние приложения.
 
 `examples/project_execution.continue_execution(...)` — пример для конкретной verification-
-программы. Все изменения Task, handoff и transfer выполняются через WorkTools. См.
+программы. Все изменения Task и освобождение владения выполняются через WorkTools. См.
 [рабочий путь](../workflows/happy-path.md) и [пакетную работу](../workflows/batch-work.md).
 
 Для изолированного полного прогона pytest-пакетов используется development-инструмент:
@@ -437,7 +427,7 @@ python tools/run_test_packages.py \
 
 `examples/project_execution.py` продолжает только уже подготовленную verification-задачу и
 не является общим route engine. Он принимает существующий project config, session, Task ID,
-явное решение `continue` и ID операции экспорта. Изменения Task, handoff и transfer проходят
+явное решение `continue` и ID обычного освобождения. Изменения Task и ownership проходят
 через `WorkTools`; пример не восстанавливает состояние ручным редактированием SQLite. Для
 последовательного `executor`-этапа решением служит действующее поручение исполнителю; пример
 не выдаёт полномочий на `reviewer`, приёмку, публикацию или интеграцию.
@@ -451,7 +441,7 @@ python examples/project_execution.py \
   --session CURRENT_SESSION \
   --task-id PLANNED_VERIFICATION_TASK \
   --user-decision continue \
-  --export-request-id EXECUTION-CHECKPOINT-1
+  --release-request-id EXECUTION-RELEASE-1
 ```
 
 Пути и идентификаторы в примере нужно заменить фактическими значениями существующей задачи;

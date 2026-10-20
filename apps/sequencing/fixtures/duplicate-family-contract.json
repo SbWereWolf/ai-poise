@@ -1356,5 +1356,175 @@
         }
       }
     ]
+  },
+  "destination_after": {
+    "independent": {
+      "sprint_id": "S-DST",
+      "sprint_revision": 2,
+      "members": [
+        "0043",
+        "0045",
+        "0047",
+        "0048"
+      ],
+      "dependencies": []
+    },
+    "other": {
+      "sprint_id": "S-DST",
+      "sprint_revision": 2,
+      "members": [
+        "0043",
+        "0045",
+        "0047",
+        "0048"
+      ],
+      "dependencies": []
+    },
+    "same": {
+      "sprint_id": "S-DST",
+      "sprint_revision": 2,
+      "members": [
+        "0042",
+        "0043",
+        "0045",
+        "0047",
+        "0048"
+      ],
+      "dependencies": []
+    }
+  },
+  "batch_claim_result": {
+    "id": "later",
+    "kind": "claim_task",
+    "changed": true,
+    "task_id": "0046",
+    "claim_id": "$CLAIM",
+    "claimant": "LATER",
+    "claim_replayed": false
+  },
+  "dependency_cases": {
+    "nonterminal": {
+      "before": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0043",
+            "kind": "result",
+            "reason": "predecessor_not_completed"
+          },
+          {
+            "predecessor": "0048",
+            "kind": "completion",
+            "reason": "predecessor_not_completed"
+          }
+        ],
+        "result_provenance": []
+      },
+      "after": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0043",
+            "kind": "result",
+            "reason": "predecessor_not_completed"
+          }
+        ],
+        "result_provenance": []
+      }
+    },
+    "cancelled": {
+      "before": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0043",
+            "kind": "result",
+            "reason": "predecessor_not_completed"
+          },
+          {
+            "predecessor": "0048",
+            "kind": "completion",
+            "reason": "predecessor_not_completed"
+          }
+        ],
+        "result_provenance": []
+      },
+      "after": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0043",
+            "kind": "result",
+            "reason": "predecessor_not_completed"
+          }
+        ],
+        "result_provenance": []
+      }
+    },
+    "no-result": {
+      "before": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0043",
+            "kind": "result",
+            "reason": "missing_predecessor_result"
+          },
+          {
+            "predecessor": "0048",
+            "kind": "completion",
+            "reason": "predecessor_not_completed"
+          }
+        ],
+        "result_provenance": []
+      },
+      "after": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0043",
+            "kind": "result",
+            "reason": "missing_predecessor_result"
+          }
+        ],
+        "result_provenance": []
+      }
+    },
+    "result": {
+      "before": {
+        "task_id": "0045",
+        "eligible": false,
+        "blockers": [
+          {
+            "predecessor": "0048",
+            "kind": "completion",
+            "reason": "predecessor_not_completed"
+          }
+        ],
+        "result_provenance": [
+          {
+            "predecessor": "0043",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ]
+      },
+      "after": {
+        "task_id": "0045",
+        "eligible": true,
+        "blockers": [],
+        "result_provenance": [
+          {
+            "predecessor": "0043",
+            "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ]
+      }
+    }
   }
 }

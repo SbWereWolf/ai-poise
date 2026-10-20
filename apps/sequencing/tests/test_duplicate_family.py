@@ -142,8 +142,15 @@ class Family:
         assert self.sql('SELECT value FROM meta WHERE key=?', ('revision',)) == [(self.revision,)]
 
     def family(self, value, selectors=(P, D)):
-        self.query([{'id': 'family-' + task, 'kind': 'duplicate_family', 'task_id': task} for task in selectors],
-                   [{'id': 'family-' + task, 'value': value} for task in selectors])
+        queries = [{'id': 'family-' + task, 'kind': 'duplicate_family', 'task_id': task} for task in selectors]
+        expected = [{'id': 'family-' + task, 'value': value} for task in selectors]
+        for member in value['members']:
+            task = member['task']['task_id']
+            queries += [{'id': 'card-' + task, 'kind': 'task', 'task_id': task},
+                        {'id': 'facts-' + task, 'kind': 'execution_facts', 'task_id': task}]
+            expected += [{'id': 'card-' + task, 'value': member['task']},
+                         {'id': 'facts-' + task, 'value': member['execution_facts']}]
+        self.query(queries, expected)
 
     def outcome(self, task, kind, commit=None, identity=None):
         identity = identity or 'outcome-' + task
@@ -163,6 +170,8 @@ def test_explicit_new_duplicate_registration_preserves_source_and_graph(tmp_path
     case.duplicate(field=field)
     expected = DATA['family_views'][field + ':' + origin]
     case.family(expected)
+    case.query([{'id': 'destination', 'kind': 'sprint', 'sprint_id': 'S-DST'}],
+               [{'id': 'destination', 'value': DATA['destination_after'][origin]}])
     case.query([{'id': 'ordinary', 'kind': 'task', 'task_id': F},
                 {'id': 'ordinary-family', 'kind': 'duplicate_family', 'task_id': F}],
                [{'id': 'ordinary', 'value': DATA['ordinary_card']}, {'id': 'ordinary-family', 'value': None}])
@@ -235,7 +244,58 @@ def test_later_semantic_failure_rolls_back_duplicate_and_sprint_revision(tmp_pat
     case = Family(tmp_path)
     later = DATA['templates']['later_failure']
     case.reject(case.packet([deepcopy(DATA['base_operation']), later]), 'task_not_found')
-    case.duplicate()
+    corrected = dict(later, task_id=F)
+    packet = case.packet([deepcopy(DATA['base_operation']), corrected])
+    before = case.snapshot()
+    actual = case.client.invoke(packet)
+    claim_id = actual['results'][1]['claim_id']
+    assert isinstance(claim_id, str) and claim_id
+    duplicate_result = render(DATA['duplicate_result'],
+        {'$OP': 'duplicate', '$CHANGED': True, '$TASK': D, '$SPRINT_REV': 2})
+    claim_result = render(DATA['batch_claim_result'], {'$CLAIM': claim_id})
+    expected = render(DATA['apply_response'],
+        {'$REV': case.revision + 1, '$RESULTS': [duplicate_result, claim_result]})
+    assert actual == expected
+    case.revision += 1
+    after = case.snapshot()
+    assert before['files'] == after['files'] and before['directories'] == after['directories']
+    assert before['database']['schema'] == after['database']['schema']
+    assert before['database']['version'] == after['database']['version']
+    old, new = before['database']['rows'], after['database']['rows']
+    for table in old:
+        if table not in ('tasks', 'sprints', 'sprint_revisions', 'sprint_members',
+                         'task_claims', 'sequencing_history', 'requests', 'meta'):
+            assert old[table] == new[table]
+    assert len(new['tasks']) == len(old['tasks']) + 1
+    fields = [row[1] for row in case.sql('PRAGMA table_info(tasks)')]
+    for row in old['tasks']:
+        wanted = dict(zip(fields, row))
+        if wanted['task_id'] == F:
+            wanted['state'] = 'claimed'
+        assert tuple(wanted[field] for field in fields) in new['tasks']
+    assert len(new['sprint_members']) == len(old['sprint_members']) + 1
+    assert all(row in new['sprint_members'] for row in old['sprint_members'])
+    assert all(row in new['sprint_revisions'] for row in old['sprint_revisions'])
+    for row in old['sprints']:
+        assert (('S-DST', 2, row[2]) if row[0] == 'S-DST' else row) in new['sprints']
+    assert len(new['sprints']) == len(old['sprints'])
+    assert all(row in new['task_claims'] for row in old['task_claims'])
+    assert len(new['task_claims']) == len(old['task_claims']) + 1
+    assert len(new['requests']) == len(old['requests']) + 1
+    assert all(row in new['requests'] for row in old['requests'])
+    saved = case.sql('SELECT response_json FROM requests WHERE request_id=?', (packet['input']['request_id'],))
+    assert len(saved) == 1 and json.loads(saved[0][0]) == expected
+    assert all(row in new['sequencing_history'] for row in old['sequencing_history'])
+    assert len(new['sequencing_history']) == len(old['sequencing_history']) + 2
+    appended = sorted((row for row in new['sequencing_history'] if row not in old['sequencing_history']),
+                      key=lambda row: row[0])
+    assert [(row[1], row[4]) for row in appended] == [(D, 'CALLER-A'), (F, 'LATER')]
+    assert case.sql('SELECT task_id,claimant,status FROM task_claims WHERE claim_id=?',
+                    (claim_id,)) == [(F, 'LATER', 'active')]
+    assert case.sql('SELECT state FROM tasks WHERE task_id=?', (F,)) == [('claimed',)]
+    assert case.sql('SELECT revision FROM sprints WHERE sprint_id=?', ('S-DST',)) == [(2,)]
+    assert case.sql('SELECT sprint_id FROM sprint_members WHERE task_id=?', (D,)) == [('S-DST',)]
+    assert case.sql('SELECT value FROM meta WHERE key=?', ('revision',)) == [(case.revision,)]
     case.family(DATA['family_views']['requirements_statement_revision:independent'])
 
 
@@ -274,19 +334,11 @@ def test_dependency_consumes_addressed_child_result_after_every_success(tmp_path
         case.outcome(D, 'positive')
     elif outcome == 'result':
         case.outcome(D, 'positive', DATA['commits'][1])
-    before_completion = render(DATA['eligibility'], {'$ELIGIBLE': False,
-        '$BLOCKERS': ([{'predecessor': B, 'kind': 'completion', 'reason': 'predecessor_not_completed'}] +
-                     ([] if outcome == 'result' else DATA['blocked_missing'] if outcome == 'no-result'
-                      else DATA['blocked_nonterminal'])),
-        '$PROVENANCE': DATA['producer'] if outcome == 'result' else []})
-    # The public contract sorts predecessors by ID: child D precedes completion B.
-    before_completion['blockers'].sort(key=lambda item: item['predecessor'])
+    before_completion = DATA['dependency_cases'][outcome]['before']
     query = DATA['templates']['eligibility_query']
     case.query([query], [{'id': 'eligible', 'value': before_completion}])
     case.outcome(B, 'positive')
-    wanted = render(DATA['eligibility'], {'$ELIGIBLE': outcome == 'result',
-        '$BLOCKERS': [] if outcome == 'result' else DATA['blocked_missing'] if outcome == 'no-result'
-        else DATA['blocked_nonterminal'], '$PROVENANCE': DATA['producer'] if outcome == 'result' else []})
+    wanted = DATA['dependency_cases'][outcome]['after']
     case.query([query], [{'id': 'eligible', 'value': wanted}])
 
 

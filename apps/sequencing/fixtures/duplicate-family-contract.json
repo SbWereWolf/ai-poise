@@ -1,0 +1,1360 @@
+{
+  "schema": "stride-sequencing/v1",
+  "ids": {
+    "P": "0042",
+    "D": "0043",
+    "E": "0044",
+    "U": "0045",
+    "F": "0046",
+    "A": "0047",
+    "B": "0048",
+    "Z": "0049",
+    "T": "0050"
+  },
+  "base_operation": {
+    "id": "duplicate",
+    "kind": "register_duplicate",
+    "task_id": "0043",
+    "parent_id": "0042",
+    "sprint_id": "S-DST",
+    "claimant": "CALLER-A",
+    "requirements_statement_revision": 7
+  },
+  "base_query": {
+    "id": "family",
+    "kind": "duplicate_family",
+    "task_id": "0042"
+  },
+  "family_views": {
+    "requirements_statement_revision:independent": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_statement_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    },
+    "requirements_statement_revision:same": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_statement_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    },
+    "requirements_statement_revision:other": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": "S-SRC",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_statement_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    },
+    "requirements_snapshot_revision:independent": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_snapshot_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    },
+    "requirements_snapshot_revision:same": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_snapshot_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    },
+    "requirements_snapshot_revision:other": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": "S-SRC",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_snapshot_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    },
+    "siblings": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "available",
+            "sprint_id": null,
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043",
+                "0044"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_statement_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": [
+                "0044"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        },
+        {
+          "task": {
+            "task_id": "0044",
+            "requirements_statement_revision": 8,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0044",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    }
+  },
+  "duplicate_result": {
+    "id": "$OP",
+    "kind": "register_duplicate",
+    "changed": "$CHANGED",
+    "task_id": "$TASK",
+    "parent_id": "0042",
+    "sprint_id": "S-DST",
+    "sprint_revision": "$SPRINT_REV"
+  },
+  "apply_response": {
+    "schema": "stride-sequencing/v1",
+    "status": "applied",
+    "revision": "$REV",
+    "replayed": false,
+    "results": "$RESULTS"
+  },
+  "query_response": {
+    "schema": "stride-sequencing/v1",
+    "status": "read_only",
+    "revision": "$REV",
+    "results": "$RESULTS"
+  },
+  "error_response": {
+    "schema": "stride-sequencing/v1",
+    "status": "rejected",
+    "reason": "$REASON"
+  },
+  "invalid": [
+    {
+      "id": "operation-missing-claimant",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate: required exact fields ['claimant', 'id', 'kind', 'parent_id', 'requirements_statement_revision', 'sprint_id', 'task_id']; missing ['claimant']; unknown []"
+    },
+    {
+      "id": "operation-missing-id",
+      "operation": {
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate: required exact fields ['claimant', 'id', 'kind', 'parent_id', 'requirements_statement_revision', 'sprint_id', 'task_id']; missing ['id']; unknown []"
+    },
+    {
+      "id": "operation-missing-kind",
+      "operation": {
+        "id": "duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Unsupported Sequencing operation kind: None"
+    },
+    {
+      "id": "operation-missing-parent_id",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate: required exact fields ['claimant', 'id', 'kind', 'parent_id', 'requirements_statement_revision', 'sprint_id', 'task_id']; missing ['parent_id']; unknown []"
+    },
+    {
+      "id": "operation-missing-requirements_statement_revision",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A"
+      },
+      "reason": "Sequencing register_duplicate requires exactly one Requirements reference"
+    },
+    {
+      "id": "operation-missing-sprint_id",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate: required exact fields ['claimant', 'id', 'kind', 'parent_id', 'requirements_statement_revision', 'sprint_id', 'task_id']; missing ['sprint_id']; unknown []"
+    },
+    {
+      "id": "operation-missing-task_id",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate: required exact fields ['claimant', 'id', 'kind', 'parent_id', 'requirements_statement_revision', 'sprint_id', 'task_id']; missing ['task_id']; unknown []"
+    },
+    {
+      "id": "query-missing-id",
+      "query": {
+        "kind": "duplicate_family",
+        "task_id": "0042"
+      },
+      "reason": "Sequencing query: required exact fields ['id', 'kind', 'task_id']; missing ['id']; unknown []"
+    },
+    {
+      "id": "query-missing-kind",
+      "query": {
+        "id": "family",
+        "task_id": "0042"
+      },
+      "reason": "Unsupported Sequencing query kind"
+    },
+    {
+      "id": "query-missing-task_id",
+      "query": {
+        "id": "family",
+        "kind": "duplicate_family"
+      },
+      "reason": "Sequencing query: required exact fields ['id', 'kind', 'task_id']; missing ['task_id']; unknown []"
+    },
+    {
+      "id": "operation-extra",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7,
+        "extra": true
+      },
+      "reason": "Sequencing register_duplicate: required exact fields ['claimant', 'id', 'kind', 'parent_id', 'requirements_statement_revision', 'sprint_id', 'task_id']; missing []; unknown ['extra']"
+    },
+    {
+      "id": "operation-null",
+      "operation": null,
+      "reason": "Sequencing operation requires an object"
+    },
+    {
+      "id": "operation-array",
+      "operation": [],
+      "reason": "Sequencing operation requires an object"
+    },
+    {
+      "id": "operation-scalar",
+      "operation": 17,
+      "reason": "Sequencing operation requires an object"
+    },
+    {
+      "id": "query-extra",
+      "query": {
+        "id": "family",
+        "kind": "duplicate_family",
+        "task_id": "0042",
+        "extra": true
+      },
+      "reason": "Sequencing query: required exact fields ['id', 'kind', 'task_id']; missing []; unknown ['extra']"
+    },
+    {
+      "id": "query-null",
+      "query": null,
+      "reason": "Unsupported Sequencing query kind"
+    },
+    {
+      "id": "query-array",
+      "query": [],
+      "reason": "Unsupported Sequencing query kind"
+    },
+    {
+      "id": "query-scalar",
+      "query": 17,
+      "reason": "Unsupported Sequencing query kind"
+    },
+    {
+      "id": "operation-task_id-type",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": true,
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier: required nonempty string"
+    },
+    {
+      "id": "operation-task_id-empty",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier: required nonempty string"
+    },
+    {
+      "id": "operation-task_id-nul",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "00\u000042",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier: required nonempty string"
+    },
+    {
+      "id": "operation-task_id-pattern",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "bad id!",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier violates configured policy"
+    },
+    {
+      "id": "operation-parent_id-type",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": true,
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier: required nonempty string"
+    },
+    {
+      "id": "operation-parent_id-empty",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier: required nonempty string"
+    },
+    {
+      "id": "operation-parent_id-nul",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "00\u000042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier: required nonempty string"
+    },
+    {
+      "id": "operation-parent_id-pattern",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "bad id!",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Task identifier violates configured policy"
+    },
+    {
+      "id": "operation-sprint_id-type",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": true,
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Sprint identifier: required nonempty string"
+    },
+    {
+      "id": "operation-sprint_id-empty",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Sprint identifier: required nonempty string"
+    },
+    {
+      "id": "operation-sprint_id-nul",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "00\u000042",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Sprint identifier: required nonempty string"
+    },
+    {
+      "id": "operation-sprint_id-pattern",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "bad id!",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing Sprint identifier violates configured policy"
+    },
+    {
+      "id": "query-task_id-type",
+      "query": {
+        "id": "family",
+        "kind": "duplicate_family",
+        "task_id": true
+      },
+      "reason": "Sequencing task identifier: required nonempty string"
+    },
+    {
+      "id": "query-task_id-empty",
+      "query": {
+        "id": "family",
+        "kind": "duplicate_family",
+        "task_id": ""
+      },
+      "reason": "Sequencing task identifier: required nonempty string"
+    },
+    {
+      "id": "query-task_id-nul",
+      "query": {
+        "id": "family",
+        "kind": "duplicate_family",
+        "task_id": "00\u000042"
+      },
+      "reason": "Sequencing task identifier: required nonempty string"
+    },
+    {
+      "id": "query-task_id-pattern",
+      "query": {
+        "id": "family",
+        "kind": "duplicate_family",
+        "task_id": "bad id!"
+      },
+      "reason": "Sequencing task identifier violates configured policy"
+    },
+    {
+      "id": "claimant-empty",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate claimant: required nonempty string"
+    },
+    {
+      "id": "claimant-nul",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "caller\u0000",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate claimant: required nonempty string"
+    },
+    {
+      "id": "claimant-type",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": true,
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing register_duplicate claimant: required nonempty string"
+    },
+    {
+      "id": "operation-id-empty",
+      "operation": {
+        "id": "",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing operation id: required nonempty string"
+    },
+    {
+      "id": "operation-id-nul",
+      "operation": {
+        "id": "id\u0000",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing operation id: required nonempty string"
+    },
+    {
+      "id": "operation-id-type",
+      "operation": {
+        "id": true,
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7
+      },
+      "reason": "Sequencing operation id: required nonempty string"
+    },
+    {
+      "id": "query-id-empty",
+      "query": {
+        "id": "",
+        "kind": "duplicate_family",
+        "task_id": "0042"
+      },
+      "reason": "Sequencing query id: required nonempty string"
+    },
+    {
+      "id": "query-id-nul",
+      "query": {
+        "id": "id\u0000",
+        "kind": "duplicate_family",
+        "task_id": "0042"
+      },
+      "reason": "Sequencing query id: required nonempty string"
+    },
+    {
+      "id": "query-id-type",
+      "query": {
+        "id": true,
+        "kind": "duplicate_family",
+        "task_id": "0042"
+      },
+      "reason": "Sequencing query id: required nonempty string"
+    },
+    {
+      "id": "requirements_statement_revision-bool",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": true
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_statement_revision-string",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": "7"
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_statement_revision-number",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 1.5
+      },
+      "reason": "floating-point numbers are not supported"
+    },
+    {
+      "id": "requirements_statement_revision-zero",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 0
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_statement_revision-negative",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": -1
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_snapshot_revision-bool",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_snapshot_revision": true
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_snapshot_revision-string",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_snapshot_revision": "7"
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_snapshot_revision-number",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_snapshot_revision": 1.5
+      },
+      "reason": "floating-point numbers are not supported"
+    },
+    {
+      "id": "requirements_snapshot_revision-zero",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_snapshot_revision": 0
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "requirements_snapshot_revision-negative",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_snapshot_revision": -1
+      },
+      "reason": "Sequencing Requirements reference requires a positive integer"
+    },
+    {
+      "id": "reference-both",
+      "operation": {
+        "id": "duplicate",
+        "kind": "register_duplicate",
+        "task_id": "0043",
+        "parent_id": "0042",
+        "sprint_id": "S-DST",
+        "claimant": "CALLER-A",
+        "requirements_statement_revision": 7,
+        "requirements_snapshot_revision": 7
+      },
+      "reason": "Sequencing register_duplicate requires exactly one Requirements reference"
+    }
+  ],
+  "opaque_claimant": " Caller Ω\n ",
+  "commits": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "facts_owner": "orchestrator Ω",
+  "ordinary_card": {
+    "task_id": "0046",
+    "requirements_statement_revision": 1,
+    "state": "available",
+    "sprint_id": null,
+    "claim": null,
+    "workspace": null,
+    "terminal": null
+  },
+  "source_paths": {
+    "code": "$ROOT/source-code",
+    "main": "$ROOT/source-main",
+    "artifact": "$ROOT/source-artifact"
+  },
+  "eligibility": {
+    "task_id": "0045",
+    "eligible": "$ELIGIBLE",
+    "blockers": "$BLOCKERS",
+    "result_provenance": "$PROVENANCE"
+  },
+  "blocked_nonterminal": [
+    {
+      "predecessor": "0043",
+      "kind": "result",
+      "reason": "predecessor_not_completed"
+    }
+  ],
+  "blocked_missing": [
+    {
+      "predecessor": "0043",
+      "kind": "result",
+      "reason": "missing_predecessor_result"
+    }
+  ],
+  "producer": [
+    {
+      "predecessor": "0043",
+      "result_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "retired_operation": {
+    "id": "retired",
+    "kind": "replace_task"
+  },
+  "retired_reason": "Unsupported Sequencing operation kind: replace_task",
+  "claim_value": {
+    "claim_id": "ROOT-CLAIM",
+    "task_id": "0042",
+    "claimant": "ROOT-OWNER",
+    "status": "active"
+  },
+  "root_label_operation": {
+    "id": "label",
+    "kind": "record_stage_label",
+    "task_id": "0042",
+    "claim_id": "ROOT-CLAIM",
+    "claimant": "ROOT-OWNER",
+    "label_id": "root-label",
+    "label": " Implement Ω\n ",
+    "source_ref": {
+      "owner": "orchestrator Ω",
+      "id": "stage input"
+    }
+  },
+  "root_label_result": {
+    "id": "label",
+    "kind": "record_stage_label",
+    "changed": true,
+    "task_id": "0042",
+    "label_id": "root-label",
+    "fact_replayed": false
+  },
+  "root_label_fact": {
+    "task_id": "0042",
+    "label_id": "root-label",
+    "label": " Implement Ω\n ",
+    "source_ref": {
+      "owner": "orchestrator Ω",
+      "id": "stage input"
+    }
+  },
+  "root_workspace": {
+    "workspace_id": "ROOT-WORKSPACE",
+    "task_id": "0042",
+    "repository_id": "fixture-repo",
+    "base_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "branch": "tasks/0042",
+    "status": "ready",
+    "read_only": false,
+    "roots": [
+      {
+        "kind": "artifact",
+        "position": 0,
+        "path": "$ROOT/source-artifact"
+      },
+      {
+        "kind": "code",
+        "position": 0,
+        "path": "$ROOT/source-code"
+      },
+      {
+        "kind": "main",
+        "position": 0,
+        "path": "$ROOT/source-main"
+      }
+    ],
+    "path": "$ROOT/source-code",
+    "owner_session_id": "ROOT-OWNER"
+  },
+  "templates": {
+    "register_operation": {
+      "id": "$REGISTER_ID",
+      "kind": "register_task",
+      "task_id": "$TASK",
+      "requirements_statement_revision": 1
+    },
+    "register_result": {
+      "id": "$REGISTER_ID",
+      "kind": "register_task",
+      "changed": true,
+      "task_id": "$TASK",
+      "requirements_statement_revision": 1
+    },
+    "sprint_operation": {
+      "id": "$OP",
+      "kind": "register_sprint",
+      "sprint_id": "$SPRINT",
+      "members": "$MEMBERS",
+      "dependencies": []
+    },
+    "sprint_result": {
+      "id": "$OP",
+      "kind": "register_sprint",
+      "changed": true,
+      "sprint_id": "$SPRINT",
+      "sprint_revision": 1
+    },
+    "outcome": {
+      "outcome_id": "$ID",
+      "task_id": "$TASK",
+      "kind": "$KIND",
+      "result_commit": "$COMMIT",
+      "source_ref": {
+        "owner": "orchestrator Ω",
+        "id": "$SOURCE_ID"
+      }
+    },
+    "outcome_operation": {
+      "id": "outcome",
+      "kind": "record_execution_outcome",
+      "outcome": "$FACT"
+    },
+    "outcome_result": {
+      "id": "outcome",
+      "kind": "record_execution_outcome",
+      "changed": true,
+      "task_id": "$TASK",
+      "outcome_id": "$ID",
+      "state": "$STATE",
+      "fact_replayed": false
+    },
+    "positive_terminal": {
+      "terminal_id": "$ID",
+      "task_id": "$TASK",
+      "kind": "completed",
+      "result_commit": "$COMMIT",
+      "source_ref": {
+        "owner": "orchestrator Ω",
+        "id": "$SOURCE_ID"
+      }
+    },
+    "eligibility_query": {
+      "id": "eligible",
+      "kind": "eligibility",
+      "task_id": "0045",
+      "claimant": "NEXT"
+    },
+    "later_failure": {
+      "id": "later",
+      "kind": "claim_task",
+      "task_id": "999998",
+      "claimant": "LATER",
+      "claim_request_id": "later-intent"
+    }
+  },
+  "custom_patterns": {
+    "task": {
+      "pattern": "^(ROOT|CHILD|ANCHOR|004[0-9]|0050|000999)$"
+    },
+    "sprint": {
+      "pattern": "^S-(DST|ALT|SRC|CUSTOM)$"
+    }
+  },
+  "custom_register": [
+    {
+      "id": "root",
+      "kind": "register_task",
+      "task_id": "ROOT",
+      "requirements_snapshot_revision": 3
+    },
+    {
+      "id": "anchor",
+      "kind": "register_task",
+      "task_id": "ANCHOR",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "sprint",
+      "kind": "register_sprint",
+      "sprint_id": "S-CUSTOM",
+      "members": [
+        "ANCHOR"
+      ],
+      "dependencies": []
+    }
+  ],
+  "custom_register_results": [
+    {
+      "id": "root",
+      "kind": "register_task",
+      "changed": true,
+      "task_id": "ROOT",
+      "requirements_snapshot_revision": 3
+    },
+    {
+      "id": "anchor",
+      "kind": "register_task",
+      "changed": true,
+      "task_id": "ANCHOR",
+      "requirements_statement_revision": 1
+    },
+    {
+      "id": "sprint",
+      "kind": "register_sprint",
+      "changed": true,
+      "sprint_id": "S-CUSTOM",
+      "sprint_revision": 1
+    }
+  ],
+  "custom_duplicate": {
+    "id": "copy",
+    "kind": "register_duplicate",
+    "task_id": "CHILD",
+    "parent_id": "ROOT",
+    "sprint_id": "S-CUSTOM",
+    "claimant": "CUSTOM",
+    "requirements_snapshot_revision": 9
+  },
+  "custom_duplicate_result": {
+    "id": "copy",
+    "kind": "register_duplicate",
+    "changed": true,
+    "task_id": "CHILD",
+    "parent_id": "ROOT",
+    "sprint_id": "S-CUSTOM",
+    "sprint_revision": 2
+  },
+  "custom_family": {
+    "parent_id": "ROOT",
+    "members": [
+      {
+        "task": {
+          "task_id": "CHILD",
+          "requirements_snapshot_revision": 9,
+          "state": "available",
+          "sprint_id": "S-CUSTOM",
+          "claim": null,
+          "workspace": null,
+          "terminal": null,
+          "duplicate": {
+            "kind": "duplicate",
+            "role": "child",
+            "parent_id": "ROOT",
+            "siblings": []
+          }
+        },
+        "execution_facts": {
+          "task_id": "CHILD",
+          "stage_label": null,
+          "outcome": null
+        }
+      },
+      {
+        "task": {
+          "task_id": "ROOT",
+          "requirements_snapshot_revision": 3,
+          "state": "available",
+          "sprint_id": null,
+          "claim": null,
+          "workspace": null,
+          "terminal": null,
+          "duplicate": {
+            "kind": "duplicate",
+            "role": "parent",
+            "parent_id": "ROOT",
+            "children": [
+              "CHILD"
+            ]
+          }
+        },
+        "execution_facts": {
+          "task_id": "ROOT",
+          "stage_label": null,
+          "outcome": null
+        }
+      }
+    ]
+  }
+}

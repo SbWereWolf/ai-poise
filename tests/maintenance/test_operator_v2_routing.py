@@ -146,6 +146,18 @@ def retained_previous_files(tmp_path):
 @pytest.mark.parametrize('profile', ['poise', 'erp'])
 def test_real_route_forwards_selected_profile_values_set_and_dry_run(routed_case, operation, profile):
     selected = routed_case['profiles'][profile]
+    values_only = launch(routed_case, operation, [
+        '--config', str(selected['config']), '--catalog-dir', str(selected['root']),
+        '--values', str(selected['values']), '--dry-run',
+    ])
+    assert (values_only.returncode, values_only.stderr) == (0, '')
+    first_report = json.loads(values_only.stdout)
+    assert first_report['status'] == 'ready'
+    assert json.loads(first_report['observations'][0]['stdout'])['dry_run'] is True
+    first_calls = [json.loads(line) for line in (selected['root'] / 'calls.jsonl').read_text().splitlines()]
+    assert [row['role'] for row in first_calls] == ['check']
+    assert first_calls[0]['env']['SELECTED'] == 'from-values'
+
     result = launch(routed_case, operation, [
         '--config', str(selected['config']), '--catalog-dir', str(selected['root']),
         '--values', str(selected['values']), '--set', 'selected=from-cli', '--dry-run',
@@ -155,13 +167,37 @@ def test_real_route_forwards_selected_profile_values_set_and_dry_run(routed_case
     assert result.stderr == ''
     report = json.loads(result.stdout)
     assert report['status'] == 'ready' and report['exit_code'] == 0
+    assert json.loads(report['observations'][0]['stdout'])['dry_run'] is True
     assert report['actions'] == []
     calls = [json.loads(line) for line in (selected['root'] / 'calls.jsonl').read_text().splitlines()]
-    assert [row['role'] for row in calls] == ['check']
-    assert calls[0]['env']['SELECTED'] == 'from-cli'
-    assert calls[0]['cwd'] == str(selected['root'])
+    assert [row['role'] for row in calls] == ['check', 'check']
+    assert calls[1]['env']['SELECTED'] == 'from-cli'
+    assert all(row['cwd'] == str(selected['root']) for row in calls)
     other = routed_case['profiles']['erp' if profile == 'poise' else 'poise']['root']
     assert not (other / 'calls.jsonl').exists()
+
+
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'check'])
+@pytest.mark.parametrize('profile', ['poise', 'erp'])
+def test_real_route_dry_run_observes_missing_resource_without_repair(routed_case, operation, profile):
+    selected = routed_case['profiles'][profile]
+    (selected['root'] / 'resource').unlink()
+    result = launch(routed_case, operation, [
+        '--config', str(selected['config']), '--catalog-dir', str(selected['root']),
+        '--values', str(selected['values']), '--dry-run',
+    ])
+    assert result.returncode == 4 and result.stderr == ''
+    report = json.loads(result.stdout)
+    assert report['status'] == 'error' and report['actions'] == []
+    assert len(report['observations']) == 1
+    engine = json.loads(report['observations'][0]['stdout'])
+    assert engine['dry_run'] is True
+    assert engine['status'] == 'action_required'
+    assert engine['requirements'][0]['state'] == 'missing'
+    assert not (selected['root'] / 'resource').exists()
+    calls = [json.loads(line) for line in (selected['root'] / 'calls.jsonl').read_text().splitlines()]
+    assert [row['role'] for row in calls] == ['check']
+    assert calls[0]['env']['SELECTED'] == 'from-values'
 
 
 @pytest.mark.parametrize('arguments,missing', [

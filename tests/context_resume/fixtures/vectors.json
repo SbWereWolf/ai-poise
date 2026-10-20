@@ -1,0 +1,201 @@
+{
+  "schema": "f06-test-vectors-1",
+  "initial_generation": 1,
+  "native_missing_error": "Unknown or duplicate hook event",
+  "card_prefix": "Work context: ",
+  "card_schema": "poise-work-context-1",
+  "body_marker": "F06_PRIVATE_SOURCE_BODY_4c7589",
+  "work_marker": "F06_PRIVATE_TASK_BODY_3a87df",
+  "source_text": "A01\nA02\nA03\nA04\n",
+  "core_text": "# Core\nF06_PRIVATE_SOURCE_BODY_4c7589\n",
+  "domain_text": "# Domain\nF06_PRIVATE_SOURCE_BODY_4c7589\n",
+  "paths": [
+    "src/billing/invoice.py",
+    "docs/sample.txt"
+  ],
+  "summary": {
+    "max_bytes": 4096,
+    "max_changed_paths": 2,
+    "max_instruction_changes": 2,
+    "max_coverage_items": 2
+  },
+  "native_events": [
+    {
+      "event": "PreCompact",
+      "matcher": "",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Observe general context PreCompact"
+    },
+    {
+      "event": "PostCompact",
+      "matcher": "",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Observe general context PostCompact"
+    }
+  ],
+  "instruction_catalog": {
+    "schema": "poise-skill-catalog-1",
+    "skills": [
+      {
+        "id": "core",
+        "path": ".agents/skills/core/SKILL.md",
+        "purpose": "Independent context fixture core",
+        "class": "common",
+        "level": null,
+        "responsibility": null
+      },
+      {
+        "id": "domain",
+        "path": ".agents/skills/domain/SKILL.md",
+        "purpose": "Independent context fixture domain",
+        "class": "common",
+        "level": null,
+        "responsibility": null
+      }
+    ]
+  },
+  "instruction_policy": {
+    "schema": "poise-project-instruction-policy-1",
+    "version": "1",
+    "universal_skills": [
+      "core"
+    ],
+    "profiles": [
+      {
+        "name": "billing",
+        "paths": [
+          "src/billing/"
+        ],
+        "baseline": [
+          "domain"
+        ],
+        "recommended_skills": [],
+        "profile_file": null
+      }
+    ]
+  },
+  "general_context": {
+    "reader_policy": "@READER@",
+    "checkpoint_directory": "context",
+    "checkpoint_filename": "work-context.json",
+    "summary": {
+      "max_bytes": 4096,
+      "max_changed_paths": 2,
+      "max_instruction_changes": 2,
+      "max_coverage_items": 2
+    },
+    "instructions": {
+      "catalog": "@CATALOG@",
+      "root": "@CHECKOUT@",
+      "policy": "@INSTRUCTIONS@",
+      "paths": [
+        "src/billing/invoice.py",
+        "docs/sample.txt"
+      ]
+    },
+    "work_owner": {
+      "enabled": false
+    },
+    "check_owner": {
+      "enabled": false
+    }
+  },
+  "checkpoint_top_keys": [
+    "schema",
+    "scope",
+    "event",
+    "captured",
+    "consumption"
+  ],
+  "checkpoint_schema": "poise-work-context-checkpoint-1",
+  "card_top_keys": [
+    "schema",
+    "status",
+    "scope",
+    "checkpoint",
+    "generation",
+    "git",
+    "instructions",
+    "coverage",
+    "check",
+    "work",
+    "omitted",
+    "actions"
+  ],
+  "work_pending": {
+    "kind": "check_attempt",
+    "version": 2,
+    "attempt_id": "33333333-3333-4333-8333-333333333333",
+    "task_id": "T1",
+    "task_version": 0,
+    "actor": "@ACTOR@",
+    "stage": "tests",
+    "iteration": 1,
+    "submission_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "verified_tree": "@TREE@",
+    "execution_key": "2222222222222222222222222222222222222222222222222222222222222222",
+    "identity": {
+      "source": "3333333333333333333333333333333333333333333333333333333333333333",
+      "definition": "4444444444444444444444444444444444444444444444444444444444444444",
+      "environment": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    "runs": [
+      {
+        "run_id": "11111111-1111-4111-8111-111111111111",
+        "method_id": "RED",
+        "started": true,
+        "termination": null
+      }
+    ]
+  },
+  "work_completed": {
+    "kind": "check_attempt",
+    "version": 2,
+    "attempt_id": "33333333-3333-4333-8333-333333333333",
+    "task_id": "T1",
+    "task_version": 0,
+    "actor": "@ACTOR@",
+    "stage": "tests",
+    "iteration": 1,
+    "submission_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "verified_tree": "@TREE@",
+    "execution_key": "2222222222222222222222222222222222222222222222222222222222222222",
+    "identity": {
+      "source": "3333333333333333333333333333333333333333333333333333333333333333",
+      "definition": "4444444444444444444444444444444444444444444444444444444444444444",
+      "environment": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    "runs": [
+      {
+        "run_id": "11111111-1111-4111-8111-111111111111",
+        "method_id": "RED",
+        "started": true,
+        "termination": {
+          "schema": "check-run-termination-1",
+          "task_id": "T1",
+          "actor": "@ACTOR@",
+          "attempt_id": "33333333-3333-4333-8333-333333333333",
+          "stage": "tests",
+          "iteration": 1,
+          "submission_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+          "execution_key": "2222222222222222222222222222222222222222222222222222222222222222",
+          "run_id": "11111111-1111-4111-8111-111111111111",
+          "tree": "@TREE@",
+          "actual_exit_code": 1,
+          "child_reaped": true,
+          "process_group_stopped": true,
+          "capture_complete": true
+        }
+      }
+    ]
+  },
+  "event_conflict_error": "Lifecycle trigger differs from the committed event; select its genuine native delivery and retry recovery",
+  "required_runtime_assets": [
+    "poise_environment/erp/runtime/application.php",
+    "poise_environment/erp/runtime/environment.mjs"
+  ]
+}

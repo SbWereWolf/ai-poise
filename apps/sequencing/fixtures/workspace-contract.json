@@ -1,0 +1,276 @@
+{
+  "schema": "stride-sequencing/v1",
+  "task_ids": [
+    "0042",
+    "0043",
+    "0044"
+  ],
+  "reference_revision": 2,
+  "prepare": {
+    "schema": "stride-sequencing/v1",
+    "operation": "workspace",
+    "input": {
+      "action": "prepare",
+      "request_id": "$REQUEST",
+      "task_id": "0042",
+      "claim_id": "$CLAIM",
+      "claimant": "$OWNER",
+      "read_only": "$READ_ONLY",
+      "roots": "$ROOTS"
+    }
+  },
+  "workspace": {
+    "workspace_id": "$WORKSPACE",
+    "task_id": "0042",
+    "repository_id": "fixture-repo",
+    "base_commit": "$BASE",
+    "branch": "$BRANCH",
+    "status": "ready",
+    "read_only": "$READ_ONLY",
+    "roots": "$EXPECTED_ROOTS",
+    "path": "$PRIMARY",
+    "owner_session_id": "$BINDING"
+  },
+  "task": {
+    "task_id": "0042",
+    "$REFERENCE": 2,
+    "state": "claimed",
+    "sprint_id": "$SPRINT",
+    "claim": {
+      "claim_id": "$CLAIM",
+      "task_id": "0042",
+      "claimant": "$OWNER",
+      "status": "active"
+    },
+    "workspace": "$WORKSPACE_VALUE",
+    "terminal": null
+  },
+  "response": {
+    "schema": "stride-sequencing/v1",
+    "status": "workspace_ready",
+    "revision": "$REVISION",
+    "workspace": "$WORKSPACE_VALUE",
+    "replayed": false
+  },
+  "admission": [
+    {
+      "label": "missing-action",
+      "remove": "action"
+    },
+    {
+      "label": "missing-request_id",
+      "remove": "request_id"
+    },
+    {
+      "label": "missing-task_id",
+      "remove": "task_id"
+    },
+    {
+      "label": "missing-claim_id",
+      "remove": "claim_id"
+    },
+    {
+      "label": "missing-claimant",
+      "remove": "claimant"
+    },
+    {
+      "label": "missing-read_only",
+      "remove": "read_only"
+    },
+    {
+      "label": "missing-roots",
+      "remove": "roots"
+    },
+    {
+      "label": "extra-input",
+      "set": {
+        "extra": "unexpected"
+      }
+    },
+    {
+      "label": "roots-not-object",
+      "set": {
+        "roots": []
+      }
+    },
+    {
+      "label": "code-not-array",
+      "root_group": "code",
+      "value": "not-array"
+    },
+    {
+      "label": "main-not-array",
+      "root_group": "main",
+      "value": {}
+    },
+    {
+      "label": "artifact-not-array",
+      "root_group": "artifact",
+      "value": null
+    },
+    {
+      "label": "path-null",
+      "root_entry": "code",
+      "value": null
+    },
+    {
+      "label": "path-empty",
+      "root_entry": "main",
+      "value": ""
+    },
+    {
+      "label": "path-number",
+      "root_entry": "artifact",
+      "value": 42
+    },
+    {
+      "label": "path-object",
+      "root_entry": "code",
+      "value": {}
+    },
+    {
+      "label": "path-array",
+      "root_entry": "main",
+      "value": []
+    },
+    {
+      "label": "path-nul",
+      "root_entry": "artifact",
+      "value": "bad\u0000path"
+    },
+    {
+      "label": "scalar-action",
+      "set": {
+        "action": 42
+      }
+    },
+    {
+      "label": "scalar-request_id",
+      "set": {
+        "request_id": null
+      }
+    },
+    {
+      "label": "scalar-task_id",
+      "set": {
+        "task_id": []
+      }
+    },
+    {
+      "label": "scalar-claim_id",
+      "set": {
+        "claim_id": false
+      }
+    },
+    {
+      "label": "scalar-claimant",
+      "set": {
+        "claimant": {}
+      }
+    },
+    {
+      "label": "boolean-one",
+      "set": {
+        "read_only": 1
+      }
+    },
+    {
+      "label": "boolean-null",
+      "set": {
+        "read_only": null
+      }
+    },
+    {
+      "label": "boolean-string",
+      "set": {
+        "read_only": "true"
+      }
+    },
+    {
+      "label": "request-empty",
+      "set": {
+        "request_id": ""
+      }
+    },
+    {
+      "label": "request-nul",
+      "set": {
+        "request_id": "request\u0000bad"
+      }
+    }
+  ],
+  "legacy_states": [
+    "failed",
+    "release_pending",
+    "released"
+  ],
+  "legacy_ids": {
+    "current": "WS-A",
+    "old": "WS-OLD",
+    "foreign": "WS-D",
+    "independent": "WS-B"
+  },
+  "payload": "original source payload\n",
+  "updated_payload": "new source payload\n",
+  "marker": "retained user work\n",
+  "root_templates": {
+    "full": [
+      {
+        "kind": "artifact",
+        "position": 0,
+        "path": "$ARTIFACT1"
+      },
+      {
+        "kind": "artifact",
+        "position": 1,
+        "path": "$ARTIFACT2"
+      },
+      {
+        "kind": "code",
+        "position": 0,
+        "path": "$PRIMARY"
+      },
+      {
+        "kind": "code",
+        "position": 1,
+        "path": "$CODE1"
+      },
+      {
+        "kind": "code",
+        "position": 2,
+        "path": "$CODE2"
+      },
+      {
+        "kind": "main",
+        "position": 0,
+        "path": "$MAIN1"
+      },
+      {
+        "kind": "main",
+        "position": 1,
+        "path": "$MAIN2"
+      }
+    ],
+    "empty": [
+      {
+        "kind": "code",
+        "position": 0,
+        "path": "$PRIMARY"
+      }
+    ]
+  },
+  "input_roots": {
+    "code": [
+      "$CODE1",
+      "../../aux/a-code"
+    ],
+    "main": [
+      "$MAIN1",
+      "$MAIN2"
+    ],
+    "artifact": [
+      "$ARTIFACT1",
+      "$ARTIFACT2"
+    ]
+  }
+}

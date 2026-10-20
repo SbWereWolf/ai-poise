@@ -11,6 +11,32 @@ class RegistrationRepository:
     def __init__(self, connection):
         self.connection = connection
 
+    def destination(self, sprint_id):
+        row = self.connection.execute('SELECT revision,state FROM sprints WHERE sprint_id=?',
+                                      (sprint_id,)).fetchone()
+        if row is None:
+            raise RegistrationError('sprint_not_found')
+        return dict(row)
+
+    def add_member(self, task_id, sprint_id):
+        current = self.destination(sprint_id)
+        if current['state'] != 'draft':
+            raise RegistrationError('sprint_not_draft')
+        value = self.sprint_value(sprint_id)
+        definition = SprintDefinition.create(sprint_id, value['members'],
+            [Dependency(**edge) for edge in value['dependencies']]).with_member(task_id)
+        revision = current['revision'] + 1
+        self.connection.execute('INSERT INTO sprint_members(sprint_id,task_id) VALUES(?,?)',
+                                (sprint_id, task_id))
+        self.connection.execute('UPDATE sprints SET revision=? WHERE sprint_id=?', (revision, sprint_id))
+        snapshot = {'sprint_id': sprint_id, 'sprint_revision': revision,
+                    'members': list(definition.members),
+                    'dependencies': [asdict(edge) for edge in definition.dependencies]}
+        self.connection.execute('INSERT INTO sprint_revisions(sprint_id,revision,state,data) VALUES(?,?,?,?)',
+            (sprint_id, revision, 'draft', json.dumps(snapshot, ensure_ascii=False,
+                                                   sort_keys=True, separators=(',', ':'))))
+        return revision
+
     def register_task(self, task_id, reference):
         row = self.connection.execute(
             'SELECT requirements_snapshot_revision,requirements_statement_revision FROM tasks WHERE task_id=?',

@@ -38,18 +38,27 @@ class WorkspaceRepository:
                 'roots': self.roots(row['workspace_id'])}
 
     def value(self, task_id):
-        row = self.connection.execute(
-            'SELECT workspace_id,task_id,repository_id,base_commit,branch,status,read_only '
-            'FROM workspaces WHERE task_id=? AND status<>?', (task_id, 'released')).fetchone()
-        if row is None:
-            return None
-        roots = self.roots(row['workspace_id'])
-        binding = self.connection.execute(
-            'SELECT session_id FROM workspace_bindings WHERE workspace_id=?',
-            (row['workspace_id'],)).fetchone()
-        return {**dict(row), 'read_only': bool(row['read_only']), 'roots': roots,
-                'path': next((root['path'] for root in roots if root['kind'] == 'code'), None),
-                'owner_session_id': None if binding is None else binding['session_id']}
+        return self.values([task_id]).get(task_id)
+
+    def values(self, task_ids):
+        encoded = json.dumps(task_ids)
+        rows = self.connection.execute(
+            'SELECT w.workspace_id,w.task_id,w.repository_id,w.base_commit,w.branch,w.status,w.read_only,'
+            'b.session_id AS owner_session_id FROM workspaces w '
+            'LEFT JOIN workspace_bindings b ON b.workspace_id=w.workspace_id '
+            'WHERE w.task_id IN (SELECT value FROM json_each(?)) AND w.status<>?',
+            (encoded, 'released')).fetchall()
+        roots = {row['workspace_id']: [] for row in rows}
+        for row in self.connection.execute(
+                'SELECT r.workspace_id,r.kind,r.position,r.path FROM workspace_roots r '
+                'JOIN workspaces w ON w.workspace_id=r.workspace_id '
+                'WHERE w.task_id IN (SELECT value FROM json_each(?)) AND w.status<>? '
+                'ORDER BY r.workspace_id,r.kind,r.position', (encoded, 'released')):
+            roots[row['workspace_id']].append({key: row[key] for key in ('kind', 'position', 'path')})
+        return {row['task_id']: {**dict(row), 'read_only': bool(row['read_only']),
+                    'roots': roots[row['workspace_id']],
+                    'path': next((root['path'] for root in roots[row['workspace_id']]
+                                  if root['kind'] == 'code'), None)} for row in rows}
 
     def insert_workspace(self, workspace):
         columns = ('workspace_id', 'task_id', 'repository_id', 'base_commit', 'branch', 'status', 'read_only')

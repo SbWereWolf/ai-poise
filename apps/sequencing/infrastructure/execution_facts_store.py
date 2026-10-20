@@ -26,16 +26,20 @@ class ExecutionFactsRepository:
     def outcome(self, outcome_id):
         return self._find(OUTCOME_EVENT, '$.fact.outcome_id', outcome_id)
 
-    def _latest(self, task_id, event):
-        row = self.connection.execute(
-            'SELECT data FROM sequencing_history WHERE task_id=? AND event=? '
-            'ORDER BY seq DESC LIMIT 1', (task_id, event)).fetchone()
-        return None if row is None else json.loads(row['data'])['fact']
-
     def value(self, task_id):
         self.ownership.task(task_id)
-        return {'task_id': task_id, 'stage_label': self._latest(task_id, LABEL_EVENT),
-                'outcome': self._latest(task_id, OUTCOME_EVENT)}
+        return self.values([task_id])[task_id]
+
+    def values(self, task_ids):
+        values = {task_id: {'task_id': task_id, 'stage_label': None, 'outcome': None}
+                  for task_id in task_ids}
+        for row in self.connection.execute(
+                'SELECT task_id,event,data FROM sequencing_history '
+                'WHERE task_id IN (SELECT value FROM json_each(?)) AND event IN (?,?) ORDER BY seq',
+                (json.dumps(task_ids), LABEL_EVENT, OUTCOME_EVENT)):
+            field = 'stage_label' if row['event'] == LABEL_EVENT else 'outcome'
+            values[row['task_id']][field] = json.loads(row['data'])['fact']
+        return values
 
     def record_label(self, fact, result, actor, at):
         self.ownership.record(fact['task_id'], actor, LABEL_EVENT,

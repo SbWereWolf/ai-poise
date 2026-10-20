@@ -18,6 +18,7 @@ from uuid import uuid4
 
 from apps.sequencing.application.ownership import OwnershipCommands
 from apps.sequencing.application.execution_facts import ExecutionFactsCommands
+from apps.sequencing.application.duplicates import DuplicateCommands
 from apps.sequencing.application.workspace import WorkspaceCommands
 from apps.sequencing.domain.eligibility import project_eligibility
 from apps.sequencing.domain.ownership import OwnershipError
@@ -30,6 +31,8 @@ from apps.sequencing.infrastructure.eligibility_read import EligibilityReadRepos
 from apps.sequencing.infrastructure.registration_store import RegistrationRepository
 from apps.sequencing.infrastructure.ownership_store import OwnershipRepository
 from apps.sequencing.infrastructure.execution_facts_store import ExecutionFactsRepository
+from apps.sequencing.infrastructure.duplicate_store import DuplicateRepository
+from apps.sequencing.infrastructure.task_read import TaskReadRepository
 from apps.sequencing.infrastructure.workspace_store import WorkspaceRepository
 from apps.sequencing.infrastructure.workspace_git import GitWorkspace
 from apps.sequencing.migrations.v1 import migrate as migrate_v1
@@ -253,13 +256,20 @@ def _packet(value, config):
             if not isinstance(op, dict):
                 raise SequencingError('Sequencing operation requires an object')
             kind = op.get('kind')
-            if kind == 'register_task':
+            if kind in ('register_task', 'register_duplicate'):
                 reference_fields = {'requirements_snapshot_revision', 'requirements_statement_revision'} & op.keys()
                 if len(reference_fields) != 1:
-                    raise SequencingError('Sequencing register_task requires exactly one Requirements reference')
+                    raise SequencingError('Sequencing ' + kind + ' requires exactly one Requirements reference')
                 field = next(iter(reference_fields))
-                _exact(op, {'id', 'kind', 'task_id', field}, 'Sequencing register_task')
+                fields = {'id', 'kind', 'task_id', field}
+                if kind == 'register_duplicate':
+                    fields |= {'parent_id', 'sprint_id', 'claimant'}
+                _exact(op, fields, 'Sequencing ' + kind)
                 _identifier(op['task_id'], config['task_pattern'], 'Task')
+                if kind == 'register_duplicate':
+                    _identifier(op['parent_id'], config['task_pattern'], 'Task')
+                    _identifier(op['sprint_id'], config['sprint_pattern'], 'Sprint')
+                    _nonempty(op['claimant'], 'Sequencing register_duplicate claimant')
                 if type(op[field]) is not int or op[field] < 1:
                     raise SequencingError('Sequencing Requirements reference requires a positive integer')
             elif kind == 'register_sprint':
@@ -321,10 +331,10 @@ def _packet(value, config):
             raise SequencingError('Sequencing query queries: required nonempty bounded list')
         seen = set()
         for query in queries:
-            if not isinstance(query, dict) or query.get('kind') not in ('task', 'sprint', 'eligibility', 'next', 'execution_facts'):
+            if not isinstance(query, dict) or query.get('kind') not in ('task', 'sprint', 'eligibility', 'next', 'execution_facts', 'duplicate_family'):
                 raise SequencingError('Unsupported Sequencing query kind')
             kind = query['kind']
-            if kind in ('task', 'sprint', 'execution_facts'):
+            if kind in ('task', 'sprint', 'execution_facts', 'duplicate_family'):
                 subject = 'sprint' if kind == 'sprint' else 'task'
                 field = subject + '_id'
                 _exact(query, {'id', 'kind', field}, 'Sequencing query')
@@ -449,6 +459,8 @@ class Store:
                     lambda: uuid4().hex, lambda: datetime.now(timezone.utc).isoformat())
                 facts = ExecutionFactsCommands(ExecutionFactsRepository(conn),
                                                lambda: datetime.now(timezone.utc).isoformat())
+                duplicates = DuplicateCommands(DuplicateRepository(conn), repository,
+                                               lambda: datetime.now(timezone.utc).isoformat())
                 for op in packet['input']['operations']:
                     if op['kind'] == 'register_task':
                         kind = 'statement' if 'requirements_statement_revision' in op else 'snapshot'
@@ -457,6 +469,8 @@ class Store:
                         changed = repository.register_task(op['task_id'], reference)
                         results.append({'id': op['id'], 'kind': 'register_task', 'changed': changed,
                                         'task_id': op['task_id'], field: reference.revision})
+                    elif op['kind'] == 'register_duplicate':
+                        results.append({'id': op['id'], 'kind': op['kind'], **duplicates.register(op)})
                     elif op['kind'] == 'register_sprint':
                         definition = SprintDefinition.create(op['sprint_id'], op['members'],
                             [Dependency(**edge) for edge in op['dependencies']])
@@ -483,21 +497,6 @@ class Store:
     def _active_claim(conn, task_id):
         return OwnershipRepository(conn).active_for_task(task_id)
 
-    @staticmethod
-    def _workspace(conn, task_id):
-        return WorkspaceRepository(conn).value(task_id)
-
-    def _task_value(self, conn, row):
-        membership = conn.execute('SELECT sprint_id FROM sprint_members WHERE task_id=?',
-                                  (row['task_id'],)).fetchone()
-        reference_field = ('requirements_snapshot_revision' if row['requirements_snapshot_revision'] is not None
-                           else 'requirements_statement_revision')
-        return {'task_id': row['task_id'], reference_field: int(row[reference_field]),
-                'state': row['state'], 'sprint_id': None if membership is None else membership['sprint_id'],
-                'claim': self._active_claim(conn, row['task_id']),
-                'workspace': self._workspace(conn, row['task_id']),
-                'terminal': None if row['terminal_json'] is None else json.loads(row['terminal_json'])}
-
     def _eligibility(self, conn, reader, task_id, claimant):
         return project_eligibility(task_id, reader.task_state(task_id), claimant,
                                    self._active_claim(conn, task_id), reader.predecessors(task_id))
@@ -511,7 +510,11 @@ class Store:
                 results = []
                 repository = RegistrationRepository(conn)
                 reader = EligibilityReadRepository(conn)
+                tasks = TaskReadRepository(conn)
                 for query in packet["input"]["queries"]:
+                    if query['kind'] == 'duplicate_family':
+                        results.append({'id': query['id'], 'value': tasks.family(query['task_id'])})
+                        continue
                     if query['kind'] == 'sprint':
                         results.append({'id': query['id'], 'value': repository.sprint_value(query['sprint_id'])})
                         continue
@@ -531,14 +534,7 @@ class Store:
                                     if self._eligibility(conn, reader, task_id, query['claimant'])['eligible']]
                         results.append({'id': query['id'], 'value': {'task_ids': eligible}})
                         continue
-                    row = conn.execute(
-                        "SELECT task_id,requirements_snapshot_revision,requirements_statement_revision,state,terminal_json "
-                        "FROM tasks WHERE task_id=?",
-                        (query["task_id"],),
-                    ).fetchone()
-                    if row is None:
-                        raise SequencingError("task_not_found")
-                    results.append({"id": query["id"], "value": self._task_value(conn, row)})
+                    results.append({'id': query['id'], 'value': tasks.task(query['task_id'])})
                 return {"schema": WIRE_SCHEMA, "status": "read_only", "revision": revision, "results": results}
             finally:
                 conn.rollback()

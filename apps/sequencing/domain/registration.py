@@ -69,6 +69,9 @@ class SprintDefinition:
         if not set(self.members).issubset(known_ids):
             raise RegistrationError('dependency_conflict')
 
+    def with_member(self, task_id):
+        return self.create(self.sprint_id, [*self.members, task_id], self.dependencies)
+
     def require_memberships(self, current_memberships):
         if any(sprint_id != self.sprint_id for sprint_id in current_memberships.values()):
             raise RegistrationError('dependency_conflict')

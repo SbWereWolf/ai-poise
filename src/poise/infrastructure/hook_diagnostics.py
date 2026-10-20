@@ -6,6 +6,7 @@ import sys
 
 from ..common import PoiseError, digest, descendant, configured_root, load_config
 from ..modules.hook_transport.domain import HookDefinition, EVENTS, binding_context
+from ..modules.session_establishment.domain import CallerIdentity
 from .diagnostic_io import json_file
 from .source_reader import FileSourceReader
 from .sqlite.interactions import InteractionStore
@@ -137,6 +138,21 @@ class HookObservationPort:
         return {'owner': 'HookService', 'status': 'not_recorded',
                 'reason': 'Native Stop output delivery has no durable owner receipt'}
 
+    def _end_association(self, event, definition, req, cfg):
+        record = event['data'].get('binding_record')
+        expected = {'session_id': req['session_id'], 'settings': str(self.settings.path),
+                    'project': cfg['project'], 'definition_path': req['definition_path'],
+                    'agent_id': definition.data['agent_id']}
+        if not isinstance(record, dict) or any(record.get(key) != value for key, value in expected.items()):
+            return {'status': 'unconfirmed'}
+        try:
+            CallerIdentity.native(cfg['project'], record.get('external_session'))
+        except (PoiseError, TypeError, ValueError):
+            return {'status': 'unconfirmed'}
+        return {'status': 'confirmed', 'project_id': record['project'],
+                'external_session': record['external_session'], 'agent_id': record['agent_id'],
+                'definition_path': record['definition_path']}
+
     def _telemetry(self, root, cfg):
         if 'telemetry_delivery' not in cfg:
             return {'status': 'not_configured', 'scope': 'configured_spool_not_selected_event'}
@@ -181,6 +197,8 @@ class HookObservationPort:
                 result['native_event'] = {'status': 'observed', 'id': event['id'], 'event': event['event'],
                     'session_id': event['binding'], 'recorded_at': event['at'],
                     'source': event['data'].get('source'), 'turn_id': event['data'].get('turn_id')}
+                if event['event'] == 'SessionEnd':
+                    result['native_event']['association'] = self._end_association(event, definition, req, cfg)
                 ended = (req['event'] == 'SessionEnd'
                          and result['binding']['status'] == 'not_observed'
                          and result['installation']['status'] == 'configured')

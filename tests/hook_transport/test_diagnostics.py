@@ -443,3 +443,107 @@ def test_cancellation_request_without_terminal_signal_is_not_effect_proof(projec
                    ('r', 'fixture-task', 'implementation', 1, json.dumps(receipt)))
     code, result = call(s, request(installed, event='SessionEnd', run_ids=['r']))
     assert code == 1 and result['effect']['runs'][0]['status'] == 'not_correlated'
+
+
+def test_released_end_retains_confirmed_native_association(project, tmp_path):
+    s, installed = setup(project, tmp_path)
+    start = native(s, installed)
+    end = native(s, installed, 'SessionEnd')
+    before = s.settings.database.read_bytes()
+    _, result = call(s, request(installed, event='SessionEnd', event_id=end))
+    assert result['binding']['status'] == 'not_observed'
+    observed = result['native_event']
+    assert observed['id'] == end and end > start
+    association = observed['association']
+    assert set(association) == {'status', 'project_id', 'external_session', 'agent_id', 'definition_path'}
+    assert association['status'] == 'confirmed'
+    assert association['project_id'] == project['cfg']['project']
+    assert association['external_session'] == 'A'
+    assert association['agent_id'] == 'primary'
+    assert association['definition_path'] == installed['definition_path']
+    assert s.settings.database.read_bytes() == before
+
+
+def test_start_observation_does_not_claim_end_association(project, tmp_path):
+    s, installed = setup(project, tmp_path)
+    native(s, installed)
+    _, result = call(s, request(installed))
+    assert 'association' not in result['native_event']
+
+
+@pytest.mark.parametrize('record_damage', [
+    'missing',
+    'malformed',
+    'other_internal_session',
+    'other_settings',
+    'other_project',
+    'other_definition',
+    'other_agent',
+    'missing_external_session',
+    'empty_external_session',
+    'nonstring_external_session',
+])
+def test_released_end_association_rejects_invalid_record(project, tmp_path, monkeypatch, record_damage):
+    s, installed = setup(project, tmp_path)
+    native(s, installed)
+    end = native(s, installed, 'SessionEnd')
+    before = s.settings.database.read_bytes()
+    observed = []
+    registry_type = type(s.registry)
+    observe = registry_type.observe
+    def damaged(registry, definition_id, session, event, event_id):
+        snapshot = observe(registry, definition_id, session, event, event_id)
+        if event == 'SessionEnd' and event_id == end:
+            observed.append(snapshot['event']['id'])
+            data = snapshot['event']['data']
+            if record_damage == 'missing':
+                data.pop('binding_record')
+            elif record_damage == 'malformed':
+                data['binding_record'] = []
+            elif record_damage == 'missing_external_session':
+                data['binding_record'].pop('external_session')
+            else:
+                field, value = {
+                    'other_internal_session': ('session_id', 'other-internal-session'),
+                    'other_settings': ('settings', '/fixture/other-settings.json'),
+                    'other_project': ('project', 'other-project'),
+                    'other_definition': ('definition_path', '/fixture/other-definition.json'),
+                    'other_agent': ('agent_id', 'other-agent'),
+                    'empty_external_session': ('external_session', ''),
+                    'nonstring_external_session': ('external_session', 17),
+                }[record_damage]
+                data['binding_record'][field] = value
+        return snapshot
+    monkeypatch.setattr(registry_type, 'observe', damaged)
+    _, result = call(s, request(installed, event='SessionEnd', event_id=end))
+    assert observed == [end], 'Producer must inspect the selected genuine End record'
+    event = result['native_event']
+    assert event['status'] == 'observed'
+    assert event['event'] == 'SessionEnd' and event['id'] == end and event['session_id'] == 'A'
+    association = event.get('association')
+    assert association is None or (isinstance(association, dict) and association.get('status') != 'confirmed')
+    assert s.settings.database.read_bytes() == before
+
+
+def test_released_end_keeps_distinct_external_identity(project, tmp_path, monkeypatch):
+    s, installed = setup(project, tmp_path)
+    native(s, installed)
+    end = native(s, installed, 'SessionEnd')
+    before = s.settings.database.read_bytes()
+    registry_type = type(s.registry)
+    observe = registry_type.observe
+    inspected = []
+    def distinct_identity(registry, definition_id, session, event, event_id):
+        snapshot = observe(registry, definition_id, session, event, event_id)
+        if event == 'SessionEnd' and event_id == end:
+            inspected.append(snapshot['event']['id'])
+            snapshot['event']['data']['binding_record']['external_session'] = 'native-external-A'
+        return snapshot
+    monkeypatch.setattr(registry_type, 'observe', distinct_identity)
+    _, result = call(s, request(installed, event='SessionEnd', event_id=end))
+    assert inspected == [end]
+    observed = result['native_event']
+    assert observed['session_id'] == 'A' and observed['id'] == end
+    assert observed['association']['status'] == 'confirmed'
+    assert observed['association']['external_session'] == 'native-external-A'
+    assert s.settings.database.read_bytes() == before

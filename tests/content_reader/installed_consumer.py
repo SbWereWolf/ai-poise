@@ -19,8 +19,12 @@ p=json.load(sys.stdin); service=HookService(p['settings'])
 if p['action']=='install':
  result=service.install(p['request'])
 else:
+ # Capture the live binding before SessionEnd releases it.
+ if p['event']['hook_event_name']=='SessionEnd':
+  binding=service.latest_binding(p['event']['session_id'],'primary')
  result=service.event(p['definition'],p['event'])
- binding=service.latest_binding(p['event']['session_id'],'primary')
+ if p['event']['hook_event_name']!='SessionEnd':
+  binding=service.latest_binding(p['event']['session_id'],'primary')
  with service.registry.read_transaction() as db:
   row=db.execute('SELECT id FROM hook_events WHERE binding=? AND event=? ORDER BY id DESC LIMIT 1',(binding['session_id'],p['event']['hook_event_name'])).fetchone()
  result={'receipt':result,'binding':binding,'event_id':None if row is None else row[0]}

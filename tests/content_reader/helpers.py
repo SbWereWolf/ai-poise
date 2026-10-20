@@ -313,14 +313,16 @@ class Scenario:
         value = self.event_factory(name, self.identity)
         value['cwd'] = str(self.checkout)
         receipt = self.hooks.event(self.installation['definition_path'], value)
-        binding = self.hooks.latest_binding(self.identity, 'primary')
+        # End releases the live binding; historical events retain the episode ID.
+        binding_id = (self.episode['binding_id'] if name in ('SessionEnd', 'Stop')
+                      else self.hooks.latest_binding(self.identity, 'primary')['session_id'])
         with self.hooks.registry.read_transaction() as db:
             row = db.execute('SELECT id FROM hook_events WHERE binding=? AND event=? ORDER BY id DESC LIMIT 1',
-                             (binding['session_id'], name)).fetchone()
+                             (binding_id, name)).fetchone()
         if name == 'SessionStart':
             assert row is not None
             self.episode = {'project_id': self.project, 'session_id': self.identity,
-                            'binding_id': binding['session_id'], 'start_event_id': row[0]}
+                            'binding_id': binding_id, 'start_event_id': row[0]}
         return None if row is None else row[0]
 
     def template(self):

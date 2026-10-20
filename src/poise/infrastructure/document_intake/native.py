@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 from ...modules.session_establishment.domain import CallerIdentity
-from ...modules.hook_transport.domain import HookDefinition
+from ...modules.hook_transport.domain import HookDefinition, MissingHookBinding
 from ...common import PoiseError
 
 
@@ -62,7 +62,10 @@ class HookNativeAuthority:
         )
 
     def _binding(self, session_id):
-        binding = self.service.latest_binding(session_id, self.definition.data['agent_id'])
+        try:
+            binding = self.service.latest_binding(session_id, self.definition.data['agent_id'])
+        except MissingHookBinding as error:
+            raise _ObservationFailure('Current native session admission is not observed') from error
         if (not binding or binding.get('project') != self.project_id
                 or binding.get('external_session') != session_id
                 or binding.get('definition_path') != str(self.definition_path)):
@@ -75,7 +78,21 @@ class HookNativeAuthority:
             "event": event, "event_id": event_id, "run_ids": [], "probe_cwd": None,
         }
 
-    def _event(self, diagnostic, binding_id, kind):
+    def _end_association(self, diagnostic, episode):
+        if episode is None or not isinstance(diagnostic, dict):
+            return False
+        event = diagnostic.get('native_event')
+        if (not isinstance(event, dict) or event.get('status') != 'observed'
+                or event.get('event') != 'SessionEnd' or event.get('session_id') != episode['binding_id']
+                or not _positive_id(event.get('id')) or event['id'] <= episode['start_event_id']):
+            return False
+        return event.get('association') == {
+            'status': 'confirmed', 'project_id': self.project_id,
+            'external_session': episode['session_id'], 'agent_id': self.definition.data['agent_id'],
+            'definition_path': str(self.definition_path),
+        }
+
+    def _event(self, diagnostic, binding_id, kind, *, ended_association=False):
         if not isinstance(diagnostic, dict) or diagnostic.get("schema") != "poise-hook-diagnostics-1":
             raise _ObservationFailure("Unsupported native diagnostics schema")
         if diagnostic.get("status") not in ("diagnosed", "inconclusive"):
@@ -86,14 +103,18 @@ class HookNativeAuthority:
         if not isinstance(installation, dict) or installation.get("status") != "configured" or installation.get("definition_path") != str(self.definition_path):
             raise _ObservationFailure("Native installation differs from the configured definition")
         binding = diagnostic.get("binding")
-        if not isinstance(binding, dict) or binding.get("status") != "valid" or binding.get("session_id") != binding_id:
+        valid = (isinstance(binding, dict) and binding.get('status') == 'valid'
+                 and binding.get('session_id') == binding_id)
+        released = (ended_association and isinstance(binding, dict)
+                    and binding.get('status') == 'not_observed')
+        if not valid and not released:
             raise _ObservationFailure("Native session binding is not valid")
         event = diagnostic.get("native_event")
         if isinstance(event, dict) and event.get("status") == "not_observed":
             return None
         if not isinstance(event, dict) or event.get("status") != "observed":
             raise _ObservationFailure(f"Native {kind} observation is unavailable")
-        if event.get("session_id") != binding["session_id"]:
+        if event.get("session_id") != binding_id:
             raise _ObservationFailure("Native event identifies another session")
         if event.get("event") != kind:
             raise _ObservationFailure("Native event kind differs from the requested event")
@@ -117,9 +138,9 @@ class HookNativeAuthority:
         )):
             return _snapshot("unknown", cause="Episode identity is invalid")
         try:
-            # One public association lookup per observation, then the SDK batch.
-            # Native session names and internal binding IDs remain distinct.
-            binding_id = self._binding(session_id)
+            # Owned history is addressed by its immutable internal binding ID;
+            # new admission still requires a current live association.
+            binding_id = self._binding(session_id) if owned_episode is None else owned_episode['binding_id']
             queries = [dict(id=kind, request=self._packet(binding_id, kind)) for kind in _EVENTS]
             if owned_episode is not None:
                 queries.append(dict(id='anchor', request=self._packet(binding_id, 'SessionStart', owned_episode['start_event_id'])))
@@ -129,16 +150,17 @@ class HookNativeAuthority:
             anchor_diagnostic = None
             if owned_episode is not None:
                 anchor_diagnostic = snapshots['anchor']
-            events = {kind: self._event(value, binding_id, kind) for kind, value in diagnostics.items()}
+            ended_association = self._end_association(diagnostics['SessionEnd'], owned_episode)
+            if owned_episode is not None and not ended_association and self._binding(session_id) != binding_id:
+                raise _ObservationFailure('Native episode binding differs from current association')
+            events = {kind: self._event(value, binding_id, kind, ended_association=ended_association)
+                      for kind, value in diagnostics.items()}
             start = events["SessionStart"]
             if start is None:
                 raise _ObservationFailure("Native SessionStart is not observed")
-            binding_id = diagnostics["SessionStart"]["binding"]["session_id"]
             observed_events = list(events.values())
             if owned_episode is not None:
-                if owned_episode["binding_id"] != binding_id:
-                    raise _ObservationFailure("Native episode binding differs from observed binding")
-                anchor = self._event(anchor_diagnostic, binding_id, "SessionStart")
+                anchor = self._event(anchor_diagnostic, binding_id, "SessionStart", ended_association=ended_association)
                 if anchor is None:
                     raise _ObservationFailure("Native episode anchor is not observed")
                 if anchor["id"] != owned_episode["start_event_id"]:
@@ -188,8 +210,11 @@ class HookNativeAuthority:
         if observed["state"] != "ended" or observed["episode"] != receipt["episode"] or receipt["event_id"] <= receipt["episode"]["start_event_id"]:
             return False
         try:
-            binding_id = self._binding(receipt['episode']['session_id'])
-            exact = self._event(self.service.diagnose(self._packet(binding_id, 'SessionEnd', receipt['event_id'])), binding_id, 'SessionEnd')
+            binding_id = receipt['episode']['binding_id']
+            diagnostic = self.service.diagnose(self._packet(binding_id, 'SessionEnd', receipt['event_id']))
+            if not self._end_association(diagnostic, receipt['episode']):
+                return False
+            exact = self._event(diagnostic, binding_id, 'SessionEnd', ended_association=True)
             return exact is not None and exact["id"] == receipt["event_id"]
         except Exception:
             return False

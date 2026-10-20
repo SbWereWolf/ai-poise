@@ -741,3 +741,89 @@ def test_registration_failure_and_saved_output_failure_are_truthful(s,monkeypatc
     value=strict_json(out or err);assert value['status']=='unconfirmed' and value['error']['code']=='result_save_failed'
     assert len(s.metadata()[0])==1 and len(s.metadata()[1])==1
     assert s.read()['items'][0]['status']=='unchanged'
+
+
+@pytest.mark.parametrize('association_damage', [
+    'healthy',
+    'missing',
+    'unconfirmed',
+    'malformed',
+    'other_project',
+    'other_external_session',
+    'other_agent',
+    'other_definition',
+    'other_internal_binding',
+])
+def test_released_end_requires_matching_native_association(s, monkeypatch, project, tmp_path, association_damage):
+    s.ready(); s.read(); end = s.event('SessionEnd')
+    before = files(s.resource)
+    foreign = other_project(project, tmp_path)
+    foreign.ready(); foreign.read()
+    foreign_bytes = files(foreign.resource)
+    coordination = Path(s.data['session']['coordination_root'])
+    sentinel = coordination / 'unrelated-control-owner.txt'
+    sentinel.write_bytes(b'preserve actual unrelated coordination data')
+    inspected = []
+    from poise.infrastructure.hook_transport import HookService
+    diagnose = HookService.diagnose
+    def damaged(service, packet):
+        response = diagnose(service, packet)
+        results = [item['result'] for item in response['results']] if 'results' in response else [response]
+        for result in results:
+            observed = result['native_event']
+            if observed.get('event') == 'SessionEnd' and observed.get('id') == end:
+                inspected.append((observed['id'], observed['session_id']))
+                if association_damage == 'missing':
+                    observed.pop('association', None)
+                elif association_damage == 'malformed':
+                    observed['association'] = []
+                elif association_damage == 'other_internal_binding':
+                    observed['session_id'] = 'other-internal-binding'
+                elif association_damage != 'healthy':
+                    field, value = {
+                        'unconfirmed': ('status', 'unconfirmed'),
+                        'other_project': ('project_id', 'other-project'),
+                        'other_external_session': ('external_session', 'other-external-session'),
+                        'other_agent': ('agent_id', 'other-agent'),
+                        'other_definition': ('definition_path', '/fixture/other-definition.json'),
+                    }[association_damage]
+                    observed.setdefault('association', {})[field] = value
+        return response
+    monkeypatch.setattr(HookService, 'diagnose', damaged)
+    code, out, err = s.transport(monkeypatch, {'operation': 'recover'})
+    assert inspected, 'End diagnostics must reach association injection'
+    assert all(row == (end, s.episode['binding_id']) for row in inspected)
+    assert not err
+    result = strict_json(out)
+    if association_damage == 'healthy':
+        assert code == 0 and result['status'] == 'cleaned'
+        assert not s.resource.exists()
+    else:
+        assert code == 1 and result['status'] == 'incomplete'
+        assert files(s.resource) == before
+    assert files(foreign.resource) == foreign_bytes
+    assert sentinel.read_bytes() == b'preserve actual unrelated coordination data'
+
+
+def test_released_end_receipt_requires_exact_observed_id(s, monkeypatch):
+    s.ready(); s.read(); end = s.event('SessionEnd')
+    from poise.infrastructure.document_intake.native import HookNativeAuthority
+    from poise.infrastructure.hook_transport import HookService
+    authority = HookNativeAuthority(service=s.hooks, project_id=s.project,
+        definition_path=Path(s.installation['definition_path']),
+        authority_identity=s.data['admission'])
+    receipt = dict(schema_version=1, event='SessionEnd', event_id=end, episode=s.episode.copy())
+    before = files(s.resource)
+    inspected = []
+    diagnose = HookService.diagnose
+    def observed(service, packet):
+        inspected.append(deepcopy(packet))
+        return diagnose(service, packet)
+    monkeypatch.setattr(HookService, 'diagnose', observed)
+    assert authority.verify_end_receipt(receipt), 'Matching released End receipt must verify'
+    receipt['event_id'] = end + 1
+    inspected.clear()
+    assert not authority.verify_end_receipt(receipt)
+    assert any(packet.get('event') == 'SessionEnd' and packet.get('event_id') == end + 1
+               and packet.get('session_id') == s.episode['binding_id'] for packet in inspected)
+    assert files(s.resource) == before

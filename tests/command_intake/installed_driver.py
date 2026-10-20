@@ -19,8 +19,11 @@ def main():
     if action=='event':
         service=HookService(packet['settings'])
         event=packet['event']
+        if event['hook_event_name']=='SessionEnd':
+            binding=service.latest_binding(event['session_id'],'primary')
         native=service.event(packet['definition'],event)
-        binding=service.latest_binding(event['session_id'],'primary')
+        if event['hook_event_name']!='SessionEnd':
+            binding=service.latest_binding(event['session_id'],'primary')
         with service.registry.read_transaction() as db:
             row=db.execute('SELECT id FROM hook_events WHERE binding=? AND event=? ORDER BY id DESC LIMIT 1',
                            (binding['session_id'],event['hook_event_name'])).fetchone()

@@ -264,10 +264,10 @@ def concurrent_registration(i):
     resource=i.s.resource
     i.s.event('SessionEnd');assert i.s.invoke({'operation':'recover'})[0]==0
     assert not resource.exists()
-    binding=i.service.latest_binding(i.s.identity,'primary')
+    binding_id=i.s.episode['binding_id']
     with i.service.registry.read_transaction() as db:
         starts=db.execute("SELECT count(id) FROM hook_events WHERE binding=? AND event='SessionStart'",
-                          (binding['session_id'],)).fetchone()[0]
+                          (binding_id,)).fetchone()[0]
     barrier=threading.Barrier(3);errors.clear();native.clear()
     def late_settle():
         try:
@@ -281,7 +281,7 @@ def concurrent_registration(i):
     assert not errors and len(native)==2 and not resource.exists()
     with i.service.registry.read_transaction() as db:
         assert db.execute("SELECT count(id) FROM hook_events WHERE binding=? AND event='SessionStart'",
-                          (binding['session_id'],)).fetchone()[0]==starts
+                          (binding_id,)).fetchone()[0]==starts
 
 
 def selected_files(i):

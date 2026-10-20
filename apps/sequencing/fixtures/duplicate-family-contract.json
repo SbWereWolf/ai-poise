@@ -1526,5 +1526,556 @@
         ]
       }
     }
-  }
+  },
+  "destination_siblings": {
+    "sprint_id": "S-DST",
+    "sprint_revision": 3,
+    "members": [
+      "0043",
+      "0044",
+      "0045",
+      "0047",
+      "0048"
+    ],
+    "dependencies": []
+  },
+  "destination_with_dependencies": {
+    "sprint_id": "S-DST",
+    "sprint_revision": 2,
+    "members": [
+      "0043",
+      "0045",
+      "0047",
+      "0048"
+    ],
+    "dependencies": [
+      {
+        "predecessor": "0043",
+        "successor": "0045",
+        "kind": "result"
+      },
+      {
+        "predecessor": "0048",
+        "successor": "0045",
+        "kind": "completion"
+      }
+    ]
+  },
+  "prefamily_store": {
+    "schema_sql": "CREATE TABLE meta(key TEXT PRIMARY KEY,value INTEGER NOT NULL);\nCREATE TABLE tasks(\n task_id TEXT PRIMARY KEY NOT NULL,\n requirements_snapshot_revision INTEGER,\n requirements_statement_revision INTEGER,\n state TEXT NOT NULL CHECK(state IN ('available','claimed','completed','cancelled')),\n terminal_json TEXT,\n CHECK((requirements_snapshot_revision IS NOT NULL AND requirements_statement_revision IS NULL\n     AND typeof(requirements_snapshot_revision)='integer' AND requirements_snapshot_revision>0)\n   OR (requirements_statement_revision IS NOT NULL AND requirements_snapshot_revision IS NULL\n     AND typeof(requirements_statement_revision)='integer' AND requirements_statement_revision>0))\n);\nCREATE TABLE requests(request_id TEXT PRIMARY KEY,digest TEXT NOT NULL,response_json TEXT NOT NULL);\nCREATE TABLE sprints(\n sprint_id TEXT PRIMARY KEY NOT NULL,\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>0),\n state TEXT NOT NULL\n);\nCREATE TABLE sprint_revisions(\n sprint_id TEXT NOT NULL REFERENCES sprints(sprint_id),\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>0),\n state TEXT NOT NULL,data TEXT NOT NULL,PRIMARY KEY(sprint_id,revision)\n);\nCREATE TABLE sprint_members(\n sprint_id TEXT NOT NULL REFERENCES sprints(sprint_id),\n task_id TEXT NOT NULL UNIQUE REFERENCES tasks(task_id),\n PRIMARY KEY(sprint_id,task_id)\n);\nCREATE TABLE sprint_dependencies(\n sprint_id TEXT NOT NULL,predecessor TEXT NOT NULL,successor TEXT NOT NULL,\n kind TEXT NOT NULL CHECK(kind IN ('completion','result')),\n PRIMARY KEY(sprint_id,predecessor,successor),\n FOREIGN KEY(sprint_id,predecessor) REFERENCES sprint_members(sprint_id,task_id),\n FOREIGN KEY(sprint_id,successor) REFERENCES sprint_members(sprint_id,task_id),\n CHECK(predecessor<>successor)\n);\nCREATE TABLE task_claims(\n claim_id TEXT PRIMARY KEY NOT NULL,task_id TEXT NOT NULL REFERENCES tasks(task_id),\n claimant TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('active','released'))\n);\nCREATE TABLE workspaces(\n workspace_id TEXT PRIMARY KEY NOT NULL,task_id TEXT NOT NULL REFERENCES tasks(task_id),\n repository_id TEXT NOT NULL,base_commit TEXT NOT NULL,branch TEXT NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('reserved','ready','release_pending','released','failed')),\n read_only INTEGER NOT NULL CHECK(read_only IN (0,1))\n);\nCREATE TABLE workspace_roots(\n workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),\n kind TEXT NOT NULL CHECK(kind IN ('code','main','artifact')),\n position INTEGER NOT NULL CHECK(typeof(position)='integer' AND position>=0),\n path TEXT NOT NULL,PRIMARY KEY(workspace_id,kind,position)\n);\nCREATE TABLE workspace_bindings(\n workspace_id TEXT PRIMARY KEY NOT NULL REFERENCES workspaces(workspace_id),\n session_id TEXT NOT NULL UNIQUE\n);\nCREATE TABLE sequencing_history(\n seq INTEGER PRIMARY KEY,task_id TEXT REFERENCES tasks(task_id),\n sprint_id TEXT REFERENCES sprints(sprint_id),workspace_id TEXT REFERENCES workspaces(workspace_id),\n actor TEXT NOT NULL,event TEXT NOT NULL,data TEXT NOT NULL,at TEXT NOT NULL\n);\nCREATE UNIQUE INDEX active_task_claim ON task_claims(task_id) WHERE status='active';\nCREATE UNIQUE INDEX active_session_claim ON task_claims(claimant) WHERE status='active';\nCREATE UNIQUE INDEX current_task_workspace ON workspaces(task_id) WHERE status<>'released';\nPRAGMA user_version=2;\n",
+    "revision": 5,
+    "rows": {
+      "meta": [
+        [
+          "revision",
+          5
+        ]
+      ],
+      "tasks": [
+        [
+          "0042",
+          null,
+          1,
+          "claimed",
+          null
+        ],
+        [
+          "0045",
+          null,
+          1,
+          "available",
+          null
+        ],
+        [
+          "0046",
+          3,
+          null,
+          "completed",
+          "{\"terminal_id\":\"prefamily-positive\",\"task_id\":\"0046\",\"kind\":\"completed\",\"result_commit\":\"cccccccccccccccccccccccccccccccccccccccc\",\"source_ref\":{\"owner\":\"prior execution Ω\",\"id\":\"accepted result\"}}"
+        ],
+        [
+          "0047",
+          null,
+          1,
+          "available",
+          null
+        ],
+        [
+          "0048",
+          null,
+          1,
+          "available",
+          null
+        ],
+        [
+          "0049",
+          null,
+          1,
+          "available",
+          null
+        ],
+        [
+          "0050",
+          null,
+          1,
+          "available",
+          null
+        ]
+      ],
+      "sprints": [
+        [
+          "S-DST",
+          1,
+          "draft"
+        ],
+        [
+          "S-ALT",
+          1,
+          "draft"
+        ]
+      ],
+      "sprint_revisions": [
+        [
+          "S-DST",
+          1,
+          "draft",
+          "{\"sprint_id\":\"S-DST\",\"sprint_revision\":1,\"members\":[\"0045\",\"0047\",\"0048\"],\"dependencies\":[]}"
+        ],
+        [
+          "S-ALT",
+          1,
+          "draft",
+          "{\"sprint_id\":\"S-ALT\",\"sprint_revision\":1,\"members\":[\"0050\"],\"dependencies\":[]}"
+        ]
+      ],
+      "sprint_members": [
+        [
+          "S-DST",
+          "0045"
+        ],
+        [
+          "S-DST",
+          "0047"
+        ],
+        [
+          "S-DST",
+          "0048"
+        ],
+        [
+          "S-ALT",
+          "0050"
+        ]
+      ],
+      "sprint_dependencies": [],
+      "task_claims": [
+        [
+          "ROOT-CLAIM",
+          "0042",
+          "ROOT-OWNER",
+          "active"
+        ]
+      ],
+      "workspaces": [
+        [
+          "ROOT-WORKSPACE",
+          "0042",
+          "fixture-repo",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tasks/0042",
+          "ready",
+          0
+        ]
+      ],
+      "workspace_roots": [
+        [
+          "ROOT-WORKSPACE",
+          "artifact",
+          0,
+          "$ROOT/source-artifact"
+        ],
+        [
+          "ROOT-WORKSPACE",
+          "code",
+          0,
+          "$ROOT/source-code"
+        ],
+        [
+          "ROOT-WORKSPACE",
+          "main",
+          0,
+          "$ROOT/source-main"
+        ]
+      ],
+      "workspace_bindings": [
+        [
+          "ROOT-WORKSPACE",
+          "WORKSPACE-OWNER"
+        ]
+      ],
+      "sequencing_history": [
+        [
+          1,
+          "0042",
+          null,
+          null,
+          "prior execution Ω",
+          "execution.outcome_recorded",
+          "{\"fact\":{\"outcome_id\":\"prefamily-negative\",\"task_id\":\"0042\",\"kind\":\"negative\",\"result_commit\":null,\"source_ref\":{\"owner\":\"prior execution Ω\",\"id\":\"negative input\"}},\"result\":{\"changed\":true,\"task_id\":\"0042\",\"outcome_id\":\"prefamily-negative\",\"state\":\"available\",\"fact_replayed\":false}}",
+          "2026-10-20T00:00:00+00:00"
+        ],
+        [
+          2,
+          "0042",
+          null,
+          null,
+          "ROOT-OWNER",
+          "claim.created",
+          "{\"claim_request_id\":\"prefamily-claim\",\"intent\":{\"kind\":\"claim_task\",\"task_id\":\"0042\",\"claimant\":\"ROOT-OWNER\",\"claim_request_id\":\"prefamily-claim\"},\"result\":{\"changed\":true,\"task_id\":\"0042\",\"claim_id\":\"ROOT-CLAIM\",\"claimant\":\"ROOT-OWNER\",\"claim_replayed\":false}}",
+          "2026-10-20T00:01:00+00:00"
+        ],
+        [
+          3,
+          "0042",
+          null,
+          null,
+          "ROOT-OWNER",
+          "execution.stage_label_recorded",
+          "{\"fact\":{\"task_id\":\"0042\",\"label_id\":\"root-label\",\"label\":\" Implement Ω\\n \",\"source_ref\":{\"owner\":\"orchestrator Ω\",\"id\":\"stage input\"}},\"result\":{\"changed\":true,\"task_id\":\"0042\",\"label_id\":\"root-label\",\"fact_replayed\":false}}",
+          "2026-10-20T00:02:00+00:00"
+        ],
+        [
+          4,
+          "0046",
+          null,
+          null,
+          "prior execution Ω",
+          "execution.outcome_recorded",
+          "{\"fact\":{\"outcome_id\":\"prefamily-positive\",\"task_id\":\"0046\",\"kind\":\"positive\",\"result_commit\":\"cccccccccccccccccccccccccccccccccccccccc\",\"source_ref\":{\"owner\":\"prior execution Ω\",\"id\":\"accepted result\"}},\"result\":{\"changed\":true,\"task_id\":\"0046\",\"outcome_id\":\"prefamily-positive\",\"state\":\"completed\",\"fact_replayed\":false}}",
+          "2026-10-20T00:03:00+00:00"
+        ]
+      ],
+      "requests": [
+        [
+          "prefamily-1",
+          "d9d8c92a214193173193bd642a6d9ce1b2f9e1b130b4c149a6b008f807955628",
+          "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":1,\"replayed\":false,\"results\":[{\"id\":\"register-0042\",\"kind\":\"register_task\",\"task_id\":\"0042\",\"requirements_statement_revision\":1,\"changed\":true},{\"id\":\"register-0045\",\"kind\":\"register_task\",\"task_id\":\"0045\",\"requirements_statement_revision\":1,\"changed\":true},{\"id\":\"register-0046\",\"kind\":\"register_task\",\"task_id\":\"0046\",\"requirements_snapshot_revision\":3,\"changed\":true},{\"id\":\"register-0047\",\"kind\":\"register_task\",\"task_id\":\"0047\",\"requirements_statement_revision\":1,\"changed\":true},{\"id\":\"register-0048\",\"kind\":\"register_task\",\"task_id\":\"0048\",\"requirements_statement_revision\":1,\"changed\":true},{\"id\":\"register-0049\",\"kind\":\"register_task\",\"task_id\":\"0049\",\"requirements_statement_revision\":1,\"changed\":true},{\"id\":\"register-0050\",\"kind\":\"register_task\",\"task_id\":\"0050\",\"requirements_statement_revision\":1,\"changed\":true},{\"id\":\"destination\",\"kind\":\"register_sprint\",\"changed\":true,\"sprint_id\":\"S-DST\",\"sprint_revision\":1},{\"id\":\"alternative\",\"kind\":\"register_sprint\",\"changed\":true,\"sprint_id\":\"S-ALT\",\"sprint_revision\":1}]}"
+        ],
+        [
+          "prefamily-2",
+          "939155900eca0d30868f038da24f0ce6487f540bd136f9964c22cdb7ca1aa393",
+          "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":2,\"replayed\":false,\"results\":[{\"id\":\"outcome\",\"kind\":\"record_execution_outcome\",\"changed\":true,\"task_id\":\"0042\",\"outcome_id\":\"prefamily-negative\",\"state\":\"available\",\"fact_replayed\":false}]}"
+        ],
+        [
+          "prefamily-3",
+          "e58af80b28da8b4805c8d066fc206042ac415a6a7983e8d17eeb0123ea887f66",
+          "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":3,\"replayed\":false,\"results\":[{\"changed\":true,\"task_id\":\"0042\",\"claim_id\":\"ROOT-CLAIM\",\"claimant\":\"ROOT-OWNER\",\"claim_replayed\":false,\"id\":\"claim\",\"kind\":\"claim_task\"}]}"
+        ],
+        [
+          "prefamily-4",
+          "1b7453f8071b6f5f3606a5b7f8c1cee451e50181134d2d15eeb27f0e5557a2e1",
+          "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":4,\"replayed\":false,\"results\":[{\"id\":\"label\",\"kind\":\"record_stage_label\",\"changed\":true,\"task_id\":\"0042\",\"label_id\":\"root-label\",\"fact_replayed\":false}]}"
+        ],
+        [
+          "prefamily-5",
+          "b3e3eff84d4e98c07f5da7e9afc5814c489b54546d7c9a36d0a78c242c5d25a9",
+          "{\"schema\":\"stride-sequencing/v1\",\"status\":\"applied\",\"revision\":5,\"replayed\":false,\"results\":[{\"id\":\"outcome\",\"kind\":\"record_execution_outcome\",\"changed\":true,\"task_id\":\"0046\",\"outcome_id\":\"prefamily-positive\",\"state\":\"completed\",\"fact_replayed\":false}]}"
+        ]
+      ]
+    },
+    "open_queries": [
+      {
+        "id": "root",
+        "kind": "task",
+        "task_id": "0042"
+      },
+      {
+        "id": "root-facts",
+        "kind": "execution_facts",
+        "task_id": "0042"
+      },
+      {
+        "id": "foreign",
+        "kind": "task",
+        "task_id": "0046"
+      },
+      {
+        "id": "foreign-facts",
+        "kind": "execution_facts",
+        "task_id": "0046"
+      },
+      {
+        "id": "destination",
+        "kind": "sprint",
+        "sprint_id": "S-DST"
+      }
+    ],
+    "open_results": [
+      {
+        "id": "root",
+        "value": {
+          "task_id": "0042",
+          "requirements_statement_revision": 1,
+          "state": "claimed",
+          "sprint_id": null,
+          "claim": {
+            "claim_id": "ROOT-CLAIM",
+            "task_id": "0042",
+            "claimant": "ROOT-OWNER",
+            "status": "active"
+          },
+          "workspace": {
+            "workspace_id": "ROOT-WORKSPACE",
+            "task_id": "0042",
+            "repository_id": "fixture-repo",
+            "base_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "branch": "tasks/0042",
+            "status": "ready",
+            "read_only": false,
+            "roots": [
+              {
+                "kind": "artifact",
+                "position": 0,
+                "path": "$ROOT/source-artifact"
+              },
+              {
+                "kind": "code",
+                "position": 0,
+                "path": "$ROOT/source-code"
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "path": "$ROOT/source-main"
+              }
+            ],
+            "path": "$ROOT/source-code",
+            "owner_session_id": "WORKSPACE-OWNER"
+          },
+          "terminal": null
+        }
+      },
+      {
+        "id": "root-facts",
+        "value": {
+          "task_id": "0042",
+          "stage_label": {
+            "task_id": "0042",
+            "label_id": "root-label",
+            "label": " Implement Ω\n ",
+            "source_ref": {
+              "owner": "orchestrator Ω",
+              "id": "stage input"
+            }
+          },
+          "outcome": {
+            "outcome_id": "prefamily-negative",
+            "task_id": "0042",
+            "kind": "negative",
+            "result_commit": null,
+            "source_ref": {
+              "owner": "prior execution Ω",
+              "id": "negative input"
+            }
+          }
+        }
+      },
+      {
+        "id": "foreign",
+        "value": {
+          "task_id": "0046",
+          "requirements_snapshot_revision": 3,
+          "state": "completed",
+          "sprint_id": null,
+          "claim": null,
+          "workspace": null,
+          "terminal": {
+            "terminal_id": "prefamily-positive",
+            "task_id": "0046",
+            "kind": "completed",
+            "result_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "source_ref": {
+              "owner": "prior execution Ω",
+              "id": "accepted result"
+            }
+          }
+        }
+      },
+      {
+        "id": "foreign-facts",
+        "value": {
+          "task_id": "0046",
+          "stage_label": null,
+          "outcome": {
+            "outcome_id": "prefamily-positive",
+            "task_id": "0046",
+            "kind": "positive",
+            "result_commit": "cccccccccccccccccccccccccccccccccccccccc",
+            "source_ref": {
+              "owner": "prior execution Ω",
+              "id": "accepted result"
+            }
+          }
+        }
+      },
+      {
+        "id": "destination",
+        "value": {
+          "sprint_id": "S-DST",
+          "sprint_revision": 1,
+          "members": [
+            "0045",
+            "0047",
+            "0048"
+          ],
+          "dependencies": []
+        }
+      }
+    ],
+    "replay_packet": {
+      "schema": "stride-sequencing/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "prefamily-4",
+        "expected_revision": 3,
+        "operations": [
+          {
+            "id": "label",
+            "kind": "record_stage_label",
+            "task_id": "0042",
+            "claim_id": "ROOT-CLAIM",
+            "claimant": "ROOT-OWNER",
+            "label_id": "root-label",
+            "label": " Implement Ω\n ",
+            "source_ref": {
+              "owner": "orchestrator Ω",
+              "id": "stage input"
+            }
+          }
+        ]
+      }
+    },
+    "replay_response": {
+      "schema": "stride-sequencing/v1",
+      "status": "applied",
+      "revision": 4,
+      "replayed": true,
+      "results": [
+        {
+          "id": "label",
+          "kind": "record_stage_label",
+          "changed": true,
+          "task_id": "0042",
+          "label_id": "root-label",
+          "fact_replayed": false
+        }
+      ]
+    },
+    "family_after": {
+      "parent_id": "0042",
+      "members": [
+        {
+          "task": {
+            "task_id": "0042",
+            "requirements_statement_revision": 1,
+            "state": "claimed",
+            "sprint_id": null,
+            "claim": {
+              "claim_id": "ROOT-CLAIM",
+              "task_id": "0042",
+              "claimant": "ROOT-OWNER",
+              "status": "active"
+            },
+            "workspace": {
+              "workspace_id": "ROOT-WORKSPACE",
+              "task_id": "0042",
+              "repository_id": "fixture-repo",
+              "base_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "branch": "tasks/0042",
+              "status": "ready",
+              "read_only": false,
+              "roots": [
+                {
+                  "kind": "artifact",
+                  "position": 0,
+                  "path": "$ROOT/source-artifact"
+                },
+                {
+                  "kind": "code",
+                  "position": 0,
+                  "path": "$ROOT/source-code"
+                },
+                {
+                  "kind": "main",
+                  "position": 0,
+                  "path": "$ROOT/source-main"
+                }
+              ],
+              "path": "$ROOT/source-code",
+              "owner_session_id": "WORKSPACE-OWNER"
+            },
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "parent",
+              "parent_id": "0042",
+              "children": [
+                "0043"
+              ]
+            }
+          },
+          "execution_facts": {
+            "task_id": "0042",
+            "stage_label": {
+              "task_id": "0042",
+              "label_id": "root-label",
+              "label": " Implement Ω\n ",
+              "source_ref": {
+                "owner": "orchestrator Ω",
+                "id": "stage input"
+              }
+            },
+            "outcome": {
+              "outcome_id": "prefamily-negative",
+              "task_id": "0042",
+              "kind": "negative",
+              "result_commit": null,
+              "source_ref": {
+                "owner": "prior execution Ω",
+                "id": "negative input"
+              }
+            }
+          }
+        },
+        {
+          "task": {
+            "task_id": "0043",
+            "requirements_statement_revision": 7,
+            "state": "available",
+            "sprint_id": "S-DST",
+            "claim": null,
+            "workspace": null,
+            "terminal": null,
+            "duplicate": {
+              "kind": "duplicate",
+              "role": "child",
+              "parent_id": "0042",
+              "siblings": []
+            }
+          },
+          "execution_facts": {
+            "task_id": "0043",
+            "stage_label": null,
+            "outcome": null
+          }
+        }
+      ]
+    }
+  },
+  "prefamily_task_columns": [
+    "task_id",
+    "requirements_snapshot_revision",
+    "requirements_statement_revision",
+    "state",
+    "terminal_json"
+  ]
 }

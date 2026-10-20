@@ -12,6 +12,13 @@ from apps.sequencing.tests.test_registration import Client, current_state
 
 DATA = json.loads((Path(__file__).resolve().parents[3] /
                    'apps/sequencing/fixtures/duplicate-family-contract.json').read_text())
+# These existing owners are unaffected by a family registration. Future family
+# storage is deliberately outside this list; public views prove its relation.
+UNCHANGED_REGISTRATION_TABLES = (
+    'sprint_dependencies', 'task_claims', 'workspaces',
+    'workspace_roots', 'workspace_bindings',
+)
+
 P, D, E, U, F, A, B, Z, T = [DATA['ids'][name] for name in ('P', 'D', 'E', 'U', 'F', 'A', 'B', 'Z', 'T')]
 
 
@@ -54,6 +61,35 @@ class Family:
             operations.append(render(DATA['templates']['sprint_operation'], tokens))
             expected.append(render(DATA['templates']['sprint_result'], tokens))
         self.apply(operations, expected)
+
+    @classmethod
+    def from_prefamily_store(cls, root):
+        """Populate supported format 2 independently, before any current CLI."""
+        case = cls.__new__(cls)
+        case.client = Client(root)
+        case.root, case.db = root, case.client.database
+        case.origin, case.serial = 'independent', 100
+        case.revision = DATA['prefamily_store']['revision']
+        case.db.with_suffix('.lock').touch()
+        case.config = case.client.config.read_bytes()
+        case.marker = root / 'foreign-wip.txt'
+        case.marker.write_text('Retained unrelated work.\n')
+        case.tokens = {}
+        for kind in ('code', 'main', 'artifact'):
+            path = root / ('source-' + kind)
+            path.mkdir()
+            (path / 'work.txt').write_text('Source-owned work remains in place.\n')
+            case.tokens['$ROOT/source-' + kind] = str(path)
+        with closing(sqlite3.connect(case.db)) as conn:
+            conn.executescript(DATA['prefamily_store']['schema_sql'])
+            conn.execute('PRAGMA foreign_keys=ON')
+            for table, rows in DATA['prefamily_store']['rows'].items():
+                if rows:
+                    conn.executemany('INSERT INTO "' + table + '" VALUES(' +
+                        ','.join('?' for _ in rows[0]) + ')', render(rows, case.tokens))
+            assert conn.execute('PRAGMA foreign_key_check').fetchall() == []
+            conn.commit()
+        return case
 
     def snapshot(self):
         return {'database': current_state(self.db),
@@ -112,12 +148,13 @@ class Family:
         old, new = before['database'], after['database']
         assert old['schema'] == new['schema'] and old['version'] == new['version']
         old_rows, new_rows = old['rows'], new['rows']
-        mutable = {'tasks', 'sprints', 'sprint_revisions', 'sprint_members', 'sequencing_history', 'requests', 'meta'}
-        for table in old_rows:
-            if table not in mutable:
-                assert old_rows[table] == new_rows[table], table
+        for table in UNCHANGED_REGISTRATION_TABLES:
+            assert old_rows[table] == new_rows[table], table
         if changed:
-            assert all(row in new_rows['tasks'] for row in old_rows['tasks'])
+            fields = [row[1] for row in self.sql('PRAGMA table_info(tasks)')]
+            positions = [fields.index(field) for field in DATA['prefamily_task_columns']]
+            projected = lambda rows: [tuple(row[i] for i in positions) for row in rows]
+            assert all(row in projected(new_rows['tasks']) for row in projected(old_rows['tasks']))
             assert len(new_rows['tasks']) == len(old_rows['tasks']) + 1
             assert all(row in new_rows['sprint_members'] for row in old_rows['sprint_members'])
             assert len(new_rows['sprint_members']) == len(old_rows['sprint_members']) + 1
@@ -129,17 +166,30 @@ class Family:
             for row in old_rows['sprints']:
                 assert (('S-DST', sprint_revision, row[2]) if row[0] == 'S-DST' else row) in new_rows['sprints']
             assert len(old_rows['sprints']) == len(new_rows['sprints'])
-            assert all(row in new_rows['sprint_revisions'] for row in old_rows['sprint_revisions'])
+            expected_sprint = (DATA['destination_siblings'] if sprint_revision == 3
+                               else DATA['destination_after'][self.origin])
+            self.sprint_revision_delta(before, expected_sprint)
             assert all(row in new_rows['sequencing_history'] for row in old_rows['sequencing_history'])
             appended = [row for row in new_rows['sequencing_history'] if row not in old_rows['sequencing_history']]
             assert len(appended) == 1
             assert appended[0][1] == task and appended[0][4] == claimant
         else:
-            for table in mutable - {'requests', 'meta'}:
+            # A business replay has no new family or other domain effect.
+            for table in set(old_rows) - {'requests', 'meta'}:
                 assert old_rows[table] == new_rows[table], table
         assert len(new_rows['requests']) == len(old_rows['requests']) + 1
         assert all(row in new_rows['requests'] for row in old_rows['requests'])
         assert self.sql('SELECT value FROM meta WHERE key=?', ('revision',)) == [(self.revision,)]
+
+    def sprint_revision_delta(self, before, expected):
+        old = before['database']['rows']['sprint_revisions']
+        new = self.snapshot()['database']['rows']['sprint_revisions']
+        assert all(row in new for row in old)
+        appended = [row for row in new if row not in old]
+        assert len(new) == len(old) + 1 and len(appended) == 1
+        row = appended[0]
+        assert row[:3] == (expected['sprint_id'], expected['sprint_revision'], 'draft')
+        assert json.loads(row[3]) == expected
 
     def family(self, value, selectors=(P, D)):
         queries = [{'id': 'family-' + task, 'kind': 'duplicate_family', 'task_id': task} for task in selectors]
@@ -262,20 +312,21 @@ def test_later_semantic_failure_rolls_back_duplicate_and_sprint_revision(tmp_pat
     assert before['database']['schema'] == after['database']['schema']
     assert before['database']['version'] == after['database']['version']
     old, new = before['database']['rows'], after['database']['rows']
-    for table in old:
-        if table not in ('tasks', 'sprints', 'sprint_revisions', 'sprint_members',
-                         'task_claims', 'sequencing_history', 'requests', 'meta'):
-            assert old[table] == new[table]
+    for table in UNCHANGED_REGISTRATION_TABLES:
+        if table != 'task_claims':
+            assert old[table] == new[table], table
     assert len(new['tasks']) == len(old['tasks']) + 1
     fields = [row[1] for row in case.sql('PRAGMA table_info(tasks)')]
+    positions = [fields.index(field) for field in DATA['prefamily_task_columns']]
+    projected = [tuple(row[i] for i in positions) for row in new['tasks']]
     for row in old['tasks']:
         wanted = dict(zip(fields, row))
         if wanted['task_id'] == F:
             wanted['state'] = 'claimed'
-        assert tuple(wanted[field] for field in fields) in new['tasks']
+        assert tuple(wanted[field] for field in DATA['prefamily_task_columns']) in projected
     assert len(new['sprint_members']) == len(old['sprint_members']) + 1
     assert all(row in new['sprint_members'] for row in old['sprint_members'])
-    assert all(row in new['sprint_revisions'] for row in old['sprint_revisions'])
+    case.sprint_revision_delta(before, DATA['destination_after']['independent'])
     for row in old['sprints']:
         assert (('S-DST', 2, row[2]) if row[0] == 'S-DST' else row) in new['sprints']
     assert len(new['sprints']) == len(old['sprints'])
@@ -328,6 +379,8 @@ def test_dependency_consumes_addressed_child_result_after_every_success(tmp_path
              ('S-DST', D, U, 'result'))
     case.sql('INSERT INTO sprint_dependencies(sprint_id,predecessor,successor,kind) VALUES(?,?,?,?)',
              ('S-DST', B, U, 'completion'))
+    case.sql('UPDATE sprint_revisions SET data=? WHERE sprint_id=? AND revision=?',
+             (json.dumps(DATA['destination_with_dependencies']), 'S-DST', 2))
     if outcome == 'cancelled':
         case.outcome(D, 'cancelled')
     elif outcome == 'no-result':
@@ -349,7 +402,43 @@ def test_retired_replacement_operation_and_populated_owned_store(tmp_path):
     case.family(DATA['family_views']['requirements_statement_revision:independent'])
 
 
-def test_family_projects_live_claim_workspace_and_opaque_execution_facts(tmp_path):
+def test_populated_prefamily_store_opens_without_losing_owned_data(tmp_path):
+    case = Family.from_prefamily_store(tmp_path)
+    before = case.snapshot()
+    columns = {table: [row[1] for row in case.sql('PRAGMA table_info("' + table + '")')]
+               for table in before['database']['rows']}
+    assert before['database']['version'] == 2
+    assert {table: len(rows) for table, rows in before['database']['rows'].items()} == {
+        table: len(rows) for table, rows in DATA['prefamily_store']['rows'].items()}
+    # The first current CLI entry sees all prior data; no seed/warmup/factory was used.
+    packet = {'schema': DATA['schema'], 'operation': 'query',
+              'input': {'queries': DATA['prefamily_store']['open_queries']}}
+    expected = render(DATA['query_response'], {'$REV': 5,
+        '$RESULTS': render(DATA['prefamily_store']['open_results'], case.tokens)})
+    assert case.client.invoke(packet) == expected
+    after = case.snapshot()
+    assert before['files'] == after['files'] and before['directories'] == after['directories']
+    # Compare old columns only: a future schema/table/version extension is permitted.
+    for table, fields in columns.items():
+        selected = ','.join('"' + field + '"' for field in fields)
+        actual = case.sql('SELECT ' + selected + ' FROM "' + table + '"')
+        assert sorted(actual, key=repr) == sorted(before['database']['rows'][table], key=repr), table
+    before_replay = case.snapshot()
+    assert case.client.invoke(DATA['prefamily_store']['replay_packet']) == DATA['prefamily_store']['replay_response']
+    assert case.snapshot() == before_replay
+    case.query([{'id': 'ordinary-root', 'kind': 'duplicate_family', 'task_id': P},
+                {'id': 'ordinary-foreign', 'kind': 'duplicate_family', 'task_id': F}],
+               [{'id': 'ordinary-root', 'value': None}, {'id': 'ordinary-foreign', 'value': None}])
+    case.reject(case.packet([DATA['retired_operation']]), DATA['retired_reason'])
+    case.duplicate()
+    case.family(render(DATA['prefamily_store']['family_after'], case.tokens))
+    foreign_queries = DATA['prefamily_store']['open_queries'][2:4]
+    foreign_values = DATA['prefamily_store']['open_results'][2:4]
+    case.query(foreign_queries, foreign_values)
+
+
+@pytest.mark.parametrize('binding', ['ROOT-OWNER', 'WORKSPACE-OWNER', None])
+def test_family_projects_live_claim_workspace_and_opaque_execution_facts(tmp_path, binding):
     case = Family(tmp_path)
     paths = {kind: str(tmp_path / ('source-' + kind)) for kind in ('code', 'main', 'artifact')}
     for path in paths.values():
@@ -364,14 +453,16 @@ def test_family_projects_live_claim_workspace_and_opaque_execution_facts(tmp_pat
     for kind, path in paths.items():
         case.sql('INSERT INTO workspace_roots(workspace_id,kind,position,path) VALUES(?,?,?,?)',
                  ('ROOT-WORKSPACE', kind, 0, path))
-    case.sql('INSERT INTO workspace_bindings(workspace_id,session_id) VALUES(?,?)',
-             ('ROOT-WORKSPACE', 'ROOT-OWNER'))
+    if binding is not None:
+        case.sql('INSERT INTO workspace_bindings(workspace_id,session_id) VALUES(?,?)',
+                 ('ROOT-WORKSPACE', binding))
     case.apply([DATA['root_label_operation']], [DATA['root_label_result']])
     case.duplicate()
     view = deepcopy(DATA['family_views']['requirements_statement_revision:independent'])
     view['members'][0]['task']['state'] = 'claimed'
     view['members'][0]['task']['claim'] = DATA['claim_value']
     workspace = deepcopy(DATA['root_workspace'])
+    workspace['owner_session_id'] = binding
     for root in workspace['roots']:
         root['path'] = root['path'].replace('$ROOT', str(tmp_path))
     workspace['path'] = workspace['path'].replace('$ROOT', str(tmp_path))

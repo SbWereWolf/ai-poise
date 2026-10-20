@@ -201,7 +201,8 @@ class Facts:
 
     def terminal(self, fact, kind='positive'):
         return render(DATA[kind + '_terminal'], {'$TASK': fact['task_id'], '$OUTCOME_ID': fact['outcome_id'],
-                      '$COMMIT': fact['result_commit'], '$SOURCE': fact['source_ref']['id']})
+                      '$COMMIT': fact['result_commit'], '$SOURCE': fact['source_ref']['id'],
+                      '$SOURCE_OWNER': fact['source_ref']['owner']})
 
     def accept(self, operations, items, changed_tasks=(), history_tasks=()):
         packet = self.packet(operations)
@@ -232,6 +233,17 @@ class Facts:
         self.accept([op], [self.outcome_item(fact, state)], [task], [task])
         return op, fact
 
+    def label_availability(self, variant):
+        before = self.snapshot()
+        response = self.client.invoke(render(DATA['eligibility'], {'$TASK': A}))
+        expected = render(DATA['label_availability'][variant], {'$CLAIM': self.claims[A][0]})
+        assert_exact(response, render(DATA['query_value'], {'$REVISION': self.revision,
+                                                          '$VALUE': expected}))
+        response = self.client.invoke(DATA['next_all'])
+        assert_exact(response, render(DATA['query_value'], {'$REVISION': self.revision,
+                     '$VALUE': {'task_ids': DATA['label_next_ids'][variant]}}))
+        assert self.snapshot() == before
+
     def eligibility(self, blockers, provenance, next_ids, task=S):
         before = self.snapshot()
         response = self.client.invoke(render(DATA['eligibility'], {'$TASK': task}))
@@ -248,19 +260,25 @@ class Facts:
 def test_label_metadata_and_replay(tmp_path, reference, form):
     work = Facts(tmp_path, reference, form)
     work.claim()
+    work.label_availability('own')
     work.facts()
     before_task = work.query('task')
     first, old = work.label()
     packet, response = work.accept([first], [work.label_item(old)], history_tasks=[A])
+    work.label_availability('own')
     second, latest = work.label('L2', 'stage without graph or artifact data')
     work.accept([second], [work.label_item(latest)], history_tasks=[A])
     work.facts(latest)
+    work.label_availability('own')
     assert work.query('task') == before_task
     work.resume(work.release())
     current = work.query('task')
+    work.label_availability('foreign')
     work.accept([first], [work.label_item(old, True)])
+    work.label_availability('foreign')
     work.replay_outer(packet, response)
     work.facts(latest)
+    work.label_availability('foreign')
     assert work.query('task') == current
 
 
@@ -329,6 +347,9 @@ def test_fact_identity_is_global_within_kind(tmp_path, kind):
         changed['source_ref']['id'] = 'other source'
         work.reject(work.packet([changed]), 'label_conflict')
         changed = deepcopy(op)
+        changed['source_ref']['owner'] = 'other producer'
+        work.reject(work.packet([changed]), 'label_conflict')
+        changed = deepcopy(op)
         changed['task_id'] = B
         work.reject(work.packet([changed]), 'label_conflict')
         work.facts(fact)
@@ -336,7 +357,9 @@ def test_fact_identity_is_global_within_kind(tmp_path, kind):
         op, fact = work.receive('negative', state='available')
         work.accept([op], [work.outcome_item(fact, 'available', True)])
         for field, value in [('kind', 'cancelled'), ('task_id', B),
-                             ('source_ref', {'owner': 'execution', 'id': 'other source'})]:
+                             ('source_ref', {'owner': 'execution', 'id': 'other source'}),
+                             ('source_ref', {'owner': 'other producer',
+                                             'id': fact['source_ref']['id']})]:
             changed = deepcopy(op)
             changed['outcome'][field] = value
             work.reject(work.packet([changed]), 'outcome_conflict')
@@ -492,6 +515,7 @@ def test_strict_fact_and_query_packets(tmp_path):
     expected_outcome['source_ref']['owner'] = 'orchestrator'
     work.accept([valid_outcome], [work.outcome_item(expected_outcome, 'completed')], [B], [B])
     work.facts(outcome=expected_outcome, task=B)
+    work.task('completed', work.terminal(expected_outcome), task=B)
 
 
 @pytest.mark.parametrize('kind,state', [('positive', 'completed'), ('cancelled', 'cancelled')])
@@ -501,7 +525,11 @@ def test_terminal_accepts_only_exact_outcome_replay(tmp_path, kind, state):
     label, label_value = work.label()
     work.accept([label], [work.label_item(label_value)], history_tasks=[A])
     work.release()
-    op, fact = work.receive(kind, state=state)
+    op, fact = work.outcome(kind)
+    op['outcome']['source_ref']['owner'] = DATA['nondefault_terminal_owner']
+    fact['source_ref']['owner'] = DATA['nondefault_terminal_owner']
+    work.accept([op], [work.outcome_item(fact, state)], [A], [A])
+    work.task(state, work.terminal(fact, kind))
     work.accept([op], [work.outcome_item(fact, state, True)])
     changed = deepcopy(op)
     changed['outcome']['outcome_id'] = 'another outcome'
@@ -509,6 +537,10 @@ def test_terminal_accepts_only_exact_outcome_replay(tmp_path, kind, state):
     changed = deepcopy(op)
     changed['outcome']['source_ref']['id'] = 'different provenance'
     work.reject(work.packet([changed]), 'outcome_conflict')
+    if kind == 'positive':
+        changed = deepcopy(op)
+        changed['outcome']['result_commit'] = DATA['commit']
+        work.reject(work.packet([changed]), 'outcome_conflict')
     work.accept([label], [work.label_item(label_value, True)])
     work.facts(label_value, fact)
     work.task(state, work.terminal(fact, kind))

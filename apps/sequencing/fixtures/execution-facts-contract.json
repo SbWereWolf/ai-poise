@@ -317,7 +317,7 @@
     "kind": "completed",
     "result_commit": "$COMMIT",
     "source_ref": {
-      "owner": "execution",
+      "owner": "$SOURCE_OWNER",
       "id": "$SOURCE"
     }
   },
@@ -327,7 +327,7 @@
     "kind": "cancelled",
     "result_commit": null,
     "source_ref": {
-      "owner": "execution",
+      "owner": "$SOURCE_OWNER",
       "id": "$SOURCE"
     }
   },
@@ -471,5 +471,57 @@
     "cancelled_b": [
       "0046"
     ]
-  }
+  },
+  "next_all": {
+    "schema": "stride-sequencing/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "read",
+          "kind": "next",
+          "claimant": "SESSION-A",
+          "scope": {
+            "kind": "all"
+          }
+        }
+      ]
+    }
+  },
+  "label_availability": {
+    "own": {
+      "task_id": "0042",
+      "eligible": true,
+      "blockers": [],
+      "result_provenance": []
+    },
+    "foreign": {
+      "task_id": "0042",
+      "eligible": false,
+      "blockers": [
+        {
+          "reason": "claimed_by_other",
+          "claim_id": "$CLAIM",
+          "claimant": "SESSION-B"
+        }
+      ],
+      "result_provenance": []
+    }
+  },
+  "label_next_ids": {
+    "own": [
+      "0042",
+      "0043",
+      "0044",
+      "0045",
+      "0046"
+    ],
+    "foreign": [
+      "0043",
+      "0044",
+      "0045",
+      "0046"
+    ]
+  },
+  "nondefault_terminal_owner": "orchestrator"
 }

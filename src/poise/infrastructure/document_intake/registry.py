@@ -232,14 +232,12 @@ class PreparedRegistry:
             return item
 
     def advance_context(self, scope, request_id, reason):
-        if reason != 'manual':
-            raise ReadFailure('invalid_request')
-        return self._advance(scope, request_id, reason)
+        return self._advance(scope, request_id, reason, native=False)
 
     def advance_native_context(self, scope, transition):
         if not isinstance(transition, NativeContextTransition):
             raise ReadFailure('invalid_request')
-        return self._advance(scope, transition.request_id, transition.reason)
+        return self._advance(scope, transition.request_id, transition.reason, native=True)
 
     @staticmethod
     def _transition_generation(db, scope, request_id, reason):
@@ -255,10 +253,12 @@ class PreparedRegistry:
         with self.open_existing() as db:
             return self._transition_generation(db, scope, transition.request_id, transition.reason)
 
-    def _advance(self, scope, request_id, reason):
+    def _advance(self, scope, request_id, reason, *, native):
         with self.open_existing(write=True) as db:
             db.execute('BEGIN IMMEDIATE')
             old = self._transition_generation(db, scope, request_id, reason)
+            if not native and reason != 'manual':
+                raise ReadFailure('invalid_request')
             if old is not None:
                 return old
             generation = self._generation(db, scope.namespace) + 1

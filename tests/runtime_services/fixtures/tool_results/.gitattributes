@@ -1,0 +1,3 @@
+# Raw stream fixtures preserve their exact bytes in Git.
+*.log -text
+*.bin -text

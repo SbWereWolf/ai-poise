@@ -35,6 +35,42 @@ def text(value):
     return isinstance(value, str) and bool(value)
 
 
+def capture_facts(capture, exit_code):
+    exact(capture, {'state', 'reason'})
+    if capture['state'] not in ('complete', 'partial', 'unknown'): reject()
+    if capture['reason'] is not None and not text(capture['reason']): reject()
+    if exit_code is not None and type(exit_code) is not int: reject()
+
+
+def tool_identity(tool):
+    exact(tool, {'kind', 'name'})
+    if tool['kind'] not in ('bash', 'mcp', 'generic'):
+        reject('unmapped_input', 'tool.kind', 'configure:input')
+    if not text(tool['name']): reject()
+
+
+def saved_result(value, address, scope):
+    """Validate the complete stored wire shape before exposing source pointers."""
+    try:
+        exact(value, {'schema', 'status', 'response_path', 'tool', 'response', 'capture',
+                      'exit_code', 'streams', '_scope', '_fingerprint', '_response_source'})
+        if (value['schema'] != 'poise-tool-result-1' or value['status'] != 'stored'
+                or value['response_path'] != address or value['_scope'] != scope): reject()
+        if not isinstance(value['_fingerprint'], str) or not re.fullmatch('[0-9a-f]{64}', value['_fingerprint']): reject()
+        capture_facts(value['capture'], value['exit_code']); tool_identity(value['tool'])
+        exact(value['streams'], {'stdout', 'stderr'})
+        items = [value['_response_source'], *[v for v in value['streams'].values() if v is not None]]
+        for item in items:
+            exact(item, {'path', 'bytes', 'lines', 'sha256', 'binary'})
+            if (not text(item['path']) or not item['path'].startswith('/')
+                    or not integer(item['bytes'], 0) or not integer(item['lines'], 0)
+                    or type(item['binary']) is not bool or not isinstance(item['sha256'], str)
+                    or not re.fullmatch('[0-9a-f]{64}', item['sha256'])): reject()
+        return value
+    except (DomainError, KeyError, TypeError, ValueError) as exc:
+        raise ToolResultFailure('source_invalid', 'source', 'restore:source') from exc
+
+
 def encoded(value):
     return utf8_json_text(value, separators=(',', ':')) + '\n'
 
@@ -120,21 +156,15 @@ class ToolResultRequest:
             'lines': {'response_path', 'channel', 'from_line', 'to_line'},
             'bytes': {'response_path', 'channel', 'start', 'end'},
             'search': {'response_path', 'channel', 'pattern', 'context', 'max_matches'}}
-        if operation not in fields: reject()
+        if not text(operation) or operation not in fields: reject()
         exact(value, base | fields[operation])
         if operation in ('capture', 'hook'):
             if not text(value['request_id']): reject()
             exact(value['streams'], {'stdout', 'stderr'})
             if any(v is not None and (not text(v) or not v.startswith('/')) for v in value['streams'].values()): reject()
-            exact(value['capture'], {'state', 'reason'})
-            if value['capture']['state'] not in ('complete', 'partial', 'unknown'): reject()
-            if value['capture']['reason'] is not None and not text(value['capture']['reason']): reject()
-            if value['exit_code'] is not None and type(value['exit_code']) is not int: reject()
+            capture_facts(value['capture'], value['exit_code'])
             if operation == 'capture':
-                exact(value['tool'], {'kind', 'name'})
-                if value['tool']['kind'] not in ('bash', 'mcp', 'generic'):
-                    reject('unmapped_input', 'tool.kind', 'configure:input')
-                if not text(value['tool']['name']): reject()
+                tool_identity(value['tool'])
             else:
                 event = value['event']
                 required = {'session_id', 'turn_id', 'tool_use_id', 'hook_event_name', 'tool_name',
@@ -260,17 +290,26 @@ def hook_presentation(record, sources, policy):
     return result
 
 
-def inspect_source(record, source, request, policy):
+def inspection_view(value, policy, audience, field=None):
+    """Selection is shared; only model delivery applies display envelopes."""
+    if audience == 'machine': return value
+    if audience != 'agent': reject(field='audience')
+    if field is not None: return bounded(value, policy, field)
+    require_budget(value, policy)
+    return value
+
+
+def inspect_source(record, source, request, policy, *, audience):
     from collections import deque
     operation = request['operation']; metadata = source.metadata
     result = {'status': 'stored', 'response_path': record['response_path'], 'channel': request['channel'],
               'binary': metadata['binary']}
     if operation == 'summary':
         result.update({k: metadata[k] for k in ('bytes', 'lines', 'sha256')})
-        require_budget(result, policy); return result
+        return inspection_view(result, policy, audience)
     if metadata['binary']:
         result.update(text='', matches=[], lines=[], truncated=False)
-        require_budget(result, policy); return result
+        return inspection_view(result, policy, audience)
     limit = policy['inspection']['max_excerpt_bytes']
     if operation == 'search':
         matches = []; selected = {}; prior = deque(maxlen=request['context']); context_end = -1; more = False
@@ -288,7 +327,7 @@ def inspect_source(record, source, request, policy):
             shortened |= clipped or part != original; remaining -= len(part.encode())
             if part or not original: rows.append({'line': i+1, 'text': part})
         result.update(lines=rows, matches=[row for row in rows if row['line']-1 in matches], truncated=shortened)
-        require_budget(result, policy); return result
+        return inspection_view(result, policy, audience)
     if operation == 'bytes':
         start, requested_end = request['start'], min(request['end'], metadata['bytes'])
         if start > metadata['bytes'] or not source.boundary(start) or not source.boundary(requested_end):
@@ -319,6 +358,6 @@ def inspect_source(record, source, request, policy):
             truncated = shortened or last < min(requested_last, metadata['lines'])
     result.update(text=part, returned_bytes=[start, start+len(part.encode())], returned_lines=returned_lines,
                   total_lines=metadata['lines'], total_bytes=metadata['bytes'], truncated=truncated)
-    result = bounded(result, policy, 'text')
+    result = inspection_view(result, policy, audience, 'text')
     result['returned_bytes'][1] = start+len(result['text'].encode())
     return result

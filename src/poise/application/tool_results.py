@@ -33,5 +33,6 @@ class ToolResults:
                 return hook_presentation(record, self.store.sources(record), self.policy)
             return presentation(record, self.store.sources(record), self.policy,
                                 request['view'] if operation == 'view' else None)
-        return inspect_source(record, self.store.source(record, request['channel']), request, self.policy)
+        return inspect_source(record, self.store.source(record, request['channel']), request, self.policy,
+                              audience=audience)
 

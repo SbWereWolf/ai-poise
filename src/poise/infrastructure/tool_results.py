@@ -8,7 +8,7 @@ import shutil
 import tempfile
 
 from ..common import PoiseError, encoded as canonical
-from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject
+from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject, saved_result
 from ..modules.placement.contracts import PlacementRequest
 from .goal_config import atomic_write, strict_json
 from .locking import exclusive_lock
@@ -108,13 +108,7 @@ class FileToolResultStore:
             reject('source_invalid', 'response_path', 'restore:source')
         raw = self._raw(path)
         try:
-            record = strict_json(raw.decode())
-            if (record['schema'] != 'poise-tool-result-1' or record['status'] != 'stored'
-                    or record['response_path'] != str(path) or record['_scope'] != self.scope
-                    or set(record['streams']) != {'stdout', 'stderr'}):
-                raise ValueError('Invalid saved result')
-            for k in ('response', 'tool', 'capture', 'exit_code', '_fingerprint', '_response_source'): record[k]
-            return record
+            return saved_result(strict_json(raw.decode()), str(path), self.scope)
         except (PoiseError, TypeError, KeyError, ValueError, UnicodeError, RecursionError) as exc:
             raise ToolResultFailure('source_invalid', 'source', 'restore:source') from exc
 

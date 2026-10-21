@@ -1403,7 +1403,8 @@
       "remove": false,
       "value": 1.0,
       "tokens": [
-        "expected_revision"
+        "expected_revision",
+        "floating-point"
       ]
     },
     {

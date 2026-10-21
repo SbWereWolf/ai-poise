@@ -1,0 +1,71 @@
+{
+  "schema": "hook-settings-1",
+  "root": "@ROOT@",
+  "project_config": "project.json",
+  "python": "@PYTHON@",
+  "source_root": "@SOURCE_ROOT@",
+  "hooks_file": ".codex/hooks.json",
+  "definitions": "config/hook-definitions",
+  "state": "state/hook-control",
+  "lock": "state/hook-control.lock",
+  "database": "sessions-runtime.sqlite",
+  "bindings": "bindings",
+  "launcher": "work.sh",
+  "binding_file": "binding.json",
+  "observations": "probes",
+  "response_file": "response.json",
+  "capability_summary": {
+    "file": "capabilities.json",
+    "header_template": "Infrastructure ready={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}",
+    "item_template": "{id}: {status}; required={required}; reason={reason}; remediation={remediation}"
+  },
+  "cwd_roots": [
+    "@CHECKOUT@"
+  ],
+  "file_mode": 384,
+  "executable_mode": 448,
+  "lock_seconds": 3.0,
+  "lock_poll_seconds": 0.01,
+  "max_input_bytes": 1048576,
+  "output_chars": 5000,
+  "max_probes": 30,
+  "probe_files": {
+    "stdout": "stdout.txt",
+    "stderr": "stderr.txt",
+    "receipt": "receipt.json"
+  },
+  "exit_codes": {
+    "success": 0,
+    "incomplete": 1,
+    "rejected": 2
+  },
+  "tool_intake": {
+    "reader_policy": "@READER@"
+  },
+  "general_context": {
+    "reader_policy": "@READER@",
+    "checkpoint_directory": "context",
+    "checkpoint_filename": "work-context.json",
+    "summary": {
+      "max_bytes": 4096,
+      "max_changed_paths": 2,
+      "max_instruction_changes": 2,
+      "max_coverage_items": 2
+    },
+    "instructions": {
+      "catalog": "@CATALOG@",
+      "root": "@CHECKOUT@",
+      "policy": "@INSTRUCTIONS@",
+      "paths": [
+        "src/billing/invoice.py",
+        "docs/sample.txt"
+      ]
+    },
+    "work_owner": {
+      "enabled": false
+    },
+    "check_owner": {
+      "enabled": false
+    }
+  }
+}

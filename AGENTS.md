@@ -621,9 +621,12 @@ For bounded source/document reads, use [explicit ranges and context
 generations](docs/workflows/source-reader.md#явные-диапазоны-и-поколения-контекста). Do not suppress reads on
 unacknowledged delivery or carry read-memory assumptions across compaction/resume.
 
-After compaction/resume, use [current-owner context
-recovery](docs/workflows/context-recovery.md#возобновление-после-compaction-и-resume). Restore Task/route facts through
-their owners; reread only explicit ranges and never infer remembered text from old receipts.
+If the configured native [mechanical work context](docs/workflows/context-recovery.md#общая-механическая-сводка)
+card is delivered after compaction/resume, treat it as scoped metadata, including taskless work. Follow its current read/refresh actions; instruction roots and reading checkouts
+have their own owners. The specialized [Task/route context
+recovery](docs/workflows/context-recovery.md#возобновление-после-compaction-и-resume) remains explicit.
+General reading and specialized SourceReader acknowledgements are distinct; old receipts never prove
+remembered text. Obtain actual required text through its current reader owner.
 
 Keep optional telemetry persistence and retries off the work result path. Do not equate
 in-memory acceptance with durable delivery. Follow [bounded telemetry

@@ -1,6 +1,6 @@
 # Жизненный цикл общего чтения файлов
 
-Обновлено: **2026-10-20**.
+Обновлено: **2026-10-21**.
 
 ## Допуск и владение
 
@@ -68,7 +68,10 @@ array, bool, number или string в существующем owner file даё�
 
 `advance_context` — только явный `reason="manual"`. Повтор старого request_id возвращает generation
 сохранённого перехода, но не уменьшает живое generation; последующий `context` наблюдает текущий.
-Это не автоматическая обработка compaction и не acknowledgement.
+Эта явная операция не обрабатывает native compaction и не является acknowledgement.
+Отдельно подключённая [общая сводка](context-recovery.md#общая-механическая-сводка)
+получает настоящие Pre/Post/compact Start у native owner и меняет то же общее generation.
+Специализированный reader сохраняет собственное поколение и acknowledgements.
 
 ## Завершение и восстановление
 
@@ -110,7 +113,12 @@ Coordination record/gate, внешний diagnostic log, template и control res
 Общий read API, schema-2 template, реестр, native episode admission и recovery доступны через
 установленный пакет; поддерживается [полный JSON и text framing](../configuration/project-file-reading.md#полный-json-и-text-framing).
 Поддержанные обычные Bash-чтения учитывает отдельно включаемая пара native tool events
-в том же ресурсе; общего автоматического ledger всех tool results и compaction reset нет.
+в том же ресурсе; универсального автоматического ledger всех tool results нет.
+При подключённом general_context native compaction меняет существующее общее поколение,
+а не создаёт второй ledger. Safe checkpoint размещается внутри того же owned episode
+resource в отдельном каталоге своего checkout. Clear удаляет только этот checkpoint,
+End оставляет данные до подтверждённого reader recover; правила active/unknown/foreign
+ресурсов прежние.
 [Специализированный SourceReader](source-reader.md#явные-диапазоны-и-поколения-контекста)
 с его acknowledgement/reset сохраняет собственный контракт.
 

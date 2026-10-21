@@ -1093,7 +1093,9 @@ Keep complete machine JSON/frames and saved responses; a registered read is not 
 or model-memory proof. New context transitions accept only reason `manual`; replay preserves the
 saved transition generation without rolling back live state. The specialized acknowledged source
 reader retains its existing owner. This API does not intercept arbitrary tools or automatically
-reset general context after compaction.
+reset general context after compaction. The separately configured native
+[general work context](../../../docs/workflows/context-recovery.md#общая-механическая-сводка)
+shares this reading generation; it does not turn explicit reader requests into native events.
 
 
 ### Ordinary command reads and shared coverage
@@ -1109,3 +1111,22 @@ confirmed coverage; a Post warning cannot undo an executed command. Preserve the
 and the [existing recovery owner](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения).
 Do not infer host delivery, model memory, acknowledgements or automatic compaction handling
 from recorded metadata. This guidance grants no Task acceptance, publication or integration.
+
+### Automatic mechanical work context
+
+Use the genuine native `Work context: ` card only as current scoped metadata. The optional
+`general_context` setup and complete inputs belong to the
+[operator guide](../../../docs/configuration/runtime-hooks.md#общая-сводка-после-сокращения-контекста).
+The card can be taskless. Disabled work/check owners do not query Task state; a completed check
+means process/capture completion, not test success or acceptance. Follow each current read or
+refresh action. Resolve skill addresses against the configured instruction root, which may be
+outside the checkout; use ProjectInstructions for full instruction text. Safe checkpoint metadata
+are not its full `previous` response.
+
+Native Pre/PostCompact and compact Start share one general-reading transition. Explicit
+`advance_context` still accepts only `manual`; do not fabricate hook events to force a transition.
+A completed delivery retry replays its saved output; a new genuine resume observes current facts.
+Keep partial/missing/used states and omissions truthful. The specialized acknowledged SourceReader
+and explicit `restore_context` retain their own owners and generation. Clear affects the owned
+checkpoint; confirmed End plus the existing reader recovery owner retires its temporary resource.
+No card or receipt establishes remembered text, live-host delivery or Task readiness.

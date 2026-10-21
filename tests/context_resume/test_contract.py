@@ -309,6 +309,12 @@ def assert_scope_coverage(coverage, *, present=None, absent=None):
         assert absent not in text, 'A different logical scope must not inherit the read'
 
 
+def assert_empty_generation_coverage(value, generation):
+    assert value['context']['generation'] == generation
+    assert value['details']['documents'] == []
+    assert value['details']['counts']['current_documents'] == 0
+
+
 def project_session_isolation(r, project, tmp_path, monkeypatch):
     path, own_details = seed_scope_read(r)
     assert_scope_coverage(r.restore('resume')['coverage'], present=path)
@@ -324,10 +330,14 @@ def project_session_isolation(r, project, tmp_path, monkeypatch):
     assert_scope_coverage(peer.restore('resume')['coverage'], absent=path)
     peer_path, _ = seed_scope_read(peer, 'scope_peer_read')
     assert_scope_coverage(peer.restore('resume')['coverage'], present=peer_path, absent=path)
+    peer_rows = coverage_rows(peer.s.db, peer_path)
     peer.save(); peer.compact(); value = peer.restore()
     assert value['scope']['project'] != r.s.project
     assert_scope_coverage(value['coverage'], absent=path)
-    assert_scope_coverage(peer.i.coverage()['details'], present=peer_path, absent=path)
+    current = peer.i.coverage()
+    assert_empty_generation_coverage(current, 2)
+    assert_scope_coverage(current['details'], absent=path)
+    assert coverage_rows(peer.s.db, peer_path, peer_rows[0]) == peer_rows
     assert r.i.coverage()['details'] == own_details
     assert coverage_rows(r.s.db, path, own_rows[0]) == own_rows
     assert r.checkpoint_bytes() == own

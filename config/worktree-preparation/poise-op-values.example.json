@@ -1,0 +1,7 @@
+{
+  "profile_spec": "/srv/poise/app/config/maintenance/profile.example.json",
+  "author_name": "Operator",
+  "author_email": "operator@example.invalid",
+  "python_minimum": "3.15",
+  "python_maximum": "3.16"
+}

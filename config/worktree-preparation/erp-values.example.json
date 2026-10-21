@@ -1,0 +1,29 @@
+{
+  "profile_spec": "/srv/poise/app/config/projects/erp/profile.example.json",
+  "author_name": "Operator",
+  "author_email": "operator@example.invalid",
+  "python_minimum": "3.15",
+  "python_maximum": "3.16",
+  "consumer_python": "/srv/environment-maintenance/.venv/bin/python",
+  "php_executable": "/opt/php/bin/php",
+  "node_executable": "/opt/node/bin/node",
+  "composer_executable": "/opt/composer/bin/composer",
+  "npm_entry_point": "/opt/node/lib/node_modules/npm/bin/npm-cli.js",
+  "npm_executable": "/opt/node/bin/npm",
+  "expected_toolchain_identity": {
+    "php": {
+      "majorMinor": "8.4"
+    },
+    "node": {
+      "majorMinor": "22.23",
+      "modulesAbi": 127
+    }
+  },
+  "environment_file": "platform-infrastructure/config/dev/local-development.env",
+  "local_settings_path": "platform-infrastructure/config/dev/local-development.settings.json",
+  "host_runtime_settings_path": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.json",
+  "cjm_settings_path": "platform-infrastructure/tests/playwright/cjm.local-development.settings.json",
+  "local_settings_source": "documents/local-settings.json",
+  "host_runtime_settings_source": "documents/host-runtime-settings.json",
+  "cjm_settings_source": "documents/cjm-settings.json"
+}

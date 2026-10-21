@@ -89,7 +89,10 @@ absolute Bootstrap entry uses `-I -B`; source `-m poise` uses `-P -s -B`.
 See [Stride arguments and examples](../../../docs/operator/poise-command-reference.md#обслуживание-catalogv2-через-stride).
 Example after accepted cutover: `bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" "$stride_settings" check --config "$bootstrap_config" --catalog-dir "$profile"`.
 
-[Task-worktree preparation](../../../docs/operator/worktree-preparation.md#подготовка-рабочей-области)
+[Automatic Task-worktree preparation](../../../docs/operator/worktree-preparation.md#автоматическая-подготовка-обоих-проектов)
+links directly to the complete installed start-app setup and sanitized examples.
+Configure the selected installation once; genuine bootstrap coordinates own each Task profile.
+The [preparation protocol](../../../docs/operator/worktree-preparation.md#опции-рабочего-json)
 owns the working configuration, all options/placeholders, plugin contract, full
 inputs/results and retry/reconciliation procedure. Use the selected native
 bootstrap; readiness is distinct from Task acceptance and integration.

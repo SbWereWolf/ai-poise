@@ -93,8 +93,11 @@ manifest; при переносе нужны и соответствующие �
 
 `poise_root` задаёт размещение инструментов и настроек реестра. `data_root`
 независимо задаёт размещение данных. Для локальной установки это отдельно
-настраиваемые каталоги `/home/sbwerewolf/workdata/poise-op/app` и
-`/home/sbwerewolf/workdata/poise-project-data`; код не содержит этих значений.
+настраиваемые каталоги. В проверенной общей установке код выбран в
+`/home/sbwerewolf/workdata/poise-op/app`, а `data_root` —
+`/home/sbwerewolf/workdata`: общий родитель фактических stores обоих проектов,
+включая отдельно расположенный ERP Requirements store. Код не содержит этих
+значений; для другой установки оператор выбирает свои существующие корни.
 
 До запуска команды проверяется, что выбранный manifest размещает внутри
 `data_root` следующие ресурсы:
@@ -103,6 +106,14 @@ manifest; при переносе нужны и соответствующие �
 - `paths.database` и `paths.lock`;
 - `paths.requirements_database` и `paths.requirements_lock`;
 - `accounting.storage.database` и `accounting.storage.lock`.
+
+Выбирайте data_root по полному набору этих путей выбранных проектов, а не только
+по каталогу Task DB одного из них. Правка корня запуска не переносит хранилища.
+Она также не создаёт собственный native binding другого проекта: приоритет
+выданного session entry и действительная caller identity сохраняются. Отдельно
+разрешённый selected Stride route не означает доставку hook-события или право
+использовать чужой launcher. Пример операционной границы —
+[подключение подготовки областей](../operator/start-app-worktree-setup.md#привязка-проектов-и-первый-запуск).
 
 Остальные пути manifest проверяет существующий владелец конфигурации.
 Task worktree задаётся `paths.worktrees` по

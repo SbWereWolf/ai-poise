@@ -8,7 +8,7 @@ import sys
 import tomllib
 import zipfile
 
-from tests.runtime_services.tool_results_support import ROOT, REMOVED, Scenario, literal, sha, write_json
+from tests.runtime_services.tool_results_support import FIXTURES, ROOT, REMOVED, Scenario, literal, sha, wire, write_json
 
 
 def test_installed_tool_result_consumer(project, tmp_path):
@@ -72,16 +72,35 @@ def test_installed_tool_result_consumer(project, tmp_path):
     for kind in ('bash', 'mcp'):
         parent = tmp_path / kind; parent.mkdir()
         s = Scenario(project, parent, python=python, source=False)
-        s.bash_producer()
-        expected = literal('mcp-response.json') if kind == 'mcp' else s.request()['response']
-        req = s.request(tool={'kind': kind, 'name': 'installed-fixture'}, response=expected)
+        if kind == 'mcp':
+            cp = subprocess.run([sys.executable, '-B', str(FIXTURES / 'producer.py'),
+                                 '--kind', 'mcp', '--size', 'short', '--counter',
+                                 str(s.producer_count), '--exit-code', '0'], capture_output=True)
+            assert cp.returncode == 0 and cp.stderr == b''
+            expected = literal('mcp-response.json')
+            assert wire(json.loads(cp.stdout)) == wire(expected)
+            req = s.request(tool={'kind': kind, 'name': 'installed-fixture'}, response=expected,
+                            streams={'stdout': None, 'stderr': None}, exit_code=None)
+        else:
+            s.bash_producer()
+            expected = s.request()['response']
+            req = s.request(tool={'kind': kind, 'name': 'installed-fixture'}, response=expected)
         try:
             _, saved = s.capture(req, 'machine')
             shown = s.success(s.request('view.template.json'))
             assert shown['response_path'] == str(s.response_path)
             assert saved['response'] == expected
-            assert s.success(s.request('search.template.json', pattern='FIRST_STDOUT'))['matches']
-            assert s.success(s.request('read.template.json', from_line=1, to_line=2))['text'] == 'FIRST_STDOUT\nshort\n'
+            if kind == 'mcp':
+                oracle = literal('mcp-reader-expected.json')
+                assert saved['streams'] == {'stdout': None, 'stderr': None}
+                read = s.success(s.request('read.template.json', channel='response', **oracle['request_lines']))
+                assert read['text'] == oracle['text'] and read['returned_lines'] == oracle['returned_lines']
+                search = s.success(s.request('search.template.json', channel='response', **oracle['request_search']))
+                assert search['matches'] == oracle['matches'] and search['lines'] == oracle['context']
+                assert read['channel'] == search['channel'] == 'response'
+            else:
+                assert s.success(s.request('search.template.json', pattern='FIRST_STDOUT'))['matches']
+                assert s.success(s.request('read.template.json', from_line=1, to_line=2))['text'] == 'FIRST_STDOUT\nshort\n'
             assert s.producer_count.read_text() == '1'
         finally:
             proof['tool_calls'].extend(s.calls); save()

@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from tests.runtime_services.tool_results_support import FIXTURES, ROOT, Scenario
+from tests.runtime_services.tool_results_support import FIXTURES, ROOT, Scenario, literal
 
 
 @pytest.mark.parametrize('case', ['short', 'large', 'failure', 'structured'])
@@ -33,7 +33,16 @@ def test_documented_tool_result_examples(project, tmp_path, case):
         selected = s.request(template)
         if case == 'structured':
             selected['channel'] = 'response'
-            if selected['operation'] == 'search': selected['pattern'] = 'structuredContent'
+            oracle = literal('mcp-reader-expected.json')
+            assert request['response'] == literal('mcp-response.json')
+            selected.update(oracle['request_search'] if selected['operation'] == 'search'
+                            else oracle['request_lines'])
         value = s.success(selected)
         assert value['response_path'] == str(s.response_path)
+        if case == 'structured':
+            assert value['channel'] == 'response'
+            if selected['operation'] == 'search':
+                assert value['matches'] == oracle['matches'] and value['lines'] == oracle['context']
+            else:
+                assert value['text'] == oracle['text'] and value['returned_lines'] == oracle['returned_lines']
     assert s.snapshot() == before

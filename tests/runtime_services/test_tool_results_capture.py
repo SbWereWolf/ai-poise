@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from tests.runtime_services.tool_results_support import FIXTURES, Scenario, literal, write_json
+from tests.runtime_services.tool_results_support import FIXTURES, Scenario, literal, wire, write_json
 
 
 @pytest.mark.parametrize('size,exit_code', [('short', 0), ('large', 7)],
@@ -143,3 +143,40 @@ def test_controlled_bash_hook_uses_common_owner(project, tmp_path, mode, size):
         assert result['protocol']['hookSpecificOutput']['hookEventName'] == 'PostToolUse'
         assert str(s.response_path) in result['protocol']['hookSpecificOutput']['additionalContext']
     assert s.producer_count.read_text() == '1'
+
+
+@pytest.mark.parametrize('mode,size', [('audit', 'short'), ('audit', 'large'),
+                                      ('enforce', 'short'), ('enforce', 'large')],
+                         ids=['audit-small', 'audit-large', 'enforce-small', 'enforce-large'])
+def test_hook_first_capture_preserves_complete_new_event(project, tmp_path, mode, size):
+    s = Scenario(project, tmp_path)
+    s.policy['hook']['mode'] = mode; s.save_policy()
+    produced = s.bash_producer(size)
+    response = s.request()['response']
+    response['output'] = (FIXTURES / (size + '.stdout.log')).read_text()
+    hook = s.request('hook.template.json', request_id='unseen-hook-first')
+    hook['event']['tool_use_id'] = 'unseen-hook-first'
+    hook['event']['tool_response'] = response
+    assert s.snapshot() == {} and list(s.root.iterdir()) == []
+    result = s.success(hook)
+    s.response_path = Path(result['response_path'])
+    assert s.response_path.is_relative_to(s.root) and s.response_path.is_file()
+    saved = json.loads(s.response_path.read_bytes())
+    assert wire(saved['response']) == wire(hook['event']['tool_response'])
+    assert saved['capture'] == hook['capture'] and saved['exit_code'] == 7
+    for name, expected in [('stdout', produced.stdout), ('stderr', produced.stderr)]:
+        path = Path(saved['streams'][name]['path'])
+        assert path.is_relative_to(s.root) and path not in (s.out, s.err)
+        assert path.read_bytes() == expected
+    if mode == 'audit':
+        assert result['action'] == 'would_replace'
+    else:
+        assert result['action'] == 'enforced'
+        assert result['protocol']['continue'] is False
+        assert result['protocol']['stopReason']
+        assert result['protocol']['hookSpecificOutput']['hookEventName'] == 'PostToolUse'
+        assert str(s.response_path) in result['protocol']['hookSpecificOutput']['additionalContext']
+    before = s.snapshot()
+    ordinary, _ = s.capture(s.request(request_id='unseen-hook-first', response=response), 'machine')
+    assert ordinary['response_path'] == result['response_path']
+    assert s.snapshot() == before and s.producer_count.read_text() == '1'

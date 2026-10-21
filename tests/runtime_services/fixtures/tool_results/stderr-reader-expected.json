@@ -1,0 +1,33 @@
+{
+  "total_lines": 3,
+  "request_lines": {
+    "from_line": 2,
+    "to_line": 3
+  },
+  "request_search": {
+    "pattern": "needle-stderr",
+    "context": 0,
+    "max_matches": 1
+  },
+  "text": "needle-stderr\nSTDERR_ONLY_LAST\n",
+  "returned_lines": [
+    2,
+    3
+  ],
+  "returned_bytes": [
+    18,
+    49
+  ],
+  "matches": [
+    {
+      "line": 2,
+      "text": "needle-stderr"
+    }
+  ],
+  "context": [
+    {
+      "line": 2,
+      "text": "needle-stderr"
+    }
+  ]
+}

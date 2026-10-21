@@ -1,0 +1,33 @@
+{
+  "total_lines": 36,
+  "request_lines": {
+    "from_line": 20,
+    "to_line": 23
+  },
+  "request_search": {
+    "pattern": "structuredContent",
+    "context": 0,
+    "max_matches": 1
+  },
+  "text": "    \"structuredContent\": {\n      \"MACHINE_ONLY_NESTED\": [\n        0,\n        false,\n",
+  "returned_lines": [
+    20,
+    23
+  ],
+  "returned_bytes": [
+    344,
+    428
+  ],
+  "matches": [
+    {
+      "line": 20,
+      "text": "    \"structuredContent\": {"
+    }
+  ],
+  "context": [
+    {
+      "line": 20,
+      "text": "    \"structuredContent\": {"
+    }
+  ]
+}

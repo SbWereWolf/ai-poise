@@ -61,5 +61,11 @@
     "correct:pattern",
     "retry:capture",
     "choose:new_key"
-  ]
+  ],
+  "response_channel": {
+    "source": "complete original response JSON value, not stdout or result metadata",
+    "text": "UTF-8 JSON, indent=2, input object order, ensure_ascii=false, terminal LF",
+    "fixture": "mcp-reader-source.json",
+    "range_offsets": "zero-based, half-open bytes; one-based inclusive lines"
+  }
 }

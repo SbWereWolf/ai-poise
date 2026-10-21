@@ -16,6 +16,8 @@ from ..modules.hook_transport.domain import HookDefinition,parse_native_event,me
 from ..modules.capabilities.domain import positive
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
+from ..modules.document_intake.command import CommandFailure
+from ..modules.document_intake.contracts import ReadFailure
 from ..modules.foundation.validation import configuration_fields, nonempty
 from ..application.capabilities import CapabilityChecks,SessionReadiness
 from ..application.hook_transport import HookCommands
@@ -923,7 +925,7 @@ class HookService:
             presentation=NativeContextPresentation(self,result,definition,native,binding,packet['deadline_monotonic'])
             outcome=owner.restore(context_event,presentation.available_bytes())
             return presentation.complete(CARD_PREFIX+encode(outcome.card)),outcome.complete,outcome.reason
-        except (PoiseError,OSError,ValueError) as error:
+        except (PoiseError,ReadFailure,CommandFailure,OSError,ValueError) as error:
             reason='work_context_unavailable'
             result=(presentation.result if presentation is not None else
                     self._native_start_context(definition,native,binding,event) if native['event']=='SessionStart' else {})

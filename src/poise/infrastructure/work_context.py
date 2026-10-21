@@ -9,6 +9,8 @@ import time
 from ..application.work_context import WorkContext
 from ..modules.work_context.domain import CheckpointState, ContextScope, ContextEvent
 from ..modules.session_establishment.domain import CallerIdentity
+from ..modules.document_intake.command import CommandFailure
+from ..modules.document_intake.contracts import ReadFailure
 from ..common import PoiseError
 from .goal_config import atomic_write
 
@@ -226,8 +228,9 @@ class ProjectWorkContextFacts:
         for name in ('git', 'instructions', 'coverage', 'work', 'check'):
             try:
                 result[name] = getattr(self, name)()
-            except (PoiseError, OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
-                result[name] = dict(status='unavailable', reason=type(error).__name__)
+            except (PoiseError, ReadFailure, CommandFailure, OSError, ValueError, KeyError,
+                    subprocess.SubprocessError) as error:
+                result[name] = dict(status='unavailable', reason=getattr(error, 'code', type(error).__name__))
                 if name == 'instructions':
                     result[name]['materials'] = []
                 if name == 'coverage':

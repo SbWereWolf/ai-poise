@@ -11,7 +11,7 @@ def prepare(connection):
     if version != 0:
         raise ValueError(f'Unsupported Execution format {version}; select a fresh or T020 format0 own store')
     tables = {row[0] for row in connection.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+        'SELECT name FROM sqlite_master WHERE type=? AND name NOT LIKE ?', ('table', 'sqlite_%'))}
     if tables and tables != {'meta', 'executions', 'requests'}:
         raise ValueError('Select a fresh or complete T020 meta/executions/requests store')
     try:

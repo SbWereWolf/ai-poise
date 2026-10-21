@@ -69,6 +69,10 @@ class ExecutionRecord:
         json_value(data)
         if 'task_id' in data and data['task_id'] != task_id:
             raise RecordsError(f'Record {record_id} data must refer to its own Task {task_id}')
+        contract = data.get('contract')
+        if (kind == 'contract_snapshot' and type(contract) is dict
+                and 'task_id' in contract and contract['task_id'] != task_id):
+            raise RecordsError(f'Contract snapshot {record_id} must refer to its own Task {task_id}')
         return cls(kind, record_id, task_id, generation, revision, data)
 
     def to_value(self):

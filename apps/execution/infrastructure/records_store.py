@@ -36,14 +36,14 @@ class RecordRepository:
                                        (request_id,)).fetchone()
 
     def get_revision(self):
-        return self.connection.execute("SELECT value FROM meta WHERE key='revision'").fetchone()[0]
+        return self.connection.execute('SELECT value FROM meta WHERE key=?', ('revision',)).fetchone()[0]
 
     def save_request(self, request_id, digest, response):
         self.connection.execute('INSERT INTO requests(request_id,digest,response_json) VALUES(?,?,?)',
                                 (request_id, digest, canonical_json(response)))
 
     def set_revision(self, revision):
-        self.connection.execute("UPDATE meta SET value=? WHERE key='revision'", (revision,))
+        self.connection.execute('UPDATE meta SET value=? WHERE key=?', (revision, 'revision'))
 
     def has_execution(self, task_id):
         return self.connection.execute('SELECT task_id FROM executions WHERE task_id=?', (task_id,)).fetchone() is not None

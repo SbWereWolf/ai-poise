@@ -268,6 +268,10 @@ class Store:
             return operation(*args, **kwargs)
         except RecordsError as exc:
             raise ExecutionError(str(exc)) from exc
+        except OverflowError as exc:
+            raise ExecutionError('Execution storage cannot represent this integer; provide a value within the SQLite signed 64-bit range') from exc
+        except UnicodeEncodeError as exc:
+            raise ExecutionError('Execution storage requires valid UTF-8 text; provide encodable record values and identities') from exc
 
     def write_records(self, *, request_id, expected_revision, records):
         return self._record_call(self.records.write, request_id=request_id,

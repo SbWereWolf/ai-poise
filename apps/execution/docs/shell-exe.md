@@ -1,18 +1,31 @@
-# Execution standalone CLI
+# Самостоятельная оболочка Execution
 
-## Entry point
+## Запуск
 
-Execution is launched through its app-owned provider:
+Используйте Python 3.13 по контракту текущей поставки и POSIX/Linux, включая
+Ubuntu в WSL; SQLite и `fcntl` берутся из стандартной библиотеки. Для команд
+`pytest` установите pytest в выбранном тестовом окружении.
+Из корня checkout запустите приложение выбранным Python:
 
-```text
-apps/execution/bin/execution --config <path-to-execution.json>
+```sh
+python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 ```
 
-The provider accepts one newline-terminated UTF-8 JSON packet on stdin and writes one JSON result on stdout. The wire schema is `stride-execution/v1`. The current extraction slice implements `apply` with `setup_execution` and `query` with `kind: "execution"`; the broader Execution lifecycle remains defined by [Execution public contract](contract-exe.md) and later migration tasks.
+`EXECUTION_CONFIG` в примерах задаёт явный путь к вашему конфигурационному файлу.
+Передайте один UTF-8 JSON-пакет с завершающим переводом строки через stdin.
+Приложение возвращает один JSON-результат в stdout. Схема пакета —
+`stride-execution/v1`; текущий CLI выполняет `apply` с `setup_execution` и
+`query` с `kind: "execution"`.
 
-## Execution-owned config
+[Руководство по собственному хранилищу](store-exe.md) описывает подготовку данных,
+снимки, попытки, доказательства, историю и Python-интерфейс `Store`.
+[Целевой публичный контракт](contract-exe.md) описывает дальнейшие операции
+исполнения; текущие интерфейсы перечислены в этих двух руководствах.
 
-The standalone config schema is `stride-execution-config/v1`. All fields are required and unknown fields are rejected.
+## Конфигурация приложения
+
+Создайте собственный файл схемы `stride-execution-config/v1` ровно с указанными
+полями; каждое поле объекта укажите один раз:
 
 ```json
 {
@@ -25,50 +38,80 @@ The standalone config schema is `stride-execution-config/v1`. All fields are req
 }
 ```
 
-`paths.state` is resolved from the config directory. `database` and `lock` must be relative to the resolved Execution state root, remain inside it, and be distinct. The provider therefore owns its SQLite database and lock file independently of the shared POISE runtime.
+| Параметр | Правильное значение и назначение |
+| --- | --- |
+| `schema` | `stride-execution-config/v1` |
+| `paths.state` | Корень данных Execution; относительный путь отсчитывается от каталога конфигурации |
+| `paths.database` | Относительный путь к SQLite внутри корня данных |
+| `paths.lock` | Отдельный относительный путь к файлу блокировки внутри того же корня |
+| `batch.max_input_bytes` | Положительное целое ограничение размера входного CLI-пакета в байтах |
+| `batch.max_items` | Положительное целое ограничение числа операций `apply` |
+| `read.max_queries` | Положительное целое ограничение числа запросов в CLI-пакете чтения |
+| `lock.seconds` | Положительное конечное время ожидания доступа к собственному хранилищу, секунды |
+| `lock.poll_seconds` | Положительный конечный интервал повторной попытки получения доступа, секунды |
+| `identifiers.task.pattern` | Непустое регулярное выражение для полного совпадения канонического `task_id` при настройке исполнения |
 
-`max_input_bytes`, `max_items`, `max_queries`, `lock.seconds`, `lock.poll_seconds`, and `identifiers.task.pattern` are mandatory operational policy. The lock settings control the real nonblocking acquisition deadline and retry interval; missing values never fall back to hidden defaults.
+`database` и `lock` задают разные файлы. Значения операционных параметров выбираются
+явно в конфигурации. Для независимой установки задайте отдельный корень данных.
+Область блокировки — одна операция с собственным store; выполнение внешних
+проверок и работа над этапом происходят у их владельцев.
 
-## Ownership and isolation
+В числовых полях CLI-пакета используйте целые JSON-числа. В конфигурации времена
+ожидания и опроса допускают положительные конечные дробные значения.
 
-The standalone Execution shell opens only its configured Execution state/database/lock. It does not instantiate the shared Runtime and does not read Requirements or Sequencing configuration or databases. Invalid neighboring project/process files and foreign database sentinels are outside the provider boundary.
+## Владение данными
 
-A second invocation with another config resolves another state root and uses an independent Execution database and lock.
+Execution использует собственные database и lock. Канонический `task_id` поступает
+от вызывающей стороны; `setup_execution` сохраняет это значение. Requirements
+владеет постановкой требований, Sequencing — допуском и Workspace. Ссылки на их
+результаты передаются во входном контракте Execution.
 
-`task_id` is a foreign canonical identity supplied by the caller. `setup_execution` validates it against the configured `identifiers.task.pattern`, stores the same value, and never allocates or rewrites it.
+## Настройка исполнения и чтение
 
-## Current setup/query slice
+Для нового исполнения передайте `setup_execution` с каноническим `task_id`,
+редакцией снимка требований, `process_ref`, ссылками на admission и Workspace,
+ожиданиями этапов, идентификатором политики перезапуска, methods и evidence plan.
+Полный пример настройки приведён в [руководстве store](store-exe.md#пример-правильного-использования).
 
-`setup_execution` accepts the Execution contract identity/provenance fields required for the extracted shell boundary, creates generation 1 in `draft` state, stores a canonical SHA-256 contract revision, and returns the unchanged canonical `task_id`.
+Результат настройки содержит исходный `task_id`, generation `1` и назначенную
+Execution редакцию контракта. Состояние исполнения — `draft`, iteration — `1`.
+В той же транзакции сохраняется фактический снимок входного контракта.
 
-`query` with `kind: "execution"` returns the owner-local record: canonical `task_id`, generation, contract revision, state/current stage/iteration, workspace ID, and admission ID.
+`query` с `kind: "execution"` возвращает `task_id`, generation, редакцию контракта,
+состояние, текущий этап и iteration, Workspace и admission, а также общую revision
+собственного хранилища.
 
-This task does not migrate the full process/gate/restart/outcome/transfer lifecycle; those operations remain governed by `contract-exe.md` and their dedicated migration tasks.
+## Повтор и revision
 
-## Fail-closed behavior
+Новый успешный `apply` увеличивает общую revision и сохраняет результат по
+`request_id`. Для точного повтора отправьте прежний пакет целиком, включая
+исходный `expected_revision`: возвращается сохранённый результат с
+`replayed: true`. Для следующей операции прочитайте актуальную revision и
+используйте новый `request_id`.
 
-Configuration and packet validation are fail-closed. Ordinary contract rejection writes a `stride-execution/v1` result with `status: "rejected"`, exits with **exit 2**, and leaves stderr empty.
+## Публичный отказ
 
-Examples include missing required config fields, unsupported schema, state-path escape, invalid limits, invalid `identifiers`, oversized input beyond `max_input_bytes`, unsupported operation/query kinds, invalid canonical `task_id`, or lock acquisition exceeding configured timeout. Config validation occurs before Execution state is created.
+Для работы подготовьте полный конфигурационный файл и пакет поддержанной схемы,
+соблюдайте выбранные лимиты и политику идентификаторов. Обычный отказ CLI имеет
+`status: "rejected"`, причину в JSON, **exit 2** и пустой stderr. После устранения
+причины повторите чтение либо отправьте корректный новый пакет с актуальной revision.
 
-## Replay and revision
+Python-интерфейс записи фактов возвращает `ExecutionError`; порядок продолжения
+после атомарного отказа описан в [руководстве store](store-exe.md#атомарность-и-продолжение).
 
-A successful apply stores a replay receipt and advances the owner-local revision. Repeating the exact same `request_id` and payload returns the saved result with `replayed: true` without another mutation. Reusing that request ID with different content is rejected.
+## Проверки
 
-## Verification
+Реальная оболочка и независимость её конфигурации проверяются командой:
 
-Behavior and isolation are verified through the real standalone executable:
-
-```text
+```sh
 python -B apps/execution/tests/test_shell.py --suite behavior
 ```
 
-The behavior suite covers provider discovery, poisoned-neighbor isolation, independent configs, fail-closed missing config, configured input limits, required identifier policy, canonical `task_id` preservation, and exact replay.
+Существующие проверки литералов документации:
 
-Documentation literals are checked with:
-
-```text
+```sh
 python -B apps/execution/tests/test_shell.py --suite documentation
 ```
 
-These checks map the standalone Execution boundary to GEN-03, GEN-04, and EXE-01 while preserving co-delivery of command/config documentation in T020.
+Проверки содержимого хранилища и ссылок перечислены в
+[руководстве store](store-exe.md#проверки).

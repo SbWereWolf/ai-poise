@@ -1,3 +1,14 @@
+def tool_result_tools(bound, policy, environment):
+    """Taskless output uses the same explicit caller and placement owners."""
+    from .application.tool_results import ToolResults
+    from .infrastructure.tool_results import FileToolResultStore, ResultPlacement
+    from .infrastructure.session_establishment import direct_caller
+    caller = direct_caller(bound.config['project'], environment)
+    placement = ResultPlacement(placement_tools(bound, policy['placement']['policy'], environment),
+                                policy, bound.config['batch']['max_items'])
+    return ToolResults(policy, FileToolResultStore(bound, caller, policy, placement))
+
+
 def project_checks_tools(bound, policy_path, environment, clock):
     """General checks compose existing identity/execution/presentation owners."""
     from .application.project_checks import ProjectChecks

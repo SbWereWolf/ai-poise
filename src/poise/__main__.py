@@ -27,6 +27,10 @@ def parser():
     result_view.add_argument('--output-chars',type=int,required=True)
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
+    tool_result=sub.add_parser('tool-result',help='Save complete tool results and read bounded selected sources')
+    for name in ('config', 'checkout', 'policy'):
+        tool_result.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    tool_result.add_argument('--audience',choices=('agent','machine'),required=True,action=SingleArgument)
     checks=sub.add_parser('checks',help='Select and run configured named project checks')
     for name in ('config', 'checkout', 'policy'):
         checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
@@ -105,6 +109,9 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='tool-result':
+        from .interfaces.tool_results import execute
+        return execute(args.config,args.checkout,args.policy,args.audience,sys.stdin.buffer,sys.stdout)
     if args.command=='content-read':
         from .interfaces.content_reader import execute_cli
         from .infrastructure.clock import SystemClock

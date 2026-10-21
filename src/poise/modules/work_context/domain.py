@@ -165,7 +165,7 @@ def continuation_actions(card, materials, policy):
     actions = []
     checkout = card['scope']['checkout']
     if card['git']['changed_since_capture'] is True:
-        actions.append('restore:git; inspect current HEAD and worktree at ' + checkout)
+        actions.append('restore:git; inspect HEAD/worktree at ' + checkout)
     changed = card['instructions']['changed']
     if changed:
         current = [m for m in materials if m['path'] in changed and m['available']]
@@ -176,12 +176,14 @@ def continuation_actions(card, materials, policy):
             addresses.append(root.rstrip('/') + '/' + material['path'])
         parts = ['read ' + address for address in dict.fromkeys(addresses)]
         if len({m['path'] for m in selected}) < len(changed):
-            parts.append('refresh current applicable instructions using ' + policy.data['instructions']['policy'])
+            refresh = ('refresh missing/omitted instructions through their current owner' if parts else
+                       'refresh current instructions using ' + policy.data['instructions']['policy'])
+            parts.append(refresh)
         actions.append('restore:instructions; ' + '; '.join(parts))
     generation = card['generation']
     if generation['before'] is not None and generation['before'] != generation['current']:
-        actions.append('restore:coverage; read required current sources in generation '
-                       + str(generation['current']) + '; current coverage reference: ' + card['coverage']['ref'])
+        actions.append('restore:coverage; read current sources in generation '
+                       + str(generation['current']) + '; ' + card['coverage']['ref'])
     return actions
 
 

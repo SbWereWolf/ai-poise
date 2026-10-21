@@ -62,7 +62,10 @@ class WorkContext:
         for owner in ('git', 'instructions', 'coverage', 'check', 'work'):
             if card[owner]['status'] in ('unavailable', 'needs_inputs'):
                 card['status'] = 'partial'
-                card['actions'].append('restore:' + owner + '; read its current owner and retry genuine native delivery')
+                addressed_instruction = (owner == 'instructions' and card[owner]['status'] == 'needs_inputs'
+                                         and bool(card[owner]['changed']))
+                if not addressed_instruction:
+                    card['actions'].append('restore:' + owner + '; read its current owner and retry genuine native delivery')
         if state == 'pending' or consumed_here:
             card['checkpoint']['state'] = 'restored'
         card = render_card(card, self.policy, available_bytes)

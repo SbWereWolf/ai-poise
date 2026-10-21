@@ -14,6 +14,11 @@ import sqlite3
 import sys
 import time
 
+from apps.execution.application.records import ExecutionRecords
+from apps.execution.domain.records import RecordsError
+from apps.execution.infrastructure.records_store import RecordRepository, record_unit_of_work
+from apps.execution.migrations.v1 import prepare as prepare_store
+
 CONFIG_SCHEMA = "stride-execution-config/v1"
 WIRE_SCHEMA = "stride-execution/v1"
 
@@ -220,6 +225,8 @@ def _packet(value, config):
 class Store:
     def __init__(self, config):
         self.config = config
+        self.records = ExecutionRecords(
+            lambda write: record_unit_of_work(self.locked, self.connect, write))
 
     @contextlib.contextmanager
     def locked(self):
@@ -244,30 +251,33 @@ class Store:
     def connect(self):
         conn = sqlite3.connect(self.config["database"])
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL);
-            INSERT OR IGNORE INTO meta(key,value) VALUES('revision',0);
-            CREATE TABLE IF NOT EXISTS executions (
-              task_id TEXT PRIMARY KEY,
-              generation INTEGER NOT NULL,
-              contract_revision TEXT NOT NULL,
-              contract_json TEXT NOT NULL,
-              state TEXT NOT NULL,
-              current_stage TEXT,
-              iteration INTEGER NOT NULL,
-              workspace_id TEXT NOT NULL,
-              admission_id TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS requests (
-              request_id TEXT PRIMARY KEY,
-              digest TEXT NOT NULL,
-              response_json TEXT NOT NULL
-            );
-            """
-        )
+        try:
+            conn.execute("PRAGMA foreign_keys=ON")
+            prepare_store(conn)
+        except ValueError as exc:
+            conn.close()
+            raise ExecutionError(str(exc)) from exc
+        except BaseException:
+            conn.close()
+            raise
         return conn
+
+    @staticmethod
+    def _record_call(operation, *args, **kwargs):
+        try:
+            return operation(*args, **kwargs)
+        except RecordsError as exc:
+            raise ExecutionError(str(exc)) from exc
+
+    def write_records(self, *, request_id, expected_revision, records):
+        return self._record_call(self.records.write, request_id=request_id,
+                                 expected_revision=expected_revision, records=records)
+
+    def read_records(self, task_id):
+        return self._record_call(self.records.read, task_id)
+
+    def read_attempt(self, task_id, attempt_id):
+        return self._record_call(self.records.attempt, task_id, attempt_id)
 
     @staticmethod
     def revision(conn):
@@ -307,6 +317,8 @@ class Store:
                             "INSERT INTO executions(task_id,generation,contract_revision,contract_json,state,current_stage,iteration,workspace_id,admission_id) VALUES(?,1,?,?,'draft',NULL,1,?,?)",
                             (task_id, revision, _canonical(contract).decode("utf-8"), contract["workspace_id"], contract["admission_id"]),
                         )
+                        self._record_call(self.records.setup_snapshot, RecordRepository(conn),
+                                          contract, revision, 1)
                     results.append({
                         "id": op["id"], "kind": "setup_execution", "changed": changed,
                         "task_id": task_id, "generation": 1, "contract_revision": revision,

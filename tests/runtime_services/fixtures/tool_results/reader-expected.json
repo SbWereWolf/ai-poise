@@ -1,0 +1,40 @@
+{
+  "lines_2_4": "B\nneedle-one\nC\n",
+  "line_numbers": [
+    2,
+    3,
+    4
+  ],
+  "matches": [
+    {
+      "line": 3,
+      "text": "needle-one"
+    },
+    {
+      "line": 5,
+      "text": "needle-two"
+    }
+  ],
+  "context": [
+    {
+      "line": 2,
+      "text": "B"
+    },
+    {
+      "line": 3,
+      "text": "needle-one"
+    },
+    {
+      "line": 4,
+      "text": "C"
+    },
+    {
+      "line": 5,
+      "text": "needle-two"
+    },
+    {
+      "line": 6,
+      "text": "D"
+    }
+  ]
+}

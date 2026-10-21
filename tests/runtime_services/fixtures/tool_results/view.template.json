@@ -1,0 +1,6 @@
+{
+  "schema": "poise-tool-result-request-1",
+  "operation": "view",
+  "response_path": "@RESPONSE@",
+  "view": "brief"
+}

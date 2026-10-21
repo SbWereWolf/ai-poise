@@ -1,0 +1,65 @@
+{
+  "request_schema": "poise-tool-result-request-1",
+  "result_schema": "poise-tool-result-1",
+  "capture_required": [
+    "schema",
+    "operation",
+    "request_id",
+    "tool",
+    "response",
+    "streams",
+    "capture",
+    "exit_code"
+  ],
+  "stored_required": [
+    "schema",
+    "status",
+    "response_path",
+    "tool",
+    "response",
+    "streams",
+    "capture",
+    "exit_code"
+  ],
+  "stored_status": "stored",
+  "stream_metadata": [
+    "path",
+    "bytes",
+    "lines",
+    "sha256",
+    "binary"
+  ],
+  "agent_required": [
+    "status",
+    "response_path",
+    "capture",
+    "exit_code"
+  ],
+  "errors": [
+    "invalid_request",
+    "invalid_policy",
+    "policy_unavailable",
+    "unmapped_input",
+    "budget_too_small",
+    "source_missing",
+    "source_unreadable",
+    "source_invalid",
+    "storage_write",
+    "request_conflict",
+    "invalid_range",
+    "invalid_pattern"
+  ],
+  "actions": [
+    "provide:request",
+    "provide:policy",
+    "correct:policy",
+    "configure:input",
+    "increase:budget",
+    "provide:source",
+    "restore:source",
+    "choose:range",
+    "correct:pattern",
+    "retry:capture",
+    "choose:new_key"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema": "poise-tool-result-request-1",
+  "operation": "hook",
+  "request_id": "hook-1",
+  "event": {
+    "session_id": "isolated-protocol-fixture",
+    "turn_id": "turn-1",
+    "tool_use_id": "hook-1",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "fixture producer already executed"
+    },
+    "tool_response": {
+      "output": "visible text",
+      "extra_source": {
+        "first": "MACHINE_ONLY_FIRST",
+        "nested": [
+          null,
+          true,
+          7
+        ]
+      }
+    },
+    "cwd": "@CHECKOUT@"
+  },
+  "streams": {
+    "stdout": "@STDOUT@",
+    "stderr": "@STDERR@"
+  },
+  "capture": {
+    "state": "complete",
+    "reason": null
+  },
+  "exit_code": 7
+}

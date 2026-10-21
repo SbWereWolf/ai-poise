@@ -1,0 +1,20 @@
+{
+  "status": "foreign-status",
+  "output": "only display projection",
+  "content": [
+    {
+      "text": "retained content"
+    }
+  ],
+  "structuredContent": {
+    "values": [
+      1,
+      null,
+      true
+    ]
+  },
+  "error": {
+    "message": "MACHINE_ONLY_NESTED"
+  },
+  "extra_source": "MACHINE_ONLY_FIRST"
+}

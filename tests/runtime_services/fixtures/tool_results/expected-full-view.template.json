@@ -1,0 +1,10 @@
+{
+  "status": "stored",
+  "response_path": "@RESPONSE@",
+  "view": "full",
+  "capture": {
+    "state": "complete",
+    "reason": null
+  },
+  "exit_code": 7
+}

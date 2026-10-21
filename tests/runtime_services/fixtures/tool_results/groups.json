@@ -1,0 +1,45 @@
+{
+  "capture": [
+    "tests/runtime_services/test_tool_results_capture.py"
+  ],
+  "views": [
+    "tests/runtime_services/test_tool_results_views.py"
+  ],
+  "reader": [
+    "tests/runtime_services/test_tool_results_reader.py"
+  ],
+  "boundaries": [
+    "tests/runtime_services/test_tool_results_boundaries.py"
+  ],
+  "installed": [
+    "tests/runtime_services/test_tool_results_installed.py"
+  ],
+  "examples": [
+    "tests/runtime_services/test_tool_results_examples.py"
+  ],
+  "legacy-agent": [
+    "tests/runtime_services/test_output_boundary_agent.py::AgentBoundaryTests::test_work_delivery_uses_common_parser",
+    "tests/runtime_services/test_output_boundary_agent.py::AgentBoundaryTests::test_work_small_replies_also_have_complete_saved_results",
+    "tests/runtime_services/test_output_boundary_agent.py::AgentBoundaryTests::test_hook_envelope_keeps_full_structured_response",
+    "tests/runtime_services/test_output_boundary_agent.py::AgentBoundaryTests::test_work_full_nested_error_and_status_are_unchanged",
+    "tests/runtime_services/test_output_boundary_agent.py::AgentBoundaryTests::test_unknown_command_view_uses_ordinary_profile_without_changing_raw"
+  ],
+  "legacy-raw-views": [
+    "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_actual_crlf_unicode_paths_are_not_translated",
+    "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_cleanup_keeps_complete_nul_stdout",
+    "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_cleanup_and_integration_preserve_failure_stderr",
+    "tests/runtime_services/test_saved_result_views.py::test_three_views_are_distinct_and_full_is_only_navigation",
+    "tests/runtime_services/test_saved_result_views.py::test_empty_result_keeps_real_file_navigation",
+    "tests/runtime_services/test_saved_result_views.py::test_navigation_budget_includes_mode_and_lf_at_exact_boundary",
+    "tests/runtime_services/test_saved_result_views.py::test_saved_view_readback_never_repeats_operation",
+    "tests/runtime_services/test_saved_result_views.py::test_missing_saved_response_is_an_error_without_fake_pointer"
+  ],
+  "smoke": [
+    "tests/test_happy_path.py::test_full_tdd_flow_commits_without_remote_push_and_stops",
+    "tests/batch/test_work_tools.py::test_single_packet_result_artifacts_messages_and_replay",
+    "tests/projects/test_service.py::test_setup_creates_independent_runtime_config_without_task_or_git_mutation",
+    "tests/sprints/test_service.py::test_bootstrap_by_sprint_id_returns_ready_set_without_claim",
+    "tests/hook_transport/test_hooks.py::test_session_launcher_is_quoted_and_executable",
+    "tests/result_integration/test_service.py::test_completed_result_integration_uses_live_config_without_digest_gate"
+  ]
+}

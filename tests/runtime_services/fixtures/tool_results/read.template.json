@@ -1,0 +1,8 @@
+{
+  "schema": "poise-tool-result-request-1",
+  "operation": "lines",
+  "response_path": "@RESPONSE@",
+  "channel": "stdout",
+  "from_line": 2,
+  "to_line": 4
+}

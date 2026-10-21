@@ -1,0 +1,9 @@
+{
+  "schema": "poise-tool-result-request-1",
+  "operation": "search",
+  "response_path": "@RESPONSE@",
+  "channel": "stdout",
+  "pattern": "needle",
+  "context": 1,
+  "max_matches": 2
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "poise-placement-policy-1",
+  "version": "test-1",
+  "roots": [
+    {
+      "id": "results",
+      "owner": "harness",
+      "path": "@RESULTS@",
+      "versioning": "ignored",
+      "authority": "test-owned-tool-results"
+    }
+  ],
+  "rules": [
+    {
+      "id": "tool-result",
+      "category": "agent-work",
+      "priority": 1,
+      "when": {
+        "purposes": [
+          "tool-result"
+        ],
+        "recipients": [
+          "agent"
+        ],
+        "lifetimes": [
+          "operator-managed"
+        ]
+      },
+      "root": "results",
+      "directory": "",
+      "paths": [
+        "**"
+      ]
+    }
+  ],
+  "owner_provider": null,
+  "state": {
+    "directory": "@HARNESS@/placement",
+    "filename": "placement.json",
+    "lock": "placement.lock"
+  }
+}

@@ -36,6 +36,7 @@ class AgentBoundaryTests(unittest.TestCase):
         self.addCleanup(self.views.finish)
         self.runtime = SimpleNamespace(
             cfg={'limits': {'output_chars': 2000, 'preview_chars': 24},
+                 'paths': {'runs': 'runs', 'response': 'response.json'},
                  'batch': {'file_mode': 0o600}, 'runtime_services': {'output': self.policy}},
             runtime=self.root, paths={'runs': 'runs', 'response': 'response.json'},
             retired_receipt=lambda receipt: False,

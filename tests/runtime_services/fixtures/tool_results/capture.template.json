@@ -1,0 +1,29 @@
+{
+  "schema": "poise-tool-result-request-1",
+  "operation": "capture",
+  "request_id": "capture-1",
+  "tool": {
+    "kind": "bash",
+    "name": "Bash"
+  },
+  "response": {
+    "output": "visible text",
+    "extra_source": {
+      "first": "MACHINE_ONLY_FIRST",
+      "nested": [
+        null,
+        true,
+        7
+      ]
+    }
+  },
+  "streams": {
+    "stdout": "@STDOUT@",
+    "stderr": "@STDERR@"
+  },
+  "capture": {
+    "state": "complete",
+    "reason": null
+  },
+  "exit_code": 7
+}

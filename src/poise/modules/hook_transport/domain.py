@@ -20,7 +20,8 @@ def binding_context(record):
 
 
 TOOL_EVENTS={'PreToolUse','PostToolUse'}
-EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'} | TOOL_EVENTS
+COMPACTION_EVENTS = {'PreCompact', 'PostCompact'}
+EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'} | TOOL_EVENTS | COMPACTION_EVENTS
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 SESSION_START_SOURCES=('startup','resume','clear','compact','fork')
 
@@ -82,7 +83,8 @@ def parse_native_event(raw,definition):
     kind=raw.get('hook_event_name')
     if kind not in {x['event'] for x in definition.data['events']}:raise PoiseError('Hook event is not installed for this definition')
     for key in ('session_id','cwd'):nonempty(raw.get(key),key)
-    if kind in ('UserPromptSubmit','Stop'):nonempty(raw.get('turn_id'),'turn_id')
+    if kind in {'UserPromptSubmit','Stop'} | COMPACTION_EVENTS:nonempty(raw.get('turn_id'),'turn_id')
+    if kind in COMPACTION_EVENTS:nonempty(raw.get('trigger'),'trigger')
     if kind=='UserPromptSubmit' and not isinstance(raw.get('prompt'),str):
         raise PoiseError('UserPromptSubmit requires its prompt field; its text is not retained')
     # Optional wire metadata are not process defaults. Ignore prompt and assistant text.
@@ -90,7 +92,18 @@ def parse_native_event(raw,definition):
         if raw.get('source') not in SESSION_START_SOURCES:raise PoiseError('Unsupported SessionStart source')
     if kind=='SessionEnd' and raw.get('reason')!='other':raise PoiseError('Unsupported SessionEnd reason')
     return {'event':kind,'session_id':raw['session_id'],'cwd':raw['cwd'],
-            'turn_id':raw['turn_id'] if kind in ('UserPromptSubmit','Stop') else None}
+            'turn_id':raw['turn_id'] if kind in {'UserPromptSubmit','Stop'} | COMPACTION_EVENTS else None}
+
+
+def native_event_metadata(raw, native):
+    """The same normalized committed metadata authorize both delivery and retry."""
+    if native['event'] == 'SessionStart':
+        return {'source': raw['source'], 'workspace': native['cwd']}
+    if native['event'] in COMPACTION_EVENTS:
+        return {'turn_id': native['turn_id'], 'trigger': raw['trigger'], 'workspace': native['cwd']}
+    if native['event'] == 'SessionEnd':
+        return {'reason': raw['reason']}
+    return {}
 
 
 def merge_hook_document(existing,previous,desired):

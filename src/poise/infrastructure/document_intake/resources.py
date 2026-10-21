@@ -168,7 +168,11 @@ class EpisodeResources:
         """Expensive public native/schema observation precedes the short gate."""
         if self.caller.native_session is None or self.authority is None:
             raise ReadFailure('admission_unavailable')
-        observation = self.authority.resolve_episode(self.caller.native_session, None)
+        record = self.store.load()
+        if record is not None:
+            self._validate_owner(record, require_tree=False)
+        owned = record['episode'] if record is not None and record.get('phase') == 'active' else None
+        observation = self.authority.resolve_episode(self.caller.native_session, owned)
         if observation['state'] != 'active':
             code = 'admission_dead' if observation['state'] == 'ended' else 'admission_uncertain'
             cause = observation.get('cause') or ''

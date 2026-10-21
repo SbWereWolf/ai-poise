@@ -1,0 +1,194 @@
+[
+  {
+    "group": "checkpoint",
+    "id": "C01-all-current-sources",
+    "requirements": "R1/R4",
+    "expected": "До compaction сохранены фактические Git/инструкции/общий epoch/адрес покрытия/доступные active-check metadata; полные тексты отсутствуют."
+  },
+  {
+    "group": "checkpoint",
+    "id": "C02-taskless-capture",
+    "requirements": "R1/R4",
+    "expected": "Без Task/Sprint plugin сохраняется general scope; отключённый work owner не вызывается, claims/Task rows неизменны."
+  },
+  {
+    "group": "checkpoint",
+    "id": "C03-replace-current-checkpoint",
+    "requirements": "R1/R5",
+    "expected": "Второй настоящий PreCompact заменяет только собственный текущий checkpoint; архива/истории и изменения foreign sentinel нет."
+  },
+  {
+    "group": "checkpoint",
+    "id": "C04-capture-write-failure",
+    "requirements": "R1/R6",
+    "expected": "Достигнутая ошибка atomic write даёт причину/действие; прежний целый файл сохранён, saved не заявлен; исправление причины позволяет один успешный повтор."
+  },
+  {
+    "group": "continuation",
+    "id": "T01-post-then-compact-start",
+    "requirements": "R2/R3/R5",
+    "expected": "Gen1→настоящий PostCompact→gen2→SessionStart(compact) оставляет общийgen2 и выводит before1/current2, не gen3."
+  },
+  {
+    "group": "continuation",
+    "id": "T02-exact-post-replay",
+    "requirements": "R3/R5",
+    "expected": "Тот же committed Post receipt повторяется через owning retry: gen2 и одна transition запись; изменённый смысл под той же identity даёт conflict."
+  },
+  {
+    "group": "continuation",
+    "id": "T03-compact-start-without-post",
+    "requirements": "R2/R3/R6",
+    "expected": "Подтверждённый compactStart без Post обеспечиваетgen1→2 и current карточку/реальную доступность сведений, без поддельного Post/ID."
+  },
+  {
+    "group": "continuation",
+    "id": "T04-exact-start-replay",
+    "requirements": "R2/R5",
+    "expected": "Повтор того же committed Start delivery сохраняет business outcome/идентичности, consume/reset не дублируются; новый event не выдаётся за повтор."
+  },
+  {
+    "group": "continuation",
+    "id": "T05-used-checkpoint-next-resume",
+    "requirements": "R2/R5",
+    "expected": "После использования изменить источник и подать следующее настоящее resume: новое текущее значение и отметка used, не пустая строка/старый cached ответ."
+  },
+  {
+    "group": "continuation",
+    "id": "T06-clear-own-checkpoint",
+    "requirements": "R3/R5",
+    "expected": "Настоящий clear очищает свой текущий checkpoint и оставляет foreign/temp coordination sentinel; актуальная карточка осмысленна."
+  },
+  {
+    "group": "comparison",
+    "id": "D01-worktree-status-change",
+    "requirements": "R3",
+    "expected": "HEAD прежний, изменён/добавлен рабочий файл: новый status hash/путь верны; ожидание независимо вычисляет отдельный git status."
+  },
+  {
+    "group": "comparison",
+    "id": "D02-current-instruction-change",
+    "requirements": "R3",
+    "expected": "Один material изменён, другой удалён: current hashes/availability и действия верны, full instruction bodies в карточке/checkpoint отсутствуют."
+  },
+  {
+    "group": "comparison",
+    "id": "D03-shared-coverage-generation",
+    "requirements": "R1/R3",
+    "expected": "Реальные F04/F05 reads A/B, native compaction, целевой reread: тот же namespace/ledger/история, прежние records относятся прежнемуgen, новое разрешённое чтение там же."
+  },
+  {
+    "group": "comparison",
+    "id": "D04-current-check-observation",
+    "requirements": "R1/R3",
+    "expected": "Checkpoint содержит runA; current owner сообщает terminalA/новыйrunB: текущий status/ref, без старого фиктивногоPASS и чтения полного stdout."
+  },
+  {
+    "group": "scope",
+    "id": "S01-owned-anchor-continuation",
+    "requirements": "R4/R5",
+    "expected": "Повторные настоящие compact/resume Start в той же binding сохраняют доказанный owned anchor/ресурсы/покрытие; episode_mismatch отсутствует."
+  },
+  {
+    "group": "scope",
+    "id": "S02-session-project-isolation",
+    "requirements": "R5",
+    "expected": "Два обычных session/project scope с разными literal markers: каждый видит только свои metadata/ref, bytes/rows другой области неизменны."
+  },
+  {
+    "group": "scope",
+    "id": "S03-checkout-isolation",
+    "requirements": "R5",
+    "expected": "Один caller/project, две подтверждённые checkout: currentB не наследует checkpointA/coverageA; собственныйA и sentinel сохранены."
+  },
+  {
+    "group": "scope",
+    "id": "S04-new-or-fork-session",
+    "requirements": "R5/R6",
+    "expected": "Новая/fork session не наследует память/ACK/checkpoint родителя, видит свой current context и отсутствие сопоставимого снимка."
+  },
+  {
+    "group": "failure",
+    "id": "F01-missing-checkpoint",
+    "requirements": "R2/R6",
+    "expected": "Нет файла, current источники доступны: current карточка+missing prior/действие/адрес; нет silent empty/придуманного prior сравнения."
+  },
+  {
+    "group": "failure",
+    "id": "F02-invalid-checkpoint",
+    "requirements": "R6",
+    "expected": "Повреждённый JSON и неподходящая текущая версия: управляемая partial карточка с причиной и current сведениями; unused ERPv1/task не вводится."
+  },
+  {
+    "group": "failure",
+    "id": "F03-checkpoint-unavailable",
+    "requirements": "R6",
+    "expected": "Достигнутый реальный adapter read failure: unavailable с причиной/действием, current данные, сохранность bytes/foreign; не ложный missing/unchanged."
+  },
+  {
+    "group": "failure",
+    "id": "F04-instructions-unavailable",
+    "requirements": "R6",
+    "expected": "Действительный current instruction provider даёт needs_inputs/управляемую недоступность: прочие current сведения остаются, текст/неизменность не выдуманы."
+  },
+  {
+    "group": "failure",
+    "id": "F05-enabled-work-plugin-failure",
+    "requirements": "R4/R6",
+    "expected": "Явно enabled work provider реально вызван и ошибся: общая карточка сохранена, unavailable/action видны, lifecycle/Task rows не изменены."
+  },
+  {
+    "group": "failure",
+    "id": "F06-check-owner-unavailable",
+    "requirements": "R1/R6",
+    "expected": "Действительный check metadata boundary вызван и недоступен: unknown/unavailable, а не нет проверки/PASS; прочие сведения сохранены."
+  },
+  {
+    "group": "budget",
+    "id": "B01-multibyte-and-omissions",
+    "requirements": "R2",
+    "expected": "Явный4096байт budget/спискипо2, многобайтные пути: пригодныйUTF8/точные omitted/refs/actions, full-text markers отсутствуют, полный текст<=4096байт."
+  },
+  {
+    "group": "budget",
+    "id": "B02-common-native-budget",
+    "requirements": "R2/DoD4",
+    "expected": "Общая карточка+специализированный recovery+действительный launcher/указатель вместе соблюдают единый native предел; общийgen не дублируется."
+  },
+  {
+    "group": "budget",
+    "id": "B03-unusable-budget-refusal",
+    "requirements": "R2/R6",
+    "expected": "Непригодный для обязательного служебного контекста предел отвергнут как настройка до ложного saved/delivered/consumed; понятное field/action, прежний launcher сохранён."
+  },
+  {
+    "group": "cleanup",
+    "id": "E01-confirmed-end-cleans-own",
+    "requirements": "R5/DoD4",
+    "expected": "Настоящий matching exactEnd после save/restore позволяет нынешнему recovery удалить own temp+checkpoint; coordination/template/diagnostics/foreign сохранены."
+  },
+  {
+    "group": "cleanup",
+    "id": "E02-unknown-active-foreign-preserve",
+    "requirements": "R5/DoD4",
+    "expected": "Active/unknown/foreign End не разрешают удаление, достигнута настоящая диагностическая граница, own/foreign bytes/rows неизменны; valid matchingEnd positive control чистит."
+  },
+  {
+    "group": "cleanup",
+    "id": "E03-interrupted-consumption-recovery",
+    "requirements": "R5/R6",
+    "expected": "После выполненного generation эффекта достигнутый write/delivery failure сохранён; owning retry доводит тот же outcome без второгоgen/потери/выдуманнойквитанции."
+  },
+  {
+    "group": "configuration",
+    "id": "P01-no-work-owner-access",
+    "requirements": "R4",
+    "expected": "Полная general native save→compact→resume с disabled plugin:0вызовов Task query/current_task/context_metadata, доступная current карточка/прежние rows/claims."
+  },
+  {
+    "group": "configuration",
+    "id": "P02-policy-errors-and-raw-unknown",
+    "requirements": "R6/DoD4",
+    "expected": "Два invalid known option случая дают field/action; неизвестный raw option сохраняется без эха/удаления, исправленный test-owned policy реально восстанавливает путь."
+  }
+]

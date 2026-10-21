@@ -12,10 +12,12 @@ import string
 import time
 from dataclasses import replace
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
-from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document,binding_context,MissingHookBinding
+from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document,binding_context,MissingHookBinding,native_event_metadata
 from ..modules.capabilities.domain import positive
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
+from ..modules.document_intake.command import CommandFailure
+from ..modules.document_intake.contracts import ReadFailure
 from ..modules.foundation.validation import configuration_fields, nonempty
 from ..application.capabilities import CapabilityChecks,SessionReadiness
 from ..application.hook_transport import HookCommands
@@ -47,6 +49,15 @@ class HookSettings:
             'output_chars','max_probes','exit_codes','probe_files'},'hook settings')
         if s['schema']!='hook-settings-1':raise PoiseError('Unsupported hook settings schema')
         self.consumer=consumer_options(s['lifecycle_consumer']) if 'lifecycle_consumer' in s else None
+        from ..modules.work_context.domain import ContextPolicy
+        self.general_context = ContextPolicy.from_configuration(s['general_context']) if 'general_context' in s else None
+        if self.general_context is not None:
+            options = self.general_context.data
+            for key, value in [('reader_policy', options['reader_policy']),
+                               *[('instructions.' + key, options['instructions'][key])
+                                 for key in ('catalog', 'root', 'policy')]]:
+                if not Path(value).is_absolute():
+                    raise PoiseError('general_context.' + key + ': absolute path required')
         for key in ('root','project_config','python','source_root','hooks_file','definitions',
                     'state','lock','database','bindings','launcher','binding_file','observations','response_file'):
             nonempty(s[key], 'hook settings.' + key)
@@ -627,8 +638,7 @@ class HookService:
         if (native['session_id']!=event_receipt.get('session_id') or native['event']!=event_receipt.get('event')
                 or not matches_repository_scope(self.settings,native['cwd'])):
             raise PoiseError('Lifecycle delivery identifies another native operation/workspace; select its genuine saved receipt and retry')
-        metadata=({'source':native_event['source'],'workspace':native['cwd']}
-                  if native['event']=='SessionStart' else {'reason':native_event['reason']})
+        metadata=native_event_metadata(native_event,native)
         self.registry.require_lifecycle_metadata(event_receipt,metadata)
 
     def bind_lifecycle_receipt(self, definition_path, event_receipt, episode):
@@ -656,7 +666,7 @@ class HookService:
                 or record.get('settings_path')!=str(self.settings.path)
                 or record.get('definition_path')!=str(Path(definition_path).resolve())):
             raise PoiseError('Select the saved lifecycle delivery and its recorded settings/definition, then retry')
-        if self.settings.consumer is None:
+        if self.settings.consumer is None and self.settings.general_context is None:
             raise PoiseError('Configure the lifecycle consumer through runtime-config reconfigure, then retry the saved delivery')
         receipt=record['packet']['event_receipt']
         episode={key:receipt[key] for key in ('project_id','session_id','binding_id')}
@@ -665,6 +675,11 @@ class HookService:
         self.require_lifecycle_event(definition_path,receipt,record['packet']['native_event'])
         definition=self.definition(definition_path)
         native=parse_native_event(record['packet']['native_event'],definition)
+        if self.settings.general_context is not None:
+            timeout = next(item['timeout_seconds'] for item in definition.data['events'] if item['event'] == native['event'])
+            record['packet']['deadline_monotonic'] = time.monotonic() + timeout
+            return self._deliver_general_context(definition,native,
+                self.registry.lifecycle_binding(receipt),record['packet']['native_event'],path,record)
         options=self.settings.consumer
         record['packet']['deadline_monotonic']=time.monotonic()+sum(options[key] for key in
             ('timeout_seconds','cleanup_seconds','completion_reserve_seconds'))
@@ -675,7 +690,7 @@ class HookService:
         binding=self.registry.lifecycle_binding(receipt)
         if native['event']=='SessionStart':
             output=self._delivered_start(definition,native,binding,record['packet']['native_event'],receipt['event_id'],path,output)
-        else:
+        elif native['event']=='SessionEnd':
             self.release_ended_binding(binding,receipt['event_id'])
         return self._complete_native_result(output,definition,native,binding,
             deadline=record['packet']['deadline_monotonic'])
@@ -799,7 +814,11 @@ class HookService:
             self.settings.require_summary()
         delivery=None
         with self.project_fence.locked():
-            if self.settings.consumer is not None and isinstance(event,dict) and event.get('hook_event_name') in ('SessionStart','SessionEnd'):
+            lifecycle = isinstance(event,dict) and (
+                self.settings.consumer is not None and event.get('hook_event_name') in ('SessionStart','SessionEnd')
+                or self.settings.general_context is not None and event.get('hook_event_name') in
+                    ('SessionStart','SessionEnd','PreCompact','PostCompact'))
+            if lifecycle:
                 from .hook_lifecycle import prepare
                 if event['hook_event_name']=='SessionEnd':
                     selected=self.definition(definition_path)
@@ -809,7 +828,7 @@ class HookService:
                 definition,native,binding=self._bind(definition_path,event)
                 deadline=started+next(item['timeout_seconds'] for item in definition.data['events'] if item['event']==native['event'])
                 event_id=self.registry.record_event(binding['session_id'],native['event'],native['turn_id'],None,
-                    {'source':event['source'],'workspace':native['cwd']} if native['event']=='SessionStart' else {'reason':event['reason']})
+                    native_event_metadata(event,native))
                 anchor=event_id if native['event']=='SessionStart' else self.registry.preceding_start(binding['session_id'],event_id)
                 receipt={'schema_version':1,'event':native['event'],'event_id':event_id,
                          'project_id':binding['project'],'session_id':native['session_id'],
@@ -820,10 +839,12 @@ class HookService:
         if delivery is not None:
             from .hook_lifecycle import deliver
             path,record=delivery
+            if self.settings.general_context is not None:
+                return self._deliver_general_context(definition,native,binding,event,path,record)
             result=deliver(self.settings,path,record)
             if native['event']=='SessionStart':
                 result=self._delivered_start(definition,native,binding,event,event_id,path,result)
-            else:
+            elif native['event']=='SessionEnd':
                 self.release_ended_binding(binding,event_id)
         return self._complete_native_result(result,definition,native,binding,
             deadline=None if delivery is None else deadline)
@@ -846,31 +867,73 @@ class HookService:
         return result
 
     def _complete_native_result(self,result,definition,native,binding, *, deadline=None):
-        if native['event'] in ('SessionStart','UserPromptSubmit') and 'project_launcher' in self.settings.raw:
-            result['hookSpecificOutput']['additionalContext']+='\n'+self.settings.raw['project_launcher']['context_template'].format(launcher=binding['launcher'])
-        if native['event'] == 'SessionStart':
-            from .clock import SystemClock
-            options=self.settings.consumer
-            readiness = (self._readiness(binding) if deadline is None else self._readiness(binding,
-                deadline=deadline-options['completion_reserve_seconds'],
-                cleanup_seconds=options['cleanup_seconds'],poll_seconds=options['poll_seconds']))
-            summary = readiness.refresh(binding['session_id'], native['cwd'],
-                                        definition.data['probes'], SystemClock()).to_dict()
-            options = self.settings.require_summary()
-            lines = [options['header_template'].format(
-                ready=summary['ready'], checked_at=summary['checked_at'], workspace=summary['workspace'],
-                snapshot_path=str(readiness.store.path))]
-            lines.extend(options['item_template'].format(**item) for item in summary['observations'])
-            context = result['hookSpecificOutput']['additionalContext'] + '\n' + '\n'.join(lines)
-            limit = next(e['context_limit'] for e in definition.data['events'] if e['event'] == 'SessionStart')
-            if len(context) > limit:
-                raise PoiseError('Capability summary context exceeds configured native context limit')
-            result['hookSpecificOutput']['additionalContext'] = context
-        elif native['event']=='UserPromptSubmit':
-            limit=next(item['context_limit'] for item in definition.data['events'] if item['event']==native['event'])
-            if len(result['hookSpecificOutput']['additionalContext'])>limit:
-                raise PoiseError('Project selection context exceeds configured native context limit')
-        return result
+        from .hook_context import NativeContextPresentation
+        return NativeContextPresentation(self,result,definition,native,binding,deadline).complete()
+
+    def _deliver_general_context(self,definition,native,binding,event,path,record):
+        from .hook_lifecycle import deliver,deliver_context,save
+        def invoke():
+            external = record.get('external_output', {})
+            if self.settings.consumer is not None and native['event'] in ('SessionStart','SessionEnd'):
+                if 'external_output' not in record:
+                    external = deliver(self.settings,path,record)
+                    record['external_output'] = deepcopy(external)
+                    save(self.settings,path,record)
+            return self._general_context_event(definition,native,binding,event,record['packet'],external,path)
+        output = deliver_context(self.settings,path,record,invoke)
+        if native['event']=='SessionEnd':
+            self.release_ended_binding(binding,record['packet']['event_receipt']['event_id'])
+        return output
+
+    def _general_context_event(self,definition,native,binding,event,packet,external,delivery_path):
+        from .work_context import native_context_event
+        from .hook_context import NativeContextPresentation
+        from ..modules.work_context.domain import CARD_PREFIX,encode
+        if native['event']=='SessionEnd':
+            return deepcopy(external),True,None
+        receipt = packet['event_receipt']
+        retry = (f'poise hook --settings {shlex.quote(str(self.settings.path))} '
+                 f'--definition {shlex.quote(binding["definition_path"])} '
+                 f'--retry {shlex.quote(str(delivery_path))}')
+        presentation = None
+        try:
+            owner, context_event = native_context_event(self,binding['definition_path'],binding,event,
+                                                       receipt,packet['deadline_monotonic'])
+            if native['event']=='PreCompact':
+                outcome=owner.capture(context_event)
+                result={} if outcome.complete else {'systemMessage':outcome.reason+'; retry '+retry}
+                return result,outcome.complete,outcome.reason
+            if native['event']=='PostCompact':
+                outcome=owner.compact()
+                return {},outcome.complete,outcome.reason
+            result = self._native_start_context(definition,native,binding,event)
+            # The specialized reader keeps its own reset and explicit recovery
+            # API. Merely emitting its pointer never queries the Task owner.
+            _, configuration, _ = load_config(self.settings.project_config)
+            if 'source_reader' in configuration:
+                caller=CallerIdentity.native(binding['project'],binding['external_session'])
+                h=establish_poise(self.settings.project_config,caller,[],self.clock,binding['session_id']).runtime
+                reader = h.context_reader.reset(event['source'],f"hook-event:{receipt['event_id']}")
+                result['hookSpecificOutput']['additionalContext'] += (
+                    '\nContext generation: ' + str(reader['generation']) + '; event: ' + reader['event_id']
+                    + '; reason: ' + reader['reason'] + '. Use restore_context with that identity and explicit reads. '
+                    + 'Prior receipts do not prove remembered text.')
+            if 'hookSpecificOutput' in external:
+                result['hookSpecificOutput']['additionalContext']+='\n'+external['hookSpecificOutput']['additionalContext']
+            if 'systemMessage' in external:
+                result['systemMessage']=external['systemMessage']
+            presentation=NativeContextPresentation(self,result,definition,native,binding,packet['deadline_monotonic'])
+            outcome=owner.restore(context_event,presentation.available_bytes())
+            return presentation.complete(CARD_PREFIX+encode(outcome.card)),outcome.complete,outcome.reason
+        except (PoiseError,ReadFailure,CommandFailure,OSError,ValueError) as error:
+            reason='work_context_unavailable'
+            result=(presentation.result if presentation is not None else
+                    self._native_start_context(definition,native,binding,event) if native['event']=='SessionStart' else {})
+            result['systemMessage']=reason + ': ' + str(error) + '; retry '+retry
+            if native['event']=='SessionStart':
+                result=(presentation.complete() if presentation is not None else
+                        self._complete_native_result(result,definition,native,binding,deadline=packet['deadline_monotonic']))
+            return result,False,reason
 
     def _event_locked(self,definition_path,event):
         selected = self.definition(definition_path)

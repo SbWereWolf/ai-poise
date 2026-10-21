@@ -186,7 +186,11 @@ class HookNativeAuthority:
                 episode = dict(owned_episode) if owned_episode is not None else self._episode(session_id, binding_id, start["id"])
                 return _snapshot("ended", episode, end["id"])
             if owned_episode is not None and (end is None or end["id"] < owned_episode["start_event_id"]):
-                episode = dict(owned_episode)
+                continuation = start.get('source') in ('compact', 'resume', 'clear')
+                if observe_owned or start['id'] == owned_episode['start_event_id'] or continuation:
+                    episode = dict(owned_episode)
+                else:
+                    episode = self._episode(session_id, binding_id, start['id'])
             else:
                 episode = self._episode(session_id, binding_id, start["id"])
             return _snapshot("active", episode)

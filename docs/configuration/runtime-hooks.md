@@ -382,6 +382,7 @@ source/session/turn_id без хранения prompt; все причины, в
 Stop сообщает текущую позицию. Он НЕ возвращает `decision: block`, НЕ создаёт synthetic user turn,
 НЕ принимает этап и НЕ запускает следующую работу. SessionEnd фиксирует факт окончания,
 а при настроенном потребителе доставляет этот факт ему без восстановления Task-runtime.
+Общий work-context использует этот же committed End, не отдельный lifecycle или cleanup owner.
 После успешной доставки потребителю, либо сразу при его отсутствии,
 владелец освобождает временный runtime сессии и её operational binding:
 строку рабочего реестра,
@@ -413,6 +414,120 @@ SessionEnd синхронен по внешнему протоколу. Ника
 Счётчик отражает наблюдённые hook events, не биллинг OpenAI. Coverage остаётся partial: транспорт не
 доказывает, что платформа предоставила весь разговор. Прямой пакет messages через hooked-work
 запрещён, чтобы не создать второй источник того же хода.
+
+## Общая сводка после сокращения контекста
+
+Необязательный `general_context` включает встроенный work-context consumer для текущего
+проекта/checkout/эпизода. Он наблюдает PreCompact/PostCompact и продолжение SessionStart,
+использует прежние general-reader resources и выдаёт короткую карточку без обязательной Task.
+[Сценарии, поля и восстановление](../workflows/context-recovery.md#общая-механическая-сводка)
+принадлежат каноническому workflow guide. Полный текст инструкций читает
+[ProjectInstructions](development-routing.md#подготовка-инструкций-по-файлам), а specialized
+SourceReader сохраняет отдельный acknowledged-reader контракт.
+
+Поставлены полные обезличенные
+[settings](../../config/examples/context-recovery-settings.example.json) и
+[definition](../../config/examples/context-recovery-hooks.example.json). Definition содержит
+четыре lifecycle-события, два обычных Bash tool events и PreCompact/PostCompact. Последние два
+события сами не выполняют произвольную команду чтения. Пример выбирает Start budget4096,
+Pre/Post timeout30 и прочие явно записанные значения; это не defaults runtime.
+
+### Первичное подключение общей сводки
+
+1. Выберите установленную совместимую версию Poise/CPython3.15, проект и зарегистрированный
+   checkout. Заполните полный reader profile с command policy по
+   [существующему порядку](project-file-reading.md#подключение-учёта-обычных-команд),
+   instruction catalogue/policy и два новых полных templates. Совпадение project message source
+   и definition проверяет существующий владелец конфигурации проекта.
+2. Передайте полный объект settings и полный definition в один
+   [runtime-setup пакет](#первоначальная-настройка-без-ручного-json-файла). Settings destination —
+   новый путь внутри configured root вне operational state. `expected_revision` описывает
+   настоящий native-файл: null только для отсутствующего файла. Не устанавливайте второй
+   конкурирующий профиль поверх уже принадлежащих другому владельцу групп.
+3. Получите возвращённый неизменяемый `definition_path` и закончите заполнение operator reader
+   profile: `admission.hook_settings` и `admission.definition_path` должны соответствовать
+   фактической выбранной установке. Временный `definition-pending.json` не доказывает authority.
+   Выполните `prepare_template` до первого настоящего Start; это не требует активного episode.
+4. После настоящего Start проверьте native entry/предупреждения и фактическую короткую карточку.
+   Первый resource имеет generation0; отсутствующий checkpoint означает `missing`, а не память
+   предыдущей работы. Общий reader и ordinary command adapter используют прежний admission и
+   одну shared registry. Получайте необходимые тексты явно через их действующих владельцев.
+5. Сопоставьте настоящие Pre/Post/compact Start, новую карточку и владельческие записи. Такая
+   проверка конкретного хоста выполняется отдельно от schema validation, probes и isolated
+   installed-package tests. SessionEnd/recover и incomplete retry имеют порядок workflow guide;
+   настройка не отменяет активные проверки и не выполняет переходы Task.
+
+Runtime раскрывает только свои документированные runtime placeholders; маркеры этих файлов
+`@...@` — явные места для заполнения, не environment interpolation.
+
+| Маркер | Явное значение |
+| --- | --- |
+| `@ROOT@` | Абсолютный корень выбранной установки; settings/project paths разрешаются по существующим правилам. |
+| `@PYTHON@` | Абсолютный Python выбранного установленного пакета. |
+| `@SOURCE_ROOT@` | Единственный корень выбранного Poise с `poise/__init__.py` и `poise/__main__.py`, а не читаемый checkout. |
+| `@CHECKOUT@` | Зарегистрированный абсолютный checkout; в примере одновременно выбран instruction root. Для внешних навыков задайте другое явное `general_context.instructions.root`. |
+| `@READER@` | Абсолютный полный reader profile; тот же путь в `tool_intake.reader_policy`. |
+| `@CATALOG@`, `@INSTRUCTIONS@` | Абсолютные instruction catalogue и policy для выбранных файлов. |
+
+Reader profile и command policy переиспользуют собственные
+[маркеры и параметры](project-file-reading.md#подключение-учёта-обычных-команд).
+Согласуйте `general_context.reader_policy`, `tool_intake.reader_policy`, reader
+`command_intake.policy`, подтверждённую native authority и подготовленный schema-2 template.
+Пути файлов `instructions.paths` выбраны явно для примера и заменяются файлами вашего проекта.
+Рабочие settings/policies и state не коммитятся; versioned templates остаются обезличенными.
+
+### Параметры general_context
+
+При наличии раздела все перечисленные поля обязательны; неизвестные параметры не применяются,
+их исходные значения не удаляются из raw settings. Раздел не добавляется автоматически.
+
+| Поле | Допустимое значение и смысл |
+| --- | --- |
+| `reader_policy` | Абсолютный адрес полного профиля прежнего general reader. |
+| `checkpoint_directory` | Непустой относительный путь внутри owned resource; без пустых, `.`/`..` компонентов и escape. |
+| `checkpoint_filename` | Непустое имя одного файла внутри собственного checkout checkpoint directory. |
+| `summary.max_bytes` | Положительный integer UTF-8 budget карточки с её prefix; должен вмещать обязательный протокол и фактические identity/ref/actions. |
+| `summary.max_changed_paths` | Положительный integer предела Git changed paths. |
+| `summary.max_instruction_changes` | Положительный integer предела списка instruction changes и конкретных read addresses. |
+| `summary.max_coverage_items` | Положительный integer общего предела coverage documents/pending; прежний coverage owner сохраняет собственные limits. |
+| `instructions.catalog` | Абсолютный адрес полного выбранного skill catalogue. |
+| `instructions.root` | Абсолютный корень навыков; checkout rules продолжают разрешаться от checkout. |
+| `instructions.policy` | Абсолютный адрес ProjectInstructions policy. |
+| `instructions.paths` | Явный непустой список project-relative файлов для выбора применимых правил/навыков. |
+| `work_owner.enabled` | Boolean; запрашивать текущие work metadata существующего владельца. |
+| `check_owner.enabled` | Boolean; запрашивать metadata текущего check descriptor. `completed` не означает test PASS. |
+
+Boolean не является integer budget. При отключённых work/check владельцах Task не
+запрашивается. Отсутствие выбранной Task при включённом work owner допустимо; произвольные
+Task requirements, snapshots и исторические receipts в карточку не копируются.
+
+`PreCompact` и `PostCompact` требуют настоящие непустые `turn_id` и `trigger`. Сохранённые
+workspace/order и matching cycle удостоверяет прежний native owner. `SessionStart` поддерживает
+настроенные причины startup/resume/compact/clear/fork; один записанный факт нельзя выдать
+за другой, изменив envelope. Для общего reader native owner применяет typed transition;
+публичный reader `advance_context` по-прежнему принимает только `reason=manual`.
+Специализированный reader имеет отдельные причины/поколение и не получает расширение своего
+протокола из наличия общей карточки.
+
+Все настроенные части Start-контекста делят один UTF-8 `context_limit`; JSON-вывод отдельно
+проверяется по `output_chars`. Ограничение карточки `max_bytes` не заменяет остаток общего
+бюджета. При нехватке места списки получают честные omissions; обязательные refs и структура
+не обрезаются. Подберите явные бюджеты для реальной длины адресов и остальных producers.
+Факт успешного заполнения/установки/probe не доказывает получение событий моделью.
+
+### Изменение уже существующей установки
+
+`runtime-setup` повторяет тот же полный settings/installation intent, но не заменяет
+существующий settings другим содержимым. В текущем `runtime-config reconfigure` поле
+`general_context` **не входит** в разрешённую поверхность изменений. Нельзя обещать этим
+вызовом включение/выключение или перенастройку общей сводки. Согласованный пакет сохраняет
+неизменённое значение раздела. Не обходите ограничение ручной правкой managed settings,
+подменой session ID или новым profile ID для присвоения прежних groups.
+
+Новая процедура изменения этой части действующей установки требует своего поддержанного
+configuration owner; здесь описана реализованная первичная установка. Это не инструкция
+развернуть вторую установку вместо первой. Любая разрешённая смена definition/policy должна
+сохранить соответствие фактической authority до следующих native deliveries.
 
 ## Настроенный потребитель lifecycle
 
@@ -492,13 +607,17 @@ Resume, clear и compact не переименовывают уже выбран
 JSON или незавершённый teardown оставляют явное incomplete-наблюдение и сохранённый
 native-факт; stderr потребителя не копируется в автоматический контекст.
 
-После успешной доставки Start тот же process owner ограничивает восстановление Task-контекста
-остатком общего срока. Этот дочерний вызов использует записанное событие и существующего
+Когда `general_context` не подключён, после успешной доставки Start тот же process owner
+ограничивает восстановление Task-контекста остатком общего срока. Этот дочерний вызов использует записанное событие и существующего
 владельца контекста; native event повторно не создаётся. Необязательные command/MCP probes
 тоже получают оставшийся срок и резерв teardown. Недоступность Task-контекста не отменяет
 binding или уже доставленный факт; текущую задачу можно восстановить через `bootstrap`
 своего `work.sh`. Для явного retry сохраняется квитанция того же события, а новый бюджет
 доставки образуется из настроенных timeout и резервов.
+
+При включённом `general_context` встроенная обработка выполняется в том же delivery/retry
+контракте. Внешнему lifecycle consumer по-прежнему передаются Start/End; Pre/PostCompact
+обрабатывает встроенный владелец. Optional work/check metadata не равны полному `ContextRecovery`.
 
 Потребитель возвращает JSON-объект: для Start допустим `hookSpecificOutput`
 с `hookEventName: SessionStart` и строкой `additionalContext`, для End достаточно `{}`;

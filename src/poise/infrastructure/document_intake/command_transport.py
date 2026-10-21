@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from ...application.command_intake import CommandIntake
-from ...application.document_intake import IntakeSessions
+from ...composition import intake_session_tools
 from ...common import PoiseError
 from ...modules.document_intake.command import CommandFailure, decision, parse_tool_event
 from ...modules.document_intake.contracts import ReadFailure
@@ -15,8 +15,6 @@ from .command_configuration import load_command_profile
 from .command_source import CommandSource, execution_cwd
 from .configuration import ReaderConfiguration
 from .native import HookNativeAuthority
-from .resources import EpisodeResources
-from .template import PreparedTemplate
 
 
 def compose(service, definition_path, event):
@@ -44,8 +42,7 @@ def compose(service, definition_path, event):
         return HookNativeAuthority(service=service, project_id=bound.config['project'],
                                    definition_path=Path(definition_path), authority_identity=dict(admission))
 
-    resources = EpisodeResources(configuration, caller, authority, service.clock)
-    sessions = IntakeSessions(configuration, resources, PreparedTemplate(Path(profile['session']['registry_template'])))
+    resources, sessions = intake_session_tools(configuration, caller, authority, service.clock)
     source = CommandSource(bound.checkout, policy, cwd_proved=base is not None)
     intake = CommandIntake(resources, sessions, source, policy, digest, service.clock)
     return intake, event | {'execution_cwd': str(base if base is not None else bound.checkout)}

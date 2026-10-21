@@ -24,3 +24,9 @@ include = [
     "apps.bootstrap",
     "apps.bootstrap.*",
 ]
+
+[tool.setuptools.package-data]
+poise_environment = [
+    "erp/runtime/application.php",
+    "erp/runtime/environment.mjs",
+]

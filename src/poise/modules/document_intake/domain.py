@@ -17,6 +17,20 @@ class ReadScope:
 
 
 @dataclass(frozen=True)
+class NativeContextTransition:
+    """A committed native cycle, resolved by the native event authority."""
+
+    request_id: str
+    reason: str
+
+    def __post_init__(self):
+        if (not isinstance(self.request_id, str) or not self.request_id.startswith('native:')
+                or not self.request_id.removeprefix('native:')
+                or self.reason not in ('compact', 'clear')):
+            raise ValueError('Native context transition requires a committed cycle and reason')
+
+
+@dataclass(frozen=True)
 class Selection:
     kind: str
     start: int | None

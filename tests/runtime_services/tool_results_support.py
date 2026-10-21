@@ -125,15 +125,17 @@ class Scenario:
         value = self.success(request, audience)
         assert value['status'] == 'stored'
         assert value['capture'] == request['capture']
+        assert type(value['exit_code']) is type(request['exit_code'])
         assert value['exit_code'] == request['exit_code']
         self.response_path = Path(value['response_path'])
         assert self.response_path.is_relative_to(self.root)
         assert self.response_path.is_file()
         saved = json.loads(self.response_path.read_bytes())
         assert saved['schema'] == 'poise-tool-result-1'
-        assert saved['response'] == request['response']
+        assert wire(saved['response']) == wire(request['response'])
         assert saved['tool'] == request['tool']
         assert saved['capture'] == request['capture']
+        assert type(saved['exit_code']) is type(request['exit_code'])
         assert saved['exit_code'] == request['exit_code']
         for name in ('stdout', 'stderr'):
             original = request['streams'][name]
@@ -145,10 +147,12 @@ class Scenario:
             path = Path(item['path'])
             assert path != Path(original) and path.is_relative_to(self.root)
             assert path.read_bytes() == expected
+            assert type(item['bytes']) is int and type(item['lines']) is int
+            assert type(item['binary']) is bool
             assert item['bytes'] == len(expected)
             assert item['sha256'] == sha(expected)
         if audience == 'machine':
-            assert value['response'] == request['response']
+            assert wire(value['response']) == wire(request['response'])
             for name in ('stdout', 'stderr'):
                 if request['streams'][name] is not None:
                     assert Path(value['streams'][name]['path']).read_bytes() == Path(request['streams'][name]).read_bytes()

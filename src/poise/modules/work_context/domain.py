@@ -160,6 +160,31 @@ def compare_observations(previous, current):
     return dict(git=git, instructions=dict(status=status, changed=list(dict.fromkeys(changed))))
 
 
+def continuation_actions(card, materials, policy):
+    """Describe current reads; an observation never performs or acknowledges them."""
+    actions = []
+    checkout = card['scope']['checkout']
+    if card['git']['changed_since_capture'] is True:
+        actions.append('restore:git; inspect current HEAD and worktree at ' + checkout)
+    changed = card['instructions']['changed']
+    if changed:
+        current = [m for m in materials if m['path'] in changed and m['available']]
+        selected = current[:policy.data['summary']['max_instruction_changes']]
+        addresses = []
+        for material in selected:
+            root = checkout if material['root'] == 'checkout' else policy.data['instructions']['root']
+            addresses.append(root.rstrip('/') + '/' + material['path'])
+        parts = ['read ' + address for address in dict.fromkeys(addresses)]
+        if len({m['path'] for m in selected}) < len(changed):
+            parts.append('refresh current applicable instructions using ' + policy.data['instructions']['policy'])
+        actions.append('restore:instructions; ' + '; '.join(parts))
+    generation = card['generation']
+    if generation['before'] is not None and generation['before'] != generation['current']:
+        actions.append('restore:coverage; read required current sources in generation '
+                       + str(generation['current']) + '; current coverage reference: ' + card['coverage']['ref'])
+    return actions
+
+
 def render_card(card, policy, available_bytes):
     """Bound JSON structurally; retain source references and explicit omissions."""
     value = deepcopy(card)

@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 from ..modules.work_context.domain import (
-    CHECKPOINT_SCHEMA, CARD_SCHEMA, ContextOutcome, compare_observations, render_card,
+    CHECKPOINT_SCHEMA, CARD_SCHEMA, ContextOutcome, compare_observations, continuation_actions, render_card,
 )
 from ..modules.work_context.ports import CheckpointStore, ContextFacts, ContextSession
 
@@ -55,6 +55,7 @@ class WorkContext:
                     git=compared['git'], instructions=compared['instructions'],
                     coverage=facts['coverage'], check=facts['check'], work=facts['work'],
                     omitted={}, actions=[])
+        card['actions'] = continuation_actions(card, facts['instructions'].get('materials', []), self.policy)
         if state in ('missing', 'invalid', 'unavailable'):
             card['status'] = 'partial'
             card['actions'].append('restore:checkpoint; use current references and capture at the next PreCompact')

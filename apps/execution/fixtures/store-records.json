@@ -1,0 +1,1097 @@
+{
+  "source": {
+    "revision": 7,
+    "executions": [
+      [
+        "0042",
+        1,
+        "fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049",
+        "{\"admission_id\":\"admit-0042\",\"evidence_plan\":{\"implementation\":{\"arguments\":[],\"review_arguments\":[],\"subject_methods\":{}},\"inspection\":{\"arguments\":[],\"review_arguments\":[],\"subject_methods\":{}}},\"methods\":[],\"process_ref\":{\"goal_type\":\"development\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"requirements_snapshot_revision\":2,\"restart_policy_id\":\"rp-1\",\"stage_expectations\":[{\"files\":[],\"methods\":[],\"stage_id\":\"implementation\",\"values\":[]},{\"files\":[],\"methods\":[],\"stage_id\":\"inspection\",\"values\":[]}],\"task_id\":\"0042\",\"workspace_id\":\"ws-0042\"}",
+        "draft",
+        null,
+        1,
+        "ws-0042",
+        "admit-0042"
+      ],
+      [
+        "0043",
+        1,
+        "e718d10effa5595e104afec8e5df58cb45a6ca6f619a5e279b86848f16c6e7bf",
+        "{\"admission_id\":\"admit-0043\",\"evidence_plan\":{\"implementation\":{\"arguments\":[],\"review_arguments\":[],\"subject_methods\":{}},\"inspection\":{\"arguments\":[],\"review_arguments\":[],\"subject_methods\":{}}},\"methods\":[],\"process_ref\":{\"goal_type\":\"development\",\"revision\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"},\"requirements_snapshot_revision\":2,\"restart_policy_id\":\"rp-1\",\"stage_expectations\":[{\"files\":[],\"methods\":[],\"stage_id\":\"implementation\",\"values\":[]},{\"files\":[],\"methods\":[],\"stage_id\":\"inspection\",\"values\":[]}],\"task_id\":\"0043\",\"workspace_id\":\"ws-0043\"}",
+        "draft",
+        null,
+        1,
+        "ws-0043",
+        "admit-0043"
+      ]
+    ],
+    "requests": [
+      [
+        "source-1",
+        "af337623757668e4aadc82fa303ca6d9d9e06bdfda8714160dbd88ddfa9137c3",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":1,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":true,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"},{\"id\":\"setup-0043\",\"kind\":\"setup_execution\",\"changed\":true,\"task_id\":\"0043\",\"generation\":1,\"contract_revision\":\"e718d10effa5595e104afec8e5df58cb45a6ca6f619a5e279b86848f16c6e7bf\"}]}"
+      ],
+      [
+        "source-2",
+        "1a8187b9c4f108e6dd65d8852e212e8d86b166d4d9dad3859adcf71faa9a3faa",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":2,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":false,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"}]}"
+      ],
+      [
+        "source-3",
+        "be83c1e0fd358f6e352b9032b699209b984ea376b76b0d3e1a5116f96a1faab9",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":3,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":false,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"}]}"
+      ],
+      [
+        "source-4",
+        "135ca42ea9aa18235084eda7073d0ec6faaff5fbcebad83d780b5d7903ab6b40",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":4,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":false,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"}]}"
+      ],
+      [
+        "source-5",
+        "061e2df73b8f83db8f91f26f43eaa9cb4bd56f789169b1f13084e2221127cccc",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":5,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":false,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"}]}"
+      ],
+      [
+        "source-6",
+        "0db76cdc5e4c6366afe719d11438014dd384aa946715ebc31293461d87f507ad",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":6,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":false,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"}]}"
+      ],
+      [
+        "source-7",
+        "0adcb0d0f63c5690447320de2c485998678d8e2e938c48b5a97a0acb92f6cbeb",
+        "{\"schema\":\"stride-execution/v1\",\"status\":\"applied\",\"revision\":7,\"replayed\":false,\"results\":[{\"id\":\"setup-0042\",\"kind\":\"setup_execution\",\"changed\":false,\"task_id\":\"0042\",\"generation\":1,\"contract_revision\":\"fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049\"}]}"
+      ]
+    ]
+  },
+  "records": [
+    {
+      "kind": "process_snapshot",
+      "id": "process-0042-1",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "process_ref": {
+          "goal_type": "development",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "implementation",
+              "instruction": "Выполнить этап",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "produce",
+              "role": "executor",
+              "transitions": {
+                "complete": "inspection"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            },
+            {
+              "id": "inspection",
+              "instruction": "Проверить результат",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "inspect",
+              "role": "reviewer",
+              "transitions": {
+                "clear": null,
+                "changes_requested": "implementation"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            }
+          ],
+          "content_contract": {
+            "requirements": [],
+            "routes": [],
+            "sections": []
+          },
+          "route": {
+            "entry": "implementation"
+          },
+          "benefit": {
+            "git_categories": [],
+            "sections": []
+          },
+          "worktree_required": false
+        }
+      }
+    },
+    {
+      "kind": "process_snapshot",
+      "id": "process-0042-2",
+      "task_id": "0042",
+      "generation": 2,
+      "revision": 1,
+      "data": {
+        "process_ref": {
+          "goal_type": "development",
+          "revision": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "implementation",
+              "instruction": "Выполнить этап",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "produce",
+              "role": "executor",
+              "transitions": {
+                "complete": "documentation"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            },
+            {
+              "id": "documentation",
+              "instruction": "Выполнить этап",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "produce",
+              "role": "writer",
+              "transitions": {
+                "complete": "inspection"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            },
+            {
+              "id": "inspection",
+              "instruction": "Проверить результат",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "inspect",
+              "role": "reviewer",
+              "transitions": {
+                "clear": null,
+                "changes_requested": "implementation"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            }
+          ],
+          "content_contract": {
+            "requirements": [],
+            "routes": [],
+            "sections": []
+          },
+          "route": {
+            "entry": "implementation"
+          },
+          "benefit": {
+            "git_categories": [],
+            "sections": []
+          },
+          "worktree_required": false
+        }
+      }
+    },
+    {
+      "kind": "contract_snapshot",
+      "id": "contract-new-0042-2",
+      "task_id": "0042",
+      "generation": 2,
+      "revision": 1,
+      "data": {
+        "contract_revision": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "contract": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 3,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "documentation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "documentation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "process_snapshot",
+      "id": "process-0043-1",
+      "task_id": "0043",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "process_ref": {
+          "goal_type": "development",
+          "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "process": {
+          "goal_type": "development",
+          "stages": [
+            {
+              "id": "implementation",
+              "instruction": "Выполнить этап",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "produce",
+              "role": "executor",
+              "transitions": {
+                "complete": "inspection"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            },
+            {
+              "id": "inspection",
+              "instruction": "Проверить результат",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "exact",
+              "sections": {
+                "report": "Результат"
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": [],
+              "handler": "inspect",
+              "role": "reviewer",
+              "transitions": {
+                "clear": null,
+                "changes_requested": "implementation"
+              },
+              "rework_targets": [
+                "implementation"
+              ]
+            }
+          ],
+          "content_contract": {
+            "requirements": [],
+            "routes": [],
+            "sections": []
+          },
+          "route": {
+            "entry": "implementation"
+          },
+          "benefit": {
+            "git_categories": [],
+            "sections": []
+          },
+          "worktree_required": false
+        }
+      }
+    },
+    {
+      "kind": "attempt",
+      "id": "attempt-0042",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "attempt_id": "attempt-0042",
+        "task_id": "0042",
+        "stage": "implementation",
+        "iteration": 1,
+        "candidate_id": "candidate-0042",
+        "state": "reserved",
+        "runs": [
+          {
+            "run_id": "run-0042-fail",
+            "method_id": "M01",
+            "started": false,
+            "exit_code": null
+          },
+          {
+            "run_id": "run-0042-pass",
+            "method_id": "M02",
+            "started": false,
+            "exit_code": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "attempt",
+      "id": "attempt-0042",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 2,
+      "data": {
+        "attempt_id": "attempt-0042",
+        "task_id": "0042",
+        "stage": "implementation",
+        "iteration": 1,
+        "candidate_id": "candidate-0042",
+        "state": "running",
+        "runs": [
+          {
+            "run_id": "run-0042-fail",
+            "method_id": "M01",
+            "started": true,
+            "exit_code": null
+          },
+          {
+            "run_id": "run-0042-pass",
+            "method_id": "M02",
+            "started": false,
+            "exit_code": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "attempt",
+      "id": "attempt-0042",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 3,
+      "data": {
+        "attempt_id": "attempt-0042",
+        "task_id": "0042",
+        "stage": "implementation",
+        "iteration": 1,
+        "candidate_id": "candidate-0042",
+        "state": "completed",
+        "runs": [
+          {
+            "run_id": "run-0042-fail",
+            "method_id": "M01",
+            "started": true,
+            "exit_code": 1
+          },
+          {
+            "run_id": "run-0042-pass",
+            "method_id": "M02",
+            "started": true,
+            "exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "kind": "attempt",
+      "id": "attempt-0043",
+      "task_id": "0043",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "attempt_id": "attempt-0043",
+        "task_id": "0043",
+        "stage": "implementation",
+        "iteration": 1,
+        "candidate_id": "candidate-0043",
+        "state": "uncertain",
+        "runs": [
+          {
+            "run_id": "run-0043-fail",
+            "method_id": "M01",
+            "started": true,
+            "exit_code": null
+          },
+          {
+            "run_id": "run-0043-pass",
+            "method_id": "M02",
+            "started": false,
+            "exit_code": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "evidence",
+      "id": "receipt-fail",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "id": "receipt-fail",
+        "task_id": "0042",
+        "attempt_id": "attempt-0042",
+        "run_id": "run-0042-fail",
+        "stage": "implementation",
+        "iteration": 1,
+        "passed": false,
+        "exit_code": 1,
+        "output": "условие не выполнено",
+        "value": {
+          "fraction": 1.25,
+          "negative": -3.5,
+          "integer": 9007199254740993,
+          "as_string": "1.25",
+          "bool": true,
+          "null": null,
+          "array": [
+            null,
+            false,
+            2,
+            "2",
+            {
+              "текст": "строка\nтаб\t雪"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "evidence",
+      "id": "receipt-pass",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "id": "receipt-pass",
+        "task_id": "0042",
+        "attempt_id": "attempt-0042",
+        "run_id": "run-0042-pass",
+        "stage": "implementation",
+        "iteration": 1,
+        "passed": true,
+        "exit_code": 0,
+        "output": "проверено\n雪",
+        "value": {
+          "fraction": 1.25,
+          "negative": -3.5,
+          "integer": 9007199254740993,
+          "as_string": "1.25",
+          "bool": true,
+          "null": null,
+          "array": [
+            null,
+            false,
+            2,
+            "2",
+            {
+              "текст": "строка\nтаб\t雪"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "history",
+      "id": "z-proposal",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "event_id": "z-proposal",
+        "ordinal": 1,
+        "type": "restart_proposed",
+        "source_generation": 1,
+        "target_generation": null,
+        "proposal_id": "proposal-42",
+        "approval_id": null,
+        "actor_id": "executor-42",
+        "role_id": "executor",
+        "decision": null,
+        "reason": "Уточнить результат",
+        "before": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 2,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        },
+        "after": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 3,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "documentation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "documentation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "history",
+      "id": "b-approved",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "event_id": "b-approved",
+        "ordinal": 2,
+        "type": "restart_decided",
+        "source_generation": 1,
+        "target_generation": null,
+        "proposal_id": "proposal-42",
+        "approval_id": "approval-42",
+        "actor_id": "reviewer-42",
+        "role_id": "reviewer",
+        "decision": "approved",
+        "reason": "Уточнить результат",
+        "before": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 2,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        },
+        "after": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 3,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "documentation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "documentation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "history",
+      "id": "a-restarted",
+      "task_id": "0042",
+      "generation": 2,
+      "revision": 1,
+      "data": {
+        "event_id": "a-restarted",
+        "ordinal": 3,
+        "type": "restarted",
+        "source_generation": 1,
+        "target_generation": 2,
+        "proposal_id": "proposal-42",
+        "approval_id": "approval-42",
+        "actor_id": "executor-42",
+        "role_id": "executor",
+        "decision": "approved",
+        "reason": "Уточнить результат",
+        "before": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 2,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        },
+        "after": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 3,
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": "ws-0042",
+          "stage_expectations": [
+            {
+              "stage_id": "implementation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "documentation",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "inspection",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "implementation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "inspection": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "documentation": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        }
+      }
+    }
+  ],
+  "concurrent_records": [
+    {
+      "kind": "attempt",
+      "id": "attempt-0042",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 4,
+      "data": {
+        "attempt_id": "attempt-0042",
+        "task_id": "0042",
+        "stage": "implementation",
+        "iteration": 1,
+        "candidate_id": "candidate-0042",
+        "state": "archived",
+        "runs": [
+          {
+            "run_id": "run-0042-fail",
+            "method_id": "M01",
+            "started": true,
+            "exit_code": 1
+          },
+          {
+            "run_id": "run-0042-pass",
+            "method_id": "M02",
+            "started": true,
+            "exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "kind": "history",
+      "id": "concurrent-last",
+      "task_id": "0042",
+      "generation": 2,
+      "revision": 1,
+      "data": {
+        "event_id": "concurrent-last",
+        "ordinal": 4,
+        "type": "inspection_recorded"
+      }
+    }
+  ],
+  "initial_records": [
+    {
+      "kind": "contract_snapshot",
+      "id": "contract:0042:1",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "contract_revision": "fda63a669e6c5fc4e8bbdc6346b0a5b890a9fc72a723f72e4119baa3b9ec2049",
+        "contract": {
+          "admission_id": "admit-0042",
+          "evidence_plan": {
+            "implementation": {
+              "arguments": [],
+              "review_arguments": [],
+              "subject_methods": {}
+            },
+            "inspection": {
+              "arguments": [],
+              "review_arguments": [],
+              "subject_methods": {}
+            }
+          },
+          "methods": [],
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "requirements_snapshot_revision": 2,
+          "restart_policy_id": "rp-1",
+          "stage_expectations": [
+            {
+              "files": [],
+              "methods": [],
+              "stage_id": "implementation",
+              "values": []
+            },
+            {
+              "files": [],
+              "methods": [],
+              "stage_id": "inspection",
+              "values": []
+            }
+          ],
+          "task_id": "0042",
+          "workspace_id": "ws-0042"
+        }
+      }
+    },
+    {
+      "kind": "contract_snapshot",
+      "id": "contract:0043:1",
+      "task_id": "0043",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "contract_revision": "e718d10effa5595e104afec8e5df58cb45a6ca6f619a5e279b86848f16c6e7bf",
+        "contract": {
+          "admission_id": "admit-0043",
+          "evidence_plan": {
+            "implementation": {
+              "arguments": [],
+              "review_arguments": [],
+              "subject_methods": {}
+            },
+            "inspection": {
+              "arguments": [],
+              "review_arguments": [],
+              "subject_methods": {}
+            }
+          },
+          "methods": [],
+          "process_ref": {
+            "goal_type": "development",
+            "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          "requirements_snapshot_revision": 2,
+          "restart_policy_id": "rp-1",
+          "stage_expectations": [
+            {
+              "files": [],
+              "methods": [],
+              "stage_id": "implementation",
+              "values": []
+            },
+            {
+              "files": [],
+              "methods": [],
+              "stage_id": "inspection",
+              "values": []
+            }
+          ],
+          "task_id": "0043",
+          "workspace_id": "ws-0043"
+        }
+      }
+    }
+  ],
+  "shell_query": {
+    "schema": "stride-execution/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "q",
+          "kind": "execution",
+          "task_id": "0042"
+        }
+      ]
+    }
+  },
+  "setup_packet": {
+    "schema": "stride-execution/v1",
+    "operation": "apply",
+    "input": {
+      "request_id": "setup-0044",
+      "expected_revision": 0,
+      "operations": [
+        {
+          "id": "setup",
+          "kind": "setup_execution",
+          "contract": {
+            "task_id": "0044",
+            "requirements_snapshot_revision": 2,
+            "process_ref": {
+              "goal_type": "development",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "admission_id": "admit-0044",
+            "workspace_id": "ws-0044",
+            "stage_expectations": [
+              {
+                "stage_id": "implementation",
+                "values": [],
+                "files": [],
+                "methods": []
+              },
+              {
+                "stage_id": "inspection",
+                "values": [],
+                "files": [],
+                "methods": []
+              }
+            ],
+            "restart_policy_id": "rp-1",
+            "methods": [],
+            "evidence_plan": {
+              "implementation": {
+                "subject_methods": {},
+                "arguments": [],
+                "review_arguments": []
+              },
+              "inspection": {
+                "subject_methods": {},
+                "arguments": [],
+                "review_arguments": []
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "setup_expected_record_identity": {
+    "id": "contract:0044:1",
+    "kind": "contract_snapshot",
+    "task_id": "0044",
+    "generation": 1,
+    "revision": 1
+  }
+}

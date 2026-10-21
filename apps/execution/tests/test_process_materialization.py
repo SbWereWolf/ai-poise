@@ -15,7 +15,7 @@ def test_existing_task_stays_frozen_after_edit_and_template_change(tmp_path):
     old_records = frozen(config, '0042', fixture('definition'), old_packet['input']['operations'][0]['contract'])
     second = published(invoke(config, edit(first, fixture('edit_changes'), revision=old['revision'])),
                        revision=old['revision'] + 1, previous=first['process_revision'])
-    new_packet = setup(second, task='0043', request='setup-2')
+    new_packet = setup(second, task='0043', request='setup-2', workspace='ws-0043')
     new = applied(invoke(config, new_packet), '0043')
     frozen(config, '0043', fixture('edited'), new_packet['input']['operations'][0]['contract'])
     assert_same(frozen(config, '0042', fixture('definition'), old_packet['input']['operations'][0]['contract']), old_records)

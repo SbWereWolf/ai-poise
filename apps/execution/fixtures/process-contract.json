@@ -1110,5 +1110,888 @@
       "op": "remove_trace_route",
       "id": "proof-route"
     }
-  ]
+  ],
+  "structural_diagnostics": {
+    "shape": [
+      [
+        "read_only"
+      ],
+      [
+        "bool"
+      ]
+    ],
+    "entry": [
+      [
+        "entry",
+        "вход"
+      ],
+      [
+        "unknown",
+        "неизвест",
+        "отсутств"
+      ]
+    ],
+    "link": [
+      [
+        "missing"
+      ],
+      [
+        "unknown",
+        "неизвест",
+        "следующ"
+      ]
+    ],
+    "content": [
+      [
+        "prepare",
+        "basis"
+      ],
+      [
+        "unknown",
+        "неизвест",
+        "не объяв",
+        "неизвестн"
+      ]
+    ],
+    "overlap": [
+      [
+        "compose"
+      ],
+      [
+        "overlap",
+        "conflict",
+        "пересека"
+      ]
+    ],
+    "purpose": [
+      [
+        "purpose",
+        "назначен",
+        "imaginary"
+      ],
+      [
+        "invalid",
+        "невер",
+        "not a valid",
+        "недопуст"
+      ]
+    ],
+    "authority": [
+      [
+        "authority",
+        "полномоч",
+        "критер"
+      ],
+      [
+        "execution",
+        "исполнен"
+      ]
+    ]
+  },
+  "concrete_diagnostic_controls": {
+    "shape": "stages[1]: read_only requires bool",
+    "entry": "route.entry: unknown entry stage missing",
+    "link": "route: unknown next stage missing",
+    "content": "content: unknown section basis for prepare",
+    "overlap": "changes[1]: conflicting changes stage:compose",
+    "purpose": "purpose: invalid value imaginary",
+    "authority": "criteria_authority requires execution targets"
+  },
+  "generic_diagnostic_controls": {
+    "shape": "stage invalid",
+    "entry": "route invalid",
+    "link": "route invalid",
+    "content": "content invalid",
+    "overlap": "changes invalid",
+    "purpose": "route invalid",
+    "authority": "route invalid"
+  },
+  "api_input_cases": [
+    {
+      "name": "missing-action",
+      "path": [
+        "input",
+        "action"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "action"
+      ]
+    },
+    {
+      "name": "unknown-field",
+      "path": [
+        "input",
+        "unexpected"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "unexpected"
+      ]
+    },
+    {
+      "name": "input-list",
+      "path": [
+        "input"
+      ],
+      "remove": false,
+      "value": [],
+      "tokens": [
+        "input"
+      ]
+    },
+    {
+      "name": "unknown-action",
+      "path": [
+        "input",
+        "action"
+      ],
+      "remove": false,
+      "value": "invented",
+      "tokens": [
+        "action"
+      ]
+    },
+    {
+      "name": "source-list",
+      "path": [
+        "input",
+        "source"
+      ],
+      "remove": false,
+      "value": [],
+      "tokens": [
+        "source"
+      ]
+    },
+    {
+      "name": "unknown-source-tag",
+      "path": [
+        "input",
+        "source",
+        "kind"
+      ],
+      "remove": false,
+      "value": "invented",
+      "tokens": [
+        "source",
+        "kind"
+      ]
+    },
+    {
+      "name": "both-sources",
+      "path": [
+        "input",
+        "source",
+        "template"
+      ],
+      "remove": false,
+      "value": {
+        "id": "starter"
+      },
+      "tokens": [
+        "source",
+        "template"
+      ]
+    },
+    {
+      "name": "definition-list",
+      "path": [
+        "input",
+        "source",
+        "definition"
+      ],
+      "remove": false,
+      "value": [],
+      "tokens": [
+        "definition",
+        "workflow"
+      ]
+    },
+    {
+      "name": "missing-request",
+      "path": [
+        "input",
+        "request_id"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "request_id"
+      ]
+    },
+    {
+      "name": "empty-request",
+      "path": [
+        "input",
+        "request_id"
+      ],
+      "remove": false,
+      "value": "",
+      "tokens": [
+        "request_id"
+      ]
+    },
+    {
+      "name": "nonstring-request",
+      "path": [
+        "input",
+        "request_id"
+      ],
+      "remove": false,
+      "value": 7,
+      "tokens": [
+        "request_id"
+      ]
+    },
+    {
+      "name": "empty-goal",
+      "path": [
+        "input",
+        "goal_type"
+      ],
+      "remove": false,
+      "value": "",
+      "tokens": [
+        "goal_type"
+      ]
+    },
+    {
+      "name": "nonstring-goal",
+      "path": [
+        "input",
+        "goal_type"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "goal_type"
+      ]
+    },
+    {
+      "name": "bool-revision",
+      "path": [
+        "input",
+        "expected_revision"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "expected_revision"
+      ]
+    },
+    {
+      "name": "negative-revision",
+      "path": [
+        "input",
+        "expected_revision"
+      ],
+      "remove": false,
+      "value": -1,
+      "tokens": [
+        "expected_revision"
+      ]
+    },
+    {
+      "name": "float-revision",
+      "path": [
+        "input",
+        "expected_revision"
+      ],
+      "remove": false,
+      "value": 1.0,
+      "tokens": [
+        "expected_revision"
+      ]
+    },
+    {
+      "name": "changes-object",
+      "path": [
+        "input",
+        "changes"
+      ],
+      "remove": false,
+      "value": {},
+      "tokens": [
+        "changes"
+      ]
+    },
+    {
+      "name": "changes-item",
+      "path": [
+        "input",
+        "changes"
+      ],
+      "remove": false,
+      "value": [
+        false
+      ],
+      "tokens": [
+        "changes"
+      ]
+    },
+    {
+      "name": "missing-source",
+      "path": [
+        "input",
+        "source"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "source"
+      ]
+    },
+    {
+      "name": "template-missing-id",
+      "path": [
+        "input",
+        "source"
+      ],
+      "remove": false,
+      "value": {
+        "kind": "template",
+        "template": {}
+      },
+      "tokens": [
+        "template",
+        "id"
+      ]
+    },
+    {
+      "name": "template-empty-id",
+      "path": [
+        "input",
+        "source"
+      ],
+      "remove": false,
+      "value": {
+        "kind": "template",
+        "template": {
+          "id": ""
+        }
+      },
+      "tokens": [
+        "template",
+        "id"
+      ]
+    },
+    {
+      "name": "template-nonstring-id",
+      "path": [
+        "input",
+        "source"
+      ],
+      "remove": false,
+      "value": {
+        "kind": "template",
+        "template": {
+          "id": false
+        }
+      },
+      "tokens": [
+        "template",
+        "id"
+      ]
+    },
+    {
+      "name": "missing-source-kind",
+      "path": [
+        "input",
+        "source",
+        "kind"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "source",
+        "kind"
+      ]
+    },
+    {
+      "name": "unknown-envelope-field",
+      "path": [
+        "unexpected"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "unexpected"
+      ]
+    },
+    {
+      "name": "missing-edit-process-revision",
+      "base": "edit",
+      "path": [
+        "input",
+        "expected_process_revision"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "expected_process_revision"
+      ]
+    },
+    {
+      "name": "nonstring-edit-process-revision",
+      "base": "edit",
+      "path": [
+        "input",
+        "expected_process_revision"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "expected_process_revision"
+      ]
+    },
+    {
+      "name": "status-with-mutation-field",
+      "base": "status",
+      "path": [
+        "input",
+        "request_id"
+      ],
+      "remove": false,
+      "value": "unexpected",
+      "tokens": [
+        "request_id"
+      ]
+    },
+    {
+      "name": "reconcile-missing-authorization",
+      "base": "reconcile",
+      "path": [
+        "input",
+        "authorization_id"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "authorization_id"
+      ]
+    }
+  ],
+  "process_config_cases": [
+    {
+      "name": "missing-database",
+      "path": [
+        "process",
+        "database"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "database"
+      ]
+    },
+    {
+      "name": "missing-lock",
+      "path": [
+        "process",
+        "lock"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "lock"
+      ]
+    },
+    {
+      "name": "missing-workflows",
+      "path": [
+        "process",
+        "workflows"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "workflows"
+      ]
+    },
+    {
+      "name": "missing-templates",
+      "path": [
+        "process",
+        "templates"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "templates"
+      ]
+    },
+    {
+      "name": "missing-max_changes",
+      "path": [
+        "process",
+        "max_changes"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "max_changes"
+      ]
+    },
+    {
+      "name": "missing-file_mode",
+      "path": [
+        "process",
+        "file_mode"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "file_mode"
+      ]
+    },
+    {
+      "name": "missing-json_indent",
+      "path": [
+        "process",
+        "json_indent"
+      ],
+      "remove": true,
+      "value": null,
+      "tokens": [
+        "json_indent"
+      ]
+    },
+    {
+      "name": "invalid-database-7",
+      "path": [
+        "process",
+        "database"
+      ],
+      "remove": false,
+      "value": [],
+      "tokens": [
+        "database"
+      ]
+    },
+    {
+      "name": "invalid-lock-8",
+      "path": [
+        "process",
+        "lock"
+      ],
+      "remove": false,
+      "value": false,
+      "tokens": [
+        "lock"
+      ]
+    },
+    {
+      "name": "invalid-workflows-9",
+      "path": [
+        "process",
+        "workflows"
+      ],
+      "remove": false,
+      "value": [],
+      "tokens": [
+        "workflows"
+      ]
+    },
+    {
+      "name": "invalid-templates-10",
+      "path": [
+        "process",
+        "templates"
+      ],
+      "remove": false,
+      "value": [],
+      "tokens": [
+        "templates"
+      ]
+    },
+    {
+      "name": "invalid-max_changes-11",
+      "path": [
+        "process",
+        "max_changes"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "max_changes"
+      ]
+    },
+    {
+      "name": "invalid-max_changes-12",
+      "path": [
+        "process",
+        "max_changes"
+      ],
+      "remove": false,
+      "value": -1,
+      "tokens": [
+        "max_changes"
+      ]
+    },
+    {
+      "name": "invalid-file_mode-13",
+      "path": [
+        "process",
+        "file_mode"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "file_mode"
+      ]
+    },
+    {
+      "name": "invalid-json_indent-14",
+      "path": [
+        "process",
+        "json_indent"
+      ],
+      "remove": false,
+      "value": true,
+      "tokens": [
+        "json_indent"
+      ]
+    },
+    {
+      "name": "invalid-workflows-15",
+      "path": [
+        "process",
+        "workflows"
+      ],
+      "remove": false,
+      "value": {
+        "writing": 7
+      },
+      "tokens": [
+        "workflows"
+      ]
+    },
+    {
+      "name": "invalid-templates-16",
+      "path": [
+        "process",
+        "templates"
+      ],
+      "remove": false,
+      "value": {
+        "starter": false
+      },
+      "tokens": [
+        "templates"
+      ]
+    }
+  ],
+  "oracle_setup_response": {
+    "schema": "stride-execution/v1",
+    "status": "applied",
+    "revision": 2,
+    "replayed": false,
+    "results": [
+      {
+        "id": "setup",
+        "kind": "setup_execution",
+        "changed": true,
+        "task_id": "0042",
+        "generation": 1,
+        "contract_revision": "contract-content-identity"
+      }
+    ]
+  },
+  "oracle_records": [
+    {
+      "kind": "contract_snapshot",
+      "id": "contract:0042:1",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "contract_revision": "contract-content-identity",
+        "contract": {
+          "task_id": "0042",
+          "requirements_snapshot_revision": 2,
+          "process_ref": {
+            "goal_type": "writing",
+            "revision": "process-content-identity"
+          },
+          "admission_id": "admit-0042",
+          "workspace_id": null,
+          "stage_expectations": [
+            {
+              "stage_id": "review",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "compose",
+              "values": [],
+              "files": [],
+              "methods": []
+            },
+            {
+              "stage_id": "outline",
+              "values": [],
+              "files": [],
+              "methods": []
+            }
+          ],
+          "restart_policy_id": "rp-1",
+          "methods": [],
+          "evidence_plan": {
+            "review": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "compose": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            },
+            "outline": {
+              "subject_methods": {},
+              "arguments": [],
+              "review_arguments": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "process_snapshot",
+      "id": "process-0042-1",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "process_ref": {
+          "goal_type": "writing",
+          "revision": "process-content-identity"
+        },
+        "process": {
+          "goal_type": "writing",
+          "worktree_required": false,
+          "benefit": {
+            "git_categories": [
+              "documentation"
+            ],
+            "sections": []
+          },
+          "route": {
+            "entry": "outline"
+          },
+          "content_contract": {
+            "sections": [],
+            "routes": [],
+            "requirements": []
+          },
+          "stages": [
+            {
+              "id": "review",
+              "handler": "inspect",
+              "role": "editor",
+              "transitions": {
+                "clear": null,
+                "changes_requested": "compose"
+              },
+              "rework_targets": [
+                "compose"
+              ],
+              "purpose": "observation",
+              "criteria_authority": {
+                "propose": [],
+                "decide": [
+                  "compose"
+                ]
+              },
+              "instruction": "Проверить текст.",
+              "read_only": true,
+              "allowed_paths": [],
+              "normalization": "strip",
+              "sections": {
+                "report": "Описать проверку."
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": []
+            },
+            {
+              "id": "compose",
+              "handler": "produce",
+              "role": "writer",
+              "transitions": {
+                "complete": "review"
+              },
+              "rework_targets": [
+                "compose"
+              ],
+              "purpose": "execution",
+              "criteria_authority": {
+                "propose": [],
+                "decide": []
+              },
+              "instruction": "Подготовить текст.",
+              "read_only": false,
+              "allowed_paths": [
+                "articles/**"
+              ],
+              "normalization": "strip",
+              "sections": {
+                "report": "Описать результат."
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": []
+            },
+            {
+              "id": "outline",
+              "handler": "produce",
+              "role": "planner",
+              "transitions": {
+                "complete": "compose"
+              },
+              "rework_targets": [
+                "outline"
+              ],
+              "purpose": "design",
+              "criteria_authority": {
+                "propose": [
+                  "compose"
+                ],
+                "decide": []
+              },
+              "instruction": "Спроектировать текст.",
+              "read_only": false,
+              "allowed_paths": [
+                "notes/**"
+              ],
+              "normalization": "strip",
+              "sections": {
+                "report": "Записать план."
+              },
+              "required_sections": [
+                "report"
+              ],
+              "artifact_requirements": []
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "reconcile_input": {
+    "action": "reconcile",
+    "request_id": "candidate",
+    "expected_revision": 1,
+    "goal_type": "writing",
+    "expected_managed_revision": "runtime-managed-id",
+    "expected_live_revision": "runtime-live-id",
+    "authorization_id": "accepted-publication",
+    "reason": "Принята опубликованная версия."
+  }
 }

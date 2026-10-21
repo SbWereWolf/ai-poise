@@ -86,7 +86,7 @@ def published(outcome, *, revision, goal='writing', previous=None, changed=True)
     return result
 
 
-def rejected(outcome, *tokens):
+def rejected(outcome, *tokens, clauses=()):
     code, result = outcome
     assert code == 2 and result['status'] == 'rejected', result
     reason = result.get('reason') or result.get('error', {}).get('message', '')
@@ -94,7 +94,10 @@ def rejected(outcome, *tokens):
     # Generic current capability/config refusal is RED, never proof of semantic validation.
     assert not ('unknown' in reason.lower() and 'operation' in reason.lower()), result
     assert not ('unknown [' in reason and 'process' in reason), result
-    assert any(token.casefold() in reason.casefold() for token in tokens), (tokens, result)
+    if tokens:
+        assert any(token.casefold() in reason.casefold() for token in tokens), (tokens, result)
+    for alternatives in clauses:
+        assert any(token.casefold() in reason.casefold() for token in alternatives), (clauses, result)
     return result
 
 
@@ -132,9 +135,10 @@ def state(config):
     return values
 
 
-def setup(process, *, task='0042', revision=None, request='setup-1'):
+def setup(process, *, task='0042', revision=None, request='setup-1', workspace=None):
     contract = fixture('contract')
     contract['task_id'] = task
+    contract['workspace_id'] = workspace
     contract['process_ref'] = {'goal_type': process['goal_type'], 'revision': process['process_revision']}
     if process['goal_type'] == 'notes':
         contract['stage_expectations'] = [{'stage_id': 'capture', 'values': [], 'files': [], 'methods': []}]
@@ -147,7 +151,18 @@ def setup(process, *, task='0042', revision=None, request='setup-1'):
 def applied(outcome, task='0042'):
     code, value = outcome
     assert code == 0 and value['status'] == 'applied', value
-    assert value['results'][0]['task_id'] == task and value['results'][0]['generation'] == 1, value
+    assert set(value) == {'schema', 'status', 'revision', 'replayed', 'results'}, value
+    assert_same(value['schema'], 'stride-execution/v1')
+    assert type(value['results']) is list and len(value['results']) == 1, value
+    assert set(value['results'][0]) == {'id', 'kind', 'changed', 'task_id', 'generation', 'contract_revision'}, value
+    assert_same(value['results'][0]['task_id'], task)
+    assert_same(value['results'][0]['generation'], 1)
+    assert type(value['revision']) is int and value['revision'] >= 1, value
+    assert type(value['replayed']) is bool, value
+    assert_same(value['results'][0]['id'], 'setup')
+    assert_same(value['results'][0]['kind'], 'setup_execution')
+    assert_same(value['results'][0]['changed'], True)
+    assert isinstance(value['results'][0]['contract_revision'], str) and value['results'][0]['contract_revision'], value
     return value
 
 
@@ -155,11 +170,19 @@ def frozen(config, task, expected, contract):
     records = store(config).read_records(task)
     assert [row['kind'] for row in records] == ['contract_snapshot', 'process_snapshot'], records
     contract_record, process_record = records
+    assert set(contract_record['data']) == {'contract_revision', 'contract'}, contract_record
+    assert isinstance(contract_record['data']['contract_revision'], str) and contract_record['data']['contract_revision'], contract_record
     assert_same(contract_record['data']['contract'], contract)
-    assert process_record['task_id'] == task and process_record['generation'] == 1, process_record
+    for record, kind in [(contract_record, 'contract_snapshot'), (process_record, 'process_snapshot')]:
+        assert set(record) == {'task_id', 'kind', 'id', 'revision', 'generation', 'data'}, record
+        assert_same(record['task_id'], task)
+        assert_same(record['kind'], kind)
+        assert_same(record['generation'], 1)
+        assert_same(record['revision'], 1)
+        assert isinstance(record['id'], str) and record['id'], record
+    assert_same(contract_record['id'], f'contract:{task}:1')
     # The public record value carries the materialized process document; no private class inspected.
-    assert_same(process_record['data']['process'], expected)
-    assert_same(process_record['data']['process_ref'], contract['process_ref'])
+    assert_same(process_record['data'], {'process': expected, 'process_ref': contract['process_ref']})
     return records
 
 

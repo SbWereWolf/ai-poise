@@ -67,7 +67,8 @@ def test_structural_failure_is_concrete_and_preserves_published_state(tmp_path, 
         changes = fixture('invalid_authority_changes')
         tokens = ['authority', 'execution', 'route']
     before = state(config)
-    rejected(invoke(config, edit(first, changes, request='invalid')), *tokens)
+    rejected(invoke(config, edit(first, changes, request='invalid')),
+             clauses=fixture('structural_diagnostics')[case])
     assert state(config) == before
 
 

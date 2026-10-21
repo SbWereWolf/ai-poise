@@ -33,5 +33,12 @@
     "tests/runtime_services/test_saved_result_views.py::test_navigation_budget_includes_mode_and_lf_at_exact_boundary",
     "tests/runtime_services/test_saved_result_views.py::test_saved_view_readback_never_repeats_operation",
     "tests/runtime_services/test_saved_result_views.py::test_missing_saved_response_is_an_error_without_fake_pointer"
+  ],
+  "oracle-corrections": [
+    "tests/runtime_services/test_tool_results_reader.py::test_reader_selects_actual_structured_or_stderr_source[summary-response]",
+    "tests/runtime_services/test_tool_results_reader.py::test_reader_selects_actual_structured_or_stderr_source[lines-response]",
+    "tests/runtime_services/test_tool_results_reader.py::test_reader_selects_actual_structured_or_stderr_source[search-response]",
+    "tests/runtime_services/test_tool_results_reader.py::test_unicode_excerpt_contains_exact_bounded_source_fragment",
+    "tests/runtime_services/test_tool_results_installed.py::test_installed_tool_result_consumer"
   ]
 }

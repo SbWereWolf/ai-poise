@@ -1,5 +1,6 @@
 """Read/search exact saved sources without running the original producer."""
 from pathlib import Path
+import json
 
 import pytest
 
@@ -221,7 +222,48 @@ def test_unicode_excerpt_contains_exact_bounded_source_fragment(project, tmp_pat
     s.policy['inspection']['max_excerpt_bytes'] = 40; s.save_policy(); s.capture()
     before = s.snapshot()
     value = s.success(s.request('search.template.json', pattern='^(Ж🙂){2}', context=0, max_matches=1))
-    assert value['lines'] == [{'line': 3, 'text': 'Ж🙂' * 6}]
+    assert value['lines'] == [{'line': 3, 'text': 'Ж🙂' * 6 + 'Ж'}]
     assert value['matches'] == value['lines'] and value['truncated'] is True
     assert value['channel'] == 'stdout' and value['response_path'] == str(s.response_path)
     assert s.snapshot() == before
+
+
+class MachineReaderBudgetCoupling(AssertionError):
+    """Only the exact real machine-reader refusal caused by the model budget."""
+
+
+@pytest.mark.parametrize('operation', ['summary', 'lines', 'search', 'bytes'])
+def test_machine_addressed_reader_ignores_agent_display_budget(project, tmp_path, operation):
+    s = Scenario(project, tmp_path)
+    raw = (FIXTURES / 'reader.stdout.log').read_bytes()
+    s.out.write_bytes(raw); s.capture(audience='machine')
+    before = s.snapshot()
+    s.policy['display']['output_chars'] = 1
+    s.policy['display']['output_bytes'] = 1; s.save_policy()
+    template = {'summary': 'summary.template.json', 'lines': 'read.template.json',
+                'search': 'search.template.json', 'bytes': 'bytes.template.json'}[operation]
+    request = s.request(template)
+    if operation == 'bytes': request.update(start=2, end=17)
+    try:
+        code, output, error = s.invoke(request, 'machine')
+        value = json.loads(output)
+        if (code == 2 and error == '' and value.get('status') == 'rejected' and
+                value.get('error') == {'code': 'budget_too_small', 'field': 'display',
+                                       'action': 'increase:budget'}):
+            raise MachineReaderBudgetCoupling('Machine reader incorrectly applies the agent display budget')
+        assert code == 0 and error == '', (code, output, error)
+        assert value['status'] == 'stored' and value['channel'] == 'stdout'
+        assert value['response_path'] == str(s.response_path)
+        expected = literal('reader-expected.json')
+        if operation == 'summary':
+            assert value['bytes'] == 45 and value['lines'] == 8
+            assert value['sha256'] == sha(raw) and value['binary'] is False
+        elif operation == 'search':
+            assert value['matches'] == expected['matches'] and value['lines'] == expected['context']
+            assert value['truncated'] is True
+        else:
+            assert value['text'] == expected['lines_2_4']
+            assert value['returned_bytes'] == [2, 17] and value['truncated'] is False
+            if operation == 'lines': assert value['returned_lines'] == [2, 4]
+    finally:
+        assert s.snapshot() == before

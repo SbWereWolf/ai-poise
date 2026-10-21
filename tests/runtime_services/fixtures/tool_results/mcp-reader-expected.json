@@ -1,8 +1,8 @@
 {
   "total_lines": 36,
   "request_lines": {
-    "from_line": 20,
-    "to_line": 23
+    "from_line": 25,
+    "to_line": 28
   },
   "request_search": {
     "pattern": "structuredContent",
@@ -11,22 +11,22 @@
   },
   "text": "    \"structuredContent\": {\n      \"MACHINE_ONLY_NESTED\": [\n        0,\n        false,\n",
   "returned_lines": [
-    20,
-    23
+    25,
+    28
   ],
   "returned_bytes": [
-    344,
-    428
+    474,
+    558
   ],
   "matches": [
     {
-      "line": 20,
+      "line": 25,
       "text": "    \"structuredContent\": {"
     }
   ],
   "context": [
     {
-      "line": 20,
+      "line": 25,
       "text": "    \"structuredContent\": {"
     }
   ]

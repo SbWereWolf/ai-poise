@@ -1,22 +1,27 @@
 {
-  "jsonrpc": "2.0",
+  "extra_transport": "preserved",
   "id": 17,
+  "jsonrpc": "2.0",
   "result": {
     "content": [
       {
-        "type": "text",
-        "text": "display output"
+        "text": "display output",
+        "type": "text"
       },
       {
-        "type": "text",
-        "text": "MACHINE_ONLY_FIRST\nneedle"
+        "text": "MACHINE_ONLY_FIRST\nneedle",
+        "type": "text"
       },
       {
-        "type": "image",
         "data": "AAEC",
-        "mimeType": "application/octet-stream"
+        "mimeType": "application/octet-stream",
+        "type": "image"
       }
     ],
+    "extra_source": {
+      "diagnostic": "full structured details"
+    },
+    "isError": true,
     "structuredContent": {
       "MACHINE_ONLY_NESTED": [
         0,
@@ -26,11 +31,6 @@
           "value": "Ж🙂"
         }
       ]
-    },
-    "isError": true,
-    "extra_source": {
-      "diagnostic": "full structured details"
     }
-  },
-  "extra_transport": "preserved"
+  }
 }

@@ -207,7 +207,7 @@ def shared_coverage(r):
 def current_check(r, monkeypatch, project):
     from poise.runtime import Poise
     h = r.work_runtime()
-    h.bootstrap(project['task'])
+    task_context = h.bootstrap(project['task'])
     actual_task = deepcopy(h.current_task())
     actual_tree = subprocess.check_output(['git', '-C', actual_task['worktree'],
                                           'rev-parse', 'HEAD^{tree}'], text=True).strip()
@@ -230,14 +230,36 @@ def current_check(r, monkeypatch, project):
     options = deepcopy(r.options)
     options['work_owner']['enabled'] = options['check_owner']['enabled'] = True
     r.configure(options)
-    r.save(); assert reached
+    saved = r.save(); assert reached
+    old = fixture()['work_pending']
+    old_run = old['runs'][0]['run_id']
+    run_root = Path(task_context['task_root']) / h.paths['runs']
+    assert saved['captured']['check']['run_id'] == old_run
+    assert saved['captured']['check']['attempt_id'] == old['attempt_id']
+    assert saved['captured']['check']['ref'] == str(run_root / old_run)
     state['pending'] = deepcopy(fixture()['work_completed'])
+    current = state['pending']
+    current_run = current['runs'][0]['run_id']
+    assert current_run != old_run and current['attempt_id'] != old['attempt_id']
     r.compact(); value = r.restore()
     assert reached[-1] == state['pending']
-    assert value['check']['run_id'] == '11111111-1111-4111-8111-111111111111'
-    assert value['check']['status'] == 'completed'
-    assert 'stdout' not in value['check'] and 'PASS' not in json.dumps(value)
+    assert_current_check(value['check'], current, old, run_root)
+    assert 'PASS' not in json.dumps(value)
     assert h.current_task() == actual_task
+
+
+def assert_current_check(actual, current, old, run_root):
+    current_run = current['runs'][0]['run_id']
+    assert current_run != old['runs'][0]['run_id']
+    assert current['attempt_id'] != old['attempt_id']
+    assert actual['run_id'] == current_run
+    assert actual['attempt_id'] == current['attempt_id']
+    assert actual['ref'] == str(run_root / current_run)
+    assert actual['run_id'] != old['runs'][0]['run_id']
+    assert actual['attempt_id'] != old['attempt_id']
+    assert actual['ref'] != str(run_root / old['runs'][0]['run_id'])
+    assert actual['status'] == 'completed'
+    assert 'stdout' not in actual
 
 
 def same_anchor(r):
@@ -248,19 +270,75 @@ def same_anchor(r):
     assert r.s.db.exists()
 
 
+def seed_scope_read(r, vector='scope_read'):
+    expected = fixture()[vector]
+    r.s.write(expected['path'], expected['text'].encode())
+    actual = r.s.read(path=expected['path'], key=expected['key'], start=1, end=1)
+    assert actual['items'][0]['status'] == 'content'
+    assert actual['items'][0]['classification'] == 'first_read'
+    observed = r.i.coverage()
+    selected = [d for d in observed['details']['documents'] if d['path'] == expected['path']]
+    assert len(selected) == 1 and selected[0]['ranges'] == [[1, 1]]
+    return expected['path'], observed['details']
+
+
+def coverage_rows(database, path, namespace=None):
+    if namespace is None:
+        found = readonly_rows(database,
+            'SELECT DISTINCT session_id FROM content_read_cache WHERE path_label=?', (path,))
+        assert len(found) == 1, 'The seeded read must have one actual source namespace'
+        namespace = found[0][0]
+    cache = readonly_rows(database,
+        'SELECT epoch,path_label,content_sha256,normalized_range,reader_kind,'
+        'content_bytes,content_lines,first_read_at FROM content_read_cache '
+        'WHERE session_id=? AND path_label=? ORDER BY rowid', (namespace, path))
+    events = readonly_rows(database,
+        'SELECT epoch,occurred_at,path_label,content_sha256,normalized_range,reader_kind,'
+        'status,classification,content_bytes,content_lines,model_content_bytes '
+        'FROM content_read_events WHERE session_id=? AND path_label=? ORDER BY rowid',
+        (namespace, path))
+    assert cache and events
+    return namespace, cache, events
+
+
+def assert_scope_coverage(coverage, *, present=None, absent=None):
+    text = json.dumps(coverage)
+    if present is not None:
+        assert present in text, 'Positive control must expose its actual own read metadata'
+    if absent is not None:
+        assert absent not in text, 'A different logical scope must not inherit the read'
+
+
 def project_session_isolation(r, project, tmp_path, monkeypatch):
+    path, own_details = seed_scope_read(r)
+    assert_scope_coverage(r.restore('resume')['coverage'], present=path)
     r.save(); own = r.checkpoint_bytes()
+    own_rows = coverage_rows(r.s.db, path)
     foreign = other_project(project, tmp_path)
+    # Hold the external session identity fixed to exercise the project boundary.
+    foreign.native_identity(r.s.identity)
     peer_root = tmp_path / 'peer'; peer_root.mkdir()
     peer = Recovery(foreign, peer_root, monkeypatch).enable()
+    assert peer.s.identity == r.s.identity and peer.s.project != r.s.project
+    assert_scope_coverage(peer.i.coverage()['details'], absent=path)
+    assert_scope_coverage(peer.restore('resume')['coverage'], absent=path)
+    peer_path, _ = seed_scope_read(peer, 'scope_peer_read')
+    assert_scope_coverage(peer.restore('resume')['coverage'], present=peer_path, absent=path)
     peer.save(); peer.compact(); value = peer.restore()
     assert value['scope']['project'] != r.s.project
+    assert_scope_coverage(value['coverage'], absent=path)
+    assert_scope_coverage(peer.i.coverage()['details'], present=peer_path, absent=path)
+    assert r.i.coverage()['details'] == own_details
+    assert coverage_rows(r.s.db, path, own_rows[0]) == own_rows
     assert r.checkpoint_bytes() == own
     assert peer.checkpoint != r.checkpoint
 
 
 def checkout_isolation(r):
+    path, own_details = seed_scope_read(r)
+    assert_scope_coverage(r.restore('resume')['coverage'], present=path)
     r.save(); original = r.s.checkout; original_cp = r.checkpoint; before = original_cp.read_bytes()
+    own_rows = coverage_rows(r.s.db, path)
     second = r.parent / 'second-checkout'
     subprocess.run(['git', '-C', str(original), 'worktree', 'add', '-b', 'f06-second', str(second)],
                    check=True, capture_output=True)
@@ -271,18 +349,49 @@ def checkout_isolation(r):
         value = r.restore('resume')
         assert value['scope']['checkout'] == str(second)
         assert value['checkpoint']['state'] == 'missing'
+        assert_scope_coverage(value['coverage'], absent=path)
+        assert_scope_coverage(r.i.coverage()['details'], absent=path)
+        # The same file/range is a FIRST read in B, not inherited coverage from A.
+        seed_scope_read(r)
+        assert_scope_coverage(r.restore('resume')['coverage'], present=path)
         assert r.checkpoint != original_cp
         assert original_cp.read_bytes() == before
+        assert coverage_rows(r.s.db, path, own_rows[0]) == own_rows
     finally:
         r.s.checkout = original
+    assert r.i.coverage()['details'] == own_details
+    assert coverage_rows(r.s.db, path, own_rows[0]) == own_rows
 
 
-def new_fork(r):
+def new_fork(r, monkeypatch):
+    from tests.command_intake.helpers import Intake
+    from types import SimpleNamespace
+    path, own_details = seed_scope_read(r)
+    assert_scope_coverage(r.restore('resume')['coverage'], present=path)
     r.save(); before = r.checkpoint_bytes(); source = deepcopy(r.s.episode)
+    own_rows = coverage_rows(r.s.db, path)
     value = card(r.event('SessionStart', source='fork', identity='f06-fork'))
     assert value['scope']['episode']['session_id'] == 'f06-fork'
     assert value['scope']['episode'] != source
     assert value['checkpoint']['state'] == 'missing'
+    assert_scope_coverage(value['coverage'], absent=path)
+    # Read through the same installed owner/policy with its real new native binding.
+    root = r.parent / 'fork-reader'; root.mkdir()
+    peer = Scenario(r.s.base, root, identity='f06-fork')
+    peer.native_identity('f06-fork')
+    peer.policy, peer.data = r.s.policy, deepcopy(r.s.data)
+    peer.hooks, peer.installation, peer.event_factory = r.service, r.installation, r.s.event_factory
+    peer.episode = deepcopy(value['scope']['episode'])
+    peer.ready()
+    assert peer.context()['context']['native_episode'] == peer.episode
+    intake = Intake(peer, root, monkeypatch)
+    assert_scope_coverage(intake.coverage()['details'], absent=path)
+    seed_scope_read(SimpleNamespace(s=peer, i=intake))
+    current = card(r.event('SessionStart', source='resume', identity='f06-fork'))
+    assert current['scope']['episode'] == peer.episode
+    assert_scope_coverage(current['coverage'], present=path)
+    assert r.i.coverage()['details'] == own_details
+    assert coverage_rows(r.s.db, path, own_rows[0]) == own_rows
     assert r.checkpoint_bytes() == before
 
 

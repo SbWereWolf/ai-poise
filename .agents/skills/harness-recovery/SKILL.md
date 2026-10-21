@@ -12,6 +12,9 @@ Canonical policy: [harness failure and manual
 recovery](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 Read that section before choosing a recovery; it owns classification, authority,
 logs, rollback, repair drafts and reconciliation. This skill adds no repair API.
+Use the [common permanent working store](../../../docs/operations/harness-incident-journal.md#постоянное-хранилище)
+and its [record/readback procedure](../../../docs/operations/harness-incident-journal.md#запись-и-проверка).
+Keep operational records outside Git; update versioned known-bug summaries separately.
 Before an agreed restart, both roles inspect the actual progression/position using
 the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
 
@@ -21,10 +24,11 @@ the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#све
 2. Use the available public owner first. Choose a proportionate correction or manual
    route within the assignment. Configuration defects remain obligations until corrected;
    reject and safely roll back failed fixes rather than layering contradictory settings.
-3. Record every incident and each manual intervention in the owning Sprint documents,
-   or standalone Task materials. Record exact changes, authority, alternatives and
-   verification; preserve full evidence through its owner. If that owner is unavailable,
-   label temporary material unregistered and keep it outside session cleanup until transfer.
+3. Persist every refusal/incident and manual intervention immediately in that common
+   store, with exact changes, authority, alternatives and verification. Sprint/Task
+   documents link to permanent bytes, not the only disposable copy. Read back files
+   and verify SHA-256 before terminal handling or cleanup. If a native owner is
+   unavailable, label native registration absent without postponing permanent storage.
 4. For repeated or repeatable problems, check existing drafts and create or augment one.
    A draft can request instruction/configuration/procedure repair; code is not automatic.
    If the API is unavailable, preserve a text draft and the unresolved registration duty.

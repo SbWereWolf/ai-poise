@@ -171,6 +171,10 @@ def clear_own(r):
 
 
 def worktree_change(r):
+    subprocess.run(['git', '-C', str(r.s.checkout), 'add', '--', 'src/billing/invoice.py'],
+                   check=True, capture_output=True)
+    subprocess.run(['git', '-C', str(r.s.checkout), 'commit', '-m', 'Track context fixture input'],
+                   check=True, capture_output=True)
     r.save(); initial = git_identity(r.s.checkout)
     r.s.write('src/billing/invoice.py', b'VALUE = 7\n')
     r.compact(); expected = git_identity(r.s.checkout); value = r.restore()
@@ -193,7 +197,7 @@ def instruction_change(r):
 
 
 def shared_coverage(r):
-    r.s.read(start=1, end=2); before = r.s.db
+    r.s.read(start=1, end=1); before = r.s.db
     r.save(); r.compact(); value = r.restore()
     assert value['coverage']['generation'] == 2
     assert value['coverage']['ref'] == str(before) and r.s.db == before

@@ -94,7 +94,7 @@ class HookRegistry:
 
     def lifecycle_binding(self, receipt):
         if (not isinstance(receipt,dict) or not isinstance(receipt.get('binding_id'),str)
-                or receipt.get('event') not in ('SessionStart','SessionEnd')
+                or receipt.get('event') not in ('SessionStart','SessionEnd','PreCompact','PostCompact')
                 or type(receipt.get('event_id')) is not int or receipt['event_id']<=0):
             raise PoiseError('Invalid lifecycle receipt; select its genuine committed native delivery')
         with self.read_transaction() as db:
@@ -279,11 +279,77 @@ class HookRegistry:
                 if not same:
                     raise PoiseError(f'Lifecycle {field} differs from the committed event; select its genuine native delivery and retry recovery')
 
+    def context_transition(self, receipt, workspace, episode):
+        """Resolve a compaction cycle from committed native order, never a checkpoint."""
+        from ...modules.document_intake.domain import NativeContextTransition, identity
+        binding, current = receipt['binding_id'], receipt['event_id']
+        if (any(episode.get(key) != receipt[key] for key in ('project_id', 'session_id', 'binding_id'))
+                or type(episode.get('start_event_id')) is not int
+                or not 0 < episode['start_event_id'] <= receipt['native_start_event_id']):
+            raise PoiseError('Native context cycle needs its verified owned Start anchor')
+        with self.read_transaction() as db:
+            rows = db.execute('SELECT id,event,data FROM hook_events WHERE binding=? AND id<=? '
+                              'AND id>=? ORDER BY id',
+                              (binding, current, episode['start_event_id'])).fetchall()
+        if any(kind == 'SessionEnd' for _, kind, _ in rows):
+            raise PoiseError('Native context cycle crosses a committed End; use its actual current episode')
+        events = [(key, kind, json.loads(data)) for key, kind, data in rows]
+        actual = next((e for e in events if e[0] == current), None)
+        if actual is None or actual[1] != receipt['event']:
+            raise PoiseError('Native context event is unavailable; retry its genuine lifecycle delivery')
+        def same_workspace(data):
+            value = data.get('workspace')
+            return isinstance(value, str) and Path(value).resolve() == Path(workspace).resolve()
+        if not same_workspace(actual[2]):
+            raise PoiseError('Native context workspace differs; select its genuine delivery')
+        kind, data = actual[1:]
+        if kind == 'SessionStart' and data.get('source') == 'clear':
+            return NativeContextTransition('native:' + identity([binding, workspace, current]), 'clear')
+        if kind == 'SessionStart' and data.get('source') != 'compact':
+            return None
+        if kind == 'PreCompact':
+            return None
+        if kind not in ('PostCompact', 'SessionStart'):
+            return None
+        prior = [e for e in events if e[0] < current and same_workspace(e[2])]
+        clear = next((e[0] for e in reversed(prior)
+                      if e[1] == 'SessionStart' and e[2].get('source') == 'clear'), None)
+        if clear is not None:
+            prior = [e for e in prior if e[0] > clear]
+        if kind == 'PostCompact':
+            pre = next((e for e in reversed(prior) if e[1] == 'PreCompact'), None)
+            if pre is not None and any(pre[2].get(k) != data.get(k) for k in ('turn_id', 'trigger')):
+                raise PoiseError('Native compaction correlation differs; retry the matching PreCompact/PostCompact delivery')
+            anchor = current if pre is None else pre[0]
+        else:
+            transition = next((e for e in reversed(prior)
+                               if e[1] in ('PreCompact', 'PostCompact', 'SessionStart')), None)
+            if transition is None or transition[1] == 'SessionStart':
+                anchor = current
+            elif transition[1] == 'PreCompact':
+                anchor = transition[0]
+            else:
+                pre = next((e for e in reversed(prior) if e[1] == 'PreCompact'
+                            and e[0] < transition[0]), None)
+                if pre is not None and any(pre[2].get(k) != transition[2].get(k)
+                                           for k in ('turn_id', 'trigger')):
+                    raise PoiseError('Native compaction correlation differs; retry the matching native delivery')
+                anchor = transition[0] if pre is None else pre[0]
+        return NativeContextTransition('native:' + identity([binding, workspace, anchor]), 'compact')
+
+    def context_delivery_current(self, receipt, workspace):
+        with self.read_transaction() as db:
+            later = db.execute("SELECT data FROM hook_events WHERE binding=? AND id>? "
+                               "AND event IN ('PreCompact','SessionStart')",
+                               (receipt['binding_id'], receipt['event_id'])).fetchall()
+        return not any(isinstance((data := json.loads(row[0])).get('workspace'), str)
+                       and Path(data['workspace']).resolve() == Path(workspace).resolve() for row in later)
+
     def bind_lifecycle_receipt(self, receipt, episode, definition_id, project_id):
         fields=('project_id','session_id','binding_id')
         if (not isinstance(receipt,dict) or not isinstance(episode,dict)
                 or type(receipt.get('schema_version')) is not int or receipt['schema_version']!=1
-                or receipt.get('event') not in ('SessionStart','SessionEnd')
+                or receipt.get('event') not in ('SessionStart','SessionEnd','PreCompact','PostCompact')
                 or any(not isinstance(item.get(key),str) or not item[key]
                        for item in (receipt,episode) for key in fields)
                 or any(type(value) is not int or value<=0 for value in

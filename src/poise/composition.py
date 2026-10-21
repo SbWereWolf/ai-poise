@@ -29,14 +29,22 @@ def project_checks_tools(bound, policy_path, environment, clock):
     return service
 
 
+def intake_session_tools(configuration, caller, authority_factory, clock):
+    """One composition for native admission and episode-owned reading resources."""
+    from pathlib import Path
+    from .application.document_intake import IntakeSessions
+    from .infrastructure.document_intake.resources import EpisodeResources
+    from .infrastructure.document_intake.template import PreparedTemplate
+    resources = EpisodeResources(configuration, caller, authority_factory, clock)
+    template = PreparedTemplate(Path(configuration.policy['session']['registry_template']))
+    return resources, IntakeSessions(configuration, resources, template)
+
+
 def content_reader_tools(configuration, environment, clock):
     """Taskless content reading composes canonical identity and native owners."""
     from .application.content_reader import ContentReader
-    from .application.document_intake import IntakeSessions
     from .infrastructure.document_intake.source import ProjectContentSource
-    from .infrastructure.document_intake.template import PreparedTemplate
     from .infrastructure.document_intake.presentation import FullReadCost
-    from .infrastructure.document_intake.resources import EpisodeResources
     from .infrastructure.document_intake.native import HookNativeAuthority
     from .infrastructure.hook_transport import HookService
     from .infrastructure.session_establishment import direct_caller, establish_project_session
@@ -65,8 +73,7 @@ def content_reader_tools(configuration, environment, clock):
         except (PoiseError, OSError, ValueError) as exc:
             raise ReadFailure('admission_unavailable') from exc
 
-    resources = EpisodeResources(configuration, caller, authority, clock)
-    sessions = IntakeSessions(configuration, resources, PreparedTemplate(Path(configuration.policy['session']['registry_template'])))
+    resources, sessions = intake_session_tools(configuration, caller, authority, clock)
     command = None
     if 'command_intake' in configuration.policy:
         from .application.command_intake import CommandIntake

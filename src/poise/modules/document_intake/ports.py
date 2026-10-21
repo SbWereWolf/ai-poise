@@ -1,7 +1,7 @@
 """Application-facing intake ports; adapters retain their real I/O ownership."""
 from pathlib import Path
 from typing import Protocol
-from .domain import PreparedContent, ReadScope
+from .domain import NativeContextTransition, PreparedContent, ReadScope
 
 
 class ContentSource(Protocol):
@@ -19,6 +19,8 @@ class IntakeRegistry(Protocol):
     def preview_batch(self, scope: ReadScope, prepared: list) -> tuple[int, list, dict]: ...
     def register(self, scope: ReadScope, prepared: PreparedContent, expected_generation: int) -> dict: ...
     def advance_context(self, scope: ReadScope, request_id: str, reason: str) -> int: ...
+    def advance_native_context(self, scope: ReadScope, transition: NativeContextTransition) -> int: ...
+    def native_context_generation(self, scope: ReadScope, transition: NativeContextTransition) -> int | None: ...
 
 
 class TemplateStore(Protocol):

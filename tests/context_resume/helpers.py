@@ -107,6 +107,7 @@ class Recovery:
         self.i.policy['registry']['retention']['max_pending_age_seconds'] = 60.0
         self.i.policy_save()
         self.s.data['command_intake'] = {'policy': str(self.i.policy_path)}
+        self.s.save_policy()
         self.s.native_identity(self.s.identity)
         self.s.write('docs/sample.txt', fixture()['source_text'].encode())
         self.s.write('src/billing/invoice.py', b'VALUE = 1\n')
@@ -116,6 +117,7 @@ class Recovery:
         write_json(self.catalog, fixture()['instruction_catalog'])
         path = settings(self.s.base, self.parent)
         self.settings = json.loads(path.read_text())
+        self.settings['cwd_roots'].append(str(self.s.checkout))
         self.options = deepcopy(fixture()['general_context'] if example is None else example['general_context'])
         self.options['reader_policy'] = str(self.s.policy)
         self.options['instructions'].update(catalog=str(self.catalog), root=str(self.s.checkout),

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 import json
 import sqlite3
 from ...modules.document_intake.contracts import ReadFailure
-from ...modules.document_intake.domain import read_decision
+from ...modules.document_intake.domain import NativeContextTransition, read_decision
 from ...modules.document_intake.domain import identity
 from .template import validate_registry, TemplateError
 from ...modules.document_intake.command import CommandFailure, call_hash, validate_call, validate_plan
@@ -232,16 +232,35 @@ class PreparedRegistry:
             return item
 
     def advance_context(self, scope, request_id, reason):
+        if reason != 'manual':
+            raise ReadFailure('invalid_request')
+        return self._advance(scope, request_id, reason)
+
+    def advance_native_context(self, scope, transition):
+        if not isinstance(transition, NativeContextTransition):
+            raise ReadFailure('invalid_request')
+        return self._advance(scope, transition.request_id, transition.reason)
+
+    @staticmethod
+    def _transition_generation(db, scope, request_id, reason):
+        old = db.execute('SELECT epoch,trigger FROM compactions WHERE session_id=? AND turn_id=?',
+                         (scope.namespace, request_id)).fetchone()
+        if old is not None and old[1] != reason:
+            raise ReadFailure('event_conflict')
+        return None if old is None else old[0]
+
+    def native_context_generation(self, scope, transition):
+        if not isinstance(transition, NativeContextTransition):
+            raise ReadFailure('invalid_request')
+        with self.open_existing() as db:
+            return self._transition_generation(db, scope, transition.request_id, transition.reason)
+
+    def _advance(self, scope, request_id, reason):
         with self.open_existing(write=True) as db:
             db.execute('BEGIN IMMEDIATE')
-            old = db.execute('SELECT epoch,trigger FROM compactions WHERE session_id=? AND turn_id=?',
-                             (scope.namespace, request_id)).fetchone()
-            if old:
-                if old[1] != reason:
-                    raise ReadFailure('event_conflict')
-                return old[0]
-            if reason != 'manual':
-                raise ReadFailure('invalid_request')
+            old = self._transition_generation(db, scope, request_id, reason)
+            if old is not None:
+                return old
             generation = self._generation(db, scope.namespace) + 1
             db.execute('INSERT INTO compactions (session_id,turn_id,epoch,trigger,created_at) VALUES (?,?,?,?,?)',
                        (scope.namespace, request_id, generation, reason, self.clock.observe().audit_utc))

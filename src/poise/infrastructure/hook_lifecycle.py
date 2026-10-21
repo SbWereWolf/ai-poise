@@ -6,6 +6,7 @@ These current-run observations describe delivery, never another session registry
 from copy import deepcopy
 import json
 import os
+import shlex
 from pathlib import Path
 import tempfile
 import time
@@ -143,6 +144,30 @@ def deliver(settings, path, record):
                          f'Correct the configured consumer and retry the saved delivery with '
                          f'poise hook --settings {settings.path} --definition {record["definition_path"]} --retry {path}')
     return value
+
+
+def deliver_context(settings, path, record, invoke):
+    """The built-in context subject shares the genuine delivery/retry owner.
+
+    Inline effects have no subprocess receipt. A final native output is cached
+    only after its effects and presentation both complete. An incomplete saved
+    delivery remains recoverable; no filesystem/database atomicity is invented.
+    """
+    previous = record.get('general_context')
+    if previous is not None and previous['status'] == 'complete':
+        return deepcopy(previous['output'])
+    output, complete, reason = invoke()
+    record['general_context'] = dict(status='complete' if complete else 'incomplete',
+                                     reason=reason, output=deepcopy(output))
+    record.update(status='delivered' if complete else 'incomplete', reason=reason)
+    try:
+        save(settings, path, record)
+    except OSError as error:
+        raise PoiseError('Native effects may already be committed; retry the genuine saved delivery: '
+                         f'poise hook --settings {shlex.quote(str(settings.path))} '
+                         f'--definition {shlex.quote(record["definition_path"])} '
+                         f'--retry {shlex.quote(str(path))}') from error
+    return output
 
 
 def probe(settings):

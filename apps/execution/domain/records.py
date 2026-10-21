@@ -37,8 +37,11 @@ def json_value(value):
 
 
 def canonical_json(value):
-    return json.dumps(value, sort_keys=True, ensure_ascii=False,
-                      separators=(',', ':'), allow_nan=False)
+    try:
+        return json.dumps(value, sort_keys=True, ensure_ascii=False,
+                          separators=(',', ':'), allow_nan=False)
+    except ValueError as exc:
+        raise RecordsError('Record JSON cannot encode this integer; provide an integer within the Python JSON digit limit') from exc
 
 
 @dataclass(frozen=True)

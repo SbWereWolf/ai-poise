@@ -1,7 +1,7 @@
 """Real source-to-target schema/data observations; no production oracle."""
 import sqlite3
 import pytest
-from store_checks import (CONNECT, initial_records,
+from store_checks import (CONNECT, assert_same, initial_records,
                           installation, original_rows, prepare, snapshot,
                           stored_records)
 
@@ -17,9 +17,9 @@ def test_prepares_owned_format_and_preserves_existing_data(tmp_path, source):
         assert 'execution_records' in names
     if source:
         assert original_rows(path) == before
-        assert stored_records(path) == initial_records()
+        assert_same(stored_records(path), initial_records())
     else:
-        assert stored_records(path) == []
+        assert_same(stored_records(path), [])
 
 
 def test_repeated_preparation_is_a_stable_reopen(tmp_path):
@@ -28,14 +28,14 @@ def test_repeated_preparation_is_a_stable_reopen(tmp_path):
     before = snapshot(path)
     prepare(store)
     assert snapshot(path) == before
-    assert stored_records(path) == initial_records()
+    assert_same(stored_records(path), initial_records())
 
 
 def test_missing_process_body_is_preserved_as_a_reference(tmp_path):
     _, store, path, _ = installation(tmp_path, source=True)
     prepare(store)
     actual = store.read_records('0042')
-    assert actual == [initial_records()[0]]
+    assert_same(actual, [initial_records()[0]])
     assert actual[0]['data']['contract']['process_ref']['revision'] == 'a' * 64
     assert all(item['kind'] != 'process_snapshot' for item in stored_records(path))
 
@@ -69,7 +69,7 @@ def test_preparation_failure_rolls_back_actual_schema_and_data(tmp_path, monkeyp
     assert observed, 'Fault must occur after a real schema write'
     assert snapshot(path) == before
     prepare(store)
-    assert stored_records(path) == initial_records()
+    assert_same(stored_records(path), initial_records())
 
 
 def test_unknown_source_format_has_an_actionable_refusal(tmp_path):

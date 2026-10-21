@@ -14,6 +14,21 @@ def fixture():
     return json.loads((APP / 'fixtures/store-records.json').read_text())
 
 
+def assert_same(actual, expected, path='$'):
+    """Compare every JSON type and value, preserving array order independently."""
+    assert type(actual) is type(expected), f'{path}: {type(actual).__name__} != {type(expected).__name__}'
+    if isinstance(expected, dict):
+        assert actual.keys() == expected.keys(), f'{path}: different object fields'
+        for key in expected:
+            assert_same(actual[key], expected[key], path + '.' + key)
+    elif isinstance(expected, list):
+        assert len(actual) == len(expected), f'{path}: different array lengths'
+        for index, (value, oracle) in enumerate(zip(actual, expected)):
+            assert_same(value, oracle, f'{path}[{index}]')
+    else:
+        assert actual == expected, f'{path}: {actual!r} != {expected!r}'
+
+
 def subject():
     spec = importlib.util.spec_from_file_location('execution_store_subject', APP / 'shell.py')
     module = importlib.util.module_from_spec(spec)
@@ -93,9 +108,24 @@ def revision(path):
 
 
 class ConnectionProxy:
-    """Delegate real SQLite; inject errors only at the declared SQL boundary."""
-    def __init__(self, inner, execute=None, fetched=None):
-        self.inner, self.on_execute, self.on_fetched = inner, execute, fetched
+    """Observe actual table reads through SQLite's parser, not SQL spelling."""
+    def __init__(self, inner, fetched):
+        self.inner, self.on_fetched = inner, fetched
+        self.read_count = 0
+        self.statements = {}
+        inner.set_authorizer(self.authorize)
+
+    def authorize(self, action, table, column, database, source):
+        if action == sqlite3.SQLITE_READ and table == 'execution_records' and database == 'main':
+            self.read_count += 1
+        return sqlite3.SQLITE_OK
+
+    def execute_on(self, cursor, sql, parameters):
+        before = self.read_count
+        cursor.execute(sql, parameters)
+        observed = self.read_count != before or self.statements.get(sql, False)
+        self.statements[sql] = observed
+        return CursorProxy(cursor, self.on_fetched, observed, self)
 
     def __getattr__(self, key):
         return getattr(self.inner, key)
@@ -109,12 +139,10 @@ class ConnectionProxy:
         self.inner.row_factory = value
 
     def execute(self, sql, parameters=()):
-        if self.on_execute:
-            self.on_execute(sql)
-        cursor = self.inner.execute(sql, parameters)
-        if self.on_fetched and 'FROM EXECUTION_RECORDS' in sql.upper():
-            return CursorProxy(cursor, self.on_fetched)
-        return cursor
+        return self.execute_on(self.inner.cursor(), sql, parameters)
+
+    def cursor(self, *args, **kwargs):
+        return CursorProxy(self.inner.cursor(*args, **kwargs), self.on_fetched, False, self)
 
     def __enter__(self):
         self.inner.__enter__()
@@ -125,28 +153,38 @@ class ConnectionProxy:
 
 
 class CursorProxy:
-    def __init__(self, inner, fetched):
+    def __init__(self, inner, fetched, observed, connection):
         self.inner, self.fetched = inner, fetched
+        self.observed, self.owner = observed, connection
+
+    def execute(self, sql, parameters=()):
+        result = self.owner.execute_on(self.inner, sql, parameters)
+        self.observed = result.observed
+        return self
+
+    def notify(self):
+        if self.observed:
+            self.fetched()
 
     def __getattr__(self, key):
         return getattr(self.inner, key)
 
     def fetchall(self):
         rows = self.inner.fetchall()
-        self.fetched()
+        self.notify()
         return rows
 
     def fetchone(self):
         row = self.inner.fetchone()
-        self.fetched()
+        self.notify()
         return row
 
     def fetchmany(self, *args):
         rows = self.inner.fetchmany(*args)
-        self.fetched()
+        self.notify()
         return rows
 
     def __iter__(self):
         rows = self.inner.fetchall()
-        self.fetched()
+        self.notify()
         return iter(rows)

@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import sqlite3
 import pytest
-from store_checks import (APP, CONNECT, ConnectionProxy, fixture, initial_records,
+from store_checks import (APP, CONNECT, ConnectionProxy, assert_same, fixture, initial_records,
                           installation, prepare, revision, snapshot,
                           stored_records, write)
 
@@ -25,7 +25,7 @@ def test_later_conflict_rolls_back_an_earlier_valid_record(tmp_path):
         write(store, [valid, conflict], request='failed-batch', revision=8)
     assert snapshot(path) == before
     write(store, [valid], request='failed-batch', revision=8)
-    assert stored_records(path)[-1] == valid
+    assert_same(stored_records(path)[-1], valid)
     assert revision(path) == 9
 
 
@@ -41,10 +41,10 @@ def test_attempt_and_receipt_changes_share_one_transaction(tmp_path):
     with pytest.raises(module.ExecutionError):
         write(store, [update, receipt, invalid], request='update-batch', revision=8)
     assert snapshot(path) == before
-    assert store.read_attempt('0042', 'attempt-0042')['revision'] == 3
+    assert_same(store.read_attempt('0042', 'attempt-0042')['revision'], 3)
     write(store, [update, receipt], request='update-batch', revision=8)
-    assert store.read_attempt('0042', 'attempt-0042') == update
-    assert stored_records(path)[-2:] == [update, receipt]
+    assert_same(store.read_attempt('0042', 'attempt-0042'), update)
+    assert_same(stored_records(path)[-2:], [update, receipt])
 
 
 def test_actual_second_insert_failure_rolls_back_written_prefix(tmp_path, monkeypatch):
@@ -70,7 +70,7 @@ def test_actual_second_insert_failure_rolls_back_written_prefix(tmp_path, monkey
     assert any('event-before-failure' in sql for sql in statements), 'The successful prefix must reach actual SQLite'
     assert snapshot(path) == before
     write(store, [first, second], request='interrupted-write', revision=8)
-    assert stored_records(path)[-2:] == [first, second]
+    assert_same(stored_records(path)[-2:], [first, second])
 
 
 @pytest.mark.parametrize('case', ['stale_revision', 'request_conflict'])
@@ -106,5 +106,8 @@ def test_read_observes_one_snapshot_across_concurrent_commit(tmp_path, monkeypat
         patch.setattr(module.sqlite3, 'connect', lambda *a, **kw: ConnectionProxy(CONNECT(*a, **kw), fetched=after_first_fetch))
         actual = store.read_records('0042')
     assert committed == [True], 'Writer must commit at the observed real read boundary'
-    assert actual in (old, old + added), 'A read batch must not mix old and new records'
-    assert stored_records(path, '0042') == old + added
+    try:
+        assert_same(actual, old)
+    except AssertionError:
+        assert_same(actual, old + added)
+    assert_same(stored_records(path, '0042'), old + added)

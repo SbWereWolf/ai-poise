@@ -48,6 +48,7 @@ def test_several_and_additional_proofs_preserve_paths(project):
     assert after[:2] == before
     assert [p['id'] for p in after] == ['B', 'A', 'C']
     assert len({p['path'] for p in after}) == 3
+    assert len({p['claim'] for p in after}) == 3
     assert s.read('B')['content'] == 'B\r\n'
     assert s.read('C')['content'] == 'C'
 
@@ -369,8 +370,13 @@ def test_legacy_inline_history_is_preserved_as_history(project):
     legacy = fixture('legacy-book.json')
     # Isolated test data only: no Task lifecycle/claim/native receipt is forged.
     with s.runtime.store.transaction() as db:
+        envelope = json.loads(db.execute(
+            'SELECT data FROM task_proofs WHERE task_id=?', ('T1',)).fetchone()['data'])
+        require('book' in envelope and 'input' in envelope and 'assessment' in envelope,
+                'Historical fixture requires the actual unchanged storage envelope')
+        envelope['book'] = legacy
         db.execute('UPDATE task_proofs SET data=? WHERE task_id=?',
-                   (json.dumps(legacy, ensure_ascii=False), 'T1'))
+                   (json.dumps(envelope, ensure_ascii=False), 'T1'))
     view = s.show()
     assert view['arguments'] == [] and view['decisions'] == []
     assert view['historical_arguments'] == legacy['arguments']

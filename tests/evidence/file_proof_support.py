@@ -93,7 +93,8 @@ class Scenario:
 
     def argument(self, identifier='A', **changes):
         value = fixture('argument.json')
-        value.update(id=identifier, path=str(self.path(identifier)))
+        value.update(id=identifier, path=str(self.path(identifier)),
+                     claim=f'Файл подтверждает значение {identifier}.')
         value.update(changes)
         return value
 

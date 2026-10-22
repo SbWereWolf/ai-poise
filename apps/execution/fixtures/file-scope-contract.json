@@ -1273,5 +1273,77 @@
         ]
       }
     }
+  },
+  "fresh_first_context_saved_result": {
+    "id": "saved",
+    "kind": "file_result",
+    "result": {
+      "id": "@RESULT",
+      "kind": "file_decision",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "context_id": "scope-1",
+        "request_id": "access-4",
+        "stage_id": "draft",
+        "role": "maker",
+        "mode": "read",
+        "allowed": true,
+        "decisions": [
+          {
+            "root": {
+              "kind": "code",
+              "position": 0
+            },
+            "path": "src/app.py",
+            "allowed": true,
+            "reason": null
+          }
+        ],
+        "contract_revision": "@CONTRACT",
+        "process_ref": {
+          "goal_type": "writing",
+          "revision": "@PROCESS"
+        },
+        "workspace_id": "workspace-0042"
+      }
+    }
+  },
+  "fresh_second_context_saved_result": {
+    "id": "saved",
+    "kind": "file_result",
+    "result": {
+      "id": "@RESULT",
+      "kind": "file_decision",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "context_id": "scope-2",
+        "request_id": "access-5",
+        "stage_id": "draft",
+        "role": "maker",
+        "mode": "read",
+        "allowed": false,
+        "decisions": [
+          {
+            "root": {
+              "kind": "code",
+              "position": 0
+            },
+            "path": "src/app.py",
+            "allowed": false,
+            "reason": "denied"
+          }
+        ],
+        "contract_revision": "@CONTRACT",
+        "process_ref": {
+          "goal_type": "writing",
+          "revision": "@PROCESS"
+        },
+        "workspace_id": "workspace-0042"
+      }
+    }
   }
 }

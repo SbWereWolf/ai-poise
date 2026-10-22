@@ -178,8 +178,21 @@ def test_two_populated_policy_contexts_preserve_distinct_exact_results_after_int
     assert_same(query(config, result_query())['results'], [expected_first])
     assert_same(query(config, result_query(context_id='scope-2', request_id='access-2'))['results'],
                 [expected_second])
-    checked(config, access(mapping, mode='write', revision=second['revision'], request='access-3'),
-            [decision('code', 0, 'src/app.py', True)])
+    third = checked(config, access(mapping, mode='write', revision=second['revision'], request='access-3'),
+                    [decision('code', 0, 'src/app.py', True)])
+    # Fresh READs distinguish a per-context policy from a shared latest READ cache.
+    fresh_first = checked(config, access(mapping, revision=third['revision'], request='access-4'),
+                          [decision('code', 0, 'src/app.py', True)])
+    fresh_second = checked(config, access(mapping, context='scope-2',
+                                         revision=fresh_first['revision'], request='access-5'),
+                           [decision('code', 0, 'src/app.py', False, 'denied')])
+    expected_fresh_first = bind(fixture('fresh_first_context_saved_result'),
+                                dict(mapping, **{'@RESULT': fresh_first['result_id']}))
+    expected_fresh_second = bind(fixture('fresh_second_context_saved_result'),
+                                 dict(mapping, **{'@RESULT': fresh_second['result_id']}))
+    assert_same(query(config, result_query(request_id='access-4'))['results'], [expected_fresh_first])
+    assert_same(query(config, result_query(context_id='scope-2', request_id='access-5'))['results'],
+                [expected_fresh_second])
     for packet, saved, expected_code in [(first_packet, first, 0), (second_packet, second, 2)]:
         code, replay = invoke(config, packet)
         assert code == expected_code
@@ -187,4 +200,7 @@ def test_two_populated_policy_contexts_preserve_distinct_exact_results_after_int
     assert_same(query(config, result_query())['results'], [expected_first])
     assert_same(query(config, result_query(context_id='scope-2', request_id='access-2'))['results'],
                 [expected_second])
+    assert_same(query(config, result_query(request_id='access-4'))['results'], [expected_fresh_first])
+    assert_same(query(config, result_query(context_id='scope-2', request_id='access-5'))['results'],
+                [expected_fresh_second])
     assert_same(original_rows(database(config))['executions'], canonical)

@@ -2,6 +2,27 @@
 
 Обновлено: **2026-10-20**. Срез **POISE-DDD-04B**.
 
+## Явные результаты инструментов
+
+Самостоятельный [tool-result](../configuration/tool-results.md#назначение-и-границы)
+использует существующий модуль result_views: чистый domain владеет policy/request,
+выбором фрагмента, общим UTF-8 head/tail и agent envelope, точными координатами
+адресного текста. Application ToolResults нормализует явный controlled Bash вход
+и координирует единственный ResultStore; inspection selection общая для agent и
+machine, display budget применяется только к agent.
+
+Порт ResultStore отделяет полный record/источники от filesystem I/O. Infrastructure
+отвечает за scoped адрес, raw-copy/readback, атомарную публикацию, source integrity
+и прежний placement owner; interface — за JSON/CLI, обязательный выбор audience и
+предметную диагностику. Composition выбирает существующий project/checkout/caller
+без Task lifecycle и без запуска производителя. Полные stdout/stderr/JSON остаются
+доступны программным потребителям; краткое отображение не меняет сохранённые данные.
+
+Прежний Poise result-view сохраняет свой контракт. Этот вход не создаёт отдельный
+runner, evidence ledger, универсальный host hook или MCP execution server.
+
+## Управление задачами и доказательствами
+
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
 | Task | кандидатный результат, доказательства, transition, приёмка и rework | SQL/Git/команды |

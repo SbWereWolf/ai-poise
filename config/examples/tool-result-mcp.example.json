@@ -1,0 +1,54 @@
+{
+  "schema": "poise-tool-result-request-1",
+  "operation": "capture",
+  "request_id": "example-mcp-1",
+  "tool": {
+    "kind": "mcp",
+    "name": "example.structured"
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 17,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "display output"
+        },
+        {
+          "type": "text",
+          "text": "MACHINE_ONLY_FIRST\nneedle"
+        },
+        {
+          "type": "image",
+          "data": "AAEC",
+          "mimeType": "application/octet-stream"
+        }
+      ],
+      "structuredContent": {
+        "MACHINE_ONLY_NESTED": [
+          0,
+          false,
+          null,
+          {
+            "value": "Ж🙂"
+          }
+        ]
+      },
+      "isError": true,
+      "extra_source": {
+        "diagnostic": "full structured details"
+      }
+    },
+    "extra_transport": "preserved"
+  },
+  "streams": {
+    "stdout": null,
+    "stderr": null
+  },
+  "capture": {
+    "state": "complete",
+    "reason": null
+  },
+  "exit_code": null
+}

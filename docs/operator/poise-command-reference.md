@@ -41,11 +41,20 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 |---|---|---|
 | `work` | CLI-аргументов нет; JSON stdin; выбранный `POISE_CONFIG` и родной контекст caller. | Task/Sprint, результаты этапов, проверки, передача роли и артефакты. |
 | `result-view` | Обязательные `--response PATH --view brief\|expanded\|full --output-chars INT`. | Представление уже сохранённого полного ответа с явным бюджетом. |
+| `tool-result` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и `--audience agent\|machine`; JSON stdin. | Полное сохранение явного результата инструмента, ограниченное представление и адресные запросы без Task. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
 | `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
 | `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
+
+### Результаты инструментов
+
+Отдельная команда `tool-result` принимает операции capture/view/summary/lines/
+bytes/search/hook по [каноническому справочнику](../configuration/tool-results.md#подготовка-и-вызов).
+Настройка policy, заполнение четырёх примеров, настоящий caller, machine/agent,
+исходный exit_code и восстановление принадлежат этому справочнику. Сама команда
+не запускает производителя и не устанавливает native hooks.
 
 ### Именованные проверки проекта
 

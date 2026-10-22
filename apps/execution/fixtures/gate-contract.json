@@ -1,0 +1,1045 @@
+{
+  "definition": {
+    "goal_type": "writing",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [
+        "documentation"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "compose"
+    },
+    "content_contract": {
+      "sections": [
+        {
+          "id": "goal-note",
+          "template": "note",
+          "normalization": "strip",
+          "write_stages": [
+            "compose"
+          ]
+        }
+      ],
+      "routes": [],
+      "requirements": [
+        {
+          "id": "g-note",
+          "kind": "section",
+          "section": "goal-note",
+          "states": [
+            "populated"
+          ],
+          "stages": [
+            "compose"
+          ],
+          "phase": "pre"
+        }
+      ]
+    },
+    "stages": [
+      {
+        "id": "compose",
+        "handler": "produce",
+        "role": "writer",
+        "transitions": {
+          "complete": "review"
+        },
+        "rework_targets": [
+          "compose"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Подготовить результат.",
+        "read_only": false,
+        "allowed_paths": [
+          "outputs/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [
+          {
+            "scope": "task",
+            "pattern": "outputs/*.txt",
+            "minimum": 1,
+            "maximum": 2
+          }
+        ]
+      },
+      {
+        "id": "review",
+        "handler": "inspect",
+        "role": "editor",
+        "transitions": {
+          "clear": null,
+          "changes_requested": "compose"
+        },
+        "rework_targets": [
+          "compose"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Проверить результат.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [],
+        "artifact_requirements": []
+      }
+    ]
+  },
+  "contract": {
+    "task_id": "0042",
+    "requirements_snapshot_revision": 2,
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "@PROCESS"
+    },
+    "admission_id": "admit-0042",
+    "workspace_id": null,
+    "stage_expectations": [
+      {
+        "stage_id": "compose",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "review",
+        "values": [],
+        "files": [],
+        "methods": []
+      }
+    ],
+    "restart_policy_id": "rp-1",
+    "methods": [
+      {
+        "id": "method-1"
+      }
+    ],
+    "evidence_plan": {
+      "compose": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "review": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    }
+  },
+  "declare": {
+    "schema": "stride-execution/v1",
+    "operation": "gate",
+    "input": {
+      "action": "declare",
+      "request_id": "declare-1",
+      "expected_revision": 2,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "context-1",
+      "contract_revision": "@CONTRACT",
+      "requirement_ids": [
+        "R1"
+      ],
+      "task_content": {
+        "sections": [
+          {
+            "id": "literal",
+            "template": " draft ",
+            "normalization": "exact",
+            "write_stages": [
+              "compose"
+            ]
+          }
+        ],
+        "routes": [
+          {
+            "id": "proof",
+            "requirements": [
+              "R1"
+            ],
+            "points": [
+              {
+                "id": "why",
+                "kind": "text",
+                "fields": {},
+                "write_stages": [
+                  "compose"
+                ]
+              },
+              {
+                "id": "method",
+                "kind": "method",
+                "fields": {},
+                "write_stages": [
+                  "compose"
+                ]
+              },
+              {
+                "id": "decision",
+                "kind": "record",
+                "fields": {
+                  "verdict": [
+                    "ok",
+                    "no"
+                  ],
+                  "note": []
+                },
+                "write_stages": [
+                  "compose"
+                ]
+              }
+            ]
+          }
+        ],
+        "requirements": [
+          {
+            "id": "t-report",
+            "kind": "section",
+            "section": "report",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "compose"
+            ],
+            "phase": "post"
+          },
+          {
+            "id": "t-verdict",
+            "kind": "trace",
+            "route": "proof",
+            "point": "decision",
+            "field_equals": {
+              "verdict": "ok"
+            },
+            "stages": [
+              "compose"
+            ],
+            "phase": "post"
+          },
+          {
+            "id": "t-coverage",
+            "kind": "coverage",
+            "points": [
+              "why",
+              "method",
+              "decision"
+            ],
+            "stages": [
+              "compose"
+            ],
+            "phase": "post"
+          },
+          {
+            "id": "t-file",
+            "kind": "artifact",
+            "scope": "task",
+            "pattern": "outputs/*.txt",
+            "minimum": 1,
+            "maximum": 2,
+            "source": {
+              "kind": "preexisting"
+            },
+            "stages": [
+              "compose"
+            ],
+            "phase": "post"
+          }
+        ]
+      },
+      "stage_contracts": [
+        {
+          "stage_id": "compose",
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "entry_requirements": [
+            "g-note"
+          ],
+          "exit_requirements": [
+            "t-report",
+            "t-verdict",
+            "t-coverage",
+            "t-file"
+          ],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "review",
+          "allowed_paths": [],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        }
+      ]
+    }
+  },
+  "evaluate": {
+    "schema": "stride-execution/v1",
+    "operation": "gate",
+    "input": {
+      "action": "evaluate",
+      "request_id": "evaluate-1",
+      "expected_revision": 3,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "context-1",
+      "candidate_id": "candidate-1",
+      "stage_id": "compose",
+      "iteration": 1,
+      "sections": {
+        "report": " ready ",
+        "goal-note": " note ready ",
+        "literal": "draft"
+      },
+      "trace": {
+        "proof": {
+          "why": "because",
+          "method": "method-1",
+          "decision": {
+            "verdict": "ok",
+            "note": "checked"
+          }
+        }
+      },
+      "files": [
+        "@FILE"
+      ]
+    }
+  },
+  "assessment": {
+    "prepared": true,
+    "preparation_error": null,
+    "file_errors": [],
+    "artifact_checks": [
+      {
+        "scope": "task",
+        "pattern": "outputs/*.txt",
+        "minimum": 1,
+        "maximum": 2,
+        "actual": 1,
+        "passed": true
+      }
+    ],
+    "pre": {
+      "stage": "compose",
+      "phase": "pre",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "g-note",
+          "origin": "goal",
+          "target": "section:goal-note",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        }
+      ]
+    },
+    "post": {
+      "stage": "compose",
+      "phase": "post",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "t-report",
+          "origin": "task",
+          "target": "section:report",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        },
+        {
+          "id": "t-verdict",
+          "origin": "task",
+          "target": "trace:proof/decision",
+          "passed": true,
+          "detail": "complete"
+        },
+        {
+          "id": "t-coverage",
+          "origin": "task",
+          "target": "coverage:task-requirements",
+          "passed": true,
+          "detail": "uncovered=[]; points=['why', 'method', 'decision']"
+        },
+        {
+          "id": "t-file",
+          "origin": "task",
+          "target": "artifact:task:outputs/*.txt",
+          "passed": true,
+          "detail": "unique_files=1; требуется 1..2"
+        }
+      ]
+    },
+    "passed": true
+  },
+  "snapshot": {
+    "sections": [
+      {
+        "name": "goal-note",
+        "content": " note ready ",
+        "state": "populated"
+      },
+      {
+        "name": "literal",
+        "content": "draft",
+        "state": "populated"
+      },
+      {
+        "name": "report",
+        "content": " ready ",
+        "state": "populated"
+      }
+    ],
+    "trace": {
+      "proof": {
+        "decision": {
+          "verdict": "ok",
+          "note": "checked"
+        },
+        "method": "method-1",
+        "why": "because"
+      }
+    }
+  },
+  "facts": [
+    {
+      "scope": "task",
+      "relative_path": "outputs/result.txt"
+    }
+  ],
+  "provenance": {
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "context-1",
+    "candidate_id": "candidate-1",
+    "stage_id": "compose",
+    "iteration": 1,
+    "contract_revision": "@CONTRACT",
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "@PROCESS"
+    },
+    "requirements_snapshot_revision": 2,
+    "admission_id": "admit-0042",
+    "request_id": "evaluate-1"
+  },
+  "attempt": {
+    "kind": "attempt",
+    "id": "child-1",
+    "task_id": "0042",
+    "generation": 1,
+    "revision": 1,
+    "data": {
+      "command": [
+        "python",
+        "-c",
+        "raise SystemExit(0)"
+      ],
+      "exit_code": 0,
+      "state": "completed"
+    }
+  },
+  "empty": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "response_keys": {
+    "declared": [
+      "schema",
+      "status",
+      "revision",
+      "replayed",
+      "task_id",
+      "generation",
+      "context_id",
+      "changed"
+    ],
+    "evaluated": [
+      "schema",
+      "status",
+      "revision",
+      "replayed",
+      "task_id",
+      "generation",
+      "context_id",
+      "candidate_id",
+      "stage_id",
+      "iteration",
+      "accepted",
+      "result_id",
+      "assessment"
+    ],
+    "query": [
+      "schema",
+      "status",
+      "revision",
+      "results"
+    ]
+  },
+  "malformed_values": [
+    null,
+    true,
+    1,
+    [],
+    {}
+  ],
+  "record_envelope_keys": [
+    "task_id",
+    "kind",
+    "id",
+    "revision",
+    "generation",
+    "data"
+  ],
+  "candidate_data": {
+    "provenance": {
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "context-1",
+      "candidate_id": "candidate-1",
+      "stage_id": "compose",
+      "iteration": 1,
+      "contract_revision": "@CONTRACT",
+      "process_ref": {
+        "goal_type": "writing",
+        "revision": "@PROCESS"
+      },
+      "requirements_snapshot_revision": 2,
+      "admission_id": "admit-0042",
+      "request_id": "evaluate-1"
+    },
+    "submitted": {
+      "sections": {
+        "report": " ready ",
+        "goal-note": " note ready ",
+        "literal": "draft"
+      },
+      "trace": {
+        "proof": {
+          "why": "because",
+          "method": "method-1",
+          "decision": {
+            "verdict": "ok",
+            "note": "checked"
+          }
+        }
+      },
+      "files": [
+        "@FILE"
+      ]
+    },
+    "snapshot": {
+      "sections": [
+        {
+          "name": "goal-note",
+          "content": " note ready ",
+          "state": "populated"
+        },
+        {
+          "name": "literal",
+          "content": "draft",
+          "state": "populated"
+        },
+        {
+          "name": "report",
+          "content": " ready ",
+          "state": "populated"
+        }
+      ],
+      "trace": {
+        "proof": {
+          "decision": {
+            "verdict": "ok",
+            "note": "checked"
+          },
+          "method": "method-1",
+          "why": "because"
+        }
+      }
+    },
+    "files": [
+      {
+        "scope": "task",
+        "relative_path": "outputs/result.txt"
+      }
+    ],
+    "catalogue": [
+      {
+        "scope": "task",
+        "relative_path": "outputs/result.txt"
+      }
+    ]
+  },
+  "decision_data": {
+    "provenance": {
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "context-1",
+      "candidate_id": "candidate-1",
+      "stage_id": "compose",
+      "iteration": 1,
+      "contract_revision": "@CONTRACT",
+      "process_ref": {
+        "goal_type": "writing",
+        "revision": "@PROCESS"
+      },
+      "requirements_snapshot_revision": 2,
+      "admission_id": "admit-0042",
+      "request_id": "evaluate-1"
+    },
+    "assessment": {
+      "prepared": true,
+      "preparation_error": null,
+      "file_errors": [],
+      "artifact_checks": [
+        {
+          "scope": "task",
+          "pattern": "outputs/*.txt",
+          "minimum": 1,
+          "maximum": 2,
+          "actual": 1,
+          "passed": true
+        }
+      ],
+      "pre": {
+        "stage": "compose",
+        "phase": "pre",
+        "passed": true,
+        "requirements": [
+          {
+            "id": "g-note",
+            "origin": "goal",
+            "target": "section:goal-note",
+            "passed": true,
+            "detail": "state=populated; требуется ['populated']"
+          }
+        ]
+      },
+      "post": {
+        "stage": "compose",
+        "phase": "post",
+        "passed": true,
+        "requirements": [
+          {
+            "id": "t-report",
+            "origin": "task",
+            "target": "section:report",
+            "passed": true,
+            "detail": "state=populated; требуется ['populated']"
+          },
+          {
+            "id": "t-verdict",
+            "origin": "task",
+            "target": "trace:proof/decision",
+            "passed": true,
+            "detail": "complete"
+          },
+          {
+            "id": "t-coverage",
+            "origin": "task",
+            "target": "coverage:task-requirements",
+            "passed": true,
+            "detail": "uncovered=[]; points=['why', 'method', 'decision']"
+          },
+          {
+            "id": "t-file",
+            "origin": "task",
+            "target": "artifact:task:outputs/*.txt",
+            "passed": true,
+            "detail": "unique_files=1; требуется 1..2"
+          }
+        ]
+      },
+      "passed": true
+    },
+    "accepted": true,
+    "result_id": "@RESULT"
+  },
+  "accepted_data": {
+    "provenance": {
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "context-1",
+      "candidate_id": "candidate-1",
+      "stage_id": "compose",
+      "iteration": 1,
+      "contract_revision": "@CONTRACT",
+      "process_ref": {
+        "goal_type": "writing",
+        "revision": "@PROCESS"
+      },
+      "requirements_snapshot_revision": 2,
+      "admission_id": "admit-0042",
+      "request_id": "evaluate-1"
+    },
+    "snapshot": {
+      "sections": [
+        {
+          "name": "goal-note",
+          "content": " note ready ",
+          "state": "populated"
+        },
+        {
+          "name": "literal",
+          "content": "draft",
+          "state": "populated"
+        },
+        {
+          "name": "report",
+          "content": " ready ",
+          "state": "populated"
+        }
+      ],
+      "trace": {
+        "proof": {
+          "decision": {
+            "verdict": "ok",
+            "note": "checked"
+          },
+          "method": "method-1",
+          "why": "because"
+        }
+      }
+    },
+    "files": [
+      {
+        "scope": "task",
+        "relative_path": "outputs/result.txt"
+      }
+    ],
+    "assessment": {
+      "prepared": true,
+      "preparation_error": null,
+      "file_errors": [],
+      "artifact_checks": [
+        {
+          "scope": "task",
+          "pattern": "outputs/*.txt",
+          "minimum": 1,
+          "maximum": 2,
+          "actual": 1,
+          "passed": true
+        }
+      ],
+      "pre": {
+        "stage": "compose",
+        "phase": "pre",
+        "passed": true,
+        "requirements": [
+          {
+            "id": "g-note",
+            "origin": "goal",
+            "target": "section:goal-note",
+            "passed": true,
+            "detail": "state=populated; требуется ['populated']"
+          }
+        ]
+      },
+      "post": {
+        "stage": "compose",
+        "phase": "post",
+        "passed": true,
+        "requirements": [
+          {
+            "id": "t-report",
+            "origin": "task",
+            "target": "section:report",
+            "passed": true,
+            "detail": "state=populated; требуется ['populated']"
+          },
+          {
+            "id": "t-verdict",
+            "origin": "task",
+            "target": "trace:proof/decision",
+            "passed": true,
+            "detail": "complete"
+          },
+          {
+            "id": "t-coverage",
+            "origin": "task",
+            "target": "coverage:task-requirements",
+            "passed": true,
+            "detail": "uncovered=[]; points=['why', 'method', 'decision']"
+          },
+          {
+            "id": "t-file",
+            "origin": "task",
+            "target": "artifact:task:outputs/*.txt",
+            "passed": true,
+            "detail": "unique_files=1; требуется 1..2"
+          }
+        ]
+      },
+      "passed": true
+    }
+  },
+  "declare_abort_sql": "CREATE TRIGGER gate_abort BEFORE INSERT ON requests WHEN NEW.request_id='declare-1' AND EXISTS(SELECT 1 FROM execution_records WHERE kind='gate_context' AND task_id='0042') BEGIN SELECT RAISE(ABORT,'test-owned-after-written-prefix'); END;",
+  "evaluate_abort_sql": "CREATE TRIGGER gate_abort BEFORE INSERT ON execution_records WHEN NEW.kind='gate_decision' AND EXISTS(SELECT 1 FROM execution_records WHERE kind='gate_candidate' AND task_id=NEW.task_id) BEGIN SELECT RAISE(ABORT,'test-owned-after-written-prefix'); END;",
+  "empty_assessment": {
+    "prepared": true,
+    "preparation_error": null,
+    "file_errors": [],
+    "artifact_checks": [],
+    "pre": {
+      "stage": "compose",
+      "phase": "pre",
+      "passed": true,
+      "requirements": []
+    },
+    "post": {
+      "stage": "compose",
+      "phase": "post",
+      "passed": true,
+      "requirements": []
+    },
+    "passed": true
+  },
+  "setup_packet": {
+    "schema": "stride-execution/v1",
+    "operation": "apply",
+    "input": {
+      "request_id": "setup-1",
+      "expected_revision": 1,
+      "operations": [
+        {
+          "id": "setup",
+          "kind": "setup_execution",
+          "contract": {
+            "task_id": "0042",
+            "requirements_snapshot_revision": 2,
+            "process_ref": {
+              "goal_type": "writing",
+              "revision": "@PROCESS"
+            },
+            "admission_id": "admit-0042",
+            "workspace_id": null,
+            "stage_expectations": [
+              {
+                "stage_id": "compose",
+                "values": [],
+                "files": [],
+                "methods": []
+              },
+              {
+                "stage_id": "review",
+                "values": [],
+                "files": [],
+                "methods": []
+              }
+            ],
+            "restart_policy_id": "rp-1",
+            "methods": [
+              {
+                "id": "method-1"
+              }
+            ],
+            "evidence_plan": {
+              "compose": {
+                "subject_methods": {},
+                "arguments": [],
+                "review_arguments": []
+              },
+              "review": {
+                "subject_methods": {},
+                "arguments": [],
+                "review_arguments": []
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "declared_response": {
+    "schema": "stride-execution/v1",
+    "status": "declared",
+    "revision": 3,
+    "replayed": false,
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "context-1",
+    "changed": true
+  },
+  "context_data": {
+    "context_id": "context-1",
+    "contract_revision": "@CONTRACT",
+    "requirement_ids": [
+      "R1"
+    ],
+    "task_content": {
+      "sections": [
+        {
+          "id": "literal",
+          "template": " draft ",
+          "normalization": "exact",
+          "write_stages": [
+            "compose"
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "id": "proof",
+          "requirements": [
+            "R1"
+          ],
+          "points": [
+            {
+              "id": "why",
+              "kind": "text",
+              "fields": {},
+              "write_stages": [
+                "compose"
+              ]
+            },
+            {
+              "id": "method",
+              "kind": "method",
+              "fields": {},
+              "write_stages": [
+                "compose"
+              ]
+            },
+            {
+              "id": "decision",
+              "kind": "record",
+              "fields": {
+                "verdict": [
+                  "ok",
+                  "no"
+                ],
+                "note": []
+              },
+              "write_stages": [
+                "compose"
+              ]
+            }
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "t-report",
+          "kind": "section",
+          "section": "report",
+          "states": [
+            "populated"
+          ],
+          "stages": [
+            "compose"
+          ],
+          "phase": "post"
+        },
+        {
+          "id": "t-verdict",
+          "kind": "trace",
+          "route": "proof",
+          "point": "decision",
+          "field_equals": {
+            "verdict": "ok"
+          },
+          "stages": [
+            "compose"
+          ],
+          "phase": "post"
+        },
+        {
+          "id": "t-coverage",
+          "kind": "coverage",
+          "points": [
+            "why",
+            "method",
+            "decision"
+          ],
+          "stages": [
+            "compose"
+          ],
+          "phase": "post"
+        },
+        {
+          "id": "t-file",
+          "kind": "artifact",
+          "scope": "task",
+          "pattern": "outputs/*.txt",
+          "minimum": 1,
+          "maximum": 2,
+          "source": {
+            "kind": "preexisting"
+          },
+          "stages": [
+            "compose"
+          ],
+          "phase": "post"
+        }
+      ]
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "compose",
+        "allowed_paths": [
+          "outputs/**"
+        ],
+        "entry_requirements": [
+          "g-note"
+        ],
+        "exit_requirements": [
+          "t-report",
+          "t-verdict",
+          "t-coverage",
+          "t-file"
+        ],
+        "criteria": {
+          "requirements": [],
+          "definition_of_ready": [],
+          "definition_of_done": []
+        }
+      },
+      {
+        "stage_id": "review",
+        "allowed_paths": [],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [],
+          "definition_of_ready": [],
+          "definition_of_done": []
+        }
+      }
+    ],
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "@PROCESS"
+    },
+    "requirements_snapshot_revision": 2,
+    "admission_id": "admit-0042",
+    "request_id": "declare-1"
+  }
+}

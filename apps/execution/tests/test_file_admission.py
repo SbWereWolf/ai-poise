@@ -136,3 +136,29 @@ def test_real_legacy_artifact_outside_all_working_roots_is_not_admitted(tmp_path
                            dict(good_mapping, **{'@RESULT': admitted['result_id']}))
     assert_same(admitted, expected_inside)
     assert saved_gate(good_config)['accepted_result']['id'] == admitted['result_id']
+
+
+def test_working_root_directory_saves_negative_evidence_and_regular_neighbor_succeeds(tmp_path):
+    from file_scope_checks import fixture
+
+    config, mapping = ready(tmp_path)
+    canonical = original_rows(database(config))['executions']
+    root = Path(mapping['@CODE0'])
+    assert root.is_absolute() and root.is_dir()
+    code, negative = invoke(config, gate_packet(mapping, files=[str(root)]))
+    assert code == 2
+    assert negative['status'] == 'evaluated', negative
+    expected = fixture('outside_gate_response')
+    expected['assessment'] = fixture('assessment')
+    expected['assessment']['passed'] = False
+    expected['assessment']['file_admission'] = {
+        'passed': False, 'files': [decision('code', 0, '.', False, 'not_regular_file')]}
+    assert_same(negative, expected)
+    saved = saved_gate(config)
+    assert saved['accepted_result'] is None
+    assert_same(saved['decision']['data']['assessment'], expected['assessment'])
+    neighbor = gate(config, gate_packet(mapping, revision=negative['revision'],
+                                        candidate='root-directory-neighbor'),
+                    [decision('code', 0, 'src/app.py', True)], accepted=True)
+    assert saved_gate(config, 'root-directory-neighbor')['accepted_result']['id'] == neighbor['result_id']
+    assert_same(original_rows(database(config))['executions'], canonical)

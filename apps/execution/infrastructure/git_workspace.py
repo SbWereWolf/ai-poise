@@ -44,12 +44,13 @@ class GitWorkspace:
             return self._run('write-tree', env=environment).strip()
 
     def _paths(self, before, after):
-        raw = self._run('diff', '--name-only', '--no-renames', '-z', before, after)
+        raw = self._run('diff', '--name-only', '--no-renames',
+                        '--ignore-submodules=none', '-z', before, after)
         return sorted(set(name for name in raw.split('\0') if name))
 
     def observe(self, baseline_ref):
         try:
-            actual_root = Path(self._run('rev-parse', '--show-toplevel').strip())
+            actual_root = Path(self._run('rev-parse', '--show-toplevel').removesuffix('\n'))
             if actual_root.resolve() != self.root.resolve():
                 raise ExecutionError('Select the declared root of the Git working copy')
             baseline = self._ref(baseline_ref + '^{tree}')

@@ -92,6 +92,9 @@ class StageGit:
             for key in ('author_name', 'author_email', 'message', 'commit_pattern'):
                 if type(value[key]) is not str or not value[key].strip():
                     raise ExecutionError(f'Provide an explicit nonempty {key}')
+            for key in ('author_name', 'author_email', 'message'):
+                if '\0' in value[key]:
+                    raise ExecutionError(f'{key} must be representable in Git environment/arguments; remove NUL')
             try:
                 matches = re.fullmatch(value['commit_pattern'], value['message'])
             except re.error as error:
@@ -109,7 +112,7 @@ class StageGit:
                 return before
             if admission['candidate_tree'] != value['candidate_tree']:
                 raise ExecutionError('Working candidate changed; observe and select the intended candidate again')
-            if not admission['commit_paths']:
+            if admission['head_tree'] == admission['candidate_tree']:
                 return dict(before, status='committed')
             if admission['head_commit'] != value['expected_head']:
                 raise ExecutionError('HEAD changed; observe and select the intended HEAD again')

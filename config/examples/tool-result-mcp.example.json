@@ -1,30 +1,35 @@
 {
-  "schema": "poise-tool-result-request-1",
+  "capture": {
+    "reason": null,
+    "state": "complete"
+  },
+  "exit_code": null,
   "operation": "capture",
   "request_id": "example-mcp-1",
-  "tool": {
-    "kind": "mcp",
-    "name": "example.structured"
-  },
   "response": {
-    "jsonrpc": "2.0",
+    "extra_transport": "preserved",
     "id": 17,
+    "jsonrpc": "2.0",
     "result": {
       "content": [
         {
-          "type": "text",
-          "text": "display output"
+          "text": "display output",
+          "type": "text"
         },
         {
-          "type": "text",
-          "text": "MACHINE_ONLY_FIRST\nneedle"
+          "text": "MACHINE_ONLY_FIRST\nneedle",
+          "type": "text"
         },
         {
-          "type": "image",
           "data": "AAEC",
-          "mimeType": "application/octet-stream"
+          "mimeType": "application/octet-stream",
+          "type": "image"
         }
       ],
+      "extra_source": {
+        "diagnostic": "full structured details"
+      },
+      "isError": true,
       "structuredContent": {
         "MACHINE_ONLY_NESTED": [
           0,
@@ -34,21 +39,16 @@
             "value": "Ж🙂"
           }
         ]
-      },
-      "isError": true,
-      "extra_source": {
-        "diagnostic": "full structured details"
       }
-    },
-    "extra_transport": "preserved"
+    }
   },
+  "schema": "poise-tool-result-request-1",
   "streams": {
-    "stdout": null,
-    "stderr": null
+    "stderr": null,
+    "stdout": null
   },
-  "capture": {
-    "state": "complete",
-    "reason": null
-  },
-  "exit_code": null
+  "tool": {
+    "kind": "mcp",
+    "name": "example.structured"
+  }
 }

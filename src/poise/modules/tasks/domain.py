@@ -649,7 +649,8 @@ class Task:
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
         self.evidence_book.validate_submission(self.evidence_plan, self.stage.stage_id, evidence_work,
-                                               self.check_registry.obligation_catalog)
+                                               self.check_registry.obligation_catalog,
+                                               iteration=self.state.iteration)
         ordinary_work, criteria_work = split_work(stage_work)
         if criteria_work is not None:
             if self.criteria_book is None:

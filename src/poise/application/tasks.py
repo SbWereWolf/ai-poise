@@ -1796,7 +1796,7 @@ class TaskCommands:
         task._owned(actor)
         task.evidence_book.validate_submission(
             task.evidence_plan, task.stage.stage_id, work,
-            task.check_registry.obligation_catalog, tree)
+            task.check_registry.obligation_catalog, tree, iteration=task.state.iteration)
         return task.evidence_book.context()
 
     def evidence_precheck(self, task_id, actor, tree, execution_key):

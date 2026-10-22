@@ -381,7 +381,13 @@ class EvidenceBook:
             'historical_decisions': [d for d in book['decisions'] if 'revision' in d],
         }
 
-    def validate_submission(self, plan, stage, work, obligations=None, tree=None):
+    @staticmethod
+    def _same_presentation(old, argument, stage, iteration, tree):
+        return (old is not None and old['stage'] == stage and old['iteration'] == iteration
+                and (tree is None or old['tree'] == tree)
+                and all(old[key] == argument[key] for key in ARGUMENT_FIELDS))
+
+    def validate_submission(self, plan, stage, work, obligations=None, tree=None, *, iteration):
         """Pure, pre-write identity/correction/reference validation."""
         plan.validate_work(stage, work)
         paths = {a['path']: a['id'] for a in self.context()['arguments']}
@@ -396,8 +402,8 @@ class EvidenceBook:
                 proof_error('proof_requirement_unknown', 'covers: выберите действующие требования или критерии Task')
             cause = a['correction']
             if cause is not None and (old is None or (cause['kind'] == 'reviewer_rejected' and old['state'] != 'rejected')):
-                # An exact retry of an already-applied correction is idempotent.
-                if old is None or any(old[k] != a[k] for k in ARGUMENT_FIELDS):
+                # Only the same actual presentation may reuse an applied correction.
+                if not self._same_presentation(old, a, stage, iteration, tree):
                     proof_error('proof_correction_invalid', 'Причина не соответствует текущему состоянию доказательства')
             if old is not None and cause is None and (
                     any(old[k] != a[k] for k in ARGUMENT_FIELDS) or (tree is not None and old['tree'] != tree)):
@@ -437,7 +443,7 @@ class EvidenceBook:
                 proof_error('proof_observation_invalid', 'Наблюдения не предусмотрены договором аргумента')
 
     def precheck(self, plan, stage, iteration, tree, key, work):
-        self.validate_submission(plan, stage, work, tree=tree)
+        self.validate_submission(plan, stage, work, tree=tree, iteration=iteration)
         cfg=plan.stage(stage); batch=self.batch(stage,iteration,tree,key)
         if work['phase']=='continue' and batch is None:
             raise DomainError('Наблюдения CONTINUE отсутствуют/устарели')
@@ -498,7 +504,10 @@ class EvidenceBook:
             proposals = list(self.arguments)
             for a in work['arguments']:
                 old = self.latest_argument(a['id'])
-                if old is not None and all(old[k] == a[k] for k in ARGUMENT_FIELDS) and old['tree'] == tree:
+                unchanged = (old is not None and all(old[k] == a[k] for k in ARGUMENT_FIELDS)
+                             and old['tree'] == tree)
+                if (unchanged and a['correction'] is None
+                        or self._same_presentation(old, a, stage, iteration, tree)):
                     continue
                 value = canonical({**a, 'state': 'presented', 'stage': stage,
                                    'iteration': iteration, 'tree': tree})

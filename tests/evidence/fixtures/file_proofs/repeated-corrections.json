@@ -1,0 +1,48 @@
+{
+  "causes": {
+    "author_unreliable": {
+      "kind": "author_unreliable",
+      "reason": "Основания прежнего вывода требуют исправления."
+    },
+    "reviewer_rejected": {
+      "kind": "reviewer_rejected",
+      "reason": "Исправлено по действительному отклонению проверяющего."
+    }
+  },
+  "first_text": "First corrected A",
+  "second_text": "Second corrected A",
+  "second_size_bytes": 18,
+  "b_text": "B\r\n",
+  "machine_stdout": "actual receipt\n",
+  "machine_stderr": "",
+  "expected_state": "presented",
+  "stage": "refine",
+  "cases": {
+    "author_unreliable": {
+      "first_iteration": 1,
+      "second_iteration": 2,
+      "prior_second_state": "accepted",
+      "a_decisions": [
+        "accepted",
+        "accepted",
+        "accepted"
+      ]
+    },
+    "reviewer_rejected": {
+      "first_iteration": 2,
+      "second_iteration": 3,
+      "prior_second_state": "rejected",
+      "a_decisions": [
+        "accepted",
+        "rejected",
+        "rejected",
+        "accepted"
+      ]
+    }
+  },
+  "negative": {
+    "iteration": 3,
+    "before_state": "accepted",
+    "error_prefix": "proof_correction_invalid"
+  }
+}

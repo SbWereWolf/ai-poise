@@ -4,6 +4,7 @@ import json
 
 from .process.content import ContentState, SectionBook, SectionRule, SectionValue
 from .process.content_policy import ContentPolicy, ContentSnapshot, TraceValue, count_artifacts
+from .process.definition import GoalTypeDefinition
 from .process.errors import DomainError
 from .process.stage_contracts import TaskStageContracts
 from .process.workflow import RouteDefinition
@@ -17,6 +18,7 @@ class GateContext:
 
     @classmethod
     def parse(cls, process, contract, declaration):
+        GoalTypeDefinition.parse(process)
         stages = tuple(stage['id'] for stage in process['stages'])
         methods = contract['methods']
         if any(not isinstance(m, dict) or not isinstance(m.get('id'), str)

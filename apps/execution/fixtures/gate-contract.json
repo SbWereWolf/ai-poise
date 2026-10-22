@@ -1041,5 +1041,374 @@
     "requirements_snapshot_revision": 2,
     "admission_id": "admit-0042",
     "request_id": "declare-1"
+  },
+  "two_file_stage_definition": {
+    "goal_type": "writing",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [
+        "documentation"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "compose"
+    },
+    "content_contract": {
+      "sections": [
+        {
+          "id": "goal-note",
+          "template": "note",
+          "normalization": "strip",
+          "write_stages": [
+            "compose"
+          ]
+        }
+      ],
+      "routes": [],
+      "requirements": [
+        {
+          "id": "g-note",
+          "kind": "section",
+          "section": "goal-note",
+          "states": [
+            "populated"
+          ],
+          "stages": [
+            "compose"
+          ],
+          "phase": "pre"
+        }
+      ]
+    },
+    "stages": [
+      {
+        "id": "compose",
+        "handler": "produce",
+        "role": "writer",
+        "transitions": {
+          "complete": "review"
+        },
+        "rework_targets": [
+          "compose"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Подготовить результат.",
+        "read_only": false,
+        "allowed_paths": [
+          "outputs/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [
+          {
+            "scope": "task",
+            "pattern": "outputs/*.txt",
+            "minimum": 2,
+            "maximum": 2
+          }
+        ]
+      },
+      {
+        "id": "review",
+        "handler": "inspect",
+        "role": "editor",
+        "transitions": {
+          "clear": null,
+          "changes_requested": "compose"
+        },
+        "rework_targets": [
+          "compose"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Проверить результат.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [],
+        "artifact_requirements": []
+      }
+    ]
+  },
+  "stage_count_only_failure": {
+    "prepared": true,
+    "preparation_error": null,
+    "file_errors": [],
+    "artifact_checks": [
+      {
+        "scope": "task",
+        "pattern": "outputs/*.txt",
+        "minimum": 2,
+        "maximum": 2,
+        "actual": 1,
+        "passed": false
+      }
+    ],
+    "pre": {
+      "stage": "compose",
+      "phase": "pre",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "g-note",
+          "origin": "goal",
+          "target": "section:goal-note",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        }
+      ]
+    },
+    "post": {
+      "stage": "compose",
+      "phase": "post",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "t-report",
+          "origin": "task",
+          "target": "section:report",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        },
+        {
+          "id": "t-verdict",
+          "origin": "task",
+          "target": "trace:proof/decision",
+          "passed": true,
+          "detail": "complete"
+        },
+        {
+          "id": "t-coverage",
+          "origin": "task",
+          "target": "coverage:task-requirements",
+          "passed": true,
+          "detail": "uncovered=[]; points=['why', 'method', 'decision']"
+        },
+        {
+          "id": "t-file",
+          "origin": "task",
+          "target": "artifact:task:outputs/*.txt",
+          "passed": true,
+          "detail": "unique_files=1; требуется 1..2"
+        }
+      ]
+    },
+    "passed": false
+  },
+  "two_file_stage_success": {
+    "prepared": true,
+    "preparation_error": null,
+    "file_errors": [],
+    "artifact_checks": [
+      {
+        "scope": "task",
+        "pattern": "outputs/*.txt",
+        "minimum": 2,
+        "maximum": 2,
+        "actual": 2,
+        "passed": true
+      }
+    ],
+    "pre": {
+      "stage": "compose",
+      "phase": "pre",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "g-note",
+          "origin": "goal",
+          "target": "section:goal-note",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        }
+      ]
+    },
+    "post": {
+      "stage": "compose",
+      "phase": "post",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "t-report",
+          "origin": "task",
+          "target": "section:report",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        },
+        {
+          "id": "t-verdict",
+          "origin": "task",
+          "target": "trace:proof/decision",
+          "passed": true,
+          "detail": "complete"
+        },
+        {
+          "id": "t-coverage",
+          "origin": "task",
+          "target": "coverage:task-requirements",
+          "passed": true,
+          "detail": "uncovered=[]; points=['why', 'method', 'decision']"
+        },
+        {
+          "id": "t-file",
+          "origin": "task",
+          "target": "artifact:task:outputs/*.txt",
+          "passed": true,
+          "detail": "unique_files=2; требуется 1..2"
+        }
+      ]
+    },
+    "passed": true
+  },
+  "context_two_sections": {
+    "report": "second result",
+    "goal-note": "second note",
+    "literal": "second literal"
+  },
+  "context_two_trace": {
+    "proof": {
+      "why": "second reason",
+      "method": "method-1",
+      "decision": {
+        "verdict": "ok",
+        "note": "second checked"
+      }
+    }
+  },
+  "context_two_empty_snapshot": {
+    "sections": [
+      {
+        "name": "goal-note",
+        "content": "second note",
+        "state": "populated"
+      },
+      {
+        "name": "literal",
+        "content": "second literal",
+        "state": "populated"
+      },
+      {
+        "name": "report",
+        "content": "second result",
+        "state": "populated"
+      }
+    ],
+    "trace": {}
+  },
+  "context_two_filled_snapshot": {
+    "sections": [
+      {
+        "name": "goal-note",
+        "content": "second note",
+        "state": "populated"
+      },
+      {
+        "name": "literal",
+        "content": "second literal",
+        "state": "populated"
+      },
+      {
+        "name": "report",
+        "content": "second result",
+        "state": "populated"
+      }
+    ],
+    "trace": {
+      "proof": {
+        "why": "second reason",
+        "method": "method-1",
+        "decision": {
+          "verdict": "ok",
+          "note": "second checked"
+        }
+      }
+    }
+  },
+  "context_two_facts": [
+    {
+      "scope": "task",
+      "relative_path": "outputs/other.txt"
+    }
+  ],
+  "context_two_empty_assessment": {
+    "prepared": true,
+    "preparation_error": null,
+    "file_errors": [],
+    "artifact_checks": [
+      {
+        "scope": "task",
+        "pattern": "outputs/*.txt",
+        "minimum": 1,
+        "maximum": 2,
+        "actual": 0,
+        "passed": false
+      }
+    ],
+    "pre": {
+      "stage": "compose",
+      "phase": "pre",
+      "passed": true,
+      "requirements": [
+        {
+          "id": "g-note",
+          "origin": "goal",
+          "target": "section:goal-note",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        }
+      ]
+    },
+    "post": {
+      "stage": "compose",
+      "phase": "post",
+      "passed": false,
+      "requirements": [
+        {
+          "id": "t-report",
+          "origin": "task",
+          "target": "section:report",
+          "passed": true,
+          "detail": "state=populated; требуется ['populated']"
+        },
+        {
+          "id": "t-verdict",
+          "origin": "task",
+          "target": "trace:proof/decision",
+          "passed": false,
+          "detail": "точка отсутствует/неполна либо не удовлетворяет field_equals"
+        },
+        {
+          "id": "t-coverage",
+          "origin": "task",
+          "target": "coverage:task-requirements",
+          "passed": false,
+          "detail": "uncovered=['R1']; points=['why', 'method', 'decision']"
+        },
+        {
+          "id": "t-file",
+          "origin": "task",
+          "target": "artifact:task:outputs/*.txt",
+          "passed": false,
+          "detail": "unique_files=0; требуется 1..2"
+        }
+      ]
+    },
+    "passed": false
   }
 }

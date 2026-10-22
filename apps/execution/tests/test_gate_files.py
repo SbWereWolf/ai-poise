@@ -105,3 +105,53 @@ def test_root_relocation_uses_catalogued_relative_paths_without_integrity_veto(t
     path.write_text('replacement')
     evaluated(config, next_packet(mapping, first, files=[]), accepted=True,
               assessment=fixture('assessment'))
+
+
+def test_stage_count_is_mandatory_even_when_every_content_phase_passes(tmp_path):
+    # F01: original tests correlated stage and content counts. Here one actual
+    # file satisfies t-file1..2, but independently fails stage2..2.
+    config, mapping = arranged(tmp_path, definition=fixture('two_file_stage_definition'))
+    declared(config, mapping)
+    first = evaluated(config, packet('evaluate', mapping), accepted=False,
+                      assessment=fixture('stage_count_only_failure'))
+    negative_rows(config)
+    saved = query(config, result_query())['results'][0]
+    from gate_checks import bind
+    assert_same(saved['decision']['data']['provenance'], bind(fixture('provenance'), mapping))
+    assert_same(saved['accepted_result'], None)
+    neighbor = tmp_path / 'state/files/task/outputs/second.txt'
+    neighbor.write_text('second actual file')
+    good = next_packet(mapping, first, files=[str(neighbor)])
+    evaluated(config, good, accepted=True, assessment=fixture('two_file_stage_success'))
+
+
+@pytest.mark.parametrize('bad_kind', ['missing', 'directory'])
+def test_file_error_is_mandatory_even_when_counts_and_both_phases_pass(tmp_path, bad_kind):
+    # F01 positive neighbor proves the valid file satisfies every count/rule.
+    config, mapping = ready(tmp_path)
+    first = evaluated(config, packet('evaluate', mapping), accepted=True,
+                      assessment=fixture('assessment'))
+    bad = tmp_path / ('state/files/task/absent.txt' if bad_kind == 'missing'
+                      else 'state/files/task/outputs')
+    value = next_packet(mapping, first, files=[mapping['@FILE'], str(bad)])
+    result = evaluated(config, value, accepted=False)
+    expected = fixture('assessment')
+    errors = result['assessment']['file_errors']
+    assert len(errors) == 1 and set(errors[0]) == {'path', 'reason'}
+    assert_same(errors[0]['path'], str(bad))
+    assert type(errors[0]['reason']) is str and errors[0]['reason']
+    # Compare every remaining assessment field exactly; the only failing
+    # acceptance factor is this actual supplied-file error.
+    actual = deepcopy(result['assessment'])
+    actual['file_errors'] = []
+    expected['passed'] = False
+    assert_same(actual, expected)
+    negative_rows(config, 'candidate-2')
+    saved = query(config, result_query('candidate-2'))['results'][0]
+    from gate_checks import bind
+    provenance = bind(fixture('provenance'), mapping)
+    provenance.update(candidate_id='candidate-2', request_id=value['input']['request_id'])
+    assert_same(saved['decision']['data']['provenance'], provenance)
+    assert_same(saved['accepted_result'], None)
+    evaluated(config, next_packet(mapping, result, 'candidate-3', files=[]), accepted=True,
+              assessment=fixture('assessment'))

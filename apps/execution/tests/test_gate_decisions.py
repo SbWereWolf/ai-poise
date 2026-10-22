@@ -107,3 +107,70 @@ def test_malformed_gate_query_selectors_leave_all_saved_data_unchanged(tmp_path,
         item['accepted'] = True
     refusal_unchanged(config, {'schema': 'stride-execution/v1', 'operation': 'query',
                                'input': {'queries': [item]}})
+
+
+def test_existing_populated_contexts_have_independent_snapshots_files_ids_and_history(tmp_path):
+    # F02: both contexts actually exist and share candidate IDs. Neither an
+    # absent-context lookup nor different candidate IDs can hide a shared chain.
+    from gate_checks import declared
+    config, mapping = ready(tmp_path)
+    original = packet('evaluate', mapping)
+    first = evaluated(config, original, accepted=True, assessment=fixture('assessment'))
+    one_before = query(config, result_query())['results'][0]
+    declare_two = packet('declare', mapping, context_id='context-2', request_id='declare-two',
+                         expected_revision=first['revision'])
+    declared(config, mapping, declare_two, revision=5)
+    empty_two = packet('evaluate', mapping, context_id='context-2', request_id='two-empty',
+                       expected_revision=5, trace={}, files=[])
+    empty_two['input']['sections'] = fixture('context_two_sections')
+    second = evaluated(config, empty_two, accepted=False, assessment=fixture('context_two_empty_assessment'))
+    empty_saved = query(config, result_query(context='context-2'))['results'][0]
+    assert_same(empty_saved['candidate']['data']['snapshot'], fixture('context_two_empty_snapshot'))
+    assert_same(empty_saved['candidate']['data']['files'], [])
+    assert_same(empty_saved['candidate']['data']['catalogue'], [])
+    assert_same(empty_saved['accepted_result'], None)
+    provenance = bind(fixture('provenance'), mapping)
+    provenance.update(context_id='context-2', request_id='two-empty')
+    assert_same(empty_saved['decision']['data']['provenance'], provenance)
+    # A new evaluation in context1 must retain its own existing trace/catalogue.
+    one_next = next_packet(mapping, second, trace={}, files=[])
+    third = evaluated(config, one_next, accepted=True, assessment=fixture('assessment'))
+    other_file = tmp_path / 'state/files/task/outputs/other.txt'
+    other_file.write_text('context two file')
+    filled_two = next_packet(mapping, third, context_id='context-2', request_id='two-filled',
+                             sections=fixture('context_two_sections'), trace=fixture('context_two_trace'),
+                             files=[str(other_file)])
+    fourth = evaluated(config, filled_two, accepted=True, assessment=fixture('assessment'))
+    readback = query(config, result_query(), result_query(context='context-2', identity='two-empty'),
+                    result_query('candidate-2', context='context-2', identity='two-filled'))
+    assert_same(readback['results'][0], one_before)
+    assert_same(readback['results'][1]['candidate'], empty_saved['candidate'])
+    assert_same(readback['results'][1]['decision'], empty_saved['decision'])
+    two = readback['results'][2]
+    assert_same(two['candidate']['data']['snapshot'], fixture('context_two_filled_snapshot'))
+    assert_same(two['candidate']['data']['files'], fixture('context_two_facts'))
+    assert_same(two['candidate']['data']['catalogue'], fixture('context_two_facts'))
+    provenance.update(candidate_id='candidate-2', request_id='two-filled')
+    assert_same(two['decision']['data']['provenance'], provenance)
+    assert_same(two['accepted_result']['data']['provenance'], provenance)
+    assert_same(two['accepted_result']['data']['snapshot'], fixture('context_two_filled_snapshot'))
+    # Saved and fresh context1 outcomes still refer only to context1 facts.
+    code, replay = invoke(config, original)
+    assert code == 0, replay
+    expected = deepcopy(first)
+    expected['replayed'] = True
+    assert_same(replay, expected)
+    code, replay_two = invoke(config, empty_two)
+    assert code == 2, replay_two
+    expected_two = deepcopy(second)
+    expected_two['replayed'] = True
+    assert_same(replay_two, expected_two)
+    last = next_packet(mapping, fourth, 'candidate-3', trace={}, files=[])
+    evaluated(config, last, accepted=True, assessment=fixture('assessment'))
+    one_after = query(config, result_query('candidate-3'))['results'][0]
+    assert_same(one_after['candidate']['data']['snapshot'], fixture('snapshot'))
+    assert_same(one_after['candidate']['data']['files'], fixture('facts'))
+    assert_same(one_after['candidate']['data']['catalogue'], fixture('facts'))
+    assert_same(query(config, result_query())['results'][0], one_before)
+    # Reopening a real CLI process preserves both same-ID candidates separately.
+    assert_same(query(config, result_query('candidate-2', context='context-2', identity='two-filled'))['results'][0], two)

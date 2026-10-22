@@ -74,3 +74,12 @@ class ExecutionRecords:
             'data': {'contract_revision': contract_revision, 'contract': contract},
         })
         self.put_record(repository, record)
+
+    def setup_process_snapshot(self, repository, contract, process, generation):
+        task_id = contract['task_id']
+        record = ExecutionRecord.from_value({
+            'kind': 'process_snapshot', 'id': f'process:{task_id}:{generation}',
+            'task_id': task_id, 'generation': generation, 'revision': 1,
+            'data': {'process_ref': contract['process_ref'], 'process': process},
+        })
+        self.put_record(repository, record)

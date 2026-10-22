@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import contextlib
-import fcntl
 import hashlib
 import json
 import math
@@ -12,12 +11,19 @@ from pathlib import Path
 import re
 import sqlite3
 import sys
-import time
 
 from apps.execution.application.records import ExecutionRecords
 from apps.execution.domain.records import RecordsError
 from apps.execution.infrastructure.records_store import RecordRepository, record_unit_of_work
 from apps.execution.migrations.v1 import prepare as prepare_store
+from apps.execution.migrations.v2 import prepare as prepare_process_store
+from apps.execution.infrastructure.locking import resource_lock
+from apps.execution.infrastructure.process_files import ProcessFiles
+from apps.execution.infrastructure.process_store import ProcessUnitOfWork
+from apps.execution.application.processes import ProcessCommands, ProcessDefinitions
+from apps.execution.domain.process.errors import PoiseError
+from apps.execution.domain.process.validation import configuration_fields
+from apps.execution.process_protocol import settings as process_settings, packet as process_packet
 
 CONFIG_SCHEMA = "stride-execution-config/v1"
 WIRE_SCHEMA = "stride-execution/v1"
@@ -62,9 +68,17 @@ def _exact(value, keys, where):
     missing = sorted(required - set(value))
     unknown = sorted(set(value) - required)
     if missing or unknown:
+        extra_label = 'extra' if where == 'Execution packet' else 'unknown'
         raise ExecutionError(
-            f"{where}: required exact fields {sorted(required)}; missing {missing}; unknown {unknown}"
+            f"{where}: required exact fields {sorted(required)}; missing {missing}; {extra_label} {unknown}"
         )
+
+
+def _config_fields(value, keys, where):
+    # Unknown config extensions are retained by their file owner and ignored here.
+    if not isinstance(value, dict) or set(keys) - set(value):
+        _exact(value, keys, where)
+    return {key: value[key] for key in keys}
 
 
 def _nonempty(value, where):
@@ -110,15 +124,15 @@ def load_config(config_path):
         data = _strict_json(path.read_text(encoding="utf-8"), allow_float=True)
     except OSError as exc:
         raise ExecutionError(f"Execution config cannot be read: {exc}") from exc
-    _exact(data, {"schema", "paths", "batch", "read", "lock", "identifiers"}, "Execution config")
+    configuration_fields(data, {"schema", "paths", "batch", "read", "lock", "identifiers"}, "Execution config", ExecutionError)
     if data["schema"] != CONFIG_SCHEMA:
         raise ExecutionError("Execution config schema is unsupported")
-    _exact(data["paths"], {"state", "database", "lock"}, "Execution config paths")
-    _exact(data["batch"], {"max_input_bytes", "max_items"}, "Execution config batch")
-    _exact(data["read"], {"max_queries"}, "Execution config read")
-    _exact(data["lock"], {"seconds", "poll_seconds"}, "Execution config lock")
-    _exact(data["identifiers"], {"task"}, "Execution config identifiers")
-    _exact(data["identifiers"]["task"], {"pattern"}, "Execution config identifiers.task")
+    _config_fields(data["paths"], {"state", "database", "lock"}, "Execution config paths")
+    _config_fields(data["batch"], {"max_input_bytes", "max_items"}, "Execution config batch")
+    _config_fields(data["read"], {"max_queries"}, "Execution config read")
+    _config_fields(data["lock"], {"seconds", "poll_seconds"}, "Execution config lock")
+    _config_fields(data["identifiers"], {"task"}, "Execution config identifiers")
+    _config_fields(data["identifiers"]["task"], {"pattern"}, "Execution config identifiers.task")
 
     state = _resolve_from(path.parent, _path_text(data["paths"]["state"], "Execution config paths.state"))
     database_rel = Path(_path_text(data["paths"]["database"], "Execution config paths.database"))
@@ -132,7 +146,7 @@ def load_config(config_path):
     if database == lock_path:
         raise ExecutionError("Execution config database and lock must be distinct")
 
-    return {
+    result = {
         "state": state,
         "database": database,
         "lock_path": lock_path,
@@ -143,6 +157,11 @@ def load_config(config_path):
         "poll_seconds": _positive_number(data["lock"]["poll_seconds"], "Execution config lock.poll_seconds"),
         "task_pattern": _compile_pattern(data["identifiers"]["task"]["pattern"], "identifiers.task.pattern"),
     }
+    if "process" in data:
+        result['process'] = process_settings(data['process'], state)
+        if result['process']['database'] in [database,lock_path]:
+            raise ExecutionError('process database must be distinct from core resources')
+    return result
 
 
 def _canonical(value):
@@ -165,7 +184,8 @@ def _validate_contract(contract, config):
     _nonempty(contract["process_ref"]["goal_type"], "ExecutionContract.process_ref.goal_type")
     _nonempty(contract["process_ref"]["revision"], "ExecutionContract.process_ref.revision")
     _nonempty(contract["admission_id"], "ExecutionContract.admission_id")
-    _nonempty(contract["workspace_id"], "ExecutionContract.workspace_id")
+    if contract['workspace_id'] is not None or 'process' not in config:
+        _nonempty(contract["workspace_id"], "ExecutionContract.workspace_id")
     _nonempty(contract["restart_policy_id"], "ExecutionContract.restart_policy_id")
     if not isinstance(contract["stage_expectations"], list) or not contract["stage_expectations"]:
         raise ExecutionError("ExecutionContract.stage_expectations: required nonempty list")
@@ -182,6 +202,9 @@ def _packet(value, config):
         raise ExecutionError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise ExecutionError("Execution packet input must be an object")
+    if value['operation'] == 'process':
+        process_packet(value['input'], config)
+        return value
     if value["operation"] not in {"apply", "query"}:
         raise ExecutionError(f"Unknown Execution operation: {value['operation']}")
     if value["operation"] == "apply":
@@ -232,28 +255,19 @@ class Store:
     def locked(self):
         state = self.config["state"]
         state.mkdir(parents=True, exist_ok=True)
-        self.config["lock_path"].parent.mkdir(parents=True, exist_ok=True)
-        with self.config["lock_path"].open("a+b") as lock_file:
-            deadline = time.monotonic() + self.config["lock_seconds"]
-            while True:
-                try:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except BlockingIOError as exc:
-                    if time.monotonic() >= deadline:
-                        raise ExecutionError("Execution lock timeout") from exc
-                    time.sleep(self.config["poll_seconds"])
-            try:
-                yield
-            finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        with resource_lock(self.config['lock_path'], self.config['lock_seconds'], self.config['poll_seconds']):
+            yield
 
     def connect(self):
         conn = sqlite3.connect(self.config["database"])
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA foreign_keys=ON")
-            prepare_store(conn)
+            version = conn.execute('PRAGMA user_version').fetchone()[0]
+            if version != 2:
+                prepare_store(conn)
+            if 'process' in self.config:
+                prepare_process_store(conn)
         except ValueError as exc:
             conn.close()
             raise ExecutionError(str(exc)) from exc
@@ -316,6 +330,17 @@ class Store:
                             raise ExecutionError("identity_conflict")
                         changed = False
                     else:
+                        process = None
+                        if 'process' in self.config:
+                            process = ProcessDefinitions(ProcessFiles(self.config['process'])).resolve(contract['process_ref'])
+                            if process['worktree_required'] and contract['workspace_id'] is None:
+                                raise ExecutionError('Selected process requires workspace_id')
+                            stage_ids = {stage['id'] for stage in process['stages']}
+                            if any(not isinstance(stage, dict) or stage.get('stage_id') not in stage_ids
+                                   for stage in contract['stage_expectations']):
+                                raise ExecutionError('stage_expectations must reference selected process stages')
+                            if set(contract['evidence_plan']) - stage_ids:
+                                raise ExecutionError('evidence_plan must reference selected process stages')
                         changed = True
                         conn.execute(
                             "INSERT INTO executions(task_id,generation,contract_revision,contract_json,state,current_stage,iteration,workspace_id,admission_id) VALUES(?,1,?,?,'draft',NULL,1,?,?)",
@@ -323,6 +348,9 @@ class Store:
                         )
                         self._record_call(self.records.setup_snapshot, RecordRepository(conn),
                                           contract, revision, 1)
+                        if process is not None:
+                            self._record_call(self.records.setup_process_snapshot,
+                                              RecordRepository(conn), contract, process, 1)
                     results.append({
                         "id": op["id"], "kind": "setup_execution", "changed": changed,
                         "task_id": task_id, "generation": 1, "contract_revision": revision,
@@ -378,9 +406,12 @@ def execute(config_path, stream, output):
             raise ExecutionError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
-        code = 0
-    except (ExecutionError, OSError, sqlite3.Error) as exc:
+        if packet['operation'] == 'process':
+            result = ProcessCommands(ProcessUnitOfWork(store),ProcessFiles(config['process'])).execute(packet)
+        else:
+            result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
+        code = 3 if result['status'] == 'pending' else 0
+    except (ExecutionError, PoiseError, OSError, sqlite3.Error, ValueError) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2
     output.write(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")

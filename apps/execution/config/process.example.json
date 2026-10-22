@@ -1,0 +1,39 @@
+{
+  "schema": "stride-execution-config/v1",
+  "paths": {
+    "state": "../state",
+    "database": "execution.sqlite",
+    "lock": "execution.lock"
+  },
+  "batch": {
+    "max_input_bytes": 65536,
+    "max_items": 256
+  },
+  "read": {
+    "max_queries": 256
+  },
+  "lock": {
+    "seconds": 5.0,
+    "poll_seconds": 0.05
+  },
+  "identifiers": {
+    "task": {
+      "pattern": "^[0-9]{4}$"
+    }
+  },
+  "process": {
+    "database": "process-editor.sqlite",
+    "lock": "process-editor.lock",
+    "workflows": {
+      "development": "processes/development.json"
+    },
+    "templates": {
+      "development": {
+        "path": "templates/development.json"
+      }
+    },
+    "max_changes": 128,
+    "file_mode": 420,
+    "json_indent": 2
+  }
+}

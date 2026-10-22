@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from git_diff_checks import (APP, arrange, fixture, git_wrapper, observed, packet,
-                             put_working, query_packet, saved, working, tree, ref)
+                             put_working, query_packet, saved, working, tree, ref, index_bytes)
 from process_checks import PROVIDER, invoke, write_json
 from store_checks import original_rows, snapshot, stored_records
 
@@ -70,7 +70,7 @@ def test_corrected_owned_work_uses_fresh_request_and_preserves_other_context(tmp
     foreign.write_text('B\n')
     (a['root']/'extra/foreign.py').write_text('A\n')
     expected_other = working(a['other'])
-    before_index = (a['root']/'.git/index').read_bytes()
+    before_index = index_bytes(a['root'])
     value = packet(a, request='corrected', revision=4)
     value['input']['baseline_ref'] = tree(a['root'], fixture()['corrected_baseline'])
     code, result = invoke(a['config'], value)
@@ -78,7 +78,7 @@ def test_corrected_owned_work_uses_fresh_request_and_preserves_other_context(tmp
     assert result['commit_paths'] == ['src/result.py']
     assert result['stage_paths'] == []
     assert working(a['other']) == expected_other
-    assert (a['root']/'.git/index').read_bytes() == before_index
+    assert index_bytes(a['root']) == before_index
 
 
 def test_diff_revision_change_during_git_leaves_no_half_result(tmp_path, monkeypatch):

@@ -58,3 +58,14 @@ def test_diff_ordinary_git_unavailable_or_invalid_baseline_preserves_state(tmp_p
         if fault == 'repository':
             (a['root']/'.git-saved').rename(a['root']/'.git')
     assert saved(a['root']) == before
+
+
+@pytest.mark.parametrize('name',['modify','rename-extra'])
+def test_linked_worktree_observation_preserves_neighbor_workspaces(tmp_path,monkeypatch,name):
+    a = arrange(tmp_path,monkeypatch,name,linked=True)
+    assert (a['root']/'.git').is_file()
+    before = saved(a['root'])
+    neighbors = [saved(root) for root in a['neighbors']]
+    observed(a)
+    assert saved(a['root']) == before
+    assert [saved(root) for root in a['neighbors']] == neighbors

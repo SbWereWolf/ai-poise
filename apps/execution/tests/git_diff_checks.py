@@ -82,8 +82,13 @@ def put_working(root, files):
         p.chmod(0o755 if value['mode'] == '100755' else 0o644)
 
 
+def index_bytes(root):
+    location = Path(git(root, 'rev-parse', '--git-path', 'index').decode().strip())
+    return (location if location.is_absolute() else root / location).read_bytes()
+
+
 def saved(root):
-    return {'head': ref(root), 'index': (root / '.git/index').read_bytes(),
+    return {'head': ref(root), 'head_tree': ref(root, 'HEAD^{tree}'), 'index': index_bytes(root),
             'working': working(root)}
 
 
@@ -95,7 +100,7 @@ def bind(value, mapping):
     return mapping.get(value, value) if type(value) is str else value
 
 
-def arrange(tmp_path, monkeypatch, name='modify'):
+def arrange(tmp_path, monkeypatch, name='modify', *, linked=False):
     monkeypatch.setenv('GIT_CONFIG_GLOBAL', '/dev/null')
     monkeypatch.setenv('GIT_CONFIG_SYSTEM', '/dev/null')
     monkeypatch.delenv('GIT_INDEX_FILE', raising=False)
@@ -119,6 +124,23 @@ def arrange(tmp_path, monkeypatch, name='modify'):
         git(root, 'update-ref', 'HEAD', hc)
         git(root, 'read-tree', tree(root, c['given']['index']))
         put_working(root, c['given']['working'])
+    neighbors = []
+    if linked:
+        kind = c['root']['kind']
+        parent = roots[kind]
+        target = tmp_path / (kind + '-linked')
+        neighbor = tmp_path / 'neighbor-linked'
+        git(parent, 'worktree', 'add', '-q', '-b', 'stage-linked', str(target), 'HEAD')
+        git(parent, 'worktree', 'add', '-q', '-b', 'neighbor-linked', str(neighbor), 'HEAD')
+        git(target, 'read-tree', tree(target, c['given']['index']))
+        put_working(target, c['given']['working'])
+        (parent / 'parent-wip.txt').write_text('Parent work remains here\n')
+        (neighbor / 'neighbor.txt').write_text('Neighbor staged version\n')
+        git(neighbor, 'add', '--all')
+        (neighbor / 'neighbor.txt').write_text('Neighbor working version\n')
+        roots[kind] = target
+        mapping['$CODE_ROOT' if kind == 'code' else '$MAIN_ROOT'] = str(target)
+        neighbors = [parent, neighbor]
     source = fixture()
     code, published = invoke(config, create(definition=source['definition']))
     assert code == 0 and published['status'] == 'published', published
@@ -141,7 +163,7 @@ def arrange(tmp_path, monkeypatch, name='modify'):
     other = tmp_path / 'other-context'
     other.mkdir()
     put_working(other, c['given'].get('other_context', {}))
-    return {'config':config,'case':c,'root':root,'roots':roots,'other':other,
+    return {'config':config,'case':c,'root':root,'roots':roots,'other':other,'neighbors':neighbors,
             'entry':tree(root,c['given']['entry']),'head':ref(root),
             'candidate':tree(root,c['expected']['candidate']),
             'database':tmp_path/'state/execution.sqlite',
@@ -198,7 +220,7 @@ def consumer(a, **changes):
     return method, args
 
 
-def admission(a, result, expected=None):
+def admission(a, result, expected=None, *, before):
     assert set(result) == {'root','role','baseline_tree','head_commit','head_tree',
                           'candidate_tree','stage_paths','commit_paths','decisions','allowed'}
     expected = a['case']['expected']['results'][0] if expected is None else expected
@@ -209,6 +231,8 @@ def admission(a, result, expected=None):
     for key in ['stage_paths','commit_paths']:
         assert result[key] == a['case']['expected'][key]
     assert result['baseline_tree'] == a['entry']
+    assert result['head_commit'] == before['head']
+    assert result['head_tree'] == before['head_tree']
     assert result['candidate_tree'] == a['candidate']
 
 
@@ -224,4 +248,11 @@ def git_wrapper(a, monkeypatch, mode):
     monkeypatch.setenv('T052_GIT_MODE',mode)
     monkeypatch.setenv('T052_GIT_MARKER',str(folder/'observed'))
     monkeypatch.setenv('T052_REAL_GIT',REAL_GIT)
+    monkeypatch.setenv('T052_GIT_CALLS',str(folder/'calls.jsonl'))
     return folder
+
+
+def attempts(folder, command, *, real_index=False):
+    rows = [json.loads(line) for line in (folder/'calls.jsonl').read_text().splitlines()]
+    return sum(row['command'] == command and (not real_index or not row['temporary_index'])
+               for row in rows)

@@ -1431,7 +1431,7 @@
       }
     ]
   },
-  "git_wrapper": "#!@PYTHON@\nimport os,subprocess,sys,time\nfrom pathlib import Path\nargs=sys.argv[1:]\ncommand=next((arg for arg in args if arg in {'rev-parse','read-tree','add','write-tree','diff','commit'}),'')\nmode=os.environ['T052_GIT_MODE']\nmarker=Path(os.environ['T052_GIT_MARKER'])\nif mode=='revision' and command=='write-tree' and not marker.exists():\n marker.write_text('once')\n p=subprocess.run([os.environ['T052_PROVIDER'],'--config',os.environ['T052_CONFIG']],input=os.environ['T052_BUMP'],text=True,capture_output=True)\n Path(str(marker)+'.response').write_text(p.stdout)\n if p.returncode: sys.exit(18)\nif command=='add' and 'GIT_INDEX_FILE' not in os.environ and mode=='add':\n sys.stderr.write('controlled add failure');sys.exit(7)\nif command=='commit':\n if mode=='timeout': time.sleep(2)\n if mode=='commit': sys.stderr.write('controlled commit failure');sys.exit(7)\n if mode=='commit-then-fail':\n  p=subprocess.run([os.environ['T052_REAL_GIT'],*args])\n  if p.returncode:sys.exit(p.returncode)\n  sys.stderr.write('controlled failure after commit');sys.exit(7)\nos.execv(os.environ['T052_REAL_GIT'],[os.environ['T052_REAL_GIT'],*args])\n",
+  "git_wrapper": "#!@PYTHON@\nimport os,subprocess,sys,time,json\nfrom pathlib import Path\nargs=sys.argv[1:]\ncommand=next((arg for arg in args if arg in {'rev-parse','read-tree','add','write-tree','diff','commit'}),'')\nbase=[os.environ['T052_REAL_GIT'],*args[:args.index(command)]] if command else [os.environ['T052_REAL_GIT']]\nmode=os.environ['T052_GIT_MODE']\nmarker=Path(os.environ['T052_GIT_MARKER'])\nwith Path(os.environ['T052_GIT_CALLS']).open('a') as audit:\n audit.write(json.dumps({'command':command,'temporary_index':'GIT_INDEX_FILE' in os.environ})+'\\n')\nif mode=='revision' and command=='write-tree' and not marker.exists():\n marker.write_text('once')\n p=subprocess.run([os.environ['T052_PROVIDER'],'--config',os.environ['T052_CONFIG']],input=os.environ['T052_BUMP'],text=True,capture_output=True)\n Path(str(marker)+'.response').write_text(p.stdout)\n if p.returncode: sys.exit(18)\nif command=='add' and 'GIT_INDEX_FILE' not in os.environ and mode=='add':\n sys.stderr.write('controlled add failure');sys.exit(7)\nif command=='add' and 'GIT_INDEX_FILE' not in os.environ and mode=='index-mismatch':\n p=subprocess.run([os.environ['T052_REAL_GIT'],*args])\n if p.returncode:sys.exit(p.returncode)\n p=subprocess.run([*base,'read-tree','HEAD'])\n sys.exit(p.returncode)\nif command=='commit':\n if mode=='postcondition':\n  p=subprocess.run([os.environ['T052_REAL_GIT'],*args])\n  if p.returncode:sys.exit(p.returncode)\n  head=subprocess.check_output([*base,'rev-parse','HEAD']).decode().strip()\n  new=subprocess.check_output([*base,'commit-tree',os.environ['T052_UNEXPECTED_TREE'],'-p',head,'-m','Changed result tree']).decode().strip()\n  subprocess.run([*base,'update-ref','HEAD',new],check=True)\n  sys.exit(0)\n if mode=='timeout': time.sleep(2)\n if mode=='commit': sys.stderr.write('controlled commit failure');sys.exit(7)\n if mode=='commit-then-fail':\n  p=subprocess.run([os.environ['T052_REAL_GIT'],*args])\n  if p.returncode:sys.exit(p.returncode)\n  sys.stderr.write('controlled failure after commit');sys.exit(7)\nos.execv(os.environ['T052_REAL_GIT'],[os.environ['T052_REAL_GIT'],*args])\n",
   "diff_packet": {
     "schema": "stride-execution/v1",
     "operation": "files",
@@ -1529,6 +1529,12 @@
     },
     "src/result.py": {
       "content": "B\n",
+      "mode": "100644"
+    }
+  },
+  "unexpected_candidate": {
+    "src/result.py": {
+      "content": "Unexpected commit\n",
       "mode": "100644"
     }
   }

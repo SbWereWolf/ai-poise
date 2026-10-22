@@ -129,51 +129,109 @@ def schema_observation(core):
                 'record_indexes': record_indexes(db)}
 
 
+class _ObservedCursor(sqlite3.Cursor):
+    """Observe completed effects for every ordinary cursor entry point."""
+    def execute(self, *args, **kwargs):
+        result = super().execute(*args, **kwargs)
+        self.connection.observe()
+        return result
+
+    def executemany(self, *args, **kwargs):
+        result = super().executemany(*args, **kwargs)
+        self.connection.observe()
+        return result
+
+    def executescript(self, *args, **kwargs):
+        result = super().executescript(*args, **kwargs)
+        self.connection.observe()
+        return result
+
+
+class _ObservedConnection(sqlite3.Connection):
+    """Engine statement boundaries plus post-return observation; no SQL parser.
+
+    The engine trace runs for cached statements, cursor calls and each statement
+    inside scripts. A detected prefix interrupts the next engine statement,
+    including COMMIT. Post-return hooks cover a final statement without a later
+    statement. Real state, not preparation/authorizer events, selects the fault.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.observing = False
+        self.faulted = False
+        self.initial_schema = self.main_schema()
+        self.set_trace_callback(self.before_statement)
+
+    def raw(self, sql, parameters=()):
+        cursor = sqlite3.Connection.cursor(self, factory=sqlite3.Cursor)
+        cursor.row_factory = None
+        return sqlite3.Cursor.execute(cursor, sql, parameters)
+
+    def main_schema(self):
+        return {row[0]: row[1] for row in self.raw(
+            "SELECT name,sql FROM sqlite_master WHERE type=? AND name NOT LIKE ? ORDER BY name",
+            ('table', 'sqlite_%'))}
+
+    def cursor(self, factory=_ObservedCursor):
+        return super().cursor(factory=factory)
+
+    def execute(self, *args, **kwargs):
+        return self.cursor().execute(*args, **kwargs)
+
+    def executemany(self, *args, **kwargs):
+        return self.cursor().executemany(*args, **kwargs)
+
+    def executescript(self, *args, **kwargs):
+        return self.cursor().executescript(*args, **kwargs)
+
+    def before_statement(self, sql):
+        self.observe(in_engine=True)
+
+    def observe(self, *, in_engine=False):
+        if self.observing or self.faulted or not self.in_transaction:
+            return
+        self.observing = True
+        try:
+            event = self.effect()
+        finally:
+            self.observing = False
+        if event is not None:
+            self.faulted = True
+            self.observations.append(event)
+            if in_engine:
+                # Trace callback exceptions are swallowed by sqlite3; interrupt
+                # the running engine instead, before its next statement/COMMIT.
+                self.interrupt()
+            else:
+                raise sqlite3.OperationalError(self.failure_message)
+
+
 def migration_interrupt(checkpoint, observations):
-    """Fail after real main-schema DDL or copied rows, without future private names."""
-    class Interrupted(sqlite3.Connection):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.created = set()
-            self.events = []
-            self.set_authorizer(self.authorize)
+    """Fail after real DDL/copied data through all ordinary SQLite APIs."""
+    class Interrupted(_ObservedConnection):
+        failure_message = 'test-owned migration interruption after actual effect'
 
-        def authorize(self, action, table, column, database, cause):
-            if database == 'main' and action in (sqlite3.SQLITE_CREATE_TABLE, sqlite3.SQLITE_INSERT):
-                self.events.append((action, table))
-            return sqlite3.SQLITE_OK
-
-        def execute(self, sql, parameters=()):
-            self.events.clear()
-            cursor = super().execute(sql, parameters)
-            return self.after(cursor)
-
-        def executemany(self, sql, parameters):
-            self.events.clear()
-            cursor = super().executemany(sql, parameters)
-            return self.after(cursor)
-
-        def after(self, cursor):
-            events = list(self.events)
-            for action, table in events:
-                if action == sqlite3.SQLITE_CREATE_TABLE:
-                    self.created.add(table)
-                    if checkpoint == 'ddl':
-                        observations.append({'checkpoint': 'ddl', 'table': table,
-                                             'transaction_open': self.in_transaction})
-                        raise sqlite3.OperationalError('test-owned migration interruption after DDL')
-                elif checkpoint == 'data' and table in self.created:
-                    count = super().execute('SELECT COUNT(*) FROM ' + quote(table)).fetchone()[0]
-                    if count == 2:
-                        observations.append({'checkpoint': 'data', 'table': table,
-                                             'rows_copied': count, 'transaction_open': self.in_transaction})
-                        raise sqlite3.OperationalError('test-owned migration interruption after copied rows')
-            return cursor
+        def effect(self):
+            schema = self.main_schema()
+            changed = {name: sql for name, sql in schema.items()
+                       if self.initial_schema.get(name) != sql}
+            if not changed:
+                return None
+            if checkpoint == 'ddl':
+                return {'checkpoint': 'ddl', 'schema_changed': True,
+                        'tables': sorted(changed), 'transaction_open': self.in_transaction}
+            for table in changed:
+                count = self.raw('SELECT COUNT(*) FROM ' + quote(table)).fetchone()[0]
+                if count == 2:
+                    return {'checkpoint': 'data', 'table': table, 'rows_copied': count,
+                            'transaction_open': self.in_transaction}
+            return None
+    Interrupted.observations = observations
     return Interrupted
 
 
 def finalization_interrupt(config, observations):
-    """Fail after an actual finalization write with published literal candidate."""
+    """Fail after actual changed finalization data, not SQL preparation."""
     expected = fixture('edited')
     columns = {'config_heads': ['goal_type', 'revision'],
                'requests': list(REQUESTS), 'meta': ['key', 'value']}
@@ -183,47 +241,32 @@ def finalization_interrupt(config, observations):
     before = {'meta': [['revision', original['revision']]],
               'requests': original['requests'], 'config_heads': editor_rows(editor)['heads']}
 
-    class Interrupted(sqlite3.Connection):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.events = []
-            self.set_authorizer(self.authorize)
+    class Interrupted(_ObservedConnection):
+        failure_message = 'test-owned publication finalization interruption'
 
-        def authorize(self, action, table, column, database, cause):
-            if action in (sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE) and table in columns:
-                self.events.append((database, table))
-            return sqlite3.SQLITE_OK
-
-        def execute(self, sql, parameters=()):
-            self.events.clear()
-            cursor = super().execute(sql, parameters)
-            return self.after(cursor)
-
-        def executemany(self, sql, parameters):
-            self.events.clear()
-            cursor = super().executemany(sql, parameters)
-            return self.after(cursor)
-
-        def after(self, cursor):
-            events = list(self.events)
+        def effect(self):
             target = current(config)
-            if events and target.is_file() and json.loads(target.read_text()) == expected:
-                database, table = events[-1]
-                selected = ','.join(quote(column) for column in columns[table])
-                rows = [list(row) for row in super().execute(
-                    'SELECT ' + selected + ' FROM ' + quote(database) + '.' + quote(table)
-                    + ' ORDER BY ' + quote(columns[table][0]))]
-                try:
-                    assert_same(rows, before[table])
-                except AssertionError:
-                    pass
-                else:
-                    return cursor
-                observations.append({'table': table, 'database': database,
-                                     'rows_after_successful_write': rows,
-                                     'transaction_open': self.in_transaction})
-                raise sqlite3.OperationalError('test-owned publication finalization interruption')
-            return cursor
+            if not target.is_file() or json.loads(target.read_text()) != expected:
+                return None
+            databases = [row[1] for row in self.raw('PRAGMA database_list')]
+            for database in databases:
+                existing = {row[0] for row in self.raw(
+                    'SELECT name FROM ' + quote(database) + '.sqlite_master WHERE type=?', ('table',))}
+                for table, names in columns.items():
+                    if table not in existing:
+                        continue
+                    selected = ','.join(quote(column) for column in names)
+                    rows = [list(row) for row in self.raw(
+                        'SELECT ' + selected + ' FROM ' + quote(database) + '.' + quote(table)
+                        + ' ORDER BY ' + quote(names[0]))]
+                    try:
+                        assert_same(rows, before[table])
+                    except AssertionError:
+                        return {'table': table, 'database': database,
+                                'rows_after_successful_write': rows,
+                                'transaction_open': self.in_transaction}
+            return None
+    Interrupted.observations = observations
     return Interrupted
 
 

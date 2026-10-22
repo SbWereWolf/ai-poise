@@ -51,7 +51,7 @@ def test_real_upgrade_interruption_rolls_back_then_exact_request_can_retry(tmp_p
     packet = create(request='upgrade-retry', revision=7)
     with monkeypatch.context() as patch:
         patch.setattr(sqlite3, 'connect', connect_with(migration_interrupt(checkpoint, observations)))
-        rejected(in_process(config, packet), 'test-owned migration interruption')
+        rejected(in_process(config, packet), 'test-owned migration interruption', 'interrupted')
     assert observations, 'Interruption must follow actual SQLite schema/data effects'
     assert_same(observations[0]['transaction_open'], True)
     if checkpoint == 'data':

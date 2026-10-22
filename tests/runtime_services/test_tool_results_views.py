@@ -1,10 +1,83 @@
 """Model-only limits, source-derived selection, and exact navigation framing."""
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from tests.runtime_services.tool_results_support import FIXTURES, Scenario, literal
+from tests.runtime_services.tool_results_support import FIXTURES, Scenario, literal, sha, wire
+
+
+@pytest.mark.parametrize('unit', ['chars', 'bytes'])
+@pytest.mark.parametrize('case', ['failure-excerpt', 'success-excerpt',
+                                  'failure-global', 'success-global'])
+def test_bounded_excerpt_keeps_head_and_real_tail(project, tmp_path, unit, case):
+    parent = tmp_path / 'Ж🙂'; parent.mkdir()
+    s = Scenario(project, parent)
+    data = literal('tail-retention-cases.json'); selected = data['cases'][case]
+    raw = (FIXTURES / 'tail-overflow.stdout.log').read_bytes()
+    assert len(raw) == data['source_bytes'] and sha(raw) == data['source_sha256']
+    producer = subprocess.run(
+        [sys.executable, '-B', '-c',
+         "import sys;open(sys.argv[1],'a').write('1');sys.stdout.write(sys.stdin.read())",
+         str(s.producer_count)], input=raw, capture_output=True, env=s.env)
+    assert producer.returncode == 0 and producer.stderr == b'' and producer.stdout == raw
+    s.out.write_bytes(producer.stdout); s.err.write_bytes(b'')
+    section = 'success' if selected['exit_code'] == 0 else 'failure'
+    s.policy['display'][section]['max_excerpt_bytes'] = selected['excerpt']
+    s.policy['display'][section]['tail_lines'] = selected['tail_lines']
+    s.policy['display']['output_chars'] = 20000
+    s.policy['display']['output_bytes'] = 40000
+    mode = ('enforce' if (case, unit) == ('failure-global', 'chars') else
+            'audit' if (case, unit) == ('success-global', 'bytes') else None)
+    if mode:
+        s.policy['hook']['mode'] = mode
+        s.policy['hook']['max_response_bytes'] = 1
+        s.policy['hook']['max_response_lines'] = 1
+    s.save_policy()
+    if mode:
+        request = s.request('hook.template.json', exit_code=selected['exit_code'])
+        saved = s.success(request, 'machine')
+        s.response_path = Path(saved['response_path'])
+    else:
+        _, saved = s.capture(s.request(exit_code=selected['exit_code']), 'machine')
+        request = s.request('view.template.json', view='brief')
+    before = s.snapshot()
+    assert Path(saved['streams']['stdout']['path']).read_bytes() == raw
+    if case.endswith('global'):
+        base = s.fill(data[(mode + '_base') if mode else 'ordinary_base'])
+        base.update(response_path=str(s.response_path), exit_code=selected['exit_code'])
+        if mode == 'enforce':
+            base['protocol']['hookSpecificOutput']['additionalContext'] = str(s.response_path) + '\n' + data['budget_preview']
+        else:
+            base.update(selection=selected['selection'], preview=data['budget_preview'])
+        encoded = wire(base)
+        s.policy['display']['output_' + unit] = len(encoded.decode() if unit == 'chars' else encoded)
+        s.save_policy()
+    try:
+        # The full machine result and source are controls for the very same request.
+        assert wire(s.success(request, 'machine')) == wire(saved)
+        value = s.success(request)
+        if mode == 'enforce':
+            assert value['action'] == 'enforced' and value['protocol']['continue'] is False
+            context = value['protocol']['hookSpecificOutput']['additionalContext']
+            address, preview = context.split('\n', 1)
+            assert address == str(s.response_path)
+        else:
+            assert value['selection'] == selected['selection']
+            preview = value['preview']
+            if mode: assert value['action'] == 'would_replace'
+        assert preview.startswith(selected['head'])
+        assert preview.endswith(data['end']), 'The actual final source suffix was dropped'
+        assert all(tail in preview for tail in data['tail'])
+        assert data['marker'] in preview and value['truncated'] is True
+        assert '\ufffd' not in preview and len(preview.encode()) <= selected['excerpt']
+    finally:
+        assert s.snapshot() == before
+        assert s.producer_count.read_text() == '1'
+        assert s.out.read_bytes() == raw
+        assert Path(saved['streams']['stdout']['path']).read_bytes() == raw
 
 
 @pytest.mark.parametrize('case', ['small-success', 'small-failure', 'large-success',

@@ -1,0 +1,93 @@
+{
+  "sources": {
+    "long": {
+      "source": "A\nB\nneedle-one\nC\nD\n",
+      "full": {
+        "status": "stored",
+        "response_path": "@RESPONSE@",
+        "channel": "stdout",
+        "binary": false,
+        "text": "B\nneedle-one\nC\n",
+        "returned_bytes": [
+          2,
+          17
+        ],
+        "returned_lines": [
+          2,
+          4
+        ],
+        "total_lines": 5,
+        "total_bytes": 19,
+        "truncated": false
+      }
+    },
+    "short": {
+      "source": "A\nB\nC\nD\nE\n",
+      "full": {
+        "status": "stored",
+        "response_path": "@RESPONSE@",
+        "channel": "stdout",
+        "binary": false,
+        "text": "B\nC\nD\n",
+        "returned_bytes": [
+          2,
+          8
+        ],
+        "returned_lines": [
+          2,
+          4
+        ],
+        "total_lines": 5,
+        "total_bytes": 10,
+        "truncated": false
+      }
+    }
+  },
+  "cases": {
+    "partial": {
+      "source_id": "long",
+      "expected": {
+        "text": "B\nneedle-o",
+        "returned_bytes": [
+          2,
+          12
+        ],
+        "returned_lines": [
+          2,
+          3
+        ],
+        "truncated": true
+      }
+    },
+    "newline": {
+      "source_id": "short",
+      "expected": {
+        "text": "B\n",
+        "returned_bytes": [
+          2,
+          4
+        ],
+        "returned_lines": [
+          2,
+          2
+        ],
+        "truncated": true
+      }
+    },
+    "empty": {
+      "source_id": "short",
+      "expected": {
+        "text": "",
+        "returned_bytes": [
+          2,
+          2
+        ],
+        "returned_lines": [
+          0,
+          0
+        ],
+        "truncated": true
+      }
+    }
+  }
+}

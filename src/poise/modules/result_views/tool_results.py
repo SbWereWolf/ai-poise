@@ -207,27 +207,35 @@ def require_budget(value, policy):
     if not fits(value, policy): reject('budget_too_small', 'display', 'increase:budget')
 
 
-def bounded(value, policy, field):
-    require_budget({k: v for k, v in value.items() if k != field}, policy)
-    while not fits(value, policy):
-        current = value[field]
-        if not current: reject('budget_too_small', 'display', 'increase:budget')
-        value[field] = current[:-1]
-        value['truncated'] = True
-    return value
+def head_tail(value, limit):
+    """Format one candidate from the original text, with UTF-8-safe ends."""
+    raw = value.encode()
+    if len(raw) <= limit: return value
+    marker = '\n[tool-result] excerpt truncated by output policy\n'
+    available = limit-len(marker.encode())
+    if available <= 0: return prefix(marker, limit)
+    head = available//2; tail = available-head
+    return raw[:head].decode('utf-8', 'ignore') + marker + raw[-tail:].decode('utf-8', 'ignore')
 
 
-def presentation(record, sources, policy, mode=None):
+def bounded_text(original, policy, limit, render, *, contiguous):
+    """One decision for excerpt and complete serialized-envelope limits."""
+    for maximum in range(min(len(original.encode()), limit), -1, -1):
+        text = prefix(original, maximum) if contiguous else head_tail(original, maximum)
+        value = render(text, text != original)
+        if fits(value, policy): return value
+    reject('budget_too_small', 'display', 'increase:budget')
+
+
+def selected_excerpt(record, sources, policy):
     from collections import deque
-    result = navigation(record, mode)
-    require_budget(result, policy)
-    if mode == 'full': return result
     display = policy['display']
     primary = sources['stdout'] if sources['stdout'] is not None else sources['response']
     selected_sources = [source for source in (primary, sources['stderr']) if source is not None]
     if any(source.metadata['binary'] for source in selected_sources):
-        result.update(selection='binary', preview='')
+        return 'binary', '', 0, False
     else:
+        shortened = False
         size = sum(source.metadata['bytes'] for source in selected_sources)
         count = sum(source.metadata['lines'] for source in selected_sources)
         def lines():
@@ -237,28 +245,43 @@ def presentation(record, sources, policy, mode=None):
             selection, excerpt, limit = 'passthrough', ''.join(lines()), display['passthrough']['max_bytes']
         elif record['exit_code'] == 0:
             tail = deque(maxlen=display['success']['tail_lines'])
-            for line in lines(): tail.append(prefix(line, display['max_line_bytes']))
-            selection, excerpt, limit = 'success-tail', ''.join(tail), display['success']['max_excerpt_bytes']
+            for line in lines():
+                short = prefix(line, display['max_line_bytes']); tail.append((short, short != line))
+            shortened = any(clipped for _, clipped in tail)
+            selection, excerpt, limit = 'success-tail', ''.join(text for text, _ in tail), display['success']['max_excerpt_bytes']
         else:
             failure = display['failure']; selected = {}; hits = 0; context_end = -1
             prior = deque(maxlen=failure['context_lines']); tail = deque(maxlen=failure['tail_lines'])
             for index, line in enumerate(lines()):
-                short = prefix(line, display['max_line_bytes']); tail.append((index, short))
+                short = prefix(line, display['max_line_bytes']); item = (short, short != line)
+                tail.append((index, item))
                 if hits < failure['match_limit'] and any(re.search(p, line) for p in failure['match_patterns']):
                     selected.update(prior); context_end = index+failure['context_lines']; hits += 1
-                if index <= context_end: selected[index] = short
-                prior.append((index, short))
+                if index <= context_end: selected[index] = item
+                prior.append((index, item))
             selected.update(tail)
-            excerpt = ''.join(selected[i] for i in sorted(selected))
+            excerpt = ''.join(selected[i][0] for i in sorted(selected))
+            shortened = any(clipped for _, clipped in selected.values())
             if not hits: excerpt = 'no configured failure pattern matched\n' + excerpt
             selection, limit = 'failure-context', failure['max_excerpt_bytes']
-        result.update(selection=selection, preview=prefix(excerpt, limit))
+        return selection, excerpt, limit, shortened
+
+
+def presentation(record, sources, policy, mode=None):
+    result = navigation(record, mode)
+    require_budget(result, policy)
+    if mode == 'full': return result
+    selection, excerpt, limit, shortened = selected_excerpt(record, sources, policy)
+    def render(text, clipped):
+        value = {**result, 'selection': selection, 'preview': text}
+        if shortened or clipped: value['truncated'] = True
+        return value
+    result = bounded_text(excerpt, policy, limit, render, contiguous=False)
     if mode == 'expanded':
         details = {name: {key: source.metadata[key] for key in ('bytes', 'lines', 'sha256', 'binary')}
                    for name, source in sources.items() if source is not None}
         if fits({**result, 'details': details}, policy): result['details'] = details
-    if not fits(result, policy) and 'details' in result: del result['details']
-    return bounded(result, policy, 'preview')
+    return result
 
 
 def hook_navigation(record, policy):
@@ -273,28 +296,39 @@ def hook_navigation(record, policy):
 def hook_presentation(record, sources, policy):
     result = hook_navigation(record, policy)
     require_budget(result, policy)
-    view = presentation(record, sources, policy)
+    selection, excerpt, limit, shortened = selected_excerpt(record, sources, policy)
     if policy['hook']['mode'] == 'audit':
-        result.update(selection=view['selection'], preview=view['preview'])
-        return bounded(result, policy, 'preview')
+        def render(text, clipped):
+            value = {**result, 'selection': selection, 'preview': text}
+            if shortened or clipped: value['truncated'] = True
+            return value
+        return bounded_text(excerpt, policy, limit, render, contiguous=False)
     raw = response_text(record['response'])
     hook = policy['hook']
-    optional = raw if (len(raw.encode()) <= hook['max_response_bytes'] and
-                       len(raw.splitlines()) <= hook['max_response_lines']) else view['preview']
-    context = result['protocol']['hookSpecificOutput']
-    while optional:
-        context['additionalContext'] = record['response_path'] + '\n' + optional
-        if fits(result, policy): return result
-        optional = optional[:-1]
-    context['additionalContext'] = record['response_path']
-    return result
+    if len(raw.encode()) <= hook['max_response_bytes'] and len(raw.splitlines()) <= hook['max_response_lines']:
+        excerpt, limit, shortened = raw, hook['max_response_bytes'], False
+    def render(text, clipped):
+        value = hook_navigation(record, policy)
+        if shortened or clipped: value['truncated'] = True
+        value['protocol']['hookSpecificOutput']['additionalContext'] = record['response_path'] + ('\n'+text if text else '')
+        return value
+    return bounded_text(excerpt, policy, limit, render, contiguous=False)
 
 
 def inspection_view(value, policy, audience, field=None):
     """Selection is shared; only model delivery applies display envelopes."""
     if audience == 'machine': return value
     if audience != 'agent': reject(field='audience')
-    if field is not None: return bounded(value, policy, field)
+    if field is not None:
+        start = value['returned_bytes'][0]; lines = value['returned_lines']
+        def render(text, clipped):
+            result = {**value, field: text, 'returned_bytes': [start, start+len(text.encode())],
+                      'truncated': value['truncated'] or clipped}
+            if lines is not None:
+                count = text.count('\n') + int(bool(text) and not text.endswith('\n'))
+                result['returned_lines'] = [lines[0], lines[0]+count-1] if count else [0, 0]
+            return result
+        return bounded_text(value[field], policy, len(value[field].encode()), render, contiguous=True)
     require_budget(value, policy)
     return value
 
@@ -358,6 +392,4 @@ def inspect_source(record, source, request, policy, *, audience):
             truncated = shortened or last < min(requested_last, metadata['lines'])
     result.update(text=part, returned_bytes=[start, start+len(part.encode())], returned_lines=returned_lines,
                   total_lines=metadata['lines'], total_bytes=metadata['bytes'], truncated=truncated)
-    result = inspection_view(result, policy, audience, 'text')
-    result['returned_bytes'][1] = start+len(result['text'].encode())
-    return result
+    return inspection_view(result, policy, audience, 'text')

@@ -1,10 +1,48 @@
 """Read/search exact saved sources without running the original producer."""
 from pathlib import Path
 import json
+import subprocess
+import sys
 
 import pytest
 
-from tests.runtime_services.tool_results_support import FIXTURES, Scenario, literal, sha
+from tests.runtime_services.tool_results_support import FIXTURES, Scenario, literal, sha, wire
+
+
+@pytest.mark.parametrize('unit', ['chars', 'bytes'])
+@pytest.mark.parametrize('case', ['partial', 'newline', 'empty'])
+def test_final_display_range_matches_delivered_text(project, tmp_path, unit, case):
+    parent = tmp_path / 'Ж🙂'; parent.mkdir()
+    s = Scenario(project, parent)
+    data = literal('final-range-cases.json')
+    source = data['sources'][data['cases'][case]['source_id']]
+    raw = source['source'].encode()
+    producer = subprocess.run(
+        [sys.executable, '-B', '-c',
+         "import sys;open(sys.argv[1],'a').write('1');sys.stdout.write(sys.stdin.read())",
+         str(s.producer_count)], input=raw, capture_output=True, env=s.env)
+    assert producer.returncode == 0 and producer.stderr == b'' and producer.stdout == raw
+    s.out.write_bytes(producer.stdout); s.err.write_bytes(b'')
+    _, saved = s.capture(audience='machine')
+    expected = {**source['full'], **data['cases'][case]['expected'], 'response_path': str(s.response_path)}
+    full = {**source['full'], 'response_path': str(s.response_path)}
+    envelope = wire(expected)
+    s.policy['display']['output_chars'] = 20000
+    s.policy['display']['output_bytes'] = 40000
+    s.policy['display']['output_' + unit] = len(envelope.decode() if unit == 'chars' else envelope)
+    s.save_policy()
+    request = s.request('read.template.json', from_line=2, to_line=4)
+    before = s.snapshot()
+    try:
+        # Positive source/machine control is reached before the intended agent failure.
+        assert wire(s.success(request, 'machine')) == wire(full)
+        value = s.success(request)
+        assert wire(value) == wire(expected)
+    finally:
+        assert s.snapshot() == before
+        assert s.producer_count.read_text() == '1'
+        assert s.out.read_bytes() == raw
+        assert Path(saved['streams']['stdout']['path']).read_bytes() == raw
 
 
 def arrange(project, tmp_path):

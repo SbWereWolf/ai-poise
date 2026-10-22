@@ -1,0 +1,86 @@
+{
+  "source_bytes": 900,
+  "source_sha256": "95cba698aa1ea329eb1648677290b54b8670ad1ff7bc54dda30fa8fcffee7c5c",
+  "marker": "[tool-result] excerpt truncated by output policy",
+  "tail": [
+    "PENULTIMATE",
+    "FINAL_SENTINEL"
+  ],
+  "end": "FINAL_SENTINEL\n",
+  "cases": {
+    "failure-excerpt": {
+      "exit_code": 7,
+      "selection": "failure-context",
+      "head": "before1",
+      "excerpt": 500,
+      "tail_lines": 2
+    },
+    "success-excerpt": {
+      "exit_code": 0,
+      "selection": "success-tail",
+      "head": "before2",
+      "excerpt": 400,
+      "tail_lines": 6
+    },
+    "failure-global": {
+      "exit_code": 7,
+      "selection": "failure-context",
+      "head": "before1",
+      "excerpt": 2000,
+      "tail_lines": 2
+    },
+    "success-global": {
+      "exit_code": 0,
+      "selection": "success-tail",
+      "head": "before2",
+      "excerpt": 2000,
+      "tail_lines": 6
+    }
+  },
+  "ordinary_base": {
+    "status": "stored",
+    "response_path": "@RESPONSE@",
+    "view": "brief",
+    "capture": {
+      "state": "complete",
+      "reason": null
+    },
+    "exit_code": 7,
+    "selection": "failure-context",
+    "preview": "",
+    "truncated": true
+  },
+  "audit_base": {
+    "status": "stored",
+    "response_path": "@RESPONSE@",
+    "capture": {
+      "state": "complete",
+      "reason": null
+    },
+    "exit_code": 0,
+    "action": "would_replace",
+    "selection": "success-tail",
+    "preview": "",
+    "truncated": true
+  },
+  "enforce_base": {
+    "status": "stored",
+    "response_path": "@RESPONSE@",
+    "capture": {
+      "state": "complete",
+      "reason": null
+    },
+    "exit_code": 7,
+    "action": "enforced",
+    "truncated": true,
+    "protocol": {
+      "continue": false,
+      "stopReason": "Полный результат сохранён по указанному адресу.",
+      "hookSpecificOutput": {
+        "hookEventName": "PostToolUse",
+        "additionalContext": ""
+      }
+    }
+  },
+  "budget_preview": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}

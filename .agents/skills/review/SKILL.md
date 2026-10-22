@@ -32,6 +32,15 @@ limits rather than inferring correctness from a skill name or acknowledgement.
 3. Trace important behavior [forward and backward](../../references/data-flow-review.md). Identify the owner of every invariant, normalization, authorization decision, transaction and side effect; inspect reuse/extraction decisions and in-scope duplicates.
 4. Inspect tests at the real boundary, declared tested-class allowlists, independent expected values, negative cases, and appropriate ordering. Check real RED where required. Canonical JSON longer than 99 Unicode characters, including newlines/control characters, belongs in a file; exactly 99 may remain inline. No serializer trait, interface, or runtime package is mandatory merely for comparison.
 5. Inspect evidence freshness, fixture provenance, source/build identity when relevant, documentation and early required artifacts. Load only the applicable [risk reference](../../references/review-risk-checklist.md) and [finding procedure](references/code-review.md).
+   For each file-proof decision, obtain the current ID/claim/covers from evidence and
+   actually read `show/proof_file` with explicit text/base64 representation. Inspect
+   the full saved bytes and actual observation provenance; an old response, author
+   verdict or stage clear is not implicit acceptance. Submit only
+   `argument_id/decision/reason`, without revision. Re-read after every lawful same-path
+   correction, including repeated cycles; historical inline records remain history.
+   Preserve the distinct ordinary-artifact and machine-receipt contracts. Follow
+   [current file reading](../../../docs/workflows/evidence.md#чтение-нынешнего-содержимого)
+   and [same-path correction](../../../docs/workflows/evidence.md#исправление-на-прежнем-пути).
 6. Reproduce material claims with exact project-configured targeted checks and maintained fast smoke checks. Do not substitute a full suite for focused proof. Use only the configured browsers; no blanket browser or deployment obligation is implied.
 7. For each genuine finding, name the confirmed requirement, triggering condition, consequence, reproducible evidence, responsible producer stage, later gate, and verifiable correction criterion. Do not turn personal taste, speculation, or optional improvement into a blocker.
 8. Challenge your own findings using [self-review](../../references/self-review-gates.md#reviewer-results). Distinguish runtime/contract defects, executor defects, reviewer mistakes, protective rejection, and unresolved causes from evidence.

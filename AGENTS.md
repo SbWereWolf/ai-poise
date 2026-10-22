@@ -232,6 +232,15 @@ and [execution limits](docs/workflows/commit-messages.md#запуск-и-гра�
 
 ## Shared agent policy
 
+Author proofs use separate current Task files with stable IDs and absolute paths.
+Present metadata through evidence_work; read actual current bytes through public
+show/proof_file before deciding, and repeat that read after lawful same-path correction.
+Do not register an editable author proof as an ordinary immutable artifact or reclassify
+machine receipts. Keep prior inline records as historical evidence. Follow the
+[canonical file-proof contract](docs/workflows/evidence.md#один-пакет-результата),
+[current reading](docs/workflows/evidence.md#чтение-нынешнего-содержимого) and
+[same-path correction](docs/workflows/evidence.md#исправление-на-прежнем-пути).
+
 Keep at most one Task and one worktree per session, with independent claims and all
 four combinations. Acquire the complete set atomically through its owner; never steal
 an uncertain live claim. Automatic acquisition is distinct from explicit user-authorized

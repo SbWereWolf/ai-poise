@@ -478,6 +478,20 @@ cross-read-model SQL snapshot, and no token saving has been measured or may be c
 [Evidence-based review → Batched subject
 reads](../../../docs/workflows/evidence-based-review.md#пакетное-чтение-предмета).
 
+For an author proof, create a separate current Task file first and submit the exact
+eight fields `id/kind/claim/path/covers/verdict/observation_ids/correction` through
+`evidence_work.arguments`. Keep its ID and absolute path stable. Do not register that
+editable proof as an ordinary artifact or reclassify machine receipts. Read its current
+bytes through `show` query `id/kind:proof_file/argument_id/representation:text|base64`;
+use the complete saved response. An inspection decision contains only
+`argument_id/decision/reason`, without `revision`. A lawful same-path correction uses
+`reviewer_rejected` or `author_unreliable` with a real reason and requires fresh review;
+the same reason may recur in a new genuine presentation context. Exact same-context
+replay stays idempotent. Preserve ordinary artifact and machine-evidence provenance.
+Follow the [canonical file-proof input](../../../docs/workflows/evidence.md#один-пакет-результата),
+[current reading](../../../docs/workflows/evidence.md#чтение-нынешнего-содержимого) and
+[same-path correction](../../../docs/workflows/evidence.md#исправление-на-прежнем-пути).
+
 Let the exact workflow schema decide whether Task creation contains
 `executable_obligations`. A schema with a `test_registry` inspection route requires the field,
 including an explicit empty list; a schema without it must omit the field and receives an empty

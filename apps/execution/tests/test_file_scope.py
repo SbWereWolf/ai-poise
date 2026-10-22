@@ -134,3 +134,57 @@ def test_saved_access_queries_isolate_context_and_generation(tmp_path):
                    {'request_id': 'absent'}]:
         assert_same(query(config, result_query(**update))['results'],
                     [{'id': 'saved', 'kind': 'file_result', 'result': None}])
+
+
+def test_business_denied_access_has_exact_saved_negative_provenance_replay_and_neighbor(tmp_path):
+    config, mapping = ready(tmp_path)
+    canonical = original_rows(database(config))['executions']
+    value = access(mapping, mode='write', paths=[path('main', 0)])
+    negative = checked(config, value, [decision('main', 0, 'src/app.py', False, 'outside_allow')])
+    expected = bind(fixture('negative_saved_result'), dict(mapping, **{'@RESULT': negative['result_id']}))
+    assert_same(query(config, result_query())['results'], [expected])
+    assert_same(query(config, result_query())['results'], [expected])
+    # The same selected root/path permits reading: denial is the write decision.
+    neighbor = access(mapping, paths=[path('main', 0)], revision=negative['revision'],
+                      request='negative-neighbor')
+    checked(config, neighbor, [decision('main', 0, 'src/app.py', True)])
+    code, replay = invoke(config, value)
+    assert code == 2
+    assert_same(replay, dict(negative, replayed=True))
+    assert_same(query(config, result_query())['results'], [expected])
+    assert_same(original_rows(database(config))['executions'], canonical)
+
+
+def test_two_populated_policy_contexts_preserve_distinct_exact_results_after_interleaving(tmp_path):
+    config, mapping, declaration = arranged(tmp_path)
+    declare(config, declaration)
+    canonical = original_rows(database(config))['executions']
+    first_packet = access(mapping)
+    first = checked(config, first_packet, [decision('code', 0, 'src/app.py', True)])
+    other = bind(fixture('declare'), mapping)
+    other['input'].update(context_id='scope-2', request_id='declare-scope-2',
+                          expected_revision=first['revision'])
+    other['input']['file_policy']['stages'][0]['roots'][0]['read']['deny'] = ['src/**']
+    code, declared_other = invoke(config, other)
+    assert code == 0
+    assert_same(declared_other, fixture('second_context_declared'))
+    second_packet = access(mapping, context='scope-2', request='access-2',
+                           revision=declared_other['revision'])
+    second = checked(config, second_packet, [decision('code', 0, 'src/app.py', False, 'denied')])
+    assert first['result_id'] != second['result_id']
+    expected_first = bind(fixture('saved_result'), dict(mapping, **{'@RESULT': first['result_id']}))
+    expected_second = bind(fixture('second_context_saved_result'),
+                           dict(mapping, **{'@RESULT': second['result_id']}))
+    assert_same(query(config, result_query())['results'], [expected_first])
+    assert_same(query(config, result_query(context_id='scope-2', request_id='access-2'))['results'],
+                [expected_second])
+    checked(config, access(mapping, mode='write', revision=second['revision'], request='access-3'),
+            [decision('code', 0, 'src/app.py', True)])
+    for packet, saved, expected_code in [(first_packet, first, 0), (second_packet, second, 2)]:
+        code, replay = invoke(config, packet)
+        assert code == expected_code
+        assert_same(replay, dict(saved, replayed=True))
+    assert_same(query(config, result_query())['results'], [expected_first])
+    assert_same(query(config, result_query(context_id='scope-2', request_id='access-2'))['results'],
+                [expected_second])
+    assert_same(original_rows(database(config))['executions'], canonical)

@@ -96,3 +96,43 @@ def test_regular_file_body_change_is_a_fresh_usable_observation(tmp_path):
     Path(mapping['@CODE0'], 'src/app.py').write_bytes(b'different recoverable content\x00')
     second_packet = gate_packet(mapping, files=[], revision=first['revision'], candidate='candidate-2')
     gate(config, second_packet, [decision('code', 0, 'src/app.py', True)], accepted=True)
+
+
+def test_real_legacy_artifact_outside_all_working_roots_is_not_admitted(tmp_path):
+    from file_scope_checks import bind, fixture
+
+    def working_inside(policy):
+        root = next(value for value in policy['roots'] if value['kind'] == 'artifact')
+        root['path'] = str(Path(root['path']) / 'working')
+        inside = Path(root['path']) / 'outputs/note.txt'
+        inside.parent.mkdir(parents=True)
+        inside.write_text('inside the declared working root')
+
+    config, mapping = ready(tmp_path, definition=fixture('outside_count_definition'),
+                            policy_change=working_inside)
+    outside = Path(mapping['@ARTIFACT']) / 'outputs/note.txt'
+    assert outside.is_file()
+    # Gate's artifact scope is the parent; the explicit working root is its child.
+    assert not outside.is_relative_to(Path(mapping['@ARTIFACT']) / 'working')
+    code, rejected_evidence = invoke(config, gate_packet(mapping, files=[str(outside)]))
+    assert code == 2
+    expected = bind(fixture('outside_gate_response'), dict(mapping, **{'@OUTSIDE': str(outside)}))
+    assert_same(rejected_evidence, expected)
+    assert rejected_evidence['assessment']['artifact_checks'][0]['actual'] == 1
+    assert rejected_evidence['assessment']['artifact_checks'][0]['passed'] is True
+    assert rejected_evidence['assessment']['pre']['passed'] is True
+    assert rejected_evidence['assessment']['post']['passed'] is True
+    saved = saved_gate(config)
+    assert saved['accepted_result'] is None
+    assert_same(saved['decision']['data']['assessment'], expected['assessment'])
+    good_config, good_mapping = ready(tmp_path / 'positive',
+                                      definition=fixture('outside_count_definition'),
+                                      policy_change=working_inside)
+    inside = Path(good_mapping['@ARTIFACT']) / 'working/outputs/note.txt'
+    assert inside.is_file()
+    code, admitted = invoke(good_config, gate_packet(good_mapping, files=[str(inside)]))
+    assert code == 0 and isinstance(admitted['result_id'], str) and admitted['result_id']
+    expected_inside = bind(fixture('inside_gate_response'),
+                           dict(good_mapping, **{'@RESULT': admitted['result_id']}))
+    assert_same(admitted, expected_inside)
+    assert saved_gate(good_config)['accepted_result']['id'] == admitted['result_id']

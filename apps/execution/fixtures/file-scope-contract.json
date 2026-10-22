@@ -940,5 +940,338 @@
         }
       ]
     }
+  },
+  "negative_saved_result": {
+    "id": "saved",
+    "kind": "file_result",
+    "result": {
+      "id": "@RESULT",
+      "kind": "file_decision",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "context_id": "scope-1",
+        "request_id": "access-1",
+        "stage_id": "draft",
+        "role": "maker",
+        "mode": "write",
+        "allowed": false,
+        "decisions": [
+          {
+            "root": {
+              "kind": "main",
+              "position": 0
+            },
+            "path": "src/app.py",
+            "allowed": false,
+            "reason": "outside_allow"
+          }
+        ],
+        "contract_revision": "@CONTRACT",
+        "process_ref": {
+          "goal_type": "writing",
+          "revision": "@PROCESS"
+        },
+        "workspace_id": "workspace-0042"
+      }
+    }
+  },
+  "second_context_saved_result": {
+    "id": "saved",
+    "kind": "file_result",
+    "result": {
+      "id": "@RESULT",
+      "kind": "file_decision",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "context_id": "scope-2",
+        "request_id": "access-2",
+        "stage_id": "draft",
+        "role": "maker",
+        "mode": "read",
+        "allowed": false,
+        "decisions": [
+          {
+            "root": {
+              "kind": "code",
+              "position": 0
+            },
+            "path": "src/app.py",
+            "allowed": false,
+            "reason": "denied"
+          }
+        ],
+        "contract_revision": "@CONTRACT",
+        "process_ref": {
+          "goal_type": "writing",
+          "revision": "@PROCESS"
+        },
+        "workspace_id": "workspace-0042"
+      }
+    }
+  },
+  "second_context_declared": {
+    "schema": "stride-execution/v1",
+    "status": "declared",
+    "revision": 5,
+    "replayed": false,
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "scope-2",
+    "changed": true
+  },
+  "outside_count_definition": {
+    "goal_type": "writing",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [
+        "code"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "draft"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "draft",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [
+          {
+            "scope": "task",
+            "pattern": "**/*.txt",
+            "minimum": 1,
+            "maximum": 1
+          }
+        ],
+        "handler": "produce",
+        "role": "maker",
+        "transitions": {
+          "complete": "integration"
+        },
+        "rework_targets": [
+          "draft"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "integration",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "maker",
+        "transitions": {
+          "complete": "audit"
+        },
+        "rework_targets": [
+          "integration"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "audit",
+        "instruction": "Return the result.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "inspect",
+        "role": "extra-auditor",
+        "transitions": {
+          "clear": "release_notes",
+          "changes_requested": "draft"
+        },
+        "rework_targets": [
+          "draft"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "release_notes",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "other-maker",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "release_notes"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "outside_gate_response": {
+    "schema": "stride-execution/v1",
+    "status": "evaluated",
+    "revision": 4,
+    "replayed": false,
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "scope-1",
+    "candidate_id": "candidate-1",
+    "stage_id": "draft",
+    "iteration": 1,
+    "accepted": false,
+    "result_id": null,
+    "assessment": {
+      "prepared": true,
+      "preparation_error": null,
+      "file_errors": [],
+      "artifact_checks": [
+        {
+          "scope": "task",
+          "pattern": "**/*.txt",
+          "minimum": 1,
+          "maximum": 1,
+          "actual": 1,
+          "passed": true
+        }
+      ],
+      "pre": {
+        "stage": "draft",
+        "phase": "pre",
+        "passed": true,
+        "requirements": []
+      },
+      "post": {
+        "stage": "draft",
+        "phase": "post",
+        "passed": true,
+        "requirements": []
+      },
+      "passed": false,
+      "file_admission": {
+        "passed": false,
+        "files": [
+          {
+            "root": null,
+            "path": "@OUTSIDE",
+            "allowed": false,
+            "reason": "outside_roots"
+          }
+        ]
+      }
+    }
+  },
+  "inside_gate_response": {
+    "schema": "stride-execution/v1",
+    "status": "evaluated",
+    "revision": 4,
+    "replayed": false,
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "scope-1",
+    "candidate_id": "candidate-1",
+    "stage_id": "draft",
+    "iteration": 1,
+    "accepted": true,
+    "result_id": "@RESULT",
+    "assessment": {
+      "prepared": true,
+      "preparation_error": null,
+      "file_errors": [],
+      "artifact_checks": [
+        {
+          "scope": "task",
+          "pattern": "**/*.txt",
+          "minimum": 1,
+          "maximum": 1,
+          "actual": 1,
+          "passed": true
+        }
+      ],
+      "pre": {
+        "stage": "draft",
+        "phase": "pre",
+        "passed": true,
+        "requirements": []
+      },
+      "post": {
+        "stage": "draft",
+        "phase": "post",
+        "passed": true,
+        "requirements": []
+      },
+      "passed": true,
+      "file_admission": {
+        "passed": true,
+        "files": [
+          {
+            "root": {
+              "kind": "artifact",
+              "position": 0
+            },
+            "path": "outputs/note.txt",
+            "allowed": true,
+            "reason": null
+          }
+        ]
+      }
+    }
   }
 }

@@ -1,0 +1,3060 @@
+[
+  {
+    "case": "kind-dict",
+    "route": "definition",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "definition",
+          "definition": {
+            "goal_type": "notes",
+            "worktree_required": false,
+            "benefit": {
+              "git_categories": [
+                "documentation"
+              ],
+              "sections": []
+            },
+            "route": {
+              "entry": "outline"
+            },
+            "content_contract": {
+              "sections": [
+                {
+                  "id": "extra",
+                  "template": "",
+                  "normalization": "exact",
+                  "write_stages": [
+                    "review"
+                  ]
+                }
+              ],
+              "routes": [],
+              "requirements": [
+                {
+                  "id": "section-rule",
+                  "kind": {},
+                  "stages": [
+                    "review"
+                  ],
+                  "phase": "post",
+                  "section": "extra",
+                  "states": [
+                    "populated"
+                  ]
+                }
+              ]
+            },
+            "stages": [
+              {
+                "id": "review",
+                "handler": "inspect",
+                "role": "editor",
+                "transitions": {
+                  "clear": null,
+                  "changes_requested": "compose"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "observation",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": [
+                    "compose"
+                  ]
+                },
+                "instruction": "Проверить текст.",
+                "read_only": true,
+                "allowed_paths": [],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать проверку."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "compose",
+                "handler": "produce",
+                "role": "writer",
+                "transitions": {
+                  "complete": "review"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "execution",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": []
+                },
+                "instruction": "Подготовить текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "articles/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать результат."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "outline",
+                "handler": "produce",
+                "role": "planner",
+                "transitions": {
+                  "complete": "compose"
+                },
+                "rework_targets": [
+                  "outline"
+                ],
+                "purpose": "design",
+                "criteria_authority": {
+                  "propose": [
+                    "compose"
+                  ],
+                  "decide": []
+                },
+                "instruction": "Спроектировать текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "notes/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Записать план."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              }
+            ]
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": {},
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": "extra",
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "kind-dict",
+    "route": "template",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "template",
+          "template": {
+            "id": "starter"
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": {},
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": "extra",
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "kind-dict",
+    "route": "current",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "status",
+        "goal_type": "writing"
+      }
+    },
+    "document": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": {},
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": "extra",
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "kind-list",
+    "route": "definition",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "definition",
+          "definition": {
+            "goal_type": "notes",
+            "worktree_required": false,
+            "benefit": {
+              "git_categories": [
+                "documentation"
+              ],
+              "sections": []
+            },
+            "route": {
+              "entry": "outline"
+            },
+            "content_contract": {
+              "sections": [
+                {
+                  "id": "extra",
+                  "template": "",
+                  "normalization": "exact",
+                  "write_stages": [
+                    "review"
+                  ]
+                }
+              ],
+              "routes": [],
+              "requirements": [
+                {
+                  "id": "section-rule",
+                  "kind": [],
+                  "stages": [
+                    "review"
+                  ],
+                  "phase": "post",
+                  "section": "extra",
+                  "states": [
+                    "populated"
+                  ]
+                }
+              ]
+            },
+            "stages": [
+              {
+                "id": "review",
+                "handler": "inspect",
+                "role": "editor",
+                "transitions": {
+                  "clear": null,
+                  "changes_requested": "compose"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "observation",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": [
+                    "compose"
+                  ]
+                },
+                "instruction": "Проверить текст.",
+                "read_only": true,
+                "allowed_paths": [],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать проверку."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "compose",
+                "handler": "produce",
+                "role": "writer",
+                "transitions": {
+                  "complete": "review"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "execution",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": []
+                },
+                "instruction": "Подготовить текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "articles/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать результат."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "outline",
+                "handler": "produce",
+                "role": "planner",
+                "transitions": {
+                  "complete": "compose"
+                },
+                "rework_targets": [
+                  "outline"
+                ],
+                "purpose": "design",
+                "criteria_authority": {
+                  "propose": [
+                    "compose"
+                  ],
+                  "decide": []
+                },
+                "instruction": "Спроектировать текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "notes/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Записать план."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              }
+            ]
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": [],
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": "extra",
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "kind-list",
+    "route": "template",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "template",
+          "template": {
+            "id": "starter"
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": [],
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": "extra",
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "kind-list",
+    "route": "current",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "status",
+        "goal_type": "writing"
+      }
+    },
+    "document": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": [],
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": "extra",
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "section-dict",
+    "route": "definition",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "definition",
+          "definition": {
+            "goal_type": "notes",
+            "worktree_required": false,
+            "benefit": {
+              "git_categories": [
+                "documentation"
+              ],
+              "sections": []
+            },
+            "route": {
+              "entry": "outline"
+            },
+            "content_contract": {
+              "sections": [
+                {
+                  "id": "extra",
+                  "template": "",
+                  "normalization": "exact",
+                  "write_stages": [
+                    "review"
+                  ]
+                }
+              ],
+              "routes": [],
+              "requirements": [
+                {
+                  "id": "section-rule",
+                  "kind": "section",
+                  "stages": [
+                    "review"
+                  ],
+                  "phase": "post",
+                  "section": {},
+                  "states": [
+                    "populated"
+                  ]
+                }
+              ]
+            },
+            "stages": [
+              {
+                "id": "review",
+                "handler": "inspect",
+                "role": "editor",
+                "transitions": {
+                  "clear": null,
+                  "changes_requested": "compose"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "observation",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": [
+                    "compose"
+                  ]
+                },
+                "instruction": "Проверить текст.",
+                "read_only": true,
+                "allowed_paths": [],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать проверку."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "compose",
+                "handler": "produce",
+                "role": "writer",
+                "transitions": {
+                  "complete": "review"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "execution",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": []
+                },
+                "instruction": "Подготовить текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "articles/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать результат."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "outline",
+                "handler": "produce",
+                "role": "planner",
+                "transitions": {
+                  "complete": "compose"
+                },
+                "rework_targets": [
+                  "outline"
+                ],
+                "purpose": "design",
+                "criteria_authority": {
+                  "propose": [
+                    "compose"
+                  ],
+                  "decide": []
+                },
+                "instruction": "Спроектировать текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "notes/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Записать план."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              }
+            ]
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": "section",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": {},
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "section"
+  },
+  {
+    "case": "section-dict",
+    "route": "template",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "template",
+          "template": {
+            "id": "starter"
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": "section",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": {},
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "section"
+  },
+  {
+    "case": "section-dict",
+    "route": "current",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "status",
+        "goal_type": "writing"
+      }
+    },
+    "document": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": "section",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": {},
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "section"
+  },
+  {
+    "case": "section-list",
+    "route": "definition",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "definition",
+          "definition": {
+            "goal_type": "notes",
+            "worktree_required": false,
+            "benefit": {
+              "git_categories": [
+                "documentation"
+              ],
+              "sections": []
+            },
+            "route": {
+              "entry": "outline"
+            },
+            "content_contract": {
+              "sections": [
+                {
+                  "id": "extra",
+                  "template": "",
+                  "normalization": "exact",
+                  "write_stages": [
+                    "review"
+                  ]
+                }
+              ],
+              "routes": [],
+              "requirements": [
+                {
+                  "id": "section-rule",
+                  "kind": "section",
+                  "stages": [
+                    "review"
+                  ],
+                  "phase": "post",
+                  "section": [],
+                  "states": [
+                    "populated"
+                  ]
+                }
+              ]
+            },
+            "stages": [
+              {
+                "id": "review",
+                "handler": "inspect",
+                "role": "editor",
+                "transitions": {
+                  "clear": null,
+                  "changes_requested": "compose"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "observation",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": [
+                    "compose"
+                  ]
+                },
+                "instruction": "Проверить текст.",
+                "read_only": true,
+                "allowed_paths": [],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать проверку."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "compose",
+                "handler": "produce",
+                "role": "writer",
+                "transitions": {
+                  "complete": "review"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "execution",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": []
+                },
+                "instruction": "Подготовить текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "articles/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать результат."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "outline",
+                "handler": "produce",
+                "role": "planner",
+                "transitions": {
+                  "complete": "compose"
+                },
+                "rework_targets": [
+                  "outline"
+                ],
+                "purpose": "design",
+                "criteria_authority": {
+                  "propose": [
+                    "compose"
+                  ],
+                  "decide": []
+                },
+                "instruction": "Спроектировать текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "notes/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Записать план."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              }
+            ]
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": "section",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": [],
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "section"
+  },
+  {
+    "case": "section-list",
+    "route": "template",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "template",
+          "template": {
+            "id": "starter"
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": "section",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": [],
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "section"
+  },
+  {
+    "case": "section-list",
+    "route": "current",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "status",
+        "goal_type": "writing"
+      }
+    },
+    "document": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "section-rule",
+            "kind": "section",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "section": [],
+            "states": [
+              "populated"
+            ]
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "section"
+  },
+  {
+    "case": "artifact-source-kind-object",
+    "route": "definition",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "definition",
+          "definition": {
+            "goal_type": "notes",
+            "worktree_required": false,
+            "benefit": {
+              "git_categories": [
+                "documentation"
+              ],
+              "sections": []
+            },
+            "route": {
+              "entry": "outline"
+            },
+            "content_contract": {
+              "sections": [
+                {
+                  "id": "extra",
+                  "template": "",
+                  "normalization": "exact",
+                  "write_stages": [
+                    "review"
+                  ]
+                }
+              ],
+              "routes": [],
+              "requirements": [
+                {
+                  "id": "artifact-rule",
+                  "kind": "artifact",
+                  "stages": [
+                    "review"
+                  ],
+                  "phase": "post",
+                  "scope": "task",
+                  "pattern": "*.txt",
+                  "minimum": 1,
+                  "maximum": 1,
+                  "source": {
+                    "kind": {}
+                  }
+                }
+              ]
+            },
+            "stages": [
+              {
+                "id": "review",
+                "handler": "inspect",
+                "role": "editor",
+                "transitions": {
+                  "clear": null,
+                  "changes_requested": "compose"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "observation",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": [
+                    "compose"
+                  ]
+                },
+                "instruction": "Проверить текст.",
+                "read_only": true,
+                "allowed_paths": [],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать проверку."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "compose",
+                "handler": "produce",
+                "role": "writer",
+                "transitions": {
+                  "complete": "review"
+                },
+                "rework_targets": [
+                  "compose"
+                ],
+                "purpose": "execution",
+                "criteria_authority": {
+                  "propose": [],
+                  "decide": []
+                },
+                "instruction": "Подготовить текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "articles/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Описать результат."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              },
+              {
+                "id": "outline",
+                "handler": "produce",
+                "role": "planner",
+                "transitions": {
+                  "complete": "compose"
+                },
+                "rework_targets": [
+                  "outline"
+                ],
+                "purpose": "design",
+                "criteria_authority": {
+                  "propose": [
+                    "compose"
+                  ],
+                  "decide": []
+                },
+                "instruction": "Спроектировать текст.",
+                "read_only": false,
+                "allowed_paths": [
+                  "notes/**"
+                ],
+                "normalization": "strip",
+                "sections": {
+                  "report": "Записать план."
+                },
+                "required_sections": [
+                  "report"
+                ],
+                "artifact_requirements": []
+              }
+            ]
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "artifact-rule",
+            "kind": "artifact",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "scope": "task",
+            "pattern": "*.txt",
+            "minimum": 1,
+            "maximum": 1,
+            "source": {
+              "kind": {}
+            }
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "artifact-source-kind-object",
+    "route": "template",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "create",
+        "request_id": "malformed",
+        "expected_revision": 1,
+        "goal_type": "notes",
+        "source": {
+          "kind": "template",
+          "template": {
+            "id": "starter"
+          }
+        },
+        "changes": []
+      }
+    },
+    "document": {
+      "goal_type": "notes",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "artifact-rule",
+            "kind": "artifact",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "scope": "task",
+            "pattern": "*.txt",
+            "minimum": 1,
+            "maximum": 1,
+            "source": {
+              "kind": {}
+            }
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "artifact-source-kind-object",
+    "route": "current",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "process",
+      "input": {
+        "action": "status",
+        "goal_type": "writing"
+      }
+    },
+    "document": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "outline"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "extra",
+            "template": "",
+            "normalization": "exact",
+            "write_stages": [
+              "review"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "artifact-rule",
+            "kind": "artifact",
+            "stages": [
+              "review"
+            ],
+            "phase": "post",
+            "scope": "task",
+            "pattern": "*.txt",
+            "minimum": 1,
+            "maximum": 1,
+            "source": {
+              "kind": {}
+            }
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": [
+              "compose"
+            ]
+          },
+          "instruction": "Проверить текст.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать проверку."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "articles/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Описать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        },
+        {
+          "id": "outline",
+          "handler": "produce",
+          "role": "planner",
+          "transitions": {
+            "complete": "compose"
+          },
+          "rework_targets": [
+            "outline"
+          ],
+          "purpose": "design",
+          "criteria_authority": {
+            "propose": [
+              "compose"
+            ],
+            "decide": []
+          },
+          "instruction": "Спроектировать текст.",
+          "read_only": false,
+          "allowed_paths": [
+            "notes/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать план."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "field": "kind"
+  },
+  {
+    "case": "stage-id-dict",
+    "route": "setup",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "setup-1",
+        "expected_revision": 1,
+        "operations": [
+          {
+            "id": "setup",
+            "kind": "setup_execution",
+            "contract": {
+              "task_id": "0042",
+              "requirements_snapshot_revision": 2,
+              "process_ref": {
+                "goal_type": "writing",
+                "revision": "23839f9264193eaa3c348fdb7e440b81840e45db6c009757392c4af48d555667"
+              },
+              "admission_id": "admit-0042",
+              "workspace_id": null,
+              "stage_expectations": [
+                {
+                  "stage_id": {},
+                  "values": [],
+                  "files": [],
+                  "methods": []
+                },
+                {
+                  "stage_id": "compose",
+                  "values": [],
+                  "files": [],
+                  "methods": []
+                },
+                {
+                  "stage_id": "outline",
+                  "values": [],
+                  "files": [],
+                  "methods": []
+                }
+              ],
+              "restart_policy_id": "rp-1",
+              "methods": [],
+              "evidence_plan": {
+                "review": {
+                  "subject_methods": {},
+                  "arguments": [],
+                  "review_arguments": []
+                },
+                "compose": {
+                  "subject_methods": {},
+                  "arguments": [],
+                  "review_arguments": []
+                },
+                "outline": {
+                  "subject_methods": {},
+                  "arguments": [],
+                  "review_arguments": []
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "field": "stage_id"
+  },
+  {
+    "case": "stage-id-list",
+    "route": "setup",
+    "input": {
+      "schema": "stride-execution/v1",
+      "operation": "apply",
+      "input": {
+        "request_id": "setup-1",
+        "expected_revision": 1,
+        "operations": [
+          {
+            "id": "setup",
+            "kind": "setup_execution",
+            "contract": {
+              "task_id": "0042",
+              "requirements_snapshot_revision": 2,
+              "process_ref": {
+                "goal_type": "writing",
+                "revision": "23839f9264193eaa3c348fdb7e440b81840e45db6c009757392c4af48d555667"
+              },
+              "admission_id": "admit-0042",
+              "workspace_id": null,
+              "stage_expectations": [
+                {
+                  "stage_id": [],
+                  "values": [],
+                  "files": [],
+                  "methods": []
+                },
+                {
+                  "stage_id": "compose",
+                  "values": [],
+                  "files": [],
+                  "methods": []
+                },
+                {
+                  "stage_id": "outline",
+                  "values": [],
+                  "files": [],
+                  "methods": []
+                }
+              ],
+              "restart_policy_id": "rp-1",
+              "methods": [],
+              "evidence_plan": {
+                "review": {
+                  "subject_methods": {},
+                  "arguments": [],
+                  "review_arguments": []
+                },
+                "compose": {
+                  "subject_methods": {},
+                  "arguments": [],
+                  "review_arguments": []
+                },
+                "outline": {
+                  "subject_methods": {},
+                  "arguments": [],
+                  "review_arguments": []
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "field": "stage_id"
+  }
+]

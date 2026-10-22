@@ -43,9 +43,11 @@ class StageFiles:
                              'reason': 'outside_roots'}
             else:
                 key, relative = location
-                admission = policy.decide(stage_id, {'kind': key[0], 'position': key[1]}, relative, 'read')
-                if not regular:
-                    admission.update(allowed=False, reason=failure)
+                root = {'kind': key[0], 'position': key[1]}
+                if regular:
+                    admission = policy.decide(stage_id, root, relative, 'read')
+                else:
+                    admission = {'root': root, 'path': relative, 'allowed': False, 'reason': failure}
             admissions.append(admission)
             if regular:
                 catalogue.add(raw)

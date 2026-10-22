@@ -179,15 +179,64 @@ def test_invalid_correction_is_rejected_without_effects(project, variant):
     assert s.path('B').read_bytes() == b'B\r\n'
 
 
-def test_reader_uses_current_text_bytes(project):
+def test_reader_uses_current_text_bytes(project, tmp_path):
     s = Scenario(project, first='B')
     s.refine('accepted')
-    assert s.read()['content'] == 'A\r\n'
-    data = 'Новые данные\r\n\x00'.encode('utf-8')
-    s.write(data=data)
-    s.submit([s.argument(correction=correction())], required_contract=True)
-    reply = s.read()
-    assert reply['content'] == 'Новые данные\r\n\x00' and reply['size_bytes'] == len(data)
+    require(s.runtime is s.author and s.context['stage'] == 'refine',
+            'Current-file correction requires real author refine ownership')
+    expected = fixture('current-reader-observations.json')
+    proof_path = str(s.path())
+
+    def assert_response(reply, representation, content, size):
+        assert set(reply) == {
+            'status', 'task', 'argument_id', 'path', 'representation', 'content', 'size_bytes'}
+        assert reply['status'] == 'read_only' and reply['task'] == 'T1'
+        assert reply['argument_id'] == 'A' and reply['path'] == proof_path
+        assert reply['representation'] == representation
+        assert reply['content'] == content and reply['size_bytes'] == size
+
+    old = s.read()
+    assert_response(old, 'text', expected['old_text'], expected['old_size_bytes'])
+    assert_response(s.read(representation='base64'), 'base64',
+                    expected['old_base64'], expected['old_size_bytes'])
+    saved = tmp_path / 'old-current-reader-response.json'
+    saved.write_text(json.dumps(old, ensure_ascii=False), encoding='utf-8')
+    saved_bytes = saved.read_bytes()
+    prior_proofs = deepcopy(current(s))
+    prior_decisions = deepcopy(s.show()['decisions'])
+    before_write = s.business()
+    # The authorized author has found A unreliable. The existing declaration
+    # is presented after these reads; there is no new server operation/token.
+    reason = correction()
+    s.write(data=expected['new_text'].encode('utf-8'))
+    before_reads = s.business()
+    assert before_reads[0] == before_write[0]
+    assert s.path('B').read_bytes() == b'B\r\n'
+
+    # A cache refreshed only by verify must fail HERE: no new submission or
+    # decision has occurred between the file edit and either actual read.
+    assert_response(s.read(), 'text', expected['new_text'], expected['new_size_bytes'])
+    assert_response(s.read(representation='base64'), 'base64',
+                    expected['new_base64'], expected['new_size_bytes'])
+    assert s.business() == before_reads
+    assert current(s) == prior_proofs and s.show()['decisions'] == prior_decisions
+    assert saved.read_bytes() == saved_bytes
+    assert_response(json.loads(saved.read_text(encoding='utf-8')), 'text',
+                    expected['old_text'], expected['old_size_bytes'])
+
+    response = s.submit([s.argument(correction=reason)], required_contract=True)
+    assert response['status'] == 'verified'
+    assert current(s)[1]['state'] == 'presented'
+    assert current(s)[0] == prior_proofs[0]
+    s.transfer()
+    assert_response(s.read(), 'text', expected['new_text'], expected['new_size_bytes'])
+    assert s.submit(decisions=[s.decide()])['stage_outcome'] == 'clear'
+    proof = current(s)[1]
+    assert proof['path'] == proof_path and proof['state'] == 'accepted'
+    assert [d['decision'] for d in s.show()['decisions']
+            if d['argument_id'] == 'A'] == ['accepted', 'accepted']
+    assert current(s)[0] == prior_proofs[0]
+    assert s.path('B').read_bytes() == b'B\r\n' and saved.read_bytes() == saved_bytes
 
 
 def test_reader_returns_lossless_binary(project):

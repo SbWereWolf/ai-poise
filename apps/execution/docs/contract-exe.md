@@ -1,16 +1,22 @@
 # Execution public contract
 
-Статус: действующий process API и целевой проект последующего lifecycle.
+Статус: действующие process/gate API и проектные материалы последующего lifecycle.
 Версия публичного протокола: `stride-execution/v1`.
 
-Текущая поставка реализует `process` из §4, `apply/setup_execution`, `query/execution`
-и Python-интерфейс записи/чтения фактов. Практический действующий договор описывают
-[оболочка](shell-exe.md), [редактор процессов](process-exe.md) и
-[собственный store](store-exe.md). В §12 F1/F2 показаны действующие process inputs.
-Остальные операции/схемы §1–3, §5–11 и F1a/F3–F11 остаются целевым проектом
-из `PS-DEV-002-T012`, если явно не отмечены в действующих руководствах.
-В частности, target structured `error` и внешний authority resolver описывают
-дальнейший lifecycle; текущий отказ содержит `reason`, exit `2`, пустой stderr.
+Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
+`query/execution|gate_context|gate_result` и Python-интерфейс записи/чтения фактов.
+Действующий договор описывают [оболочка](shell-exe.md),
+[редактор процессов](process-exe.md), [приёмка](gate-exe.md) и
+[собственный store](store-exe.md). В §12 F1/F2 относятся к process API,
+F3/F4 ссылаются на действующую приёмку.
+
+Остальные схемы §1–3, §5–11 и F1a/F5–F11 — проектные материалы T012, если явно
+не отмечены в действующих руководствах. Они сами по себе не объявляют возможности
+поставленного provider или новые обязательства реализации. В частности,
+`ValueRule`/`FileRule`, target structured `error`, authority resolver, subprocess
+runner и последующий lifecycle остаются проектом; фактический текущий отказ
+содержит `reason`, exit `2`, пустой stderr. Реальные секции, trace и файловые
+счётчики описаны у владельца [gate](gate-exe.md).
 
 ## 1. Владелец и существующий baseline
 
@@ -420,26 +426,19 @@ Configured retries создают новую разрешённую attempt, н�
 
 ### 7.2 `gate`
 
-Input точно `{request_id,expected_revision,task_id,generation,stage_id,iteration,
-candidate_id,candidate_digest}`. Gate сам читает current frozen expectations,
-captured artifacts, полный набор admitted current evidence и findings/decisions.
-Он не выполняет скрытый новый check-run и не принимает внешний `accepted` boolean.
+Действующая реализация имеет `action: declare|evaluate`. Точные входы, ответы,
+настройки и правильный исполняемый пример находятся в едином
+[руководстве gate](gate-exe.md). Контекст получает сохранённый полный процесс,
+явный слой Task и stage contracts; кандидат передаёт sections/trace и абсолютные
+пути реальных файлов. Счётчики этапа, выбранные pre/post и ошибки наблюдений
+совместно определяют результат.
 
-```json
-{"schema":"stride-execution/v1","operation":"gate","input":{"request_id":"g1","expected_revision":12,"task_id":"0042","generation":1,"stage_id":"draft","iteration":1,"candidate_id":"c1","candidate_digest":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}}
-```
-
-Success fields точно `{schema,status:"verified",revision,replayed,task_id,
-candidate_id,gate_id,source,artifact_ids:Id[],receipt_ids:Id[]}`.
-Gate records immutable verified candidate. Это **не** Task acceptance,
-не stage transition и не вызов Requirements/Sequencing. Отказ не публикует
-verified/accepted candidate; реальные failed attempts/audit сохраняются.
-
-Совпадение file/value необходимо, но не заменяет evidence обязательства этапа.
-Отсутствующий требуемый логический аргумент, отрицательный актуальный аргумент,
-нерассмотренное исправление или required check receipt — `evidence_incomplete`.
-Role separation инспекции сохраняется в source evidence; одинаковая configured
-роль означает self-review и не называется независимой проверкой.
+Положительный ответ имеет `status: evaluated`, `accepted: true`, собственный
+`result_id`; отрицательная оценка — `evaluated/accepted: false` и сохранённое
+решение с происхождением. Штатный отказ команды имеет `rejected/reason`.
+Точный повтор возвращает сохранённый итог; новый кандидат наблюдает факты заново.
+Приёмка оставляет канонические Task state/current_stage/generation/iteration
+своим владельцам и сохраняет различие факта команды, результата этапа и Task outcome.
 
 ## 8. Переходы, перемотка и outcome
 
@@ -508,6 +507,12 @@ obligation/receipt передаётся ему явно. Интеграция н
 удалить грязный/чужой Workspace или чужую ветку.
 
 ## 9. Consistent queries
+
+Текущее чтение `execution|gate_context|gate_result` определено в
+[оболочке](shell-exe.md#настройка-исполнения-и-чтение) и
+[руководстве gate](gate-exe.md#чтение-и-повторы). Раздел ниже сохраняет проектный
+набор остальных queries и их будущих схем; фактические gate queries имеют
+собственные result envelopes и возвращают null для отсутствующей записи.
 
 Input точно `{queries:Query[]}`, nonempty bounded, `id` непусты и уникальны.
 Один read batch видит одну owner revision, не выполняет repair/migration,
@@ -644,7 +649,8 @@ Timeout/failed check — observed failed evidence, не подмена его `s
 
 ## 12. Literal fixtures
 
-F1/F2 относятся к действующему process API; F1a/F3–F11 — отдельные target lifecycle fixtures.
+F1/F2 относятся к действующему process API; F3/F4 — к текущему gate.
+F1a/F5–F11 остаются отдельными проектными lifecycle fixtures.
 Все JSON ниже — literal данные, не вывод production serializer. Где краткая
 fixture задаёт условие словами, оно является обязательным precondition, а не
 пропущенным обязательным wire field. Реальные Digest считаются из указанных bytes;
@@ -715,38 +721,20 @@ files/source null, потому что данный stage source-free. Gate за
 
 ### F3 — matching value и file проходят gate
 
-Initial revision12; Execution Task0042 generation1 stage `draft` iteration1,
-contract revision `bbb…`, candidate `c1` digest `ccc…`. Frozen values правило:
-`count` integer required equals2; file rule требует один `result.txt` в root`out`
-с SHA-256 bytes `ok
-`. Exact captured artifact`a1`, known receipt`r1` и gate authority
-имеются; source-free stage разрешён. Candidate source null. Matching value `2`
-и real captured bytes проходят gate запрос §7.2.
-
-```json
-{"schema":"stride-execution/v1","status":"verified","revision":13,"replayed":false,"task_id":"0042","candidate_id":"c1","gate_id":"gate-c1","source":null,"artifact_ids":["a1"],"receipt_ids":["r1"]}
-```
-
-Verified candidate хранит captured bytes и value. Изменение позднего live
-`result.txt` не изменяет artifact`a1`. Никакой Sequencing terminal fact не записан.
+Действующий [исполняемый пример](gate-exe.md#правильный-исполняемый-пример)
+создаёт полный процесс, собственное исполнение, контекст и настоящий файл.
+Он получает реальные ссылки из ответов, проверяет `evaluated/accepted: true`,
+сохранённый `stage_result`, происхождение и точный повтор. Каноническая Task
+остаётся `draft`; приёмка результата не выполняет её переход.
 
 ### F4 — mismatch не становится принятым результатом
 
-Та же отдельная initial fixture revision12, candidate`c2` содержит строку`"2"`
-вместо integer2 и корректный файл. Запрос:
-
-```json
-{"schema":"stride-execution/v1","operation":"gate","input":{"request_id":"bad-value","expected_revision":12,"task_id":"0042","generation":1,"stage_id":"draft","iteration":1,"candidate_id":"c2","candidate_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
-```
-
-```json
-{"schema":"stride-execution/v1","status":"rejected","error":{"code":"result_mismatch","message":"Value type does not match the frozen expectation","retryable":false,"details":{"task_id":"0042","candidate_id":"c2","path":"values.count","reason":"type"}}}
-```
-
-Revision и accepted candidates не изменяются. Для missing required file вместо
-этого `result_mismatch`, path `files.output`, reason `minimum`; для уже заявленного
-FileRef с другими реальными bytes — `artifact_invalid`, reason `digest`.
-Это разные точно описанные initial cases, не два допустимых ответа одному случаю.
+Читайте [сохранённое решение](gate-exe.md#проверка-кандидата-и-сохранённое-решение)
+и различайте `evaluated/accepted: false` с assessment от `rejected/reason`.
+Первое сохраняет фактический кандидат и отрицательное решение; второе сохраняет
+исходное бизнес-состояние. Собственный `stage_result` появляется после успешного
+выполнения всех объявленных условий. Корректное чтение и повторы описаны в
+[едином договоре](gate-exe.md#чтение-и-повторы).
 
 ### F5 — restart требует настроенного согласования
 
@@ -867,7 +855,7 @@ candidate в том же packet => полный `not_found`, не смешанн
 | Frozen Task requirement | Обязательное доказательство дизайна |
 | --- | --- |
 | R01 / EXE-01 | §4, F1/F2: explicit graph и template materialization/edit через существующий parser/editor; no fixed pipeline |
-| R02 / EXE-04 | §5/7, F3/F4: matching file/value captured и verified, mismatching rejected самим Execution |
+| R02 / EXE-04 | §7.2, F3/F4 и gate-exe: реальные секции/trace/файловые счётчики, собственные сохранённые assessment/решение/результат и происхождение |
 | R03 / EXE-07 | §6.1, F5/F8: exact approved restart, unauthorized refusal, immutable history/WIP, no replacement identity |
 | R04 / EXE-08 | §8.1, F6: актуальные proof разных ролей, роль инициатора не ограничивает reuse, stop first gap |
 | R05 / GEN-03 | §1/3/6/10, F9/F10: собственные config/store и нет foreign private state/fan-out |

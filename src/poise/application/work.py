@@ -111,6 +111,9 @@ class WorkTools:
             raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'],payload)
         h.validate_stage_scope(data)
+        continuation = h.precheck_observation_continuation(data, payload)
+        if continuation is not None:
+            return continuation
         # Validate submitted AND registered artifacts before producing any new file.
         h.validate_verification_artifacts(args['result']['artifact_paths'],data)
         factory.materialize(prepared)

@@ -264,7 +264,7 @@ def prepare_task(
                 evidence[sid]['subject_methods'][mid]={'exit_codes':[0,1] if goal=='verification' else [m['expected_exit_code']],
                     'stdout_contains':['VALUE='] if goal=='verification' else [],'stderr_contains':[]}
         post=[x for x in workflow['content_contract']['sections'] if sid in x['write_stages']]
-        if post and mids:
+        if mids and (post or goal == 'verification'):
             evidence[sid]['arguments']=[{'id':'argument-'+sid,'kind':'logical','phase':'continue','observation_methods':mids}]
     for stage in workflow['stages']:
         if stage['handler']=='inspect':
@@ -497,7 +497,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
         proof={'arguments':[],'decisions':[]}
         if arg_plan['review_arguments']:
             view=invoke('show',{'queries':[{'id':'proof','kind':'evidence'}]})['results'][0]['value']
-            proof=view['book'] if 'book' in view else view
+            proof=view
         arguments=proof['arguments']
         review=[]
         for aid in arg_plan['review_arguments']:

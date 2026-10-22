@@ -790,6 +790,22 @@ class Poise:
         return inspect_paths(paths,roots,owners)
 
 
+    def precheck_observation_continuation(self, data, payload, tree=None, changed=None):
+        """Keep unavailable machine observations on their existing no-rerun route."""
+        if payload['evidence_work']['phase'] != 'continue' or data['pending'] is not None:
+            return None
+        if tree is None or changed is None:
+            scope = self.validate_stage_scope(data)
+            tree, changed = scope['tree'], scope['changed']
+        checks = self._select_checks(data, changed)
+        invocations, key = self._verification_execution(data, tree, checks, self._verification_workspace(data))
+        batch = self.task_commands.observation_batch(data['id'], tree, key)
+        if batch is not None and self._usable_receipts(data['id'], batch['receipts'], invocations, tree):
+            return None
+        return {'status': 'observations_stale', 'task': data['id'], 'stage': self._stage(data)['id'],
+                'reason': 'Нужен PREPARE: точные входы наблюдения изменились или receipt недоступен.',
+                'context': self._context(data, True)}
+
     def validate_verification_artifacts(self, paths, task):
         """Read-only preflight shared by public and direct verification."""
         return self._candidate_artifacts(task, paths, self._roots(task))
@@ -1608,6 +1624,9 @@ class Poise:
             selected = self._select_checks(data, changed)
             invocations, _ = self._verification_execution(data, tree, selected, worktree)
             require_identity(data['pending'], self._attempt_identity(tree, invocations))
+        continuation = self.precheck_observation_continuation(data, payload, tree, changed)
+        if continuation is not None:
+            return continuation
         self.validate_verification_artifacts(payload['artifact_paths'], data)
         self.validate_proof_result(data, payload, tree)
         for method in self._select_checks(data, changed):

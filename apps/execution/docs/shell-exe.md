@@ -15,8 +15,8 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 Передайте один UTF-8 JSON-пакет с завершающим переводом строки через stdin.
 Приложение возвращает один JSON-результат в stdout. Схема пакета —
 `stride-execution/v1`; текущий CLI выполняет `process`, `apply` с
-`setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check`
-и `query` с `kind: execution|gate_context|gate_result|file_result`.
+`setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check|diff`
+и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result`.
 [Редактор процессов](process-exe.md) описывает create/edit/status/reconcile и
 материализацию выбранного графа.
 
@@ -102,7 +102,8 @@ Execution редакцию контракта. Состояние исполне
 
 `query` с `kind: "execution"` возвращает `task_id`, generation, редакцию контракта,
 состояние, текущий этап и iteration, Workspace и admission, а также общую revision
-собственного хранилища. В batch с `file_result` либо gate-запросом к существующему
+собственного хранилища. В batch с `file_result`, `file_diff_result` либо gate-запросом к
+существующему
 контексту с `file_policy` корень ответа дополнительно содержит `replayed: false`.
 Остальные query сохраняют прежний корневой набор полей.
 
@@ -131,6 +132,12 @@ candidate ID создаёт новое наблюдение по [договор
 `result_id`; положительное решение возвращает exit `0`, отрицательное — exit `2`.
 Оба сохраняются и читаются через `query/file_result`. Это результат проверки
 объявленных границ, а выполнение файловой операции остаётся у вызывающей стороны.
+
+Для настоящего Git используйте [сравнение и подготовку коммита](diff-exe.md):
+заполните явные `git.seconds` и `git.observations` в полном конфигурационном файле.
+`files/diff` возвращает `diff_checked`, положительный exit `0` либо отрицательный
+exit `2`, сохраняет решение для `query/file_diff_result`. Физический коммит выполняется
+публичным Python-вызовом `Store.prepare_stage_commit`, описанным в том же руководстве.
 
 Python-интерфейс записи фактов возвращает `ExecutionError`; порядок продолжения
 после атомарного отказа описан в [руководстве store](store-exe.md#атомарность-и-продолжение).

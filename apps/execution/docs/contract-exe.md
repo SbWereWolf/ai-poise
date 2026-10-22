@@ -4,8 +4,8 @@
 Версия публичного протокола: `stride-execution/v1`.
 
 Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
-`files/check`, `query/execution|gate_context|gate_result|file_result` и Python-интерфейс
-записи/чтения фактов.
+`files/check|diff`, `query/execution|gate_context|gate_result|file_result|file_diff_result`,
+Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`.
 Действующий договор описывают [оболочка](shell-exe.md),
 [редактор процессов](process-exe.md), [приёмка](gate-exe.md) и
 [файловые границы этапа](files-exe.md) и [собственный store](store-exe.md).
@@ -24,9 +24,10 @@ runner и последующий lifecycle остаются проектом; ф
 содержит `reason`, exit `2`, пустой stderr. Реальные секции, trace и файловые
 счётчики описаны у владельца [gate](gate-exe.md).
 
-[Договор сравнения изменений этапа](diff-exe.md) определяет отдельную следующую поставку:
-`files/diff` и `query/file_diff_result`, два сравнения и сохранение незавершённой работы.
-Этот договор предназначен для последующей реализации; перечисленные выше текущие API сохраняются.
+[Сравнение изменений этапа](diff-exe.md) описывает действующие `files/diff`,
+`query/file_diff_result` и физическую подготовку коммита через `Store.prepare_stage_commit`:
+два сравнения, сохранение незавершённой работы и собственное решение допуска.
+Эти возможности отделены от проектного lifecycle и последующей интеграции результата.
 
 ## 1. Владелец и существующий baseline
 

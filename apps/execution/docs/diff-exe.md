@@ -2,15 +2,15 @@
 
 ## Статус и владельцы
 
-Это договор следующей реализации Git adapter Execution. Текущий provider поставляет
-[process, setup, gate, files/check и чтение](shell-exe.md#запуск).
-Описанные здесь `files/diff`, `query/file_diff_result` и компонент конфигурации `git`
-предназначены для последующей реализации. Наличие этого документа и примеров
-подтверждает проект договора; выполнение будущего интерфейса ими не доказывается.
+Execution реализует `files/diff`, `query/file_diff_result` и публичный Python-вызов
+`Store.prepare_stage_commit`. Настройка `git` подключает их к настоящей рабочей копии.
+[Оболочка](shell-exe.md#запуск) описывает остальные действующие команды.
+Это руководство описывает реализованное наблюдение и физический коммит;
+владение жизненным циклом Task остаётся у его вызывающей стороны.
 
 Существующий исходный процесс сравнения использует сохранённый `entry_tree`,
 наблюдаемый net-снимок файлов и `git diff --name-only --no-renames -z`.
-Договор сохраняет этот смысл и уточняет состав будущего коммита. Execution владеет
+Реализация сохраняет этот смысл и уточняет состав намеченного коммита. Execution владеет
 наблюдением, применением [правил этапа](files-exe.md) и собственным решением.
 Sequencing сохраняет владение [физическим
 Workspace](../../sequencing/docs/contract-seq.md#60-реализованная-подготовка).
@@ -64,7 +64,11 @@ tree, разрешаемый Git в исходное дерево при нов�
 point. Используется NUL-разделённый вывод без распознавания переименований: перенос
 файла представлен старым и новым именем. Удалённое имя остаётся изменённым путём,
 хотя обычного файла по нему уже нет. Изменение режима или вида записи учитывается
-как изменение Git-дерева по имени.
+как изменение Git-дерева по имени. Изменение gitlink подмодуля также входит
+в оба сравнения независимо от `diff.ignoreSubmodules`: сравниваются ссылки родительского
+дерева. Внутреннюю незавершённую работу подмодуля обслуживает её собственный владелец.
+Обычные repositories и связанные `git worktree` поддерживаются через команды Git.
+Передавайте точное имя объявленного корня, включая значимые пробелы.
 
 Для допуска применяется WRITE-правило этапа к отсортированному объединению обоих
 списков. Каждый путь проверяется один раз. Это сохраняет обе границы: изменение
@@ -94,7 +98,7 @@ point. Используется NUL-разделённый вывод без р�
 [Шаблон запроса и независимые примеры](examples/stage-diff-cases.json) содержат
 точные поля. В `request_template` подставьте значения из своего настроенного
 исполнения, актуальную revision и действительную ссылку этапа. Сохраните числовые
-типы generation/revision. Запрос применяется к поставке, реализующей этот договор.
+типы generation/revision. Передайте заполненный пакет действующей оболочке.
 Список изменённых путей вычисляет adapter, вызывающая сторона передаёт контекст.
 
 Ответ имеет ровно следующие поля:
@@ -139,7 +143,7 @@ Producer сохраняет `file_diff_decision` через существующ
 `process_ref`, `workspace_id`. Происхождение соответствует сохранённому собственному
 контексту, договору и снимку процесса.
 
-Будущий query selector имеет ровно `id`, `kind: "file_diff_result"`, `task_id`,
+Действующий query selector имеет ровно `id`, `kind: "file_diff_result"`, `task_id`,
 `generation`, `context_id`, `request_id`. Элемент ответа — `{id,kind,result}`;
 `result` содержит свою запись либо null. Batch читает один снимок, корень ответа
 имеет `{schema,status: "read_only",revision,replayed: false,results}`.
@@ -156,9 +160,9 @@ Producer сохраняет `file_diff_decision` через существующ
 исходный ответ с `replayed: true` и не наблюдает изменившиеся файлы или refs заново.
 Для нового наблюдения используйте новый request ID и актуальную revision.
 
-## Явная настройка следующей поставки
+## Явная настройка Git
 
-Для будущего `files/diff` предусмотрен компонент `git` с обязательными известными
+Для `files/diff` и `Store.prepare_stage_commit` добавьте компонент `git` с обязательными известными
 параметрами. Пример его правильного заполнения:
 
 ```json
@@ -175,7 +179,8 @@ Producer сохраняет `file_diff_decision` через существующ
 имена файлов. Настройки process/gates и файловой политики берутся из
 [действующего руководства](files-exe.md#настройка-и-объявление-политики).
 Неизвестные опции сохраняются как расширения, обязательные известные значения
-задаются явно. Текущая поставка ещё не реализует этот новый компонент для diff.
+задаются явно. Без компонента `git` остальные интерфейсы сохраняют свою настройку;
+для работы с Git заполните оба параметра в собственном полном конфигурационном файле.
 
 ## Правильная работа с кандидатом и WIP
 
@@ -194,7 +199,7 @@ Producer сохраняет `file_diff_decision` через существующ
    файлов. Проверка сохраняет реальный индекс; сам коммит подготовит свой индекс
    из выбранного net-кандидата.
 
-При пустом HEAD→candidate net-diff новый содержательный коммит не требуется;
+При равенстве дерева HEAD и дерева кандидата новый содержательный коммит не требуется;
 независимое содержимое реального индекса сохраняется у своего владельца. Даже при
 пустом `commit_paths` остаётся проверка `stage_paths`. Физическое выполнение и
 результат коммита подтверждаются своими фактами, а не одним `allowed`.
@@ -221,5 +226,138 @@ Producer сохраняет `file_diff_decision` через существующ
 Проверка JSON через стандартный `json.tool` подтверждает синтаксис примеров.
 Существующий checker документации проверяет ссылки и точные заголовки, включая
 входящие ссылки изменённых страниц. Исполнитель и независимый проверяющий
-сопоставляют смысл каждого примера с исходниками и принятым анализом. Эти проверки
-не объявляют будущий producer/consumer реализованным или прошедшим end-to-end тест.
+сопоставляют смысл каждого примера с исходниками и принятым анализом. Проверки
+синтаксиса и ссылок отделены от выполнения интерфейсов на настоящем Git.
+
+## Публичная подготовка коммита
+
+Из корня checkout импортируйте `Store` и `load_config` из `apps.execution.shell`,
+создайте `Store(load_config(config_path))` и вызовите `prepare_stage_commit`.
+Все аргументы именованные и обязательные:
+
+| Аргументы | Источник и смысл |
+| --- | --- |
+| `task_id`, `generation`, `context_id`, `stage_id`, `root`, `baseline_ref` | Тот же собственный контекст и исходная версия, что у нового `files/diff` |
+| `expected_head` | Наблюдаемый `head_commit` выбранного результата |
+| `candidate_tree` | Намеченный `candidate_tree` того же результата |
+| `message`, `commit_pattern` | Явное непустое сообщение и корректное регулярное выражение для полного соответствия сообщения |
+| `author_name`, `author_email` | Явные непустые значения автора и committer Git |
+
+Вызов снова наблюдает рабочую копию и применяет WRITE к объединению двух списков.
+Отрицательный допуск возвращает `status: "commit_denied"`, `created: false`, текущие
+`commit` и `tree`, а также `admission`. Физический индекс, HEAD и файлы сохраняются.
+Для допущенного результата проверяется совпадение кандидата с выбранным деревом.
+При равенстве кандидата и дерева текущего HEAD возвращается `status: "committed"`,
+`created: false`; отдельное staged-содержимое сохраняется. Эта проверка также
+позволяет повторить вызов с прежним фиксированным кандидатом после его коммита.
+Для нового коммита текущий HEAD должен совпасть с `expected_head`.
+
+Физическая запись подготавливает реальный индекс через `add --all`, сверяет его
+дерево с кандидатом, выполняет один commit с явными автором и сообщением и проверяет
+фактический HEAD, дерево и текущие файлы. Успех возвращает ровно
+`{status: "committed",created: true,commit,tree,admission}`.
+`admission` содержит ровно `root`, `role`, `baseline_tree`, `head_commit`, `head_tree`,
+`candidate_tree`, `stage_paths`, `commit_paths`, `decisions`, `allowed`.
+HEAD-поля относятся к свежему наблюдению перед физической записью.
+
+Это публичный Python-вызов, который возвращает факты Git. Канонический store,
+его revision, статус Task и переходы этапов сохраняет их существующий владелец.
+При повторе выполняется новое наблюдение; сохранённый replay относится к
+`files/diff`, а не к физическому коммиту.
+
+## Продолжение после результата Git
+
+Известные предпосылки проверяются до staging. Для явных аргументов используйте
+обычные представимые в Git строки и сообщение, полностью соответствующее шаблону.
+`ExecutionError` сообщает о предпосылке, которую вызывающая сторона исправляет
+перед новым наблюдением. Ошибки наблюдения также сохраняют реальный индекс и HEAD.
+
+После начала staging `StageCommitError` из `apps.execution.errors` сообщает поля
+`phase`, `effect`, `before_head`, `after_head`, `candidate_tree`, `detail` и сохраняет
+исходную причину исключения. `phase` принимает `add`, `index`, `commit`, `postcondition`.
+`effect` описывает только наблюдаемый HEAD: `none`, `head_changed` либо `unknown`;
+`after_head` может быть null. Даже при `effect: "none"` реальный индекс уже мог
+измениться. `detail` содержит исходные сведения ошибки, включая вывод Git.
+
+Сохраните результат ошибки и незавершённую работу, прочитайте фактические HEAD,
+индекс и рабочие файлы. Через владельца операции определите фактический результат,
+затем выбирайте дальнейшую работу и новое наблюдение. При неизвестном исходе сначала
+установите состояние завершившейся команды. Приложение выполняет одну попытку
+коммита и оставляет решение о продолжении вызывающей стороне.
+
+## Исполняемый пример правильной работы
+
+Сначала подготовьте собственный process-enabled setup и объявленный gate-контекст
+с файловой политикой по [руководству](files-exe.md#настройка-и-объявление-политики).
+В полном конфигурационном файле заполните оба параметра `git` выше. Выберите
+действительную исходную версию этапа и один объявленный корень Git. В этом корне
+подготовьте непустое разрешённое изменение; на время наблюдения и коммита работайте
+одним автором. Отдельно предназначенную staged-версию сохраните через её владельца.
+
+Сохраните полный текущий пакет `files/diff` в UTF-8 JSON-файл с действительными
+принадлежностью и revision. Из корня checkout задайте явные переменные окружения:
+`EXECUTION_CONFIG` — путь к конфигурации, `EXECUTION_DIFF_REQUEST` — путь к пакету,
+`EXECUTION_AUTHOR_NAME` и `EXECUTION_AUTHOR_EMAIL` — автор,
+`EXECUTION_COMMIT_MESSAGE` — сообщение, `EXECUTION_COMMIT_PATTERN` — его шаблон полного
+соответствия. Запустите следующий Python-код выбранным интерпретатором Python 3.13.
+Пример выполняет настоящий коммит подготовленного изменения.
+
+```python
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+from apps.execution.shell import Store, load_config
+
+config = os.environ["EXECUTION_CONFIG"]
+packet = json.loads(Path(os.environ["EXECUTION_DIFF_REQUEST"]).read_text())
+command = [sys.executable, "-B", "apps/execution/bin/execution", "--config", config]
+
+
+def invoke(value):
+    run = subprocess.run(command, input=json.dumps(value) + "\n", text=True,
+                         capture_output=True)
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert run.stderr == "", run.stderr
+    return json.loads(run.stdout)
+
+
+observed = invoke(packet)
+assert observed["status"] == "diff_checked" and observed["allowed"] is True
+assert observed["commit_paths"]
+value = packet["input"]
+selector = {key: value[key] for key in
+            ("task_id", "generation", "context_id", "request_id")}
+selector.update(id="comparison", kind="file_diff_result")
+read = invoke({"schema": "stride-execution/v1", "operation": "query",
+               "input": {"queries": [selector]}})
+record = read["results"][0]["result"]
+assert record["id"] == observed["result_id"]
+assert record["data"]["candidate_tree"] == observed["candidate_tree"]
+arguments = {key: value[key] for key in
+             ("task_id", "generation", "context_id", "stage_id", "root", "baseline_ref")}
+arguments.update(expected_head=observed["head_commit"],
+                 candidate_tree=observed["candidate_tree"],
+                 author_name=os.environ["EXECUTION_AUTHOR_NAME"],
+                 author_email=os.environ["EXECUTION_AUTHOR_EMAIL"],
+                 message=os.environ["EXECUTION_COMMIT_MESSAGE"],
+                 commit_pattern=os.environ["EXECUTION_COMMIT_PATTERN"])
+owner = Store(load_config(config))
+committed = owner.prepare_stage_commit(**arguments)
+assert committed["status"] == "committed" and committed["created"] is True
+assert committed["tree"] == observed["candidate_tree"]
+replayed = invoke(packet)
+assert replayed == dict(observed, replayed=True)
+repeated = owner.prepare_stage_commit(**arguments)
+assert repeated["status"] == "committed" and repeated["created"] is False
+assert repeated["commit"] == committed["commit"]
+print(json.dumps({"created": committed["created"], "replayed": replayed["replayed"],
+                  "repeated_created": repeated["created"]}))
+```
+
+Этот пример проверяет собственную запись, настоящий коммит, сохранённый повтор
+наблюдения и новый вызов с тем же фиксированным кандидатом. Поведенческие проверки
+Git выполняются отдельно через `test_git_diff.py`, `test_git_diff_records.py`,
+`test_stage_commit.py` и `test_git_review_regressions.py` в `apps/execution/tests`.

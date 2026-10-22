@@ -1,0 +1,35 @@
+{
+  "batches": [],
+  "arguments": [
+    {
+      "id": "A",
+      "kind": "logical",
+      "stage": "legacy",
+      "iteration": 1,
+      "tree": "LEGACY-TREE",
+      "revision": "LEGACY-REVISION",
+      "body": {
+        "id": "A",
+        "kind": "logical",
+        "facts": [
+          "Historical fact."
+        ],
+        "assumptions": [],
+        "inference": "Historical reasoning.",
+        "conclusion": "Historical conclusion.",
+        "verdict": "proved",
+        "observation_ids": []
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "argument_id": "A",
+      "revision": "LEGACY-REVISION",
+      "decision": "accepted",
+      "reason": "Historical decision.",
+      "stage": "legacy-inspection",
+      "iteration": 1
+    }
+  ]
+}

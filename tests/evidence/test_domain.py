@@ -1,6 +1,7 @@
 """Evidence contracts first: no I/O, factual observations vs semantic decisions."""
 import copy
 import pytest
+from tests.evidence.file_proof_support import fixture
 
 from poise.modules.evidence.domain import EvidencePlan, EvidenceBook
 from poise.modules.foundation.errors import DomainError
@@ -21,9 +22,9 @@ def receipt(ok=True, timeout=False, id='RUN'):
 
 
 def argument(verdict='proved'):
-    return {'id':'A','kind':'logical','facts':['Наблюдение сообщает X'], 'assumptions':[],
-            'inference':'По определению X удовлетворяет критерию.', 'conclusion':'Критерий выполнен.',
-            'verdict':verdict,'observation_ids':['RUN']}
+    value=fixture('argument.json')
+    value.update(path='/task/proofs/a.json', verdict=verdict, observation_ids=['RUN'])
+    return value
 
 
 def test_plan_rejects_missing_stage_and_unknown_method():
@@ -59,7 +60,7 @@ def test_continue_requires_existing_current_observations():
                                    {'phase':'continue','arguments':[argument()],'decisions':[]})
 
 
-def test_continue_seals_argument_but_does_not_accept_own_proof():
+def test_continue_presents_file_argument_but_does_not_accept_own_proof():
     b=EvidenceBook.empty().record_batch('measure',1,'TREE','KEY',[receipt()])
     r=b.assess(plan(),'measure',1,'TREE','KEY',{'phase':'continue','arguments':[argument()],'decisions':[]})
     assert r.ready and r.outcome == 'complete'
@@ -77,21 +78,22 @@ def test_unknown_or_stale_observation_is_rejected():
             b.assess(plan(),'measure',1,tree,key,{'phase':'continue','arguments':[a],'decisions':[]})
 
 
-def test_review_decision_is_bound_to_exact_argument_revision():
+def test_review_decision_targets_current_file_and_rejects_unknown_id():
     p=plan(); b=EvidenceBook.empty().record_batch('measure',1,'TREE','KEY',[receipt()])
     b=b.assess(p,'measure',1,'TREE','KEY',{'phase':'continue','arguments':[argument()],'decisions':[]}).book
     a=b.to_dict()['arguments'][0]
-    decision={'argument_id':'A','revision':a['revision'],'decision':'rejected','reason':'Не учтено допущение.'}
+    decision={'argument_id':'A','decision':'rejected','reason':'Не учтено допущение.'}
     r=b.assess(p,'audit',1,'TREE','AUDIT',{'phase':'prepare','arguments':[],'decisions':[decision]})
     assert r.ready and r.outcome == 'changes_requested'
-    assert r.book.to_dict()['arguments'] == b.to_dict()['arguments']
-    decision['revision']='STALE'
+    assert r.book.to_dict()['arguments'][0]['path'] == a['path']
+    assert r.book.to_dict()['arguments'][0]['state'] == 'rejected'
+    decision['argument_id']='UNKNOWN'
     with pytest.raises(DomainError):
         b.assess(p,'audit',1,'TREE','AUDIT',{'phase':'prepare','arguments':[],'decisions':[decision]})
 
 
 def test_argument_has_structure_not_automatic_truth_validation():
-    a=argument(); a['facts']=[]
+    a=argument(); a['claim']=''
     b=EvidenceBook.empty().record_batch('measure',1,'TREE','KEY',[receipt()])
     with pytest.raises(DomainError):
         b.assess(plan(),'measure',1,'TREE','KEY',{'phase':'continue','arguments':[a],'decisions':[]})
@@ -105,14 +107,19 @@ def test_book_roundtrip_and_conflicting_batch_identity():
         b.record_batch('measure',1,'TREE','KEY',[receipt(False)])
 
 
-def test_argument_A_B_A_selects_current_A_not_historical_B():
+def test_corrections_keep_one_current_argument_at_same_path():
     p=plan(); b=EvidenceBook.empty().record_batch('measure',1,'TREE','KEY',[receipt()])
-    a=argument(); different={**a,'inference':'Альтернативный аргумент.'}
-    for body in [a,different,a]:
+    a=argument()
+    b=b.assess(p,'measure',1,'TREE','KEY',{'phase':'continue','arguments':[a],'decisions':[]}).book
+    different={**a,'claim':'Альтернативный аргумент.',
+               'correction':{'kind':'author_unreliable','reason':'Исправлено обоснование.'}}
+    restored={**a,'correction':{'kind':'author_unreliable','reason':'Уточнено обоснование.'}}
+    for body in [different,restored]:
         b=b.assess(p,'measure',1,'TREE','KEY',{'phase':'continue','arguments':[body],'decisions':[]}).book
-    assert b.latest_argument('A')['body']==a
-    assert len(b.to_dict()['arguments'])==3
-    assert b.assess(p,'measure',1,'TREE','KEY',{'phase':'continue','arguments':[a],'decisions':[]}).book==b
+    assert b.latest_argument('A')['claim']==a['claim']
+    assert b.latest_argument('A')['path']=='/task/proofs/a.json'
+    assert len(b.to_dict()['arguments'])==1
+    assert b.assess(p,'measure',1,'TREE','KEY',{'phase':'continue','arguments':[restored],'decisions':[]}).book==b
 
 
 def test_pre_observation_argument_can_use_verified_earlier_stage_observation():
@@ -135,8 +142,8 @@ def test_logical_check_outcomes_are_subject_verdicts(verdict,expected):
 
 def test_own_acceptance_and_unknown_decision_values_rejected():
     b=EvidenceBook.empty().record_batch('measure',1,'TREE','KEY',[receipt()])
-    for d in [{'argument_id':'A','revision':'X','decision':'accepted','reason':'self'},
-              {'argument_id':'A','revision':'X','decision':'invented','reason':'self'}]:
+    for d in [{'argument_id':'A','decision':'accepted','reason':'self'},
+              {'argument_id':'A','decision':'invented','reason':'self'}]:
         with pytest.raises(DomainError):
             b.assess(plan(),'measure',1,'TREE','KEY',{'phase':'continue','arguments':[argument()],'decisions':[d]})
 

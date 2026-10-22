@@ -1,0 +1,12 @@
+[
+  {
+    "method_id": "REAL-RECEIPT",
+    "repository_inputs": [],
+    "future_outputs": [],
+    "reference_profile": {
+      "runner": "python",
+      "parser": "inline-no-path-arguments",
+      "version": 1
+    }
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "goal_type": "file_proof",
+  "worktree_required": true,
+  "benefit": {
+    "git_categories": [],
+    "sections": []
+  },
+  "route": {
+    "entry": "measure"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": []
+}

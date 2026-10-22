@@ -1,0 +1,12 @@
+{
+  "id": "A",
+  "kind": "logical",
+  "claim": "Файл подтверждает значение A.",
+  "path": "@TASK_ROOT@/proofs/a.json",
+  "covers": [
+    "requirements[0]"
+  ],
+  "verdict": "proved",
+  "observation_ids": [],
+  "correction": null
+}

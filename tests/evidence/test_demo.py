@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.mark.parametrize('scenario,commands,args,decisions',[
-    ('command_negative',1,0,0),('logical',0,1,1),('mixed',1,1,1),('observe_feedback',2,2,2)])
+    ('command_negative',1,0,0),('logical',0,1,1),('mixed',1,1,1),('observe_feedback',2,1,2)])
 def test_documented_evidence_cli_routes(tmp_path,scenario,commands,args,decisions):
     root=Path(__file__).resolve().parents[2]
     out=tmp_path/'evidence-demo'
@@ -21,6 +21,20 @@ def test_documented_evidence_cli_routes(tmp_path,scenario,commands,args,decision
     data=json.loads((out/'evidence-report.json').read_text())
     assert data['status']=='PASS' and data['task_status']=='completed'
     assert (data['command_executions'],data['arguments'],data['decisions'])==(commands,args,decisions)
+    if args:
+        reads=[]
+        for saved in out.rglob('response.json'):
+            response=json.loads(saved.read_text())
+            for row in response.get('results',[]):
+                value=row.get('value')
+                if isinstance(value,dict) and value.get('argument_id')=='A' and 'representation' in value:
+                    reads.append(value)
+        assert len(reads)==(2 if scenario=='observe_feedback' else 1)
+        assert len({read['path'] for read in reads})==1
+        assert all(read['representation']=='text' and read['content'] for read in reads)
+        assert all(read['size_bytes']==len(read['content'].encode('utf-8')) for read in reads)
+        if scenario=='observe_feedback':
+            assert len({read['content'] for read in reads})==2
     assert data['raw_output_survives_cleanup'] is True
     if scenario=='command_negative': assert data['stage_outcomes'][0]=='not_satisfied'
 

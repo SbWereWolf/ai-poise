@@ -1,0 +1,14 @@
+{
+  "queries": [
+    {
+      "id": "select",
+      "kind": "task"
+    },
+    {
+      "id": "read",
+      "kind": "proof_file",
+      "argument_id": "A",
+      "representation": "text"
+    }
+  ]
+}

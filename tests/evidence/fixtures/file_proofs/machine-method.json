@@ -1,0 +1,29 @@
+{
+  "id": "REAL-RECEIPT",
+  "argv": [
+    "@PYTHON@",
+    "-B",
+    "-c",
+    "print(\"actual receipt\")"
+  ],
+  "cwd": ".",
+  "environment": {},
+  "source_under_test": {
+    "kind": "external",
+    "reason": "Fixture observes an explicit external constant."
+  },
+  "verification_plan": {
+    "responsibility": "Generate a real immutable command receipt.",
+    "change_surface": [],
+    "red_stages": [],
+    "green_stages": [
+      "measure"
+    ],
+    "red_failure": null
+  },
+  "expected_exit_code": 0,
+  "stdout_contains": [
+    "actual receipt"
+  ],
+  "stderr_contains": []
+}

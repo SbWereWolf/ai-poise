@@ -1,0 +1,14 @@
+[
+  "id",
+  "kind",
+  "claim",
+  "path",
+  "covers",
+  "verdict",
+  "observation_ids",
+  "correction",
+  "state",
+  "stage",
+  "iteration",
+  "tree"
+]

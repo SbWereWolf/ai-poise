@@ -1,0 +1,16 @@
+{
+  "queries": [
+    {
+      "id": "B-first",
+      "kind": "proof_file",
+      "argument_id": "B",
+      "representation": "base64"
+    },
+    {
+      "id": "A-second",
+      "kind": "proof_file",
+      "argument_id": "A",
+      "representation": "text"
+    }
+  ]
+}

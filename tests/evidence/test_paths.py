@@ -8,6 +8,7 @@ from conftest import write_json, fill
 from conftest import Poise
 from poise.common import PoiseError
 from runner.helpers import stage
+from tests.evidence.file_proof_support import fixture
 
 
 def setup(project, kind='observe', logical=True, phase='continue', negative=False):
@@ -39,7 +40,8 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     task['decomposition']={**task['decomposition'],'phases':[
         {'stage':name,'skills':['task-domain'],'areas':[]} for name in ('measure','audit')]}
     task['stage_contracts']=[{'stage_id':name,'allowed_paths':[],
-        'entry_requirements':[],'exit_requirements':[]} for name in ('measure','audit')]
+        'entry_requirements':[],'exit_requirements':[],
+        'criteria':fixture('empty-criteria.json')} for name in ('measure','audit')]
     write_json(project['task_path'],task)
     return Poise(project['config_path'],'S1'), counter
 
@@ -47,15 +49,21 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
 def input_result(context, arguments=(), decisions=(), phase='prepare'):
     p=fill(context,'Работа этапа выполнена.')
     data=p
+    for argument in arguments:
+        path=Path(context['task_root'])/'proofs/a.json'
+        path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_text(argument['claim'],encoding='utf-8')
+        argument['path']=str(path)
     data['evidence_work']={'phase':phase,'arguments':list(arguments),'decisions':list(decisions)}
     if context['handler']=='inspect':
         data['stage_work']={'coverage':'Осмотрено доказательство по критерию.', 'findings':[],'resolution_decisions':[]}
 
 
 
-def arg(observation_ids, inference='По определению наблюдаемый результат подтверждает критерий.'):
-    return {'id':'A','kind':'logical','facts':['Наблюдение содержит observed=3.'], 'assumptions':[],
-            'inference':inference,'conclusion':'Критерий подтверждён.', 'verdict':'proved','observation_ids':observation_ids}
+def arg(observation_ids, inference='По определению наблюдаемый результат подтверждает критерий.', correction=None):
+    value=fixture('argument.json')
+    value.update(claim=inference,observation_ids=observation_ids,correction=correction)
+    return value
 
 
 def test_observe_continue_restart_no_rerun_and_accept(project):
@@ -69,14 +77,15 @@ def test_observe_continue_restart_no_rerun_and_accept(project):
     h=Poise(project['config_path'],'S1')
     report=h.verify()
     assert report['status']=='verified' and counter.read_text()=='x'
-    assert report['evidence']['arguments'][0]['body']['facts']
+    proof=report['evidence']['arguments'][0]
+    assert proof['claim'] and Path(proof['path']).read_text()==proof['claim']
     assert report['evidence']['decisions']==[]
     assert h.verify()['replayed'] and counter.read_text()=='x'
     assert not Path(ctx['runtime_root']).exists()
     assert all(Path(r['stdout']).is_file() for r in report['checks'])
     review=h.bootstrap(decision='continue')
     proof=report['evidence']['arguments'][0]
-    input_result(review,decisions=[{'argument_id':'A','revision':proof['revision'],'decision':'accepted','reason':'Аргумент осмотрен.'}])
+    input_result(review,decisions=[{'argument_id':'A','decision':'accepted','reason':'Аргумент осмотрен.'}])
     assert h.verify()['stage_outcome']=='clear'
     assert h.accept()['status']=='completed'
 
@@ -127,16 +136,21 @@ def test_rejected_proof_then_new_iteration_preserves_old_records(project):
     input_result(pending['context'],[arg([pending['checks'][0]['id']])],phase='continue')
     result=h.verify(); old=result['evidence']['arguments'][0]
     ctx=h.bootstrap(decision='continue')
-    input_result(ctx,decisions=[{'argument_id':'A','revision':old['revision'],'decision':'rejected','reason':'Не раскрыто допущение.'}])
+    input_result(ctx,decisions=[{'argument_id':'A','decision':'rejected','reason':'Не раскрыто допущение.'}])
     report=h.verify(); assert report['stage_outcome']=='changes_requested'
     ctx=h.bootstrap(decision='continue'); assert ctx['stage']=='measure' and ctx['iteration']==2
     input_result(ctx); pending=h.verify(); assert counter.read_text()=='xx'
-    input_result(pending['context'],[arg([pending['checks'][0]['id']],inference='Добавлено обоснование допущения.')],phase='continue')
-    result=h.verify(); new=result['evidence']['arguments'][-1]; assert new['revision']!=old['revision']
+    input_result(pending['context'],[arg([pending['checks'][0]['id']],inference='Добавлено обоснование допущения.',
+        correction={'kind':'reviewer_rejected','reason':'Добавлено обоснование.'})],phase='continue')
+    result=h.verify(); new=result['evidence']['arguments'][-1]
+    assert new['path']==old['path'] and new['claim']!=old['claim']
+    assert new['state']=='presented'
     ctx=h.bootstrap(decision='continue')
-    input_result(ctx,decisions=[{'argument_id':'A','revision':new['revision'],'decision':'accepted','reason':'Все предпосылки проверены.'}])
+    assert Path(new['path']).read_text()=='Добавлено обоснование допущения.'
+    input_result(ctx,decisions=[{'argument_id':'A','decision':'accepted','reason':'Все предпосылки проверены.'}])
     report=h.verify(); assert report['stage_outcome']=='clear'
-    assert len(report['evidence']['arguments'])==2 and len(report['evidence']['decisions'])==2
+    assert len(report['evidence']['arguments'])==1 and len(report['evidence']['decisions'])==2
+    assert [d['decision'] for d in report['evidence']['decisions']]==['rejected','accepted']
     assert h.accept()['status']=='completed'
 
 
@@ -235,7 +249,7 @@ def test_cancel_skips_missing_evidence_and_preserves_observation(project):
 
 
 def test_empty_pre_argument_cannot_be_self_certified(project):
-    h,_=setup(project,phase='prepare');ctx=h.bootstrap(project['task_path']);input_result(ctx,[{**arg([]),'facts':[]}])
+    h,_=setup(project,phase='prepare');ctx=h.bootstrap(project['task_path']);input_result(ctx,[{**arg([]),'claim':''}])
     with pytest.raises(PoiseError): h.verify()
     assert h.show()['status']=='active'
 

@@ -1,0 +1,12 @@
+{
+  "id": "A",
+  "kind": "logical",
+  "facts": [
+    "X=3"
+  ],
+  "assumptions": [],
+  "inference": "3 is positive.",
+  "conclusion": "Positive.",
+  "verdict": "proved",
+  "observation_ids": []
+}

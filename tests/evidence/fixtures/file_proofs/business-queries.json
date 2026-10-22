@@ -1,0 +1,13 @@
+{
+  "tasks": "SELECT id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata FROM tasks ORDER BY id",
+  "execution": "SELECT task_id,data,version FROM task_execution ORDER BY task_id",
+  "submissions": "SELECT seq,task_id,stage,iteration,digest,data FROM submissions ORDER BY seq",
+  "artifacts": "SELECT id,owner,scope,path,digest FROM artifacts ORDER BY id",
+  "task_artifacts": "SELECT task_id,artifact_id FROM task_artifacts ORDER BY task_id,artifact_id",
+  "sessions": "SELECT id,task_id FROM sessions ORDER BY id",
+  "work_packets": "SELECT task_id,stage,iteration,digest FROM work_packets ORDER BY task_id,stage,iteration",
+  "task_results": "SELECT task_id,submission_id,data FROM task_results ORDER BY task_id,submission_id",
+  "evidence": "SELECT id,task_id,stage,iteration,data FROM evidence ORDER BY id",
+  "proofs": "SELECT task_id,data FROM task_proofs ORDER BY task_id",
+  "task_events": "SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq"
+}

@@ -1,0 +1,78 @@
+{
+  "submission": [
+    "tests/evidence/test_file_proofs.py::test_registers_file_metadata_and_requirement_links",
+    "tests/evidence/test_file_proofs.py::test_several_and_additional_proofs_preserve_paths",
+    "tests/evidence/test_file_proofs.py::test_inline_argument_payload_is_rejected",
+    "tests/evidence/test_file_proofs.py::test_file_proof_bytes_are_not_snapshotted_in_task_book",
+    "tests/evidence/test_file_proofs.py::test_proof_cannot_share_an_existing_ordinary_artifact_path",
+    "tests/evidence/test_file_proofs.py::test_proof_cannot_reclassify_machine_material"
+  ],
+  "lifecycle": [
+    "tests/evidence/test_file_proofs.py::test_reviewer_rejection_is_corrected_at_same_path",
+    "tests/evidence/test_file_proofs.py::test_author_unreliability_reopens_accepted_proof_at_same_path",
+    "tests/evidence/test_file_proofs.py::test_repeated_submission_and_decision_are_idempotent",
+    "tests/evidence/test_file_proofs.py::test_changed_existing_proof_metadata_requires_correction_reason",
+    "tests/evidence/test_file_proofs.py::test_reviewer_checks_current_file_before_acceptance",
+    "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[first-presentation]",
+    "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[unrejected]",
+    "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[accepted]",
+    "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[empty-reason]",
+    "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[malformed-reason]"
+  ],
+  "reader": [
+    "tests/evidence/test_file_proofs.py::test_reader_uses_current_text_bytes",
+    "tests/evidence/test_file_proofs.py::test_reader_returns_lossless_binary",
+    "tests/evidence/test_file_proofs.py::test_reader_preserves_empty_file",
+    "tests/evidence/test_file_proofs.py::test_text_representation_reports_invalid_utf8",
+    "tests/evidence/test_file_proofs.py::test_cli_retains_full_read_response_beyond_preview[4096]",
+    "tests/evidence/test_file_proofs.py::test_cli_retains_full_read_response_beyond_preview[8192]",
+    "tests/evidence/test_file_proofs.py::test_read_batch_preserves_query_order_and_independent_files",
+    "tests/evidence/test_file_proofs.py::test_proof_read_requires_explicit_representation[missing]",
+    "tests/evidence/test_file_proofs.py::test_proof_read_requires_explicit_representation[null]"
+  ],
+  "denials": [
+    "tests/evidence/test_file_proofs.py::test_invalid_proof_file_is_rejected_before_effects[missing]",
+    "tests/evidence/test_file_proofs.py::test_invalid_proof_file_is_rejected_before_effects[foreign-task]",
+    "tests/evidence/test_file_proofs.py::test_invalid_proof_file_is_rejected_before_effects[directory]",
+    "tests/evidence/test_file_proofs.py::test_unknown_requirement_ref_is_rejected",
+    "tests/evidence/test_file_proofs.py::test_unknown_observation_id_is_rejected",
+    "tests/evidence/test_file_proofs.py::test_argument_id_cannot_change_its_path",
+    "tests/evidence/test_file_proofs.py::test_distinct_arguments_cannot_share_one_path",
+    "tests/evidence/test_file_proofs.py::test_strict_request_contract[missing-path]",
+    "tests/evidence/test_file_proofs.py::test_strict_request_contract[null-path]",
+    "tests/evidence/test_file_proofs.py::test_strict_request_contract[inline-body]",
+    "tests/evidence/test_file_proofs.py::test_strict_request_contract[duplicate-id]",
+    "tests/evidence/test_file_proofs.py::test_strict_request_contract[missing-correction]",
+    "tests/evidence/test_file_proofs.py::test_strict_request_contract[unknown-representation]",
+    "tests/evidence/test_file_proofs.py::test_proof_query_requires_task_without_changing_taskless_tools"
+  ],
+  "history": [
+    "tests/evidence/test_file_proofs.py::test_legacy_inline_history_is_preserved_as_history",
+    "tests/evidence/test_file_proofs.py::test_saved_read_response_is_not_used_as_current_proof"
+  ],
+  "guards": [
+    "tests/test_artifacts.py::test_only_path_is_needed_and_id_is_stable",
+    "tests/test_artifacts.py::test_foreign_task_path_rejected",
+    "tests/test_artifacts.py::test_missing_artifact_rejected_before_tests",
+    "tests/artifact_drafts/test_lifecycle.py::test_declared_draft_is_reviewed_twice_at_one_path_then_finalized",
+    "tests/artifact_drafts/test_lifecycle.py::test_ordinary_registered_artifact_stays_immutable_and_rejection_is_atomic",
+    "tests/evidence/test_domain.py::test_timeout_cannot_be_a_negative_subject_proof",
+    "tests/evidence/test_paths.py::test_check_negative_product_completes_successfully",
+    "tests/evidence/test_paths.py::test_guard_failure_is_not_swallowed_by_observe",
+    "tests/evidence/test_paths.py::test_repeated_pending_does_not_rerun_command",
+    "tests/evidence/test_architecture.py",
+    "tests/named_checks/test_contracts.py::test_taskless_native_and_generated_callers",
+    "tests/runtime_services/test_tool_results_capture.py::test_taskless_placement_and_identity_replay"
+  ],
+  "compat": [
+    "tests/evidence/test_domain.py",
+    "tests/evidence/test_paths.py"
+  ],
+  "examples": [
+    "tests/evidence/test_demo.py",
+    "tests/evidence/test_file_proof_examples.py::test_catalogue_file_proofs_route[verification-short]",
+    "tests/evidence/test_file_proof_examples.py::test_catalogue_file_proofs_route[verification-feedback]",
+    "tests/evidence/test_file_proof_examples.py::test_catalogue_file_proofs_route[analysis-short]",
+    "tests/evidence/test_file_proof_examples.py::test_catalogue_file_proofs_route[analysis-feedback]"
+  ]
+}

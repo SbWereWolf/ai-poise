@@ -1,0 +1,305 @@
+[
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[first-presentation]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-CORRECTION-STATE",
+    "arrangement": {
+      "public_arrangement": [
+        "Use one disposable real public four-stage measure->audit->refine->audit2 workflow; author/reviewer are distinct test fixture callers, never the engineering reviewer impersonated.",
+        "B is a genuine planned proof in measure and review_arguments in audit. A is supplementary, so its actual absence/presented/accepted state is legal at refine.",
+        "Author genuinely submits measure, ordinarily releases, reviewer acquires/audits B and the variant-specific A, verifies, releases; author acquires and continues to active refine.",
+        "Before the invalid operation, assert actual stage/author/claim and variant-specific proof and decision history. Failure of these controls is ProofArrangementError, never accepted RED.",
+        "All feature-dependent registration/read/decision operations remain inside pytest CALL. Fixtures SETUP only prepare baseline-compatible configuration/actors/files."
+      ],
+      "other_proof_control": "B has literal distinct path/content/claim and actual accepted decision before refine. Save its metadata, decisions and exact current bytes; all must survive the invalid A batch.",
+      "refusal": "Public rejected reason begins exactly proof_correction_invalid:; assert boundary invocation/rejection was reached, not any unrelated exception.",
+      "unchanged": "Compare Task lifecycle/current stage/claims/submission/proof metadata/current decisions/history/receipt/artifact business projections and both file bytes from immediately before the rejected invocation. Caller-authored bytes before invocation are not server rollback obligations; normal rejected-attempt audit/telemetry excluded.",
+      "positive_controls": [
+        "Keep test_reviewer_rejection_is_corrected_at_same_path with real rejection, same-path correction and new real review.",
+        "Keep test_author_unreliability_reopens_accepted_proof_at_same_path with accepted proof, valid author declaration, same path and fresh real review.",
+        "Common B accepted control and valid author refine ownership must be actually reached before invalid target after implementation."
+      ]
+    },
+    "prior_A": {
+      "state": "absent",
+      "decision": null,
+      "registration": "Do not register A in measure",
+      "audit": "Do not invent or submit any A decision",
+      "no_rejection": "Assert no prior rejected decision for A in actual history; Task/stage rework is not proof rejection."
+    },
+    "literal_argument": {
+      "id": "A",
+      "kind": "logical",
+      "claim": "Исправленное утверждение A.",
+      "path": "@TASK_ROOT@/proofs/a.json",
+      "covers": [
+        "requirements[0]"
+      ],
+      "verdict": "proved",
+      "observation_ids": [],
+      "correction": {
+        "kind": "author_unreliable",
+        "reason": "Новое A ошибочно объявлено исправлением."
+      }
+    },
+    "changed_input": "Original A claim differs from this submitted claim; same stable path. First-presentation A has no existing record.",
+    "current_red_boundary": "Valid new B registration in CALL first encounters the exact old inline-field rejection; after implementation require all arrangement and target-reached assertions. No arbitrary exception normalization."
+  },
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[unrejected]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-CORRECTION-STATE",
+    "arrangement": {
+      "public_arrangement": [
+        "Use one disposable real public four-stage measure->audit->refine->audit2 workflow; author/reviewer are distinct test fixture callers, never the engineering reviewer impersonated.",
+        "B is a genuine planned proof in measure and review_arguments in audit. A is supplementary, so its actual absence/presented/accepted state is legal at refine.",
+        "Author genuinely submits measure, ordinarily releases, reviewer acquires/audits B and the variant-specific A, verifies, releases; author acquires and continues to active refine.",
+        "Before the invalid operation, assert actual stage/author/claim and variant-specific proof and decision history. Failure of these controls is ProofArrangementError, never accepted RED.",
+        "All feature-dependent registration/read/decision operations remain inside pytest CALL. Fixtures SETUP only prepare baseline-compatible configuration/actors/files."
+      ],
+      "other_proof_control": "B has literal distinct path/content/claim and actual accepted decision before refine. Save its metadata, decisions and exact current bytes; all must survive the invalid A batch.",
+      "refusal": "Public rejected reason begins exactly proof_correction_invalid:; assert boundary invocation/rejection was reached, not any unrelated exception.",
+      "unchanged": "Compare Task lifecycle/current stage/claims/submission/proof metadata/current decisions/history/receipt/artifact business projections and both file bytes from immediately before the rejected invocation. Caller-authored bytes before invocation are not server rollback obligations; normal rejected-attempt audit/telemetry excluded.",
+      "positive_controls": [
+        "Keep test_reviewer_rejection_is_corrected_at_same_path with real rejection, same-path correction and new real review.",
+        "Keep test_author_unreliability_reopens_accepted_proof_at_same_path with accepted proof, valid author declaration, same path and fresh real review.",
+        "Common B accepted control and valid author refine ownership must be actually reached before invalid target after implementation."
+      ]
+    },
+    "prior_A": {
+      "state": "presented",
+      "decision": null,
+      "registration": "Register A with correction:null and original claim in measure",
+      "audit": "Do not invent or submit any A decision",
+      "no_rejection": "Assert no prior rejected decision for A in actual history; Task/stage rework is not proof rejection."
+    },
+    "literal_argument": {
+      "id": "A",
+      "kind": "logical",
+      "claim": "Исправленное утверждение A.",
+      "path": "@TASK_ROOT@/proofs/a.json",
+      "covers": [
+        "requirements[0]"
+      ],
+      "verdict": "proved",
+      "observation_ids": [],
+      "correction": {
+        "kind": "reviewer_rejected",
+        "reason": "Заявлен отказ, которого не было."
+      }
+    },
+    "changed_input": "Original A claim differs from this submitted claim; same stable path. First-presentation A has no existing record.",
+    "current_red_boundary": "Valid new B registration in CALL first encounters the exact old inline-field rejection; after implementation require all arrangement and target-reached assertions. No arbitrary exception normalization."
+  },
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[accepted]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-CORRECTION-STATE",
+    "arrangement": {
+      "public_arrangement": [
+        "Use one disposable real public four-stage measure->audit->refine->audit2 workflow; author/reviewer are distinct test fixture callers, never the engineering reviewer impersonated.",
+        "B is a genuine planned proof in measure and review_arguments in audit. A is supplementary, so its actual absence/presented/accepted state is legal at refine.",
+        "Author genuinely submits measure, ordinarily releases, reviewer acquires/audits B and the variant-specific A, verifies, releases; author acquires and continues to active refine.",
+        "Before the invalid operation, assert actual stage/author/claim and variant-specific proof and decision history. Failure of these controls is ProofArrangementError, never accepted RED.",
+        "All feature-dependent registration/read/decision operations remain inside pytest CALL. Fixtures SETUP only prepare baseline-compatible configuration/actors/files."
+      ],
+      "other_proof_control": "B has literal distinct path/content/claim and actual accepted decision before refine. Save its metadata, decisions and exact current bytes; all must survive the invalid A batch.",
+      "refusal": "Public rejected reason begins exactly proof_correction_invalid:; assert boundary invocation/rejection was reached, not any unrelated exception.",
+      "unchanged": "Compare Task lifecycle/current stage/claims/submission/proof metadata/current decisions/history/receipt/artifact business projections and both file bytes from immediately before the rejected invocation. Caller-authored bytes before invocation are not server rollback obligations; normal rejected-attempt audit/telemetry excluded.",
+      "positive_controls": [
+        "Keep test_reviewer_rejection_is_corrected_at_same_path with real rejection, same-path correction and new real review.",
+        "Keep test_author_unreliability_reopens_accepted_proof_at_same_path with accepted proof, valid author declaration, same path and fresh real review.",
+        "Common B accepted control and valid author refine ownership must be actually reached before invalid target after implementation."
+      ]
+    },
+    "prior_A": {
+      "state": "accepted",
+      "decision": "accepted",
+      "registration": "Register A with correction:null and original claim in measure",
+      "audit": "Reviewer explicitly accepts actual current A in audit",
+      "no_rejection": "Assert no prior rejected decision for A in actual history; Task/stage rework is not proof rejection."
+    },
+    "literal_argument": {
+      "id": "A",
+      "kind": "logical",
+      "claim": "Исправленное утверждение A.",
+      "path": "@TASK_ROOT@/proofs/a.json",
+      "covers": [
+        "requirements[0]"
+      ],
+      "verdict": "proved",
+      "observation_ids": [],
+      "correction": {
+        "kind": "reviewer_rejected",
+        "reason": "Принятое A ошибочно объявлено отвергнутым."
+      }
+    },
+    "changed_input": "Original A claim differs from this submitted claim; same stable path. First-presentation A has no existing record.",
+    "current_red_boundary": "Valid new B registration in CALL first encounters the exact old inline-field rejection; after implementation require all arrangement and target-reached assertions. No arbitrary exception normalization."
+  },
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[empty-reason]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-CORRECTION-STATE",
+    "arrangement": {
+      "public_arrangement": [
+        "Use one disposable real public four-stage measure->audit->refine->audit2 workflow; author/reviewer are distinct test fixture callers, never the engineering reviewer impersonated.",
+        "B is a genuine planned proof in measure and review_arguments in audit. A is supplementary, so its actual absence/presented/accepted state is legal at refine.",
+        "Author genuinely submits measure, ordinarily releases, reviewer acquires/audits B and the variant-specific A, verifies, releases; author acquires and continues to active refine.",
+        "Before the invalid operation, assert actual stage/author/claim and variant-specific proof and decision history. Failure of these controls is ProofArrangementError, never accepted RED.",
+        "All feature-dependent registration/read/decision operations remain inside pytest CALL. Fixtures SETUP only prepare baseline-compatible configuration/actors/files."
+      ],
+      "other_proof_control": "B has literal distinct path/content/claim and actual accepted decision before refine. Save its metadata, decisions and exact current bytes; all must survive the invalid A batch.",
+      "refusal": "Public rejected reason begins exactly proof_correction_invalid:; assert boundary invocation/rejection was reached, not any unrelated exception.",
+      "unchanged": "Compare Task lifecycle/current stage/claims/submission/proof metadata/current decisions/history/receipt/artifact business projections and both file bytes from immediately before the rejected invocation. Caller-authored bytes before invocation are not server rollback obligations; normal rejected-attempt audit/telemetry excluded.",
+      "positive_controls": [
+        "Keep test_reviewer_rejection_is_corrected_at_same_path with real rejection, same-path correction and new real review.",
+        "Keep test_author_unreliability_reopens_accepted_proof_at_same_path with accepted proof, valid author declaration, same path and fresh real review.",
+        "Common B accepted control and valid author refine ownership must be actually reached before invalid target after implementation."
+      ]
+    },
+    "prior_A": {
+      "state": "accepted",
+      "decision": "accepted",
+      "registration": "Register A with correction:null and original claim in measure",
+      "audit": "Reviewer explicitly accepts actual current A in audit",
+      "no_rejection": "Assert no prior rejected decision for A in actual history; Task/stage rework is not proof rejection."
+    },
+    "literal_argument": {
+      "id": "A",
+      "kind": "logical",
+      "claim": "Исправленное утверждение A.",
+      "path": "@TASK_ROOT@/proofs/a.json",
+      "covers": [
+        "requirements[0]"
+      ],
+      "verdict": "proved",
+      "observation_ids": [],
+      "correction": {
+        "kind": "author_unreliable",
+        "reason": ""
+      }
+    },
+    "changed_input": "Original A claim differs from this submitted claim; same stable path. First-presentation A has no existing record.",
+    "current_red_boundary": "Valid new B registration in CALL first encounters the exact old inline-field rejection; after implementation require all arrangement and target-reached assertions. No arbitrary exception normalization."
+  },
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_invalid_correction_is_rejected_without_effects[malformed-reason]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-CORRECTION-STATE",
+    "arrangement": {
+      "public_arrangement": [
+        "Use one disposable real public four-stage measure->audit->refine->audit2 workflow; author/reviewer are distinct test fixture callers, never the engineering reviewer impersonated.",
+        "B is a genuine planned proof in measure and review_arguments in audit. A is supplementary, so its actual absence/presented/accepted state is legal at refine.",
+        "Author genuinely submits measure, ordinarily releases, reviewer acquires/audits B and the variant-specific A, verifies, releases; author acquires and continues to active refine.",
+        "Before the invalid operation, assert actual stage/author/claim and variant-specific proof and decision history. Failure of these controls is ProofArrangementError, never accepted RED.",
+        "All feature-dependent registration/read/decision operations remain inside pytest CALL. Fixtures SETUP only prepare baseline-compatible configuration/actors/files."
+      ],
+      "other_proof_control": "B has literal distinct path/content/claim and actual accepted decision before refine. Save its metadata, decisions and exact current bytes; all must survive the invalid A batch.",
+      "refusal": "Public rejected reason begins exactly proof_correction_invalid:; assert boundary invocation/rejection was reached, not any unrelated exception.",
+      "unchanged": "Compare Task lifecycle/current stage/claims/submission/proof metadata/current decisions/history/receipt/artifact business projections and both file bytes from immediately before the rejected invocation. Caller-authored bytes before invocation are not server rollback obligations; normal rejected-attempt audit/telemetry excluded.",
+      "positive_controls": [
+        "Keep test_reviewer_rejection_is_corrected_at_same_path with real rejection, same-path correction and new real review.",
+        "Keep test_author_unreliability_reopens_accepted_proof_at_same_path with accepted proof, valid author declaration, same path and fresh real review.",
+        "Common B accepted control and valid author refine ownership must be actually reached before invalid target after implementation."
+      ]
+    },
+    "prior_A": {
+      "state": "accepted",
+      "decision": "accepted",
+      "registration": "Register A with correction:null and original claim in measure",
+      "audit": "Reviewer explicitly accepts actual current A in audit",
+      "no_rejection": "Assert no prior rejected decision for A in actual history; Task/stage rework is not proof rejection."
+    },
+    "literal_argument": {
+      "id": "A",
+      "kind": "logical",
+      "claim": "Исправленное утверждение A.",
+      "path": "@TASK_ROOT@/proofs/a.json",
+      "covers": [
+        "requirements[0]"
+      ],
+      "verdict": "proved",
+      "observation_ids": [],
+      "correction": {
+        "kind": "author_unreliable",
+        "reason": null
+      }
+    },
+    "changed_input": "Original A claim differs from this submitted claim; same stable path. First-presentation A has no existing record.",
+    "current_red_boundary": "Valid new B registration in CALL first encounters the exact old inline-field rejection; after implementation require all arrangement and target-reached assertions. No arbitrary exception normalization."
+  },
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_proof_read_requires_explicit_representation[missing]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-QUERY-REPRESENTATION",
+    "controls": {
+      "arrangement": "Within CALL author registers A through real public verify with correction:null, actual owned file and valid Task/claim. Before negative query assert metadata/path, then genuinely read SAME A with explicit text and base64.",
+      "positive_body": {
+        "utf8_text": "A\r\n",
+        "size_bytes": 3,
+        "base64": "QQ0K"
+      },
+      "positive_queries": [
+        {
+          "id": "positive-text",
+          "kind": "proof_file",
+          "argument_id": "A",
+          "representation": "text"
+        },
+        {
+          "id": "positive-base64",
+          "kind": "proof_file",
+          "argument_id": "A",
+          "representation": "base64"
+        }
+      ],
+      "positive_oracle": "Both actual replies read_only, correct Task/A/absolute path/representation, literal complete content and size_bytes=3; assert both success flags before the negative call. Positive arrangement failure is ProofArrangementError, never acceptable RED.",
+      "negative_oracle": "Assert actual negative query boundary reached and exact public proof_file_representation_invalid: reason; do not accept a generic exception or implicit text response.",
+      "unchanged": "Task/status/claims/submission/proof metadata/decisions/history/receipt/artifact business projections and exact A bytes remain unchanged by invalid read; ordinary rejected-attempt audit/telemetry excluded."
+    },
+    "literal_query": {
+      "id": "missing-representation",
+      "kind": "proof_file",
+      "argument_id": "A"
+    },
+    "current_red_boundary": "Valid A registration inside CALL first encounters exact old inline-field rejection. After implementation both successful read controls and invalid query must be reached."
+  },
+  {
+    "nodeid": "tests/evidence/test_file_proofs.py::test_proof_read_requires_explicit_representation[null]",
+    "intended_current_red_exception": "ProofFileContractUnavailable",
+    "finding_id": "F09-VP-QUERY-REPRESENTATION",
+    "controls": {
+      "arrangement": "Within CALL author registers A through real public verify with correction:null, actual owned file and valid Task/claim. Before negative query assert metadata/path, then genuinely read SAME A with explicit text and base64.",
+      "positive_body": {
+        "utf8_text": "A\r\n",
+        "size_bytes": 3,
+        "base64": "QQ0K"
+      },
+      "positive_queries": [
+        {
+          "id": "positive-text",
+          "kind": "proof_file",
+          "argument_id": "A",
+          "representation": "text"
+        },
+        {
+          "id": "positive-base64",
+          "kind": "proof_file",
+          "argument_id": "A",
+          "representation": "base64"
+        }
+      ],
+      "positive_oracle": "Both actual replies read_only, correct Task/A/absolute path/representation, literal complete content and size_bytes=3; assert both success flags before the negative call. Positive arrangement failure is ProofArrangementError, never acceptable RED.",
+      "negative_oracle": "Assert actual negative query boundary reached and exact public proof_file_representation_invalid: reason; do not accept a generic exception or implicit text response.",
+      "unchanged": "Task/status/claims/submission/proof metadata/decisions/history/receipt/artifact business projections and exact A bytes remain unchanged by invalid read; ordinary rejected-attempt audit/telemetry excluded."
+    },
+    "literal_query": {
+      "id": "null-representation",
+      "kind": "proof_file",
+      "argument_id": "A",
+      "representation": null
+    },
+    "current_red_boundary": "Valid A registration inside CALL first encounters exact old inline-field rejection. After implementation both successful read controls and invalid query must be reached."
+  }
+]

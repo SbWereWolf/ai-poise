@@ -16,18 +16,19 @@ def internal_record_id(kind, generation, context_id, candidate_id=None):
 
 
 def _scope(record, value):
-    binding = record.data if record.kind == 'gate_context' else record.data['provenance']
+    binding = record.data if record.kind in ('gate_context', 'file_decision') else record.data['provenance']
     return (record.task_id == value['task_id'] and record.generation == value['generation']
             and binding['context_id'] == value['context_id'])
 
 
 class GateCommands:
-    def __init__(self, unit_of_work, files):
+    def __init__(self, unit_of_work, files, stage_files):
         self.unit_of_work = unit_of_work
         self.files = files
+        self.stage_files = stage_files
 
-    def execute(self, value):
-        digest = hashlib.sha256(canonical_json({'operation': 'gate', 'input': value}).encode()).hexdigest()
+    def execute(self, operation, value):
+        digest = hashlib.sha256(canonical_json({'operation': operation, 'input': value}).encode()).hexdigest()
         with self.unit_of_work(write=True) as repository:
             prior = repository.get_request(value['request_id'])
             if prior is not None:
@@ -39,8 +40,11 @@ class GateCommands:
             revision = repository.get_revision()
             if revision != value['expected_revision']:
                 raise RecordsError(f'Gate revision conflict: expected {value["expected_revision"]}, actual {revision}')
-            result = (self._declare(repository, value) if value['action'] == 'declare'
-                      else self._evaluate(repository, value))
+            if operation == 'files':
+                result = self._check_files(repository, value)
+            else:
+                result = (self._declare(repository, value) if value['action'] == 'declare'
+                          else self._evaluate(repository, value))
             response = {'schema': 'stride-execution/v1', 'revision': revision + 1,
                         'replayed': False, **result}
             repository.set_revision(revision + 1)
@@ -74,7 +78,8 @@ class GateCommands:
 
     @staticmethod
     def _insert(repository, kind, value, data):
-        candidate = None if kind == 'gate_context' else value['candidate_id']
+        candidate = (None if kind == 'gate_context' else value['request_id']
+                     if kind == 'file_decision' else value['candidate_id'])
         record = ExecutionRecord(kind, internal_record_id(kind, value['generation'], value['context_id'], candidate),
                                  value['task_id'], value['generation'], 1, data)
         repository.insert(record)
@@ -86,6 +91,8 @@ class GateCommands:
         GateContext.parse(process, contract, value)
         data = {key: value[key] for key in ('context_id', 'contract_revision', 'requirement_ids',
                                            'task_content', 'stage_contracts')}
+        if 'file_policy' in value:
+            data['file_policy'] = value['file_policy']
         data.update(process_ref=contract['process_ref'], requirements_snapshot_revision=contract['requirements_snapshot_revision'],
                     admission_id=contract['admission_id'], request_id=value['request_id'])
         rid = internal_record_id('gate_context', value['generation'], value['context_id'])
@@ -100,15 +107,37 @@ class GateCommands:
         return {'status': 'declared', 'task_id': value['task_id'], 'generation': value['generation'],
                 'context_id': value['context_id'], 'changed': existing is None}
 
-    def _evaluate(self, repository, value):
+    def _context(self, repository, value):
+        contract, process, revision = self._binding(repository, value['task_id'], value['generation'])
         rid = internal_record_id('gate_context', value['generation'], value['context_id'])
-        context_record = repository.latest(value['task_id'], 'gate_context', rid)
-        if context_record is None:
+        record = repository.latest(value['task_id'], 'gate_context', rid)
+        if record is None:
             raise RecordsError('Select an existing own gate context before evaluating a candidate')
-        contract, process, revision = self._binding(repository, value['task_id'], value['generation'],
-                                                     context_record.data['contract_revision'])
-        context = GateContext.parse(process, contract, context_record.data)
+        if record.data['contract_revision'] != revision:
+            raise RecordsError('Gate context contract_revision must match the saved canonical contract')
+        context = GateContext.parse(process, contract, record.data)
         context.stage(value['stage_id'])
+        return context, contract, revision
+
+    def _check_files(self, repository, value):
+        context, contract, revision = self._context(repository, value)
+        if context.file_policy is None:
+            raise DomainError('Declare an explicit file_policy before files/check')
+        decisions = [context.file_policy.decide(value['stage_id'], item['root'], item['path'], value['mode'])
+                     for item in value['paths']]
+        allowed = all(item['allowed'] for item in decisions)
+        data = {key: value[key] for key in ('context_id', 'request_id', 'stage_id', 'mode')}
+        data.update(role=context.stage(value['stage_id'])['role'], allowed=allowed, decisions=decisions,
+                    contract_revision=revision, process_ref=contract['process_ref'],
+                    workspace_id=context.file_policy.workspace_id)
+        record = self._insert(repository, 'file_decision', value, data)
+        return {'status': 'checked', **{key: value[key] for key in
+                ('task_id', 'generation', 'context_id', 'stage_id', 'mode')},
+                'role': data['role'], 'allowed': allowed, 'decisions': decisions,
+                'result_id': record.record_id}
+
+    def _evaluate(self, repository, value):
+        context, contract, revision = self._context(repository, value)
         rid = internal_record_id('gate_candidate', value['generation'], value['context_id'], value['candidate_id'])
         existing = repository.latest(value['task_id'], 'gate_candidate', rid)
         submitted = {key: value[key] for key in ('sections', 'trace', 'files')}
@@ -142,9 +171,16 @@ class GateCommands:
         except DomainError as exc:
             prepared, error = snapshot, str(exc)
         facts, files, errors = (), [], []
+        admission = None
+        if context.file_policy is not None:
+            admission = {'passed': False, 'files': []}
         if error is None:
-            facts, files, catalogue, errors = self.files.observe(catalogue, value['files'])
-        assessment = assess_candidate(context, value['stage_id'], prepared, facts, errors, error)
+            if context.file_policy is None:
+                facts, files, catalogue, errors = self.files.observe(catalogue, value['files'])
+            else:
+                facts, files, catalogue, errors, admission = self.stage_files.observe(
+                    context.file_policy, value['stage_id'], catalogue, value['files'])
+        assessment = assess_candidate(context, value['stage_id'], prepared, facts, errors, error, admission)
         provenance = {key: value[key] for key in ('task_id', 'generation', 'context_id', 'candidate_id',
                                                 'stage_id', 'iteration', 'request_id')}
         provenance.update(contract_revision=revision, process_ref=contract['process_ref'],
@@ -173,15 +209,26 @@ class GateCommands:
 
 class GateQueries:
     @staticmethod
+    def uses_file_policy(query, records):
+        if query['kind'] == 'file_result':
+            return True
+        rid = internal_record_id('gate_context', query['generation'], query['context_id'])
+        return any(record.kind == 'gate_context' and record.record_id == rid
+                   and _scope(record, query) and 'file_policy' in record.data for record in records)
+
+    @staticmethod
     def resolve(query, records):
         def find(kind):
-            candidate = query.get('candidate_id') if kind != 'gate_context' else None
+            candidate = (query['request_id'] if kind == 'file_decision' else
+                         query.get('candidate_id') if kind != 'gate_context' else None)
             rid = internal_record_id(kind, query['generation'], query['context_id'], candidate)
             value = next((r for r in records if r.kind == kind and r.record_id == rid
                           and _scope(r, query)), None)
             return None if value is None else value.to_value()
         result = {'id': query['id'], 'kind': query['kind']}
-        if query['kind'] == 'gate_context':
+        if query['kind'] == 'file_result':
+            result['result'] = find('file_decision')
+        elif query['kind'] == 'gate_context':
             result['context'] = find('gate_context')
         else:
             result.update(candidate=find('gate_candidate'), decision=find('gate_decision'),

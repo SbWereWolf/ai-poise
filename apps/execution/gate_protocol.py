@@ -1,6 +1,7 @@
 """Exact gate transport/configuration shapes; acceptance stays in the domain."""
 from pathlib import Path
 
+from apps.execution.domain.file_policy import FilePolicy, relative_path
 from apps.execution.domain.process.errors import DomainError
 from apps.execution.domain.process.validation import configuration_fields
 
@@ -46,6 +47,8 @@ def packet(value, config):
     common = {'action', 'request_id', 'expected_revision', 'task_id', 'generation', 'context_id'}
     fields = ({'contract_revision', 'requirement_ids', 'task_content', 'stage_contracts'}
               if action == 'declare' else {'candidate_id', 'stage_id', 'iteration', 'sections', 'trace', 'files'})
+    if action == 'declare' and 'file_policy' in value:
+        fields = fields | {'file_policy'}
     _exact(value, common | fields, f'Gate {action} input')
     for name in ('request_id', 'context_id'):
         _text(value[name], f'Gate {name}')
@@ -87,6 +90,8 @@ def query_item(value, config):
     kind = value.get('kind')
     if kind == 'gate_context':
         fields = {'id', 'kind', 'task_id', 'generation', 'context_id'}
+    elif kind == 'file_result':
+        fields = {'id', 'kind', 'task_id', 'generation', 'context_id', 'request_id'}
     elif kind == 'gate_result':
         fields = {'id', 'kind', 'task_id', 'generation', 'context_id', 'candidate_id'}
     else:
@@ -98,3 +103,28 @@ def query_item(value, config):
     _integer(value['generation'], 'Gate query generation', 1)
     if kind == 'gate_result':
         _text(value['candidate_id'], 'Gate query candidate_id')
+
+    if kind == 'file_result':
+        _text(value['request_id'], 'File result request_id')
+
+
+def files_packet(value, config):
+    fields = {'action', 'request_id', 'expected_revision', 'task_id', 'generation',
+              'context_id', 'stage_id', 'mode', 'paths'}
+    _exact(value, fields, 'Files check input')
+    if value['action'] != 'check':
+        raise DomainError('Files action: provide check')
+    for field in ('request_id', 'context_id', 'stage_id'):
+        _text(value[field], 'Files ' + field)
+    _task(value['task_id'], config)
+    _integer(value['expected_revision'], 'Files expected_revision', 0)
+    _integer(value['generation'], 'Files generation', 1)
+    if value['mode'] not in ('read', 'write'):
+        raise DomainError('Files mode: provide read or write')
+    if type(value['paths']) is not list:
+        raise DomainError('Files paths: provide an explicit list')
+    for item in value['paths']:
+        _exact(item, {'root', 'path'}, 'Files selected path')
+        _exact(item['root'], {'kind', 'position'}, 'Files selected root')
+        FilePolicy.root_key(item['root'])
+        relative_path(item['path'])

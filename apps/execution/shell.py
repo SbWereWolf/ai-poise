@@ -24,9 +24,11 @@ from apps.execution.application.processes import ProcessCommands, ProcessDefinit
 from apps.execution.domain.process.errors import PoiseError
 from apps.execution.domain.process.validation import configuration_fields
 from apps.execution.process_protocol import settings as process_settings, packet as process_packet
-from apps.execution.gate_protocol import settings as gate_settings, packet as gate_packet, query_item as gate_query_item
+from apps.execution.gate_protocol import (settings as gate_settings, packet as gate_packet,
+                                         query_item as gate_query_item, files_packet)
 from apps.execution.application.gates import GateCommands, GateQueries
 from apps.execution.infrastructure.gate_files import GateFiles
+from apps.execution.infrastructure.stage_files import StageFiles
 
 CONFIG_SCHEMA = "stride-execution-config/v1"
 WIRE_SCHEMA = "stride-execution/v1"
@@ -210,6 +212,9 @@ def _packet(value, config):
     if value['operation'] == 'process':
         process_packet(value['input'], config)
         return value
+    if value['operation'] == 'files':
+        files_packet(value['input'], config)
+        return value
     if value['operation'] == 'gate':
         gate_packet(value['input'], config)
         return value
@@ -240,7 +245,7 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
-            if isinstance(query, dict) and query.get('kind') in ('gate_context', 'gate_result'):
+            if isinstance(query, dict) and query.get('kind') in ('gate_context', 'gate_result', 'file_result'):
                 gate_query_item(query, config)
                 qid = query['id']
                 if qid in seen:
@@ -265,9 +270,10 @@ class Store:
         self.config = config
         self.records = ExecutionRecords(
             lambda write: record_unit_of_work(self.locked, self.connect, write))
+        files = GateFiles(config['gates']) if 'gates' in config else None
         self.gates = GateCommands(
-            lambda write: record_unit_of_work(self.locked, self.connect, write),
-            GateFiles(config['gates']) if 'gates' in config else None)
+            lambda write: record_unit_of_work(self.locked, self.connect, write), files,
+            StageFiles(files) if files is not None else None)
 
     @contextlib.contextmanager
     def locked(self):
@@ -400,10 +406,12 @@ class Store:
                 results = []
                 repository = RecordRepository(conn)
                 records = {}
+                file_queries = False
                 for query in packet["input"]["queries"]:
-                    if query['kind'] in ('gate_context', 'gate_result'):
+                    if query['kind'] in ('gate_context', 'gate_result', 'file_result'):
                         if query['task_id'] not in records:
                             records[query['task_id']] = repository.list_records(query['task_id'])
+                        file_queries |= GateQueries.uses_file_policy(query, records[query['task_id']])
                         results.append(GateQueries.resolve(query, records[query['task_id']]))
                         continue
                     row = conn.execute(
@@ -418,7 +426,10 @@ class Store:
                         "current_stage": row["current_stage"], "iteration": int(row["iteration"]),
                         "workspace_id": row["workspace_id"], "admission_id": row["admission_id"],
                     }})
-                return {"schema": WIRE_SCHEMA, "status": "read_only", "revision": revision, "results": results}
+                response = {"schema": WIRE_SCHEMA, "status": "read_only", "revision": revision, "results": results}
+                if file_queries:
+                    response['replayed'] = False
+                return response
             finally:
                 conn.close()
 
@@ -437,12 +448,13 @@ def execute(config_path, stream, output):
         store = Store(config)
         if packet['operation'] == 'process':
             result = ProcessCommands(ProcessUnitOfWork(store),ProcessFiles(config['process'])).execute(packet)
-        elif packet['operation'] == 'gate':
-            result = store._record_call(store.gates.execute, packet['input'])
+        elif packet['operation'] in ('gate', 'files'):
+            result = store._record_call(store.gates.execute, packet['operation'], packet['input'])
         else:
             result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
         code = (3 if result['status'] == 'pending' else
-                2 if result['status'] == 'evaluated' and not result['accepted'] else 0)
+                2 if result['status'] == 'evaluated' and not result['accepted'] else
+                2 if result['status'] == 'checked' and not result['allowed'] else 0)
     except (ExecutionError, PoiseError, OSError, sqlite3.Error, ValueError) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2

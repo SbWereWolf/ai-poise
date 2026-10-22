@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import json
 
+from .file_policy import FilePolicy
 from .process.content import ContentState, SectionBook, SectionRule, SectionValue
 from .process.content_policy import ContentPolicy, ContentSnapshot, TraceValue, count_artifacts
 from .process.definition import GoalTypeDefinition
@@ -15,6 +16,7 @@ class GateContext:
     process: dict
     policy: ContentPolicy
     contracts: TaskStageContracts
+    file_policy: FilePolicy | None
 
     @classmethod
     def parse(cls, process, contract, declaration):
@@ -30,7 +32,9 @@ class GateContext:
             tuple(sorted({name for stage in process['stages'] for name in stage['sections']})))
         contracts = TaskStageContracts.parse(
             declaration['stage_contracts'], RouteDefinition.from_workflow(process), policy)
-        return cls(process, policy, contracts)
+        file_policy = (FilePolicy.parse(declaration['file_policy'], process, contract['workspace_id'])
+                       if 'file_policy' in declaration else None)
+        return cls(process, policy, contracts, file_policy)
 
     def stage(self, stage_id):
         self.contracts.stage(stage_id)
@@ -63,10 +67,13 @@ def prepare_candidate(context, previous_snapshot, stage_id, sections, trace):
     return context.policy.apply(previous_snapshot.with_sections(prepared), stage_id, extra, trace)
 
 
-def assess_candidate(context, stage_id, snapshot, facts, file_errors, preparation_error):
+def assess_candidate(context, stage_id, snapshot, facts, file_errors, preparation_error, file_admission):
     if preparation_error is not None:
-        return {'prepared': False, 'preparation_error': preparation_error,
-                'file_errors': [], 'artifact_checks': [], 'pre': None, 'post': None, 'passed': False}
+        result = {'prepared': False, 'preparation_error': preparation_error,
+                  'file_errors': [], 'artifact_checks': [], 'pre': None, 'post': None, 'passed': False}
+        if file_admission is not None:
+            result['file_admission'] = file_admission
+        return result
     stage = context.stage(stage_id)
     checks = []
     for rule in stage['artifact_requirements']:
@@ -76,7 +83,12 @@ def assess_candidate(context, stage_id, snapshot, facts, file_errors, preparatio
     bindings = context.contracts.stage(stage_id)
     pre = context.policy.evaluate(stage_id, 'pre', snapshot, facts, bindings.entry_requirements).to_dict()
     post = context.policy.evaluate(stage_id, 'post', snapshot, facts, bindings.exit_requirements).to_dict()
-    return {'prepared': True, 'preparation_error': None, 'file_errors': file_errors,
+    result = {'prepared': True, 'preparation_error': None, 'file_errors': file_errors,
             'artifact_checks': checks, 'pre': pre, 'post': post,
             'passed': not file_errors and all(check['passed'] for check in checks)
                       and pre['passed'] and post['passed']}
+
+    if file_admission is not None:
+        result['file_admission'] = file_admission
+        result['passed'] = result['passed'] and file_admission['passed']
+    return result

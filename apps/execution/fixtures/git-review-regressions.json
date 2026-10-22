@@ -1,0 +1,105 @@
+{
+  "module": {
+    "first": "first\n",
+    "second": "second\n",
+    "gitmodules": "[submodule \"module\"]\n\tpath = extra/module\n\turl = ./local-module\n"
+  },
+  "scenarios": {
+    "isolated": {
+      "paths": [
+        "extra/module"
+      ],
+      "decisions": [
+        {
+          "root": {
+            "kind": "code",
+            "position": 0
+          },
+          "path": "extra/module",
+          "allowed": false,
+          "reason": "outside_allow"
+        }
+      ],
+      "candidate": {
+        ".gitmodules": {
+          "mode": "100644",
+          "kind": "blob",
+          "content": "[submodule \"module\"]\n\tpath = extra/module\n\turl = ./local-module\n"
+        },
+        "src/result.py": {
+          "mode": "100644",
+          "kind": "blob",
+          "content": "A\n"
+        },
+        "extra/module": {
+          "mode": "160000",
+          "kind": "commit",
+          "oid": "$MODULE_HEAD"
+        }
+      }
+    },
+    "mixed": {
+      "paths": [
+        "extra/module",
+        "src/result.py"
+      ],
+      "decisions": [
+        {
+          "root": {
+            "kind": "code",
+            "position": 0
+          },
+          "path": "extra/module",
+          "allowed": false,
+          "reason": "outside_allow"
+        },
+        {
+          "root": {
+            "kind": "code",
+            "position": 0
+          },
+          "path": "src/result.py",
+          "allowed": true,
+          "reason": null
+        }
+      ],
+      "candidate": {
+        ".gitmodules": {
+          "mode": "100644",
+          "kind": "blob",
+          "content": "[submodule \"module\"]\n\tpath = extra/module\n\turl = ./local-module\n"
+        },
+        "src/result.py": {
+          "mode": "100644",
+          "kind": "blob",
+          "content": "C\n"
+        },
+        "extra/module": {
+          "mode": "160000",
+          "kind": "commit",
+          "oid": "$MODULE_HEAD"
+        }
+      }
+    }
+  },
+  "space_context": {
+    "id": "space-root",
+    "request_id": "declare-space-root",
+    "declaration_expected_revision": 3,
+    "query_expected_revision": 4
+  },
+  "nul_inputs": [
+    {
+      "field": "author_name",
+      "value": "Valid\u0000Name"
+    },
+    {
+      "field": "author_email",
+      "value": "valid\u0000mail@example.test"
+    },
+    {
+      "field": "message",
+      "value": "Valid\u0000message"
+    }
+  ]
+}

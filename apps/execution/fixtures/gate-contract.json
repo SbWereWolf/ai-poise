@@ -1410,5 +1410,400 @@
       ]
     },
     "passed": false
+  },
+  "saved_process_cases": {
+    "missing_stages": {
+      "goal_type": "writing"
+    },
+    "missing_content": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "compose"
+      },
+      "stages": [
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить результат.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "draft"
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [
+            {
+              "scope": "task",
+              "pattern": "outputs/*.txt",
+              "minimum": 1,
+              "maximum": 2
+            }
+          ]
+        },
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Проверить результат.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "draft"
+          },
+          "required_sections": [],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "stages_bool": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "compose"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "goal-note",
+            "template": "note",
+            "normalization": "strip",
+            "write_stages": [
+              "compose"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "g-note",
+            "kind": "section",
+            "section": "goal-note",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "compose"
+            ],
+            "phase": "pre"
+          }
+        ]
+      },
+      "stages": true
+    },
+    "stage_item_shape": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "compose"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "goal-note",
+            "template": "note",
+            "normalization": "strip",
+            "write_stages": [
+              "compose"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "g-note",
+            "kind": "section",
+            "section": "goal-note",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "compose"
+            ],
+            "phase": "pre"
+          }
+        ]
+      },
+      "stages": [
+        {}
+      ]
+    },
+    "section_type": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "compose"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "goal-note",
+            "template": "note",
+            "normalization": "strip",
+            "write_stages": [
+              "compose"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "g-note",
+            "kind": "section",
+            "section": "goal-note",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "compose"
+            ],
+            "phase": "pre"
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить результат.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": [],
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [
+            {
+              "scope": "task",
+              "pattern": "outputs/*.txt",
+              "minimum": 1,
+              "maximum": 2
+            }
+          ]
+        },
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Проверить результат.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "draft"
+          },
+          "required_sections": [],
+          "artifact_requirements": []
+        }
+      ]
+    },
+    "normalization_type": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "documentation"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "compose"
+      },
+      "content_contract": {
+        "sections": [
+          {
+            "id": "goal-note",
+            "template": "note",
+            "normalization": "strip",
+            "write_stages": [
+              "compose"
+            ]
+          }
+        ],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "g-note",
+            "kind": "section",
+            "section": "goal-note",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "compose"
+            ],
+            "phase": "pre"
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "compose",
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Подготовить результат.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": {},
+          "sections": {
+            "report": "draft"
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [
+            {
+              "scope": "task",
+              "pattern": "outputs/*.txt",
+              "minimum": 1,
+              "maximum": 2
+            }
+          ]
+        },
+        {
+          "id": "review",
+          "handler": "inspect",
+          "role": "editor",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "compose"
+          },
+          "rework_targets": [
+            "compose"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          },
+          "instruction": "Проверить результат.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "draft"
+          },
+          "required_sections": [],
+          "artifact_requirements": []
+        }
+      ]
+    }
+  },
+  "saved_process_gate_settings": {
+    "roots": {
+      "runtime": "files/runtime",
+      "task": "files/task",
+      "sprint": "files/sprint"
+    }
+  },
+  "saved_process_fact": {
+    "kind": "process_snapshot",
+    "id": "process:0042:1",
+    "task_id": "0042",
+    "generation": 1,
+    "revision": 1,
+    "data": {
+      "process_ref": {
+        "goal_type": "writing",
+        "revision": "selected-process"
+      },
+      "process": {
+        "goal_type": "writing"
+      }
+    }
   }
 }

@@ -137,3 +137,58 @@ def test_core_only_setup_stays_usable_and_missing_frozen_process_is_explicit(tmp
     mapping = {'@CONTRACT': response['results'][0]['contract_revision']}
     query(config, {'id': 'old', 'kind': 'execution', 'task_id': '0042'})
     refusal_unchanged(config, packet('declare', mapping, expected_revision=1), 'process', 'snapshot', 'процесс')
+
+
+@pytest.mark.parametrize('case', ['missing_stages', 'missing_content', 'stages_bool',
+                                  'stage_item_shape', 'section_type', 'normalization_type'])
+def test_public_saved_process_shape_has_actionable_gate_refusal_without_partial_effects(tmp_path, case):
+    """CODE-F01: a supported generic fact is not necessarily a usable process."""
+    import os
+    from pathlib import Path
+    import subprocess
+    import sys
+    from gate_checks import evaluated
+    from process_checks import APP, applied, installation, store
+    # The same real command is supported for a complete canonical process.
+    control, control_mapping = ready(tmp_path / 'canonical')
+    evaluated(control, packet('evaluate', control_mapping), accepted=True,
+              assessment=fixture('assessment'))
+    config = installation(tmp_path / 'stored', process=False)
+    options = json.loads(config.read_text())
+    options['gates'] = fixture('saved_process_gate_settings')
+    write_json(config, options)
+    contract = fixture('contract')
+    contract['workspace_id'] = 'workspace-1'
+    contract['process_ref']['revision'] = 'selected-process'
+    setup = fixture('setup_packet')
+    setup['input']['expected_revision'] = 0
+    setup['input']['operations'][0]['contract'] = contract
+    response = applied(invoke(config, setup))
+    supplied = fixture('saved_process_fact')
+    supplied['data']['process'] = fixture('saved_process_cases')[case]
+    store(config).write_records(request_id='stored-process-fact', expected_revision=response['revision'],
+                                records=[supplied])
+    # Check actual retained bytes through a separate read, not a production oracle.
+    assert_same(own_rows(config, 'process_snapshot'), [supplied])
+    before = state(config)
+    value = packet('declare', {'@CONTRACT': response['results'][0]['contract_revision']},
+                   request_id='gate-from-stored-process', expected_revision=2)
+    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    environment['PATH'] = str(Path(sys.executable).parent) + os.pathsep + environment['PATH']
+    child = subprocess.run([str(APP / 'bin/execution'), '--config', str(config)],
+                           input=json.dumps(value, ensure_ascii=False) + '\n',
+                           capture_output=True, text=True, env=environment, cwd=config.parent)
+    # Full raw observations survive a failing assertion for truthful RED evidence.
+    write_json(tmp_path / 'gate-observation.json', {'case': case, 'exit_code': child.returncode,
+                                                  'stdout': child.stdout, 'stderr': child.stderr})
+    assert child.returncode == 2, (child.returncode, child.stdout, child.stderr)
+    assert child.stderr == '', child.stderr
+    assert child.stdout.endswith('\n') and child.stdout.count('\n') == 1, child.stdout
+    result = json.loads(child.stdout)
+    assert set(result) == {'schema', 'status', 'reason'}, result
+    assert_same(result['schema'], 'stride-execution/v1')
+    assert_same(result['status'], 'rejected')
+    assert type(result['reason']) is str and result['reason'].strip()
+    assert 'unknown' not in result['reason'].lower() or 'operation' not in result['reason'].lower()
+    assert_same(state(config), before)
+    assert_same(own_rows(config, 'process_snapshot'), [supplied])

@@ -1,13 +1,16 @@
 # Execution public contract
 
-Статус: target design для `PS-DEV-002-T012` / `M01.T012`.
+Статус: действующий process API и целевой проект последующего lifecycle.
 Версия публичного протокола: `stride-execution/v1`.
 
-Это целевой контракт самостоятельного Execution. Реализованные интерфейсы
-запуска, конфигурации, настройки исполнения и чтения описаны в
-[руководстве оболочки](shell-exe.md), а хранение снимков, попыток, доказательств
-и истории — в [руководстве собственного store](store-exe.md). Остальной документ
-описывает целевой жизненный цикл и границы дальнейшего извлечения.
+Текущая поставка реализует `process` из §4, `apply/setup_execution`, `query/execution`
+и Python-интерфейс записи/чтения фактов. Практический действующий договор описывают
+[оболочка](shell-exe.md), [редактор процессов](process-exe.md) и
+[собственный store](store-exe.md). В §12 F1/F2 показаны действующие process inputs.
+Остальные операции/схемы §1–3, §5–11 и F1a/F3–F11 остаются целевым проектом
+из `PS-DEV-002-T012`, если явно не отмечены в действующих руководствах.
+В частности, target structured `error` и внешний authority resolver описывают
+дальнейший lifecycle; текущий отказ содержит `reason`, exit `2`, пустой stderr.
 
 ## 1. Владелец и существующий baseline
 
@@ -131,58 +134,82 @@ User intent интерпретирует публичный вызывающий
 
 ## 4. Process/catalogue — без нового Planner
 
+Этот раздел описывает реализованный самостоятельный редактор. Настройки и
+правильные процедуры находятся в [операторском руководстве](process-exe.md).
+Выбранные имена процессов/шаблонов адресуют собственную явную конфигурацию.
+
 ### 4.1 ProcessDefinition и существующий редактор
 
-`ProcessDefinition` — полный current `GoalTypeDefinition`:
+Полная поддержанная модель имеет ровно поля
 `goal_type,stages,content_contract,route,benefit,worktree_required`.
-Каждый stage содержит точные поля
+Каждый stage содержит
 `id,instruction,read_only,allowed_paths,normalization,sections,required_sections,
-artifact_requirements,handler,role,transitions,rework_targets`.
-Форма, ссылки/достижимость, terminal path, content/trace references и допустимые
-handlers проверяются тем же parser, что при исполнении. Role задаётся на этапе,
-не выводится из handler. Workflow не обязан повторять пример ниже.
+artifact_requirements,handler,role,transitions,rework_targets,purpose,criteria_authority`.
+`criteria_authority` содержит явные списки `propose` и `decide`, `purpose` —
+`design|execution|observation|other`. Доступные виды обработчиков/семантика связей
+проверяются одной извлечённой моделью `GoalTypeDefinition`.
+Полный [корректный пример](process-exe.md#полное-определение-и-шаблон) включает все поля.
 
-`changes` переиспользует существующие ID-addressed editor operations:
+Модель проверяет форму, уникальность и разрешимость ссылок, достижимость,
+путь завершения, content/trace и права проектирования критериев целевых этапов.
+Role задаётся явно. Текстовые ссылки `route`, `point`, `section`, `stage_id`
+передаются строками; диагностика структурного отказа указывает неверное поле/ссылку.
+
+`changes` использует существующие ID-addressed операции:
 `put_stage,patch_stage,remove_stage,patch_route,put_section,remove_section,
 put_trace_route,remove_trace_route,put_requirement,remove_requirement,
-set_benefit,set_worktree_required`. Точные формы — нормативный current editor
-и его `GoalTypeDefinition.build`; финальная validation общая, а не новый набор
-псевдополей. Полный process schema остаётся содержимым versioned process input,
-не результатом сериализации приватной Task/Session.
-
-Для явно нового графа target adapter принимает полную definition и передаёт её
-тому же parser/publication owner. Legacy `goal-config-batch-1` create требует
-template: это **расширение target входа**, не утверждение обратного о legacy CLI.
-Шаблон выбирается только явно по `{id,version,digest}`; он материализуется в
-независимый desired process, затем применяется `changes`. Пустой changes разрешён.
+set_benefit,set_worktree_required`. `put` принимает `{op,value}`, `remove` —
+`{op,id}`, `patch_stage` — `{op,id,set}`, `patch_route` — `{op,set}`,
+два `set_…` — `{op,value}`. Полные объекты и конечный граф проверяются той же моделью.
+Пустой changes допустим; непересекающиеся patches одного объекта объединяются.
+Шаблон и полное определение создают отдельный current выбранного `goal_type`;
+редактирование сохраняет неизвестные raw configuration extensions.
 
 ### 4.2 `process` inputs
 
-Общие mutation fields: `action,request_id,expected_revision,goal_type`.
+Envelope точно `{schema:"stride-execution/v1",operation:"process",input:object}`.
+В input mutation обязательны `action,request_id,expected_revision,goal_type`.
+`expected_revision` — целое `>=0`; ID — явно заданные непустые строки, выбранные
+процессы и шаблоны зарегистрированы в `process.workflows/templates`.
+Process revision — возвращённая непустая строка версии содержания; передавайте
+её из ответа, отдельно вычислять файловые хэши не требуется.
 
-| action | Дополнительные поля | Результат |
+| action | Остальные обязательные поля input | Результат |
 | --- | --- | --- |
-| `create` | `source,changes` | Новый process, конфликт existing goal_type не implicit replace |
-| `edit` | `expected_process_revision:Digest,changes` | Новый current revision; активные frozen Tasks не меняются |
-| `reconcile` | `expected_managed_revision:Digest,expected_live_revision:Digest,authorization_id:Id,reason:string` | Принятие exact внешней валидной публикации редактором, не перепись файла |
-| `status` | Только `goal_type`; общие mutation fields **не** передаются | Read-only current/managed/live revision и pending request |
+| `create` | `source,changes` | Создаёт выбранный новый current |
+| `edit` | `expected_process_revision,changes` | Изменяет current при совпавшей process revision |
+| `reconcile` | `expected_managed_revision,expected_live_revision,authorization_id,reason` | Принимает согласованную текущую публикацию в editor head/receipt |
+| `status` | Только `goal_type` после `action` | Читает current/managed/live revision и pending request |
 
-`source` — tagged union ровно одной формы:
+`source` имеет ровно одну форму:
 `{kind:"definition",definition:ProcessDefinition}` либо
-`{kind:"template",template:{id:Id,version:Id,digest:Digest}}`.
-`edit` не имеет source/template. Target paths берутся из catalogue, не из запроса.
-`status` schema input точно `{action,goal_type}`.
+`{kind:"template",template:{id:string}}`. `changes` — список в пределах
+явного `max_changes`. Остальные текстовые поля mutation непустые; пути берутся
+из конфигурации. `status` input точно `{action,goal_type}`.
+Обязательные известные поля и wire shapes проверяются строго.
+Текущий файл status/edit/reconcile содержит тот же `goal_type`, что выбран в запросе.
 
-Process mutation success: `{schema,status:"published",revision,replayed,goal_type,
-previous_process_revision:Digest|null,process_revision:Digest,changed:boolean}`.
-Status success: `{schema,status:"read_only",revision,goal_type,
-managed_revision:Digest|null,live_revision:Digest|null,pending_request:Id|null}`.
+Успех mutation точно:
+`{schema,status:"published",revision,replayed,goal_type,
+previous_process_revision:string|null,process_revision:string,changed:boolean}`.
+Успех status точно:
+`{schema,status:"read_only",revision,goal_type,
+managed_revision:string|null,live_revision:string,pending_request:string|null}`.
+Current для status должен существовать и быть структурно корректным.
+Текущий отказ точно `{schema,status:"rejected",reason:string}`, exit `2`, пустой stderr.
 
-Файловая публикация сохраняет существующий pending intent, exact managed revision,
-полную validation, fsync/atomic replace и immutable receipt. Crash не объявляется
-DB/filesystem atomicity. Pending response:
-`{schema,status:"pending",revision,intent_id:Id,phase:"process_publication"}`.
-Exact retry завершает только этот intent при old/new bytes; чужой drift — отказ.
+Публикация сначала сохраняет pending candidate, затем выполняет fsync/atomic replace
+файла, затем завершает editor/core transaction. При обычном отказе записи или
+SQL-финализации до COMMIT:
+`{schema,status:"pending",revision,intent_id:string,phase:"process_publication"}`,
+exit `3`. Восстановите условие записи внешним инструментом и сразу повторите точный
+исходный пакет до других изменений. Повтор завершает сохранённый candidate один раз.
+Завершённый запрос возвращает прежний результат с `replayed:true` до чтения текущего
+процесса/шаблона, включая его прежнюю целую revision.
+
+Обычная attached transaction поддержана с DELETE/WAL без переключения режима.
+Граница проверенного pre-COMMIT отката, продолжения и неизвестного COMMIT описана
+в [процедуре публикации](process-exe.md#публикация-и-продолжение).
 
 ## 5. Execution contract и candidate
 
@@ -617,6 +644,7 @@ Timeout/failed check — observed failed evidence, не подмена его `s
 
 ## 12. Literal fixtures
 
+F1/F2 относятся к действующему process API; F1a/F3–F11 — отдельные target lifecycle fixtures.
 Все JSON ниже — literal данные, не вывод production serializer. Где краткая
 fixture задаёт условие словами, оно является обязательным precondition, а не
 пропущенным обязательным wire field. Реальные Digest считаются из указанных bytes;
@@ -625,23 +653,29 @@ fixture задаёт условие словами, оно является об
 
 ### F1 — новый граф без навязанного pipeline
 
-Initial store revision0, trusted process-editor actor, `proof_note` отсутствует.
+Для действующего F1 используйте новый собственный store revision0,
+зарегистрируйте `proof_note` в `process.workflows` с отдельным current path.
 Полная definition — отдельный stage с явной ролью, не фиксированная последовательность:
 
 ```json
-{"schema":"stride-execution/v1","operation":"process","input":{"action":"create","request_id":"new-proof-note","expected_revision":0,"goal_type":"proof_note","source":{"kind":"definition","definition":{"goal_type":"proof_note","worktree_required":false,"benefit":{"git_categories":[],"sections":[]},"route":{"entry":"write"},"content_contract":{"sections":[],"routes":[],"requirements":[]},"stages":[{"id":"write","instruction":"Return the declared note.","read_only":false,"allowed_paths":[],"normalization":"exact","sections":{"report":"Provide the result."},"required_sections":["report"],"artifact_requirements":[],"handler":"produce","role":"author","transitions":{"complete":null},"rework_targets":["write"]}]}},"changes":[]}}
+{"schema":"stride-execution/v1","operation":"process","input":{"action":"create","request_id":"new-proof-note","expected_revision":0,"goal_type":"proof_note","source":{"kind":"definition","definition":{"goal_type":"proof_note","worktree_required":false,"benefit":{"git_categories":[],"sections":[]},"route":{"entry":"write"},"content_contract":{"sections":[],"routes":[],"requirements":[]},"stages":[{"id":"write","instruction":"Return the declared note.","read_only":false,"allowed_paths":[],"normalization":"exact","sections":{"report":"Provide the result."},"required_sections":["report"],"artifact_requirements":[],"handler":"produce","role":"author","transitions":{"complete":null},"rework_targets":["write"],"purpose":"execution","criteria_authority":{"propose":[],"decide":[]}}]}},"changes":[]}}
 ```
 
 Expected `published`, revision1, goal_type `proof_note`, previous revision null,
-changed true; process_revision equals canonical Digest всей definition. Shared
-current GoalTypeDefinition parser обязан принимать эту complete definition.
-Последующая Task использует revision1 snapshot, не скрытый template.
+changed true; используйте возвращённый process_revision для выбранного процесса.
+Полная definition принимается текущей собственной моделью GoalTypeDefinition.
+Последующая Task сохраняет её фактический snapshot; целая owner revision и
+идентификатор содержания процесса имеют разные назначения.
 
 ### F1a — полный setup и submission source-free этапа
 
-После F1 store revision1; canonical Task0042/snapshot1 уже выданы Requirements,
-trusted admission `admit-0042` и restart policy `rp-1` существуют. Source-free
-process явно не требует Workspace. Полный target contract:
+Это самостоятельная историческая target fixture последующего lifecycle, а не
+продолжение действующего F1: её сохранённая прежняя definition и вычисленные revision
+зафиксированы отдельно. Literal process/contract revisions ниже относятся только
+к этой исторической fixture. Для текущего setup берите возвращённую revision F1
+и [реальную процедуру](process-exe.md#правильное-создание-изменение-и-настройка-исполнения).
+В целевом окружении store revision1; canonical Task0042/snapshot1, trusted admission
+`admit-0042` и restart policy `rp-1` уже существуют. Полный target contract:
 
 ```json
 {"schema":"stride-execution/v1","operation":"apply","input":{"request_id":"setup-note","expected_revision":1,"operations":[{"id":"setup","kind":"setup_execution","contract":{"task_id":"0042","requirements_snapshot_revision":1,"process_ref":{"goal_type":"proof_note","revision":"801e4104879807bc5d961c4f3bfe7d9ba05a97896d93621b1f4781419b63b9de"},"admission_id":"admit-0042","workspace_id":null,"stage_expectations":[{"stage_id":"write","values":[{"name":"report","type":"string","required":true,"match":{"mode":"equals","value":"Done"}}],"files":[],"methods":[]}],"restart_policy_id":"rp-1","methods":[],"evidence_plan":{"write":{"subject_methods":{},"arguments":[],"review_arguments":[]}}}}]}}
@@ -666,18 +700,18 @@ files/source null, потому что данный stage source-free. Gate за
 
 ### F2 — материализованный шаблон редактируется независимо
 
-Initial revision1; catalogue содержит exact `note-template/version=1/digest=aaa…`.
-Он имеет stage `write`, и это подтверждённое fixture input, не автопоиск template.
+Для действующего F2 store имеет revision1 после F1. Зарегистрируйте
+`template_note` в workflows и `note-template` в templates с отдельным path;
+сохраните полную definition F1 в этом файле шаблона, включая purpose/criteria_authority.
 
 ```json
-{"schema":"stride-execution/v1","operation":"process","input":{"action":"create","request_id":"template-note","expected_revision":1,"goal_type":"template_note","source":{"kind":"template","template":{"id":"note-template","version":"1","digest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},"changes":[{"op":"patch_stage","id":"write","set":{"instruction":"Return a materialized note."}}]}}
+{"schema":"stride-execution/v1","operation":"process","input":{"action":"create","request_id":"template-note","expected_revision":1,"goal_type":"template_note","source":{"kind":"template","template":{"id":"note-template"}},"changes":[{"op":"patch_stage","id":"write","set":{"instruction":"Return a materialized note."}}]}}
 ```
 
-Expected `published` revision2. Original template bytes/digest неизменны;
-materialized process отличается только explicit goal_type/instruction.
-Exact replay returns same process_revision, `replayed:true`, revision2.
-Два patch одной instruction в одном packet => `process_invalid`, issues.code
-`conflicting_change`, нет публикации. Нет нового Planner/скрытых stages.
+Ожидается `published`, revision2. Шаблон сохраняет исходные байты;
+материализованный процесс получает выбранный goal_type и instruction.
+Точный исходный повтор возвращает тот же process_revision, `replayed:true`, revision2.
+Именованные изменения и конечная проверка выполняются существующей моделью редактора.
 
 ### F3 — matching value и file проходят gate
 

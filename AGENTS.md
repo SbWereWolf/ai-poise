@@ -112,6 +112,10 @@ decisions only in conversation history.
 Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Persist every harness refusal and bypass in the [common permanent working journal](docs/operations/harness-incident-journal.md#постоянное-хранилище)
+as it occurs, outside Git and disposable Task/runtime roots. Verify retained bytes before terminal handling or cleanup;
+keep only active known-bug summaries and common instructions versioned. Deliver accepted common logging-rule changes
+immediately under the [explicit direct-master scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила), not at the subject Task's end.
 Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the same business
 result without duplicate effects. Refusals identify a concrete obstacle and an executable remedy/continuation;
 unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal investigation.
@@ -712,9 +716,13 @@ unnecessary code. Always correct defective configuration; verify the original
 problem is removed, roll back unsuccessful changes, record rejected solutions,
 and avoid cycles of configuration workarounds.
 
-Record every incident and every manual correction separately in Sprint working
-documents, or Task working materials for a standalone Task. Include cause, evidence,
-method, alternatives, verification, and remaining limits. Prepare a repair Task
+Record every refusal/incident and manual correction separately in the
+[common permanent journal](docs/operations/harness-incident-journal.md#запись-и-проверка),
+including cause, evidence, method, alternatives, verification and remaining limits.
+Sprint/Task materials link to retained files; they are never the only copies.
+Verify permanent-file readback and SHA-256 before Task completion or cleanup.
+Keep operational journals outside Git; version active known-bug summaries and
+common rules. Prepare a repair Task
 draft for recurring failures; label an offline draft honestly while the API is
 unavailable. Maintain active causes and reusable recovery methods in known bugs.
 Continue authorized honest subject work manually when the harness obstructs it;

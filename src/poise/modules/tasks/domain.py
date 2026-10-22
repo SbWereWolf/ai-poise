@@ -648,7 +648,8 @@ class Task:
             raise DomainError("Historical proof is not a newly authored submission")
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
-        self.evidence_plan.validate_work(self.stage.stage_id, evidence_work)
+        self.evidence_book.validate_submission(self.evidence_plan, self.stage.stage_id, evidence_work,
+                                               self.check_registry.obligation_catalog)
         ordinary_work, criteria_work = split_work(stage_work)
         if criteria_work is not None:
             if self.criteria_book is None:
@@ -1202,7 +1203,7 @@ class Task:
         book = self.evidence_book.to_dict()
         return {'plan':self.evidence_plan.describe(self.stage.stage_id),
                 'assessment':None if self.evidence_assessment is None else json.loads(self.evidence_assessment),
-                'arguments':book['arguments'],'decisions':book['decisions'],
+                **self.evidence_book.context(),
                 'observations':[{'id':r['id'],'method':r['method'],'obligations':r['obligations'],
                                  'tree':b['tree'],'stage':b['stage'],'iteration':b['iteration'],
                                  'passed':r['passed'],'actual_exit_code':r['actual_exit_code']}

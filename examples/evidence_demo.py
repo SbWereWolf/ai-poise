@@ -77,7 +77,16 @@ def run(directory: Path, scenario: str):
     artifact_specs = []
 
     def proposal(ids, iteration):
-        return {'id': 'A', 'kind': 'logical', 'facts': ['Наблюдение содержит VALUE=3.' if ids else 'В задаче явно задано X=3.'], 'assumptions': [], 'inference': f'По определению положительного X значение 3 положительно. Подход {iteration}.', 'conclusion': 'Критерий положительности выполнен.', 'verdict': 'proved', 'observation_ids': ids}
+        path = Path(ctx['task_root']) / 'proofs' / 'a.json'
+        save(path, {
+            'факты': ['Наблюдение содержит VALUE=3.' if ids else 'В задаче явно задано X=3.'],
+            'обоснование': f'По определению положительного X значение 3 положительно. Подход {iteration}.',
+            'вывод': 'Критерий положительности выполнен.',
+        })
+        return {'id': 'A', 'kind': 'logical', 'claim': 'Файл обосновывает положительность измеренного значения.',
+                'path': str(path), 'covers': ['requirements[0]'], 'verdict': 'proved',
+                'observation_ids': ids, 'correction': None if iteration == 1 else {
+                    'kind': 'reviewer_rejected', 'reason': 'Обоснование исправлено после решения проверяющего.'}}
 
     def submit(ctx, phase, arguments, decisions):
         value = deepcopy(ctx['result_template'])
@@ -113,8 +122,10 @@ def run(directory: Path, scenario: str):
         client = reviewer
         decisions = []
         if argument_required:
-            latest = record['evidence']['arguments'][-1]
-            decisions = [{'argument_id': 'A', 'revision': latest['revision'], 'decision': 'rejected' if observer and iteration == 1 else 'accepted', 'reason': 'Решение осмотра задано сценарным драйвером.'}]
+            proof = client.invoke('show', {'queries': [{'id': 'current-proof', 'kind': 'proof_file',
+                'argument_id': 'A', 'representation': 'text'}]})['results'][0]['value']
+            assert proof['content'] and proof['size_bytes'] == len(proof['content'].encode('utf-8'))
+            decisions = [{'argument_id': 'A', 'decision': 'rejected' if observer and iteration == 1 else 'accepted', 'reason': 'Решение осмотра задано сценарным драйвером.'}]
         payload = submit(ctx, 'prepare', [], decisions)
         review = client.verify(payload, artifact_specs)
         reports.append(review)

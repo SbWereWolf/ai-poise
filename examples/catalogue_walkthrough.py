@@ -491,7 +491,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
                              {'kind':'sprint','section':'planned_sprint','authorization':'User: publish the reviewed sprint.'} if goal=='sprint_planning' else
                              {'target_ref':'refs/heads/main','expected_commit':base,'authorization':'User: publish the accepted integrated result.'})
         else:p['stage_work']={'resolutions':proposals} if proposals else {}
-        # Review only argument versions that actually exist, never future outputs.
+        # Inspect actual current proof files, never future outputs.
         arg_plan=task['evidence_plan'][sid]
         # The public evidence view contains complete current arguments and decisions.
         proof={'arguments':[],'decisions':[]}
@@ -503,8 +503,10 @@ def _run(directory,goal,scenario,feedback_edge=None):
         for aid in arg_plan['review_arguments']:
             matching=[a for a in arguments if a['id']==aid]
             if matching:
-                latest=matching[-1]
-                review.append({'argument_id':aid,'revision':latest['revision'],'decision':'accepted','reason':'Fixture reviewer checked observations and bounded inference.'})
+                actual=invoke('show',{'queries':[{'id':'read-'+aid,'kind':'proof_file',
+                    'argument_id':aid,'representation':'text'}]})['results'][0]['value']
+                assert actual['content'] and actual['size_bytes']==len(actual['content'].encode('utf-8'))
+                review.append({'argument_id':aid,'decision':'accepted','reason':'Fixture reviewer checked current proof bytes, observations and bounded inference.'})
         p['evidence_work']={'phase':'prepare','arguments':[],'decisions':review}
         artifact=[{'scope':'task','path':'result.md','source':{'kind':'text','text':f'Reference result of {goal}. Evidence and reviewer decisions are retained in this task.\n'}}]
         out=invoke('verify',{'result':p,'artifacts':artifact})
@@ -519,11 +521,26 @@ def _run(directory,goal,scenario,feedback_edge=None):
             for extra in workflow['content_contract']['sections']:
                 if sid in extra['write_stages']:
                     p['sections'][extra['id']]='Observed receipts confirm the explicitly scoped fact. No claim beyond this fixture experiment is made.'
-            p['evidence_work']={'phase':'continue','arguments':[{'id':a['id'],'kind':a['kind'],
-                'facts':['The current retained command observation completed and is referenced below.'],
-                'assumptions':[],'inference':'This argument concerns only the measured/checked fixture state.',
-                'conclusion':'The procedure produced the stated observation.','verdict':'proved','observation_ids':receipt_ids}
-                for a in arg_plan['arguments'] if a['phase']=='continue'],'decisions':review}
+            current_proofs=invoke('show',{'queries':[{'id':'existing-proof-files','kind':'evidence'}]})['results'][0]['value']['arguments']
+            arguments=[]
+            for a in arg_plan['arguments']:
+                if a['phase']!='continue':
+                    continue
+                old=next((item for item in current_proofs if item['id']==a['id']),None)
+                path=Path(ctx['task_root'])/'proofs'/(a['id']+'.json')
+                save(path,{'наблюдения':receipt_ids,
+                           'факты':'Сохранённые наблюдения текущей процедуры завершены.',
+                           'обоснование':'Вывод ограничен измеренным состоянием сценария.',
+                           'вывод':'Процедура предоставила указанное наблюдение.',
+                           'итерация':ctx['iteration']})
+                arguments.append({'id':a['id'],'kind':a['kind'],
+                    'claim':'Файл подтверждает завершённое наблюдение текущего сценария.',
+                    'path':str(path),'covers':['requirements[0]'],'verdict':'proved',
+                    'observation_ids':receipt_ids,
+                    'correction':None if old is None else {
+                        'kind':'reviewer_rejected' if old['state']=='rejected' else 'author_unreliable',
+                        'reason':'Доказательство обновлено для повторного фактического наблюдения.'}})
+            p['evidence_work']={'phase':'continue','arguments':arguments,'decisions':review}
             out=invoke('verify',{'result':p,'artifacts':[]})
         assert out['status']=='verified',(goal,sid,out)
         if stage['read_only']:

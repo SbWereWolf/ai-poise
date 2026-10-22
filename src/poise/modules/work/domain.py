@@ -135,11 +135,16 @@ def parse_request(value, config):
             ids.add(query['id'])
             shapes_q={'task_delivery':{'id','kind','task_id'},'ownership_recovery':{'id','kind','task_ids'},'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
                'stage_criteria':{'id','kind','stage_id'},
+               'proof_file':{'id','kind','argument_id','representation'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')
             if not isinstance(kind,str) or kind not in shapes_q:
                 raise DomainError('Unknown batch query kind')
+            if kind == 'proof_file' and (set(query) != shapes_q[kind]
+                    or query.get('representation') not in ('text', 'base64')
+                    or not isinstance(query.get('argument_id'), str) or not query['argument_id'].strip()):
+                raise DomainError('proof_file_representation_invalid: Укажите argument_id и явную representation text или base64')
             exact(query,shapes_q[kind],'query')
             if kind == 'stage_criteria' and (not isinstance(query['stage_id'], str) or not query['stage_id'].strip()):
                 raise DomainError('stage_criteria requires a stage ID')

@@ -1789,6 +1789,16 @@ class TaskCommands:
             uow.execution.save_prepared(task_id, execution_write, version)
         return change.task.state
 
+    def proof_submission_context(self, task_id, actor, work, tree):
+        """Validate through the Task owner before composition observes files."""
+        inputs = self.unit_of_work().capture(TaskReadSet((task_id,)))
+        task = inputs.task(task_id)
+        task._owned(actor)
+        task.evidence_book.validate_submission(
+            task.evidence_plan, task.stage.stage_id, work,
+            task.check_registry.obligation_catalog, tree)
+        return task.evidence_book.context()
+
     def evidence_precheck(self, task_id, actor, tree, execution_key):
         import json
         inputs = self.unit_of_work().capture(TaskReadSet((task_id,)))

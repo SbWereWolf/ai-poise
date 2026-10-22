@@ -774,8 +774,10 @@ class Poise:
         return self.store.current(self.session)
 
     def validate_stage_result(self,task_id,payload):
-        self.plan_actions.validate(self._task(),payload)
-        return self.task_commands.validate_submission(task_id,self.session,payload)
+        data = self._task()
+        self.plan_actions.validate(data,payload)
+        self.task_commands.validate_submission(task_id,self.session,payload)
+        self.validate_proof_result(data, payload)
 
     @staticmethod
     def packet_digest(value):
@@ -1607,6 +1609,7 @@ class Poise:
             invocations, _ = self._verification_execution(data, tree, selected, worktree)
             require_identity(data['pending'], self._attempt_identity(tree, invocations))
         self.validate_verification_artifacts(payload['artifact_paths'], data)
+        self.validate_proof_result(data, payload, tree)
         for method in self._select_checks(data, changed):
             self.retention.bind_inputs(data, method)
         if pending_checks or pending_attempt:
@@ -1726,6 +1729,7 @@ class Poise:
             return {'status':'checks_failed','task':data['id'],'stage':stage['id'],'attempt':attempt,'checks':receipts,'replayed':False}
         if self._current_tree(data) != tree:
             raise PoiseError('Наблюдения изменили проверяемое дерево; сначала согласуйте фактическое состояние')
+        self.validate_proof_result(data, payload, tree)
         assessment = self.runner.assess_evidence(data['id'],self.session,tree,execution_key)
         data = self._task()
         if not assessment['ready']:
@@ -2167,6 +2171,52 @@ class Poise:
     def show_evidence(self):
         data=self._task()
         return {'status':'read_only','task':data['id'],**self.task_queries.evidence_view(data['id'])}
+
+    def _proof_files(self, data, artifact_paths=()):
+        from .infrastructure.proof_files import FileProofFiles
+        from .infrastructure.task_paths import ARTIFACT_DRAFT_HISTORY_DIRECTORY
+        from .modules.evidence.materials import receipt_materials
+        root = task_root(self.state, self.paths, data['id'], data['sprint_id'])
+        records = self.store.artifact_records(data['id'])
+        internal = self.store.internal_material_ids(data['id'])
+        managed = [r['path'] for r in records if r['id'] in internal]
+        for receipt in self.evidence_commands.list_for(data['id']):
+            managed.extend(item['path'] for item in receipt_materials(receipt).values())
+        return FileProofFiles(root, managed_paths=managed,
+            managed_roots=[root / self.paths['runs'], root / ARTIFACT_DRAFT_HISTORY_DIRECTORY],
+            artifact_paths=[r['path'] for r in records if r['id'] not in internal] + list(artifact_paths))
+
+    def validate_proof_result(self, data, payload, tree=None):
+        work = payload['evidence_work']
+        if not work['arguments'] and not work['decisions']:
+            return
+        if tree is None:
+            tree = self._current_tree(data)
+        current = self.task_commands.proof_submission_context(data['id'], self.session, work, tree)
+        files = self._proof_files(data, payload['artifact_paths'])
+        observed = {}
+        for argument in work['arguments']:
+            path = files.observe(argument['path'])
+            if path in observed and observed[path] != argument['id']:
+                raise PoiseError('proof_file_path_conflict: ' + str(path))
+            observed[path] = argument['id']
+        for argument in current['arguments']:
+            if argument['id'] in {d['argument_id'] for d in work['decisions']}:
+                files.observe(argument['path'])
+            if argument['id'] not in {a['id'] for a in work['arguments']}:
+                path = Path(argument['path']).resolve()
+                if path in observed and observed[path] != argument['id']:
+                    raise PoiseError('proof_file_path_conflict: ' + str(path))
+
+    def show_proof_file(self, argument_id, representation):
+        data = self.current_task()
+        if data is None:
+            raise PoiseError('proof_task_required: Выберите Task перед чтением её доказательства')
+        view = self.task_queries.evidence_view(data['id'])
+        argument = next((a for a in view['arguments'] if a['id'] == argument_id), None)
+        if argument is None:
+            raise PoiseError('proof_argument_unknown: ' + argument_id)
+        return self._proof_files(data).read(data['id'], argument, representation)
 
     def show_verification_registry(self):
         data = self._task()

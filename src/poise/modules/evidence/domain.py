@@ -32,6 +32,40 @@ def strings(value, where):
         raise DomainError(f'{where}: требуется список непустых строк')
 
 
+ARGUMENT_FIELDS = frozenset({'id', 'kind', 'claim', 'path', 'covers', 'verdict',
+                             'observation_ids', 'correction'})
+
+
+def proof_error(prefix, reason):
+    raise DomainError(f'{prefix}: {reason}')
+
+
+def file_argument(value):
+    """Current file metadata is distinct from preserved inline history."""
+    return isinstance(value, dict) and ARGUMENT_FIELDS <= value.keys() and 'body' not in value
+
+
+def validate_file_argument(value):
+    if not isinstance(value, dict) or set(value) != ARGUMENT_FIELDS:
+        proof_error('proof_argument_invalid', 'Требуются точные поля файлового доказательства')
+    for field in ('id', 'claim', 'path'):
+        if not isinstance(value[field], str) or not value[field].strip():
+            proof_error('proof_argument_invalid', f'{field}: требуется непустой текст')
+    if value['kind'] not in ('logical', 'inspection') or value['verdict'] not in ('proved', 'disproved', 'inconclusive'):
+        proof_error('proof_argument_invalid', 'Неизвестный вид или вердикт доказательства')
+    for field in ('covers', 'observation_ids'):
+        items = value[field]
+        if (not isinstance(items, list) or any(not isinstance(x, str) or not x.strip() for x in items)
+                or len(set(items)) != len(items) or (field == 'covers' and not items)):
+            proof_error('proof_argument_invalid', f'{field}: требуется явный список уникальных ссылок')
+    correction = value['correction']
+    if correction is not None:
+        if (not isinstance(correction, dict) or set(correction) != {'kind', 'reason'}
+                or correction['kind'] not in ('reviewer_rejected', 'author_unreliable')
+                or not isinstance(correction['reason'], str) or not correction['reason'].strip()):
+            proof_error('proof_correction_invalid', 'Укажите вид исправления и непустую причину')
+
+
 def completed_receipts(receipts):
     """Whether persisted command receipts have complete, usable control metadata."""
     required = {
@@ -179,6 +213,10 @@ class EvidencePlan:
                 return s
         raise DomainError(f'Неизвестный evidence stage {stage}')
 
+    def argument(self, identifier):
+        return next((argument for stage in self.stages for argument in stage.arguments
+                     if argument.id == identifier), None)
+
     def validate_work(self, stage, work):
         exact(work, {'phase','arguments','decisions'}, 'evidence_work')
         if work['phase'] not in ('prepare','continue'):
@@ -189,27 +227,27 @@ class EvidencePlan:
         expected = {a.id:a for a in cfg.arguments}
         seen = set()
         for a in work['arguments']:
-            exact(a, {'id','kind','facts','assumptions','inference','conclusion','verdict','observation_ids'}, 'argument')
-            if not isinstance(a['id'],str) or a['id'] not in expected or a['id'] in seen:
-                raise DomainError('Неизвестный/повторный ID аргумента')
-            seen.add(a['id']); spec = expected[a['id']]
-            if a['kind'] != spec.kind or (work['phase']=='prepare' and spec.phase=='continue'):
-                raise DomainError('Аргумент подан не в заданную фазу/не того вида')
-            strings(a['facts'],'facts'); strings(a['assumptions'],'assumptions'); strings(a['observation_ids'],'observation_ids')
-            if not a['facts'] or len(set(a['observation_ids'])) != len(a['observation_ids']):
-                raise DomainError('Нужны факты и уникальные ссылки на наблюдения')
-            text(a['inference'],'inference'); text(a['conclusion'],'conclusion')
-            if a['verdict'] not in ('proved','disproved','inconclusive'):
-                raise DomainError('verdict: proved/disproved/inconclusive')
+            validate_file_argument(a)
+            if a['id'] in seen:
+                proof_error('proof_argument_duplicate', a['id'])
+            if cfg.handler == 'inspect':
+                proof_error('proof_argument_invalid', 'Осмотр принимает решения, а не предъявляет доказательства')
+            seen.add(a['id'])
+            spec = expected.get(a['id'])
+            declared = self.argument(a['id'])
+            if declared is not None and a['kind'] != declared.kind:
+                proof_error('proof_argument_invalid', 'Сохраните объявленный вид доказательства')
+            if spec is not None and work['phase'] == 'prepare' and spec.phase == 'continue':
+                proof_error('proof_argument_invalid', 'Аргумент подан не в заданную фазу или не того вида')
         seen = set()
         for d in work['decisions']:
-            exact(d, {'argument_id','revision','decision','reason'}, 'evidence decision')
-            for field in d: text(d[field],field)
-            if d['argument_id'] not in cfg.review_arguments or d['argument_id'] in seen:
-                raise DomainError('Решение относится не к запланированному предмету осмотра')
+            if (not isinstance(d, dict) or set(d) != {'argument_id', 'decision', 'reason'}
+                    or any(not isinstance(v, str) or not v.strip() for v in d.values())
+                    or d['decision'] not in ('accepted', 'rejected') or d['argument_id'] in seen):
+                proof_error('proof_argument_invalid', 'Требуется точное решение о файле и непустая причина')
+            if cfg.handler != 'inspect':
+                proof_error('proof_argument_invalid', 'Решение принадлежит этапу осмотра')
             seen.add(d['argument_id'])
-            if d['decision'] not in ('accepted','rejected'):
-                raise DomainError('Решение осмотра: accepted/rejected')
         if work['phase']=='continue' and not any(a.phase=='continue' for a in cfg.arguments):
             raise DomainError('CONTINUE не объявлен для этого этапа')
 
@@ -329,32 +367,77 @@ class EvidenceBook:
 
     def latest_argument(self, id):
         for item in reversed(self.arguments):
-            a=json.loads(item)
-            if a['id']==id: return a
+            a = json.loads(item)
+            if file_argument(a) and a['id'] == id:
+                return a
         return None
 
-    def _validate_sources(self, cfg, argument, tree, batch):
-        spec=next(a for a in cfg.arguments if a.id==argument['id'])
-        receipts={r['id']:(b,r) for encoded in self.batches for b in [json.loads(encoded)] for r in b['receipts']}
-        methods=set()
+    def context(self):
+        book = self.to_dict()
+        return {
+            'arguments': [a for a in book['arguments'] if file_argument(a)],
+            'decisions': [d for d in book['decisions'] if 'revision' not in d],
+            'historical_arguments': [a for a in book['arguments'] if not file_argument(a)],
+            'historical_decisions': [d for d in book['decisions'] if 'revision' in d],
+        }
+
+    def validate_submission(self, plan, stage, work, obligations=None, tree=None):
+        """Pure, pre-write identity/correction/reference validation."""
+        plan.validate_work(stage, work)
+        paths = {a['path']: a['id'] for a in self.context()['arguments']}
+        for a in work['arguments']:
+            old = self.latest_argument(a['id'])
+            if old is not None and old['path'] != a['path']:
+                proof_error('proof_file_path_changed', a['id'] + ': сохраните прежнее расположение')
+            if a['path'] in paths and paths[a['path']] != a['id']:
+                proof_error('proof_file_path_conflict', a['path'])
+            paths[a['path']] = a['id']
+            if obligations is not None and set(a['covers']) - set(obligations):
+                proof_error('proof_requirement_unknown', 'covers: выберите действующие требования или критерии Task')
+            cause = a['correction']
+            if cause is not None and (old is None or (cause['kind'] == 'reviewer_rejected' and old['state'] != 'rejected')):
+                # An exact retry of an already-applied correction is idempotent.
+                if old is None or any(old[k] != a[k] for k in ARGUMENT_FIELDS):
+                    proof_error('proof_correction_invalid', 'Причина не соответствует текущему состоянию доказательства')
+            if old is not None and cause is None and (
+                    any(old[k] != a[k] for k in ARGUMENT_FIELDS) or (tree is not None and old['tree'] != tree)):
+                proof_error('proof_correction_required', a['id'] + ': укажите действительную причину исправления')
+            self._validate_sources(plan.stage(stage), a, tree, None, phase=work['phase'],
+                                   require_batch=False, declared=plan.argument(a['id']))
+        for decision in work['decisions']:
+            current = self.latest_argument(decision['argument_id'])
+            if current is None:
+                proof_error('proof_argument_unknown', decision['argument_id'])
+            if tree is not None and current['tree'] != tree:
+                proof_error('proof_observation_invalid', 'Осмотр требует текущий источник предъявленного доказательства')
+
+    def _validate_sources(self, cfg, argument, tree, batch, *, phase=None, require_batch=True, declared=None):
+        spec = next((a for a in cfg.arguments if a.id == argument['id']), None)
+        argument_phase = spec.phase if spec is not None else phase
+        spec = spec if spec is not None else declared
+        receipts = {r['id']: (b, r) for encoded in self.batches
+                    for b in [json.loads(encoded)] for r in b['receipts']}
+        methods = set()
         for rid in argument['observation_ids']:
             if rid not in receipts:
-                raise DomainError('Аргумент ссылается на неизвестное/чужое наблюдение')
-            b,r=receipts[rid]
-            if b['tree'] != tree or not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0:
-                raise DomainError('Аргумент ссылается на устаревшее/незавершённое наблюдение')
-            if spec.phase=='continue' and (batch is None or b['id'] != batch['id']):
-                raise DomainError('CONTINUE должен использовать текущий batch наблюдений')
-            if spec.phase=='prepare' and b['stage']==cfg.stage:
-                raise DomainError('PREPARE не использует будущие наблюдения текущего этапа')
+                proof_error('proof_observation_invalid', 'Неизвестное или чужое наблюдение: ' + rid)
+            b, r = receipts[rid]
+            if ((tree is not None and b['tree'] != tree) or not r['interpretable'] or r['timed_out']
+                    or r['actual_exit_code'] is None or r['actual_exit_code'] < 0):
+                proof_error('proof_observation_invalid', 'Наблюдение устарело или не завершено: ' + rid)
+            if argument_phase == 'continue' and require_batch and (batch is None or b['id'] != batch['id']):
+                proof_error('proof_observation_invalid', 'CONTINUE требует текущий batch наблюдений')
+            if argument_phase == 'prepare' and b['stage'] == cfg.stage:
+                proof_error('proof_observation_invalid', 'PREPARE не использует будущие наблюдения текущего этапа')
             methods.update(r['obligations'])
-        if set(spec.observation_methods)-methods:
-            raise DomainError('Не все обязательные методы подтверждены ссылками на наблюдения')
-        if not spec.observation_methods and argument['observation_ids']:
-            raise DomainError('Наблюдения должны быть явно предусмотрены argument contract')
+        if spec is not None:
+            if set(spec.observation_methods) - methods:
+                proof_error('proof_observation_invalid', 'Не все обязательные методы подтверждены наблюдениями')
+            if not spec.observation_methods and argument['observation_ids']:
+                proof_error('proof_observation_invalid', 'Наблюдения не предусмотрены договором аргумента')
 
     def precheck(self, plan, stage, iteration, tree, key, work):
-        plan.validate_work(stage,work)
+        self.validate_submission(plan, stage, work, tree=tree)
         cfg=plan.stage(stage); batch=self.batch(stage,iteration,tree,key)
         if work['phase']=='continue' and batch is None:
             raise DomainError('Наблюдения CONTINUE отсутствуют/устарели')
@@ -364,15 +447,15 @@ class EvidenceBook:
             if spec.phase=='prepare' and spec.id not in args:
                 missing.append(f'argument:{spec.id}:prepare')
         for a in work['arguments']:
-            self._validate_sources(cfg,a,tree,batch)
+            self._validate_sources(cfg,a,tree,batch,phase=work['phase'],declared=plan.argument(a['id']))
         decisions={d['argument_id']:d for d in work['decisions']}
         for id in cfg.review_arguments:
             if id not in decisions:
                 missing.append(f'review:{id}')
                 continue
-            a=self.latest_argument(id); d=decisions[id]
-            if a is None or a['revision'] != d['revision'] or a['tree'] != tree:
-                raise DomainError('Осмотр требует точную актуальную revision аргумента')
+            a=self.latest_argument(id)
+            if a is None or a['tree'] != tree:
+                proof_error('proof_argument_unknown', 'Осмотр требует предъявленный текущий файл: ' + id)
         return tuple(missing)
 
     def assess_replay(self, stage, iteration, tree, key, candidate):
@@ -412,18 +495,30 @@ class EvidenceBook:
         # Do not certify/persist propositions using failed guards/transport or missing prerequisites.
         blocking=[x for x in missing if not x.endswith(':continue')]
         if not blocking:
-            proposals=list(self.arguments)
+            proposals = list(self.arguments)
             for a in work['arguments']:
-                rev=identity([stage,iteration,tree,a])
-                value=canonical({'id':a['id'],'revision':rev,'stage':stage,'iteration':iteration,'tree':tree,'body':a})
-                latest=next((x for x in reversed(proposals) if json.loads(x)['id']==a['id']),None)
-                if latest != value: proposals.append(value)
-            decisions=list(self.decisions)
+                old = self.latest_argument(a['id'])
+                if old is not None and all(old[k] == a[k] for k in ARGUMENT_FIELDS) and old['tree'] == tree:
+                    continue
+                value = canonical({**a, 'state': 'presented', 'stage': stage,
+                                   'iteration': iteration, 'tree': tree})
+                index = next((i for i, item in enumerate(proposals)
+                              if file_argument(json.loads(item)) and json.loads(item)['id'] == a['id']), None)
+                if index is None:
+                    proposals.append(value)
+                else:
+                    proposals[index] = value
+            decisions = list(self.decisions)
             for d in work['decisions']:
-                value=canonical({**d,'stage':stage,'iteration':iteration,'tree':tree})
-                latest=next((x for x in reversed(decisions) if (json.loads(x)['argument_id'],json.loads(x)['revision'])==(d['argument_id'],d['revision'])),None)
-                if latest != value: decisions.append(value)
-            book=EvidenceBook(self.batches,tuple(proposals),tuple(decisions))
+                value = canonical({**d, 'stage': stage, 'iteration': iteration, 'tree': tree})
+                latest = next((item for item in reversed(decisions)
+                               if 'revision' not in json.loads(item) and json.loads(item)['argument_id'] == d['argument_id']), None)
+                if latest != value:
+                    decisions.append(value)
+                index = next(i for i, item in enumerate(proposals)
+                             if file_argument(json.loads(item)) and json.loads(item)['id'] == d['argument_id'])
+                proposals[index] = canonical({**json.loads(proposals[index]), 'state': d['decision']})
+            book = EvidenceBook(self.batches, tuple(proposals), tuple(decisions))
         ready=not missing
         outcome=None
         if ready:

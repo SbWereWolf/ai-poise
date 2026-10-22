@@ -16,7 +16,8 @@ def internal_record_id(kind, generation, context_id, candidate_id=None):
 
 
 def _scope(record, value):
-    binding = record.data if record.kind in ('gate_context', 'file_decision') else record.data['provenance']
+    binding = (record.data if record.kind in ('gate_context', 'file_decision', 'file_diff_decision')
+               else record.data['provenance'])
     return (record.task_id == value['task_id'] and record.generation == value['generation']
             and binding['context_id'] == value['context_id'])
 
@@ -27,8 +28,12 @@ class GateCommands:
         self.files = files
         self.stage_files = stage_files
 
+    @staticmethod
+    def request_digest(operation, value):
+        return hashlib.sha256(canonical_json({'operation': operation, 'input': value}).encode()).hexdigest()
+
     def execute(self, operation, value):
-        digest = hashlib.sha256(canonical_json({'operation': operation, 'input': value}).encode()).hexdigest()
+        digest = self.request_digest(operation, value)
         with self.unit_of_work(write=True) as repository:
             prior = repository.get_request(value['request_id'])
             if prior is not None:
@@ -107,7 +112,7 @@ class GateCommands:
         return {'status': 'declared', 'task_id': value['task_id'], 'generation': value['generation'],
                 'context_id': value['context_id'], 'changed': existing is None}
 
-    def _context(self, repository, value):
+    def context(self, repository, value):
         contract, process, revision = self._binding(repository, value['task_id'], value['generation'])
         rid = internal_record_id('gate_context', value['generation'], value['context_id'])
         record = repository.latest(value['task_id'], 'gate_context', rid)
@@ -120,7 +125,7 @@ class GateCommands:
         return context, contract, revision
 
     def _check_files(self, repository, value):
-        context, contract, revision = self._context(repository, value)
+        context, contract, revision = self.context(repository, value)
         if context.file_policy is None:
             raise DomainError('Declare an explicit file_policy before files/check')
         decisions = [context.file_policy.decide(value['stage_id'], item['root'], item['path'], value['mode'])
@@ -137,7 +142,7 @@ class GateCommands:
                 'result_id': record.record_id}
 
     def _evaluate(self, repository, value):
-        context, contract, revision = self._context(repository, value)
+        context, contract, revision = self.context(repository, value)
         rid = internal_record_id('gate_candidate', value['generation'], value['context_id'], value['candidate_id'])
         existing = repository.latest(value['task_id'], 'gate_candidate', rid)
         submitted = {key: value[key] for key in ('sections', 'trace', 'files')}
@@ -210,7 +215,7 @@ class GateCommands:
 class GateQueries:
     @staticmethod
     def uses_file_policy(query, records):
-        if query['kind'] == 'file_result':
+        if query['kind'] in ('file_result', 'file_diff_result'):
             return True
         rid = internal_record_id('gate_context', query['generation'], query['context_id'])
         return any(record.kind == 'gate_context' and record.record_id == rid
@@ -219,15 +224,16 @@ class GateQueries:
     @staticmethod
     def resolve(query, records):
         def find(kind):
-            candidate = (query['request_id'] if kind == 'file_decision' else
+            candidate = (query['request_id'] if kind in ('file_decision', 'file_diff_decision') else
                          query.get('candidate_id') if kind != 'gate_context' else None)
             rid = internal_record_id(kind, query['generation'], query['context_id'], candidate)
             value = next((r for r in records if r.kind == kind and r.record_id == rid
                           and _scope(r, query)), None)
             return None if value is None else value.to_value()
         result = {'id': query['id'], 'kind': query['kind']}
-        if query['kind'] == 'file_result':
-            result['result'] = find('file_decision')
+        if query['kind'] in ('file_result', 'file_diff_result'):
+            kind = 'file_decision' if query['kind'] == 'file_result' else 'file_diff_decision'
+            result['result'] = find(kind)
         elif query['kind'] == 'gate_context':
             result['context'] = find('gate_context')
         else:

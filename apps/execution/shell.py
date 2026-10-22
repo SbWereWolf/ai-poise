@@ -13,6 +13,8 @@ import sqlite3
 import sys
 
 from apps.execution.application.records import ExecutionRecords
+from apps.execution.application.stage_git import StageGit
+from apps.execution.errors import ExecutionError, StageCommitError
 from apps.execution.domain.records import RecordsError
 from apps.execution.infrastructure.records_store import RecordRepository, record_unit_of_work
 from apps.execution.migrations.v1 import prepare as prepare_store
@@ -29,13 +31,10 @@ from apps.execution.gate_protocol import (settings as gate_settings, packet as g
 from apps.execution.application.gates import GateCommands, GateQueries
 from apps.execution.infrastructure.gate_files import GateFiles
 from apps.execution.infrastructure.stage_files import StageFiles
+from apps.execution.infrastructure.git_workspace import GitWorkspace
 
 CONFIG_SCHEMA = "stride-execution-config/v1"
 WIRE_SCHEMA = "stride-execution/v1"
-
-
-class ExecutionError(Exception):
-    pass
 
 
 def _strict_json(raw: str, *, allow_float: bool = False):
@@ -168,6 +167,16 @@ def load_config(config_path):
             raise ExecutionError('process database must be distinct from core resources')
     if 'gates' in data:
         result['gates'] = gate_settings(data['gates'], state)
+    if 'git' in data:
+        _config_fields(data['git'], {'seconds', 'observations'}, 'Execution config git')
+        relative = Path(_path_text(data['git']['observations'], 'Execution config git.observations'))
+        observations = (state / relative).resolve()
+        if relative.is_absolute() or not observations.is_relative_to(state):
+            raise ExecutionError('git.observations must be relative and inside paths.state')
+        result['git'] = {
+            'seconds': _positive_number(data['git']['seconds'], 'Execution config git.seconds'),
+            'observations': observations,
+        }
     return result
 
 
@@ -245,7 +254,8 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
-            if isinstance(query, dict) and query.get('kind') in ('gate_context', 'gate_result', 'file_result'):
+            if isinstance(query, dict) and query.get('kind') in (
+                    'gate_context', 'gate_result', 'file_result', 'file_diff_result'):
                 gate_query_item(query, config)
                 qid = query['id']
                 if qid in seen:
@@ -274,6 +284,9 @@ class Store:
         self.gates = GateCommands(
             lambda write: record_unit_of_work(self.locked, self.connect, write), files,
             StageFiles(files) if files is not None else None)
+        self.stage_git = StageGit(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            self.gates, config.get('git'), config, GitWorkspace)
 
     @contextlib.contextmanager
     def locked(self):
@@ -320,6 +333,17 @@ class Store:
 
     def read_attempt(self, task_id, attempt_id):
         return self._record_call(self.records.attempt, task_id, attempt_id)
+
+    def prepare_stage_commit(self, *, task_id, generation, context_id, stage_id, root,
+                             baseline_ref, expected_head, candidate_tree, message,
+                             author_name, author_email, commit_pattern):
+        return self.stage_git.prepare_stage_commit({
+            'task_id': task_id, 'generation': generation, 'context_id': context_id,
+            'stage_id': stage_id, 'root': root, 'baseline_ref': baseline_ref,
+            'expected_head': expected_head, 'candidate_tree': candidate_tree,
+            'message': message, 'author_name': author_name, 'author_email': author_email,
+            'commit_pattern': commit_pattern,
+        })
 
     @staticmethod
     def revision(conn):
@@ -408,7 +432,7 @@ class Store:
                 records = {}
                 file_queries = False
                 for query in packet["input"]["queries"]:
-                    if query['kind'] in ('gate_context', 'gate_result', 'file_result'):
+                    if query['kind'] in ('gate_context', 'gate_result', 'file_result', 'file_diff_result'):
                         if query['task_id'] not in records:
                             records[query['task_id']] = repository.list_records(query['task_id'])
                         file_queries |= GateQueries.uses_file_policy(query, records[query['task_id']])
@@ -448,13 +472,15 @@ def execute(config_path, stream, output):
         store = Store(config)
         if packet['operation'] == 'process':
             result = ProcessCommands(ProcessUnitOfWork(store),ProcessFiles(config['process'])).execute(packet)
+        elif packet['operation'] == 'files' and packet['input']['action'] == 'diff':
+            result = store._record_call(store.stage_git.diff, packet['input'])
         elif packet['operation'] in ('gate', 'files'):
             result = store._record_call(store.gates.execute, packet['operation'], packet['input'])
         else:
             result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
         code = (3 if result['status'] == 'pending' else
                 2 if result['status'] == 'evaluated' and not result['accepted'] else
-                2 if result['status'] == 'checked' and not result['allowed'] else 0)
+                2 if result['status'] in ('checked', 'diff_checked') and not result['allowed'] else 0)
     except (ExecutionError, PoiseError, OSError, sqlite3.Error, ValueError) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2

@@ -17,6 +17,12 @@
     "poll_seconds": 0.05
   },
   "identifiers": {
-    "task": {"pattern": "^[0-9]{4}$"}
+    "task": {
+      "pattern": "^[0-9]{4}$"
+    }
+  },
+  "git": {
+    "seconds": 30.0,
+    "observations": "git-observations"
   }
 }

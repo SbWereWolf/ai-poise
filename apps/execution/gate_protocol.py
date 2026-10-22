@@ -90,7 +90,7 @@ def query_item(value, config):
     kind = value.get('kind')
     if kind == 'gate_context':
         fields = {'id', 'kind', 'task_id', 'generation', 'context_id'}
-    elif kind == 'file_result':
+    elif kind in ('file_result', 'file_diff_result'):
         fields = {'id', 'kind', 'task_id', 'generation', 'context_id', 'request_id'}
     elif kind == 'gate_result':
         fields = {'id', 'kind', 'task_id', 'generation', 'context_id', 'candidate_id'}
@@ -104,11 +104,36 @@ def query_item(value, config):
     if kind == 'gate_result':
         _text(value['candidate_id'], 'Gate query candidate_id')
 
-    if kind == 'file_result':
+    if kind in ('file_result', 'file_diff_result'):
         _text(value['request_id'], 'File result request_id')
 
 
+def _diff_scope(value, config):
+    _task(value['task_id'], config)
+    _integer(value['generation'], 'Stage Git generation', 1)
+    for key in ('context_id', 'stage_id', 'baseline_ref'):
+        _text(value[key], 'Stage Git ' + key)
+    _exact(value['root'], {'kind', 'position'}, 'Stage Git root')
+    FilePolicy.root_key(value['root'])
+
+
+def commit_input(value, config):
+    _exact(value, {'task_id', 'generation', 'context_id', 'stage_id', 'root', 'baseline_ref',
+                   'expected_head', 'candidate_tree', 'message', 'author_name', 'author_email',
+                   'commit_pattern'}, 'Stage commit input')
+    _diff_scope(value, config)
+    for key in ('expected_head', 'candidate_tree'):
+        _text(value[key], 'Stage commit ' + key)
+
+
 def files_packet(value, config):
+    if value.get('action') == 'diff':
+        _exact(value, {'action', 'request_id', 'expected_revision', 'task_id', 'generation',
+                       'context_id', 'stage_id', 'root', 'baseline_ref'}, 'Files diff input')
+        _text(value['request_id'], 'Files diff request_id')
+        _integer(value['expected_revision'], 'Files diff expected_revision', 0)
+        _diff_scope(value, config)
+        return
     fields = {'action', 'request_id', 'expected_revision', 'task_id', 'generation',
               'context_id', 'stage_id', 'mode', 'paths'}
     _exact(value, fields, 'Files check input')

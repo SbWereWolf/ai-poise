@@ -97,3 +97,7 @@ class FilePolicy:
             reason = 'outside_allow'
         return {'root': {'kind': key[0], 'position': key[1]}, 'path': path,
                 'allowed': reason is None, 'reason': reason}
+
+    def decide_diff(self, stage_id, root, stage_paths, commit_paths):
+        paths = sorted(set(stage_paths) | set(commit_paths))
+        return [self.decide(stage_id, root, path, 'write') for path in paths]

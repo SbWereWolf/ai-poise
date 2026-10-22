@@ -1,0 +1,1535 @@
+{
+  "cases": [
+    {
+      "id": "modify",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/result.py"
+        ],
+        "commit_paths": [
+          "src/result.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "delete",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {}
+      },
+      "expected": {
+        "candidate": {},
+        "stage_paths": [
+          "src/old.py"
+        ],
+        "commit_paths": [
+          "src/old.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/old.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rename",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "src/new.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/new.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/new.py",
+          "src/old.py"
+        ],
+        "commit_paths": [
+          "src/new.py",
+          "src/old.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/new.py",
+                "allowed": true,
+                "reason": null
+              },
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/old.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rename-extra",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/old.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "extra/new.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "extra/new.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "extra/new.py",
+          "src/old.py"
+        ],
+        "commit_paths": [
+          "extra/new.py",
+          "src/old.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": false,
+            "exit": 2,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "extra/new.py",
+                "allowed": false,
+                "reason": "outside_allow"
+              },
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/old.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "untracked",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {},
+        "head": {},
+        "index": {},
+        "working": {
+          "src/new.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/new.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/new.py"
+        ],
+        "commit_paths": [
+          "src/new.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/new.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ignored",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          ".gitignore": {
+            "content": "ignored/**\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          ".gitignore": {
+            "content": "ignored/**\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          ".gitignore": {
+            "content": "ignored/**\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          ".gitignore": {
+            "content": "ignored/**\n",
+            "mode": "100644"
+          },
+          "ignored/new.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          ".gitignore": {
+            "content": "ignored/**\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [],
+        "commit_paths": [],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "index-only",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [],
+        "commit_paths": [],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "index-working",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "src/result.py": {
+            "content": "C\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/result.py": {
+            "content": "C\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/result.py"
+        ],
+        "commit_paths": [
+          "src/result.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "preentry-extra",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/result.py"
+        ],
+        "commit_paths": [
+          "extra/foreign.py",
+          "src/result.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": false,
+            "exit": 2,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "extra/foreign.py",
+                "allowed": false,
+                "reason": "outside_allow"
+              },
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "correction",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "precondition": "После preentry-extra владелец сохранил постороннюю работу в её рабочем контексте, исправил только разрешённые изменения и получил новую исходную версию через обычный rework. Это входное условие, не действие проверки.",
+      "given": {
+        "entry": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "other_context": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          },
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [],
+        "commit_paths": [
+          "src/result.py"
+        ],
+        "other_context": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "main-stage",
+      "root": {
+        "kind": "main",
+        "position": 0
+      },
+      "stages": [
+        "build",
+        "integration"
+      ],
+      "given": {
+        "entry": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/result.py"
+        ],
+        "commit_paths": [
+          "src/result.py"
+        ],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": false,
+            "exit": 2,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "main",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": false,
+                "reason": "denied"
+              }
+            ]
+          },
+          {
+            "stage_id": "integration",
+            "role": "integrator",
+            "allowed": true,
+            "exit": 0,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "main",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": true,
+                "reason": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "readonly",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "audit"
+      ],
+      "given": {
+        "entry": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "src/result.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "src/result.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "src/result.py"
+        ],
+        "commit_paths": [
+          "src/result.py"
+        ],
+        "results": [
+          {
+            "stage_id": "audit",
+            "role": "auditor",
+            "allowed": false,
+            "exit": 2,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "src/result.py",
+                "allowed": false,
+                "reason": "read_only"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "stage-cancellation",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "stages": [
+        "build"
+      ],
+      "given": {
+        "entry": {
+          "extra/foreign.py": {
+            "content": "B\n",
+            "mode": "100644"
+          }
+        },
+        "head": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "index": {
+          "extra/foreign.py": {
+            "content": "C\n",
+            "mode": "100644"
+          }
+        },
+        "working": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        }
+      },
+      "expected": {
+        "candidate": {
+          "extra/foreign.py": {
+            "content": "A\n",
+            "mode": "100644"
+          }
+        },
+        "stage_paths": [
+          "extra/foreign.py"
+        ],
+        "commit_paths": [],
+        "results": [
+          {
+            "stage_id": "build",
+            "role": "author",
+            "allowed": false,
+            "exit": 2,
+            "decisions": [
+              {
+                "root": {
+                  "kind": "code",
+                  "position": 0
+                },
+                "path": "extra/foreign.py",
+                "allowed": false,
+                "reason": "outside_allow"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "definition": {
+    "goal_type": "writing",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [
+        "code"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "build"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "build",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "author",
+        "transitions": {
+          "complete": "integration"
+        },
+        "rework_targets": [
+          "build"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "integration",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "integrator",
+        "transitions": {
+          "complete": "audit"
+        },
+        "rework_targets": [
+          "integration"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "audit",
+        "instruction": "Return the result.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "inspect",
+        "role": "auditor",
+        "transitions": {
+          "clear": null,
+          "changes_requested": "build"
+        },
+        "rework_targets": [
+          "audit"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "contract": {
+    "task_id": "0042",
+    "requirements_snapshot_revision": 2,
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "@PROCESS"
+    },
+    "admission_id": "admit-0042",
+    "workspace_id": "workspace-0042",
+    "stage_expectations": [
+      {
+        "stage_id": "build",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "integration",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "audit",
+        "values": [],
+        "files": [],
+        "methods": []
+      }
+    ],
+    "restart_policy_id": "rp-1",
+    "methods": [],
+    "evidence_plan": {
+      "build": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "integration": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "audit": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    }
+  },
+  "declare": {
+    "schema": "stride-execution/v1",
+    "operation": "gate",
+    "input": {
+      "action": "declare",
+      "request_id": "declare-scope",
+      "expected_revision": 2,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "scope-1",
+      "contract_revision": "@CONTRACT",
+      "requirement_ids": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "task_content": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "stage_contracts": [
+        {
+          "stage_id": "build",
+          "allowed_paths": [
+            "**"
+          ],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "integration",
+          "allowed_paths": [
+            "**"
+          ],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "audit",
+          "allowed_paths": [],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        }
+      ],
+      "file_policy": {
+        "workspace_id": "$WORKSPACE_ID",
+        "roots": [
+          {
+            "kind": "code",
+            "position": 0,
+            "path": "$CODE_ROOT"
+          },
+          {
+            "kind": "main",
+            "position": 0,
+            "path": "$MAIN_ROOT"
+          }
+        ],
+        "stages": [
+          {
+            "stage_id": "build",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/**"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "stage_id": "integration",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": []
+                }
+              }
+            ]
+          },
+          {
+            "stage_id": "audit",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actor": {
+    "author_name": "Poise Split Tests",
+    "author_email": "split@example.test",
+    "commit_pattern": "[^\\n]{1,50}"
+  },
+  "message": "Keep stage changes within its contract",
+  "file_policy": {
+    "workspace_id": "$WORKSPACE_ID",
+    "roots": [
+      {
+        "kind": "code",
+        "position": 0,
+        "path": "$CODE_ROOT"
+      },
+      {
+        "kind": "main",
+        "position": 0,
+        "path": "$MAIN_ROOT"
+      }
+    ],
+    "stages": [
+      {
+        "stage_id": "build",
+        "roots": [
+          {
+            "kind": "code",
+            "position": 0,
+            "read": {
+              "allow": [
+                "**"
+              ],
+              "deny": []
+            },
+            "write": {
+              "allow": [
+                "src/**"
+              ],
+              "deny": []
+            }
+          },
+          {
+            "kind": "main",
+            "position": 0,
+            "read": {
+              "allow": [
+                "**"
+              ],
+              "deny": []
+            },
+            "write": {
+              "allow": [
+                "src/**"
+              ],
+              "deny": [
+                "src/**"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "stage_id": "integration",
+        "roots": [
+          {
+            "kind": "code",
+            "position": 0,
+            "read": {
+              "allow": [
+                "**"
+              ],
+              "deny": []
+            },
+            "write": {
+              "allow": [
+                "src/**"
+              ],
+              "deny": []
+            }
+          },
+          {
+            "kind": "main",
+            "position": 0,
+            "read": {
+              "allow": [
+                "**"
+              ],
+              "deny": []
+            },
+            "write": {
+              "allow": [
+                "src/**"
+              ],
+              "deny": []
+            }
+          }
+        ]
+      },
+      {
+        "stage_id": "audit",
+        "roots": [
+          {
+            "kind": "code",
+            "position": 0,
+            "read": {
+              "allow": [
+                "**"
+              ],
+              "deny": []
+            },
+            "write": {
+              "allow": [
+                "src/**"
+              ],
+              "deny": []
+            }
+          },
+          {
+            "kind": "main",
+            "position": 0,
+            "read": {
+              "allow": [
+                "**"
+              ],
+              "deny": []
+            },
+            "write": {
+              "allow": [
+                "src/**"
+              ],
+              "deny": []
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "git_wrapper": "#!@PYTHON@\nimport os,subprocess,sys,time\nfrom pathlib import Path\nargs=sys.argv[1:]\ncommand=next((arg for arg in args if arg in {'rev-parse','read-tree','add','write-tree','diff','commit'}),'')\nmode=os.environ['T052_GIT_MODE']\nmarker=Path(os.environ['T052_GIT_MARKER'])\nif mode=='revision' and command=='write-tree' and not marker.exists():\n marker.write_text('once')\n p=subprocess.run([os.environ['T052_PROVIDER'],'--config',os.environ['T052_CONFIG']],input=os.environ['T052_BUMP'],text=True,capture_output=True)\n Path(str(marker)+'.response').write_text(p.stdout)\n if p.returncode: sys.exit(18)\nif command=='add' and 'GIT_INDEX_FILE' not in os.environ and mode=='add':\n sys.stderr.write('controlled add failure');sys.exit(7)\nif command=='commit':\n if mode=='timeout': time.sleep(2)\n if mode=='commit': sys.stderr.write('controlled commit failure');sys.exit(7)\n if mode=='commit-then-fail':\n  p=subprocess.run([os.environ['T052_REAL_GIT'],*args])\n  if p.returncode:sys.exit(p.returncode)\n  sys.stderr.write('controlled failure after commit');sys.exit(7)\nos.execv(os.environ['T052_REAL_GIT'],[os.environ['T052_REAL_GIT'],*args])\n",
+  "diff_packet": {
+    "schema": "stride-execution/v1",
+    "operation": "files",
+    "input": {
+      "action": "diff",
+      "request_id": "diff-1",
+      "expected_revision": 3,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "scope-1",
+      "stage_id": "build",
+      "root": {
+        "kind": "code",
+        "position": 0
+      },
+      "baseline_ref": "$ENTRY"
+    }
+  },
+  "query_packet": {
+    "schema": "stride-execution/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "own-diff",
+          "kind": "file_diff_result",
+          "task_id": "0042",
+          "generation": 1,
+          "context_id": "scope-1",
+          "request_id": "diff-1"
+        }
+      ]
+    }
+  },
+  "consumer_args": {
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "scope-1",
+    "stage_id": "build",
+    "root": {
+      "kind": "code",
+      "position": 0
+    },
+    "baseline_ref": "$ENTRY",
+    "expected_head": "$HEAD",
+    "candidate_tree": "$CANDIDATE",
+    "message": "Keep stage changes within its contract",
+    "author_name": "Poise Split Tests",
+    "author_email": "split@example.test",
+    "commit_pattern": "[^\\n]{1,50}"
+  },
+  "utf8_candidate": {
+    "src/result.py": {
+      "content": "A\n",
+      "mode": "100755"
+    },
+    "src/данные space.py": {
+      "content": "C\n",
+      "mode": "100644"
+    }
+  },
+  "commit_metadata": "Poise Split Tests\nsplit@example.test\nPoise Split Tests\nsplit@example.test\nKeep stage changes within its contract\n\n",
+  "revision_bump": {
+    "schema": "stride-execution/v1",
+    "operation": "files",
+    "input": {
+      "action": "check",
+      "request_id": "during-observation",
+      "expected_revision": 4,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "scope-1",
+      "stage_id": "build",
+      "mode": "read",
+      "paths": []
+    }
+  },
+  "query_execution": {
+    "schema": "stride-execution/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "task",
+          "kind": "execution",
+          "task_id": "0042"
+        }
+      ]
+    }
+  },
+  "corrected_baseline": {
+    "extra/foreign.py": {
+      "content": "A\n",
+      "mode": "100644"
+    },
+    "src/result.py": {
+      "content": "B\n",
+      "mode": "100644"
+    }
+  }
+}

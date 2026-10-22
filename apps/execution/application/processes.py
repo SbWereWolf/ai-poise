@@ -10,10 +10,15 @@ class ProcessDefinitions:
     def __init__(self, files):
         self.files = files
 
-    def resolve(self, reference):
-        definition = GoalTypeDefinition.from_configuration(self.files.read_current(reference['goal_type']))
-        if definition.data['goal_type'] != reference['goal_type']:
+    def current(self, goal):
+        raw = self.files.read_current(goal)
+        definition = GoalTypeDefinition.from_configuration(raw)
+        if definition.data['goal_type'] != goal:
             raise DomainError('Selected process goal_type does not match its definition')
+        return raw, definition
+
+    def resolve(self, reference):
+        _raw, definition = self.current(reference['goal_type'])
         if definition.revision != reference['revision']:
             raise DomainError('Selected process revision does not match current definition')
         return definition.data
@@ -23,6 +28,7 @@ class ProcessCommands:
     def __init__(self, unit_of_work, files):
         self.unit_of_work = unit_of_work
         self.files = files
+        self.definitions = ProcessDefinitions(files)
 
     def execute(self, packet):
         value = packet['input']
@@ -30,7 +36,7 @@ class ProcessCommands:
         self.files.current(goal)
         with self.unit_of_work.open() as repository:
             if value['action'] == 'status':
-                definition = GoalTypeDefinition.from_configuration(self.files.read_current(goal))
+                _raw, definition = self.definitions.current(goal)
                 return {'schema':packet['schema'],'status':'read_only','revision':repository.revision(),
                         'goal_type':goal,'managed_revision':repository.head(goal),
                         'live_revision':definition.revision,'pending_request':repository.pending(goal)}
@@ -60,8 +66,7 @@ class ProcessCommands:
                            else self.files.resolve_template(source['template']['id']))
                     built = GoalTypeDefinition.build_configuration(goal,raw,value['changes'])
                 else:
-                    raw = self.files.read_current(goal)
-                    current = GoalTypeDefinition.from_configuration(raw)
+                    raw, current = self.definitions.current(goal)
                     if action == 'edit':
                         if value['expected_process_revision'] != current.revision:
                             raise DomainError('process revision_conflict')

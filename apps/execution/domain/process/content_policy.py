@@ -52,7 +52,7 @@ def _names(value: object, label: str, allowed: tuple | None, nonempty: bool) -> 
 def _artifact_source(value: object, stages: tuple[str, ...]) -> dict:
     if not isinstance(value, dict) or "kind" not in value:
         raise DomainError("artifact source: требуется явный kind")
-    kind = value["kind"]
+    kind = _name(value["kind"], "artifact source.kind")
     fields = {
         "preexisting": {"kind"},
         "stage_output": {"kind", "producer_stage"},
@@ -237,16 +237,21 @@ class ContentPolicy:
             route['points'] = [configuration_fields(item, TRACE_POINT_FIELDS, 'trace point', DomainError) for item in route['points']]
         requirements = []
         for item in layer['requirements']:
-            if not isinstance(item, dict) or item.get('kind') not in requirement_variants(item, False):
-                raise DomainError('Неизвестный вид требования содержимого')
+            if not isinstance(item, dict):
+                raise DomainError('content requirement: требуется объект')
+            kind = _name(item.get('kind'), 'content requirement.kind')
+            if kind not in requirement_variants(item, False):
+                raise DomainError('content requirement.kind: неизвестный вид требования содержимого')
             fields = {'id', 'kind', 'stages', 'phase'} | requirement_variants(item, False)[item['kind']]
             item = configuration_fields(item, fields, 'content requirement', DomainError)
             if item['kind'] == 'artifact' and 'source' in item:
                 source = item['source']
                 shapes = {'preexisting': {'kind'}, 'stage_output': {'kind', 'producer_stage'},
                           'declared_arrival': {'kind', 'arrival_stage'}}
-                if isinstance(source, dict) and source.get('kind') in shapes:
-                    item['source'] = configuration_fields(source, shapes[source['kind']], 'artifact source', DomainError)
+                if isinstance(source, dict):
+                    source_kind = _name(source.get('kind'), 'artifact source.kind')
+                    if source_kind in shapes:
+                        item['source'] = configuration_fields(source, shapes[source_kind], 'artifact source', DomainError)
             requirements.append(item)
         layer['requirements'] = requirements
         return layer
@@ -329,7 +334,7 @@ class ContentPolicy:
             for raw in layer["requirements"]:
                 if not isinstance(raw, dict) or "kind" not in raw:
                     raise DomainError("Не определён вид требования содержимого")
-                kind = raw["kind"]
+                kind = _name(raw["kind"], "content requirement.kind")
                 variants = requirement_variants(raw, require_artifact_source)
                 if kind not in variants:
                     raise DomainError("Неизвестный вид требования содержимого")
@@ -343,7 +348,7 @@ class ContentPolicy:
                     raise DomainError("Фаза требования должна быть явно pre или post")
                 details = {k: raw[k] for k in variants[kind]}
                 if kind == "section":
-                    if raw["section"] not in section_ids:
+                    if _name(raw["section"], "content requirement.section") not in section_ids:
                         raise DomainError("Обязательная секция не объявлена")
                     _names(raw["states"], "section states", tuple(x.value for x in ContentState), True)
                 elif kind == "artifact":

@@ -336,9 +336,12 @@ class Store:
                             if process['worktree_required'] and contract['workspace_id'] is None:
                                 raise ExecutionError('Selected process requires workspace_id')
                             stage_ids = {stage['id'] for stage in process['stages']}
-                            if any(not isinstance(stage, dict) or stage.get('stage_id') not in stage_ids
-                                   for stage in contract['stage_expectations']):
-                                raise ExecutionError('stage_expectations must reference selected process stages')
+                            for stage in contract['stage_expectations']:
+                                if not isinstance(stage, dict):
+                                    raise ExecutionError('stage_expectations: required stage object')
+                                stage_id = _nonempty(stage.get('stage_id'), 'stage_expectations.stage_id')
+                                if stage_id not in stage_ids:
+                                    raise ExecutionError('stage_expectations.stage_id must reference selected process stages')
                             if set(contract['evidence_plan']) - stage_ids:
                                 raise ExecutionError('evidence_plan must reference selected process stages')
                         changed = True

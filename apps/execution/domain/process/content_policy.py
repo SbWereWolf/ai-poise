@@ -363,12 +363,14 @@ class ContentPolicy:
                 elif kind == "coverage":
                     _names(raw["points"], "coverage checkpoints", None, False)
                 else:
-                    if raw["route"] not in route_map:
+                    route_id = _name(raw["route"], "content requirement.route")
+                    point_id = _name(raw["point"], "content requirement.point")
+                    if route_id not in route_map:
                         raise DomainError("Неизвестный маршрут трассировки")
-                    points = {p.id: p for p in route_map[raw["route"]].points}
-                    if raw["point"] not in points:
+                    points = {p.id: p for p in route_map[route_id].points}
+                    if point_id not in points:
                         raise DomainError("Неизвестная точка трассировки")
-                    point = points[raw["point"]]
+                    point = points[point_id]
                     constraints = raw["field_equals"]
                     fields = dict(point.fields)
                     if not isinstance(constraints, dict) or set(constraints) - fields.keys():

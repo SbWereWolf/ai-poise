@@ -192,9 +192,12 @@ Process-enabled setup сохраняет сначала `contract_snapshot`, з�
 и актуальную целую revision. Изменение выбранного шаблона сохраняет ранее созданные
 текущие процессы и снимки Task.
 
-После process-enabled setup используйте возвращённые `contract_revision`,
-`generation`, `process_ref` и сохранённый полный процесс для
-[объявления контекста и приёмки результата](gate-exe.md#объявление-контекста).
+Клиент составляет `process_ref` из `goal_type` и `process_revision` ответа
+`process/create`, передаёт его в `input.operations[].contract.process_ref` пакета
+`apply` и сохраняет эту ссылку. После
+process-enabled setup используйте возвращённые `contract_revision` и `generation`
+для [объявления контекста и приёмки результата](gate-exe.md#объявление-контекста).
+Сохранённый полный снимок процесса Execution загружает самостоятельно.
 Дополнительный компонент [gates.roots](gate-exe.md#настройка-и-исходные-данные)
 задаёт три собственных корня файлов. Рабочий контекст получает слой Task, IDs
 требований и точные stage contracts явно; приёмка использует замороженный снимок

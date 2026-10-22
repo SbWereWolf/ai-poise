@@ -24,6 +24,9 @@ from apps.execution.application.processes import ProcessCommands, ProcessDefinit
 from apps.execution.domain.process.errors import PoiseError
 from apps.execution.domain.process.validation import configuration_fields
 from apps.execution.process_protocol import settings as process_settings, packet as process_packet
+from apps.execution.gate_protocol import settings as gate_settings, packet as gate_packet, query_item as gate_query_item
+from apps.execution.application.gates import GateCommands, GateQueries
+from apps.execution.infrastructure.gate_files import GateFiles
 
 CONFIG_SCHEMA = "stride-execution-config/v1"
 WIRE_SCHEMA = "stride-execution/v1"
@@ -161,6 +164,8 @@ def load_config(config_path):
         result['process'] = process_settings(data['process'], state)
         if result['process']['database'] in [database,lock_path]:
             raise ExecutionError('process database must be distinct from core resources')
+    if 'gates' in data:
+        result['gates'] = gate_settings(data['gates'], state)
     return result
 
 
@@ -205,6 +210,9 @@ def _packet(value, config):
     if value['operation'] == 'process':
         process_packet(value['input'], config)
         return value
+    if value['operation'] == 'gate':
+        gate_packet(value['input'], config)
+        return value
     if value["operation"] not in {"apply", "query"}:
         raise ExecutionError(f"Unknown Execution operation: {value['operation']}")
     if value["operation"] == "apply":
@@ -232,6 +240,13 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
+            if isinstance(query, dict) and query.get('kind') in ('gate_context', 'gate_result'):
+                gate_query_item(query, config)
+                qid = query['id']
+                if qid in seen:
+                    raise ExecutionError('Execution query ids must be unique')
+                seen.add(qid)
+                continue
             _exact(query, {"id", "kind", "task_id"}, "Execution execution query")
             qid = _nonempty(query["id"], "Execution query id")
             if qid in seen:
@@ -250,6 +265,9 @@ class Store:
         self.config = config
         self.records = ExecutionRecords(
             lambda write: record_unit_of_work(self.locked, self.connect, write))
+        self.gates = GateCommands(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            GateFiles(config['gates']) if 'gates' in config else None)
 
     @contextlib.contextmanager
     def locked(self):
@@ -377,9 +395,17 @@ class Store:
         with self.locked():
             conn = self.connect()
             try:
+                conn.execute('BEGIN')
                 revision = self.revision(conn)
                 results = []
+                repository = RecordRepository(conn)
+                records = {}
                 for query in packet["input"]["queries"]:
+                    if query['kind'] in ('gate_context', 'gate_result'):
+                        if query['task_id'] not in records:
+                            records[query['task_id']] = repository.list_records(query['task_id'])
+                        results.append(GateQueries.resolve(query, records[query['task_id']]))
+                        continue
                     row = conn.execute(
                         "SELECT task_id,generation,contract_revision,state,current_stage,iteration,workspace_id,admission_id FROM executions WHERE task_id=?",
                         (query["task_id"],),
@@ -411,9 +437,12 @@ def execute(config_path, stream, output):
         store = Store(config)
         if packet['operation'] == 'process':
             result = ProcessCommands(ProcessUnitOfWork(store),ProcessFiles(config['process'])).execute(packet)
+        elif packet['operation'] == 'gate':
+            result = store._record_call(store.gates.execute, packet['input'])
         else:
             result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
-        code = 3 if result['status'] == 'pending' else 0
+        code = (3 if result['status'] == 'pending' else
+                2 if result['status'] == 'evaluated' and not result['accepted'] else 0)
     except (ExecutionError, PoiseError, OSError, sqlite3.Error, ValueError) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2

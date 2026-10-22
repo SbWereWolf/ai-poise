@@ -48,6 +48,11 @@ class RecordRepository:
     def has_execution(self, task_id):
         return self.connection.execute('SELECT task_id FROM executions WHERE task_id=?', (task_id,)).fetchone() is not None
 
+    def execution(self, task_id):
+        return self.connection.execute(
+            'SELECT task_id,generation,contract_revision,contract_json FROM executions WHERE task_id=?',
+            (task_id,)).fetchone()
+
     def find_version(self, record):
         return self.record(self.connection.execute(
             'SELECT task_id,kind,record_id,record_revision,generation,data_json FROM execution_records '

@@ -35,5 +35,12 @@
     "max_changes": 128,
     "file_mode": 420,
     "json_indent": 2
+  },
+  "gates": {
+    "roots": {
+      "runtime": "files/runtime",
+      "task": "files/task",
+      "sprint": "files/sprint"
+    }
   }
 }

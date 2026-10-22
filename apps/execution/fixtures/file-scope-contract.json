@@ -1,0 +1,944 @@
+{
+  "definition": {
+    "goal_type": "writing",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [
+        "code"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "draft"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "draft",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "maker",
+        "transitions": {
+          "complete": "integration"
+        },
+        "rework_targets": [
+          "draft"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "integration",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "maker",
+        "transitions": {
+          "complete": "audit"
+        },
+        "rework_targets": [
+          "integration"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "audit",
+        "instruction": "Return the result.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "inspect",
+        "role": "extra-auditor",
+        "transitions": {
+          "clear": "release_notes",
+          "changes_requested": "draft"
+        },
+        "rework_targets": [
+          "draft"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "release_notes",
+        "instruction": "Return the result.",
+        "read_only": false,
+        "allowed_paths": [
+          "**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "draft"
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "other-maker",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "release_notes"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "contract": {
+    "task_id": "0042",
+    "requirements_snapshot_revision": 2,
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "@PROCESS"
+    },
+    "admission_id": "admit-0042",
+    "workspace_id": "workspace-0042",
+    "stage_expectations": [
+      {
+        "stage_id": "draft",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "integration",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "audit",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "release_notes",
+        "values": [],
+        "files": [],
+        "methods": []
+      }
+    ],
+    "restart_policy_id": "rp-1",
+    "methods": [],
+    "evidence_plan": {
+      "draft": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "integration": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "audit": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "release_notes": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    }
+  },
+  "declare": {
+    "schema": "stride-execution/v1",
+    "operation": "gate",
+    "input": {
+      "action": "declare",
+      "request_id": "declare-scope",
+      "expected_revision": 2,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "scope-1",
+      "contract_revision": "@CONTRACT",
+      "requirement_ids": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "task_content": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "stage_contracts": [
+        {
+          "stage_id": "draft",
+          "allowed_paths": [
+            "**"
+          ],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "integration",
+          "allowed_paths": [
+            "**"
+          ],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "audit",
+          "allowed_paths": [],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        },
+        {
+          "stage_id": "release_notes",
+          "allowed_paths": [
+            "**"
+          ],
+          "entry_requirements": [],
+          "exit_requirements": [],
+          "criteria": {
+            "requirements": [],
+            "definition_of_ready": [],
+            "definition_of_done": []
+          }
+        }
+      ],
+      "file_policy": {
+        "workspace_id": "workspace-0042",
+        "roots": [
+          {
+            "kind": "code",
+            "position": 0,
+            "path": "@CODE0"
+          },
+          {
+            "kind": "code",
+            "position": 1,
+            "path": "@CODE1"
+          },
+          {
+            "kind": "main",
+            "position": 0,
+            "path": "@MAIN"
+          },
+          {
+            "kind": "artifact",
+            "position": 0,
+            "path": "@ARTIFACT"
+          }
+        ],
+        "stages": [
+          {
+            "stage_id": "draft",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "src/**",
+                    "note.txt"
+                  ],
+                  "deny": [
+                    "src/private/**"
+                  ]
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/frozen/**"
+                  ]
+                }
+              },
+              {
+                "kind": "code",
+                "position": 1,
+                "read": {
+                  "allow": [
+                    "docs/**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "docs/**"
+                  ],
+                  "deny": [
+                    "docs/readonly.txt"
+                  ]
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "artifact",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "outputs/**"
+                  ],
+                  "deny": [
+                    "outputs/excluded.txt"
+                  ]
+                },
+                "write": {
+                  "allow": [
+                    "outputs/**"
+                  ],
+                  "deny": []
+                }
+              }
+            ]
+          },
+          {
+            "stage_id": "integration",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "code",
+                "position": 1,
+                "read": {
+                  "allow": [
+                    "docs/**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/locked.txt"
+                  ]
+                }
+              },
+              {
+                "kind": "artifact",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "outputs/**"
+                  ],
+                  "deny": [
+                    "outputs/**"
+                  ]
+                },
+                "write": {
+                  "allow": [],
+                  "deny": []
+                }
+              }
+            ]
+          },
+          {
+            "stage_id": "audit",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "code",
+                "position": 1,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                }
+              },
+              {
+                "kind": "artifact",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                }
+              }
+            ]
+          },
+          {
+            "stage_id": "release_notes",
+            "roots": [
+              {
+                "kind": "code",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/locked.txt"
+                  ]
+                }
+              },
+              {
+                "kind": "code",
+                "position": 1,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/locked.txt"
+                  ]
+                }
+              },
+              {
+                "kind": "main",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/locked.txt"
+                  ]
+                }
+              },
+              {
+                "kind": "artifact",
+                "position": 0,
+                "read": {
+                  "allow": [
+                    "**"
+                  ],
+                  "deny": []
+                },
+                "write": {
+                  "allow": [
+                    "src/**"
+                  ],
+                  "deny": [
+                    "src/locked.txt"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "check": {
+    "schema": "stride-execution/v1",
+    "operation": "files",
+    "input": {
+      "action": "check",
+      "request_id": "access-1",
+      "expected_revision": 3,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "scope-1",
+      "stage_id": "draft",
+      "mode": "read",
+      "paths": [
+        {
+          "root": {
+            "kind": "code",
+            "position": 0
+          },
+          "path": "src/app.py"
+        }
+      ]
+    }
+  },
+  "evaluate": {
+    "schema": "stride-execution/v1",
+    "operation": "gate",
+    "input": {
+      "action": "evaluate",
+      "request_id": "candidate-1",
+      "expected_revision": 3,
+      "task_id": "0042",
+      "generation": 1,
+      "context_id": "scope-1",
+      "candidate_id": "candidate-1",
+      "stage_id": "draft",
+      "iteration": 1,
+      "sections": {
+        "report": "Actual result"
+      },
+      "trace": {},
+      "files": [
+        "@CODE0/src/app.py"
+      ]
+    }
+  },
+  "checked_response": {
+    "schema": "stride-execution/v1",
+    "status": "checked",
+    "revision": 4,
+    "replayed": false,
+    "task_id": "0042",
+    "generation": 1,
+    "context_id": "scope-1",
+    "stage_id": "draft",
+    "role": "maker",
+    "mode": "read",
+    "allowed": true,
+    "result_id": "@RESULT",
+    "decisions": [
+      {
+        "root": {
+          "kind": "code",
+          "position": 0
+        },
+        "path": "src/app.py",
+        "allowed": true,
+        "reason": null
+      }
+    ]
+  },
+  "assessment": {
+    "prepared": true,
+    "preparation_error": null,
+    "file_errors": [],
+    "artifact_checks": [],
+    "pre": {
+      "stage": "draft",
+      "phase": "pre",
+      "passed": true,
+      "requirements": []
+    },
+    "post": {
+      "stage": "draft",
+      "phase": "post",
+      "passed": true,
+      "requirements": []
+    },
+    "passed": true,
+    "file_admission": {
+      "passed": true,
+      "files": [
+        {
+          "root": {
+            "kind": "code",
+            "position": 0
+          },
+          "path": "src/app.py",
+          "allowed": true,
+          "reason": null
+        }
+      ]
+    }
+  },
+  "query_result": {
+    "schema": "stride-execution/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "saved",
+          "kind": "file_result",
+          "task_id": "0042",
+          "generation": 1,
+          "context_id": "scope-1",
+          "request_id": "access-1"
+        }
+      ]
+    }
+  },
+  "saved_result": {
+    "id": "saved",
+    "kind": "file_result",
+    "result": {
+      "id": "@RESULT",
+      "kind": "file_decision",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "context_id": "scope-1",
+        "request_id": "access-1",
+        "stage_id": "draft",
+        "role": "maker",
+        "mode": "read",
+        "allowed": true,
+        "decisions": [
+          {
+            "root": {
+              "kind": "code",
+              "position": 0
+            },
+            "path": "src/app.py",
+            "allowed": true,
+            "reason": null
+          }
+        ],
+        "contract_revision": "@CONTRACT",
+        "process_ref": {
+          "goal_type": "writing",
+          "revision": "@PROCESS"
+        },
+        "workspace_id": "workspace-0042"
+      }
+    }
+  },
+  "access_rows": [
+    [
+      "code",
+      0,
+      "src/app.py",
+      "read",
+      true,
+      null
+    ],
+    [
+      "code",
+      0,
+      "src/app.py",
+      "write",
+      true,
+      null
+    ],
+    [
+      "code",
+      0,
+      "src/private/note.txt",
+      "read",
+      false,
+      "denied"
+    ],
+    [
+      "code",
+      0,
+      "src/private/note.txt",
+      "write",
+      true,
+      null
+    ],
+    [
+      "code",
+      0,
+      "src/frozen/app.py",
+      "read",
+      true,
+      null
+    ],
+    [
+      "code",
+      0,
+      "src/frozen/app.py",
+      "write",
+      false,
+      "denied"
+    ],
+    [
+      "code",
+      0,
+      "docs/guide.txt",
+      "read",
+      false,
+      "outside_allow"
+    ],
+    [
+      "code",
+      1,
+      "src/app.py",
+      "read",
+      false,
+      "outside_allow"
+    ],
+    [
+      "code",
+      1,
+      "docs/guide.txt",
+      "read",
+      true,
+      null
+    ],
+    [
+      "code",
+      1,
+      "docs/readonly.txt",
+      "read",
+      true,
+      null
+    ],
+    [
+      "code",
+      1,
+      "docs/readonly.txt",
+      "write",
+      false,
+      "denied"
+    ],
+    [
+      "main",
+      0,
+      "src/app.py",
+      "read",
+      true,
+      null
+    ],
+    [
+      "main",
+      0,
+      "src/app.py",
+      "write",
+      false,
+      "outside_allow"
+    ],
+    [
+      "artifact",
+      0,
+      "outputs/note.txt",
+      "read",
+      true,
+      null
+    ],
+    [
+      "artifact",
+      0,
+      "outputs/excluded.txt",
+      "read",
+      false,
+      "denied"
+    ],
+    [
+      "artifact",
+      0,
+      "outputs/excluded.txt",
+      "write",
+      true,
+      null
+    ]
+  ],
+  "main_rows": [
+    [
+      "draft",
+      "maker",
+      "src/app.py",
+      false,
+      "outside_allow"
+    ],
+    [
+      "integration",
+      "maker",
+      "src/app.py",
+      true,
+      null
+    ],
+    [
+      "integration",
+      "maker",
+      "src/locked.txt",
+      false,
+      "denied"
+    ],
+    [
+      "release_notes",
+      "other-maker",
+      "src/app.py",
+      true,
+      null
+    ],
+    [
+      "audit",
+      "extra-auditor",
+      "src/app.py",
+      false,
+      "read_only"
+    ]
+  ],
+  "count_rule": {
+    "scope": "task",
+    "pattern": "outputs/*.txt",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "counted_check": {
+    "scope": "task",
+    "pattern": "outputs/*.txt",
+    "minimum": 1,
+    "maximum": 1,
+    "actual": 1,
+    "passed": true
+  },
+  "edit_role": {
+    "schema": "stride-execution/v1",
+    "operation": "process",
+    "input": {
+      "action": "edit",
+      "request_id": "edit-role",
+      "expected_revision": 3,
+      "goal_type": "writing",
+      "expected_process_revision": "@PROCESS",
+      "changes": [
+        {
+          "op": "patch_stage",
+          "id": "audit",
+          "set": {
+            "role": "changed-later"
+          }
+        }
+      ]
+    }
+  }
+}

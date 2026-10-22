@@ -1,13 +1,19 @@
 # Execution public contract
 
-Статус: действующие process/gate API и проектные материалы последующего lifecycle.
+Статус: действующие process/gate/files API и проектные материалы последующего lifecycle.
 Версия публичного протокола: `stride-execution/v1`.
 
 Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
-`query/execution|gate_context|gate_result` и Python-интерфейс записи/чтения фактов.
+`files/check`, `query/execution|gate_context|gate_result|file_result` и Python-интерфейс
+записи/чтения фактов.
 Действующий договор описывают [оболочка](shell-exe.md),
 [редактор процессов](process-exe.md), [приёмка](gate-exe.md) и
-[собственный store](store-exe.md). В §12 F1/F2 относятся к process API,
+[файловые границы этапа](files-exe.md) и [собственный store](store-exe.md).
+Файловый интерфейс проверяет объявленные read/write allow/deny нескольких корней
+по выбранному этапу; gate самостоятельно проверяет чтение реального файла.
+Решение о записи в main определяется договором конкретного этапа, включая integration.
+Физические файловые операции и Git выполняются своими владельцами. В §12 F1/F2 относятся к process
+API,
 F3/F4 ссылаются на действующую приёмку.
 
 Остальные схемы §1–3, §5–11 и F1a/F5–F11 — проектные материалы T012, если явно

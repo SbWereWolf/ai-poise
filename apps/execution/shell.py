@@ -14,8 +14,12 @@ import sys
 
 from apps.execution.application.records import ExecutionRecords
 from apps.execution.application.stage_git import StageGit
+from apps.execution.application.lifecycle import ExecutionLifecycle
+from apps.execution.lifecycle_protocol import (settings as lifecycle_settings,
+    packet as lifecycle_packet, query_item as lifecycle_query_item)
 from apps.execution.errors import ExecutionError, StageCommitError
 from apps.execution.domain.records import RecordsError
+from apps.execution.domain.lifecycle import LifecyclePolicy
 from apps.execution.infrastructure.records_store import RecordRepository, record_unit_of_work
 from apps.execution.migrations.v1 import prepare as prepare_store
 from apps.execution.migrations.v2 import prepare as prepare_process_store
@@ -167,6 +171,8 @@ def load_config(config_path):
             raise ExecutionError('process database must be distinct from core resources')
     if 'gates' in data:
         result['gates'] = gate_settings(data['gates'], state)
+    if 'lifecycle' in data:
+        result['lifecycle'] = lifecycle_settings(data['lifecycle'])
     if 'git' in data:
         _config_fields(data['git'], {'seconds', 'observations'}, 'Execution config git')
         relative = Path(_path_text(data['git']['observations'], 'Execution config git.observations'))
@@ -218,6 +224,9 @@ def _packet(value, config):
         raise ExecutionError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise ExecutionError("Execution packet input must be an object")
+    if value['operation'] == 'lifecycle':
+        lifecycle_packet(value['input'], config, _validate_contract)
+        return value
     if value['operation'] == 'process':
         process_packet(value['input'], config)
         return value
@@ -254,6 +263,12 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
+            if isinstance(query, dict) and query.get('kind') in ('lifecycle', 'restart_history'):
+                lifecycle_query_item(query, config)
+                if query['id'] in seen:
+                    raise ExecutionError('Execution query ids must be unique')
+                seen.add(query['id'])
+                continue
             if isinstance(query, dict) and query.get('kind') in (
                     'gate_context', 'gate_result', 'file_result', 'file_diff_result'):
                 gate_query_item(query, config)
@@ -287,6 +302,11 @@ class Store:
         self.stage_git = StageGit(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
             self.gates, config.get('git'), config, GitWorkspace)
+        self.lifecycle = ExecutionLifecycle(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            config.get('lifecycle'),
+            ProcessDefinitions(ProcessFiles(config['process'])) if 'process' in config else None,
+            self.records, lambda contract: _validate_contract(contract, config))
 
     @contextlib.contextmanager
     def locked(self):
@@ -381,17 +401,7 @@ class Store:
                         process = None
                         if 'process' in self.config:
                             process = ProcessDefinitions(ProcessFiles(self.config['process'])).resolve(contract['process_ref'])
-                            if process['worktree_required'] and contract['workspace_id'] is None:
-                                raise ExecutionError('Selected process requires workspace_id')
-                            stage_ids = {stage['id'] for stage in process['stages']}
-                            for stage in contract['stage_expectations']:
-                                if not isinstance(stage, dict):
-                                    raise ExecutionError('stage_expectations: required stage object')
-                                stage_id = _nonempty(stage.get('stage_id'), 'stage_expectations.stage_id')
-                                if stage_id not in stage_ids:
-                                    raise ExecutionError('stage_expectations.stage_id must reference selected process stages')
-                            if set(contract['evidence_plan']) - stage_ids:
-                                raise ExecutionError('evidence_plan must reference selected process stages')
+                            LifecyclePolicy.validate_process(process, contract, ExecutionError)
                         changed = True
                         conn.execute(
                             "INSERT INTO executions(task_id,generation,contract_revision,contract_json,state,current_stage,iteration,workspace_id,admission_id) VALUES(?,1,?,?,'draft',NULL,1,?,?)",
@@ -432,6 +442,10 @@ class Store:
                 records = {}
                 file_queries = False
                 for query in packet["input"]["queries"]:
+                    if query['kind'] in ('lifecycle', 'restart_history'):
+                        result = self._record_call(self.lifecycle.query, repository, query['kind'], query['task_id'])
+                        results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
+                        continue
                     if query['kind'] in ('gate_context', 'gate_result', 'file_result', 'file_diff_result'):
                         if query['task_id'] not in records:
                             records[query['task_id']] = repository.list_records(query['task_id'])
@@ -470,7 +484,9 @@ def execute(config_path, stream, output):
             raise ExecutionError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        if packet['operation'] == 'process':
+        if packet['operation'] == 'lifecycle':
+            result = store._record_call(store.lifecycle.execute, packet['input'])
+        elif packet['operation'] == 'process':
             result = ProcessCommands(ProcessUnitOfWork(store),ProcessFiles(config['process'])).execute(packet)
         elif packet['operation'] == 'files' and packet['input']['action'] == 'diff':
             result = store._record_call(store.stage_git.diff, packet['input'])

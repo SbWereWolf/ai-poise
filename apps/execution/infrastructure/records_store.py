@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 import json
 
-from apps.execution.domain.records import ExecutionRecord, canonical_json
+from apps.execution.domain.records import ExecutionRecord, RecordsError, canonical_json
 
 
 @contextmanager
@@ -76,3 +76,24 @@ class RecordRepository:
         return [self.record(row) for row in self.connection.execute(
             'SELECT task_id,kind,record_id,record_revision,generation,data_json '
             'FROM execution_records WHERE task_id=? ORDER BY seq', (task_id,))]
+
+
+    def execution_state(self, task_id):
+        row = self.connection.execute(
+            'SELECT task_id,generation,contract_revision,contract_json,state,current_stage,iteration,'
+            'workspace_id,admission_id FROM executions WHERE task_id=?', (task_id,)).fetchone()
+        if row is None:
+            return None
+        value = dict(row)
+        value['contract'] = json.loads(value.pop('contract_json'))
+        return value
+
+    def save_execution_state(self, value, before):
+        changed = self.connection.execute(
+            'UPDATE executions SET generation=?,contract_revision=?,contract_json=?,state=?,'
+            'current_stage=?,iteration=? WHERE task_id=? AND generation=? AND contract_revision=?',
+            (value['generation'], value['contract_revision'], canonical_json(value['contract']),
+             value['state'], value['current_stage'], value['iteration'], value['task_id'],
+             before['generation'], before['contract_revision'])).rowcount
+        if changed != 1:
+            raise RecordsError('Lifecycle canonical generation or contract changed')

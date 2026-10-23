@@ -24,5 +24,26 @@
   "git": {
     "seconds": 30.0,
     "observations": "git-observations"
+  },
+  "lifecycle": {
+    "actors": {
+      "executor-A": "writer",
+      "reviewer-B": "reviewer",
+      "executor-C": "writer"
+    },
+    "policies": {
+      "restart-rule": {
+        "approving_roles": [
+          "reviewer"
+        ],
+        "revision_fields": [
+          "requirements_snapshot_revision",
+          "process_ref",
+          "stage_expectations",
+          "methods",
+          "evidence_plan"
+        ]
+      }
+    }
   }
 }

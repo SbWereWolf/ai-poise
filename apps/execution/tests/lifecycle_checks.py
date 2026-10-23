@@ -103,7 +103,9 @@ class Scenario:
         index = Path(self.git('rev-parse', '--git-path', 'index').strip())
         if not index.is_absolute():
             index = self.git_root / index
-        return {'head': self.git('rev-parse', 'HEAD'), 'index': index.read_bytes(),
+        return {'head': self.git('rev-parse', 'HEAD'),
+                'branch': self.git('symbolic-ref', '--short', 'HEAD').strip(),
+                'index': index.read_bytes(),
                 'files': {name: (self.git_root / name).read_bytes() for name in DATA['expected']['wip']},
                 'workspace': self.workspace.task()['workspace'],
                 'neighbor': (self.workspace.repo / 'payload.txt').read_bytes()}
@@ -234,12 +236,12 @@ class Scenario:
         self.act('present', context_id=context, candidate_id=candidate)
         return result
 
-    def proposal(self, snapshot=None, contract=None):
+    def proposal(self, snapshot=None, contract=None, actor='executor-A'):
         snapshot = self.initial_snapshot if snapshot is None else snapshot
         proposed = deepcopy(self.contract if contract is None else contract)
         proposed['requirements_snapshot_revision'] = snapshot['snapshot_revision']
         proposed['stage_expectations'][0]['values'] = [{'name': 'report', 'type': 'string', 'required': True}]
-        response = self.act('propose_restart', proposal_id='proposal-1', contract=proposed,
+        response = self.act('propose_restart', actor_id=actor, proposal_id='proposal-1', contract=proposed,
                             requirements_snapshot=snapshot, reason='Согласовать текущие ожидания.')
         assert response['result']['proposal_id'] == 'proposal-1'
         return proposed
@@ -271,3 +273,16 @@ class Scenario:
         assert all(record in after for record in self.original_records)
         assert self.physical() == self.original_workspace
         assert self.neighbors() == self.neighbor_before
+
+
+def install_restart_fault(database):
+    """Fail the second substantive effect, for either record-first or row-first order."""
+    with sqlite3.connect(database) as db:
+        for trigger in DATA['restart_fault_triggers']:
+            db.execute(trigger['sql'])
+
+
+def remove_restart_fault(database):
+    with sqlite3.connect(database) as db:
+        for trigger in DATA['restart_fault_triggers']:
+            db.execute('DROP TRIGGER ' + trigger['name'])

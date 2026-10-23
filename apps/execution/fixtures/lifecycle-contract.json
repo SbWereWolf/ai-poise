@@ -267,5 +267,35 @@
       "decision": "approved",
       "actor_id": "reviewer-B"
     }
+  },
+  "excluded_revision_fields": [
+    "requirements_snapshot_revision",
+    "process_ref",
+    "methods",
+    "evidence_plan"
+  ],
+  "restart_fault_triggers": [
+    {
+      "name": "t053_abort_after_record",
+      "sql": "CREATE TRIGGER t053_abort_after_record AFTER INSERT ON execution_records WHEN NEW.task_id='0042' AND NEW.generation=2 AND (SELECT generation FROM executions WHERE task_id='0042')=2 BEGIN SELECT RAISE(ABORT,'T053 deliberate record write failure'); END"
+    },
+    {
+      "name": "t053_abort_after_execution",
+      "sql": "CREATE TRIGGER t053_abort_after_execution AFTER UPDATE OF generation ON executions WHEN NEW.task_id='0042' AND NEW.generation=2 AND EXISTS(SELECT 1 FROM execution_records WHERE task_id='0042' AND generation=2) BEGIN SELECT RAISE(ABORT,'T053 deliberate record write failure'); END"
+    }
+  ],
+  "fault_control_expected": {
+    "record-first": {
+      "generation": 1,
+      "records": 1
+    },
+    "row-first": {
+      "generation": 2,
+      "records": 0
+    },
+    "transaction": {
+      "generation": 1,
+      "records": 0
+    }
   }
 }

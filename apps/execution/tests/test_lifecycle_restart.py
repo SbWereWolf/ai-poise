@@ -5,7 +5,7 @@ import sqlite3
 
 import pytest
 
-from lifecycle_checks import DATA, Scenario, invoke, facts, bind
+from lifecycle_checks import DATA, Scenario, invoke, facts, bind, install_restart_fault, remove_restart_fault
 
 
 @pytest.fixture
@@ -180,13 +180,11 @@ def test_restart_record_fault_rolls_back_actual_mutation_and_can_continue(scenar
     approval = scenario.approve()
     packet = scenario.packet('restart', proposal_id='proposal-1', approval_id=approval)
     # Fault infrastructure only. Canonical state/proposal/decision were reached publicly.
-    with sqlite3.connect(scenario.database) as db:
-        db.execute("CREATE TRIGGER t053_abort_record BEFORE INSERT ON execution_records "
-                   "WHEN NEW.task_id='0042' AND NEW.generation=2 BEGIN "
-                   "SELECT RAISE(ABORT,'T053 deliberate record write failure'); END")
+    install_restart_fault(scenario.database)
+    # Either trigger's predicate proves another substantive statement already
+    # succeeded: canonical generation2 AND an own generation2 record now exist.
     scenario.reject(packet, DATA['expected']['fault'])
-    with sqlite3.connect(scenario.database) as db:
-        db.execute('DROP TRIGGER t053_abort_record')
+    remove_restart_fault(scenario.database)
     response = scenario.run(packet)
     assert response['generation'] == 2
     scenario.replay(packet, response)
@@ -313,3 +311,67 @@ def test_agreed_process_revision_is_frozen_without_rewriting_old_process(scenari
                and r['data']['process_ref']['revision'] == changed['process_revision']
                and r['data']['process']['route']['entry'] == 'review' for r in records)
     scenario.preserved()
+
+
+@pytest.mark.parametrize('allowed', [False, True])
+def test_same_mutable_expectation_change_obeys_selected_revision_mask(scenario, allowed):
+    if not allowed:
+        config = json.loads(scenario.config.read_text())
+        config['lifecycle']['policies']['restart-rule']['revision_fields'] = DATA['excluded_revision_fields']
+        scenario.config.write_text(json.dumps(config))
+    scenario.prepared()
+    proposed = deepcopy(scenario.contract)
+    proposed['stage_expectations'][0]['values'] = [{'name': 'report', 'type': 'string', 'required': True}]
+    assert {k for k in proposed if proposed[k] != scenario.contract[k]} == {'stage_expectations'}
+    packet = scenario.packet('propose_restart', proposal_id='masked-proposal', contract=proposed,
+        requirements_snapshot=scenario.initial_snapshot, reason='Проверить согласованную маску пересмотра.')
+    if allowed:
+        before = scenario.execution()
+        result = scenario.run(packet)
+        assert result['result']['proposal_id'] == 'masked-proposal'
+        assert scenario.execution() == before
+    else:
+        scenario.reject(packet, 'stage_expectations')
+
+
+@pytest.mark.parametrize('approver', ['executor-A', 'executor-C'])
+def test_approval_distinguishes_original_performer_and_other_proposer(scenario, approver):
+    scenario.presented()  # Original performer A, recorded through actual public entry/present.
+    scenario.proposal(actor='executor-C')  # Different proposing actor C.
+    config = json.loads(scenario.config.read_text())
+    config['lifecycle']['actors']['executor-A'] = 'reviewer'
+    config['lifecycle']['actors']['executor-C'] = 'reviewer'
+    scenario.config.write_text(json.dumps(config))
+    assert config['lifecycle']['actors'][approver] == 'reviewer'
+    assert 'reviewer' in config['lifecycle']['policies']['restart-rule']['approving_roles']
+    scenario.reject(scenario.packet('decide_restart', actor_id=approver, proposal_id='proposal-1',
+                                    decision='approved', reason='Проверка раздельной независимости.'), 'distinct')
+    assert scenario.approve(actor='reviewer-B')
+
+
+@pytest.mark.parametrize('order', ['record-first', 'row-first'])
+def test_restart_fault_really_follows_a_successful_write_in_both_orders(tmp_path, order):
+    # A separate minimal SQLite oracle, NOT a seeded product lifecycle.
+    # The exact same private triggers must reject a multiwrite sequence only
+    # after its first statement succeeds; autocommit retains that first effect.
+    for transactional in (False, True):
+        database = tmp_path / (order + '-' + str(transactional) + '.sqlite')
+        with sqlite3.connect(database, isolation_level=None) as db:
+            db.execute('CREATE TABLE executions(task_id TEXT PRIMARY KEY,generation INTEGER)')
+            db.execute('CREATE TABLE execution_records(task_id TEXT,generation INTEGER)')
+            db.execute("INSERT INTO executions(task_id,generation) VALUES('0042',1)")
+        install_restart_fault(database)
+        with sqlite3.connect(database, isolation_level=None) as db:
+            if transactional:
+                db.execute('BEGIN')
+            record = "INSERT INTO execution_records(task_id,generation) VALUES('0042',2)"
+            execution = "UPDATE executions SET generation=2 WHERE task_id='0042'"
+            first, second = (record, execution) if order == 'record-first' else (execution, record)
+            db.execute(first)  # A first-write abort would fail outside raises().
+            with pytest.raises(sqlite3.IntegrityError, match=DATA['expected']['fault']):
+                db.execute(second)
+            if transactional:
+                db.execute('ROLLBACK')
+            observed = {'generation': db.execute("SELECT generation FROM executions WHERE task_id='0042'").fetchone()[0],
+                        'records': db.execute("SELECT count(*) FROM execution_records WHERE task_id='0042'").fetchone()[0]}
+            assert observed == DATA['fault_control_expected']['transaction' if transactional else order]

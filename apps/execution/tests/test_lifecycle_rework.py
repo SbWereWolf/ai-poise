@@ -122,3 +122,14 @@ def test_wrong_actor_role_preserves_actual_stage(scenario):
                                     candidate_id=candidate), 'role')
     scenario.act('present', context_id=context, candidate_id=candidate)
     scenario.preserved()
+
+
+def test_physical_oracle_detects_branch_change_at_identical_head_and_wip(scenario):
+    before = scenario.physical()
+    assert before['branch'] == scenario.workspace_response['workspace']['branch']
+    scenario.git('checkout', '-b', 't053-oracle-branch')
+    changed = scenario.physical()
+    assert changed == dict(before, branch='t053-oracle-branch')
+    assert changed != before
+    scenario.git('checkout', before['branch'])
+    assert scenario.physical() == before

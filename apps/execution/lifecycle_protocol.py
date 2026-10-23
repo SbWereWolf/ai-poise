@@ -49,7 +49,7 @@ def settings(raw):
 
 def packet(value, config, validate_contract):
     action = value.get('action')
-    if action not in ACTION_FIELDS:
+    if type(action) is not str or action not in ACTION_FIELDS:
         raise DomainError('Select a supported lifecycle action')
     common = {'action', 'request_id', 'expected_revision', 'task_id',
               'expected_generation', 'expected_contract_revision', 'actor_id'}

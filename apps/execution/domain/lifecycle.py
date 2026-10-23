@@ -1,5 +1,5 @@
 """Existing revision/rework decisions at the independent process owner."""
-from apps.execution.domain.records import RecordsError
+from apps.execution.domain.records import RecordsError, integer
 from apps.execution.domain.process.definition import GoalTypeDefinition
 
 
@@ -39,6 +39,9 @@ class LifecyclePolicy:
         if snapshot.get('snapshot_revision') != contract['requirements_snapshot_revision']:
             raise RecordsError('Select the contract Requirements snapshot revision')
         statement = snapshot.get('statement')
+        integer(snapshot.get('statement_revision'), 'Requirements snapshot statement_revision', 1)
+        if isinstance(statement, dict):
+            integer(statement.get('statement_revision'), 'Published statement_revision', 1)
         if (not isinstance(statement, dict) or statement.get('task_id') != contract['task_id']
                 or statement.get('statement_revision') != snapshot.get('statement_revision')):
             raise RecordsError('Requirements snapshot needs its matching published statement')

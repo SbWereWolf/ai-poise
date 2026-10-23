@@ -1,0 +1,271 @@
+{
+  "goal": "Подготовить отчёт.",
+  "definition": {
+    "goal_type": "writing",
+    "worktree_required": true,
+    "benefit": {
+      "git_categories": [
+        "code"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "write"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": [
+        {
+          "id": "filled",
+          "kind": "section",
+          "section": "report",
+          "states": [
+            "populated"
+          ],
+          "stages": [
+            "write",
+            "review"
+          ],
+          "phase": "post"
+        }
+      ]
+    },
+    "stages": [
+      {
+        "id": "write",
+        "instruction": "Записать результат этапа.",
+        "read_only": false,
+        "allowed_paths": [
+          "outputs/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Записать результат."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "writer",
+        "transitions": {
+          "complete": "review"
+        },
+        "rework_targets": [
+          "write",
+          "review"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "review",
+        "instruction": "Записать результат этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Записать результат."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "inspect",
+        "role": "reviewer",
+        "transitions": {
+          "clear": null,
+          "changes_requested": "write"
+        },
+        "rework_targets": [
+          "write",
+          "review"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "configuration": {
+    "lifecycle": {
+      "actors": {
+        "executor-A": "writer",
+        "reviewer-B": "reviewer",
+        "executor-C": "writer"
+      },
+      "policies": {
+        "restart-rule": {
+          "approving_roles": [
+            "reviewer"
+          ],
+          "revision_fields": [
+            "requirements_snapshot_revision",
+            "process_ref",
+            "stage_expectations",
+            "methods",
+            "evidence_plan"
+          ]
+        }
+      }
+    }
+  },
+  "contract": {
+    "task_id": "0042",
+    "requirements_snapshot_revision": 2,
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "@PROCESS"
+    },
+    "admission_id": "explicit-admission-0042",
+    "workspace_id": "@WORKSPACE",
+    "stage_expectations": [
+      {
+        "stage_id": "write",
+        "values": [],
+        "files": [],
+        "methods": []
+      },
+      {
+        "stage_id": "review",
+        "values": [],
+        "files": [],
+        "methods": []
+      }
+    ],
+    "restart_policy_id": "restart-rule",
+    "methods": [
+      {
+        "id": "original-method"
+      }
+    ],
+    "evidence_plan": {
+      "write": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      },
+      "review": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    }
+  },
+  "expected": {
+    "mutation_keys": [
+      "schema",
+      "status",
+      "revision",
+      "replayed",
+      "task_id",
+      "generation",
+      "contract_revision",
+      "state",
+      "current_stage",
+      "iteration",
+      "result"
+    ],
+    "first_state": {
+      "state": "ready",
+      "current_stage": null,
+      "iteration": 1
+    },
+    "entered_state": {
+      "state": "active",
+      "current_stage": "write",
+      "iteration": 1
+    },
+    "presented_state": {
+      "state": "verified",
+      "current_stage": "write",
+      "iteration": 1
+    },
+    "restarted_state": {
+      "state": "draft",
+      "current_stage": null,
+      "iteration": 1
+    },
+    "same_rework_state": {
+      "state": "active",
+      "current_stage": "write",
+      "iteration": 2
+    },
+    "review_rework_state": {
+      "state": "active",
+      "current_stage": "review",
+      "iteration": 1
+    },
+    "wip": {
+      "payload.txt": "Working value C\n",
+      "untracked.txt": "Untracked work\n"
+    },
+    "staged": "Staged value B\n",
+    "fault": "T053 deliberate record write failure",
+    "execution_after_setup": {
+      "task_id": "0042",
+      "generation": 1,
+      "contract_revision": "@CONTRACT",
+      "state": "draft",
+      "current_stage": null,
+      "iteration": 1,
+      "workspace_id": "@WORKSPACE",
+      "admission_id": "explicit-admission-0042"
+    }
+  },
+  "old_records": [
+    {
+      "kind": "attempt",
+      "id": "prior-attempt",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "command": "existing-check",
+        "status": "completed",
+        "exit_code": 0
+      }
+    },
+    {
+      "kind": "evidence",
+      "id": "prior-evidence",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "attempt_id": "prior-attempt",
+        "passed": true,
+        "source": "original-source"
+      }
+    },
+    {
+      "kind": "history",
+      "id": "prior-history",
+      "task_id": "0042",
+      "generation": 1,
+      "revision": 1,
+      "data": {
+        "event": "previous-work",
+        "note": "retain exact provenance"
+      }
+    }
+  ],
+  "generic_history_approval": {
+    "kind": "history",
+    "id": "looks-approved",
+    "task_id": "0042",
+    "generation": 1,
+    "revision": 1,
+    "data": {
+      "proposal_id": "proposal-1",
+      "decision": "approved",
+      "actor_id": "reviewer-B"
+    }
+  }
+}

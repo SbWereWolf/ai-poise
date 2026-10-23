@@ -1,11 +1,15 @@
 # Execution public contract
 
-Статус: действующие process/gate/files API и проектные материалы последующего lifecycle.
+Статус: действующие process/gate/files/lifecycle API и отдельно отмеченные проектные материалы.
 Версия публичного протокола: `stride-execution/v1`.
 
 Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
 `files/check|diff`, `query/execution|gate_context|gate_result|file_result|file_diff_result`,
 Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`.
+Действующий [lifecycle](lifecycle-exe.md) предоставляет семь действий
+freeze/enter/present/propose_restart/decide_restart/restart/rework и чтение
+query/lifecycle|restart_history. Точные текущие пакеты и результаты описаны
+в этом руководстве; таблицы проектного apply из §6 сохраняют отдельный статус.
 Действующий договор описывают [оболочка](shell-exe.md),
 [редактор процессов](process-exe.md), [приёмка](gate-exe.md) и
 [файловые границы этапа](files-exe.md) и [собственный store](store-exe.md).
@@ -20,14 +24,16 @@ F3/F4 ссылаются на действующую приёмку.
 не отмечены в действующих руководствах. Они сами по себе не объявляют возможности
 поставленного provider или новые обязательства реализации. В частности,
 `ValueRule`/`FileRule`, target structured `error`, authority resolver, subprocess
-runner и последующий lifecycle остаются проектом; фактический текущий отказ
+runner, автоматическое продвижение, terminal outcome и reuse остаются проектом;
+фактический текущий отказ
 содержит `reason`, exit `2`, пустой stderr. Реальные секции, trace и файловые
 счётчики описаны у владельца [gate](gate-exe.md).
 
 [Сравнение изменений этапа](diff-exe.md) описывает действующие `files/diff`,
 `query/file_diff_result` и физическую подготовку коммита через `Store.prepare_stage_commit`:
 два сравнения, сохранение незавершённой работы и собственное решение допуска.
-Эти возможности отделены от проектного lifecycle и последующей интеграции результата.
+Эти возможности имеют собственные интерфейсы наряду с действующим lifecycle;
+последующая интеграция результата имеет отдельного владельца.
 
 ## 1. Владелец и существующий baseline
 
@@ -379,6 +385,15 @@ Same candidate_id immutable по payload. Есть pending external attempt —
 `attempt_pending`, а не уничтожение незавершённого запуска новым submission.
 
 ### 6.1 Restart: полномочия и история
+
+Этот подраздел сохраняет проектный договор T012 для более широкого apply/runner.
+Действующие согласование, restart/rework и сохранение WIP описаны в
+[руководстве lifecycle](lifecycle-exe.md#пакеты-и-результаты): используется
+операция `lifecycle`, явный `actor_id` и сохранённые ID proposal/approval.
+Для последующего freeze передаётся полный согласованный снимок Requirements.
+Названия freeze_execution/revise_execution, proposal_digest и ограничения
+будущего runner ниже относятся к проектной схеме, а не к текущему CLI.
+
 
 `propose_restart` полностью валидирует желаемый contract и его references перед
 сохранением proposal/digest; approval не может узаконить структурно неверный

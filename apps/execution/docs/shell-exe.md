@@ -16,9 +16,15 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 Приложение возвращает один JSON-результат в stdout. Схема пакета —
 `stride-execution/v1`; текущий CLI выполняет `process`, `apply` с
 `setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check|diff`
-и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result`.
+`lifecycle` с семью действиями согласования и повторной работы,
+и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history`.
 [Редактор процессов](process-exe.md) описывает create/edit/status/reconcile и
 материализацию выбранного графа.
+
+[Согласование и повторная работа](lifecycle-exe.md) описывают фактические
+freeze/enter/present, предложение и решение о пересмотре, restart/rework,
+явные роли и политики. После process-enabled setup заморозьте опубликованный
+снимок Requirements и войдите в начальный этап по этому руководству.
 
 [Руководство по собственному хранилищу](store-exe.md) описывает подготовку данных,
 снимки, попытки, доказательства, историю и Python-интерфейс `Store`.
@@ -62,6 +68,11 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 самостоятельный core setup/query без разрешения полного процесса. Неизвестные
 опции конфигурации игнорируются и сохраняются в её исходных файлах; обязательные
 известные опции и публичные пакеты остаются строгими.
+
+Для lifecycle добавьте необязательный компонент `lifecycle` по
+[инструкции участников и политики](lifecycle-exe.md#явная-настройка-участников-и-политики).
+Используйте полный process-enabled файл; базовый core setup/query выше сохраняет
+самостоятельное назначение.
 
 Для приёмки добавьте необязательный `gates` с тремя явными корнями по
 [инструкции gate](gate-exe.md#настройка-и-исходные-данные). Полный process-enabled

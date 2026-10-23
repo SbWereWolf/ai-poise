@@ -36,6 +36,7 @@ class LifecyclePolicy:
     def validate_snapshot(snapshot, contract, registered_goal):
         if not isinstance(snapshot, dict) or snapshot.get('task_id') != contract['task_id']:
             raise RecordsError('Requirements snapshot task_id must match the selected Task')
+        integer(snapshot.get('snapshot_revision'), 'Requirements snapshot_revision', 1)
         if snapshot.get('snapshot_revision') != contract['requirements_snapshot_revision']:
             raise RecordsError('Select the contract Requirements snapshot revision')
         statement = snapshot.get('statement')

@@ -29,7 +29,7 @@ def act(action, **fields):
     current = query('execution')
     execution = current['results'][0]['value']
     return call('lifecycle', {
-        'action': action, 'request_id': f"example-{execution['generation']}-{action}",
+        'action': action, 'request_id': f"example-{task_id}-{execution['generation']}-{action}",
         'expected_revision': current['revision'], 'task_id': task_id,
         'expected_generation': execution['generation'],
         'expected_contract_revision': execution['contract_revision'], 'actor_id': actor,

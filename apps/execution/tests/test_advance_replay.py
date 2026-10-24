@@ -403,6 +403,197 @@ def fault_control(root, record_first):
         db.close()
 
 
+class RegressionMismatch(AssertionError):
+    def __init__(self, finding, actual):
+        self.finding = finding
+        super().__init__(repr(actual))
+
+
+def regression(condition, finding, actual):
+    if not condition:
+        raise RegressionMismatch(finding, actual)
+
+
+def subject_outcomes(root):
+    from advance_checks import CorrectionSubject
+    for case in DATA['corrections']['subject_cases']:
+        mark('subject/' + case['name'])
+        s = CorrectionSubject(root / case['name'], subject_check=True)
+        s.contract['evidence_plan']['write']['subject_methods']['guard']['exit_codes'] = case['rule_codes']
+        # Publish the explicit variation through the existing setup before entry.
+        if case['rule_codes'] != [0, 7]:
+            s.prepared()
+            changed = deepcopy(s.contract)
+            s.restart(contract=changed)
+        else:
+            s.prepared()
+        s.payload.write_text(case['payload'])
+        frame = s.gate_ref('write')
+        s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+        proof = s.subject_observation(frame, guard=case['guard'], capture=case['capture'])
+        result = s.next(proof, outcome=case['outcome'])
+        actual = {'stage': result['current_stage'], 'status': result['status'],
+                  'prefix': [item['stage_id'] for item in result['traversed']]}
+        expected = {key: case[key] for key in actual}
+        regression(actual == expected, 'T054-CODE-F01', (case['name'], actual, expected))
+        if result['traversed']:
+            regression(result['traversed'][0]['outcome'] == case['outcome'], 'T054-CODE-F01', result)
+        else:
+            regression(result['stop_reason'] in ['failed_observation', 'incomplete_capture',
+                       'missing_argument', 'uninterpretable_observation'], 'T054-CODE-F01', result)
+
+
+def current_rework_lineage(root):
+    from advance_checks import CorrectionSubject
+    s = CorrectionSubject(root).historical()
+    s.ff(s.current())
+    old_visits = deepcopy(s.progression()['accepted_visits'])
+    frame = s.gate_ref('finish', tag='actual-current-rework')
+    s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+    s.act('rework', target_stage_id='write', reason='Выполнить новую работу автора.', entry_tree=s.baseline)
+    entry = s.sync()
+    assert (entry['generation'], entry['current_stage'], entry['iteration']) == (2, 'write', 2)
+    proofs = [s.observe(s.gate_ref(stage, tag='fresh-rework', iteration=2))
+              for stage in ['write', 'review', 'finish']]
+    result = s.ff(proofs)
+    regression((result['current_stage'], result['iteration'], result['traversed'], result['stop_reason'])
+               == ('write', 2, [], 'superseded_source'), 'T054-CODE-F02', result)
+    regression(s.progression()['accepted_visits'] == old_visits, 'T054-CODE-F02', s.progression())
+    mark('rework/newly-performed-work')
+    write = s.perform('write', tag='actual-new-write')
+    review = s.perform('review', tag='actual-new-review')
+    regression((write['current_stage'], review['current_stage']) == ('review', 'finish'),
+               'T054-CODE-F02', (write, review))
+    new_ids = [s.origin[stage]['visit_id'] for stage in ['write', 'review']]
+    s.restart()
+    replay = s.ff(s.current())
+    regression(replay['current_stage'] == 'finish'
+               and [item['visit_id'] for item in replay['traversed']] == new_ids,
+               'T054-CODE-F02', replay)
+
+
+def external_record_shapes(root):
+    from advance_checks import CorrectionSubject
+    for name, reason_field in zip(DATA['corrections']['malformed_cases'],
+                                  DATA['corrections']['malformed_reason_fields'], strict=True):
+        mark('external-shape/' + name)
+        s = CorrectionSubject(root / name).prepared()
+        frame = s.gate_ref('write')
+        s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+        genuine = s.observe(frame, replay=False)
+        records = deepcopy(next(item['public_records'] for item in reversed(LOG)
+                                if 'public_records' in item))
+        attempt, evidence = records
+        attempt['id'] = s.identity('malformed-attempt')
+        evidence['id'] = s.identity('malformed-evidence')
+        evidence['data']['attempt_id'] = attempt['id']
+        if name == 'missing_attempt_id':
+            evidence['data'].pop('attempt_id')
+        elif name == 'missing_attempt_context':
+            attempt['data'].pop('context_id')
+        elif name == 'nonstring_attempt_id':
+            evidence['data']['attempt_id'] = ['not-an-id']
+        elif name == 'bad_work_arguments':
+            evidence['data']['evidence_work']['arguments'] = {'not': 'a-list'}
+        elif name == 'nonstring_receipt_method':
+            attempt['data']['receipts'][0]['method'] = ['not-an-id']
+        elif name == 'invalid_source_scalar':
+            attempt['data']['source']['tree'] = ['not-a-tree']
+        elif name == 'invalid_exit_scalar':
+            attempt['data']['receipts'][0]['actual_exit_code'] = 'zero'
+        bad = s.write_proof(frame, records)
+        packet = s.packet_advance('next', proof={**{key: bad[key] for key in
+            ['context_id', 'candidate_id', 'evidence_id']}, 'outcome': 'complete'})
+        before = s.state()
+        code, result, stderr = s.raw_advance(packet)
+        # A real product CLI traceback is a regression; imports/preparation above
+        # remain ordinary errors and cannot manufacture the expected RED.
+        regression(code == 2 and isinstance(result, dict) and result.get('status') == 'rejected'
+                   and isinstance(result.get('reason'), str) and bool(result['reason'].strip())
+                   and reason_field in result['reason'].lower()
+                   and stderr == '', 'T054-CODE-F03', (name, code, result, stderr))
+        regression(s.state() == before, 'T054-CODE-F03', name + '/state changed')
+        control = s.next(genuine)
+        regression(control['status'] == 'advanced' and control['current_stage'] == 'review',
+                   'T054-CODE-F03', (name, control))
+
+
+def entry_admission(root):
+    from advance_checks import CorrectionSubject
+    for action in ['next', 'fast_forward', 'target']:
+        mark('entry/' + action)
+        s = CorrectionSubject(root / action, entry=True)
+        s.handoff()
+        s.prepared()
+        if action != 'next':
+            s.perform('write', tag='original-write')
+            s.perform('review', tag='original-review')
+            s.restart()
+        s.handoff_file.unlink()
+        # Current write proof is genuinely accepted while the following stage's
+        # preexisting artifact is absent. It is not its own exit condition.
+        frame = s.gate_ref('write', tag='missing-entry')
+        if action == 'next':
+            s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+            proof = s.observe(frame, replay=False)
+            before = s.lifecycle()
+            progress_before = s.progression()
+            result = s.next(proof)
+        else:
+            proof = s.observe(frame)
+            before = s.lifecycle()
+            progress_before = s.progression()
+            result = s.ff([proof], target='review' if action == 'target' else None)
+        regression((result['status'], result['current_stage'], result['iteration'],
+                    result['traversed'], result['stop_reason'])
+                   == ('work_required', 'write', 1, [], 'entry_blocked'), 'T054-CODE-F04', result)
+        regression(s.lifecycle() == before, 'T054-CODE-F04', (before, s.lifecycle()))
+        progress_after = s.progression()
+        regression(all(progress_after[key] == progress_before[key]
+                       for key in ['accepted_visits', 'traversals']), 'T054-CODE-F04', progress_after)
+        s.handoff()
+        frame = s.gate_ref('write', tag='restored-entry')
+        if action == 'next':
+            s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+            control = s.next(s.observe(frame, replay=False))
+        else:
+            control = s.ff([s.observe(frame)], target='review' if action == 'target' else None)
+        regression(control['current_stage'] == 'review'
+                   and [item['stage_id'] for item in control['traversed']] == ['write']
+                   and control['status'] == ('target_reached' if action == 'target'
+                                             else 'advanced' if action == 'next' else 'work_required'),
+                   'T054-CODE-F04', control)
+
+
+def corrections_main():
+    cases = [subject_outcomes, current_rework_lineage, external_record_shapes, entry_admission]
+    errors, failures = [], []
+    with tempfile.TemporaryDirectory(prefix='execution-advance-corrections-') as temporary:
+        for name, finding, case in zip(DATA['corrections']['case_names'],
+                                      DATA['corrections']['finding_ids'], cases, strict=True):
+            LOG.append({'case': name, 'finding': finding})
+            try:
+                case(Path(temporary) / name)
+            except RegressionMismatch as exc:
+                assert exc.finding == finding
+                failures.append({'test': name, 'reason': finding})
+                LOG.append({'regression_failure': name, 'finding': finding,
+                            'traceback': traceback.format_exc()})
+            except Exception as exc:
+                errors.append({'test': name, 'type': type(exc).__name__})
+                LOG.append({'case_error': name, 'traceback': traceback.format_exc()})
+            else:
+                LOG.append({'case_passed': name})
+    output = os.environ.get('POISE_RUN_OUTPUT_DIR')
+    if output:
+        destination = Path(output) / 'advance-corrections-results.json'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(LOG, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'errors': errors, 'failures': failures, 'tests_run': len(cases)},
+                     ensure_ascii=False, separators=(',', ':')))
+    return 1 if errors or failures else 0
+
+
 def main():
     cases = [
         lambda p: cross_role(p, 'executor-A'), lambda p: cross_role(p, 'reviewer-B'),
@@ -436,4 +627,4 @@ def main():
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(corrections_main() if sys.argv[1:] == ['--suite', 'corrections'] else main())

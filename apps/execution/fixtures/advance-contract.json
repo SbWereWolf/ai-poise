@@ -381,5 +381,173 @@
         }
       ]
     }
+  },
+  "corrections": {
+    "case_names": [
+      "subject_outcomes",
+      "current_rework_lineage",
+      "external_record_shapes",
+      "entry_admission"
+    ],
+    "finding_ids": [
+      "T054-CODE-F01",
+      "T054-CODE-F02",
+      "T054-CODE-F03",
+      "T054-CODE-F04"
+    ],
+    "subject_transitions": {
+      "satisfied": "finish",
+      "not_satisfied": "review",
+      "inconclusive": "review"
+    },
+    "subject_plan": {
+      "subject_methods": {
+        "guard": {
+          "exit_codes": [
+            0,
+            7
+          ],
+          "stdout_contains": [],
+          "stderr_contains": []
+        }
+      },
+      "arguments": [],
+      "review_arguments": []
+    },
+    "subject_cases": [
+      {
+        "name": "negative",
+        "payload": "FAILED\n",
+        "guard": false,
+        "capture": null,
+        "rule_codes": [
+          0,
+          7
+        ],
+        "outcome": "not_satisfied",
+        "stage": "review",
+        "status": "advanced",
+        "prefix": [
+          "write"
+        ]
+      },
+      {
+        "name": "positive",
+        "payload": "OK\n",
+        "guard": false,
+        "capture": null,
+        "rule_codes": [
+          0,
+          7
+        ],
+        "outcome": "satisfied",
+        "stage": "finish",
+        "status": "advanced",
+        "prefix": [
+          "write"
+        ]
+      },
+      {
+        "name": "failed_guard",
+        "payload": "FAILED\n",
+        "guard": true,
+        "capture": null,
+        "rule_codes": [
+          0,
+          7
+        ],
+        "outcome": "not_satisfied",
+        "stage": "write",
+        "status": "work_required",
+        "prefix": []
+      },
+      {
+        "name": "incomplete_capture",
+        "payload": "FAILED\n",
+        "guard": false,
+        "capture": 2,
+        "rule_codes": [
+          0,
+          7
+        ],
+        "outcome": "not_satisfied",
+        "stage": "write",
+        "status": "work_required",
+        "prefix": []
+      },
+      {
+        "name": "outside_rule",
+        "payload": "FAILED\n",
+        "guard": false,
+        "capture": null,
+        "rule_codes": [
+          0
+        ],
+        "outcome": "not_satisfied",
+        "stage": "write",
+        "status": "work_required",
+        "prefix": []
+      }
+    ],
+    "malformed_cases": [
+      "missing_attempt_id",
+      "missing_attempt_context",
+      "nonstring_attempt_id",
+      "bad_work_arguments",
+      "nonstring_receipt_method",
+      "invalid_source_scalar",
+      "invalid_exit_scalar"
+    ],
+    "entry_requirement": {
+      "id": "entry-arrival",
+      "kind": "artifact",
+      "scope": "task",
+      "pattern": "handoff.txt",
+      "minimum": 1,
+      "maximum": 1,
+      "source": {
+        "kind": "preexisting"
+      },
+      "stages": [
+        "review"
+      ],
+      "phase": "pre"
+    },
+    "red_report": {
+      "errors": [],
+      "failures": [
+        {
+          "test": "subject_outcomes",
+          "reason": "T054-CODE-F01"
+        },
+        {
+          "test": "current_rework_lineage",
+          "reason": "T054-CODE-F02"
+        },
+        {
+          "test": "external_record_shapes",
+          "reason": "T054-CODE-F03"
+        },
+        {
+          "test": "entry_admission",
+          "reason": "T054-CODE-F04"
+        }
+      ],
+      "tests_run": 4
+    },
+    "green_report": {
+      "errors": [],
+      "failures": [],
+      "tests_run": 4
+    },
+    "malformed_reason_fields": [
+      "attempt",
+      "context",
+      "attempt",
+      "arguments",
+      "method",
+      "source",
+      "exit"
+    ]
   }
 }

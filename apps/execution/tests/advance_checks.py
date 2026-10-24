@@ -397,3 +397,123 @@ def clear_fault(database):
     with sqlite3.connect(database) as db:
         db.execute('DROP TRIGGER fail_progress_record')
         db.execute('DROP TRIGGER fail_progress_cursor')
+
+
+class CorrectionSubject(AdvanceSubject):
+    """Actual public producers for the four independently confirmed regressions."""
+    def __init__(self, root, *, subject_check=False, entry=False):
+        global DATA
+        original = DATA
+        variant = deepcopy(original)
+        if subject_check:
+            variant['definition']['stages'][0].update(
+                handler='check', transitions=deepcopy(original['corrections']['subject_transitions']))
+            variant['evidence_plan']['write'] = deepcopy(original['corrections']['subject_plan'])
+            variant['evidence_plan']['review']['review_arguments'] = []
+        if entry:
+            variant['definition']['content_contract']['requirements'].append(
+                deepcopy(original['corrections']['entry_requirement']))
+        try:
+            DATA = variant
+            super().__init__(root)
+        finally:
+            DATA = original
+        self.entry_required = entry
+        self.handoff_file = self.store.gates.files.roots['task'] / 'handoff.txt'
+
+    def gate_ref(self, stage, *, tag='correction', iteration=None, files=None):
+        if not self.entry_required:
+            return super().gate_ref(stage, tag=tag, iteration=iteration, files=files)
+        state = self.sync()
+        iteration = state['iteration'] if iteration is None else iteration
+        context, candidate = self.identity('entry-context'), self.identity('entry-candidate')
+        declaration = {'action': 'declare', 'request_id': self.identity('entry-declare'),
+            'expected_revision': self.revision, 'task_id': self.task_id, 'generation': self.generation,
+            'context_id': context, 'contract_revision': self.contract_revision,
+            'requirement_ids': ['report'], 'task_content': {'sections': [], 'routes': [], 'requirements': []},
+            'stage_contracts': [{'stage_id': node['id'], 'allowed_paths': node['allowed_paths'],
+                'entry_requirements': ['entry-arrival'] if node['id'] == 'review' else [],
+                'exit_requirements': ['filled'],
+                'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
+                for node in self.definition['stages']]}
+        code, declared = invoke(self.config, {'schema': 'stride-execution/v1', 'operation': 'gate',
+                                             'input': declaration})
+        assert code == 0, declared
+        paths = [str(self.handoff_file)] if self.handoff_file.is_file() else []
+        evaluation = {'action': 'evaluate', 'request_id': self.identity('entry-evaluate'),
+            'expected_revision': declared['revision'], 'task_id': self.task_id, 'generation': self.generation,
+            'context_id': context, 'candidate_id': candidate, 'stage_id': stage, 'iteration': iteration,
+            'sections': {'report': DATA['reports'][stage]}, 'trace': {},
+            'files': paths if files is None else files}
+        code, evaluated = invoke(self.config, {'schema': 'stride-execution/v1', 'operation': 'gate',
+                                             'input': evaluation})
+        LOG.append({'entry_gate': evaluation, 'exit_code': code, 'response': evaluated})
+        assert code == 0 and evaluated['accepted'], evaluated
+        self.revision = evaluated['revision']
+        return {'stage_id': stage, 'context_id': context, 'candidate_id': candidate,
+                'iteration': iteration, 'gate_id': evaluated['result_id']}
+
+    def handoff(self):
+        self.handoff_file.parent.mkdir(parents=True, exist_ok=True)
+        self.handoff_file.write_text('Проверяемый результат автора.\n')
+
+    def subject_observation(self, frame, *, guard=False, capture=None):
+        """Execute the declared real child, without a production assessment oracle."""
+        self.sync()
+        before = self.source()
+        method = self.contract['methods'][0]
+        actual = subprocess.run(method['argv'], cwd=method['cwd'],
+            env=dict(os.environ, **method['environment']), capture_output=True)
+        after = self.source()
+        raw = actual.stdout
+        complete = capture is None or len(raw) <= capture
+        text = raw.decode() if capture is None else raw[:capture].decode()
+        passed = (complete and actual.returncode == method['expected_exit_code']
+            and all(x in text for x in method['stdout_contains'])
+            and all(x in actual.stderr.decode() for x in method['stderr_contains']) and before == after)
+        receipt = {'id': self.identity('actual-subject'), 'method': method['id'],
+            'obligations': [method['id']], 'argv': method['argv'], 'cwd': method['cwd'],
+            'environment': method['environment'], 'actual_exit_code': actual.returncode,
+            'stdout': text, 'stderr': actual.stderr.decode(), 'stdout_bytes_hex': raw.hex(),
+            'stderr_bytes_hex': actual.stderr.hex(), 'capture_complete': complete,
+            'interpretable': True, 'timed_out': False, 'guard': guard, 'passed': passed,
+            'commit': before['commit'], 'tree': before['tree'], 'source_before': before,
+            'source_after': after, 'source_unchanged': before == after}
+        attempt_id = self.identity('subject-attempt')
+        records = [
+            {'kind': 'attempt', 'id': attempt_id, 'task_id': self.task_id, 'generation': self.generation,
+             'revision': 1, 'data': {'status': 'completed', 'stage_id': frame['stage_id'],
+                'iteration': frame['iteration'], 'context_id': frame['context_id'],
+                'candidate_id': frame['candidate_id'], 'source': before, 'methods': [method],
+                'execution_key': attempt_id, 'receipts': [receipt]}},
+            {'kind': 'evidence', 'id': self.identity('subject-evidence'), 'task_id': self.task_id,
+             'generation': self.generation, 'revision': 1, 'data': {'attempt_id': attempt_id,
+                'evidence_work': {'phase': 'continue', 'arguments': [], 'decisions': []}}}]
+        LOG.append({'actual_child': deepcopy(receipt)})
+        return self.write_proof(frame, records)
+
+    def write_proof(self, frame, records):
+        self.sync()
+        written = self.store.write_records(request_id=self.identity('correction-facts'),
+            expected_revision=self.revision, records=records)
+        self.revision = written['revision']
+        LOG.append({'public_records': deepcopy(records), 'result': written})
+        evidence = next(item for item in records if item['kind'] == 'evidence')
+        observed = dict(frame, evidence_id=evidence['id'])
+        key = (self.task_id, self.generation, frame['stage_id'], frame['context_id'],
+               frame['candidate_id'], evidence['id'])
+        self.observed_frames[key] = deepcopy(observed)
+        return observed
+
+    def raw_advance(self, packet):
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+        env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + env['PATH']
+        actual = subprocess.run([str(APP / 'bin/execution'), '--config', str(self.config)],
+            input=json.dumps(packet), cwd=self.config.parent, text=True, capture_output=True, env=env)
+        try:
+            response = json.loads(actual.stdout)
+        except json.JSONDecodeError:
+            response = None
+        LOG.append({'raw_advance': packet, 'exit_code': actual.returncode,
+            'stdout': actual.stdout, 'stderr': actual.stderr, 'response': response})
+        return actual.returncode, response, actual.stderr

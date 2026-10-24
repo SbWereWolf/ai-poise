@@ -92,7 +92,8 @@ def test_general_placement_without_task_owner(project, tmp_path):
     value = json.loads(actual["stdout"])
     assert value["status"] == "ready", marker
     assert len(value["items"]) == 1, marker
-    path = Path(value["items"][0]["path"])
+    assert value["items"][0]["path"] == "proof.json", marker
+    path = Path(value["items"][0]["absolute_path"])
     assert path.name == "proof.json" and path.is_relative_to(fixture.root), marker
     assert not (scene.state / "requirements.sqlite").exists(), marker
 
@@ -139,16 +140,19 @@ def test_general_named_checks_and_cli_without_task_owner(project, tmp_path, monk
     scene.publish()
     from tests.named_checks.support import Scene
     fixture = Scene(project, tmp_path, monkeypatch)
+    environment = {**scene.env, "F07_FIXTURE_EVENTS": str(fixture.events)}
     fixture.child("--stdout", "ARCHITECTURE_CHECK_OUTPUT\n")
     fixture.policy["storage"]["directory"] = str(scene.state / "named-checks")
     fixture.save()
-    machine = scene.invoke("checks", packet=fixture.request(), policy=fixture.policy_path)
+    machine = scene.invoke("checks", packet=fixture.request(), policy=fixture.policy_path,
+                           environment=environment)
     value = json.loads(machine["stdout"])
     assert value["status"] == "passed" and machine["stderr"] == "", marker
     record = fixture.record(value["items"][0])
     assert Path(record["stdout"]["path"]).read_bytes() == b"ARCHITECTURE_CHECK_OUTPUT\n", marker
     assert Path(value["response_path"]).is_file(), marker
-    cli = scene.invoke("checks-cli", packet=fixture.request(), policy=fixture.policy_path)
+    cli = scene.invoke("checks-cli", packet=fixture.request(), policy=fixture.policy_path,
+                       environment=environment)
     shown = json.loads(cli["stdout"])
     assert shown["status"] == "passed", marker
     # Second call reuses the completed real check, not its child process.

@@ -15,9 +15,10 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 Передайте один UTF-8 JSON-пакет с завершающим переводом строки через stdin.
 Приложение возвращает один JSON-результат в stdout. Схема пакета —
 `stride-execution/v1`; текущий CLI выполняет `process`, `apply` с
-`setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check|diff`
+`setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check|diff`,
 `lifecycle` с семью действиями согласования и повторной работы,
-и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history`.
+`advance` с `action: next|fast_forward`,
+и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression`.
 [Редактор процессов](process-exe.md) описывает create/edit/status/reconcile и
 материализацию выбранного графа.
 
@@ -33,6 +34,9 @@ freeze/enter/present, предложение и решение о пересмо
 политику нескольких рабочих корней, проверку чтения/записи и файловые доказательства.
 [Целевой публичный контракт](contract-exe.md) различает
 эти интерфейсы и дальнейшие проектные операции исполнения.
+
+[Продвижение по доказательствам](advance-exe.md) описывает пакеты next/fast_forward,
+чтение progression, текущие входы и передачу новой работы по роли.
 
 ## Конфигурация приложения
 

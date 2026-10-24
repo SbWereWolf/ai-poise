@@ -1,11 +1,13 @@
 # Execution public contract
 
-Статус: действующие process/gate/files/lifecycle API и отдельно отмеченные проектные материалы.
+Статус: действующие process/gate/files/lifecycle/advance API и отдельно отмеченные проектные материалы.
 Версия публичного протокола: `stride-execution/v1`.
 
 Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
 `files/check|diff`, `query/execution|gate_context|gate_result|file_result|file_diff_result`,
-Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`.
+Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`,
+`advance/next|fast_forward` и `query/progression`.
+[Продвижение](advance-exe.md) описывает действующие пакеты, доказательства и историю.
 Действующий [lifecycle](lifecycle-exe.md) предоставляет семь действий
 freeze/enter/present/propose_restart/decide_restart/restart/rework и чтение
 query/lifecycle|restart_history. Точные текущие пакеты и результаты описаны
@@ -20,11 +22,11 @@ query/lifecycle|restart_history. Точные текущие пакеты и р�
 API,
 F3/F4 ссылаются на действующую приёмку.
 
-Остальные схемы §1–3, §5–11 и F1a/F5–F11 — проектные материалы T012, если явно
+Остальные схемы §1–3, §5–7, §8.2–11 и F1a/F5/F7–F11 — проектные материалы T012, если явно
 не отмечены в действующих руководствах. Они сами по себе не объявляют возможности
 поставленного provider или новые обязательства реализации. В частности,
 `ValueRule`/`FileRule`, target structured `error`, authority resolver, subprocess
-runner, автоматическое продвижение, terminal outcome и reuse остаются проектом;
+runner, terminal outcome и межзадачный reuse остаются проектом;
 фактический текущий отказ
 содержит `reason`, exit `2`, пустой stderr. Реальные секции, trace и файловые
 счётчики описаны у владельца [gate](gate-exe.md).
@@ -468,46 +470,32 @@ Configured retries создают новую разрешённую attempt, н�
 
 ## 8. Переходы, перемотка и outcome
 
-`advance` input точно `{request_id,expected_revision,task_id,generation,action,
-target_stage}`. `action=next|fast_forward`; `target_stage=Id|null`.
-Null означает ограниченное продвижение до первого этапа, требующего работы, либо
-terminal graph node; все budgets берутся из current resolved process/config.
-Явный target обязан принадлежать reachable graph; иначе `invalid_transition`.
-
-`next` использует exact gate текущего stage/iteration и declared handler outcome.
-Когда следующий этап не имеет требуемых доказательств, результат `work_required`,
-а не исполнение за его роль. Если пришёл другой actor, transition не назначает ему
-новую роль/claim; публичный вызывающий организует реальную передачу полномочий.
+Действующие `advance/next`, `advance/fast_forward`, `query/progression` описаны
+в [руководстве продвижения](advance-exe.md). Обе команды используют актуальные
+revision/generation/contract, настоящего участника, source и entry_tree.
+`next` принимает фактически представленный Gate текущего этапа по его роли;
+ссылки proof связывают контекст, кандидат, outcome и evidence.
+Следующий участник выполняет новую работу согласно `required_role` ответа.
 
 ### 8.1 EXE-08: fast-forward после restart
 
-Для каждой очередной stage Execution проверяет admissibility сохранённых receipt
-и candidate против **актуальных** contract/source/inputs/expectations/methods,
-актуальности required review decision и source actor separation. Неизменённость
-целой старой generation не предполагается: сопоставляется конкретная stage
-projection, а новая generation остаётся отдельной audit identity.
+После нового freeze/enter вызывающий передаёт свежие Gate/evidence для каждого
+проходимого этапа. Execution сопоставляет текущий договор этапа, source,
+наблюдения, исходное обоснование и решение независимого осмотра. Роль инициатора
+перемотки не ограничивает подтверждённые исторические переходы.
+История сохраняет исходных авторов, поколение, Gate и evidence; отдельная ссылка
+указывает актуальные доказательства. Первый неподтверждённый этап требует работы.
 
-Если доказательства актуальны, новый traversal record ссылается на исходные
-receipt IDs, исходные роли/actors, old/new contract-stage digests и доказанную
-эквивалентность. Он **не** создаёт новый успешный check run или новую reviewer
-identity. Роль инициатора не фильтрует такие подтверждённые переходы. Как только
-данных для очередного этапа недостаточно, остановка на нём. Missing evidence
-нельзя заменить совпадением текста отчёта, старым commit PASS или ролью инициатора.
+Штатные результаты: `advanced`, `work_required`, `target_reached`, `route_end`.
+Полные поля пакетов/ответов, причины остановки и правильное продолжение принадлежат
+[текущему API](advance-exe.md#пакет-продвижения). Перед переходом заново проверяются
+предусловия следующего этапа. Повторное потребление одного исторического визита
+останавливает цикл; точный request replay возвращает сохранённый результат.
 
-Success fields точно `{schema,status:"advanced"|"work_required"|"terminal",
-revision,replayed,task_id,generation,traversed:Traversal[],current_stage:Id|null,
-required_role:Id|null,stop_reason}`.
-`Traversal` точно `{stage_id,iteration,gate_id,evidence_origin_generation,
-receipt_ids,source_actor_ids,contract_stage_digest}`.
-`stop_reason=null|target_reached|unproven_stage|terminal|budget_exhausted`.
-Budget stop не выдаётся за unsupported stage success; каждый traversal уже записан
-в истории и exact replay возвращает тот же результат без повторных переходов.
-
-Terminal graph node ещё не сам по себе positive accepted outcome. Публичная
-acceptance authority явно вызывает `record_outcome`. Outcome immutable по ID и
-payload, доступен query/transfer. `negative` или `cancelled` не удовлетворяют
-Requirements и не создают `completed` факт в Sequencing. Полученный positive
-outcome переносит публичный вызывающий; Execution не пишет соседний store.
+`route_end` оставляет execution в `verified`. Terminal outcome задачи и его
+передача другим приложениям относятся к отдельной проектной поставке.
+Далее §8.2 описывает проектный интерфейс интеграции; подготовка коммита этапа
+уже реализована отдельно в [Store.prepare_stage_commit](diff-exe.md).
 
 ### 8.2 `integration`: Git-публикация не равна acceptance
 
@@ -790,24 +778,15 @@ Expected applied revision22, same Task0042, generation2/draft; WIP/Workspace,
 
 ### F6 — перемотка через этапы разных ролей
 
-Initial restarted generation2/ready, revision30. Graph `write(author)` →
-`inspect(approver)` → `publish(publisher)`. Exact актуальные accepted evidence
-первых двух stages имеют original actors`a` и`b`, original generation1 и
-эквивалентные current contract-stage/source digests. У `publish` доказательств нет.
-Trusted initiator — `author`; конфигурация разрешает fast-forward read/reuse.
+Действующий сценарий: после принятого выполнения и согласованного restart
+подготовить свежие доказательства текущего поколения, затем вызвать
+`advance/fast_forward`. Подтверждённые этапы исполнителя и проверяющего проходят
+независимо от роли инициатора; исходные авторы и решения остаются в истории.
+На первом этапе без пригодных доказательств ответ `work_required` указывает
+`current_stage`, `required_role` и конкретную причину. Это новая работа своей роли.
 
-```json
-{"schema":"stride-execution/v1","operation":"advance","input":{"request_id":"reuse-to-first-gap","expected_revision":30,"task_id":"0042","generation":2,"action":"fast_forward","target_stage":null}}
-```
-
-```json
-{"schema":"stride-execution/v1","status":"work_required","revision":31,"replayed":false,"task_id":"0042","generation":2,"traversed":[{"stage_id":"write","iteration":1,"gate_id":"gw","evidence_origin_generation":1,"receipt_ids":["rw"],"source_actor_ids":["a"],"contract_stage_digest":"1111111111111111111111111111111111111111111111111111111111111111"},{"stage_id":"inspect","iteration":1,"gate_id":"gi","evidence_origin_generation":1,"receipt_ids":["ri"],"source_actor_ids":["b"],"contract_stage_digest":"2222222222222222222222222222222222222222222222222222222222222222"}],"current_stage":"publish","required_role":"publisher","stop_reason":"unproven_stage"}
-```
-
-Нет новых check runs, reviewers или роли publisher у инициатора. Для другого
-допущенного initiator при тех же evidence traversal/stop тот же; private Session
-stores не читаются. Изменение current source commit делает старые source-bound
-receipts неактуальными: остановка уже на `write`, а не reuse старого PASS.
+Полный [правильный пример](advance-exe.md#перемотка-после-согласованного-restart)
+использует настоящие ответы Gate/Store и текущие версии из публичного query.
 
 ### F7 — stale revision и replay имеют разный порядок
 

@@ -124,7 +124,7 @@ def test_general_reader_without_task_owner(project, tmp_path):
     observed = scene.invoke("reader", packet=fixture.request(start=2, end=3), policy=fixture.policy,
                             environment=fixture.env)
     value = json.loads(observed["stdout"])
-    assert value["items"][0]["content"] == "γeta\nlast", marker
+    assert value["items"][0]["content"] == "βeta\nlast", marker
     assert value["items"][0]["range"] == "lines:2-3", marker
     fixture.event("SessionEnd")
     recovered = scene.invoke("reader", packet={"operation": "recover"}, policy=fixture.policy,
@@ -179,17 +179,53 @@ def test_native_lifecycle_without_task_adapter(project, tmp_path):
     marker = "ARCH_FIX_GENERAL_NATIVE"
     scene = GeneralScene(project, tmp_path, marker)
     scene.publish()
-    definition, events = scene.native_definition(all_events=True)
+    definition, events, builtin_inputs = scene.common_builtin_route()
     environment = {k: v for k, v in scene.env.items() if k != "POISE_CALLER_BINDING"}
     environment["CODEX_THREAD_ID"] = "architecture-native"
-    result = scene.invoke("native", environment=environment, settings=str(scene.settings_path),
-                          definition=definition, events=events)
-    assert len(result["responses"]) == 8, marker
+    result = scene.invoke("native-builtins", environment=environment, settings=str(scene.settings_path),
+                          definition=definition, events=events, builtin_inputs=builtin_inputs)
+    assert len(result["responses"]) == 9, marker
     assert [row[1] for row in result["event_rows"]] == [
         "SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse",
-        "PreCompact", "PostCompact", "Stop", "SessionEnd"], marker
+        "PreCompact", "PostCompact", "SessionStart", "Stop", "SessionEnd"], marker
     assert not result["binding"].get("launcher"), marker
     assert result["diagnostic"]["native_event"]["association"]["status"] == "confirmed", marker
+    assert result["readiness"]["ready"] is True, marker
+    observations = result["readiness"]["observations"]
+    assert len(observations) == 1 and observations[0]["status"] == "available", marker
+    assert observations[0]["observation"] == "command_executed", marker
+    assert Path(observations[0]["receipt"]).is_file(), marker
+    assert result["commands"] == [{"actual_exit_code": 0, "stdout": "A01\nA02\n", "stderr": ""}], marker
+    before, after = result["coverage_before"], result["coverage_after"]
+    assert before["context"]["generation"] == 0 and after["context"]["generation"] == 1, marker
+    assert before["details"]["counts"]["pending"] == 0, marker
+    assert before["details"]["counts"]["settled"] == 1, marker
+    assert [(row["path"], row["ranges"]) for row in before["details"]["documents"]] == [
+        ("docs/sample.txt", [[1, 2]])], marker
+    from tests.context_resume.helpers import card
+    start_cards = [card(row["response"]) for row in result["responses"]
+                   if row["event"]["hook_event_name"] == "SessionStart"]
+    assert len(start_cards) == 2, marker
+    assert start_cards[0]["generation"]["current"] == 0, marker
+    assert start_cards[1]["generation"] == {"before": 0, "current": 1}, marker
+    assert start_cards[1]["checkpoint"]["state"] == "restored", marker
+    assert start_cards[1]["work"]["status"] == start_cards[1]["check"]["status"] == "not_configured", marker
+    assert len(result["checkpoints"]) == 1, marker
+    checkpoint = result["checkpoints"][0]
+    assert checkpoint["schema"] == "poise-work-context-checkpoint-1", marker
+    assert checkpoint["event"]["kind"] == "PreCompact", marker
+    assert checkpoint["captured"]["coverage"]["generation"] == 0, marker
+    consumers = result["consumer_observations"]
+    assert len(consumers) == 3, marker
+    assert sorted(row["event_receipt"]["event"] for row in consumers) == [
+        "SessionEnd", "SessionStart", "SessionStart"], marker
+    for row in consumers:
+        assert row["actual_exit_code"] == 0 and row["stderr"] == "", marker
+        assert row["sentinel"] == {"task_imports": [], "poise_constructions": 0, "current_task_calls": 0}, marker
+        receipt = row["event_receipt"]
+        assert receipt["binding_id"] == result["binding"]["session_id"], marker
+        assert receipt["project_id"] == project["cfg"]["project"], marker
+    assert result["diagnostic"]["native_event"]["id"] == result["event_rows"][-1][0], marker
     hook_db = project["root"] / "architecture-hook-control/hook-state.sqlite"
     assert b"PRIVATE_ARCHITECTURE_PROMPT" not in hook_db.read_bytes(), marker
     assert b"PRIVATE_ARCHITECTURE_ASSISTANT" not in hook_db.read_bytes(), marker

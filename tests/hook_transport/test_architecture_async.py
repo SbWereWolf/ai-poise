@@ -44,7 +44,7 @@ def test_async_outlives_callback_and_keeps_capture(project, tmp_path):
             chain.command("worker", mode="async", barrier=barrier.address),
             chain.command("sync")])
         chain.install([path])
-        response = chain.invoke()
+        response = chain.invoke_hook_process()
         assert response == {"systemMessage": "seed|sync"}, marker
         assert barrier.arrived(1) == {"worker"}, marker
         # Callback has actually returned while the child cannot yet finish.
@@ -118,6 +118,7 @@ def test_async_result_cannot_change_native_response(project, tmp_path):
         parent = tmp_path / problem
         parent.mkdir()
         chain.parent, chain.effects = parent, parent / "handler-effects"
+        chain.session = "architecture-async-" + problem
         with WorkerBarrier() as barrier:
             path = chain.configuration("bad-async-" + problem, [
                 chain.command("broken", mode="async", failure=problem, barrier=barrier.address),
@@ -130,3 +131,4 @@ def test_async_result_cannot_change_native_response(project, tmp_path):
             assert chain.terminal_workers(1)[0]["status"] == "failed", marker
             assert chain.delivery()[1]["response"] == response, marker
             chain.capture_contains(b"poise-hook-async-result-1")
+            chain.finish()

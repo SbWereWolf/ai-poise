@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from pathlib import Path
 from copy import deepcopy
 from conftest import write_json
@@ -16,7 +17,7 @@ def command_probe(name='python', code='print("ready")', required=True):
 
 
 def definition():
-    return {'schema':'hook-definition-1','id':'primary-hooks','agent_id':'primary',
+    return {'schema':'hook-definition-2','id':'primary-hooks','agent_id':'primary',
             'message_source':'codex-hook-main',
             'events':[
                 {'event':'SessionStart','matcher':'startup|resume|compact|clear','timeout_seconds':15,
@@ -27,13 +28,19 @@ def definition():
                  'context_limit':None,'status_message':'Report Poise state'},
                 {'event':'SessionEnd','matcher':'other','timeout_seconds':3,'async':False,
                  'context_limit':None,'status_message':'Record session end'}],
-            'probes':[command_probe()], 'gate_operations':['bootstrap','verify','artifacts'],
-            'context_template':'Use {launcher} with a single work JSON packet. Current state: {state}.',
-            'stop_template':'Current Poise state: {state}; no acceptance or transition was performed.',
-            'unknown_outcome_message':'Native hook failed; inspect the local operational record.'}
+            'routes': {
+                'SessionStart': ['@HOOK_CONFIG@/primary-start.json'],
+                'UserPromptSubmit': ['@HOOK_CONFIG@/primary-context.json'],
+                'Stop': ['@HOOK_CONFIG@/primary-context.json'],
+                'SessionEnd': ['@HOOK_CONFIG@/primary-end.json'],
+            },
+            'transport': {'unknown_outcome_message':
+                          'Native hook failed; inspect the local operational record.'}}
 
 
 def settings(project,tmp_path):
+    if '_prepared_harness' in project:
+        return project['_prepared_harness'].settings_path
     root=project['root']
     candidate = deepcopy(project['cfg'])
     candidate['batch']['message_source']={'id':'codex-hook-main','mode':'runtime_event'}
@@ -74,7 +81,8 @@ def settings(project,tmp_path):
         from projects.test_update import update_request
         _, current, workflows = load_config(project['config_path'])
         resources = deepcopy(current['runtime_resources'])
-        resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
+        # Hook associations belong to the explicitly published harness profile;
+        # the full Task manifest remains the specialised adapter input.
         revision = digest({'config': current, 'workflows': workflows})
         selected_options = {key: candidate[key] for key in ('source_reader', 'telemetry_delivery', 'task_ids')
                             if key in candidate}
@@ -97,11 +105,67 @@ def settings(project,tmp_path):
         project['cfg'] = current
     else:
         project['cfg'] = candidate
+    from tests.hook_transport.architecture_support import GeneralScene
+    from poise.common import PoiseError
+    if not managed:
+        raise PoiseError('Fixture harness publication requires its explicit registered project association')
+    raw = json.loads(path.read_text(encoding='utf-8'))
+    scene = GeneralScene(project, tmp_path, 'ARCH_FIX_LEGACY_HOOK_FIXTURE', connected=True,
+                         settings_path=path, hook_settings=raw, installation_id='primary-hooks')
+    scene.publish(request_id='fixture-explicit-task-harness')
+    project['_prepared_harness'] = scene
+    _handler_files(path)
     return path
 
 
+def harness_profile(project, parent, *, task_adapter):
+    """Select a real explicit profile for a specialised fixture consumer."""
+    if project['cfg']['schema'] == 'poise-harness-project-1':
+        return project['config_path']
+    if task_adapter:
+        settings(project, parent)
+        return project['_prepared_harness'].path
+    from tests.hook_transport.architecture_support import GeneralScene
+    scene = GeneralScene(project, parent, 'ARCH_FIX_LEGACY_RESULT_FIXTURE')
+    scene.state = project['root'] / project['cfg']['paths']['state']
+    scene.profile['paths']['state'] = str(scene.state)
+    scene.publish(request_id='fixture-explicit-general-results')
+    return scene.path
+
+
+def _handler_files(settings_path):
+    """Materialise versioned test inputs, not a legacy product router."""
+    from tests.hook_transport.architecture_support import literal
+    path = Path(settings_path)
+    raw = json.loads(path.read_text(encoding='utf-8'))
+    root = (path.parent / raw['root']).resolve()
+    directory = root / 'config/hook-handlers'
+    context = literal('task-context-options.json')
+    context.update(context_template='Use {launcher} with a single work JSON packet. Current state: {state}.',
+                   stop_template='Current Poise state: {state}; no acceptance or transition was performed.')
+
+    def handler(name, options):
+        value = deepcopy(literal('handler-configuration.json')['handlers'][0])
+        value.update(id=name, implementation={'kind': 'builtin', 'name': name}, options=options)
+        return value
+
+    for name, handlers in [
+        ('primary-start', [handler('capability-summary', {
+            'probes': [command_probe()], 'summary': raw['capability_summary']}), handler('task-context', context)]),
+        ('primary-context', [handler('task-context', context)]),
+        ('primary-end', [handler('task-runtime-cleanup', {})]),
+    ]:
+        write_json(directory / (name + '.json'), {
+            'schema': 'hook-handler-configuration-1', 'id': name, 'handlers': handlers})
+    return directory
+
+
 def install(service, d=None, request_id='install-1', revision=None):
-    return service.install({'request_id':request_id,'expected_revision':revision,'definition':definition() if d is None else d})
+    chosen = definition() if d is None else deepcopy(d)
+    directory = _handler_files(service.settings.path)
+    chosen['routes'] = {event: [value.replace('@HOOK_CONFIG@', str(directory)) for value in paths]
+                        for event, paths in chosen['routes'].items()}
+    return service.install({'request_id':request_id,'expected_revision':revision,'definition':chosen})
 
 
 def event(name='SessionStart',session='conversation',turn='turn1'):

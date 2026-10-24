@@ -98,6 +98,7 @@ def test_sync_error_stops_with_saved_result(project, tmp_path):
         parent = tmp_path / failure
         parent.mkdir()
         chain.parent, chain.effects = parent, parent / "handler-effects"
+        chain.session = "architecture-sync-" + failure
         path = chain.configuration("failure-chain-" + failure, [chain.command("one"),
             chain.command("broken", failure=failure), chain.command("later")])
         chain.install([path])
@@ -112,6 +113,7 @@ def test_sync_error_stops_with_saved_result(project, tmp_path):
                     if p.is_file()]
         witness = b"ACTUAL_WORKER_FAILURE" if failure == "nonzero" else b"INVALID_HANDLER_JSON"
         assert any(witness in value for value in captures), marker
+        chain.finish()
 
 
 def test_each_position_invoked_once(project, tmp_path):
@@ -123,7 +125,7 @@ def test_each_position_invoked_once(project, tmp_path):
     counter = tmp_path / "user-tool-counter"
     argv = [sys.executable, "-B", str(FIXTURES / "user_tool.py"), str(counter)]
     actual = subprocess.run(argv, check=True, capture_output=True)
-    chain.invoke({"tool_name": "Bash", "tool_use_id": "architecture-tool-1",
+    chain.invoke({"tool_name": "Bash", "tool_use_id": "architecture-tool-1", "turn_id": "architecture-turn",
                   "tool_input": {"command": shlex.join(argv)},
                   "tool_response": {"stdout": actual.stdout.decode(),
                                     "stderr": actual.stderr.decode(), "exit_code": actual.returncode}},
@@ -160,6 +162,7 @@ def test_invalid_configuration_has_no_effects(project, tmp_path):
     with pytest.raises(PoiseError):
         healthy.service.event(healthy.installation["definition_path"], malformed)
     assert {str(p): p.read_bytes() for p in healthy.effects.iterdir()} == effects_before, marker
+    healthy.finish()
     negative = literal("strict-packet-negative.json")
     for problem in ("unknown-handler", "invalid-mode", "missing-config", "extra-api"):
         parent = tmp_path / problem
@@ -171,17 +174,29 @@ def test_invalid_configuration_has_no_effects(project, tmp_path):
             handler["implementation"] = {"kind": "builtin", "name": negative["unknown_handler"]}
         if problem == "invalid-mode":
             handler["mode"] = negative["unknown_mode"]
+            handler["execution"]["launch_seconds"] = 5
         path = chain.configuration("invalid", [handler])
         if problem == "missing-config":
             Path(path).unlink()
         chain.definition["routes"]["SessionStart"] = [path]
-        packet = {"request_id": "invalid-install", "expected_revision": None,
+        packet = {"request_id": "invalid-install-" + problem,
+                  "expected_revision": chain.service.revision(),
                   "definition": deepcopy(chain.definition)}
         if problem == "extra-api":
             packet["extra_api_member"] = negative["extra_api_member"]
         before = chain.service.settings.hooks_file.read_bytes() if chain.service.settings.hooks_file.exists() else None
-        with pytest.raises(PoiseError):
+        with pytest.raises(PoiseError) as refused:
             chain.service.install(packet)
+        reason = str(refused.value).lower()
+        assert "revision changed" not in reason, (marker, problem, reason)
+        if problem == "unknown-handler":
+            assert "unregistered" in reason and ("handler" in reason or "implementation" in reason), (marker, reason)
+        elif problem == "invalid-mode":
+            assert "mode" in reason and "unsupported" in reason, (marker, reason)
+        elif problem == "missing-config":
+            assert str(Path(path)).lower() in reason, (marker, reason)
+        else:
+            assert "extra_api_member" in reason, (marker, reason)
         assert not chain.effects.exists(), marker
         after = chain.service.settings.hooks_file.read_bytes() if chain.service.settings.hooks_file.exists() else None
         assert after == before, marker

@@ -52,7 +52,8 @@
       "tool_input": {
         "command": "true"
       },
-      "tool_use_id": "architecture-tool-1"
+      "tool_use_id": "architecture-tool-1",
+      "turn_id": "architecture-turn"
     }
   },
   {
@@ -78,7 +79,8 @@
         "stdout": "",
         "stderr": "",
         "exit_code": 0
-      }
+      },
+      "turn_id": "architecture-turn"
     }
   },
   {

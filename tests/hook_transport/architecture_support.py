@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import shlex
 import subprocess
 import sys
 import time
@@ -16,7 +17,7 @@ from uuid import UUID
 
 from poise.common import PoiseError
 from poise.infrastructure.hook_transport import HookService
-from tests.hook_transport.helpers import event, settings
+from tests.hook_transport.helpers import event
 
 
 FIXTURES = Path(__file__).parent / "fixtures/architecture"
@@ -44,12 +45,17 @@ def trace(marker, boundary, **values):
 class Chain:
     def __init__(self, project, parent, marker):
         self.marker = marker
+        self.session = "architecture-fixture"
         self.parent = parent
         self.effects = parent / "handler-effects"
         self.general = GeneralScene(project, parent, marker)
         self.general.publish()
         self.service = HookService(self.general.settings_path)
         self.definition = literal("definition.json")
+        self.definition["events"].append(next(
+            row["descriptor"] for row in literal("native-events.json")
+            if row["descriptor"]["event"] == "SessionEnd"))
+        self.definition["routes"]["SessionEnd"] = []
         self.installation = None
         self.configs = []
         self.last_event_id = None
@@ -102,19 +108,57 @@ class Chain:
         trace(self.marker, "public_install_complete", result=self.installation)
 
     def invoke(self, extra=None, *, event_name="SessionStart"):
-        packet = event(event_name, session="architecture-fixture")
-        packet["cwd"] = str(self.service.settings.root)
+        packet = event(event_name, session=self.session)
+        packet["cwd"] = str(self.general.project["app"])
         if extra:
             packet.update(deepcopy(extra))
         trace(self.marker, "public_event_enter", event=packet)
         result = self.service.event(self.installation["definition_path"], packet)
-        binding = self.service.latest_binding("architecture-fixture", "primary")
+        binding = self.service.latest_binding(self.session, "primary")
         with self.service.registry.read_transaction() as db:
             self.last_event_id = db.execute(
                 "SELECT max(id) FROM hook_events WHERE binding=? AND event=?",
                 (binding["session_id"], event_name)).fetchone()[0]
         self.last_event_name = event_name
         trace(self.marker, "public_event_return", response=result)
+        return result
+
+    def finish(self):
+        """Release the real native binding before a later configuration case."""
+        packet = event("SessionEnd", session=self.session)
+        packet["cwd"] = str(self.general.project["app"])
+        result = self.service.event(self.installation["definition_path"], packet)
+        trace(self.marker, "actual_subcase_session_end", event=packet, response=result)
+
+    def invoke_hook_process(self):
+        """The real versioned native entry exits before the held worker is released."""
+        packet = event(session=self.session)
+        packet["cwd"] = str(self.general.project["app"])
+        environment = {k: v for k, v in self.general.env.items()
+                       if k not in ("POISE_CALLER_BINDING", "CODEX_SESSION_ID", "CODEX_THREAD_ID")}
+        environment["CODEX_THREAD_ID"] = self.session
+        argv = [sys.executable, "-B", "-m", "poise", "hook", "--settings",
+                str(self.service.settings.path), "--definition", self.installation["definition_path"]]
+        trace(self.marker, "actual_hook_process_enter", argv=argv, event=packet)
+        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, cwd=self.general.project["app"],
+                                   env=environment)
+        try:
+            stdout, stderr = process.communicate(json.dumps(packet, ensure_ascii=False).encode(), timeout=15)
+        except BaseException:
+            process.kill()
+            process.communicate()
+            raise
+        assert process.returncode == 0 and stderr == b"", (self.marker, process.returncode, stdout, stderr)
+        result = json.loads(stdout)
+        binding = self.service.latest_binding(self.session, "primary")
+        with self.service.registry.read_transaction() as db:
+            self.last_event_id = db.execute(
+                "SELECT max(id) FROM hook_events WHERE binding=? AND event=?",
+                (binding["session_id"], "SessionStart")).fetchone()[0]
+        self.last_event_name = "SessionStart"
+        trace(self.marker, "actual_hook_process_exited", pid=process.pid,
+              actual_exit_code=process.returncode, stdout=stdout.decode(), stderr=stderr.decode())
         return result
 
     def inputs(self):
@@ -227,12 +271,14 @@ class GeneralScene:
     before first transition, then from actual owner receipts. No filtered document
     or production output creates an expected behavioural answer.
     """
-    def __init__(self, project, parent, marker, *, connected=False):
+    def __init__(self, project, parent, marker, *, connected=False, settings_path=None,
+                 hook_settings=None, installation_id="architecture-hooks"):
         from poise.composition import project_config_tools
         from tests.projects.test_update import project_revision
         self.project, self.parent, self.marker = project, parent, marker
         self.path = project["root"] / "general-profile.json"
-        self.settings_path = project["root"] / "general-hook-settings.json"
+        self.settings_path = (project["root"] / "general-hook-settings.json"
+                              if settings_path is None else Path(settings_path))
         self.state = project["root"] / "general-runtime"
         self.settings_owner = project["cfg"]["runtime_resources"]["project_setup"]
         self.owner = project_config_tools(self.settings_owner)
@@ -246,7 +292,7 @@ class GeneralScene:
                       "@SOURCE@": str(Path(__file__).resolve().parents[2] / "src")}
         self.profile = self.fill(literal("general-profile.json"))
         self.profile["runtime_resources"]["hooks"] = [{
-            "installation_id": "architecture-hooks", "settings_path": str(self.settings_path)}]
+            "installation_id": installation_id, "settings_path": str(self.settings_path)}]
         if connected:
             self.profile["task_adapter"] = self.fill(literal("task-profile-reference.json"))
             old = project["cfg"]["paths"]
@@ -254,7 +300,9 @@ class GeneralScene:
                                                                   "stdout", "stderr", "response")})
             self.state = project["root"] / old["state"]
             self.profile["paths"]["state"] = str(self.state)
-        write(self.settings_path, self.fill(literal("general-hook-settings.json")))
+        raw_settings = self.fill(literal("general-hook-settings.json")) if hook_settings is None else deepcopy(hook_settings)
+        raw_settings["project_config"] = str(self.path)
+        write(self.settings_path, raw_settings)
         self.initial_task_bytes = project["config_path"].read_bytes()
         self.calls = []
         self.binding = write(parent / "general-caller.json", {
@@ -324,6 +372,7 @@ class GeneralScene:
                            if all_events or row["descriptor"]["event"] in ("SessionStart", "SessionEnd")]
         value["routes"] = {row["event"]: [] for row in value["events"]}
         if task:
+            from tests.hook_transport.helpers import command_probe
             handler = literal("handler-configuration.json")["handlers"][0]
             handler.update(id="task-context", implementation={"kind": "builtin", "name": "task-context"},
                            options=literal("task-context-options.json"))
@@ -332,6 +381,91 @@ class GeneralScene:
             for kind in ("SessionStart", "UserPromptSubmit", "Stop"):
                 if kind in value["routes"]:
                     value["routes"][kind] = [str(path)]
+            readiness = literal("handler-configuration.json")["handlers"][0]
+            readiness.update(id="capability-summary", implementation={"kind": "builtin", "name": "capability-summary"},
+                             options={"probes": [command_probe()], "summary": json.loads(
+                                 self.settings_path.read_text())["capability_summary"]})
+            start = write(self.parent / "task-start-handlers.json", {
+                "schema": "hook-handler-configuration-1", "id": "task-start", "handlers": [readiness, handler]})
+            value["routes"]["SessionStart"] = [str(start)]
+            cleanup = literal("handler-configuration.json")["handlers"][0]
+            cleanup.update(id="task-runtime-cleanup", implementation={"kind": "builtin", "name": "task-runtime-cleanup"},
+                           options={})
+            end = write(self.parent / "task-end-handlers.json", {
+                "schema": "hook-handler-configuration-1", "id": "task-end", "handlers": [cleanup]})
+            value["routes"]["SessionEnd"] = [str(end)]
         events = [self.fill(row["payload"]) for row in descriptors
                   if row["descriptor"]["event"] in value["routes"]]
         return value, events
+
+    def common_builtin_route(self):
+        """Real existing reader/context policies and an external lifecycle client."""
+        from tests.content_reader.helpers import Scenario
+        from tests.context_resume.helpers import fixture as context_fixture
+        from tests.command_intake.helpers import fixture as command_fixture
+        from tests.hook_transport.helpers import command_probe
+        scenario = Scenario({**self.project, "cfg": self.profile, "config_path": self.path}, self.parent)
+        scenario.write("docs/sample.txt", b"A01\nA02\nA03\nA04\n")
+        scenario.write("src/billing/invoice.py", b"VALUE = 1\n")
+        vector = context_fixture()
+        scenario.write(".agents/skills/core/SKILL.md", vector["core_text"].encode())
+        scenario.write(".agents/skills/domain/SKILL.md", vector["domain_text"].encode())
+        instructions = write(self.parent / "builtin-instructions.json", vector["instruction_policy"])
+        catalog = write(self.parent / "builtin-catalog.json", vector["instruction_catalog"])
+        command = command_fixture("policy.json")
+        command["registry"]["retention"]["max_pending_age_seconds"] = 60
+        command_path = write(self.parent / "builtin-command-policy.json", command)
+        scenario.data["command_intake"] = {"policy": str(command_path)}
+        scenario.save_policy()
+        options = deepcopy(vector["general_context"])
+        options["reader_policy"] = str(scenario.policy)
+        options["instructions"].update(catalog=str(catalog), root=str(self.project["app"]),
+                                        policy=str(instructions))
+        assert options["work_owner"] == options["check_owner"] == {"enabled": False}
+        context_path = write(self.parent / "builtin-context-policy.json", options)
+        witnesses = self.parent / "builtin-lifecycle-witnesses"
+        settings_raw = json.loads(self.settings_path.read_text())
+        root = (self.settings_path.parent / settings_raw["root"]).resolve()
+        consumer_input = write(self.parent / "builtin-consumer-input.json", {
+            "config": str(self.path), "checkout": str(self.project["app"]),
+            "reader_policy": str(scenario.policy),
+            "database": str(root / settings_raw["state"] / settings_raw["database"]),
+            "witnesses": str(witnesses)})
+        consumer = self.fill(literal("builtin-consumer-options.json"))
+        consumer["argv"] = [sys.executable, "-B", str(FIXTURES / "native_consumer.py"), str(consumer_input)]
+
+        def builtin(name, handler_options):
+            value = literal("handler-configuration.json")["handlers"][0]
+            value.update(id=name, implementation={"kind": "builtin", "name": name}, options=handler_options)
+            return value
+
+        ready = builtin("capability-summary", {"probes": [command_probe()],
+                                                "summary": settings_raw["capability_summary"]})
+        lifecycle = builtin("lifecycle-consumer", {"consumer": consumer})
+        context = builtin("general-context", {"policy_path": str(context_path)})
+        intake = builtin("command-intake", {"policy_path": str(scenario.policy)})
+        definition, events = self.native_definition(all_events=True)
+        next(row for row in definition["events"] if row["event"] == "SessionStart")["context_limit"] = 4096
+        routes = {
+            "SessionStart": [ready, lifecycle, context],
+            "PreToolUse": [intake], "PostToolUse": [intake],
+            "PreCompact": [context], "PostCompact": [context],
+            "SessionEnd": [context, lifecycle],
+        }
+        for event_name, handlers in routes.items():
+            path = write(self.parent / ("builtin-" + event_name + ".json"), {
+                "schema": "hook-handler-configuration-1", "id": "builtin-" + event_name,
+                "handlers": handlers})
+            definition["routes"][event_name] = [str(path)]
+        for payload in events:
+            if payload["hook_event_name"] in ("PreToolUse", "PostToolUse"):
+                payload["tool_input"]["command"] = (
+                    "cd -- " + shlex.quote(str(self.project["app"])) + " && sed -n '1,2p' docs/sample.txt")
+                payload["turn_id"] = "architecture-turn"
+        restored_start = deepcopy(events[0])
+        restored_start["source"] = "compact"
+        events.insert(6, restored_start)
+        inputs = {"reader_policy": str(scenario.policy), "witnesses": str(witnesses),
+                  "summary_file": settings_raw["capability_summary"]["file"],
+                  "checkpoint_file": options["checkpoint_filename"]}
+        return definition, events, inputs

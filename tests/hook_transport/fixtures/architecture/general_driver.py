@@ -4,38 +4,15 @@ The sentinel is installed before importing Poise. It observes Task imports,
 Poise construction and current_task calls without blocking or replacing them.
 The emitted envelope is test instrumentation, separate from actual API output.
 """
-import importlib.abc
 import io
 import json
 from pathlib import Path
 import sys
 
 
-observed = {"task_imports": [], "poise_constructions": 0, "current_task_calls": 0}
+from task_observer import observe
 
-
-class ImportObserver(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path=None, target=None):
-        if fullname == "poise.runtime" or fullname.startswith("poise.modules.tasks"):
-            observed["task_imports"].append(fullname)
-        return None
-
-
-def profile(frame, event, arg):
-    if event != "call":
-        return
-    module = frame.f_globals.get("__name__", "")
-    name = frame.f_code.co_name
-    if module.startswith("poise.") and name == "current_task":
-        observed["current_task_calls"] += 1
-    if module == "poise.runtime" and name == "__init__":
-        obj = frame.f_locals.get("self")
-        if obj is not None and type(obj).__name__ == "Poise":
-            observed["poise_constructions"] += 1
-
-
-sys.meta_path.insert(0, ImportObserver())
-sys.setprofile(profile)
+observed = observe()
 request = json.load(sys.stdin)
 result = {"reached": [], "exit_code": None, "stdout": "", "stderr": ""}
 try:
@@ -54,6 +31,10 @@ try:
         second = establish_project_session(bound, caller)
         result.update(exit_code=0, first=first.session_id, second=second.session_id,
                       origin=first.origin)
+    elif operation == "native-builtins":
+        from native_builtins import exercise
+        result["reached"].append("real_configured_native_builtins")
+        result.update(exercise(request))
     elif operation == "native":
         from poise.infrastructure.hook_transport import HookService
         import sqlite3

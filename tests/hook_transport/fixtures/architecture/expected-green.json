@@ -1170,21 +1170,63 @@
       {
         "code": null,
         "exception": null,
-        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation",
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env0]",
         "outcome": "passed",
         "phase": "call"
       },
       {
         "code": null,
         "exception": null,
-        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation",
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env0]",
         "outcome": "passed",
         "phase": "setup"
       },
       {
         "code": null,
         "exception": null,
-        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation",
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env0]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env1]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env1]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env1]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env2]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env2]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation[native_env2]",
         "outcome": "passed",
         "phase": "teardown"
       },

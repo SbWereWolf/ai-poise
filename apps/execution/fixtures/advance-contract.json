@@ -549,5 +549,158 @@
       "source",
       "exit"
     ]
+  },
+  "followup": {
+    "case_names": [
+      "contract_guard_requiredness",
+      "file_policy_entry_catalogue"
+    ],
+    "finding_ids": [
+      "T054-CODE-F05",
+      "T054-CODE-F06"
+    ],
+    "guard_cases": [
+      {
+        "name": "declared_guard_external_false",
+        "guard": false,
+        "payload": "FAILED\n",
+        "status": "work_required",
+        "stage": "write",
+        "prefix": [],
+        "reason": "failed_observation"
+      },
+      {
+        "name": "declared_guard_external_true",
+        "guard": true,
+        "payload": "FAILED\n",
+        "status": "work_required",
+        "stage": "write",
+        "prefix": [],
+        "reason": "failed_observation"
+      },
+      {
+        "name": "declared_guard_actual_success",
+        "guard": false,
+        "payload": "OK\n",
+        "status": "advanced",
+        "stage": "review",
+        "prefix": [
+          "write"
+        ],
+        "reason": "new_work"
+      }
+    ],
+    "policy_cases": [
+      "policy_next",
+      "ordinary_next",
+      "policy_replay",
+      "policy_target",
+      "policy_read_denied",
+      "policy_missing_after_gate"
+    ],
+    "file_policy": {
+      "workspace_id": "@WORKSPACE",
+      "roots": [
+        {
+          "kind": "artifact",
+          "position": 0,
+          "path": "@TASK"
+        }
+      ],
+      "stages": [
+        {
+          "stage_id": "write",
+          "roots": [
+            {
+              "kind": "artifact",
+              "position": 0,
+              "read": {
+                "allow": [
+                  "**"
+                ],
+                "deny": []
+              },
+              "write": {
+                "allow": [
+                  "**"
+                ],
+                "deny": []
+              }
+            }
+          ]
+        },
+        {
+          "stage_id": "review",
+          "roots": [
+            {
+              "kind": "artifact",
+              "position": 0,
+              "read": {
+                "allow": [
+                  "**"
+                ],
+                "deny": []
+              },
+              "write": {
+                "allow": [],
+                "deny": []
+              }
+            }
+          ]
+        },
+        {
+          "stage_id": "finish",
+          "roots": [
+            {
+              "kind": "artifact",
+              "position": 0,
+              "read": {
+                "allow": [
+                  "**"
+                ],
+                "deny": []
+              },
+              "write": {
+                "allow": [
+                  "**"
+                ],
+                "deny": []
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "denied_read": {
+      "allow": [],
+      "deny": [
+        "**"
+      ]
+    },
+    "ordinary_catalogue": [
+      {
+        "scope": "task",
+        "relative_path": "handoff.txt"
+      }
+    ],
+    "red_report": {
+      "errors": [],
+      "failures": [
+        {
+          "test": "contract_guard_requiredness",
+          "reason": "T054-CODE-F05"
+        },
+        {
+          "test": "file_policy_entry_catalogue",
+          "reason": "T054-CODE-F06"
+        }
+      ],
+      "tests_run": 2
+    },
+    "green_report": {
+      "errors": [],
+      "failures": [],
+      "tests_run": 2
+    }
   }
 }

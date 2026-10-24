@@ -517,3 +517,57 @@ class CorrectionSubject(AdvanceSubject):
         LOG.append({'raw_advance': packet, 'exit_code': actual.returncode,
             'stdout': actual.stdout, 'stderr': actual.stderr, 'response': response})
         return actual.returncode, response, actual.stderr
+
+
+class PolicyAdvanceSubject(CorrectionSubject):
+    """Public policy-backed Gate preparation, with real files and catalogue readback."""
+    def __init__(self, root, *, policy=True, entry=False, deny_review=False):
+        super().__init__(root, entry=entry)
+        self.policy_enabled = policy
+        self.deny_review = deny_review
+
+    def gate_ref(self, stage, *, tag='policy', iteration=None, files=None):
+        state = self.sync()
+        iteration = state['iteration'] if iteration is None else iteration
+        context, candidate = self.identity('policy-context'), self.identity('policy-candidate')
+        declaration = {'action': 'declare', 'request_id': self.identity('policy-declare'),
+            'expected_revision': self.revision, 'task_id': self.task_id, 'generation': self.generation,
+            'context_id': context, 'contract_revision': self.contract_revision,
+            'requirement_ids': ['report'], 'task_content': {'sections': [], 'routes': [], 'requirements': []},
+            'stage_contracts': [{'stage_id': node['id'], 'allowed_paths': node['allowed_paths'],
+                'entry_requirements': ['entry-arrival'] if self.entry_required and node['id'] == 'review' else [],
+                'exit_requirements': ['filled'],
+                'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
+                for node in self.definition['stages']]}
+        if self.policy_enabled:
+            profile = bind(DATA['followup']['file_policy'], {
+                '@WORKSPACE': self.contract['workspace_id'], '@TASK': str(self.handoff_file.parent)})
+            if self.deny_review:
+                profile['stages'][1]['roots'][0]['read'] = deepcopy(DATA['followup']['denied_read'])
+            declaration['file_policy'] = profile
+        code, declared = invoke(self.config, {'schema': 'stride-execution/v1', 'operation': 'gate',
+                                             'input': declaration})
+        assert code == 0, declared
+        supplied = [str(self.handoff_file)] if self.handoff_file.is_file() else []
+        evaluation = {'action': 'evaluate', 'request_id': self.identity('policy-evaluate'),
+            'expected_revision': declared['revision'], 'task_id': self.task_id, 'generation': self.generation,
+            'context_id': context, 'candidate_id': candidate, 'stage_id': stage, 'iteration': iteration,
+            'sections': {'report': DATA['reports'][stage]}, 'trace': {},
+            'files': supplied if files is None else files}
+        code, evaluated = invoke(self.config, {'schema': 'stride-execution/v1', 'operation': 'gate',
+                                             'input': evaluation})
+        assert code == 0 and evaluated['accepted'], evaluated
+        if self.policy_enabled:
+            assert evaluated['assessment']['file_admission']['passed'], evaluated
+        self.revision = evaluated['revision']
+        saved = next(record for record in self.store.read_records(self.task_id)
+                     if record['kind'] == 'gate_candidate'
+                     and record['data']['provenance']['context_id'] == context
+                     and record['data']['provenance']['candidate_id'] == candidate)
+        expected = ([{'path': str(self.handoff_file)}] if self.policy_enabled
+                    else DATA['followup']['ordinary_catalogue']) if supplied else []
+        assert saved['data']['catalogue'] == expected, saved
+        LOG.append({'policy_gate': declaration, 'evaluation': evaluation, 'response': evaluated,
+                    'actual_candidate_catalogue': saved['data']['catalogue']})
+        return {'stage_id': stage, 'context_id': context, 'candidate_id': candidate,
+                'iteration': iteration, 'gate_id': evaluated['result_id']}

@@ -619,6 +619,129 @@ def corrections_main():
     return 1 if errors or failures else 0
 
 
+def contract_guard_requiredness(root):
+    from advance_checks import CorrectionSubject
+    for case in DATA['followup']['guard_cases']:
+        mark('contract-guard/' + case['name'])
+        s = CorrectionSubject(root / case['name']).prepared()
+        assert s.contract['evidence_plan']['write']['subject_methods'] == {}
+        s.payload.write_text(case['payload'])
+        frame = s.gate_ref('write')
+        s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+        s.observe(frame, replay=False)
+        records = deepcopy(next(item['public_records'] for item in reversed(LOG) if 'public_records' in item))
+        attempt, evidence = records
+        attempt['id'], evidence['id'] = s.identity('contract-attempt'), s.identity('contract-evidence')
+        evidence['data']['attempt_id'] = attempt['id']
+        # All command/source/pass facts came from the actual child. This external
+        # hint does not change the method's contract-owned requiredness.
+        attempt['data']['receipts'][0]['guard'] = case['guard']
+        proof = s.write_proof(frame, records)
+        before, progress = s.lifecycle(), s.progression()
+        result = s.next(proof)
+        actual = {'status': result['status'], 'stage': result['current_stage'],
+                  'prefix': [item['stage_id'] for item in result['traversed']], 'reason': result['stop_reason']}
+        regression(actual == {key: case[key] for key in actual}, 'T054-CODE-F05', (case['name'], actual))
+        if not case['prefix']:
+            regression(s.lifecycle() == before, 'T054-CODE-F05', s.lifecycle())
+            after = s.progression()
+            regression(all(after[key] == progress[key] for key in ['accepted_visits', 'traversals']),
+                       'T054-CODE-F05', after)
+
+
+def policy_next_result(s, proof):
+    # Prepare every association before the real CLI returns an opaque visit ID.
+    origin = {'stage_id': 'write', 'iteration': proof['iteration'], 'source_generation': s.generation,
+              'source_actor_ids': ['executor-A'], 'gate_id': proof['gate_id'],
+              'evidence_id': proof['evidence_id'], 'outcome': 'complete'}
+    packet = s.packet_advance('next', proof={**{key: proof[key] for key in
+        ['context_id', 'candidate_id', 'evidence_id']}, 'outcome': 'complete'})
+    code, result, stderr = s.raw_advance(packet)
+    regression(code == 0 and stderr == '' and isinstance(result, dict),
+               'T054-CODE-F06', (code, result, stderr))
+    regression(result['status'] == 'advanced' and result['current_stage'] == 'review'
+               and len(result['traversed']) == 1, 'T054-CODE-F06', result)
+    visit_id = result['traversed'][0]['visit_id']
+    assert isinstance(visit_id, str) and visit_id
+    s.origins_by_visit[visit_id] = dict(origin, visit_id=visit_id)
+    s.current_proofs = {'write': proof}
+    s.assert_traversals(result)
+    s.assert_public_provenance(result)
+    cursor(s, result, 'review', 'reviewer', ['write'], status='advanced')
+    return result
+
+
+def file_policy_entry_catalogue(root):
+    from advance_checks import PolicyAdvanceSubject
+    for name in DATA['followup']['policy_cases']:
+        mark('file-policy/' + name)
+        s = PolicyAdvanceSubject(root / name, policy=name != 'ordinary_next',
+            entry=name == 'policy_missing_after_gate', deny_review=name == 'policy_read_denied')
+        s.handoff()
+        if name in ['policy_replay', 'policy_target']:
+            s.historical()
+            result = s.ff(s.current(), target='review' if name == 'policy_target' else None)
+            cursor(s, result, 'review' if name == 'policy_target' else 'finish',
+                'reviewer' if name == 'policy_target' else 'writer',
+                ['write'] if name == 'policy_target' else ['write', 'review'],
+                status='target_reached' if name == 'policy_target' else 'work_required')
+            regression(result['stop_reason'] == ('target_reached' if name == 'policy_target' else 'missing_source'),
+                       'T054-CODE-F06', result)
+            continue
+        s.prepared()
+        frame = s.gate_ref('write')
+        s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+        proof = s.observe(frame, replay=False)
+        if name in ['policy_next', 'ordinary_next']:
+            policy_next_result(s, proof)
+            continue
+        # The missing-file case specifically removes a KNOWN input only after
+        # accepted Gate/presentation and full actual proof, before advancement.
+        if name == 'policy_missing_after_gate':
+            s.handoff_file.unlink()
+        before, progress = s.lifecycle(), s.progression()
+        result = s.next(proof)
+        regression((result['status'], result['current_stage'], result['iteration'],
+                    result['traversed'], result['stop_reason'])
+                   == ('work_required', 'write', 1, [], 'entry_blocked'), 'T054-CODE-F06', result)
+        regression(s.lifecycle() == before, 'T054-CODE-F06', s.lifecycle())
+        after = s.progression()
+        regression(all(after[key] == progress[key] for key in ['accepted_visits', 'traversals']),
+                   'T054-CODE-F06', after)
+        s.deny_review = False
+        control = restored_entry_control(s, 'next')
+        regression(control['status'] == 'advanced' and control['current_stage'] == 'review'
+                   and [item['stage_id'] for item in control['traversed']] == ['write']
+                   and control['traversed'][0]['iteration'] == 2, 'T054-CODE-F06', control)
+
+
+def followup_main():
+    cases = [contract_guard_requiredness, file_policy_entry_catalogue]
+    errors, failures = [], []
+    with tempfile.TemporaryDirectory(prefix='execution-advance-followup-') as temporary:
+        for name, finding, case in zip(DATA['followup']['case_names'], DATA['followup']['finding_ids'], cases, strict=True):
+            LOG.append({'case': name, 'finding': finding})
+            try:
+                case(Path(temporary) / name)
+            except RegressionMismatch as exc:
+                assert exc.finding == finding
+                failures.append({'test': name, 'reason': finding})
+                LOG.append({'regression_failure': name, 'finding': finding, 'traceback': traceback.format_exc()})
+            except Exception as exc:
+                errors.append({'test': name, 'type': type(exc).__name__})
+                LOG.append({'case_error': name, 'traceback': traceback.format_exc()})
+            else:
+                LOG.append({'case_passed': name})
+    output = os.environ.get('POISE_RUN_OUTPUT_DIR')
+    if output:
+        destination = Path(output) / 'followup-results.json'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(LOG, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'errors': errors, 'failures': failures, 'tests_run': len(cases)},
+                     ensure_ascii=False, separators=(',', ':')))
+    return 1 if errors or failures else 0
+
+
 def main():
     cases = [
         lambda p: cross_role(p, 'executor-A'), lambda p: cross_role(p, 'reviewer-B'),
@@ -652,4 +775,5 @@ def main():
 
 
 if __name__ == '__main__':
-    raise SystemExit(corrections_main() if sys.argv[1:] == ['--suite', 'corrections'] else main())
+    raise SystemExit(followup_main() if sys.argv[1:] == ['--suite', 'followup']
+                     else corrections_main() if sys.argv[1:] == ['--suite', 'corrections'] else main())

@@ -15,6 +15,10 @@ import sys
 from apps.execution.application.records import ExecutionRecords
 from apps.execution.application.stage_git import StageGit
 from apps.execution.application.lifecycle import ExecutionLifecycle
+from apps.execution.application.execution_state import ExecutionState
+from apps.execution.application.evidence import ExecutionEvidence
+from apps.execution.application.progression import ExecutionProgression
+from apps.execution.advance_protocol import packet as advance_packet, query_item as progression_query_item
 from apps.execution.lifecycle_protocol import (settings as lifecycle_settings,
     packet as lifecycle_packet, query_item as lifecycle_query_item)
 from apps.execution.errors import ExecutionError, StageCommitError
@@ -224,6 +228,9 @@ def _packet(value, config):
         raise ExecutionError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise ExecutionError("Execution packet input must be an object")
+    if value['operation'] == 'advance':
+        advance_packet(value['input'], config)
+        return value
     if value['operation'] == 'lifecycle':
         lifecycle_packet(value['input'], config, _validate_contract)
         return value
@@ -263,6 +270,12 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
+            if isinstance(query, dict) and query.get('kind') == 'progression':
+                progression_query_item(query, config)
+                if query['id'] in seen:
+                    raise ExecutionError('Execution query ids must be unique')
+                seen.add(query['id'])
+                continue
             if isinstance(query, dict) and query.get('kind') in ('lifecycle', 'restart_history'):
                 lifecycle_query_item(query, config)
                 if query['id'] in seen:
@@ -302,11 +315,15 @@ class Store:
         self.stage_git = StageGit(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
             self.gates, config.get('git'), config, GitWorkspace)
+        state_owner = ExecutionState()
         self.lifecycle = ExecutionLifecycle(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
             config.get('lifecycle'),
             ProcessDefinitions(ProcessFiles(config['process'])) if 'process' in config else None,
-            self.records, lambda contract: _validate_contract(contract, config))
+            self.records, lambda contract: _validate_contract(contract, config), state_owner)
+        self.progression = ExecutionProgression(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            config.get('lifecycle'), state_owner, ExecutionEvidence())
 
     @contextlib.contextmanager
     def locked(self):
@@ -442,6 +459,10 @@ class Store:
                 records = {}
                 file_queries = False
                 for query in packet["input"]["queries"]:
+                    if query['kind'] == 'progression':
+                        result = self._record_call(self.progression.query, repository, query['task_id'])
+                        results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
+                        continue
                     if query['kind'] in ('lifecycle', 'restart_history'):
                         result = self._record_call(self.lifecycle.query, repository, query['kind'], query['task_id'])
                         results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
@@ -484,7 +505,9 @@ def execute(config_path, stream, output):
             raise ExecutionError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        if packet['operation'] == 'lifecycle':
+        if packet['operation'] == 'advance':
+            result = store._record_call(store.progression.execute, packet['input'])
+        elif packet['operation'] == 'lifecycle':
             result = store._record_call(store.lifecycle.execute, packet['input'])
         elif packet['operation'] == 'process':
             result = ProcessCommands(ProcessUnitOfWork(store),ProcessFiles(config['process'])).execute(packet)

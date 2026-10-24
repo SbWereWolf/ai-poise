@@ -1,0 +1,338 @@
+{
+  "definition": {
+    "goal_type": "writing",
+    "worktree_required": true,
+    "benefit": {
+      "git_categories": [
+        "code"
+      ],
+      "sections": []
+    },
+    "route": {
+      "entry": "write"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": [
+        {
+          "id": "filled",
+          "kind": "section",
+          "section": "report",
+          "states": [
+            "populated"
+          ],
+          "stages": [
+            "write",
+            "review",
+            "finish"
+          ],
+          "phase": "post"
+        }
+      ]
+    },
+    "stages": [
+      {
+        "id": "write",
+        "instruction": "Записать результат этапа.",
+        "read_only": false,
+        "allowed_paths": [
+          "outputs/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Записать результат."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "writer",
+        "transitions": {
+          "complete": "review"
+        },
+        "rework_targets": [
+          "write",
+          "review"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "review",
+        "instruction": "Записать результат этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Записать результат."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "inspect",
+        "role": "reviewer",
+        "transitions": {
+          "clear": "finish",
+          "changes_requested": "write"
+        },
+        "rework_targets": [
+          "write",
+          "review"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "finish",
+        "instruction": "Записать результат этапа.",
+        "read_only": false,
+        "allowed_paths": [
+          "outputs/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Записать результат."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "writer",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "write",
+          "review",
+          "finish"
+        ],
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "method": {
+    "id": "guard",
+    "argv": [
+      "@PY",
+      "-B",
+      "-c",
+      "from pathlib import Path; import sys; data=Path('outputs/subject.bin').read_bytes(); sys.stdout.buffer.write(data); raise SystemExit(0 if data.startswith(b'OK') else 7)"
+    ],
+    "cwd": "@WORK",
+    "environment": {
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "expected_exit_code": 0,
+    "stdout_contains": [
+      "OK"
+    ],
+    "stderr_contains": [],
+    "source_under_test": {
+      "kind": "repository",
+      "bindings": [
+        {
+          "kind": "cwd",
+          "path": "."
+        }
+      ]
+    },
+    "verification_plan": {
+      "responsibility": "Observe the declared subject result.",
+      "change_surface": [
+        "outputs/subject.bin"
+      ],
+      "red_stages": [],
+      "green_stages": [
+        "write",
+        "review"
+      ],
+      "red_failure": null
+    },
+    "outputs": []
+  },
+  "evidence_plan": {
+    "write": {
+      "subject_methods": {},
+      "arguments": [
+        {
+          "id": "witness",
+          "kind": "logical",
+          "phase": "continue",
+          "observation_methods": [
+            "guard"
+          ]
+        }
+      ],
+      "review_arguments": []
+    },
+    "review": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": [
+        "witness"
+      ]
+    },
+    "finish": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  },
+  "reports": {
+    "write": "Готовый результат автора.",
+    "review": "Результат проверен.",
+    "finish": "Работа этапа завершена."
+  },
+  "response_fields": [
+    "schema",
+    "status",
+    "revision",
+    "replayed",
+    "task_id",
+    "generation",
+    "contract_revision",
+    "state",
+    "current_stage",
+    "iteration",
+    "traversed",
+    "required_role",
+    "stop_reason"
+  ],
+  "traversal_fields": [
+    "stage_id",
+    "iteration",
+    "visit_id",
+    "source_generation",
+    "source_actor_ids",
+    "gate_id",
+    "evidence_id",
+    "current_evidence_id",
+    "outcome"
+  ],
+  "actors": {
+    "write": "executor-A",
+    "review": "reviewer-B",
+    "finish": "executor-A"
+  },
+  "outcomes": {
+    "write": "complete",
+    "review": "clear",
+    "finish": "complete"
+  },
+  "case_names": [
+    "cross_writer",
+    "cross_reviewer",
+    "gap_origin",
+    "gap_current",
+    "stale_source",
+    "changed_method",
+    "changed_condition",
+    "failed_command",
+    "missing_observation",
+    "atomic_replay",
+    "rework_lineage",
+    "target_review",
+    "proof_binding_group",
+    "guard_group",
+    "route_group",
+    "fault_record_first",
+    "fault_update_first"
+  ],
+  "red_report": {
+    "errors": [],
+    "failures": [
+      {
+        "test": "cross_writer",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "cross_reviewer",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "gap_origin",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "gap_current",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "stale_source",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "changed_method",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "changed_condition",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "failed_command",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "missing_observation",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "atomic_replay",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "rework_lineage",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "target_review",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "proof_binding_group",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "guard_group",
+        "reason": "missing_advance"
+      },
+      {
+        "test": "route_group",
+        "reason": "missing_advance"
+      }
+    ],
+    "tests_run": 17
+  },
+  "green_report": {
+    "errors": [],
+    "failures": [],
+    "tests_run": 17
+  },
+  "unknown_operation": "Unknown Execution operation: advance",
+  "fault_message": "forced progression write",
+  "fault_triggers": [
+    "CREATE TRIGGER fail_progress_record AFTER INSERT ON execution_records WHEN NEW.task_id='0042' AND NEW.kind='advance_traversal' AND NEW.generation=2 AND EXISTS(SELECT 1 FROM executions WHERE task_id='0042' AND generation=2 AND current_stage<>'write') BEGIN SELECT RAISE(ABORT,'forced progression write'); END",
+    "CREATE TRIGGER fail_progress_cursor AFTER UPDATE OF current_stage ON executions WHEN NEW.task_id='0042' AND NEW.generation=2 AND NEW.current_stage<>'write' AND EXISTS(SELECT 1 FROM execution_records WHERE task_id='0042' AND generation=2 AND kind='advance_traversal') BEGIN SELECT RAISE(ABORT,'forced progression write'); END"
+  ],
+  "fault_tables": [
+    "CREATE TABLE executions(task_id TEXT,generation INTEGER,current_stage TEXT)",
+    "CREATE TABLE execution_records(task_id TEXT,kind TEXT,generation INTEGER)"
+  ],
+  "source_initial": "source version one\n",
+  "source_changed": "source version two\n"
+}

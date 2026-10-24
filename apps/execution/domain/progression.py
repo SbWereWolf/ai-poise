@@ -91,6 +91,7 @@ class ProgressionPolicy:
                 raise RecordsError('Observation flags must be booleans')
             if not isinstance(receipt['stdout'], str) or not isinstance(receipt['stderr'], str):
                 raise RecordsError('Observation output must be text')
+            required_guard = receipt['guard'] or receipt['method'] not in subject_rules
             actual_pass = (receipt['capture_complete'] and receipt['interpretable']
                 and not receipt['timed_out'] and type(receipt['actual_exit_code']) is int
                 and receipt['actual_exit_code'] == method['expected_exit_code']
@@ -104,7 +105,7 @@ class ProgressionPolicy:
             elif (not receipt['interpretable'] or receipt['timed_out']
                     or receipt['actual_exit_code'] is None or receipt['actual_exit_code'] < 0):
                 reason = reason or 'uninterpretable_observation'
-            elif receipt['guard'] and not actual_pass:
+            elif required_guard and not actual_pass:
                 reason = reason or 'failed_observation'
             if receipt['method'] in subject_rules:
                 rule = subject_rules[receipt['method']]

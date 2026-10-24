@@ -150,11 +150,17 @@ class GateCommands:
             internal_record_id('gate_candidate', generation, context_id, candidate_id))
         if record is None:
             raise RecordsError('Select the accepted current Gate candidate before stage entry')
-        facts, _, _, errors = self.files.observe(record.data['catalogue'], [])
+        if context.file_policy is None:
+            facts, _, _, errors = self.files.observe(record.data['catalogue'], [])
+            admission_passed = True
+        else:
+            facts, _, _, errors, admission = self.stage_files.observe(
+                context.file_policy, stage_id, record.data['catalogue'], [])
+            admission_passed = admission['passed']
         assessment = context.policy.evaluate(stage_id, 'pre',
             snapshot_from_value(record.data['snapshot']), facts,
             context.contracts.stage(stage_id).entry_requirements)
-        return not errors and assessment.passed
+        return not errors and admission_passed and assessment.passed
 
     def _evaluate(self, repository, value):
         context, contract, revision = self.context(repository, value)

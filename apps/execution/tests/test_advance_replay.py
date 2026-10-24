@@ -501,6 +501,23 @@ def external_record_shapes(root):
             attempt['data']['source']['tree'] = ['not-a-tree']
         elif name == 'invalid_exit_scalar':
             attempt['data']['receipts'][0]['actual_exit_code'] = 'zero'
+        if name == 'nonstring_attempt_id':
+            # This identity belongs to the existing public writer. Its lawful
+            # refusal must roll back the complete attempted batch.
+            from apps.execution.errors import ExecutionError
+            before = s.state()
+            try:
+                s.write_proof(frame, records)
+            except ExecutionError as exc:
+                regression('attempt_id' in str(exc), 'T054-CODE-F03', str(exc))
+                LOG.append({'producer_refusal': name, 'reason': str(exc)})
+            else:
+                raise RegressionMismatch('T054-CODE-F03', 'Writer accepted a non-string attempt_id')
+            regression(s.state() == before, 'T054-CODE-F03', name + '/writer changed state')
+            control = s.next(genuine)
+            regression(control['status'] == 'advanced' and control['current_stage'] == 'review',
+                       'T054-CODE-F03', (name, control))
+            continue
         bad = s.write_proof(frame, records)
         packet = s.packet_advance('next', proof={**{key: bad[key] for key in
             ['context_id', 'candidate_id', 'evidence_id']}, 'outcome': 'complete'})
@@ -516,6 +533,20 @@ def external_record_shapes(root):
         control = s.next(genuine)
         regression(control['status'] == 'advanced' and control['current_stage'] == 'review',
                    'T054-CODE-F03', (name, control))
+
+
+def restored_entry_control(s, action):
+    s.handoff()
+    if action == 'next':
+        s.act('rework', target_stage_id='write',
+              reason='Подготовить результат после восстановления входного материала.', entry_tree=s.baseline)
+        active = s.sync()
+        assert (active['state'], active['current_stage'], active['iteration']) == ('active', 'write', 2), active
+    frame = s.gate_ref('write', tag='restored-entry')
+    if action == 'next':
+        s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
+        return s.next(s.observe(frame, replay=False))
+    return s.ff([s.observe(frame)], target='review' if action == 'target' else None)
 
 
 def entry_admission(root):
@@ -551,13 +582,7 @@ def entry_admission(root):
         progress_after = s.progression()
         regression(all(progress_after[key] == progress_before[key]
                        for key in ['accepted_visits', 'traversals']), 'T054-CODE-F04', progress_after)
-        s.handoff()
-        frame = s.gate_ref('write', tag='restored-entry')
-        if action == 'next':
-            s.act('present', context_id=frame['context_id'], candidate_id=frame['candidate_id'])
-            control = s.next(s.observe(frame, replay=False))
-        else:
-            control = s.ff([s.observe(frame)], target='review' if action == 'target' else None)
+        control = restored_entry_control(s, action)
         regression(control['current_stage'] == 'review'
                    and [item['stage_id'] for item in control['traversed']] == ['write']
                    and control['status'] == ('target_reached' if action == 'target'

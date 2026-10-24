@@ -6,6 +6,8 @@ import uuid
 
 from ..common import PoiseError, digest
 from ..modules.hook_transport.dispatch import BUILTINS, DispatchPlan, HandlerConfiguration, HandlerInvocation
+from ..modules.document_intake.contracts import ReadFailure
+from ..modules.document_intake.command import CommandFailure
 from .goal_config import atomic_write, read_document, strict_json
 from .locking import exclusive_lock
 
@@ -29,7 +31,11 @@ class FileDispatchConfiguration:
                 for handler in configuration.raw['handlers']:
                     if handler['implementation']['kind'] == 'builtin':
                         from .hook_handlers import BuiltinHandlers
-                        handler_resources.append(BuiltinHandlers.preflight(handler, settings, profile))
+                        try:
+                            handler_resources.append(BuiltinHandlers.preflight(handler, settings, profile))
+                        except (ReadFailure, CommandFailure, OSError, UnicodeError) as exc:
+                            raise PoiseError(f'Invalid builtin policy in {path}: {exc}; '
+                                             'correct the selected policy before delivery') from exc
                     else:
                         handler_resources.append({})
                 revision = digest({'configuration': raw, 'resources': handler_resources})
@@ -178,7 +184,10 @@ class HandlerProcessExecutor:
         if handler['implementation']['kind'] == 'builtin':
             if self.builtin is None:
                 raise HandlerExecutionFailure('Builtin capability owner is not composed')
-            return self.builtin(handler, packet, resources=resources)
+            try:
+                return self.builtin(handler, packet, resources=resources)
+            except (ReadFailure, CommandFailure) as exc:
+                raise HandlerExecutionFailure(f'{type(exc).__name__}: {exc}') from exc
         from ..execution import RegisteredCheckRunner
         import os
         import time

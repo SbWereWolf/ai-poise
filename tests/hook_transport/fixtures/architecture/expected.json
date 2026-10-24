@@ -1,0 +1,23 @@
+{
+  "order": [
+    "two",
+    "one",
+    "three"
+  ],
+  "response": {
+    "systemMessage": "seed|two|one|three"
+  },
+  "raw_effect_labels": [
+    "one",
+    "two"
+  ],
+  "sync_response": {
+    "systemMessage": "seed|one|two"
+  },
+  "stop_response": {
+    "systemMessage": "seed|stop"
+  },
+  "async_response": {
+    "systemMessage": "seed|sync"
+  }
+}

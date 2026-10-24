@@ -1,0 +1,31 @@
+{
+  "root": {
+    "future_operator_note": {
+      "sequence": [
+        3,
+        2,
+        1
+      ],
+      "opaque": null,
+      "label": "сохранить как данные"
+    }
+  },
+  "nested": {
+    "limits": {
+      "future_timeout": {
+        "enabled": false,
+        "note": "not an active timeout"
+      }
+    },
+    "handler_options": {
+      "future_mode": {
+        "mode": "unregistered-but-inert",
+        "raw": [
+          "x",
+          null,
+          false
+        ]
+      }
+    }
+  }
+}

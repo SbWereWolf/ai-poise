@@ -1,0 +1,20 @@
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "architecture-commands",
+  "handlers": [
+    {
+      "id": "fixture-command",
+      "implementation": {
+        "kind": "command",
+        "argv": []
+      },
+      "mode": "sync",
+      "options": {},
+      "execution": {
+        "run_seconds": 20,
+        "cleanup_seconds": 5
+      },
+      "on_error": "stop"
+    }
+  ]
+}

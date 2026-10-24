@@ -1,0 +1,4 @@
+{
+  "schema": "stride-task-adapter-1",
+  "config_path": "@TASK_CONFIG@"
+}

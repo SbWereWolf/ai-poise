@@ -1,0 +1,16 @@
+{
+  "sync": {
+    "schema": "poise-hook-handler-result-1",
+    "invocation_id": "@INVOCATION@",
+    "response": {},
+    "control": {
+      "action": "continue",
+      "reason": null
+    }
+  },
+  "async": {
+    "schema": "poise-hook-async-result-1",
+    "invocation_id": "@INVOCATION@",
+    "effects": {}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "operation": "prepare",
+  "items": [
+    {
+      "key": "architecture-result",
+      "purpose": "tool-result",
+      "recipient": "agent",
+      "lifetime": "operator-managed",
+      "name": "proof.json",
+      "path": null
+    }
+  ],
+  "authorizations": []
+}

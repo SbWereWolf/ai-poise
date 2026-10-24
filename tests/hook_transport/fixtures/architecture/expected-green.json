@@ -1,0 +1,1319 @@
+{
+  "dispatch": {
+    "collection_errors": [],
+    "exit_code": 0,
+    "reports": [
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_each_position_invoked_once",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_each_position_invoked_once",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_each_position_invoked_once",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_invalid_configuration_has_no_effects",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_invalid_configuration_has_no_effects",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_invalid_configuration_has_no_effects",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "async": {
+    "collection_errors": [],
+    "exit_code": 0,
+    "reports": [
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_launch_order_and_isolated_snapshot",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_launch_order_and_isolated_snapshot",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_launch_order_and_isolated_snapshot",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_sync_stop_keeps_started_async",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_sync_stop_keeps_started_async",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_sync_stop_keeps_started_async",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_worker_failure_preserves_response",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_worker_failure_preserves_response",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_worker_failure_preserves_response",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_launch_failure_stops_later_handlers",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_launch_failure_stops_later_handlers",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_launch_failure_stops_later_handlers",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "general": {
+    "collection_errors": [],
+    "exit_code": 0,
+    "reports": [
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_common_profile_admits_without_task_fields",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_common_profile_admits_without_task_fields",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_common_profile_admits_without_task_fields",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_connected_task_adapter_preserves_identity_and_anchors",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_connected_task_adapter_preserves_identity_and_anchors",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_connected_task_adapter_preserves_identity_and_anchors",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_named_checks_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_named_checks_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_named_checks_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_placement_without_task_owner",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_placement_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_placement_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_reader_without_task_owner",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_reader_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_reader_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_tool_result_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_tool_result_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_tool_result_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_profile_transition_preserves_task_data_and_authority",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_profile_transition_preserves_task_data_and_authority",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_profile_transition_preserves_task_data_and_authority",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "formatter": {
+    "collection_errors": [],
+    "exit_code": 0,
+    "reports": [
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_different_project_names_share_check_and_fix",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_different_project_names_share_check_and_fix",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_different_project_names_share_check_and_fix",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_late_invalid_file_keeps_generic_batch_unchanged",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_late_invalid_file_keeps_generic_batch_unchanged",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_late_invalid_file_keeps_generic_batch_unchanged",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_only_selected_files_change_in_generic_project",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_only_selected_files_change_in_generic_project",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_only_selected_files_change_in_generic_project",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_rename_does_not_change_result",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_rename_does_not_change_result",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_rename_does_not_change_result",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "test-guards": {
+    "collection_errors": [],
+    "exit_code": 0,
+    "reports": [
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_markdown_format.py::test_check_is_readonly_fix_is_idempotent_and_preserves_mode",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_markdown_format.py::test_check_is_readonly_fix_is_idempotent_and_preserves_mode",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_markdown_format.py::test_check_is_readonly_fix_is_idempotent_and_preserves_mode",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_markdown_format.py::test_invalid_late_file_rejects_entire_batch_before_any_write",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_markdown_format.py::test_invalid_late_file_rejects_entire_batch_before_any_write",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_markdown_format.py::test_invalid_late_file_rejects_entire_batch_before_any_write",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_session_establishment.py::test_native_identity_is_reused_without_adapter_specific_rights",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_session_establishment.py::test_native_identity_is_reused_without_adapter_specific_rights",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_session_establishment.py::test_native_identity_is_reused_without_adapter_specific_rights",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "preservation": {
+    "collection_errors": [],
+    "exit_code": 0,
+    "reports": [
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_receipt_requires_exact_observed_id",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_receipt_requires_exact_observed_id",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_receipt_requires_exact_observed_id",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[healthy]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[healthy]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[healthy]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[malformed]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[malformed]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[malformed]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[missing]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[missing]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[missing]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_agent]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_agent]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_agent]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_definition]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_definition]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_definition]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_external_session]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_external_session]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_external_session]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_internal_binding]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_internal_binding]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_internal_binding]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_project]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_project]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[other_project]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[unconfirmed]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[unconfirmed]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_released_end_requires_matching_native_association[unconfirmed]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_unknown_or_active_native_authority_preserves_owned_tree",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_unknown_or_active_native_authority_preserves_owned_tree",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/content_reader/test_reader.py::test_unknown_or_active_native_authority_preserves_owned_tree",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[empty_external_session]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[empty_external_session]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[empty_external_session]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[malformed]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[malformed]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[malformed]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[missing]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[missing]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[missing]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[missing_external_session]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[missing_external_session]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[missing_external_session]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[nonstring_external_session]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[nonstring_external_session]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[nonstring_external_session]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_agent]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_agent]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_agent]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_definition]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_definition]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_definition]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_internal_session]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_internal_session]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_internal_session]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_project]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_project]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_project]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_settings]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_settings]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_association_rejects_invalid_record[other_settings]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_keeps_distinct_external_identity",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_keeps_distinct_external_identity",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_keeps_distinct_external_identity",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_retains_confirmed_native_association",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_retains_confirmed_native_association",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_released_end_retains_confirmed_native_association",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_start_observation_does_not_claim_end_association",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_start_observation_does_not_claim_end_association",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_diagnostics.py::test_start_observation_does_not_claim_end_association",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_copied_sender_launcher_rejected_before_task_mutation",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_own_launcher_works_without_identity_override",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_own_launcher_works_without_identity_override",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_native_caller_isolation.py::test_own_launcher_works_without_identity_override",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_actual_crlf_unicode_paths_are_not_translated",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_actual_crlf_unicode_paths_are_not_translated",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_actual_crlf_unicode_paths_are_not_translated",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_cleanup_keeps_complete_nul_stdout",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_cleanup_keeps_complete_nul_stdout",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_output_boundary_raw.py::RawBoundaryTests::test_cleanup_keeps_complete_nul_stdout",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[bash]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[bash]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[bash]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[generic]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[generic]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[generic]",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[mcp]",
+        "outcome": "passed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[mcp]",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget[mcp]",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  }
+}

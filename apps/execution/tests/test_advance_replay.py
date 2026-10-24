@@ -400,9 +400,9 @@ def main():
             try:
                 case(Path(temporary) / name)
             except MissingPublicAdvance:
-                failures.append({'case': name, 'reason': 'missing_advance'})
+                failures.append({'test': name, 'reason': 'missing_advance'})
             except Exception as exc:
-                errors.append({'case': name, 'type': type(exc).__name__})
+                errors.append({'test': name, 'type': type(exc).__name__})
                 LOG.append({'case_error': name, 'traceback': traceback.format_exc()})
             else:
                 LOG.append({'case_passed': name})

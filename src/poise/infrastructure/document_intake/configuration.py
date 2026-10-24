@@ -7,16 +7,25 @@ from ...modules.document_intake.policy import ContentReaderPolicy
 from ...modules.document_intake.contracts import ReadFailure
 
 
+def policy_bytes(path, snapshots=None):
+    """Use admitted bytes when supplied; never silently reread a snapshot."""
+    if snapshots is None:
+        return Path(path).read_bytes()
+    if str(path) not in snapshots:
+        raise ReadFailure('policy_missing')
+    return snapshots[str(path)].encode('utf-8')
+
+
 class ReaderConfiguration:
     def __init__(self, bound, policy, policy_sha256):
         self.bound, self.policy, self.policy_sha256 = bound, policy, policy_sha256
 
     @classmethod
-    def load(cls, bound, policy_path):
+    def load(cls, bound, policy_path, *, snapshots=None):
         try:
             if not Path(policy_path).is_absolute():
                 raise ReadFailure('invalid_policy', field='policy')
-            raw = Path(policy_path).read_bytes()
+            raw = policy_bytes(policy_path, snapshots)
         except OSError as exc:
             raise ReadFailure('policy_missing') from exc
         try:

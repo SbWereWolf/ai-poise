@@ -26,12 +26,46 @@ CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 SESSION_START_SOURCES=('startup','resume','clear','compact','fork')
 
 
+def validate_native_events(events, *, working_configuration=False):
+    if not isinstance(events,list) or not events:raise PoiseError('Explicit hooks required')
+    seen=set()
+    for event in events:
+        fields = {'event','matcher','timeout_seconds','async','context_limit','status_message'}
+        if working_configuration:
+            from ..foundation.validation import configuration_fields
+            configuration_fields(event, fields, 'hook event')
+        else:
+            exact(event, fields, 'hook event')
+        kind=event['event']
+        if kind not in EVENTS or kind in seen:raise PoiseError('Unknown or duplicate hook event')
+        seen.add(kind)
+        if not isinstance(event['matcher'],str):raise PoiseError('Explicit matcher required')
+        try:re.compile(event['matcher'])
+        except re.error as exc:raise PoiseError('Invalid hook matcher') from exc
+        positive(event['timeout_seconds'],'hook timeout')
+        if event['async'] is not False:
+            raise PoiseError('Binding/counting hooks are synchronous; SessionEnd is advisory synchronous')
+        if kind=='SessionEnd' and not 1<=event['timeout_seconds']<=3:
+            raise PoiseError('Codex SessionEnd requires a timeout between one and three seconds')
+        if kind in CONTEXT_EVENTS | TOOL_EVENTS:positive(event['context_limit'],'context_limit',True)
+        elif event['context_limit'] is not None:raise PoiseError('No additionalContext for this event: use explicit null')
+        nonempty(event['status_message'],'status_message')
+    if 'SessionStart' not in seen:raise PoiseError('SessionStart binding hook is required')
+    if seen & TOOL_EVENTS and not TOOL_EVENTS <= seen:
+        raise PoiseError('Install PreToolUse and PostToolUse together')
+    if any(e['event'] in TOOL_EVENTS and e['matcher'] != 'Bash' for e in events):
+        raise PoiseError('Command intake requires the explicit Bash matcher')
+
+
+
 @dataclass(frozen=True)
 class HookDefinition:
     data: dict
 
     @classmethod
     def parse(cls,raw):
+        if isinstance(raw, dict) and raw.get('schema') == 'hook-definition-2':
+            return cls._parse_current(raw)
         exact(raw,{'schema','id','agent_id','message_source','events','probes','gate_operations',
                    'context_template','stop_template','unknown_outcome_message'},'hook definition')
         if raw['schema']!='hook-definition-1':raise PoiseError('Unsupported hook definition; no migration')
@@ -43,29 +77,7 @@ class HookDefinition:
                 if fields!=allowed:raise ValueError('Template must explicitly contain exactly its named fields')
                 raw[key].format(**{k:'sample' for k in allowed})
             except (KeyError,ValueError,IndexError) as exc:raise PoiseError(f'Invalid {key}') from exc
-        if not isinstance(raw['events'],list) or not raw['events']:raise PoiseError('Explicit hooks required')
-        seen=set()
-        for event in raw['events']:
-            exact(event,{'event','matcher','timeout_seconds','async','context_limit','status_message'},'hook event')
-            kind=event['event']
-            if kind not in EVENTS or kind in seen:raise PoiseError('Unknown or duplicate hook event')
-            seen.add(kind)
-            if not isinstance(event['matcher'],str):raise PoiseError('Explicit matcher required')
-            try:re.compile(event['matcher'])
-            except re.error as exc:raise PoiseError('Invalid hook matcher') from exc
-            positive(event['timeout_seconds'],'hook timeout')
-            if event['async'] is not False:
-                raise PoiseError('Binding/counting hooks are synchronous; SessionEnd is advisory synchronous')
-            if kind=='SessionEnd' and not 1<=event['timeout_seconds']<=3:
-                raise PoiseError('Codex SessionEnd requires a timeout between one and three seconds')
-            if kind in CONTEXT_EVENTS | TOOL_EVENTS:positive(event['context_limit'],'context_limit',True)
-            elif event['context_limit'] is not None:raise PoiseError('No additionalContext for this event: use explicit null')
-            nonempty(event['status_message'],'status_message')
-        if 'SessionStart' not in seen:raise PoiseError('SessionStart binding hook is required')
-        if seen & TOOL_EVENTS and not TOOL_EVENTS <= seen:
-            raise PoiseError('Install PreToolUse and PostToolUse together')
-        if any(e['event'] in TOOL_EVENTS and e['matcher'] != 'Bash' for e in raw['events']):
-            raise PoiseError('Command intake requires the explicit Bash matcher')
+        validate_native_events(raw['events'])
         if not isinstance(raw['probes'],list):raise PoiseError('Explicit probe list required')
         probes=[ProbeSpec.parse(p) for p in raw['probes']]
         if len({p.data['id'] for p in probes})!=len(probes):raise PoiseError('Duplicate capability')
@@ -73,6 +85,29 @@ class HookDefinition:
             raise PoiseError('Explicit unique gate operations required')
         if any(x not in ('bootstrap','verify','artifacts') for x in raw['gate_operations']):
             raise PoiseError('Read, handoff and cancellation must not be blocked by capability gates')
+        return cls(deepcopy(raw))
+
+
+    @classmethod
+    def _parse_current(cls, raw):
+        from ..foundation.validation import configuration_fields
+        configuration_fields(raw, {'schema', 'id', 'agent_id', 'message_source',
+                                   'events', 'routes', 'transport'}, 'hook definition')
+        for key in ('id', 'agent_id', 'message_source'):
+            nonempty(raw[key], key)
+        validate_native_events(raw['events'], working_configuration=True)
+        routes = raw['routes']
+        if not isinstance(routes, dict) or set(routes) != {e['event'] for e in raw['events']}:
+            raise PoiseError('Hook routes must name exactly the installed events')
+        for event, paths in routes.items():
+            if not isinstance(paths, list):
+                raise PoiseError('Hook routes require ordered configuration path lists')
+            for path in paths:
+                nonempty(path, f'routes.{event}')
+                if not path.startswith('/'):
+                    raise PoiseError('Hook routes require explicit absolute configuration paths')
+        transport = configuration_fields(raw['transport'], {'unknown_outcome_message'}, 'transport')
+        nonempty(transport['unknown_outcome_message'], 'transport.unknown_outcome_message')
         return cls(deepcopy(raw))
 
 

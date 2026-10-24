@@ -5,6 +5,7 @@ import sqlite3
 import sys
 
 from ..common import PoiseError, digest, descendant, configured_root, load_config
+from .harness_config import load_harness_config
 from ..modules.hook_transport.domain import HookDefinition, EVENTS, binding_context
 from ..modules.session_establishment.domain import CallerIdentity
 from .diagnostic_io import json_file
@@ -92,12 +93,17 @@ class HookObservationPort:
         if any(saved.get(k) != v for k, v in expected.items()):
             return {'status': 'changed'}
         # Binding paths come from the existing owner's record, never caller session concatenation.
-        binding_path, launcher = Path(saved['binding_path']), Path(saved['launcher'])
-        for path in (binding_path, launcher):
+        binding_path = Path(saved['binding_path'])
+        paths = [binding_path]
+        if saved['launcher'] is not None:
+            paths.append(Path(saved['launcher']))
+        elif cfg.get('schema') != 'poise-harness-project-1' or cfg['task_adapter'] is not None:
+            return {'status': 'changed'}
+        for path in paths:
             if (not path.is_absolute() or path.is_symlink()
                     or not path.resolve().is_relative_to(self.settings.bindings)):
                 return {'status': 'changed'}
-        if binding_path.parent != launcher.parent:
+        if any(binding_path.parent != path.parent for path in paths):
             return {'status': 'changed'}
         if binding_context(json_file(binding_path, self.settings.raw['max_input_bytes'])) != binding_context(saved):
             return {'status': 'changed'}
@@ -106,6 +112,12 @@ class HookObservationPort:
         return {'status': 'valid', 'session_id': saved['session_id']}
 
     def _effect(self, req, binding, event, root, cfg):
+        if cfg.get('schema') == 'poise-harness-project-1':
+            if cfg['task_adapter'] is None:
+                return {'owner': 'Task', 'status': 'not_configured'}
+            from .task_harness_adapter import TaskHarnessAdapter
+            task_path = TaskHarnessAdapter.resolve_task_configuration(self.settings.project_config)
+            root, cfg, _ = load_config(task_path)
         state = configured_root(root, cfg['paths']['state'])
         database = descendant(state, cfg['paths']['database'])
         kind = req['event']
@@ -173,7 +185,7 @@ class HookObservationPort:
                   'consistency': 'independent_owner_snapshots'}
         try:
             definition = self._definition(req)
-            root, cfg, _ = load_config(self.settings.project_config)
+            root, cfg, _ = load_harness_config(self.settings.project_config)
             snapshot = self.service.registry.observe(definition.data['id'], req['session_id'], req['event'], req['event_id'])
         except FileNotFoundError:
             return result

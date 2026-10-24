@@ -134,12 +134,22 @@ def _validated_limits(value):
 
 def load_config_limits(path: Path):
     """Read common operational limits without loading subject workflows."""
-    document = configuration_fields(read_json(path), {'limits'}, 'project config')
+    raw = read_json(path)
+    if raw.get('schema') == 'poise-harness-project-1':
+        from .modules.projects.harness import HarnessProject
+        return HarnessProject.parse(raw).raw['limits']
+    document = configuration_fields(raw, {'limits'}, 'project config')
     return _validated_limits(document['limits'])
 
 
 def load_config(path: Path, legacy_workflow_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
-    return load_config_document(path, read_json(path), legacy_workflow_requirements)
+    path = Path(path).resolve()
+    document = read_json(path)
+    if document.get('schema') == 'poise-harness-project-1':
+        from .infrastructure.task_harness_adapter import TaskHarnessAdapter
+        path = TaskHarnessAdapter.resolve_task_configuration(path)
+        document = read_json(path)
+    return load_config_document(path, document, legacy_workflow_requirements)
 
 
 def load_workflow_migration_config(path: Path) -> tuple[Path, dict, dict]:

@@ -79,6 +79,13 @@ class HookRegistry:
                 data['binding_record']=json.loads(row[0])
             return self.event_in(db,binding,kind,data)
 
+    def remember_message(self, binding, message):
+        """Keep native source metadata without committing a duplicate event."""
+        with self.transaction() as db:
+            if db.execute('UPDATE bindings SET latest_message=? WHERE id=?',
+                          (encoded(message), binding)).rowcount != 1:
+                raise PoiseError('Native message binding is no longer live; use its current owner')
+
     @staticmethod
     def _lifecycle_binding(db, receipt):
         if receipt.get('event') == 'SessionEnd':

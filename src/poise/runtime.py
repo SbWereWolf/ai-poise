@@ -71,7 +71,8 @@ class Poise:
     def __init__(self, config_path: Path | str, session: str, clock,
                  legacy_workflow_requirements: dict[str, bool] | None = None,
                  liveness=None, *, read_only=False):
-        self.config_path = Path(config_path).resolve()
+        from .infrastructure.task_harness_adapter import TaskHarnessAdapter
+        self.config_path = TaskHarnessAdapter.resolve_task_configuration(config_path)
         self.root, self.cfg, self.workflows = load_config(
             self.config_path, legacy_workflow_requirements
         )

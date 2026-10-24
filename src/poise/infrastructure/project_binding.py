@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 
-from ..common import PoiseError, load_config
+from ..common import PoiseError
+from .harness_config import load_harness_config
 from .git_transport import run_git_receipt
 
 
@@ -24,7 +25,7 @@ class BoundProject:
 
 def read_project_checkout(config_path, checkout):
     try:
-        root, cfg, workflows = load_config(Path(config_path))
+        root, cfg, workflows = load_harness_config(Path(config_path))
     except (PoiseError, OSError, ValueError, TypeError, KeyError, RecursionError) as exc:
         raise ProjectBindingFailure('invalid_project') from exc
     environment = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}

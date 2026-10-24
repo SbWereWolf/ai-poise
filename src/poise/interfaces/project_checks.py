@@ -5,7 +5,8 @@ from pathlib import Path
 import sqlite3
 import uuid
 
-from ..common import PoiseError, load_config
+from ..common import PoiseError
+from ..infrastructure.harness_config import load_harness_config
 from ..composition import project_checks_tools
 from ..infrastructure.goal_config import strict_json
 from ..infrastructure.project_binding import read_project_checkout, ProjectBindingFailure
@@ -111,6 +112,6 @@ def execute_cli(config_path, checkout, policy_path, mode, stream, output, error_
             if result['response_path'] is None:
                 output.write(body)
             else:
-                _, config, _ = load_config(config_path)
+                _, config, _ = load_harness_config(config_path)
                 output.write(saved_result_view(result['response_path'], mode, config['limits']['output_chars']))
     return execute(config_path, checkout, policy_path, stream, ViewOutput(), error_output, clock)

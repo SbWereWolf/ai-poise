@@ -49,14 +49,16 @@ def _binding_change(service, proposed, key, raw, definition_path, installation_i
     if service.definition(record['definition_path']).data['id'] != installation_id:
         raise PoiseError('Binding belongs to another installation: ' + key)
     source = service.settings
-    launcher = Path(record['launcher'])
-    allowed = [source.launcher_bytes(record['binding_path']), *source.prior_launcher_bytes(record['binding_path'])]
-    if launcher.read_bytes() not in allowed:
-        raise PoiseError('Foreign launcher content before reconfiguration: ' + key)
+    files = []
+    if record['launcher'] is not None:
+        launcher = Path(record['launcher'])
+        allowed = [source.launcher_bytes(record['binding_path']), *source.prior_launcher_bytes(record['binding_path'])]
+        if launcher.read_bytes() not in allowed:
+            raise PoiseError('Foreign launcher content before reconfiguration: ' + key)
+        files.append(_file(launcher, proposed.launcher_bytes(record['binding_path']), proposed.raw['executable_mode']))
     after = {**record, 'settings_digest': digest(proposed.raw), 'definition_path': str(definition_path)}
     return ({'id': key, 'before': raw, 'after': encoded(after)}, [
-        _file(record['binding_path'], _bytes(after), proposed.raw['file_mode']),
-        _file(launcher, proposed.launcher_bytes(record['binding_path']), proposed.raw['executable_mode'])])
+        _file(record['binding_path'], _bytes(after), proposed.raw['file_mode']), *files])
 
 
 def _prepare(service, proposed, definition, packet, request_digest, locks):
@@ -117,6 +119,8 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
                'trust_status': 'requires_user_review', 'live_codex': 'not_observed'}
     # Native revision uses the same complete file bytes as the ordinary installer.
     receipt['revision'] = hashlib.sha256(_bytes(candidate, sorted_keys=True)).hexdigest()
+    receipt['configuration_revision'] = transport.FileHookRepository(proposed, service.registry)._configuration_revision(
+        receipt['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw)
     operation = {'kind': 'hook_reconfiguration', 'packet': request_digest, 'phase': 'prepared',
                  'locks': locks, 'files': files, 'bindings': changed,
                  'installation_id': definition.data['id'], 'installation_before': installed_raw,
@@ -171,7 +175,9 @@ def _refresh_bindings(service, proposed, operation):
     removed_paths = set()
     file_paths = {item['path'] for item in operation['files']}
     for key, (_, record) in retired.items():
-        paths = {record['binding_path'], record['launcher']}
+        paths = {record['binding_path']}
+        if record['launcher'] is not None:
+            paths.add(record['launcher'])
         if not paths.issubset(file_paths):
             raise PoiseError('Released binding does not match its pending file entries: ' + key
                              + '; preserve the pending journal and restore the matching session projections before retry')
@@ -214,7 +220,11 @@ def _refresh_bindings(service, proposed, operation):
     return expanded
 
 
-def _publish(service, operation):
+def _publish(service, proposed, definition, operation):
+    revision = transport.FileHookRepository(proposed, service.registry)._configuration_revision(
+        operation['receipt']['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw)
+    if revision != operation['receipt']['configuration_revision']:
+        raise PoiseError('Pending reconfiguration inputs changed; restore the recorded handler/project inputs and retry')
     with service.registry.transaction() as db:
         _pending_state(service, db, operation)
         for item in operation['files']:
@@ -231,7 +241,7 @@ def _publish(service, operation):
         service.registry.event_in(db, None, 'reconfigure.completed', {
             'request_id': receipt['request_id'], 'binding_count': receipt['binding_count'],
             'previous_hooks_path': receipt['previous_hooks_path'], 'hooks_path': receipt['hooks_path']})
-    return receipt
+    return service.repository._public_receipt(receipt)
 
 
 def reconfigure(settings_path, packet):
@@ -240,11 +250,19 @@ def reconfigure(settings_path, packet):
     nonempty(packet['request_id'], 'hook reconfiguration.request_id')
     service = transport.HookService(settings_path)
     proposed = transport.HookSettings.proposed(settings_path, packet['settings'])
-    proposed.require_summary()
     if ('repository_scope' not in proposed.raw
             and proposed.hooks_file != service.settings.hooks_file):
         raise PoiseError('Moving native hooks requires explicit repository_scope and hooks_lock')
     definition = HookDefinition.parse(packet['definition'])
+    if definition.data['schema'] != 'hook-definition-2':
+        raise PoiseError('Reconfiguration requires explicit hook-definition-2')
+    from .harness_config import load_harness_config
+    from .hook_dispatch import FileDispatchConfiguration
+    _, profile, _ = load_harness_config(proposed.project_config)
+    for event in definition.data['events']:
+        FileDispatchConfiguration.load_plan(definition, event['event'], profile, proposed)
+    if profile['batch']['message_source'] != {'id': definition.data['message_source'], 'mode': 'runtime_event'}:
+        raise PoiseError('Project message source must explicitly match the hook event source')
     allowed = {'hooks_file', 'hooks_lock', 'repository_scope', 'source_root', 'project_launcher',
                'capability_summary', 'lifecycle_consumer'}
     unchanged = lambda value: {key: item for key, item in value.items() if key not in allowed}
@@ -259,7 +277,7 @@ def reconfigure(settings_path, packet):
             if operation.get('kind') != 'hook_reconfiguration' or operation.get('packet') != request_digest:
                 raise PoiseError('Reconfiguration request identity already has another intent')
             if operation['phase'] == 'completed':
-                return operation['receipt']
+                return service.repository._public_receipt(operation['receipt'])
         locks = (operation['locks'] if operation is not None else
                  sorted({str(path) for path in (service.settings.hooks_lock, proposed.hooks_lock) if path is not None}))
         with ExitStack() as stack:
@@ -270,4 +288,4 @@ def reconfigure(settings_path, packet):
                 operation = _prepare(service, proposed, definition, packet, request_digest, locks)
             else:
                 operation = _refresh_bindings(service, proposed, operation)
-            return _publish(service, operation)
+            return _publish(service, proposed, definition, operation)

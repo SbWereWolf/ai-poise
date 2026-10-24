@@ -10,9 +10,17 @@ from .project_binding import ProjectBindingFailure, read_project_checkout
 
 
 class FileInstructionSource:
-    def __init__(self, catalog_path, instruction_root):
+    def __init__(self, catalog_path, instruction_root, *, snapshots=None):
         self.catalog_path = Path(catalog_path)
         self.instruction_root = Path(instruction_root).resolve()
+        self.snapshots = snapshots
+
+    def _read(self, path):
+        if self.snapshots is None:
+            return Path(path).read_bytes()
+        if str(path) not in self.snapshots:
+            raise PoiseError('Instruction policy is absent from the admitted configuration snapshot')
+        return self.snapshots[str(path)].encode('utf-8')
 
     def project_context(self, config_path, checkout):
         try:
@@ -26,13 +34,13 @@ class FileInstructionSource:
 
     def catalogue_metadata(self):
         try:
-            return SkillCatalog.from_configuration(strict_json(self.catalog_path.read_bytes().decode('utf-8')))
+            return SkillCatalog.from_configuration(strict_json(self._read(self.catalog_path).decode('utf-8')))
         except (PoiseError, OSError, ValueError, TypeError, RecursionError) as exc:
             raise InstructionInputError('invalid_policy', 'policy', 'correct:policy') from exc
 
     def policy_document(self, path):
         try:
-            data = Path(path).read_bytes()
+            data = self._read(path)
         except OSError as exc:
             raise InstructionInputError('unreadable_policy', 'policy', 'restore:policy') from exc
         try:

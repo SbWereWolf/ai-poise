@@ -16,18 +16,18 @@ from .goal_config import atomic_write
 
 
 class NativeWorkContextSession:
-    def __init__(self, service, definition_path, binding, event, receipt, policy):
+    def __init__(self, service, definition_path, binding, event, receipt, policy, *, snapshots=None):
         from ..composition import intake_session_tools
         from .document_intake.configuration import ReaderConfiguration
         from .document_intake.native import HookNativeAuthority
         from .project_binding import read_project_checkout
         from .session_establishment import establish_project_session
         self.service, self.definition_path, self.receipt = service, definition_path, receipt
-        self.event = event
+        self.event, self.snapshots = event, snapshots
         bound = read_project_checkout(service.settings.project_config, Path(event['cwd']))
         caller = CallerIdentity.native(binding['project'], binding['external_session'])
         establish_project_session(bound, caller)
-        self.configuration = ReaderConfiguration.load(bound, policy.data['reader_policy'])
+        self.configuration = ReaderConfiguration.load(bound, policy.data['reader_policy'], snapshots=snapshots)
         def authority():
             admission = self.configuration.policy['admission']
             if (Path(admission['hook_settings']).resolve() != service.settings.path
@@ -150,7 +150,8 @@ class ProjectWorkContextFacts:
         from ..application.project_instructions import ProjectInstructions
         from .project_instructions import FileInstructionSource
         options = self.policy.data['instructions']
-        result = ProjectInstructions(FileInstructionSource(options['catalog'], options['root'])).prepare({
+        result = ProjectInstructions(FileInstructionSource(options['catalog'], options['root'],
+            snapshots=self.session.snapshots)).prepare({
             'operation': 'prepare', 'project_config': str(self.session.service.settings.project_config),
             'checkout': self.session.scope.checkout, 'policy': options['policy'],
             'paths': options['paths'], 'previous': None})
@@ -163,7 +164,7 @@ class ProjectWorkContextFacts:
         from .document_intake.command_source import CommandSource
         r = self.session.resources
         configuration = self.session.configuration
-        policy, digest = load_command_policy(configuration.policy)
+        policy, digest = load_command_policy(configuration.policy, snapshots=self.session.snapshots)
         owner = CommandIntake(r, self.session.sessions, CommandSource(r.bound.checkout, policy),
                               policy, digest, r.clock)
         context, details = owner.coverage()
@@ -238,9 +239,9 @@ class ProjectWorkContextFacts:
         return result
 
 
-def native_context_event(service, definition_path, binding, event, receipt, deadline):
-    policy = service.settings.general_context
-    session = NativeWorkContextSession(service, definition_path, binding, event, receipt, policy)
+def native_context_event(service, definition_path, binding, event, receipt, deadline, *, policy=None, snapshots=None):
+    policy = service.settings.general_context if policy is None else policy
+    session = NativeWorkContextSession(service, definition_path, binding, event, receipt, policy, snapshots=snapshots)
     store = FileWorkContextStore(session, policy)
     facts = ProjectWorkContextFacts(session, policy, binding, deadline)
     return WorkContext(policy, session, store, facts), ContextEvent(receipt['event_id'], receipt['event'], event.get('source'))

@@ -4,10 +4,15 @@ from copy import deepcopy
 from apps.execution.application.gates import internal_record_id
 from apps.execution.domain.evidence import EvidenceBook, EvidencePlan
 from apps.execution.domain.progression import ProgressionPolicy
-from apps.execution.domain.records import ExecutionRecord, RecordsError
+from apps.execution.domain.records import ExecutionRecord, RecordsError, identifier, integer
 
 
 class ExecutionEvidence:
+    @staticmethod
+    def _required(value, fields, label):
+        if not isinstance(value, dict) or not fields <= value.keys():
+            raise RecordsError(f'{label}: provide required fields {", ".join(sorted(fields))}')
+
     @staticmethod
     def load_book(repository, execution):
         record = repository.latest(execution['task_id'], 'evidence_state',
@@ -48,9 +53,21 @@ class ExecutionEvidence:
             raise RecordsError('Select an evidence record for this Task')
         if evidence.generation != generation:
             raise RecordsError('Evidence generation must match the current execution')
+        ExecutionEvidence._required(evidence.data, {'attempt_id', 'evidence_work'}, 'Evidence')
+        identifier(evidence.data['attempt_id'], 'Evidence attempt_id')
         attempt = repository.latest(task, 'attempt', evidence.data['attempt_id'])
         if attempt is None or attempt.generation != generation:
             raise RecordsError('Select the current Task/generation attempt of this evidence')
+        ExecutionEvidence._required(attempt.data, {
+            'status', 'stage_id', 'iteration', 'context_id', 'candidate_id',
+            'source', 'methods', 'execution_key', 'receipts'}, 'Evidence attempt')
+        for field in ('status', 'stage_id', 'context_id', 'candidate_id', 'execution_key'):
+            identifier(attempt.data[field], f'Evidence attempt {field}')
+        integer(attempt.data['iteration'], 'Evidence attempt iteration', 1)
+        for field in ('methods', 'receipts'):
+            if not isinstance(attempt.data[field], list):
+                raise RecordsError(f'Evidence attempt {field} must be a list')
+        ExecutionEvidence.plan(process, execution['contract']).validate_work(stage, evidence.data['evidence_work'])
         for field, expected in [('stage_id', stage), ('iteration', iteration),
                 ('context_id', reference['context_id']), ('candidate_id', reference['candidate_id'])]:
             if attempt.data[field] != expected:
@@ -64,7 +81,8 @@ class ExecutionEvidence:
                     process, execution['contract'], context.data, stage)}
 
     def assess_next(self, repository, execution, process, proof, source, outcome):
-        reason = ProgressionPolicy.admitted_observations(proof['methods'], proof['attempt'], source)
+        reason = ProgressionPolicy.admitted_observations(proof['methods'], proof['attempt'], source,
+            proof['proof_contract']['evidence_plan']['subject_methods'])
         if reason:
             return None, reason
         if proof['attempt']['status'] != 'completed':
@@ -81,7 +99,8 @@ class ExecutionEvidence:
         return assessment, None
 
     def assess_replay(self, repository, execution, proof, source, original):
-        reason = ProgressionPolicy.admitted_observations(proof['methods'], proof['attempt'], source)
+        reason = ProgressionPolicy.admitted_observations(proof['methods'], proof['attempt'], source,
+            proof['proof_contract']['evidence_plan']['subject_methods'])
         if reason:
             return None, reason
         if proof['attempt']['status'] != 'completed':

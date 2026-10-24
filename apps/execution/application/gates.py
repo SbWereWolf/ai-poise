@@ -141,6 +141,21 @@ class GateCommands:
                 'role': data['role'], 'allowed': allowed, 'decisions': decisions,
                 'result_id': record.record_id}
 
+    def assess_entry(self, repository, task_id, generation, context_id, candidate_id, stage_id):
+        """Evaluate following preconditions from the current accepted content and real files."""
+        context, _, _ = self.context(repository, {
+            'task_id': task_id, 'generation': generation,
+            'context_id': context_id, 'stage_id': stage_id})
+        record = repository.latest(task_id, 'gate_candidate',
+            internal_record_id('gate_candidate', generation, context_id, candidate_id))
+        if record is None:
+            raise RecordsError('Select the accepted current Gate candidate before stage entry')
+        facts, _, _, errors = self.files.observe(record.data['catalogue'], [])
+        assessment = context.policy.evaluate(stage_id, 'pre',
+            snapshot_from_value(record.data['snapshot']), facts,
+            context.contracts.stage(stage_id).entry_requirements)
+        return not errors and assessment.passed
+
     def _evaluate(self, repository, value):
         context, contract, revision = self.context(repository, value)
         rid = internal_record_id('gate_candidate', value['generation'], value['context_id'], value['candidate_id'])

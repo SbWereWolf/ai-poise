@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 from .evidence import completed_receipts
-from .records import RecordsError
+from .records import RecordsError, identifier
 
 
 class ProgressionPolicy:
@@ -27,9 +27,9 @@ class ProgressionPolicy:
         """Project the old accepted_sources/rework rule over own ordered history."""
         sources = {}
         for record in records:
-            if record.generation >= generation:
+            if record.generation > generation:
                 continue
-            if record.kind == 'accepted_visit':
+            if record.kind == 'accepted_visit' and record.generation < generation:
                 sources[record.data['stage_id']] = deepcopy(record.data)
             elif record.kind == 'lifecycle_event' and record.data['action'] == 'rework':
                 stage, seen = record.data['target_stage_id'], set()
@@ -41,8 +41,16 @@ class ProgressionPolicy:
         return sources
 
     @staticmethod
-    def admitted_observations(methods, attempt, source):
+    def _source(value, label):
+        if not isinstance(value, dict) or not {'commit', 'tree'} <= value.keys():
+            raise RecordsError(f'{label}: provide source commit and tree')
+        for field in ('commit', 'tree'):
+            identifier(value[field], f'{label} {field}')
+
+    @staticmethod
+    def admitted_observations(methods, attempt, source, subject_rules):
         """Check external facts, then let EvidenceBook assess proof/review meaning."""
+        ProgressionPolicy._source(attempt['source'], 'Observation source')
         if attempt['source'] != source:
             return 'stale_source'
         if attempt['methods'] != methods:
@@ -60,6 +68,15 @@ class ProgressionPolicy:
                         'source_before', 'source_after', 'source_unchanged'}
             if not isinstance(receipt, dict) or not required <= receipt.keys():
                 raise RecordsError('Provide complete declared observation metadata')
+            for field in ('id', 'method', 'commit', 'tree'):
+                identifier(receipt[field], f'Observation {field}')
+            if (not isinstance(receipt['obligations'], list)
+                    or any(not isinstance(item, str) or not item for item in receipt['obligations'])):
+                raise RecordsError('Observation obligations must be a list of method identities')
+            if receipt['actual_exit_code'] is not None and type(receipt['actual_exit_code']) is not int:
+                raise RecordsError('Observation actual_exit_code must be an integer or null')
+            for field in ('source_before', 'source_after'):
+                ProgressionPolicy._source(receipt[field], f'Observation {field}')
             if receipt['method'] not in by_id:
                 raise RecordsError('Observation must belong to a declared method')
             method = by_id[receipt['method']]
@@ -84,10 +101,17 @@ class ProgressionPolicy:
                 raise RecordsError('Contradictory passed flag and actual observation result')
             if not receipt['capture_complete']:
                 reason = reason or 'incomplete_capture'
-            elif not receipt['interpretable']:
+            elif (not receipt['interpretable'] or receipt['timed_out']
+                    or receipt['actual_exit_code'] is None or receipt['actual_exit_code'] < 0):
                 reason = reason or 'uninterpretable_observation'
-            elif not actual_pass:
+            elif receipt['guard'] and not actual_pass:
                 reason = reason or 'failed_observation'
+            if receipt['method'] in subject_rules:
+                rule = subject_rules[receipt['method']]
+                if (receipt['actual_exit_code'] not in rule['exit_codes']
+                        or any(marker not in receipt['stdout'] for marker in rule['stdout_contains'])
+                        or any(marker not in receipt['stderr'] for marker in rule['stderr_contains'])):
+                    reason = reason or 'uninterpretable_observation'
             if receipt['obligations'] != [receipt['method']]:
                 raise RecordsError('Observation obligations must identify the actual declared method')
             covered.update(receipt['obligations'])

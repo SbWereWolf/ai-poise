@@ -323,7 +323,7 @@ class Store:
             self.records, lambda contract: _validate_contract(contract, config), state_owner)
         self.progression = ExecutionProgression(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
-            config.get('lifecycle'), state_owner, ExecutionEvidence())
+            config.get('lifecycle'), state_owner, ExecutionEvidence(), self.gates)
 
     @contextlib.contextmanager
     def locked(self):

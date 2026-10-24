@@ -10,9 +10,14 @@ from apps.execution.domain.records import RecordsError
 
 
 class ExecutionProgression:
-    def __init__(self, unit_of_work, settings, state_owner, evidence):
+    def __init__(self, unit_of_work, settings, state_owner, evidence, gates):
         self.unit_of_work, self.settings = unit_of_work, settings
         self.state, self.evidence = state_owner, evidence
+        self.gates = gates
+
+    def _entry_allowed(self, repository, execution, reference, target):
+        return target is None or self.gates.assess_entry(repository, execution['task_id'],
+            execution['generation'], reference['context_id'], reference['candidate_id'], target)
 
     def execute(self, value):
         digest = GateCommands.request_digest('advance', value)
@@ -93,6 +98,8 @@ class ExecutionProgression:
                                                        value['source'], reference['outcome'])
         if reason:
             return 'work_required', reason, []
+        if not self._entry_allowed(repository, execution, reference, next_stage):
+            return 'work_required', 'entry_blocked', []
         visit_id = f'accepted-visit:{execution["generation"]}:{value["request_id"]}'
         original = {'stage_id': execution['current_stage'], 'iteration': execution['iteration'],
             'visit_id': visit_id, 'source_generation': execution['generation'],
@@ -140,6 +147,8 @@ class ExecutionProgression:
             assessment, reason = self.evidence.assess_replay(repository, execution, proof, value['source'], original)
             if reason:
                 return 'work_required', reason, traversed
+            if not self._entry_allowed(repository, execution, proofs[stage], original['next_stage']):
+                return 'work_required', 'entry_blocked', traversed
             consumed.add(original['visit_id'])
             self.evidence.save_book(repository, execution, assessment.book)
             traversed.append(self._traversal(repository, execution, value, original, proof, len(traversed)))

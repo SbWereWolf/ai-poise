@@ -334,5 +334,52 @@
     "CREATE TABLE execution_records(task_id TEXT,kind TEXT,generation INTEGER)"
   ],
   "source_initial": "source version one\n",
-  "source_changed": "source version two\n"
+  "source_changed": "source version two\n",
+  "oracle_control": {
+    "scope": "Test-helper sensitivity inputs only; not application outcomes or runner receipts.",
+    "origin": {
+      "stage_id": "write",
+      "iteration": 1,
+      "visit_id": "oracle-visit",
+      "source_generation": 1,
+      "source_actor_ids": [
+        "executor-A"
+      ],
+      "gate_id": "oracle-old-gate",
+      "evidence_id": "oracle-old-evidence",
+      "outcome": "complete"
+    },
+    "current": {
+      "stage_id": "write",
+      "iteration": 1,
+      "gate_id": "oracle-current-gate",
+      "evidence_id": "oracle-current-evidence"
+    },
+    "result": {
+      "status": "target_reached",
+      "current_stage": "review",
+      "iteration": 1,
+      "required_role": "reviewer",
+      "state": "active",
+      "task_id": "0042",
+      "generation": 2,
+      "contract_revision": "oracle-contract",
+      "replayed": false,
+      "traversed": [
+        {
+          "stage_id": "write",
+          "iteration": 1,
+          "visit_id": "oracle-visit",
+          "source_generation": 1,
+          "source_actor_ids": [
+            "executor-A"
+          ],
+          "gate_id": "oracle-old-gate",
+          "evidence_id": "oracle-old-evidence",
+          "current_evidence_id": "oracle-current-evidence",
+          "outcome": "complete"
+        }
+      ]
+    }
+  }
 }

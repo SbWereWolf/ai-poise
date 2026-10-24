@@ -28,11 +28,7 @@ def cursor(s, result, stage, role, prefix, *, status='work_required', iteration=
     assert (actual['current_stage'], actual['iteration'], actual['state']) == (stage, iteration, result['state'])
     assert result['task_id'] == '0042' and result['generation'] == s.generation
     assert result['contract_revision'] == s.contract_revision and result['replayed'] is False
-    for item in result['traversed']:
-        origin = s.origin[item['stage_id']]
-        for key in ['visit_id', 'source_generation', 'source_actor_ids', 'outcome']:
-            assert item[key] == origin[key], (key, item, origin)
-        assert item['current_evidence_id'] != origin['evidence_id']
+    s.assert_traversals(result)
     return result
 
 
@@ -44,6 +40,8 @@ def preserved(s, operation):
 
 
 def cross_role(root, actor):
+    if actor == 'executor-A':
+        oracle_sensitivity()
     s = AdvanceSubject(root).historical()
     proofs = s.current()
     result = preserved(s, lambda: s.ff(proofs, actor=actor))
@@ -64,7 +62,6 @@ def gap(root, original):
         # Create the missing historical outcome in the actual current generation.
         s.perform('review', tag='new-origin')
         s.restart()
-        s.origin['write'] = result['traversed'][0]
         control = s.ff(s.current())
     else:
         control = s.ff(s.current(stages=('review', 'finish')))
@@ -165,6 +162,28 @@ def target_review(root):
     result = preserved(s, lambda: s.ff(s.current(), target='review'))
     cursor(s, result, 'review', 'reviewer', ['write'], status='target_reached')
     assert result['stop_reason'] == 'target_reached'
+
+
+def oracle_sensitivity():
+    """Unit-check the actual cursor oracle, never fabricate a product receipt."""
+    values = DATA['oracle_control']
+    s = object.__new__(AdvanceSubject)
+    s.generation, s.contract_revision = 2, 'oracle-contract'
+    s.origins_by_visit = {values['origin']['visit_id']: values['origin']}
+    s.current_proofs = {'write': values['current']}
+    s.sync = lambda: {'current_stage': 'review', 'iteration': 1, 'state': 'active'}
+    cursor(s, deepcopy(values['result']), 'review', 'reviewer', ['write'], status='target_reached')
+    LOG.append({'oracle_control': 'correct independent references accepted'})
+    for key, wrong in [('gate_id', 'wrong-old-gate'), ('evidence_id', 'wrong-old-evidence'),
+                       ('current_evidence_id', 'wrong-current-evidence'), ('iteration', 999)]:
+        changed = deepcopy(values['result'])
+        changed['traversed'][0][key] = wrong
+        try:
+            cursor(s, changed, 'review', 'reviewer', ['write'], status='target_reached')
+        except AssertionError:
+            LOG.append({'oracle_control': key, 'wrong_value_rejected': True})
+        else:
+            raise AssertionError('Cursor oracle accepted wrong ' + key)
 
 
 def foreign_proof(s):

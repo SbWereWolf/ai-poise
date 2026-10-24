@@ -20,6 +20,15 @@ class MissingPublicAdvance(Exception):
     pass
 
 
+def assert_traversal(actual, origin, current):
+    """Compare semantic provenance with independently prepared public inputs."""
+    expected = {key: origin[key] for key in [
+        'stage_id', 'visit_id', 'source_generation', 'source_actor_ids',
+        'gate_id', 'evidence_id', 'outcome']}
+    expected.update(iteration=current['iteration'], current_evidence_id=current['evidence_id'])
+    assert actual == expected, (actual, expected)
+
+
 class AdvanceSubject(Scenario):
     def __init__(self, root, *, extra_guard=False):
         # Reuse actual Requirements/Sequencing/Workspace preparation, not its
@@ -68,6 +77,18 @@ class AdvanceSubject(Scenario):
         self.store = module.Store(module.load_config(self.config))
         self.origin = {}
         self.first_evidence = None
+        self.origins_by_visit = {}
+        self.observed_frames = {}
+        self.presentations = {}
+        self.current_proofs = {}
+
+    def act(self, action, **fields):
+        result = super().act(action, **fields)
+        if action == 'present':
+            key = (self.generation, result['current_stage'], result['iteration'],
+                   fields['context_id'], fields['candidate_id'])
+            self.presentations[key] = fields.get('actor_id', 'executor-A')
+        return result
 
     def identity(self, prefix):
         self.counter += 1
@@ -197,7 +218,11 @@ class AdvanceSubject(Scenario):
             expected_revision=self.revision, records=records)
         self.revision = result['revision']
         LOG.append({'public_records': deepcopy(records), 'result': result})
-        return {**frame, 'evidence_id': evidence_id}
+        observed = {**frame, 'evidence_id': evidence_id}
+        key = (self.task_id, self.generation, stage, frame['context_id'],
+               frame['candidate_id'], evidence_id)
+        self.observed_frames[key] = deepcopy(observed)
+        return observed
 
     def packet_advance(self, action, *, actor='executor-A', **fields):
         self.sync()
@@ -208,17 +233,78 @@ class AdvanceSubject(Scenario):
             'actor_id': actor, 'source': self.source(), 'entry_tree': self.baseline, **fields}}
 
     def advance(self, packet):
+        value = packet['input']
+        # Save intended inputs before the subject can return any semantic facts.
+        expected = None
+        if value['action'] == 'next':
+            state = self.sync()
+            frame_key = (self.task_id, value['expected_generation'], state['current_stage'],
+                value['proof']['context_id'], value['proof']['candidate_id'], value['proof']['evidence_id'])
+            frame = self.observed_frames.get(frame_key)
+            if frame is not None:
+                performer = self.presentations[(value['expected_generation'], frame['stage_id'],
+                    frame['iteration'], frame['context_id'], frame['candidate_id'])]
+                expected = {'stage_id': frame['stage_id'], 'iteration': frame['iteration'],
+                    'source_generation': value['expected_generation'],
+                    'source_actor_ids': list(dict.fromkeys([performer, value['actor_id']])),
+                    'gate_id': frame['gate_id'], 'evidence_id': frame['evidence_id'],
+                    'outcome': value['proof']['outcome']}
         code, result = invoke(self.config, packet)
         LOG.append({'packet': packet, 'exit_code': code, 'response': result})
         if code == 2 and result.get('reason') == DATA['unknown_operation']:
             raise MissingPublicAdvance()
         if code == 0:
             assert set(result) == set(DATA['response_fields']), result
+            assert (result['task_id'], result['generation'], result['contract_revision']) == (
+                value['task_id'], value['expected_generation'], value['expected_contract_revision']), result
             assert result['revision'] == packet['input']['expected_revision'] + 1 or result['replayed']
             for item in result['traversed']:
                 assert set(item) == set(DATA['traversal_fields']), item
             self.revision = result['revision']
+            if not result['replayed']:
+                if value['action'] == 'next' and result['traversed']:
+                    assert expected is not None and len(result['traversed']) == 1
+                    item = result['traversed'][0]
+                    assert isinstance(item['visit_id'], str) and item['visit_id']
+                    # Only the opaque identity comes from the owner. All of its
+                    # associations come from input preparation above.
+                    origin = dict(expected, visit_id=item['visit_id'])
+                    assert item['visit_id'] not in self.origins_by_visit
+                    assert_traversal(item, origin, frame)
+                    self.origins_by_visit[item['visit_id']] = origin
+                    self.origin[origin['stage_id']] = origin
+                    self.current_proofs = {frame['stage_id']: frame}
+                elif value['action'] == 'fast_forward':
+                    self.current_proofs = {}
+                    for proof in value['proofs']:
+                        key = (self.task_id, value['expected_generation'], proof['stage_id'],
+                            proof['context_id'], proof['candidate_id'], proof['evidence_id'])
+                        if key in self.observed_frames:
+                            self.current_proofs[proof['stage_id']] = self.observed_frames[key]
+                self.assert_traversals(result)
+                self.assert_public_provenance(result)
         return code, result
+
+    def assert_traversals(self, result):
+        for item in result['traversed']:
+            origin = self.origins_by_visit[item['visit_id']]
+            assert_traversal(item, origin, self.current_proofs[item['stage_id']])
+
+    def assert_public_provenance(self, result):
+        if not result['traversed']:
+            return
+        view = self.progression()
+        # The query may preserve its ordinary record envelope; its semantic
+        # associations must still be the actual prepared ones.
+        def facts(items):
+            return [item['data'] if 'data' in item else item for item in items]
+        visits, traversals = facts(view['accepted_visits']), facts(view['traversals'])
+        for item in result['traversed']:
+            expected = self.origins_by_visit[item['visit_id']]
+            visit = next(v for v in visits if v['visit_id'] == expected['visit_id'])
+            assert {key: visit[key] for key in expected} == expected
+            assert any(all(row.get(key) == value for key, value in item.items())
+                       for row in traversals), (item, traversals)
 
     def next(self, frame, *, outcome=None, actor=None):
         stage = frame['stage_id']
@@ -237,7 +323,6 @@ class AdvanceSubject(Scenario):
         if self.first_evidence is None:
             self.first_evidence = deepcopy(frame)
         result = self.next(frame, outcome=outcome)
-        self.origin[stage] = result['traversed'][0]
         return result
 
     def restart(self, *, contract=None, definition=None):

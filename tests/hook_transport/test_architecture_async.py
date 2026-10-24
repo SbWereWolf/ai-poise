@@ -51,9 +51,8 @@ def test_async_outlives_callback_and_keeps_capture(project, tmp_path):
         assert not any(json.loads(p.read_text()).get("effects", {}).get("completed") == "worker"
                        for p in chain.effects.glob("*.result.json")), marker
         barrier.release("worker")
-        assert chain.terminal_workers(1)[0]["status"] == "completed", marker
-        chain.capture_contains(b"fixture stderr: worker\r\n")
-        chain.capture_contains(b'"completed": "worker"')
+        worker = chain.terminal_workers(1)[0]
+        chain.assert_complete_worker_capture(worker)
         assert chain.delivery()[1]["response"] == response, marker
 
 

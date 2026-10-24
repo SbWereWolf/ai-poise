@@ -223,6 +223,46 @@ class Chain:
                   if p.is_file()]
         assert any(expected in value for value in values), (self.marker, expected)
 
+    def assert_complete_worker_capture(self, worker):
+        """Read this invocation's existing common execution receipt and raw files.
+
+        The execution mapping is the existing hook delivery/RegisteredCheckRunner
+        capture contract. No directory search, preview, author-side result file,
+        alternate handler log or newly generated receipt supplies these bytes.
+        """
+        packets = [value for value in self.inputs()
+                   if value["mode"] == "async" and value["configuration"]["handler_id"] == "worker"]
+        assert len(packets) == 1, self.marker
+        packet = packets[0]
+        assert worker["invocation_id"] == packet["invocation_id"], self.marker
+        assert worker["configuration"]["handler_id"] == "worker", self.marker
+        assert packet["event_receipt"] == self.delivery()[1]["event_receipt"], self.marker
+        assert worker["status"] == "completed", self.marker
+        execution = worker["execution"]
+        assert execution["actual_exit_code"] == 0, self.marker
+        assert execution["capture_complete"] is True, self.marker
+        assert execution["timed_out"] is execution["cancelled"] is False, self.marker
+        assert execution["termination"] == {
+            "schema": "run-termination-1", "child_reaped": True,
+            "process_group_stopped": True, "capture_complete": True}, self.marker
+        stdout_path, stderr_path = Path(execution["stdout"]), Path(execution["stderr"])
+        assert stdout_path.is_absolute() and stderr_path.is_absolute(), self.marker
+        assert stdout_path != stderr_path and stdout_path.is_file() and stderr_path.is_file(), self.marker
+        stdout, stderr = stdout_path.read_bytes(), stderr_path.read_bytes()
+        expected = (FIXTURES / "worker-complete.stdout.template.txt").read_bytes().replace(
+            b"@INVOCATION@", packet["invocation_id"].encode("ascii"))
+        assert stdout == expected, (self.marker, "complete owned stdout", stdout)
+        assert stderr == b"fixture stderr: worker\r\n", (self.marker, "complete owned stderr", stderr)
+        # Decode only the actual complete raw stream; the independent fixture
+        # supplies all expected fields except the observed runtime identity.
+        actual_result, expected_result = json.loads(stdout), json.loads(expected)
+        assert actual_result == expected_result, self.marker
+        assert actual_result["schema"] == "poise-hook-async-result-1", self.marker
+        assert actual_result["invocation_id"] == worker["invocation_id"], self.marker
+        assert actual_result["effects"] == {"completed": "worker"}, self.marker
+        trace(self.marker, "complete_owned_worker_capture", invocation_id=worker["invocation_id"],
+              execution=execution, stdout=stdout.decode(), stderr=stderr.decode(), result=actual_result)
+
 
 class WorkerBarrier:
     """Actual TCP rendezvous, with bounded IO rather than timing as an oracle."""

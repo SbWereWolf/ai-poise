@@ -1,0 +1,1 @@
+{"schema": "poise-hook-async-result-1", "invocation_id": "@INVOCATION@", "effects": {"completed": "worker"}}

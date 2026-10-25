@@ -135,11 +135,11 @@
 |---|---:|
 | `apply_plan` | 2 |
 | `check` | 9 |
-| `inspect` | 24 |
+| `inspect` | 28 |
 | `observe` | 8 |
-| `produce` | 43 |
+| `produce` | 45 |
 | `publish` | 3 |
-| `revise` | 9 |
+| `revise` | 7 |
 
 Исходные условия feedback остаются в [неизменённой карте](reference/feedback-map.json).
 DDD-декомпозиция меняет владельцев кода и доступ к данным, а не бизнес-переходы и не

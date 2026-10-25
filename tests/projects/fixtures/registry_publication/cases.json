@@ -1,0 +1,53 @@
+{
+  "first": "alpha",
+  "second": "beta",
+  "sentinel": "sentinel",
+  "manifest_name": "project.json",
+  "destination_parent": "configured",
+  "normal_lock_wait": 2.0,
+  "busy_lock_wait": 0.25,
+  "lock_poll": 0.01,
+  "watchdog_seconds": 40.0,
+  "io_marker": "REGPUB_FIXTURE_IO_FAILURE",
+  "sentinel_metadata": {
+    "label": "preserve-existing",
+    "owner": "sentinel-owner"
+  },
+  "own_metadata": {
+    "label": "preserve-own",
+    "owner": "alpha-owner"
+  },
+  "exit_codes": {
+    "success": 0,
+    "rejected": 2
+  },
+  "competing_modes": [
+    [
+      "profile",
+      "profile"
+    ],
+    [
+      "setup",
+      "setup"
+    ],
+    [
+      "setup",
+      "profile"
+    ],
+    [
+      "profile",
+      "setup"
+    ]
+  ],
+  "writer_modes": [
+    "setup",
+    "profile"
+  ],
+  "io_phases": [
+    "registry",
+    "receipt"
+  ],
+  "registry_relative": "state/project-registry.json",
+  "registry_lock_relative": "state/project-setup.lock",
+  "cleanup_seconds": 1.0
+}

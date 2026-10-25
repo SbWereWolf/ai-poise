@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from outcome_checks import (DATA, LOG, ADVANCE_LOG, MissingOutcome, OutcomeSubject,
     Receiver, Delivery, mark, raw, requirements_packet, sequencing_packet, revision,
-    current_state, write_json, invoke)
+    current_state, write_json, invoke, bind)
 from apps.sequencing.tests.test_execution_facts import Facts
 
 
@@ -49,17 +49,20 @@ def delivery(s, root, fact, *, receiver=None):
     return receiver, coordinator
 
 
-def assert_satisfaction(s, expected):
+def assert_satisfaction(s, expected, *, outcome_id=None):
     packet = {'operation': 'query', 'input': {'queries': [{'id': 'satisfaction',
         'kind': 'current_satisfaction'}]}}
+    expected_revision = revision(s.requirements.database, 'requirements')
+    variant = 'positive' if expected else 'negative' if s.expected_keys else 'future'
+    if expected:
+        assert isinstance(outcome_id, str) and outcome_id
+    expected_value = bind(DATA['satisfaction'][variant], {'@OUTCOME': outcome_id})
     response = s.requirements.invoke(packet)
-    LOG.append({'requirements_satisfaction': response, 'expected': expected})
-    # These are current app-owned values, not a Boolean inferred from transport.
-    value = response['results'][0]['value']
-    current = [row for row in value['task_requirements'] if row['task_id'] == '0042' and row['applicable']]
-    assert all(row['satisfied'] is expected for row in current), response
-    assert all(row['satisfied'] is expected for row in value['applications']), response
-    assert all(row['satisfied'] is expected for row in value['systems']), response
+    LOG.append({'requirements_satisfaction': response, 'expected': expected_value})
+    # Full independent key/node/child identities, cardinality, applicability and
+    # addressed provenance are required even when no current key is applicable.
+    assert response == {'status': 'read_only', 'revision': expected_revision,
+        'results': [{'id': 'satisfaction', 'value': expected_value}]}, response
 
 
 def positive(root):
@@ -84,7 +87,7 @@ def positive(root):
     child(coordinator.invoke('sequencing', sequencing_packet(receiver, fact)))
     requirements_rows(s, fact)
     assert receiver.query('task')['state'] == 'completed'
-    assert_satisfaction(s, True)
+    assert_satisfaction(s, True, outcome_id=packet['input']['outcome_id'])
     mark('real_orchestrator_to_both_receivers')
     # Also exercise a genuine ready Workspace receiver, after releasing its real
     # claim. The fact writer does not arrange or release that foreign context.

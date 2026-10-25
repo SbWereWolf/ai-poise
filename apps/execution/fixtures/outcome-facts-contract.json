@@ -673,5 +673,237 @@
   "faults": {
     "records": "CREATE TRIGGER fail_outcome_records BEFORE INSERT ON execution_records WHEN NEW.task_id='0042' BEGIN SELECT RAISE(ABORT,'T055 records fault'); END",
     "requests": "CREATE TRIGGER fail_outcome_request BEFORE INSERT ON requests WHEN NEW.request_id='atomic-outcome' BEGIN SELECT RAISE(ABORT,'T055 request fault'); END"
-  }
+  },
+  "satisfaction": {
+    "positive": {
+      "task_requirements": [
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "later",
+          "applicable": false,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        },
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "report",
+          "applicable": true,
+          "satisfied": true,
+          "evidence_outcome_ids": [
+            "@OUTCOME"
+          ]
+        },
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "retired",
+          "applicable": false,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        },
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "zeta",
+          "applicable": true,
+          "satisfied": true,
+          "evidence_outcome_ids": [
+            "@OUTCOME"
+          ]
+        }
+      ],
+      "applications": [
+        {
+          "id": "APP-REPORT",
+          "children": [
+            {
+              "task_id": "0042",
+              "statement_revision": 4,
+              "key": "report"
+            },
+            {
+              "task_id": "0042",
+              "statement_revision": 4,
+              "key": "zeta"
+            }
+          ],
+          "applicable": true,
+          "satisfied": true
+        }
+      ],
+      "systems": [
+        {
+          "id": "SYS-REPORT",
+          "children": [
+            "APP-REPORT"
+          ],
+          "applicable": true,
+          "satisfied": true
+        }
+      ]
+    },
+    "negative": {
+      "task_requirements": [
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "later",
+          "applicable": false,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        },
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "report",
+          "applicable": true,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        },
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "retired",
+          "applicable": false,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        },
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "zeta",
+          "applicable": true,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        }
+      ],
+      "applications": [
+        {
+          "id": "APP-REPORT",
+          "children": [
+            {
+              "task_id": "0042",
+              "statement_revision": 4,
+              "key": "report"
+            },
+            {
+              "task_id": "0042",
+              "statement_revision": 4,
+              "key": "zeta"
+            }
+          ],
+          "applicable": true,
+          "satisfied": false
+        }
+      ],
+      "systems": [
+        {
+          "id": "SYS-REPORT",
+          "children": [
+            "APP-REPORT"
+          ],
+          "applicable": true,
+          "satisfied": false
+        }
+      ]
+    },
+    "future": {
+      "task_requirements": [
+        {
+          "task_id": "0042",
+          "statement_revision": 4,
+          "snapshot_revision": 3,
+          "key": "later",
+          "applicable": false,
+          "satisfied": false,
+          "evidence_outcome_ids": []
+        }
+      ],
+      "applications": [
+        {
+          "id": "APP-REPORT",
+          "children": [],
+          "applicable": true,
+          "satisfied": false
+        }
+      ],
+      "systems": [
+        {
+          "id": "SYS-REPORT",
+          "children": [
+            "APP-REPORT"
+          ],
+          "applicable": true,
+          "satisfied": false
+        }
+      ]
+    }
+  },
+  "satisfaction_oracle_counterexamples": [
+    {
+      "name": "empty_positive",
+      "expected": true,
+      "future": false,
+      "value": {
+        "task_requirements": [],
+        "applications": [],
+        "systems": []
+      }
+    },
+    {
+      "name": "empty_negative",
+      "expected": false,
+      "future": false,
+      "value": {
+        "task_requirements": [],
+        "applications": [],
+        "systems": []
+      }
+    },
+    {
+      "name": "unrelated_positive",
+      "expected": true,
+      "future": false,
+      "value": {
+        "task_requirements": [
+          {
+            "task_id": "0099",
+            "satisfied": true
+          }
+        ],
+        "applications": [
+          {
+            "id": "OTHER-APP",
+            "satisfied": true
+          }
+        ],
+        "systems": [
+          {
+            "id": "OTHER-SYS",
+            "satisfied": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty_future",
+      "expected": false,
+      "future": true,
+      "value": {
+        "task_requirements": [],
+        "applications": [],
+        "systems": []
+      }
+    }
+  ]
 }

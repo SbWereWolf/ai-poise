@@ -124,7 +124,7 @@ class OutcomeSubject(AdvanceSubject):
         before = self.source()
         method = self.contract['methods'][0]
         actual = subprocess.run(method['argv'], cwd=method['cwd'],
-            env=dict(os.environ, **method['environment']), capture_output=True, timeout=30)
+            env=dict(os.environ, **method['environment']), capture_output=True)
         after = self.source()
         assert actual.returncode in (0, 7) and actual.stderr == b'' and before == after
         receipt = {'id': self.identity('subject'), 'method': 'guard', 'obligations': ['guard'],

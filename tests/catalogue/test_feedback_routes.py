@@ -64,12 +64,14 @@ def _transfer(sender, receiver, task_id, decision='continue', target=None):
     return selected if decision is None else _boot(receiver, decision=decision, target=target)
 
 
-def _plan_text(actor, plan):
+def _accepted_plan_state(actor, plan):
     value = _call(actor, 'show', {'queries': [{
         'id': 'plan', 'kind': 'section', 'name': 'accepted_plan',
         'stage': plan, 'submission': None, 'range': None,
     }]})['results'][0]['value']
-    return value['text']
+    state = _call(actor, 'show', {'queries': [{'id': 'state', 'kind': 'task'}]})['results'][0]['value']
+    visits = state['workflow']['visits']
+    return value['text'], visits[plan], visits[f'{plan}_inspection']
 
 
 def _inspection(findings=None, decisions=None):
@@ -203,7 +205,7 @@ def test_development_execution_repair_preserves_accepted_plan_and_original_findi
     ctx = _transfer(reviewer, executor, 'DIRECT', 'rework', execute)
     for number, verdict in ((1, 'rejected'), (2, 'accepted')):
         assert ctx['stage'] == execute
-        assert _plan_text(executor, plan) == 'ACCEPTED PLAN'
+        assert _accepted_plan_state(executor, plan) == ('ACCEPTED PLAN', 1, 1)
         proposal = _submit(executor, ctx, {'resolutions': [_resolution(f'R{number}')]}, f'Evidence for R{number}.')
         assert [finding['id'] for finding in proposal['feedback']['open_findings']] == ['F1']
         assert [item['id'] for item in proposal['feedback']['pending_resolutions']] == [f'R{number}']
@@ -213,7 +215,7 @@ def test_development_execution_repair_preserves_accepted_plan_and_original_findi
         decided = _submit(reviewer, ctx, _inspection(decisions=[{
             'resolution_id': f'R{number}', 'decision': verdict, 'reason': f'Actual evidence is {verdict}.',
         }]), f'Independent decision for R{number}.')
-        assert _plan_text(reviewer, plan) == 'ACCEPTED PLAN'
+        assert _accepted_plan_state(reviewer, plan) == ('ACCEPTED PLAN', 1, 1)
         if verdict == 'rejected':
             assert decided['stage_outcome'] == 'changes_requested'
             ctx = _transfer(reviewer, executor, 'DIRECT', 'rework', execute)
@@ -243,7 +245,7 @@ def test_development_design_rejection_returns_to_the_same_design_writer(project)
     assert accepted['stage_outcome'] == 'clear'
     ctx = _transfer(reviewer, executor, 'DIRECT')
     assert ctx['stage'] == execute
-    assert _plan_text(executor, plan) == 'CORRECTED ACCEPTED PLAN'
+    assert _accepted_plan_state(executor, plan) == ('CORRECTED ACCEPTED PLAN', 2, 2)
 
 
 def test_development_registry_refusal_recovers_to_the_ordinary_writer_without_planning(project):
@@ -262,12 +264,12 @@ def test_development_registry_refusal_recovers_to_the_ordinary_writer_without_pl
     refused = _call(reviewer, 'show', {'queries': [{'id': 'state', 'kind': 'task'}]})['results'][0]['value']
     assert refused['stage'] == inspect
     assert refused['status'] == 'active'
-    assert _plan_text(reviewer, plan) == 'ACCEPTED PLAN'
+    assert _accepted_plan_state(reviewer, plan) == ('ACCEPTED PLAN', 1, 1)
     ctx = _boot(reviewer, decision='rework', target=execute)
     assert ctx['stage'] == execute
     ctx = _transfer(reviewer, executor, 'DIRECT', decision=None)
     assert ctx['stage'] == execute
-    assert _plan_text(executor, plan) == 'ACCEPTED PLAN'
+    assert _accepted_plan_state(executor, plan) == ('ACCEPTED PLAN', 1, 1)
     incomplete = _classify(green, execute, inspect, revision=0)
     incomplete['operations'][0]['registration']['covers'] = ['requirements[0]']
     assert _submit(executor, ctx, {}, 'One of two obligations is covered.', incomplete)['status'] == 'verified'
@@ -286,5 +288,5 @@ def test_development_registry_refusal_recovers_to_the_ordinary_writer_without_pl
     assert ctx['session'] == 'FIXTURE-REVIEWER'
     final = _submit(reviewer, ctx, _inspection(), 'Current executable coverage independently inspected.')
     assert final['stage_outcome'] == 'clear'
-    assert _plan_text(reviewer, plan) == 'ACCEPTED PLAN'
+    assert _accepted_plan_state(reviewer, plan) == ('ACCEPTED PLAN', 1, 1)
     assert _call(reviewer, 'accept', {})['status'] == 'completed'

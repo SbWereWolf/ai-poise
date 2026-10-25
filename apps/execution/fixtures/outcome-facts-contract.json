@@ -1,0 +1,677 @@
+{
+  "case_names": [
+    "O01-positive-explicit-delivery",
+    "O02-nonpositive-and-optional-context",
+    "O03-explicit-cancellation",
+    "O04-addressed-history-and-replay",
+    "O05-meaningful-admission-and-policy",
+    "O06-local-write-atomicity",
+    "O07-partial-transfer-continuation"
+  ],
+  "unknown_operation": "Unknown Execution operation: outcome",
+  "definitions": {
+    "ordinary": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "code"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "write"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "filled",
+            "kind": "section",
+            "section": "report",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "write",
+              "review",
+              "finish"
+            ],
+            "phase": "post"
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "write",
+          "instruction": "Записать результат этапа.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "write",
+            "review"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "review",
+          "instruction": "Записать результат этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "inspect",
+          "role": "reviewer",
+          "transitions": {
+            "clear": "finish",
+            "changes_requested": "write"
+          },
+          "rework_targets": [
+            "write",
+            "review"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "finish",
+          "instruction": "Записать результат этапа.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": null
+          },
+          "rework_targets": [
+            "write",
+            "review",
+            "finish"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    },
+    "check": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "code"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "write"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "filled",
+            "kind": "section",
+            "section": "report",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "write",
+              "review",
+              "finish"
+            ],
+            "phase": "post"
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "write",
+          "instruction": "Записать результат этапа.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "write",
+            "review"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "review",
+          "instruction": "Записать результат этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "inspect",
+          "role": "reviewer",
+          "transitions": {
+            "clear": "finish",
+            "changes_requested": "write"
+          },
+          "rework_targets": [
+            "write",
+            "review"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "finish",
+          "instruction": "Записать результат этапа.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "check",
+          "role": "writer",
+          "transitions": {
+            "satisfied": null,
+            "not_satisfied": null,
+            "inconclusive": null
+          },
+          "rework_targets": [
+            "write",
+            "review",
+            "finish"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    },
+    "review_terminal": {
+      "goal_type": "writing",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [
+          "code"
+        ],
+        "sections": []
+      },
+      "route": {
+        "entry": "write"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": [
+          {
+            "id": "filled",
+            "kind": "section",
+            "section": "report",
+            "states": [
+              "populated"
+            ],
+            "stages": [
+              "write",
+              "review"
+            ],
+            "phase": "post"
+          }
+        ]
+      },
+      "stages": [
+        {
+          "id": "write",
+          "instruction": "Записать результат этапа.",
+          "read_only": false,
+          "allowed_paths": [
+            "outputs/**"
+          ],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "produce",
+          "role": "writer",
+          "transitions": {
+            "complete": "review"
+          },
+          "rework_targets": [
+            "write",
+            "review"
+          ],
+          "purpose": "execution",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "review",
+          "instruction": "Записать результат этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "strip",
+          "sections": {
+            "report": "Записать результат."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "inspect",
+          "role": "reviewer",
+          "transitions": {
+            "clear": null,
+            "changes_requested": "write"
+          },
+          "rework_targets": [
+            "write",
+            "review"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    }
+  },
+  "method": {
+    "id": "guard",
+    "argv": [
+      "@PY",
+      "-B",
+      "-c",
+      "from pathlib import Path; import sys; data=Path('outputs/subject.bin').read_bytes(); sys.stdout.buffer.write(data); raise SystemExit(0 if data.startswith(b'OK') else 7)"
+    ],
+    "cwd": "@WORK",
+    "environment": {
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "expected_exit_code": 0,
+    "stdout_contains": [
+      "OK"
+    ],
+    "stderr_contains": [],
+    "source_under_test": {
+      "kind": "repository",
+      "bindings": [
+        {
+          "kind": "cwd",
+          "path": "."
+        }
+      ]
+    },
+    "verification_plan": {
+      "responsibility": "Observe the declared subject result.",
+      "change_surface": [
+        "outputs/subject.bin"
+      ],
+      "red_stages": [],
+      "green_stages": [
+        "write",
+        "review"
+      ],
+      "red_failure": null
+    },
+    "outputs": []
+  },
+  "evidence_plans": {
+    "ordinary": {
+      "write": {
+        "subject_methods": {},
+        "arguments": [
+          {
+            "id": "witness",
+            "kind": "logical",
+            "phase": "continue",
+            "observation_methods": [
+              "guard"
+            ]
+          }
+        ],
+        "review_arguments": []
+      },
+      "review": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": [
+          "witness"
+        ]
+      },
+      "finish": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "check": {
+      "write": {
+        "subject_methods": {},
+        "arguments": [
+          {
+            "id": "witness",
+            "kind": "logical",
+            "phase": "continue",
+            "observation_methods": [
+              "guard"
+            ]
+          }
+        ],
+        "review_arguments": []
+      },
+      "review": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": [
+          "witness"
+        ]
+      },
+      "finish": {
+        "subject_methods": {
+          "guard": {
+            "exit_codes": [
+              0,
+              7
+            ],
+            "stdout_contains": [],
+            "stderr_contains": []
+          }
+        },
+        "arguments": [
+          {
+            "id": "terminal",
+            "kind": "logical",
+            "phase": "continue",
+            "observation_methods": [
+              "guard"
+            ]
+          }
+        ],
+        "review_arguments": []
+      }
+    },
+    "review_terminal": {
+      "write": {
+        "subject_methods": {},
+        "arguments": [
+          {
+            "id": "witness",
+            "kind": "logical",
+            "phase": "continue",
+            "observation_methods": [
+              "guard"
+            ]
+          }
+        ],
+        "review_arguments": []
+      },
+      "review": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": [
+          "witness"
+        ]
+      }
+    }
+  },
+  "source_initial": "source version one\n",
+  "source_changed": "source version two\n",
+  "statement": {
+    "task_requirements": [
+      {
+        "key": "zeta",
+        "status": "current",
+        "text": "Второй наблюдаемый результат.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      },
+      {
+        "key": "report",
+        "status": "current",
+        "text": "Основной наблюдаемый результат.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      },
+      {
+        "key": "later",
+        "status": "future",
+        "text": "Будущий результат.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      },
+      {
+        "key": "retired",
+        "status": "obsolete",
+        "text": "Ранее требовавшийся результат.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Результат проверен."
+    ]
+  },
+  "future_statement": {
+    "task_requirements": [
+      {
+        "key": "later",
+        "status": "future",
+        "text": "Будущий наблюдаемый результат.",
+        "applications": [
+          "APP-REPORT"
+        ]
+      }
+    ],
+    "definition_of_done": [
+      "Текущая работа завершена."
+    ]
+  },
+  "expected_fact": {
+    "outcome_id": "@ID",
+    "task_id": "0042",
+    "generation": "@GEN",
+    "contract_revision": "@CONTRACT",
+    "requirements_snapshot_revision": 3,
+    "kind": "@KIND",
+    "stage_id": "@STAGE",
+    "iteration": "@ITERATION",
+    "handler_outcome": "@HANDLER",
+    "source": "@SOURCE",
+    "provenance": "@PROVENANCE",
+    "satisfied_task_requirements": "@KEYS",
+    "result_commit": "@COMMIT",
+    "decision": {
+      "actor_id": "executor-A",
+      "role_id": "writer",
+      "intent": "@INTENT",
+      "reason": "Завершить текущую работу."
+    }
+  },
+  "cancel_provenance": {
+    "visit_id": null,
+    "source_generation": null,
+    "source_actor_ids": [],
+    "gate_id": null,
+    "evidence_id": null,
+    "current_gate_id": null,
+    "current_evidence_id": null
+  },
+  "response_fields": [
+    "schema",
+    "status",
+    "revision",
+    "replayed",
+    "changed",
+    "fact"
+  ],
+  "query_root_fields": [
+    "schema",
+    "status",
+    "revision",
+    "results"
+  ],
+  "red_report": {
+    "errors": [],
+    "failures": [
+      {
+        "id": "O01-positive-explicit-delivery",
+        "reason": "missing_outcome"
+      },
+      {
+        "id": "O02-nonpositive-and-optional-context",
+        "reason": "missing_outcome"
+      },
+      {
+        "id": "O03-explicit-cancellation",
+        "reason": "missing_outcome"
+      },
+      {
+        "id": "O04-addressed-history-and-replay",
+        "reason": "missing_outcome"
+      },
+      {
+        "id": "O05-meaningful-admission-and-policy",
+        "reason": "missing_outcome"
+      },
+      {
+        "id": "O06-local-write-atomicity",
+        "reason": "missing_outcome"
+      },
+      {
+        "id": "O07-partial-transfer-continuation",
+        "reason": "missing_outcome"
+      }
+    ],
+    "tests_run": 7
+  },
+  "green_report": {
+    "errors": [],
+    "failures": [],
+    "tests_run": 7
+  },
+  "orchestrator": {
+    "schema": "stride-orchestrator-config/v1",
+    "paths": {
+      "state": "../state",
+      "database": "orchestrator.sqlite",
+      "lock": "orchestrator.lock"
+    },
+    "batch": {
+      "max_input_bytes": 65536,
+      "max_items": 128
+    },
+    "read": {
+      "max_queries": 128
+    },
+    "lock": {
+      "seconds": 5.0,
+      "poll_seconds": 0.05
+    },
+    "commands": {
+      "requirements.query": {
+        "protocol": "owner-json-v1",
+        "argv": [
+          "../../requirements/bin/requirements",
+          "--config",
+          "../../requirements/config/requirements.json"
+        ],
+        "cwd": "..",
+        "env": {},
+        "timeout_seconds": 10.0,
+        "accepted_exit_codes": [
+          0,
+          2
+        ]
+      }
+    }
+  },
+  "faults": {
+    "records": "CREATE TRIGGER fail_outcome_records BEFORE INSERT ON execution_records WHEN NEW.task_id='0042' BEGIN SELECT RAISE(ABORT,'T055 records fault'); END",
+    "requests": "CREATE TRIGGER fail_outcome_request BEFORE INSERT ON requests WHEN NEW.request_id='atomic-outcome' BEGIN SELECT RAISE(ABORT,'T055 request fault'); END"
+  }
+}

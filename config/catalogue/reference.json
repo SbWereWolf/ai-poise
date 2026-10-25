@@ -71,22 +71,6 @@
           "after": []
         },
         {
-          "id": "test_remediation",
-          "source_id": "GS-DEV-06",
-          "handler": "revise",
-          "before": [
-            "test_registry"
-          ],
-          "after": []
-        },
-        {
-          "id": "test_remediation_inspection",
-          "source_id": "GS-DEV-07",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "implementation_design",
           "source_id": "PAIRED-20261003-implementation_design",
           "handler": "produce",
@@ -112,36 +96,6 @@
         {
           "id": "implementation_inspection",
           "source_id": "GS-DEV-09",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "implementation_remediation_planning",
-          "source_id": "PAIRED-20261003-implementation_remediation_planning",
-          "handler": "produce",
-          "before": [
-            "implementation_remediation_plan"
-          ],
-          "after": []
-        },
-        {
-          "id": "implementation_remediation_planning_inspection",
-          "source_id": "PAIRED-20261003-implementation_remediation_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "implementation_remediation",
-          "source_id": "GS-DEV-10",
-          "handler": "revise",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "implementation_remediation_inspection",
-          "source_id": "GS-DEV-11",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -1442,41 +1396,21 @@
       "id": "FB-DEV-01",
       "goal_type": "development",
       "from_stage": "test_inspection",
-      "to_stage": "test_remediation",
+      "to_stage": "test_implementation",
       "from_handler": "inspect",
-      "to_handler": "revise",
+      "to_handler": "produce",
       "reason": "Осмотр нашёл дефект oracle или пропущенный сценарий теста.",
       "source_line": 14
-    },
-    {
-      "id": "FB-DEV-02",
-      "goal_type": "development",
-      "from_stage": "test_remediation_inspection",
-      "to_stage": "test_remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправление теста не устранило замечание либо создало новый дефект.",
-      "source_line": 15
     },
     {
       "id": "FB-DEV-03",
       "goal_type": "development",
       "from_stage": "implementation_inspection",
-      "to_stage": "implementation_remediation",
+      "to_stage": "implementation",
       "from_handler": "inspect",
-      "to_handler": "revise",
+      "to_handler": "produce",
       "reason": "Осмотр предъявленного кода нашёл недостаток реализации.",
       "source_line": 16
-    },
-    {
-      "id": "FB-DEV-04",
-      "goal_type": "development",
-      "from_stage": "implementation_remediation_inspection",
-      "to_stage": "implementation_remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Первое исправление кода неполно; требуется новая попытка с новыми доказательствами.",
-      "source_line": 17
     },
     {
       "id": "FB-DIA-01",

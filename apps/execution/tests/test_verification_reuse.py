@@ -97,7 +97,7 @@ def verification(root):
     assert fact['handler_outcome'] == 'not_satisfied' and fact['satisfied_task_requirements'] == []
     mark('lossless_bytes_and_outputs')
     # A genuinely empty schedule belongs to the current review stage.
-    empty = subject(root / 'empty')
+    empty = subject(root / 'empty', empty_review=True)
     empty.perform('write')
     empty.frame = empty.gate_ref('review', tag='empty-schedule')
     old_count = empty.count()
@@ -274,12 +274,14 @@ def attempt_limits(root):
     s.frame = s.gate_ref('review', tag='new-stage')
     budget(s, 0)
     _, empty = s.begin(actor='reviewer-B')
+    empty = s.run_all(empty, actor='reviewer-B')
     s.finish(empty, actor='reviewer-B')
     budget(s, 1)
     mark('stage_reset')
     s.rework_current()
     budget(s, 0)
     _, empty = s.begin(actor='reviewer-B')
+    empty = s.run_all(empty, actor='reviewer-B')
     s.finish(empty, actor='reviewer-B')
     s.restart_current()
     budget(s, 0)
@@ -696,7 +698,13 @@ def file_mapping(root):
     missing.unlink()
     negative = t.gate_ref('write', tag='partial-delivery', files=[t.selected_files[0]], accepted=False)
     assert negative['accepted'] is False
-    assert any(not row['passed'] for row in negative['assessment']['artifact_checks'])
+    assert negative['assessment']['artifact_checks'] == []
+    post = negative['assessment']['post']
+    assert post['stage'] == 'write' and post['phase'] == 'post' and post['passed'] is False
+    missing_rule = [row for row in post['requirements'] if row['id'] == 'sprint-result']
+    assert len(missing_rule) == 1
+    assert missing_rule[0]['origin'] == 'task' and missing_rule[0]['passed'] is False
+    assert missing_rule[0]['detail'] == 'unique_files=0; требуется 1..1'
     # Caller completes the physical delivery, then asks the existing Gate owner.
     source = Path(partial.source.selected_files[1])
     missing.write_bytes(source.read_bytes())

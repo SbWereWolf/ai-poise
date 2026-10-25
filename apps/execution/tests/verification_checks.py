@@ -127,7 +127,8 @@ def assert_attempt(value, *, subject, identifier, frame, schedule, used, maximum
 
 class VerificationSubject(OutcomeSubject):
     """Arrange old public process/proof prerequisites, never future product code."""
-    def __init__(self, root, *, extra=False, variant='ordinary', maximum=8, output_policy='required'):
+    def __init__(self, root, *, extra=False, variant='ordinary', maximum=8,
+                 output_policy='required', empty_review=False):
         self.task_id = '0042'
         super().__init__(root / 'prerequisite', variant=variant)
         self.fixture_root = root
@@ -164,6 +165,10 @@ class VerificationSubject(OutcomeSubject):
         else:
             assert output_policy == 'required'
         self.contract['methods'] = [method]
+        if empty_review:
+            review = next(row for row in self.contract['stage_expectations']
+                          if row['stage_id'] == 'review')
+            review['methods'] = []
         if extra:
             second = deepcopy(method)
             second['id'] = 'guard-extra'
@@ -332,10 +337,10 @@ class VerificationSubject(OutcomeSubject):
         return self.call('attempt', action, expected=expected,
                          attempt_id=attempt['attempt_id'], **fields)
 
-    def run_all(self, attempt, *, mode='good', frame=None, guard=True):
+    def run_all(self, attempt, *, mode='good', frame=None, guard=True, actor='executor-A'):
         frame = self.frame if frame is None else frame
         for run in attempt['runs']:
-            _, response = self.step('run', attempt, run_id=run['run_id'])
+            _, response = self.step('run', attempt, run_id=run['run_id'], actor_id=actor)
             assert response['status'] == 'run_recorded'
             selected = next(m for m in self.contract['methods'] if m['id'] == run['method_id'])
             observed = next(r for r in response['attempt']['runs'] if r['run_id'] == run['run_id'])
@@ -529,6 +534,7 @@ class VerificationSubject(OutcomeSubject):
                      candidate_id=self.frame['candidate_id'])
         result = self.act('rework', actor_id=actor, target_stage_id=state['current_stage'],
                           entry_tree=self.source()['tree'], reason='Повторить текущую работу.')
+        self.baseline = self.lifecycle()['entry_tree']
         self.frame = self.gate_ref(state['current_stage'], tag=self.identity('reworked'))
         return result
 

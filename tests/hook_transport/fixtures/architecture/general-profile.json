@@ -1,0 +1,38 @@
+{
+  "schema": "poise-harness-project-1",
+  "project": "@PROJECT@",
+  "git": {
+    "repository": "@CHECKOUT@"
+  },
+  "paths": {
+    "state": "@STATE@",
+    "database": "sessions.sqlite",
+    "lock": "sessions.lock",
+    "runtime": "runtime",
+    "runs": "runs",
+    "stdout": "stdout.txt",
+    "stderr": "stderr.txt",
+    "response": "response.json"
+  },
+  "limits": {
+    "git_seconds": 5,
+    "lock_seconds": 3,
+    "lock_poll_seconds": 0.01,
+    "sqlite_read_seconds": 3,
+    "output_chars": 5000
+  },
+  "batch": {
+    "max_items": 30,
+    "max_input_bytes": 1048576,
+    "file_mode": 384,
+    "message_source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
+    }
+  },
+  "runtime_resources": {
+    "project_setup": "@PROJECT_SETUP@",
+    "hooks": []
+  },
+  "task_adapter": null
+}

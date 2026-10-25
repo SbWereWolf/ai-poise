@@ -113,10 +113,11 @@ class FileProjectConfigUpdate:
                     root, task, workflows = self._source(task_path, [])
                     current_profile = read_document(profile_path) if profile_path.is_file() else None
                     base = {'config': task, 'workflows': workflows}
+                    source_revision = digest(base)
                     if 'harness_config_path' in entry:
                         current_revision = digest({**base, 'profile': current_profile, 'registry': registry})
                     else:
-                        current_revision = digest(base)
+                        current_revision = source_revision
                     after_registry = deepcopy(registry)
                     after_registry['projects'][request['project_id']]['harness_config_path'] = str(profile_path.relative_to(settings.root))
                     after_revision = digest({**base, 'profile': profile.raw, 'registry': after_registry})
@@ -124,8 +125,31 @@ class FileProjectConfigUpdate:
                     after = {'profile': digest(profile.raw), 'registry': digest(after_registry)}
                     if pending_path.is_file():
                         pending = read_document(pending_path)
+                        unverified_source = (
+                            'Pending publication source provenance is missing or unverified; '
+                            'preserve the pending and current state, then review the original '
+                            'publication with the configuration owner before selecting a new '
+                            'known intent. Retrying cannot establish its original source')
+                        if (set(pending) != {'schema', 'request_digest', 'source_revision',
+                                             'before', 'after'}
+                                or pending['schema'] != 'project-config-pending-2'
+                                or any(not isinstance(pending[key], dict)
+                                       or set(pending[key]) != {'profile', 'registry'}
+                                       for key in ('before', 'after'))):
+                            raise VersionConflict(unverified_source)
+                        fingerprints = [pending['request_digest'], pending['source_revision'],
+                                        *pending['before'].values(), *pending['after'].values()]
+                        if any(not isinstance(value, str) or len(value) != 64
+                               or any(char not in '0123456789abcdef' for char in value)
+                               for value in fingerprints):
+                            raise VersionConflict(unverified_source)
                         if pending['request_digest'] != request_digest:
                             raise VersionConflict('Different transition uses the pending request identity')
+                        if pending['source_revision'] != source_revision:
+                            raise VersionConflict(
+                                'Pending publication source differs from its verified original '
+                                'revision; review the source and restore the known accepted '
+                                'manifest/workflows before retrying the same request')
                         if any(components[k] not in (pending['before'][k], pending['after'][k]) for k in components):
                             raise VersionConflict('Pending publication encountered foreign drift; restore its recorded components')
                         if pending['after'] != after:
@@ -137,7 +161,8 @@ class FileProjectConfigUpdate:
                                 f'actual revision {current_revision}. Review the current project/profile state, '
                                 f'then submit a new request_id with expected_revision={current_revision} '
                                 'and the intended profile')
-                        pending = {'schema': 'project-config-pending-1', 'request_digest': request_digest,
+                        pending = {'schema': 'project-config-pending-2', 'request_digest': request_digest,
+                                   'source_revision': source_revision,
                                    'before': components, 'after': after}
                         atomic_write(pending_path, encoded(pending, settings.raw['json_indent']), settings.raw['file_mode'])
                     atomic_write(profile_path, encoded(profile.raw, settings.raw['json_indent']), settings.raw['file_mode'])

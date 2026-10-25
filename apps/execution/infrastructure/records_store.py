@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import json
 
 from apps.execution.domain.records import ExecutionRecord, RecordsError, canonical_json
+from apps.execution.domain.outcomes import OUTCOME_RECORD_KIND
 
 
 @contextmanager
@@ -76,6 +77,12 @@ class RecordRepository:
         return [self.record(row) for row in self.connection.execute(
             'SELECT task_id,kind,record_id,record_revision,generation,data_json '
             'FROM execution_records WHERE task_id=? ORDER BY seq', (task_id,))]
+
+    def outcome(self, outcome_id):
+        return self.record(self.connection.execute(
+            'SELECT task_id,kind,record_id,record_revision,generation,data_json '
+            'FROM execution_records WHERE kind=? AND record_id=? ORDER BY seq DESC LIMIT 1',
+            (OUTCOME_RECORD_KIND, outcome_id)).fetchone())
 
 
     def execution_state(self, task_id):

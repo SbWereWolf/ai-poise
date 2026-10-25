@@ -18,6 +18,8 @@ from apps.execution.application.lifecycle import ExecutionLifecycle
 from apps.execution.application.execution_state import ExecutionState
 from apps.execution.application.evidence import ExecutionEvidence
 from apps.execution.application.progression import ExecutionProgression
+from apps.execution.application.outcomes import ExecutionOutcomes
+from apps.execution.outcome_protocol import packet as outcome_packet, query_item as outcome_query_item
 from apps.execution.advance_protocol import packet as advance_packet, query_item as progression_query_item
 from apps.execution.lifecycle_protocol import (settings as lifecycle_settings,
     packet as lifecycle_packet, query_item as lifecycle_query_item)
@@ -177,6 +179,8 @@ def load_config(config_path):
         result['gates'] = gate_settings(data['gates'], state)
     if 'lifecycle' in data:
         result['lifecycle'] = lifecycle_settings(data['lifecycle'])
+    if 'outcomes' in data:
+        result['outcomes'] = data['outcomes']
     if 'git' in data:
         _config_fields(data['git'], {'seconds', 'observations'}, 'Execution config git')
         relative = Path(_path_text(data['git']['observations'], 'Execution config git.observations'))
@@ -228,6 +232,9 @@ def _packet(value, config):
         raise ExecutionError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise ExecutionError("Execution packet input must be an object")
+    if value['operation'] == 'outcome':
+        outcome_packet(value['input'], config)
+        return value
     if value['operation'] == 'advance':
         advance_packet(value['input'], config)
         return value
@@ -270,6 +277,12 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
+            if isinstance(query, dict) and query.get('kind') == 'outcome':
+                outcome_query_item(query, config)
+                if query['id'] in seen:
+                    raise ExecutionError('Execution query ids must be unique')
+                seen.add(query['id'])
+                continue
             if isinstance(query, dict) and query.get('kind') == 'progression':
                 progression_query_item(query, config)
                 if query['id'] in seen:
@@ -321,9 +334,13 @@ class Store:
             config.get('lifecycle'),
             ProcessDefinitions(ProcessFiles(config['process'])) if 'process' in config else None,
             self.records, lambda contract: _validate_contract(contract, config), state_owner)
+        evidence = ExecutionEvidence()
         self.progression = ExecutionProgression(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
-            config.get('lifecycle'), state_owner, ExecutionEvidence(), self.gates)
+            config.get('lifecycle'), state_owner, evidence, self.gates)
+        self.outcomes = ExecutionOutcomes(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            config.get('lifecycle'), config.get('outcomes'), state_owner, evidence)
 
     @contextlib.contextmanager
     def locked(self):
@@ -459,6 +476,11 @@ class Store:
                 records = {}
                 file_queries = False
                 for query in packet["input"]["queries"]:
+                    if query['kind'] == 'outcome':
+                        result = self._record_call(self.outcomes.query, repository,
+                                                   query['task_id'], query['outcome_id'])
+                        results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
+                        continue
                     if query['kind'] == 'progression':
                         result = self._record_call(self.progression.query, repository, query['task_id'])
                         results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
@@ -505,7 +527,9 @@ def execute(config_path, stream, output):
             raise ExecutionError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        if packet['operation'] == 'advance':
+        if packet['operation'] == 'outcome':
+            result = store._record_call(store.outcomes.execute, packet['input'])
+        elif packet['operation'] == 'advance':
             result = store._record_call(store.progression.execute, packet['input'])
         elif packet['operation'] == 'lifecycle':
             result = store._record_call(store.lifecycle.execute, packet['input'])

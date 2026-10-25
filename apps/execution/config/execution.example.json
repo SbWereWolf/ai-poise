@@ -25,6 +25,11 @@
     "seconds": 30.0,
     "observations": "git-observations"
   },
+  "outcomes": {
+    "roles": [
+      "writer"
+    ]
+  },
   "lifecycle": {
     "actors": {
       "executor-A": "writer",

@@ -258,6 +258,17 @@ class SourceCase:
     def recover(self):
         child, actual, before, after = self.retry()
         accepted = require_success(child, actual, 'profile')
+        project = self.packet['project_id']
+        expected_registry = deepcopy(json.loads(before[str(self.scenario.registry)]))
+        own = expected_registry['projects'][project]
+        own['config_path'] = str(Path(self.packet['task_config_path']).relative_to(
+            self.scenario.root))
+        own['harness_config_path'] = str(Path(self.packet['harness_config_path']).relative_to(
+            self.scenario.root))
+        assert json.loads(self.scenario.registry.read_text()) == expected_registry
+        assert accepted['project'] == project
+        assert accepted['config_path'] == self.packet['task_config_path']
+        assert accepted['harness_config_path'] == self.packet['harness_config_path']
         require(not self.pending.exists(), 'Successful recovery retains its pending')
         require(json.loads(self.scene.path.read_text()) == self.packet['profile'],
                 'Recovery did not publish the requested profile')

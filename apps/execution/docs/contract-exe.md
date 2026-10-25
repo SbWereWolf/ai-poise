@@ -1,12 +1,15 @@
 # Execution public contract
 
-Статус: действующие process/gate/files/lifecycle/advance API и отдельно отмеченные проектные материалы.
+Статус: действующие process/gate/files/lifecycle/advance/outcome API и отдельно отмеченные
+проектные материалы.
 Версия публичного протокола: `stride-execution/v1`.
 
 Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
 `files/check|diff`, `query/execution|gate_context|gate_result|file_result|file_diff_result`,
 Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`,
-`advance/next|fast_forward` и `query/progression`.
+`advance/next|fast_forward`, `outcome` и `query/progression|outcome`.
+[Итог выполнения](outcomes-exe.md) описывает текущие полномочия, пакет решения,
+адресуемый факт, повторы и явную передачу отдельным получателям.
 [Продвижение](advance-exe.md) описывает действующие пакеты, доказательства и историю.
 Действующий [lifecycle](lifecycle-exe.md) предоставляет семь действий
 freeze/enter/present/propose_restart/decide_restart/restart/rework и чтение
@@ -22,11 +25,11 @@ query/lifecycle|restart_history. Точные текущие пакеты и р�
 API,
 F3/F4 ссылаются на действующую приёмку.
 
-Остальные схемы §1–3, §5–7, §8.2–11 и F1a/F5/F7–F11 — проектные материалы T012, если явно
+Остальные схемы §1–3, §5–7, §8.2–11 и F1a/F5/F7–F9/F11 — проектные материалы T012, если явно
 не отмечены в действующих руководствах. Они сами по себе не объявляют возможности
 поставленного provider или новые обязательства реализации. В частности,
 `ValueRule`/`FileRule`, target structured `error`, authority resolver, subprocess
-runner, terminal outcome и межзадачный reuse остаются проектом;
+runner и межзадачный reuse остаются проектом;
 фактический текущий отказ
 содержит `reason`, exit `2`, пустой stderr. Реальные секции, trace и файловые
 счётчики описаны у владельца [gate](gate-exe.md).
@@ -366,14 +369,12 @@ Operations nonempty, configured bounded, уникальные `id`; резуль
 | `propose_restart` | `task_id,expected_generation,proposal_id,proposed_contract:ExecutionContract,reason` | `task_id,proposal_id,proposal_digest` |
 | `decide_restart` | `task_id,proposal_id,proposal_digest,decision,reason` | `task_id,approval_id,decision` |
 | `restart` | `task_id,expected_generation,proposal_id,approval_id` | `task_id,generation,contract_revision` |
-| `record_outcome` | `task_id,generation,outcome_id,kind_of_outcome,result_ref,authorization_id` | `task_id,outcome_id,kind_of_outcome` |
 
 Здесь `expected_generation/generation` — Ordinal; `expected_contract_revision`,
 `proposal_digest` — Digest; ID и reason непусты; `decision=approved|rejected`.
-`kind_of_outcome=positive|negative|cancelled`; `result_ref` —
-`{candidate_id,gate_id,commit:GitObject|null}` либо null. Positive требует exact
-verified terminal candidate и настроенную acceptance authority; для negative и
-cancelled result_ref null. Terminal не означает автоматически positive/completed.
+Итоговое решение имеет самостоятельную действующую операцию `outcome`,
+описанную в [руководстве исходов](outcomes-exe.md#пакет-и-результат).
+Терминальный переход и положительный итог различаются.
 
 `setup_execution` создаёт draft generation1 только в Execution. Другая уже
 имеющаяся canonical identity/contract — `identity_conflict`, exact same setup
@@ -492,8 +493,9 @@ revision/generation/contract, настоящего участника, source и
 предусловия следующего этапа. Повторное потребление одного исторического визита
 останавливает цикл; точный request replay возвращает сохранённый результат.
 
-`route_end` оставляет execution в `verified`. Terminal outcome задачи и его
-передача другим приложениям относятся к отдельной проектной поставке.
+`route_end` оставляет execution в `verified`. Уполномоченный участник затем
+явно вызывает действующий [outcome](outcomes-exe.md#правильный-порядок-решения),
+а вызывающая сторона отдельно передаёт сохранённый факт получателям.
 Далее §8.2 описывает проектный интерфейс интеграции; подготовка коммита этапа
 уже реализована отдельно в [Store.prepare_stage_commit](diff-exe.md).
 
@@ -522,6 +524,8 @@ obligation/receipt передаётся ему явно. Интеграция н
 
 ## 9. Consistent queries
 
+Текущее чтение `outcome` возвращает полный сохранённый факт в поле `result`
+по [действующему договору](outcomes-exe.md#адресное-чтение-и-повтор).
 Текущее чтение `execution|gate_context|gate_result` определено в
 [оболочке](shell-exe.md#настройка-исполнения-и-чтение) и
 [руководстве gate](gate-exe.md#чтение-и-повторы). Раздел ниже сохраняет проектный
@@ -538,15 +542,17 @@ Input точно `{queries:Query[]}`, nonempty bounded, `id` непусты и �
 | `contract` | `task_id,generation` | `{contract_revision,contract:ExecutionContract,process:ProcessDefinition}` |
 | `candidate` | `task_id,candidate_id` | `{candidate:Candidate,candidate_digest,state,gate_id:Id|null}` |
 | `gate` | `task_id,gate_id` | `{gate_id,candidate_id,candidate_digest,source,artifact_ids,receipt_ids,verified:boolean}` |
-| `outcome` | `task_id,outcome_id` | `{outcome_id,task_id,generation,kind_of_outcome,result_ref,authorization_id}` |
+| `outcome` (действующий) | `task_id,outcome_id` | Полный `result` из [руководства исходов](outcomes-exe.md#пакет-и-результат), отдельный от проектного `value` |
 | `restart_history` | `task_id` | `{entries:[{proposal_id,proposal_digest,approval_id,decision,source_generation,target_generation:Ordinal|null,actor_id,role_id}]}` |
 | `history` | `task_id,after_event:Id|null,limit:Ordinal` | `{events:[{id,type,generation,subject_id,revision}],next_after:Id|null}` |
 | `artifact` | `task_id,artifact_id` | `{artifact_id,root_id,path,sha256,bytes,capture_id}` |
 
-`state` execution = `draft|ready|active|terminal`; candidate =
+Для проектных строк этой таблицы `state` execution = `draft|ready|active|terminal`; candidate =
 `submitted|verified|superseded`. Gate record `verified:true` только для выполненной
 проверки владельцем, не caller input. Все identities принадлежат указанной Task.
-Unknown identity => весь packet `not_found`; mixed partial query success нет.
+Проектный unknown identity даёт `not_found`; действующий outcome query
+использует обычный rejected/reason из руководства исходов. Частичный успех
+смешанного query-пакета не возвращается.
 
 ## 10. Owner-only transfer
 
@@ -830,17 +836,16 @@ reason`path`; destination не изменён, файл снаружи не со
 
 ### F10 — отрицательный outcome не completion
 
-Initial revision40, Task0042 generation2 имеет configured terminal negative route,
-trusted cancellation/outcome authority`auth40` существует.
+Действующий сценарий: после допущенного терминального `not_satisfied` либо
+`inconclusive` уполномоченный участник передаёт `outcome` с intent accept,
+актуальными revision/generation/contract, source принятого доказательства
+и явным result_commit null. Execution сохраняет kind negative, настоящий
+handler_outcome и пустой satisfied_task_requirements. Примеры и полные поля
+даны в [руководстве исходов](outcomes-exe.md#примеры-обращения-к-cli).
 
-```json
-{"schema":"stride-execution/v1","operation":"apply","input":{"request_id":"negative-outcome","expected_revision":40,"operations":[{"id":"o","kind":"record_outcome","task_id":"0042","generation":2,"outcome_id":"o40","kind_of_outcome":"negative","result_ref":null,"authorization_id":"auth40"}]}}
-```
-
-Expected applied revision41; query outcome.kind_of_outcome = negative, result_ref
-null. Requirements satisfaction и Sequencing dependencies не меняются. Попытка
-подать positive без required verified terminal candidate => `evidence_incomplete`,
-не изготовленный completed result.
+После создания факта данные Requirements/Sequencing сохраняются. Их обновляет
+явная передача проекций вызывающей стороной; Sequencing принимает negative
+как available, а Requirements сохраняет отрицательный факт без satisfaction.
 
 ### F11 — переносимость и consistent read
 

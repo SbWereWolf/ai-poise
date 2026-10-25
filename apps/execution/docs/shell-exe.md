@@ -17,8 +17,8 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 `stride-execution/v1`; текущий CLI выполняет `process`, `apply` с
 `setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check|diff`,
 `lifecycle` с семью действиями согласования и повторной работы,
-`advance` с `action: next|fast_forward`,
-и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression`.
+`advance` с `action: next|fast_forward`, `outcome` с `intent: accept|cancel`
+и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression|outcome`.
 [Редактор процессов](process-exe.md) описывает create/edit/status/reconcile и
 материализацию выбранного графа.
 
@@ -37,6 +37,11 @@ freeze/enter/present, предложение и решение о пересмо
 
 [Продвижение по доказательствам](advance-exe.md) описывает пакеты next/fast_forward,
 чтение progression, текущие входы и передачу новой работы по роли.
+
+[Итог выполнения](outcomes-exe.md) описывает явное решение, полный адресуемый
+факт и передачу получателям. Для новых решений настройте `outcomes.roles`
+по [инструкции](outcomes-exe.md#подготовка-и-настройка); чтение истории и точный
+повтор сохранённого запроса имеют собственный договор.
 
 ## Конфигурация приложения
 

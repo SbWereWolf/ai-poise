@@ -175,7 +175,8 @@ ID запросов примера включают канонический ID 
 `"restart_history"`. Корень ответа: `schema,status:"read_only",revision,results`.
 Элемент результата имеет `{id,kind,result}`. Для lifecycle `result` содержит
 `registered_goal,requirements_snapshot,execution,entry_tree,history`;
-`execution` содержит `task_id,generation,contract_revision,state,current_stage,iteration,workspace_id,admission_id`.
+`execution` содержит
+`task_id,generation,contract_revision,state,current_stage,iteration,workspace_id,admission_id`.
 История включает все собственные события lifecycle данной Task в порядке записи.
 `restart_history` возвращает только события предложения, решения и restart,
 включая прежние поколения. Полные предложения и решения доступны через
@@ -199,8 +200,11 @@ exit `2` и пустым stderr; состояние, факты, revision и р�
 Действующие семь действий отделены от проектных схем
 [целевого контракта](contract-exe.md). Действующие `advance/next` и перемотка после restart
 по свежим доказательствам описаны в [руководстве продвижения](advance-exe.md).
-Внешний runner, terminal outcome, межзадачное повторное использование результатов
-и удаление материалов имеют отдельные задачи поставки. Сохранённые методы/доказательства остаются
+[Итог выполнения](outcomes-exe.md) уже доступен отдельной операцией outcome.
+Действительный enter/rework/restart открывает новую работу для нового решения;
+старые факты сохраняются адресуемыми. Внешний runner, межзадачное повторное
+использование результатов и удаление материалов имеют отдельные задачи поставки. Сохранённые
+методы/доказательства остаются
 историей своих поколений; новую успешную проверку выполняет её владелец.
 
 Целевые проверки действующего поведения:

@@ -43,6 +43,9 @@ def rows(database):
     with sqlite3.connect(database) as db:
         return {
             'revision': db.execute('SELECT value FROM meta WHERE key=?', ('revision',)).fetchone()[0],
+            'executions': db.execute('SELECT task_id,generation,contract_revision,contract_json,state,'
+                                     'current_stage,iteration,workspace_id,admission_id '
+                                     'FROM executions ORDER BY task_id').fetchall(),
             'records': db.execute('SELECT kind,record_id,task_id,generation,record_revision,data_json '
                                   'FROM execution_records ORDER BY seq').fetchall(),
             'requests': db.execute('SELECT request_id,digest,response_json FROM requests '
@@ -518,11 +521,11 @@ class VerificationSubject(OutcomeSubject):
 
     def rework_current(self):
         state = self.sync()
+        actor = 'reviewer-B' if state['current_stage'] == 'review' else 'executor-A'
         if self.lifecycle()['execution']['state'] == 'active':
-            self.act('present', context_id=self.frame['context_id'],
+            self.act('present', actor_id=actor, context_id=self.frame['context_id'],
                      candidate_id=self.frame['candidate_id'])
-        result = self.act('rework', actor_id=('reviewer-B' if state['current_stage'] == 'review'
-                                             else 'executor-A'), target_stage_id=state['current_stage'],
+        result = self.act('rework', actor_id=actor, target_stage_id=state['current_stage'],
                           entry_tree=self.source()['tree'], reason='Повторить текущую работу.')
         self.frame = self.gate_ref(state['current_stage'], tag=self.identity('reworked'))
         return result
@@ -689,7 +692,7 @@ class ReuseFamily:
         write_json(target.config, cfg)
         target.contract = deepcopy(s.contract)
         target.contract.update(task_id='0045', requirements_snapshot_revision=1,
-                               workspace_id=self.workspace['workspace_id'])
+                               workspace_id=self.workspace['workspace_id'], admission_id='admit-0045')
         if target_contract_change is not None:
             target_contract_change(target.contract)
             if target.contract['restart_policy_id'] not in cfg['lifecycle']['policies']:

@@ -135,8 +135,7 @@ def recovery(root):
     lost = subject(root / 'record-failure', extra=True)
     _, attempt = lost.begin()
     lost.fault('T056_receipt_save', 'execution_records',
-        "NEW.kind='attempt' AND (json_extract(NEW.data_json,'$.runs[0].receipt') IS NOT NULL "
-        "OR json_array_length(json_extract(NEW.data_json,'$.receipts'))>0)")
+        DATA['receipt_write_fault_condition'])
     try:
         run_packet, response = lost.step('run', attempt,
                                        run_id=attempt['runs'][0]['run_id'], expected=3)
@@ -454,6 +453,9 @@ def related_reuse(root):
     assert s.initial_snapshot['snapshot_revision'] == 1
     assert family.source.initial_snapshot['snapshot_revision'] == 3
     assert s.contract['workspace_id'] != family.source.contract['workspace_id']
+    assert s.contract['admission_id'] != family.source.contract['admission_id']
+    assert s.initial_snapshot['registry_revision'] != family.source.initial_snapshot['registry_revision']
+    assert s.initial_snapshot['links']['application_task'] != family.source.initial_snapshot['links']['application_task']
     assert s.git_root != family.source.git_root and s.source() == family.source.source()
     mark('real_family_and_source')
     prepared, response = prepare(family)
@@ -716,8 +718,7 @@ def failed_reuse(root):
     t = unknown.target
     prepared, _ = prepare(unknown)
     t.fault('T056_reuse_receipt', 'execution_records',
-        "NEW.kind='attempt' AND (json_extract(NEW.data_json,'$.runs[0].receipt') IS NOT NULL "
-        "OR json_array_length(json_extract(NEW.data_json,'$.receipts'))>0)")
+        DATA['receipt_write_fault_condition'])
     attempt_id = t.identity('unknown-reuse-attempt')
     try:
         pending = verify_reuse(unknown, prepared, attempt=attempt_id, expected=3)

@@ -684,5 +684,6 @@
   "artifact_bytes": {
     "task": "526573756c742069732072656164792e0a",
     "sprint": "00ff726573756c74800a"
-  }
+  },
+  "receipt_write_fault_condition": "EXISTS (SELECT 1 FROM json_tree(NEW.data_json) WHERE key='stdout' AND value='CHECKED:OK\n')"
 }

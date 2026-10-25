@@ -1,0 +1,688 @@
+{
+  "groups": {
+    "V01-actual-verification-and-full-evidence": [
+      "reserved_shape",
+      "ordered_real_receipts",
+      "finished_evidence",
+      "actual_failure",
+      "empty_declared_schedule",
+      "lossless_bytes_and_outputs"
+    ],
+    "V02-durable-recovery-and-exact-once": [
+      "exact_replay",
+      "reserved_unstarted_continuation",
+      "prefix_tail_once",
+      "record_failure_recover_once",
+      "live_pending_transitions",
+      "actual_recovery_positive_transitions",
+      "quiescent_abandon_retains_history"
+    ],
+    "V03-explicit-attempt-budget-and-work-scope": [
+      "new_attempt_below_bound",
+      "exhausted_no_effect",
+      "same_pending_resume_at_bound",
+      "read_replay_no_reset",
+      "stage_reset",
+      "rework_restart_reset",
+      "reuse_attempt_bound"
+    ],
+    "V04-new-input-binding-and-policy": [
+      "config_table",
+      "input_table",
+      "identity_source_method_table",
+      "actor_policy",
+      "corrected_positive_controls",
+      "old_read_without_capability"
+    ],
+    "U01-real-related-local-reuse-and-explicit-accept": [
+      "real_family_and_source",
+      "prepare_projection",
+      "fresh_local_verification",
+      "explicit_accept_full_fact",
+      "real_both_receivers",
+      "source_unchanged_cursor_not_advanced"
+    ],
+    "U02-complete-compatibility-and-source-admission": [
+      "identity_only_compatible",
+      "substantive_snapshot_table",
+      "process_evidence_method_table",
+      "unrelated_unfinished_nonpositive_table",
+      "source_available_local_ancestor",
+      "historical_source_after_restart"
+    ],
+    "U03-files-required-outputs-and-local-mapping": [
+      "text_binary_mapping",
+      "task_sprint_scope",
+      "required_outputs",
+      "required_missing_vs_optional_empty",
+      "partial_delivery_recovery_source_unchanged"
+    ],
+    "U04-failed-and-uncertain-local-reuse": [
+      "fresh_failed_guard_no_old_pass",
+      "local_repair_fresh_attempt",
+      "unknown_reuse_continue",
+      "drift_after_verify",
+      "ordinary_then_reuse",
+      "reuse_then_ordinary_and_second",
+      "interphase_finality",
+      "new_work_opens_shared_scope"
+    ],
+    "Q01-addressed-history-atomicity-and-replay": [
+      "full_query_reopen",
+      "equal_exact_conflicting_identity",
+      "local_atomic_failure",
+      "retained_history",
+      "historical_replay_does_not_close_new_work"
+    ]
+  },
+  "program_lines": [
+    "from pathlib import Path",
+    "import os",
+    "import sys",
+    "import time",
+    "",
+    "mode = Path(\"outputs/verification-mode.txt\").read_text().strip()",
+    "control = Path(os.environ[\"VERIFY_CONTROL\"])",
+    "if (control / \"hold\").exists():",
+    "    (control / \"ready\").write_text(\"ready\\n\")",
+    "    while not (control / \"release\").exists():",
+    "        time.sleep(0.01)",
+    "with Path(os.environ[\"VERIFY_COUNTER\"]).open(\"a\") as stream:",
+    "    stream.write(str(Path.cwd()) + \"|\" + os.environ[\"VERIFY_METHOD\"] + \"|\" + mode + \"\\n\")",
+    "output = Path(os.environ[\"POISE_RUN_OUTPUT_DIR\"])",
+    "output.mkdir(parents=True, exist_ok=True)",
+    "if mode != \"missing\":",
+    "    (output / \"report.txt\").write_bytes(b\"Verified result.\\n\")",
+    "    (output / \"payload.bin\").write_bytes(b\"\\x00\\xffresult\\x80\\n\")",
+    "if mode == \"bad\":",
+    "    sys.stdout.buffer.write(b\"CHECKED:BAD\\n\")",
+    "    sys.stderr.buffer.write(b\"verified\\n\")",
+    "    raise SystemExit(7)",
+    "if mode == \"raw\":",
+    "    sys.stdout.buffer.write(b\"CHECKED:OK\\n\\x00\\xff\")",
+    "    sys.stderr.buffer.write(b\"verified\\n\\xfe\")",
+    "else:",
+    "    sys.stdout.buffer.write(b\"CHECKED:OK\\n\")",
+    "    sys.stderr.buffer.write(b\"verified\\n\")"
+  ],
+  "method": {
+    "id": "guard",
+    "argv": [
+      "@PY",
+      "-B",
+      "outputs/verify_subject.py"
+    ],
+    "cwd": ".",
+    "environment": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "VERIFY_COUNTER": "@COUNTER",
+      "VERIFY_CONTROL": "@CONTROL",
+      "VERIFY_METHOD": "guard"
+    },
+    "expected_exit_code": 0,
+    "stdout_contains": [
+      "CHECKED:OK"
+    ],
+    "stderr_contains": [
+      "verified"
+    ],
+    "source_under_test": {
+      "kind": "repository",
+      "bindings": [
+        {
+          "kind": "cwd",
+          "path": "."
+        }
+      ]
+    },
+    "verification_plan": {
+      "responsibility": "Проверить фактический результат исходника.",
+      "change_surface": [
+        "outputs/verification-mode.txt"
+      ],
+      "red_stages": [],
+      "green_stages": [
+        "write",
+        "review"
+      ],
+      "red_failure": null
+    },
+    "outputs": [
+      {
+        "id": "report",
+        "path": "report.txt",
+        "required": true
+      },
+      {
+        "id": "binary",
+        "path": "payload.bin",
+        "required": true
+      }
+    ]
+  },
+  "cases": {
+    "good": {
+      "exit": 0,
+      "stdout": "CHECKED:OK\n",
+      "stderr": "verified\n",
+      "stdout_hex": "434845434b45443a4f4b0a",
+      "stderr_hex": "76657269666965640a",
+      "interpretable": true,
+      "passed": true,
+      "output_status": "captured",
+      "capture_complete": true
+    },
+    "bad": {
+      "exit": 7,
+      "stdout": "CHECKED:BAD\n",
+      "stderr": "verified\n",
+      "stdout_hex": "434845434b45443a4241440a",
+      "stderr_hex": "76657269666965640a",
+      "interpretable": true,
+      "passed": false,
+      "output_status": "captured",
+      "capture_complete": true
+    },
+    "raw": {
+      "exit": 0,
+      "stdout": "CHECKED:OK\n\u0000�",
+      "stderr": "verified\n�",
+      "stdout_hex": "434845434b45443a4f4b0a00ff",
+      "stderr_hex": "76657269666965640afe",
+      "interpretable": false,
+      "passed": false,
+      "output_status": "captured",
+      "capture_complete": true
+    },
+    "missing": {
+      "exit": 0,
+      "stdout": "CHECKED:OK\n",
+      "stderr": "verified\n",
+      "stdout_hex": "434845434b45443a4f4b0a",
+      "stderr_hex": "76657269666965640a",
+      "interpretable": true,
+      "passed": false,
+      "output_status": "missing",
+      "capture_complete": false
+    },
+    "missing_optional": {
+      "exit": 0,
+      "stdout": "CHECKED:OK\n",
+      "stderr": "verified\n",
+      "stdout_hex": "434845434b45443a4f4b0a",
+      "stderr_hex": "76657269666965640a",
+      "interpretable": true,
+      "passed": true,
+      "output_status": "missing",
+      "capture_complete": true
+    },
+    "no_outputs": {
+      "exit": 0,
+      "stdout": "CHECKED:OK\n",
+      "stderr": "verified\n",
+      "stdout_hex": "434845434b45443a4f4b0a",
+      "stderr_hex": "76657269666965640a",
+      "interpretable": true,
+      "passed": true,
+      "output_status": "captured",
+      "capture_complete": true
+    }
+  },
+  "receipt_keys": [
+    "actual_exit_code",
+    "argv",
+    "attempt_id",
+    "capture_complete",
+    "commit",
+    "cwd",
+    "environment",
+    "execution_key",
+    "guard",
+    "id",
+    "interpretable",
+    "method",
+    "obligations",
+    "output_directory",
+    "outputs",
+    "passed",
+    "resolved_cwd",
+    "run_id",
+    "source_after",
+    "source_before",
+    "source_unchanged",
+    "stderr",
+    "stderr_bytes_hex",
+    "stdout",
+    "stdout_bytes_hex",
+    "termination",
+    "timed_out",
+    "tree"
+  ],
+  "attempt_keys": [
+    "attempt_id",
+    "task_id",
+    "generation",
+    "contract_revision",
+    "stage_id",
+    "iteration",
+    "context_id",
+    "candidate_id",
+    "source",
+    "method_ids",
+    "purpose",
+    "owner_id",
+    "budget",
+    "state",
+    "runs",
+    "evidence_id"
+  ],
+  "reuse_keys": [
+    "reuse_id",
+    "task_id",
+    "generation",
+    "contract_revision",
+    "source_task_id",
+    "source_outcome_id",
+    "source",
+    "context_id",
+    "candidate_id",
+    "artifact_mapping",
+    "state",
+    "attempt_id",
+    "evidence_id",
+    "fact"
+  ],
+  "ordinary_fact_keys": [
+    "outcome_id",
+    "task_id",
+    "generation",
+    "contract_revision",
+    "requirements_snapshot_revision",
+    "kind",
+    "stage_id",
+    "iteration",
+    "handler_outcome",
+    "source",
+    "provenance",
+    "satisfied_task_requirements",
+    "result_commit",
+    "decision"
+  ],
+  "termination": {
+    "schema": "run-termination-1",
+    "child_reaped": true,
+    "process_group_stopped": true,
+    "capture_complete": true
+  },
+  "captured_outputs": [
+    {
+      "id": "report",
+      "declared_path": "report.txt",
+      "required": true,
+      "status": "captured",
+      "path": "@REPORT",
+      "size": 17
+    },
+    {
+      "id": "binary",
+      "declared_path": "payload.bin",
+      "required": true,
+      "status": "captured",
+      "path": "@BINARY",
+      "size": 10
+    }
+  ],
+  "output_bytes": {
+    "report": "566572696669656420726573756c742e0a",
+    "binary": "00ff726573756c74800a"
+  },
+  "missing_operation": "Unknown Execution operation: attempt",
+  "config_denials": [
+    {
+      "id": "max-zero",
+      "field": "max_attempts",
+      "value": 0,
+      "reason": "max_attempts"
+    },
+    {
+      "id": "max-bool",
+      "field": "max_attempts",
+      "value": true,
+      "reason": "max_attempts"
+    },
+    {
+      "id": "max-text",
+      "field": "max_attempts",
+      "value": "2",
+      "reason": "max_attempts"
+    },
+    {
+      "id": "roles-empty",
+      "field": "roles",
+      "value": [],
+      "reason": "roles"
+    },
+    {
+      "id": "roles-duplicate",
+      "field": "roles",
+      "value": [
+        "writer",
+        "writer"
+      ],
+      "reason": "roles"
+    },
+    {
+      "id": "roles-unknown",
+      "field": "roles",
+      "value": [
+        "other"
+      ],
+      "reason": "roles"
+    },
+    {
+      "id": "roles-shape",
+      "field": "roles",
+      "value": "writer",
+      "reason": "roles"
+    },
+    {
+      "id": "repository-empty",
+      "field": "repository",
+      "value": "",
+      "reason": "repository"
+    },
+    {
+      "id": "base-empty",
+      "field": "base_ref",
+      "value": "",
+      "reason": "base_ref"
+    },
+    {
+      "id": "output-empty",
+      "field": "output_root",
+      "value": "",
+      "reason": "output_root"
+    }
+  ],
+  "statement_differences": [
+    {
+      "id": "text",
+      "path": [
+        "task_requirements",
+        1,
+        "text"
+      ],
+      "value": "Другой наблюдаемый результат."
+    },
+    {
+      "id": "status",
+      "path": [
+        "task_requirements",
+        1,
+        "status"
+      ],
+      "value": "future"
+    },
+    {
+      "id": "key",
+      "path": [
+        "task_requirements",
+        1,
+        "key"
+      ],
+      "value": "another-report"
+    },
+    {
+      "id": "dod",
+      "path": [
+        "definition_of_done",
+        0
+      ],
+      "value": "Другое условие завершения."
+    },
+    {
+      "id": "parent",
+      "path": [
+        "task_requirements",
+        1,
+        "applications"
+      ],
+      "value": [
+        "APP-OTHER"
+      ]
+    }
+  ],
+  "contract_differences": [
+    {
+      "id": "exit",
+      "path": [
+        "methods",
+        0,
+        "expected_exit_code"
+      ],
+      "value": 7
+    },
+    {
+      "id": "stdout",
+      "path": [
+        "methods",
+        0,
+        "stdout_contains"
+      ],
+      "value": [
+        "OTHER"
+      ]
+    },
+    {
+      "id": "stderr",
+      "path": [
+        "methods",
+        0,
+        "stderr_contains"
+      ],
+      "value": [
+        "OTHER"
+      ]
+    },
+    {
+      "id": "environment",
+      "path": [
+        "methods",
+        0,
+        "environment",
+        "VERIFY_METHOD"
+      ],
+      "value": "another"
+    },
+    {
+      "id": "schedule",
+      "path": [
+        "stage_expectations",
+        0,
+        "methods"
+      ],
+      "value": []
+    },
+    {
+      "id": "evidence",
+      "path": [
+        "evidence_plan",
+        "write",
+        "arguments",
+        0,
+        "phase"
+      ],
+      "value": "prepare"
+    },
+    {
+      "id": "policy",
+      "path": [
+        "restart_policy_id"
+      ],
+      "value": "other-policy"
+    }
+  ],
+  "family_satisfaction": {
+    "task_requirements": [
+      {
+        "task_id": "0042",
+        "statement_revision": 4,
+        "snapshot_revision": 3,
+        "key": "later",
+        "applicable": false,
+        "satisfied": false,
+        "evidence_outcome_ids": []
+      },
+      {
+        "task_id": "0042",
+        "statement_revision": 4,
+        "snapshot_revision": 3,
+        "key": "report",
+        "applicable": true,
+        "satisfied": true,
+        "evidence_outcome_ids": [
+          "@SOURCE_OUTCOME"
+        ]
+      },
+      {
+        "task_id": "0042",
+        "statement_revision": 4,
+        "snapshot_revision": 3,
+        "key": "retired",
+        "applicable": false,
+        "satisfied": false,
+        "evidence_outcome_ids": []
+      },
+      {
+        "task_id": "0042",
+        "statement_revision": 4,
+        "snapshot_revision": 3,
+        "key": "zeta",
+        "applicable": true,
+        "satisfied": true,
+        "evidence_outcome_ids": [
+          "@SOURCE_OUTCOME"
+        ]
+      },
+      {
+        "task_id": "0045",
+        "statement_revision": 2,
+        "snapshot_revision": 1,
+        "key": "later",
+        "applicable": false,
+        "satisfied": false,
+        "evidence_outcome_ids": []
+      },
+      {
+        "task_id": "0045",
+        "statement_revision": 2,
+        "snapshot_revision": 1,
+        "key": "report",
+        "applicable": true,
+        "satisfied": true,
+        "evidence_outcome_ids": [
+          "@TARGET_OUTCOME"
+        ]
+      },
+      {
+        "task_id": "0045",
+        "statement_revision": 2,
+        "snapshot_revision": 1,
+        "key": "retired",
+        "applicable": false,
+        "satisfied": false,
+        "evidence_outcome_ids": []
+      },
+      {
+        "task_id": "0045",
+        "statement_revision": 2,
+        "snapshot_revision": 1,
+        "key": "zeta",
+        "applicable": true,
+        "satisfied": true,
+        "evidence_outcome_ids": [
+          "@TARGET_OUTCOME"
+        ]
+      }
+    ],
+    "applications": [
+      {
+        "id": "APP-REPORT",
+        "children": [
+          {
+            "task_id": "0042",
+            "statement_revision": 4,
+            "key": "report"
+          },
+          {
+            "task_id": "0042",
+            "statement_revision": 4,
+            "key": "zeta"
+          },
+          {
+            "task_id": "0045",
+            "statement_revision": 2,
+            "key": "report"
+          },
+          {
+            "task_id": "0045",
+            "statement_revision": 2,
+            "key": "zeta"
+          }
+        ],
+        "applicable": true,
+        "satisfied": true
+      }
+    ],
+    "systems": [
+      {
+        "id": "SYS-REPORT",
+        "children": [
+          "APP-REPORT"
+        ],
+        "applicable": true,
+        "satisfied": true
+      }
+    ]
+  },
+  "artifact_rules": [
+    {
+      "id": "task-result",
+      "kind": "artifact",
+      "scope": "task",
+      "pattern": "*/result.txt",
+      "minimum": 1,
+      "maximum": 1,
+      "source": {
+        "kind": "preexisting"
+      },
+      "stages": [
+        "write",
+        "review",
+        "finish"
+      ],
+      "phase": "post"
+    },
+    {
+      "id": "sprint-result",
+      "kind": "artifact",
+      "scope": "sprint",
+      "pattern": "*/result.bin",
+      "minimum": 1,
+      "maximum": 1,
+      "source": {
+        "kind": "preexisting"
+      },
+      "stages": [
+        "write",
+        "review",
+        "finish"
+      ],
+      "phase": "post"
+    }
+  ],
+  "artifact_bytes": {
+    "task": "526573756c742069732072656164792e0a",
+    "sprint": "00ff726573756c74800a"
+  }
+}

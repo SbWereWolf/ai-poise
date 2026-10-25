@@ -97,52 +97,85 @@ class FileProjectConfigUpdate:
         request_digest = digest(request)
         project_state = configured_root(root, task['paths']['state'])
         project_lock = descendant(project_state, task['paths']['lock'])
-        with exclusive_lock(project_lock, settings.raw['lock_seconds'], settings.raw['lock_poll_seconds']):
-            if receipt.is_file():
-                saved = read_document(receipt)
-                if saved['request_digest'] != request_digest:
-                    raise VersionConflict('Different transition uses the same request identity')
-                return {**saved['result'], 'replayed': True}
-            registry = FileProjectSetup(settings)._registry()
-            entry = registry['projects'].get(request['project_id'])
-            if entry is None or (settings.root / entry['config_path']).resolve() != task_path:
-                raise PoiseError('project_binding: restore the existing configured Task association')
-            if 'harness_config_path' in entry and (settings.root / entry['harness_config_path']).resolve() != profile_path:
-                raise PoiseError('project_binding: selected profile differs from the registered general profile')
-            root, task, workflows = self._source(task_path, [])
-            current_profile = read_document(profile_path) if profile_path.is_file() else None
-            base = {'config': task, 'workflows': workflows}
-            if 'harness_config_path' in entry:
-                current_revision = digest({**base, 'profile': current_profile, 'registry': registry})
-            else:
-                current_revision = digest(base)
-            after_registry = deepcopy(registry)
-            after_registry['projects'][request['project_id']]['harness_config_path'] = str(profile_path.relative_to(settings.root))
-            after_revision = digest({**base, 'profile': profile.raw, 'registry': after_registry})
-            components = {'profile': digest(current_profile), 'registry': digest(registry)}
-            after = {'profile': digest(profile.raw), 'registry': digest(after_registry)}
-            if pending_path.is_file():
-                pending = read_document(pending_path)
-                if pending['request_digest'] != request_digest:
-                    raise VersionConflict('Different transition uses the pending request identity')
-                if any(components[k] not in (pending['before'][k], pending['after'][k]) for k in components):
-                    raise VersionConflict('Pending publication encountered foreign drift; restore its recorded components')
-                if pending['after'] != after:
-                    raise VersionConflict('Pending publication source changed; restore its recorded source before retry')
-            else:
-                if current_revision != request['expected_revision']:
-                    raise VersionConflict('Live project differs from expected_revision; read its current owner revision')
-                pending = {'schema': 'project-config-pending-1', 'request_digest': request_digest,
-                           'before': components, 'after': after}
-                atomic_write(pending_path, encoded(pending, settings.raw['json_indent']), settings.raw['file_mode'])
-            atomic_write(profile_path, encoded(profile.raw, settings.raw['json_indent']), settings.raw['file_mode'])
-            publish_registry(settings, after_registry)
-            result = {'status': 'updated', 'project': request['project_id'], 'config_path': str(task_path),
-                      'harness_config_path': str(profile_path), 'revision': after_revision}
-            atomic_write(receipt, encoded({'schema': 'project-config-receipt-1',
-                'request_digest': request_digest, 'result': result}, settings.raw['json_indent']), settings.raw['file_mode'])
-            pending_path.unlink()
-            return result
+        try:
+            with exclusive_lock(project_lock, settings.raw['lock_seconds'], settings.raw['lock_poll_seconds']):
+                if receipt.is_file():
+                    saved = read_document(receipt)
+                    if saved['request_digest'] != request_digest:
+                        raise VersionConflict('Different transition uses the same request identity')
+                    return {**saved['result'], 'replayed': True}
+                with FileProjectSetup(settings).registry_transition() as registry:
+                    entry = registry['projects'].get(request['project_id'])
+                    if entry is None or (settings.root / entry['config_path']).resolve() != task_path:
+                        raise PoiseError('project_binding: restore the existing configured Task association')
+                    if 'harness_config_path' in entry and (settings.root / entry['harness_config_path']).resolve() != profile_path:
+                        raise PoiseError('project_binding: selected profile differs from the registered general profile')
+                    root, task, workflows = self._source(task_path, [])
+                    current_profile = read_document(profile_path) if profile_path.is_file() else None
+                    base = {'config': task, 'workflows': workflows}
+                    source_revision = digest(base)
+                    if 'harness_config_path' in entry:
+                        current_revision = digest({**base, 'profile': current_profile, 'registry': registry})
+                    else:
+                        current_revision = source_revision
+                    after_registry = deepcopy(registry)
+                    after_registry['projects'][request['project_id']]['harness_config_path'] = str(profile_path.relative_to(settings.root))
+                    after_revision = digest({**base, 'profile': profile.raw, 'registry': after_registry})
+                    components = {'profile': digest(current_profile), 'registry': digest(registry)}
+                    after = {'profile': digest(profile.raw), 'registry': digest(after_registry)}
+                    if pending_path.is_file():
+                        pending = read_document(pending_path)
+                        unverified_source = (
+                            'Pending publication source provenance is missing or unverified; '
+                            'preserve the pending and current state, then review the original '
+                            'publication with the configuration owner before selecting a new '
+                            'known intent. Retrying cannot establish its original source')
+                        if (set(pending) != {'schema', 'request_digest', 'source_revision',
+                                             'before', 'after'}
+                                or pending['schema'] != 'project-config-pending-2'
+                                or any(not isinstance(pending[key], dict)
+                                       or set(pending[key]) != {'profile', 'registry'}
+                                       for key in ('before', 'after'))):
+                            raise VersionConflict(unverified_source)
+                        fingerprints = [pending['request_digest'], pending['source_revision'],
+                                        *pending['before'].values(), *pending['after'].values()]
+                        if any(not isinstance(value, str) or len(value) != 64
+                               or any(char not in '0123456789abcdef' for char in value)
+                               for value in fingerprints):
+                            raise VersionConflict(unverified_source)
+                        if pending['request_digest'] != request_digest:
+                            raise VersionConflict('Different transition uses the pending request identity')
+                        if pending['source_revision'] != source_revision:
+                            raise VersionConflict(
+                                'Pending publication source differs from its verified original '
+                                'revision; review the source and restore the known accepted '
+                                'manifest/workflows before retrying the same request')
+                        if any(components[k] not in (pending['before'][k], pending['after'][k]) for k in components):
+                            raise VersionConflict('Pending publication encountered foreign drift; restore its recorded components')
+                        if pending['after'] != after:
+                            raise VersionConflict('Pending publication source changed; restore its recorded source before retry')
+                    else:
+                        if current_revision != request['expected_revision']:
+                            raise VersionConflict(
+                                f'Live project differs from expected_revision {request["expected_revision"]}; '
+                                f'actual revision {current_revision}. Review the current project/profile state, '
+                                f'then submit a new request_id with expected_revision={current_revision} '
+                                'and the intended profile')
+                        pending = {'schema': 'project-config-pending-2', 'request_digest': request_digest,
+                                   'source_revision': source_revision,
+                                   'before': components, 'after': after}
+                        atomic_write(pending_path, encoded(pending, settings.raw['json_indent']), settings.raw['file_mode'])
+                    atomic_write(profile_path, encoded(profile.raw, settings.raw['json_indent']), settings.raw['file_mode'])
+                    publish_registry(settings, after_registry)
+                    result = {'status': 'updated', 'project': request['project_id'], 'config_path': str(task_path),
+                              'harness_config_path': str(profile_path), 'revision': after_revision}
+                    atomic_write(receipt, encoded({'schema': 'project-config-receipt-1',
+                        'request_digest': request_digest, 'result': result}, settings.raw['json_indent']), settings.raw['file_mode'])
+                    pending_path.unlink()
+                    return result
+        except OSError as exc:
+            raise PoiseError(
+                f'Profile publication interrupted; retry the same request to inspect publication: {exc}') from exc
 
     def bootstrap_runtime_resources(self, request):
         """Publish the first association using only the explicit setup owner."""

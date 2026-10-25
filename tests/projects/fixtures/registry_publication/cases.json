@@ -49,5 +49,7 @@
   ],
   "registry_relative": "state/project-registry.json",
   "registry_lock_relative": "state/project-setup.lock",
-  "cleanup_seconds": 1.0
+  "cleanup_seconds": 1.0,
+  "continuation_installation_id": "registry-profile-updated",
+  "non_actionable_reason": "Request conflict. Expected revision: {supplied}. Actual revision: {actual}."
 }

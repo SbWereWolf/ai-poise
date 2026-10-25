@@ -471,10 +471,48 @@ def test_stale_profile_cli_reports_actual_revision_and_continuation(scenario):
     reason = rejected.value['reason']
     scenario.notes.update(before_files=before, after_files=after,
                           supplied_revision=stale['expected_revision'], actual_revision=accepted['revision'])
-    if (stale['expected_revision'] not in reason or accepted['revision'] not in reason
-            or 'request' not in reason.lower()):
-        raise RegistryRevisionDiagnosticMissing('Real conflict omits actual revision/new-request continuation')
+    scene = scenario.scenes[CASES['first']]
+    continuation = deepcopy(packet)
+    continuation['request_id'] += '-current-revision-update'
+    continuation['expected_revision'] = accepted['revision']
+    continuation['profile']['runtime_resources']['hooks'][0]['installation_id'] = (
+        CASES['continuation_installation_id'])
+    expected_profile = deepcopy(continuation['profile'])
+    assert expected_profile != packet['profile']
+    expected_registry = json.loads(before[str(scenario.registry)])
+    continued_child, continued = scenario.run('profile', continuation)
+    updated = require_success(continued_child, continued, 'profile')
+    assert updated['project'] == CASES['first']
+    assert updated['config_path'] == packet['task_config_path']
+    assert updated['harness_config_path'] == str(scene.path)
+    assert updated['revision'] != accepted['revision']
+    assert json.loads(scene.path.read_text()) == expected_profile
+    assert json.loads(scenario.registry.read_text()) == expected_registry
+    complete = scenario.snapshot()
+    assert all(complete.get(path) == content for path, content in before.items()
+               if path != str(scene.path))
+    replay_child, replay = scenario.run('profile', continuation)
+    replayed = require_success(replay_child, replay, 'profile')
+    assert replayed == {**updated, 'replayed': True}
+    assert scenario.snapshot() == complete
     assert_sentinel(scenario)
+    scenario.notes.update(continuation_request=continuation, continuation_result=updated,
+                          continued_files=complete, replay_result=replayed,
+                          after_replay=scenario.snapshot())
+
+    def actionable(message):
+        text = message.lower()
+        return (stale['expected_revision'] in message and accepted['revision'] in message
+                and 'request_id' in text and 'expected_revision' in text and 'new' in text
+                and any(action in text for action in ('submit', 'send', 'retry', 'apply')))
+
+    token_only = CASES['non_actionable_reason'].format(
+        supplied=stale['expected_revision'], actual=accepted['revision'])
+    assert not actionable(token_only)
+    scenario.notes.update(non_actionable_reason=token_only,
+                          non_actionable_rejected=not actionable(token_only))
+    if not actionable(reason):
+        raise RegistryRevisionDiagnosticMissing('Real conflict omits actual revision/new-request continuation')
 
 
 @pytest.mark.parametrize('phase', CASES['io_phases'])

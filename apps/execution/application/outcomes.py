@@ -5,6 +5,7 @@ import json
 from apps.execution.application.gates import GateCommands
 from apps.execution.domain.lifecycle import LifecyclePolicy
 from apps.execution.domain.outcomes import OUTCOME_RECORD_KIND, OutcomePolicy
+from apps.execution.domain.verification import VerificationPolicy
 from apps.execution.domain.records import RecordsError
 
 
@@ -61,6 +62,7 @@ class ExecutionOutcomes:
                     raise RecordsError('Outcome decision requires a configured accepting role')
                 records = repository.list_records(value['task_id'])
                 scope = OutcomePolicy.work_scope(records, execution['generation'])
+                VerificationPolicy.require_resolved(records, execution)
                 OutcomePolicy.require_open(records, scope)
                 state = self.state.state(repository, execution)
                 process, terminal = (self._terminal_proof(repository, execution, state,

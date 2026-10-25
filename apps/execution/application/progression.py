@@ -6,6 +6,7 @@ from apps.execution.application.gates import GateCommands
 from apps.execution.domain.lifecycle import LifecyclePolicy
 from apps.execution.domain.process.workflow import RouteDefinition
 from apps.execution.domain.progression import ProgressionPolicy
+from apps.execution.domain.verification import VerificationPolicy
 from apps.execution.domain.records import RecordsError
 
 
@@ -35,6 +36,7 @@ class ExecutionProgression:
                 raise RecordsError('Advance generation conflict')
             if execution['contract_revision'] != value['expected_contract_revision']:
                 raise RecordsError('Advance contract revision conflict')
+            VerificationPolicy.require_resolved(repository.list_records(value['task_id']), execution)
             role = LifecyclePolicy.actor(self.settings, value['actor_id'])
             LifecyclePolicy.require_state(execution, ('active', 'verified'))
             process = self.state.process(repository, execution)

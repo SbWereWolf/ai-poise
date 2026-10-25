@@ -5,6 +5,7 @@ import json
 
 from apps.execution.application.gates import GateCommands, internal_record_id
 from apps.execution.domain.lifecycle import LifecyclePolicy
+from apps.execution.domain.verification import VerificationPolicy
 from apps.execution.domain.records import RecordsError, canonical_json
 from apps.execution.application.execution_state import ExecutionState
 
@@ -50,6 +51,8 @@ class ExecutionLifecycle:
                 raise RecordsError('Lifecycle generation conflict')
             if execution['contract_revision'] != value['expected_contract_revision']:
                 raise RecordsError('Lifecycle contract revision conflict')
+            if value['action'] in ('enter', 'restart', 'rework'):
+                VerificationPolicy.require_resolved(repository.list_records(value['task_id']), execution)
             role = LifecyclePolicy.actor(self.settings, value['actor_id'])
             policy = self._policy(execution['contract'])
             state = self.state_owner.state(repository, execution)

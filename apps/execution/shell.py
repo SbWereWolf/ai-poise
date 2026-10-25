@@ -19,6 +19,9 @@ from apps.execution.application.execution_state import ExecutionState
 from apps.execution.application.evidence import ExecutionEvidence
 from apps.execution.application.progression import ExecutionProgression
 from apps.execution.application.outcomes import ExecutionOutcomes
+from apps.execution.application.verification import ExecutionVerification
+from apps.execution.application.reuse import ExecutionReuse
+from apps.execution.verification_protocol import (attempt_packet, reuse_packet, verification_query_item)
 from apps.execution.outcome_protocol import packet as outcome_packet, query_item as outcome_query_item
 from apps.execution.advance_protocol import packet as advance_packet, query_item as progression_query_item
 from apps.execution.lifecycle_protocol import (settings as lifecycle_settings,
@@ -191,6 +194,9 @@ def load_config(config_path):
             'seconds': _positive_number(data['git']['seconds'], 'Execution config git.seconds'),
             'observations': observations,
         }
+    result['config_directory'] = path.parent
+    if 'verification' in data:
+        result['verification'] = data['verification']
     return result
 
 
@@ -232,6 +238,9 @@ def _packet(value, config):
         raise ExecutionError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise ExecutionError("Execution packet input must be an object")
+    if value['operation'] in ('attempt', 'reuse'):
+        (attempt_packet if value['operation'] == 'attempt' else reuse_packet)(value['input'], config)
+        return value
     if value['operation'] == 'outcome':
         outcome_packet(value['input'], config)
         return value
@@ -277,6 +286,12 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
+            if isinstance(query, dict) and query.get('kind') in ('attempt', 'verification', 'reuse'):
+                verification_query_item(query, config)
+                if query['id'] in seen:
+                    raise ExecutionError('Execution query ids must be unique')
+                seen.add(query['id'])
+                continue
             if isinstance(query, dict) and query.get('kind') == 'outcome':
                 outcome_query_item(query, config)
                 if query['id'] in seen:
@@ -338,6 +353,12 @@ class Store:
         self.progression = ExecutionProgression(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
             config.get('lifecycle'), state_owner, evidence, self.gates)
+        self.verification = ExecutionVerification(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            config, state_owner, evidence)
+        self.reuse = ExecutionReuse(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            config, state_owner, self.verification, self.gates)
         self.outcomes = ExecutionOutcomes(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
             config.get('lifecycle'), config.get('outcomes'), state_owner, evidence)
@@ -476,6 +497,14 @@ class Store:
                 records = {}
                 file_queries = False
                 for query in packet["input"]["queries"]:
+                    if query['kind'] in ('attempt', 'verification', 'reuse'):
+                        if query['kind'] == 'reuse':
+                            self.verification.settings()
+                            result = self._record_call(self.reuse.query, repository, query['task_id'], query['reuse_id'])
+                        else:
+                            result = self._record_call(self.verification.query, repository, query['kind'], query)
+                        results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
+                        continue
                     if query['kind'] == 'outcome':
                         result = self._record_call(self.outcomes.query, repository,
                                                    query['task_id'], query['outcome_id'])
@@ -527,7 +556,11 @@ def execute(config_path, stream, output):
             raise ExecutionError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        if packet['operation'] == 'outcome':
+        if packet['operation'] == 'attempt':
+            result = store._record_call(store.verification.execute, packet['input'])
+        elif packet['operation'] == 'reuse':
+            result = store._record_call(store.reuse.execute, packet['input'])
+        elif packet['operation'] == 'outcome':
             result = store._record_call(store.outcomes.execute, packet['input'])
         elif packet['operation'] == 'advance':
             result = store._record_call(store.progression.execute, packet['input'])
@@ -541,10 +574,11 @@ def execute(config_path, stream, output):
             result = store._record_call(store.gates.execute, packet['operation'], packet['input'])
         else:
             result = store.apply(packet) if packet["operation"] == "apply" else store.query(packet)
-        code = (3 if result['status'] == 'pending' else
+        code = (1 if result['status'] == 'checks_failed' else
+                3 if result['status'] == 'pending' else
                 2 if result['status'] == 'evaluated' and not result['accepted'] else
                 2 if result['status'] in ('checked', 'diff_checked') and not result['allowed'] else 0)
-    except (ExecutionError, PoiseError, OSError, sqlite3.Error, ValueError) as exc:
+    except (ExecutionError, RecordsError, PoiseError, OSError, sqlite3.Error, ValueError) as exc:
         result = {"schema": WIRE_SCHEMA, "status": "rejected", "reason": str(exc)}
         code = 2
     output.write(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")

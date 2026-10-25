@@ -309,13 +309,36 @@
       "kind": "substantive",
       "handler": "observe",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.observe",
+      "handler_location": "poise.modules.workflow.handlers.ObserveHandler",
       "libraries": [
         "executions",
         "artifacts",
         "verification"
       ],
-      "owner_api": "Task.attach_observations",
+      "owner_api": "Task.submit + evaluate_stage",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "baseline_inspection",
+      "stage_id": "PAIRED-20261003-baseline_inspection",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -332,13 +355,36 @@
       "kind": "substantive",
       "handler": "produce",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.produce",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "solution_planning_inspection",
+      "stage_id": "PAIRED-20261003-solution_planning_inspection",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -355,13 +401,36 @@
       "kind": "substantive",
       "handler": "produce",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.produce",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "verification_planning_inspection",
+      "stage_id": "PAIRED-20261003-verification_planning_inspection",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -378,13 +447,13 @@
       "kind": "substantive",
       "handler": "produce",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.produce",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -401,13 +470,13 @@
       "kind": "substantive",
       "handler": "inspect",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.inspect",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.record_inspection",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -419,19 +488,18 @@
     },
     {
       "goal_type": "development",
-      "stage": "test_remediation",
-      "stage_id": "GS-DEV-06",
+      "stage": "implementation_design",
+      "stage_id": "PAIRED-20261003-implementation_design",
       "kind": "substantive",
-      "handler": "revise",
-      "body_backend": "produce",
-      "handler_location": "application.stage_handlers.revise",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
-        "verification",
-        "executions"
+        "verification"
       ],
-      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -443,18 +511,18 @@
     },
     {
       "goal_type": "development",
-      "stage": "test_remediation_inspection",
-      "stage_id": "GS-DEV-07",
+      "stage": "implementation_design_inspection",
+      "stage_id": "PAIRED-20261003-implementation_design_inspection",
       "kind": "substantive",
       "handler": "inspect",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.inspect",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.record_inspection",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -471,13 +539,13 @@
       "kind": "substantive",
       "handler": "produce",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.produce",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -494,13 +562,13 @@
       "kind": "substantive",
       "handler": "inspect",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.inspect",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.record_inspection",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -512,19 +580,18 @@
     },
     {
       "goal_type": "development",
-      "stage": "implementation_remediation",
-      "stage_id": "GS-DEV-10",
+      "stage": "documentation_planning",
+      "stage_id": "PAIRED-20261003-documentation_planning",
       "kind": "substantive",
-      "handler": "revise",
-      "body_backend": "produce",
-      "handler_location": "application.stage_handlers.revise",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
-        "verification",
-        "executions"
+        "verification"
       ],
-      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -536,18 +603,18 @@
     },
     {
       "goal_type": "development",
-      "stage": "implementation_remediation_inspection",
-      "stage_id": "GS-DEV-11",
+      "stage": "documentation_planning_inspection",
+      "stage_id": "PAIRED-20261003-documentation_planning_inspection",
       "kind": "substantive",
       "handler": "inspect",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.inspect",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.record_inspection",
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",
@@ -564,13 +631,36 @@
       "kind": "substantive",
       "handler": "produce",
       "body_backend": "not_a_revision_wrapper",
-      "handler_location": "application.stage_handlers.produce",
+      "handler_location": "poise.modules.workflow.handlers.ProduceHandler",
       "libraries": [
         "tasks",
         "content",
         "verification"
       ],
-      "owner_api": "Task.apply_submission",
+      "owner_api": "Task.submit + evaluate_stage",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "documentation_inspection",
+      "stage_id": "PAIRED-20261003-documentation_inspection",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "poise.modules.workflow.handlers.InspectHandler",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.submit + evaluate_stage",
       "runner_services": [
         "sessions",
         "operations",

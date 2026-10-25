@@ -262,9 +262,12 @@ class Receiver:
     def apply(self, operations, **options):
         return self.client.invoke(self.packet(operations, **options))
 
-    def query(self, kind, task='0042'):
+    def query(self, kind, task='0042', *, claimant=None):
+        query = {'id': 'read', 'kind': kind, 'task_id': task}
+        if claimant is not None:
+            query['claimant'] = claimant
         return self.client.invoke({'schema': 'stride-sequencing/v1', 'operation': 'query',
-            'input': {'queries': [{'id': 'read', 'kind': kind, 'task_id': task}]}})['results'][0]['value']
+            'input': {'queries': [query]}})['results'][0]['value']
 
 
 class Delivery:

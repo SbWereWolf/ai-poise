@@ -126,7 +126,7 @@ def nonpositive(root):
         'sprint_id': 'OUTCOME-SPRINT', 'members': ['0042', '0043'],
         'dependencies': [{'predecessor': '0042', 'successor': '0043', 'kind': 'result'}]}])
     delivery(s, root / 'null-delivery', fact, receiver=receiver)
-    eligibility = receiver.query('eligibility', '0043')
+    eligibility = receiver.query('eligibility', '0043', claimant='SESSION-A')
     assert any(item['reason'] == 'missing_predecessor_result' for item in eligibility['blockers']), eligibility
     mark('positive_null_commit_with_result_dependency')
 

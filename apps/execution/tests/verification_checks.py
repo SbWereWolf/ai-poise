@@ -24,14 +24,16 @@ class MissingVerification(Exception):
     """Only the genuine old missing operation establishes initial RED."""
 
 
-def raw(config, packet, application='execution'):
+def raw(config, packet, application='execution', *, cwd=None):
     result = subprocess.run(
         [sys.executable, '-B', str(ROOT / 'apps' / application / 'bin' / application),
          '--config', str(config)], input=json.dumps(packet, ensure_ascii=False) + '\n',
-        cwd=config.parent, env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
+        cwd=config.parent if cwd is None else cwd,
+        env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
         text=True, capture_output=True,
     )
-    LOG.append({'application': application, 'config': str(config), 'packet': deepcopy(packet),
+    LOG.append({'application': application, 'config': str(config),
+                'caller_cwd': str(config.parent if cwd is None else cwd), 'packet': deepcopy(packet),
                 'exit': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr})
     assert result.stderr == '', result.stderr
     assert result.stdout.endswith('\n') and result.stdout.count('\n') == 1, result.stdout
@@ -567,7 +569,9 @@ class LiveRun:
     def __enter__(self):
         while not (self.subject.control / 'ready').exists():
             if self.process.poll() is not None:
+                (self.subject.control / 'release').write_text('release\n')
                 out, err = self.process.communicate()
+                (self.subject.control / 'hold').unlink(missing_ok=True)
                 raise AssertionError(('Run ended before actual command readiness', out, err))
             time.sleep(0.01)
         assert self.process.poll() is None
@@ -591,9 +595,11 @@ class ReuseFamily:
     def __init__(self, root, *, probe=True, maximum=8, target_change=None,
                  source_kind='positive', result_commit=True, related=True,
                  target_contract_change=None, deliver_source=True, artifact_case=False,
-                 output_policy='required', target_process_change=None):
+                 output_policy='required', target_process_change=None, same_parent_change=None,
+                 variant='ordinary'):
         self.root = root
-        self.source = VerificationSubject(root / 'source', maximum=maximum, output_policy=output_policy)
+        self.source = VerificationSubject(root / 'source', maximum=maximum,
+            output_policy=output_policy, variant=variant)
         if probe:
             self.source.probe()
         s = self.source
@@ -637,6 +643,14 @@ class ReuseFamily:
                     'id': 'APP-OTHER', 'level': 'application', 'status': 'future',
                     'text': 'Другой результат приложения.'}},
                     {'kind': 'link', 'system': 'SYS-REPORT', 'application': 'APP-OTHER'}]}})
+        if same_parent_change is not None:
+            parent = deepcopy(s.initial_snapshot['requirements']['APP-REPORT'])
+            assert parent == DATA['same_parent_baseline']
+            parent[same_parent_change['field']] = same_parent_change['value']
+            s.requirements.invoke({'operation': 'apply', 'input': {
+                'request_id': 'family-revise-same-parent',
+                'expected_revision': revision(s.requirements.database, 'requirements'),
+                'operations': [{'kind': 'put_requirement', 'requirement': parent}]}})
         statement = deepcopy(OUTCOME['statement'])
         statement['goal'] = s.initial_snapshot['statement']['goal']
         if target_change is not None:

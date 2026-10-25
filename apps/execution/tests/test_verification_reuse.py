@@ -160,6 +160,10 @@ def recovery(root):
         _, attempt = live.begin()
         before_source = live.source()
         with live.live_run(attempt, attempt['runs'][0]) as running:
+            abandon = {'schema': 'stride-execution/v1', 'operation': 'attempt', 'input': {
+                **live.common(), 'action': 'abandon', 'attempt_id': attempt['attempt_id'],
+                'reason': 'Сохранить фактический исход до новой работы.'}}
+            live.deny(abandon, 'pending', 'unresolved', 'run', 'termination', 'quiescen')
             pending = live.lookup('attempt', attempt_id=attempt['attempt_id'])
             assert pending['runs'][0]['started'] and pending['runs'][0]['receipt'] is None
             assert pending['state'] == 'running'
@@ -181,8 +185,16 @@ def recovery(root):
             assert rows(live.database) == previous and live.source() == before_source
             budget(live, 1, attempt['attempt_id'])
         assert running.process.returncode == 0 and running.response['status'] == 'run_recorded'
-        _, tail = live.step('run', running.response['attempt'], run_id=attempt['runs'][1]['run_id'])
-        live.finish(tail['attempt'])
+        if transition == 'rework':
+            _, abandoned_live = live.step('abandon', running.response['attempt'],
+                reason='Команда завершена, сохранить префикс без запуска хвоста.')
+            assert abandoned_live['status'] == 'attempt_abandoned'
+            assert abandoned_live['attempt']['runs'] == running.response['attempt']['runs']
+            assert abandoned_live['attempt']['runs'][0]['termination'] == DATA['termination']
+            assert abandoned_live['attempt']['runs'][1]['started'] is False
+        else:
+            _, tail = live.step('run', running.response['attempt'], run_id=attempt['runs'][1]['run_id'])
+            live.finish(tail['attempt'])
         old = live.lookup('attempt', attempt_id=attempt['attempt_id'])
         if transition == 'rework':
             live.rework_current()
@@ -288,6 +300,55 @@ def attempt_limits(root):
     mark('reuse_attempt_bound')
 
 
+def relative_capture(root):
+    s = subject(root / 'relative-config')
+    foreign = root / 'unrelated-process-cwd'
+    foreign.mkdir(parents=True)
+    assert s.config.is_absolute() and foreign != s.config.parent and foreign != s.git_root
+    settings = s.configure(repository=os.path.relpath(s.git_root, s.config.parent),
+                           output_root=os.path.relpath(s.capture_root, s.config.parent))
+    assert not Path(settings['repository']).is_absolute()
+    assert not Path(settings['output_root']).is_absolute()
+    assert s.contract['methods'][0]['cwd'] == '.'
+    source = s.source()
+    packet = s.begin_packet()
+    code, reserved = raw(s.config, packet, cwd=foreign)
+    assert code == 0 and reserved['status'] == 'attempt_reserved', reserved
+    attempt = reserved['attempt']
+    assert_attempt(attempt, subject=s, identifier=packet['input']['attempt_id'],
+                   frame=s.frame, schedule=['guard'], used=1, maximum=s.maximum)
+    run = attempt['runs'][0]
+    packet = {'schema': 'stride-execution/v1', 'operation': 'attempt', 'input': {
+        **s.common(), 'action': 'run', 'attempt_id': attempt['attempt_id'], 'run_id': run['run_id']}}
+    code, response = raw(s.config, packet, cwd=foreign)
+    assert code == 0 and response['status'] == 'run_recorded', response
+    receipt = response['attempt']['runs'][0]['receipt']
+    assert_receipt(receipt, s.contract['methods'][0], dict(attempt, _cwd=str(s.git_root)), run, source)
+    assert receipt['cwd'] == '.' and receipt['resolved_cwd'] == str(s.git_root)
+    assert Path(receipt['output_directory']).is_relative_to(s.capture_root)
+    for item in receipt['outputs']:
+        assert Path(item['path']).is_relative_to(s.capture_root)
+        assert Path(item['path']).read_bytes() == bytes.fromhex(DATA['output_bytes'][item['id']])
+    assert s.count() == 1 and s.source() == source and list(foreign.iterdir()) == []
+    packet = {'schema': 'stride-execution/v1', 'operation': 'attempt', 'input': {
+        **s.common(), 'action': 'finish', 'attempt_id': attempt['attempt_id'],
+        'evidence_work': s.work_for(s.frame, [receipt])}}
+    code, response = raw(s.config, packet, cwd=foreign)
+    assert code == 0 and response['status'] == 'attempt_finished', response
+    finished = response['attempt']
+    assert_attempt(finished, subject=s, identifier=attempt['attempt_id'], frame=s.frame,
+                   schedule=['guard'], used=1, maximum=s.maximum, state='finished')
+    assert finished['runs'][0]['receipt'] == receipt
+    before = rows(s.database)
+    code, queried = raw(s.config, {'schema': 'stride-execution/v1', 'operation': 'query', 'input': {
+        'queries': [{'id': 'relative-read', 'kind': 'attempt', 'task_id': s.task_id,
+                     'attempt_id': attempt['attempt_id']}]}}, cwd=foreign)
+    assert code == 0 and queried == {'schema': 'stride-execution/v1', 'status': 'read_only',
+        'revision': before['revision'], 'results': [
+            {'id': 'relative-read', 'kind': 'attempt', 'result': finished}]}
+    assert rows(s.database) == before and s.count() == 1 and list(foreign.iterdir()) == []
+
+
 def input_binding(root):
     s = subject(root / 'binding')
     initial = json.loads(s.config.read_text())
@@ -327,6 +388,7 @@ def input_binding(root):
     mark('actor_policy')
     _, _, finished = complete(s)
     assert finished['runs'][0]['receipt']['passed'] is True and s.count() == 1
+    relative_capture(root / 'relative')
     mark('corrected_positive_controls')
     del initial['verification']
     write_json(s.config, initial)
@@ -389,8 +451,9 @@ def verify_reuse(family, prepared, *, attempt=None, expected=0, mode='good'):
         assert len(current['runs']) == len(scheduled) and scheduled
         for method, run in zip(scheduled, current['runs'], strict=True):
             assert run['started'] is True and run['termination'] == DATA['termination']
+            guard = method['id'] not in s.contract['evidence_plan'][s.frame['stage_id']]['subject_methods']
             assert_receipt(run['receipt'], method, dict(current, _cwd=str(s.git_root)), run,
-                           prepared['input']['source'], mode=mode)
+                           prepared['input']['source'], mode=mode, guard=guard)
     family.unchanged_source()
     return result
 
@@ -526,6 +589,27 @@ def compatibility(root):
         family = ReuseFamily(root / ('statement-' + case['id']), target_change=change(case))
         family.target.deny(family.prepare_packet(), 'compatib', 'snapshot', 'requirement', 'contract')
         family.unchanged_source()
+    for case in DATA['same_parent_differences']:
+        family = ReuseFamily(root / case['id'], same_parent_change=case)
+        source = family.source.initial_snapshot
+        target = family.target.initial_snapshot
+        expected_parent = dict(DATA['same_parent_baseline'], **{case['field']: case['value']})
+        assert source['requirements']['APP-REPORT'] == DATA['same_parent_baseline']
+        assert target['requirements']['APP-REPORT'] == expected_parent
+        assert source['requirements']['SYS-REPORT'] == target['requirements']['SYS-REPORT']
+        assert source['links']['system_application'] == target['links']['system_application']
+        for key in ('goal', 'task_requirements', 'definition_of_done'):
+            assert source['statement'][key] == target['statement'][key]
+        own_links = lambda snapshot: [(v['application'], v['key'])
+                                     for v in snapshot['links']['application_task']]
+        assert own_links(source) == own_links(target)
+        family.target.deny(family.prepare_packet(), 'compatib', 'snapshot', 'requirement', 'parent', 'contract')
+        family.unchanged_source()
+    # Keep the genuine same-parent compatible pair as the matched positive control.
+    assert compatible.source.initial_snapshot['requirements']['APP-REPORT'] == DATA['same_parent_baseline']
+    assert compatible.target.initial_snapshot['requirements']['APP-REPORT'] == DATA['same_parent_baseline']
+    valid, _ = prepare(compatible)
+    verify_reuse(compatible, valid)
     mark('substantive_snapshot_table')
     for case in DATA['contract_differences']:
         family = ReuseFamily(root / ('contract-' + case['id']), target_contract_change=change(case))
@@ -688,6 +772,51 @@ def finality_case(root, first, *, second_reuse=False, interphase=False):
     return family
 
 
+def live_reuse_decisions(root):
+    from verification_checks import ReuseFamily
+    family = ReuseFamily(root, variant='check')
+    s = family.target
+    s.finish_route()
+    first, _ = prepare(family)
+    second, prepared_second = prepare(family)
+    verified_first = verify_reuse(family, first)
+    saved_attempt = s.lookup('attempt', attempt_id=verified_first['reuse']['attempt_id'])
+    saved_files = {item['path']: Path(item['path']).read_bytes()
+                   for run in saved_attempt['runs'] for item in run['receipt']['outputs']}
+    assert len(saved_files) == 2
+    before_count = s.count()
+    _, attempt = s.begin(used=2)
+    cursor, source = s.sync(), s.source()
+    with s.live_run(attempt, attempt['runs'][0]) as running:
+        unknown = s.lookup('attempt', attempt_id=attempt['attempt_id'])
+        assert unknown['state'] == 'running' and unknown['runs'][0]['started'] is True
+        assert unknown['runs'][0]['receipt'] is None and unknown['runs'][0]['termination'] is None
+        budget(s, 2, attempt['attempt_id'])
+        verification = {'schema': 'stride-execution/v1', 'operation': 'reuse', 'input': {
+            **s.common(), 'action': 'verify', 'reuse_id': second['input']['reuse_id'],
+            'attempt_id': s.identity('blocked-new-reuse-attempt'), 'admission': family.admission()}}
+        s.deny(verification, 'pending', 'unresolved', 'attempt', 'run')
+        s.deny(accept_packet(family, first), 'pending', 'unresolved', 'attempt', 'run')
+        assert s.lookup('attempt', attempt_id=attempt['attempt_id']) == unknown
+        assert s.lookup('reuse', reuse_id=first['input']['reuse_id']) == verified_first['reuse']
+        assert s.lookup('reuse', reuse_id=second['input']['reuse_id']) == prepared_second['reuse']
+        assert s.sync() == cursor and s.source() == source and s.count() == before_count
+        assert {path: Path(path).read_bytes() for path in saved_files} == saved_files
+        budget(s, 2, attempt['attempt_id'])
+    assert running.process.returncode == 0 and running.response['status'] == 'run_recorded'
+    assert s.count() == before_count + 1
+    _, resolved = s.finish(running.response['attempt'])
+    assert resolved['state'] == 'finished' and resolved['runs'][0]['termination'] == DATA['termination']
+    verified_second = verify_reuse(family, second)
+    assert verified_second['reuse']['state'] == 'verified' and s.count() == before_count + 2
+    budget(s, 3)
+    accept_reuse(family, first, verified_first)
+    assert s.lookup('attempt', attempt_id=attempt['attempt_id']) == resolved
+    assert {path: Path(path).read_bytes() for path in saved_files} == saved_files
+    assert s.sync() == cursor and s.source() == source and s.count() == before_count + 2
+    family.unchanged_source()
+
+
 def failed_reuse(root):
     from verification_checks import ReuseFamily
     family = ReuseFamily(root / 'failed', maximum=2)
@@ -728,6 +857,7 @@ def failed_reuse(root):
     resumed = verify_reuse(unknown, prepared, attempt=attempt_id)
     assert resumed['reuse']['attempt_id'] == attempt_id and t.count() == 1
     budget(t, 1)
+    live_reuse_decisions(root / 'live-reuse-decisions')
     mark('unknown_reuse_continue')
     for intent in ('accept', 'cancel'):
         finality_case(root / ('ordinary-first-' + intent), intent)

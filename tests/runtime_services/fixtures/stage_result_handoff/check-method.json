@@ -1,0 +1,30 @@
+{
+  "id": "CHECK-ONCE",
+  "argv": [],
+  "cwd": ".",
+  "environment": {},
+  "expected_exit_code": 0,
+  "stdout_contains": [
+    "CHECK_ONCE"
+  ],
+  "stderr_contains": [],
+  "source_under_test": {
+    "kind": "repository",
+    "bindings": [
+      {
+        "kind": "cwd",
+        "path": "."
+      }
+    ]
+  },
+  "verification_plan": {
+    "responsibility": "Observe a real check invocation in the fixture entry stage.",
+    "change_surface": [],
+    "red_stages": [],
+    "green_stages": [
+      "author"
+    ],
+    "red_failure": null
+  },
+  "outputs": []
+}

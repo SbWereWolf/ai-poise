@@ -2,12 +2,48 @@
 
 ## Явный вход результата Bash
 
-Отдельный [адаптер tool-result](tool-results.md#контролируемый-hook-вход) принимает
-уже полученный Bash PostToolUse: сохраняет полный tool_response и доступные потоки,
-затем формирует audit/enforce представление. Его вход не регистрирует native
-событие и не подменяет identity. Protocol в JSON не подтверждает подключение
-host или доставку модели. Установка действующих native hooks описана ниже;
-tool-result не добавляет универсальный либо MCP hook-перехват.
+Прямой `operation=hook` сохранён как явный вход [того же tool-result
+owner](tool-results.md#контролируемый-hook-вход).
+Действующая session policy также подключается к существующей общей sync цепочке.
+Сам JSON explicit-вызова не создаёт native authority и не доказывает доставку.
+
+## Вывод инструмента через общую цепочку
+
+Установите полный [handler configuration](../../config/examples/tool-results-handler.example.json)
+с builtin `tool-result` и абсолютным `options.policy_path` на заполненный
+[session policy](../../config/examples/tool-results-session.example.json).
+Policy/placement resources проверяются до установки; handler сохраняет свою
+объявленную execution/on_error политику. Он включается в routes `PostToolUse`
+настоящей `hook-definition-2`; остальные routes, Start/admission, foreign groups
+и текущие handlers сохраняет существующий владелец установки.
+
+Native descriptor matcher выбирает поддержанные имена, например Bash и точный
+объявленный MCP. Это не выбор parser: внутри policy его делает
+[явная selection](tool-results.md#выбор-профиля-для-native-события).
+Command-intake сохраняет собственную Bash границу; общего Bash-only ограничения
+для tool-result нет. Настройка не добавляет MCP server или второй dispatcher.
+
+Handler сначала проверяет настоящую [service
+association](tool-results.md#чтение-последнего-результата).
+Иначе один selected profile определяет native source/snapshot/подготовку форм;
+полный original event/машинный результат сохраняется. Prepared brief добавляется
+в native additionalContext и `continue:false` заменяет только модельное представление.
+Ошибки source/parser/budget идут через прежний typed rejection/stop контракт, без
+повторного decoder, старого успешного ответа или нового запуска инструмента.
+
+Для существующей установки используйте [публичный runtime-config owner](#интерфейсы)
+с фактической полной revision; при необходимости разрешённого source/settings изменения —
+[reconfigure](#общая-установка-для-рабочих-деревьев). Рабочие settings/definitions/policy
+не коммитят. Полные object schemas, обязательные поля и immutable resource ownership
+остаются у следующих разделов этой инструкции; пример handler не является полным
+replacement install packet и не восполняет пропущенную definition.
+
+Successful install/diagnose и isolated fixture не доказывают host delivery.
+Нужны настоящий PostToolUse receipt/input, full source/UUID/files, полученный
+моделью brief; для code mode — независимое сравнение полного original returned value
+до model presentation и проверка saved services/last. До этих наблюдений установленная
+доставка остаётся неподтверждённой. [Поддержка host-протокола](https://learn.chatgpt.com/docs/hooks)
+не гарантирует наличие полного upstream source или покрытие каждого hosted инструмента.
 
 ## Доставка launcher при старте
 
@@ -226,11 +262,13 @@ Trust и реальная доставка в Codex остаются отдел�
 MCP stdio. Настройки hooks создаёт инструмент. Он не изменяет trust/permissions и не устанавливает
 Codex/IDE.
 
-При выбранном для SessionStart builtin `capability-summary` агент получает краткую сводку настроенных возможностей.
+При выбранном для SessionStart builtin `capability-summary` агент получает краткую сводку
+настроенных возможностей.
 Полная последняя сводка сохраняется в данных сессии; её можно прочитать без новых
 проверок либо явно обновить. Порядок описан в [сводке готовности](#сводка-готовности-сессии).
 
-Поддерживаются SessionStart, UserPromptSubmit, Stop, SessionEnd и явно подключённые PreCompact/PostCompact основного агента;
+Поддерживаются SessionStart, UserPromptSubmit, Stop, SessionEnd и явно подключённые
+PreCompact/PostCompact основного агента;
 при явном включении учёта чтения — парные PreToolUse/PostToolUse для Bash.
 SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не поддерживаются этим адаптером. Configured
 `agent_id` выбирает профиль hook, но не создаёт отдельного исполнителя. Файлы launcher учитывают
@@ -452,11 +490,13 @@ exactly-once. Осознанный новый запуск команды аге
 ## Интерфейсы
 - `poise runtime-setup --settings <new-file> --max-input-bytes <explicit-limit>`: stdin `{settings:
   <full settings>, installation: {request_id, expected_revision, definition}}`. Создаёт settings,
-  все native hooks и выполняет выбранные probes одним запросом. При повторе те же настройки принимаются;
+  все native hooks и выполняет выбранные probes одним запросом. При повторе те же настройки
+  принимаются;
   другое содержимое существующего settings не перезаписывается. Начальный лимит задан аргументом,
   потому что settings ещё нет.
 - `poise runtime-config --settings <file>`: stdin `{operation: install, input: {request_id,
-  expected_revision, definition}}` устанавливает весь definition и проверяет probes выбранного capability handler одним
+  expected_revision, definition}}` устанавливает весь definition и проверяет probes выбранного
+  capability handler одним
   вызовом. `operation: probe` принимает `definition_path` и `workspace` для явной повторной
   диагностики. Ошибка проверки доступности не отменяет факт создания настроек.
 - `operation: summary` читает сохранённую сводку своей сессии; `operation: refresh`
@@ -465,7 +505,8 @@ exactly-once. Осознанный новый запуск команды аге
 - `poise hook --settings <file> --definition <immutable-definition>`: внешний протокол Codex, один
   native event на stdin; не агентский lifecycle API.
 - `poise hook --settings <file> --definition <definition> --retry <saved-response>` продолжает
-  либо возвращает сохранённую доставку по её действительному состоянию. Новое native-событие не создаётся.
+  либо возвращает сохранённую доставку по её действительному состоянию. Новое native-событие не
+  создаётся.
 - Сгенерированный `work.sh`: принимает обычный пакет WorkTools на stdin. Повторять task ID/session
   ID не требуется.
 - Старые `work`, `runtime` и `goal-config` остаются самостоятельными явными интерфейсами.
@@ -537,7 +578,8 @@ capability probes. Неизвестные рабочие настройки со
 Существующие чужие группы hooks сохраняются. Заменяются только ранее установленные целые группы
 данного definition. Изменённая вручную owned-группа вызывает отказ, а не перезапись.
 
-`expected_revision` — наблюдённая полная revision установки из `HookService(settings_path).revision()`
+`expected_revision` — наблюдённая полная revision установки из
+`HookService(settings_path).revision()`
 либо explicit null при отсутствии native-файла. Она учитывает raw settings/профиль/связь проекта,
 Task-источник при подключённом adapter и выбранные конфигурации/политики. В новой квитанции
 `revision` — эта полная версия, `native_file_revision` — digest native-файла. Историческая квитанция
@@ -614,14 +656,17 @@ binding-файл, launcher и настроенную capabilities-сводку. 
 
 Повторный Stop или SessionEnd после освобождения не создаёт binding заново. Настоящий
 SessionStart восстанавливает рабочую привязку той же сессии. Prompt без предшествующей
-живой Start binding даёт явный отказ; агент не создаёт поддельный старт ради допуска. Диагностические наблюдения остаются доступными без binding.
+живой Start binding даёт явный отказ; агент не создаёт поддельный старт ради допуска.
+Диагностические наблюдения остаются доступными без binding.
 Освобождение одной Task в продолжающейся сессии снимает Task/worktree ownership, сохраняя
 доступ сессии для следующей разрешённой работы.
 
 Очистка повторно проверяет, что последним native-фактом остаётся именно выбранный End.
 Более новый Start сохраняет свой runtime и привязку. Для очистки читаются настроенные
-пути; восстановление контекста Task не запускается. Незавершённый эффект сохраняет свои исходные данные для восстановления владельцем;
-его результат и историческая End authority не подменяются наличием live binding. Зафиксированный End хранит собственную запись привязки
+пути; восстановление контекста Task не запускается. Незавершённый эффект сохраняет свои исходные
+данные для восстановления владельцем;
+его результат и историческая End authority не подменяются наличием live binding. Зафиксированный End
+хранит собственную запись привязки
 в истории события: её освобождение не лишает настоящую квитанцию возможности проверки
 и повторной доставки. Start проверяется по действующей operational binding.
 Диагностика End сопоставляет сохранённый native-факт с точными квитанциями запусков.
@@ -661,7 +706,8 @@ SessionEnd синхронен по внешнему протоколу. Ника
 1. Выберите установленную совместимую версию Poise/CPython3.15, проект и зарегистрированный
    checkout. Заполните полный reader profile с command policy по
    [существующему порядку](project-file-reading.md#подключение-учёта-обычных-команд),
-   instruction catalogue/policy, отдельную политику сводки и handler configurations. Совпадение project message source
+   instruction catalogue/policy, отдельную политику сводки и handler configurations. Совпадение
+   project message source
    и definition проверяет существующий владелец конфигурации проекта.
 2. Передайте полный settings и `hook-definition-2`, ссылающийся на подготовленные
    handler configurations, в один
@@ -918,7 +964,8 @@ timeout или несовместимый ответ MCP сохраняет ре
 У доступного средства `reason` равен `null`; пример текстового шаблона показывает булевы
 значения как `True`/`False`, а отсутствие причины как `None`.
 
-Оператор задаёт явные значения в [конфигурации capability handler](#конфигурация-и-встроенные-возможности).
+Оператор задаёт явные значения в [конфигурации capability
+handler](#конфигурация-и-встроенные-возможности).
 Там перечислены поля `header_template` и `item_template`;
 шаблоны не заменяют полную сохранённую сводку. Ограничение `max_input_bytes` применяется
 к её чтению и записи. `context_limit` события и `output_chars` ограничивают показ агенту,
@@ -981,7 +1028,8 @@ native hook имеет exit `1` и stderr, сохраняя протокол х�
 зависимостей, ремонт служб и фоновое обновление в эту операцию не входят.
 
 ## Рабочие границы
-Task capability gate включается в `task-context.options.gate_operations`, без дополнительного model tool call на каждую
+Task capability gate включается в `task-context.options.gate_operations`, без дополнительного model
+tool call на каждую
 capability. При bootstrap сначала подготавливается реально выбранный worktree, затем проверяется
 привязка к нему; при недоступности возвращается blocked context, а не успешное разрешение писать
 код. При verify проверка выполняется до запуска task methods. Read-only show, cancel и release не
@@ -1368,7 +1416,8 @@ hooks](https://learn.chatgpt.com/docs/hooks).
 [Полный command-enabled комплект](project-file-reading.md#подключение-учёта-обычных-команд)
 сохраняет существующие четыре lifecycle события и добавляет ровно пару `PreToolUse`/`PostToolUse`.
 У обоих `matcher="Bash"`, `async=false`, явные положительные `timeout_seconds`/`context_limit`
-и непустой `status_message`. Пример задаёт15 секунд / 2000 контекстных единиц; это значения установки,
+и непустой `status_message`. Пример задаёт15 секунд / 2000 контекстных единиц; это значения
+установки,
 не скрытые defaults. Один event без второго либо другой matcher отклоняются.
 
 Оба события выбирают builtin `command-intake` с абсолютным `options.policy_path`

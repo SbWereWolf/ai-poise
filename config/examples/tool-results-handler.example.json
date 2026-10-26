@@ -1,0 +1,22 @@
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "tool-results",
+  "handlers": [
+    {
+      "id": "tool-result",
+      "implementation": {
+        "kind": "builtin",
+        "name": "tool-result"
+      },
+      "mode": "sync",
+      "options": {
+        "policy_path": "@TOOL_RESULTS_POLICY@"
+      },
+      "execution": {
+        "run_seconds": 20,
+        "cleanup_seconds": 5
+      },
+      "on_error": "stop"
+    }
+  ]
+}

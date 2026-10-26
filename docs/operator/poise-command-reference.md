@@ -41,7 +41,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 |---|---|---|
 | `work` | CLI-аргументов нет; JSON stdin; выбранный `POISE_CONFIG` и родной контекст caller. | Task/Sprint, результаты этапов, проверки, передача роли и артефакты. |
 | `result-view` | Обязательные `--response PATH --view brief\|expanded\|full --output-chars INT`. | Представление уже сохранённого полного ответа с явным бюджетом. |
-| `tool-result` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и `--audience agent\|machine`; JSON stdin. | Полное сохранение явного результата инструмента, ограниченное представление и адресные запросы без Task. |
+| `tool-result` | Обязательные абсолютный `--policy PATH` и `--audience agent\|machine`; JSON stdin. Для session route `--config PATH`/`--checkout PATH` необязательны парой; non-session project-bound route требует оба абсолютных пути. | Общий вывод/сохранённые expanded/full последнего run и прямые capture/read операции без обязательной Task. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
@@ -50,11 +50,16 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 
 ### Результаты инструментов
 
-Отдельная команда `tool-result` принимает операции capture/view/summary/lines/
-bytes/search/hook по [каноническому справочнику](../configuration/tool-results.md#подготовка-и-вызов).
-Настройка policy, заполнение четырёх примеров, настоящий caller, machine/agent,
-исходный exit_code и восстановление принадлежат этому справочнику. Сама команда
-не запускает производителя и не устанавливает native hooks.
+`tool-result` принимает capture/view/summary/lines/bytes/search/hook и
+[expanded/full последнего
+результата](../configuration/tool-results.md#чтение-последнего-результата).
+Настройка, полные обезличенные session/handler и прежние четыре capture/read примера,
+caller, machine/agent, исходный exit и восстановление принадлежат
+[единому справочнику](../configuration/tool-results.md#подготовка-и-вызов).
+Config/checkout передаются вместе при выборе проекта; отсутствие пары поддержано
+session route, не project-bound policy без session. Сам CLI получает готовый source,
+не запускает производителя и не устанавливает native hooks. Самостоятельный result-view
+в таблице остаётся reference API сохранённого JSON, а не способом F08.
 
 ### Именованные проверки проекта
 
@@ -366,7 +371,8 @@ bash "$native_launcher" --project "$project_id" < "$packet"
 аргументами. Это пакет операций reader, без Work `input/messages`. Полные примеры и все поля —
 [в контракте](../configuration/project-file-reading.md#семь-операций), заполнение политики —
 [у её владельца](../configuration/project-file-reading.md#подготовка-политики-и-примеры), admission
-и actual End/recover — [в жизненном цикле](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+и actual End/recover — [в жизненном
+цикле](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
 Специализированный `tools/source_read.py` с acknowledgement остаётся отдельным интерфейсом.
 
 
@@ -386,6 +392,7 @@ input/messages. JSON-SDK execute имеет тот же пакет. Это metad
 
 [Полная исполняемая форма](../configuration/project-file-reading.md#сводка-покрытия),
 [options/examples](../configuration/project-file-reading.md#параметры-политики-обычных-команд) и
-[продолжение после отказов](../configuration/project-file-reading.md#решения-и-восстановление-учёта-команд)
+[продолжение после
+отказов](../configuration/project-file-reading.md#решения-и-восстановление-учёта-команд)
 принадлежат каноническому reader owner. Рабочий каталог доказан literal absolute cd prefix
 либо независимым absolute operand; ambient cwd не угадывается.

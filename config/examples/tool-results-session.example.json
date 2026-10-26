@@ -1,0 +1,187 @@
+{
+  "schema": "poise-tool-result-policy-1",
+  "version": "session-example-1",
+  "storage": {
+    "root": "@RESULTS@",
+    "response": "result.json",
+    "stdout": "stdout.bin",
+    "stderr": "stderr.bin",
+    "text": "text.log",
+    "file_mode": 384,
+    "chunk_bytes": 4096,
+    "retention": "operator-managed"
+  },
+  "placement": {
+    "policy": "@PLACEMENT@",
+    "purpose": "tool-result",
+    "recipient": "agent",
+    "lifetime": "operator-managed"
+  },
+  "input": {
+    "max_bytes": 1048576
+  },
+  "display": {
+    "output_chars": 1800,
+    "output_bytes": 2400,
+    "passthrough": {
+      "max_bytes": 256,
+      "max_lines": 8
+    },
+    "success": {
+      "tail_lines": 3,
+      "max_excerpt_bytes": 400
+    },
+    "failure": {
+      "match_patterns": [
+        "^ERROR:"
+      ],
+      "match_limit": 2,
+      "context_lines": 1,
+      "tail_lines": 2,
+      "max_excerpt_bytes": 500
+    },
+    "max_line_bytes": 96,
+    "binary": {
+      "nul_byte_is_binary": true
+    }
+  },
+  "inspection": {
+    "max_lines": 4,
+    "max_matches": 2,
+    "default_context_lines": 1,
+    "max_context_lines": 2,
+    "max_excerpt_bytes": 600
+  },
+  "hook": {
+    "mode": "enforce",
+    "max_response_bytes": 256,
+    "max_response_lines": 8
+  },
+  "session": {
+    "root": "@RESULTS@/sessions",
+    "runs": "runs",
+    "last": "last-tool.json",
+    "expanded": "expanded.txt",
+    "full": "full.json"
+  },
+  "parsers": {
+    "Bash": {
+      "parser": "bash",
+      "format": "native-exec-json",
+      "summary_prefix": "RESULT: ",
+      "detail_prefix": "DETAIL: ",
+      "summary_missing": "exit-only",
+      "brief_template": "Bash: exit {exit_code}; {summary}",
+      "brief_without_summary": "Bash: exit {exit_code}",
+      "expanded_template": "{brief}\n{details}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject"
+    },
+    "Poise": {
+      "parser": "poise",
+      "format": "saved-work-json",
+      "source_root": "@POISE_RESPONSE_ROOT@",
+      "brief_template": "Poise: {status}",
+      "expanded_template": "{brief}",
+      "expanded_fields": [
+        {
+          "path": [
+            "task"
+          ],
+          "required": false,
+          "format": "json",
+          "template": "Task: {value}"
+        },
+        {
+          "path": [
+            "stage"
+          ],
+          "required": false,
+          "format": "json",
+          "template": "Stage: {value}"
+        },
+        {
+          "path": [
+            "results"
+          ],
+          "required": false,
+          "format": "count",
+          "template": "Queries: {value}"
+        },
+        {
+          "path": [
+            "after",
+            "task_id"
+          ],
+          "required": false,
+          "format": "json",
+          "template": "Task claim: {value}"
+        },
+        {
+          "path": [
+            "after",
+            "worktree_task_id"
+          ],
+          "required": false,
+          "format": "json",
+          "template": "Worktree claim: {value}"
+        }
+      ],
+      "expanded_separator": "\n",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject"
+    },
+    "mcp__example__records": {
+      "parser": "mcp",
+      "format": "records-json",
+      "brief_template": "MCP: {count} records",
+      "expanded_template": "{brief}\nNames: {names}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject"
+    }
+  },
+  "selection": [
+    {
+      "id": "ordinary-poise",
+      "tool_name": "Bash",
+      "profile": "Poise",
+      "priority": 20,
+      "command_pattern": "@POISE_COMMAND_REGEX@"
+    },
+    {
+      "id": "ordinary-bash",
+      "tool_name": "Bash",
+      "profile": "Bash",
+      "priority": 10,
+      "command_pattern": null
+    },
+    {
+      "id": "declared-mcp-records",
+      "tool_name": "mcp__example__records",
+      "profile": "mcp__example__records",
+      "priority": 10,
+      "command_pattern": null
+    }
+  ]
+}

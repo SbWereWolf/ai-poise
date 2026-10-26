@@ -4,22 +4,30 @@
 
 ## Явные результаты инструментов
 
-Самостоятельный [tool-result](../configuration/tool-results.md#назначение-и-границы)
-использует существующий модуль result_views: чистый domain владеет policy/request,
-выбором фрагмента, общим UTF-8 head/tail и agent envelope, точными координатами
-адресного текста. Application ToolResults нормализует явный controlled Bash вход
-и координирует единственный ResultStore; inspection selection общая для agent и
-machine, display budget применяется только к agent.
+[Tool-result](../configuration/tool-results.md#назначение-и-границы) использует один
+result_views domain: policy/request, pure `select_parser` и классификация native source,
+подготовка двух форм/бюджетов и адресные чтения. Selection выбирает declared профиль
+по actual tool/полной command один раз; отказ не переключает decoder.
 
-Порт ResultStore отделяет полный record/источники от filesystem I/O. Infrastructure
-отвечает за scoped адрес, raw-copy/readback, атомарную публикацию, source integrity
-и прежний placement owner; interface — за JSON/CLI, обязательный выбор audience и
-предметную диагностику. Composition выбирает существующий project/checkout/caller
-без Task lifecycle и без запуска производителя. Полные stdout/stderr/JSON остаются
-доступны программным потребителям; краткое отображение не меняет сохранённые данные.
+Application `ToolResults` передаёт selected profile в существующий prepare callback
+как оперативный аргумент. До сохранения он извлекается из нормализованного request:
+actual native name, исходная полная policy/digest и saved wire schema сохраняются.
+Порт `ResultStore` по-прежнему владеет полным record, файлами форм, session UUID/last,
+ordinary replay и публикацией. Новый selector ledger или второй store не создаётся.
 
-Прежний Poise result-view сохраняет свой контракт. Этот вход не создаёт отдельный
-runner, evidence ledger, универсальный host hook или MCP execution server.
+Infrastructure читает полный объявленный source и проверяет source_root/metadata,
+копирует доступные streams, публикует файлы и last через прежний filesystem owner.
+Composition использует настоящую общую session без обязательного Task adapter;
+явный non-session API сохраняет собственный project/checkout договор.
+Builtin общей цепочки сначала проверяет own service command/policy/caller/run/bytes,
+затем выполняет capture либо доставляет сохранённый service. Он не предоставляет
+blanket exemption всем Poise ответам и не создаёт отдельный dispatcher/MCP server.
+
+Machine consumer получает original returned value целиком; hook заменяет только
+модельное представление. [Реальная
+установка](../configuration/runtime-hooks.md#вывод-инструмента-через-общую-цепочку)
+и полнота actual host return подтверждаются отдельными наблюдениями.
+Внутренний result-view над JSON/check receipts не является другим способом F08.
 
 ## Управление задачами и доказательствами
 
@@ -108,10 +116,12 @@ Task-валидацию. Record, Store и accounting сохраняют
 
 Requirements использует отдельный SQL provider, а Task сохраняет собственный исторический
 requirements snapshot. Проверка двух файлов не становится общей транзакцией. Пакетный
-Requirements CRUD сохраняет свою [описанную границу](../workflows/requirements-registry.md#конкурентная-запись).
+Requirements CRUD сохраняет свою [описанную
+границу](../workflows/requirements-registry.md#конкурентная-запись).
 Явно транзакционные библиотечные helpers продолжают работать в контексте вызывающего кода.
 Закрытие снимка не меняет Task/worktree ownership и не даёт полномочий на приёмку.
-Подробный алгоритм, ожидания и повторы принадлежат [контракту SQLite-записи](sqlite-write-boundary-design.md#подготовка-и-короткая-запись).
+Подробный алгоритм, ожидания и повторы принадлежат [контракту
+SQLite-записи](sqlite-write-boundary-design.md#подготовка-и-короткая-запись).
 
 ## Подготовка Task-worktree
 
@@ -142,7 +152,8 @@ capture. Общий publisher повторно использует сущест
 подтверждению. Sidecar — источник восстановления, не публичный успешный receipt.
 Уже зарегистрированные недоступные/изменённые bytes не подменяются; неполный исход
 остаётся unconfirmed. Application одним итоговым UoW связывает квитанцию и completed.
-Операционная инструкция: [подготовка области](../operator/worktree-preparation.md#подготовка-рабочей-области).
+Операционная инструкция: [подготовка
+области](../operator/worktree-preparation.md#подготовка-рабочей-области).
 
 ## Именованные проверки проекта
 
@@ -705,7 +716,8 @@ entry gate сохраняет цель для correction/restart, но не ме
 Граница ролей берётся из явных `role` соседних узлов сохранённого route. Чистый
 `crossed_role_boundary` подтверждает передачу текущего проверенного результата другому участнику
 по его истории владения: обычные release/acquire и исторические события прежних передач проверяются
-по их реальному происхождению. Уже доказанная передача сохраняется при повторном получении тем же получателем;
+по их реальному происхождению. Уже доказанная передача сохраняется при повторном получении тем же
+получателем;
 цикл только исходного автора не создаёт её. Событие освобождения хранит `actor=None`, поэтому
 отправитель определяется из предыдущего доказанного владельца. Конечный владелец сверяется с Task.
 
@@ -724,7 +736,8 @@ UoW, что прежние identity/content/report/tree/unknown/duplicate gates,
 `release` не создаёт transport receipt или bundle.
 Новые таблицы, миграция или сохраняемая привилегия не вводятся. Runtime и transport не получают
 второго lifecycle; операция не отправляет сообщения и не исполняет работу этапа. Публичная
-процедура принадлежит [контракту продолжения](../workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
+процедура принадлежит [контракту
+продолжения](../workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 
 ## DDD-10 — интеграция принятого результата
 
@@ -1032,7 +1045,8 @@ temporary tree, внешние control/diagnostic/coordination/template сохр
 
 [Публичный контракт](../configuration/project-file-reading.md#назначение-и-явные-входы) и
 [жизненный цикл](../workflows/file-intake-lifecycle.md#допуск-и-владение) отделены от
-[специализированного acknowledged reader](../workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).
+[специализированного acknowledged
+reader](../workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).
 Поддержанные обычные Bash-чтения подключаются отдельным event adapter к тому же ресурсу.
 Универсальный перехват инструментов и автоматический compaction reset не заявлены.
 

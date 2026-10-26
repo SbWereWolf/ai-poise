@@ -7,7 +7,7 @@ import pytest
 from batch.helpers import request
 from poise.common import PoiseError
 from runtime_services.stage_result_handoff_helpers import (
-    blocked, business, complete, count, handoff, interrupt_after,
+    blocked, blocked_details, business, complete, count, handoff, interrupt_after,
     receiver, source_state, start,
 )
 
@@ -44,9 +44,12 @@ def test_exact_continuation_does_not_repeat_a_committed_owner_effect(project, mo
         calls = interrupt_after(monkeypatch, tools.runtime.ownership.commands, "release", "after committed release")
     first = handoff(tools, packet)
     assert business(first)["status"] in ("handoff_completed", "handoff_blocked")
+    if business(first)["status"] == "handoff_blocked":
+        blocked(first, owner)
+        blocked_details(first, "after_" + owner, identities=[packet["input"]["request_id"]])
     assert count(counter) == "x"
     resumed = handoff(tools, packet)
-    complete(resumed, replayed=True if business(first)["status"] == "handoff_completed" else None)
+    complete(resumed, replayed=business(first)["status"] == "handoff_completed")
     assert calls  # The real owner was reached before injected response loss.
     assert count(counter) == "x"
     assert source_state(tools)["counts"][0] == 1
@@ -69,6 +72,7 @@ def test_release_failure_has_a_real_partial_outcome_and_retries_without_new_veri
 
     monkeypatch.setattr(tools.runtime.ownership.commands, "release", refuse_once)
     first = blocked(handoff(tools, packet), "release")
+    blocked_details(first, "release", identities=[packet["input"]["request_id"]])
     assert first["verification"]["status"] == "verified"
     assert first["progression"]["stage"] == "next_work"
     assert first["release"] is None
@@ -83,11 +87,14 @@ def test_response_loss_after_release_preserves_a_receiver_who_acquired_before_re
     calls = interrupt_after(monkeypatch, tools.runtime.ownership.commands, "release", "lost release acknowledgement")
     first = handoff(tools, packet)
     assert business(first)["status"] in ("handoff_completed", "handoff_blocked")
+    if business(first)["status"] == "handoff_blocked":
+        blocked(first, "release")
+        blocked_details(first, "release_acknowledgement", identities=[packet["input"]["request_id"]])
     incoming, _ = receiver(project)
     before = source_state(incoming)
     ownership = incoming.runtime.ownership.snapshot("handoff-reviewer")
     recovered = handoff(tools, packet)
-    complete(recovered, replayed=True if business(first)["status"] == "handoff_completed" else None)
+    complete(recovered, replayed=business(first)["status"] == "handoff_completed")
     assert source_state(incoming) == before
     assert incoming.runtime.ownership.snapshot("handoff-reviewer") == ownership
     assert calls and count(counter) == "x"
@@ -110,8 +117,10 @@ def test_missing_terminal_check_receipt_keeps_unknown_outcome_without_reexecutio
     pending = deepcopy(source_state(tools)["pending"])
     assert pending["kind"] == "check_attempt"
     assert pending["runs"][0]["started"] is True and count(counter) == "x"
+    identities = [pending["attempt_id"], pending["runs"][0]["run_id"]]
+    blocked_details(first, "receipt_unavailable", identities=identities)
     second = blocked(handoff(tools, packet), "verification")
-    assert second["blocked"]["continuation"].strip()
+    blocked_details(second, "unknown", identities=identities)
     assert source_state(tools)["pending"] == pending
     assert source_state(tools)["claimed_by"] == "handoff-author"
     assert count(counter) == "x"
@@ -130,10 +139,12 @@ def test_source_drift_during_incomplete_handoff_never_advances_or_discards_the_c
 
     monkeypatch.setattr(tools.runtime, "advance", temporarily_blocked)
     first = blocked(handoff(tools, packet), "progression")
+    blocked_details(first, "progression", identities=[packet["input"]["request_id"]])
     assert first["verification"]["status"] == "verified"
     path = Path(context["worktree"]) / "src/double.py"
     path.write_text("def double(n):\n    return n * 3\n", encoding="utf-8")
     second = blocked(handoff(tools, packet), "progression")
+    blocked_details(second, "source_drift", identities=["T1"])
     assert second["release"] is None
     state = source_state(tools)
     assert (state["stage"], state["status"], state["claimed_by"]) == (

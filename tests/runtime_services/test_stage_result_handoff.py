@@ -9,7 +9,8 @@ from conftest import WorkPoise, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runtime_services.stage_result_handoff_helpers import (
-    blocked, business, complete, count, fixture, handoff, receiver, release,
+    blocked, blocked_details, business, complete, count, fixture, handoff,
+    observe_owner_results, preserved_owner_results, receiver, release,
     source_state, start,
 )
 
@@ -125,6 +126,37 @@ def test_completed_exact_replay_preserves_a_distinct_receivers_claim_and_history
     assert ownership.task_id == "T1" and count(counter) == "x"
 
 
+@pytest.mark.parametrize("scenario", ["complete", "checks_failed", "entry_gate"])
+def test_handoff_retains_complete_real_owner_results_and_the_completed_replay(project, monkeypatch, scenario):
+    options = {"check_exit": 7} if scenario == "checks_failed" else (
+        {"mode": "same_role", "gate": True} if scenario == "entry_gate" else {}
+    )
+    tools, _, packet, counter = start(project, **options)
+    observed = observe_owner_results(monkeypatch, tools)
+    output = handoff(tools, packet)
+    if scenario == "complete":
+        complete(output)
+        phases = ["verification", "progression", "release"]
+    else:
+        blocked(output, "verification" if scenario == "checks_failed" else "progression")
+        blocked_details(output, scenario)
+        phases = ["verification"] if scenario == "checks_failed" else ["verification", "progression"]
+    preserved_owner_results(output, observed, phases)
+    assert count(counter) == "x"
+    state = source_state(tools)
+    if scenario == "complete":
+        assert state["status"] == "verified" and state["claimed_by"] is None
+        first = deepcopy(business(output))
+        replay = complete(handoff(tools, packet), replayed=True)
+        preserved_owner_results(replay, observed, phases)
+        assert {k: v for k, v in replay.items() if k != "replayed"} == {
+            k: v for k, v in first.items() if k != "replayed"
+        }
+        assert source_state(tools) == state and count(counter) == "x"
+    else:
+        assert state["claimed_by"] == "handoff-author" and state["stage"] == "author"
+
+
 @pytest.mark.parametrize("field", ["result", "artifacts", "reason", "target_stage", "task_id"])
 def test_reused_request_with_changed_intent_refuses_without_new_effects(project, field):
     tools, _, packet, counter = start(project)
@@ -153,6 +185,34 @@ def test_foreign_first_call_refuses_without_stealing_the_authors_claim(project):
     assert tools.runtime.ownership.snapshot("handoff-author").task_id == "T1"
 
 
+def test_first_own_call_with_another_tasks_identity_has_no_effects_on_either_task(project):
+    tools, context, packet, counter = start(project)
+    foreign_task = deepcopy(project["task"])
+    foreign_task["id"] = "SECOND"
+    foreign = WorkTools(WorkPoise(project["config_path"], "foreign-task-owner"))
+    foreign_context = foreign.invoke(request("bootstrap", {
+        "task": foreign_task, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert foreign_context["status"] == "active"
+    own_before = source_state(tools)
+    foreign_before = deepcopy(foreign.runtime.task_queries.record("SECOND"))
+    own_claim = tools.runtime.ownership.snapshot("handoff-author")
+    foreign_claim = foreign.runtime.ownership.snapshot("foreign-task-owner")
+    assert own_claim.task_id == own_claim.worktree_task_id == "T1"
+    assert foreign_claim.task_id == foreign_claim.worktree_task_id == "SECOND"
+    packet["input"]["task_id"] = "SECOND"
+    with pytest.raises(PoiseError) as error:
+        tools.invoke(packet)
+    assert "Unknown work operation" not in str(error.value)
+    assert any(word in str(error.value).casefold() for word in ("task", "задач"))
+    assert source_state(tools) == own_before and count(counter) == ""
+    assert foreign.runtime.task_queries.record("SECOND") == foreign_before
+    assert tools.runtime.ownership.snapshot("handoff-author") == own_claim
+    assert foreign.runtime.ownership.snapshot("foreign-task-owner") == foreign_claim
+    for active in (context, foreign_context):
+        assert not (Path(active["task_root"]) / "artifacts/result.txt").exists()
+
+
 def test_receiver_cannot_replay_the_original_callers_completed_request(project):
     tools, _, packet, counter = start(project)
     complete(handoff(tools, packet))
@@ -179,6 +239,7 @@ def test_invalid_input_has_no_verification_artifact_or_claim_effect(project):
 def test_failed_verification_is_blocked_without_progression_or_release(project):
     tools, _, packet, counter = start(project, check_exit=7)
     output = blocked(handoff(tools, packet), "verification")
+    blocked_details(output, "checks_failed")
     assert output["verification"]["status"] == "checks_failed"
     assert output["progression"] is None and output["release"] is None
     assert output["verification"]["checks"][0]["actual_exit_code"] == 7
@@ -192,6 +253,7 @@ def test_failed_verification_is_blocked_without_progression_or_release(project):
 def test_real_entry_gate_failure_retains_the_verified_result_and_current_owner(project):
     tools, _, packet, counter = start(project, mode="same_role", gate=True)
     output = blocked(handoff(tools, packet), "progression")
+    blocked_details(output, "entry_gate")
     assert output["verification"]["status"] == "verified"
     assert output["progression"]["status"] == "broken"
     assert output["release"] is None

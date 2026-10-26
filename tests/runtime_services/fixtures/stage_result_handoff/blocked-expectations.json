@@ -1,0 +1,46 @@
+{
+  "checks_failed": {
+    "reason_all": [["CHECK-ONCE"], ["7"]],
+    "continuation_any": [["bootstrap", "rework", "author"]]
+  },
+  "entry_gate": {
+    "reason_all": [["next-work-entry"], ["gate.txt"]],
+    "continuation_any": [["show", "stage_criteria", "next_work"], ["show", "content", "next-work-entry"], ["revise_stage_contract", "next_work"], ["task", "restart", "T1"]]
+  },
+  "release": {
+    "reason_all": [["fixture release temporarily refused"]],
+    "continuation_any": [["handoff", "handoff-fixture-1"]]
+  },
+  "progression": {
+    "reason_all": [["fixture progression temporarily unavailable"]],
+    "continuation_any": [["handoff", "handoff-fixture-1"]]
+  },
+  "after_verification": {
+    "reason_all": [["after committed verify"]],
+    "continuation_any": [["handoff", "handoff-fixture-1"]]
+  },
+  "after_progression": {
+    "reason_all": [["after committed advance"]],
+    "continuation_any": [["handoff", "handoff-fixture-1"]]
+  },
+  "after_release": {
+    "reason_all": [["after committed release"]],
+    "continuation_any": [["handoff", "handoff-fixture-1"]]
+  },
+  "release_acknowledgement": {
+    "reason_all": [["lost release acknowledgement"]],
+    "continuation_any": [["handoff", "handoff-fixture-1"]]
+  },
+  "receipt_unavailable": {
+    "reason_all": [["fixture terminal receipt persistence unavailable"]],
+    "continuation_any": [["show", "work_overview"], ["task", "restart", "authorised"], ["task", "restart", "разреш"]]
+  },
+  "unknown": {
+    "reason_all": [["Unknown check outcome", "неизвест"]],
+    "continuation_any": [["show", "work_overview"], ["task", "restart", "authorised"], ["task", "restart", "разреш"]]
+  },
+  "source_drift": {
+    "reason_all": [["source", "исход"], ["changed", "измен"]],
+    "continuation_any": [["show", "task", "T1"], ["bootstrap", "rework", "author"], ["task", "restart", "T1"]]
+  }
+}

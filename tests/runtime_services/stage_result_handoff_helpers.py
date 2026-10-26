@@ -132,8 +132,8 @@ def complete(output, *, replayed=False):
     assert value["task"] == "T1" and value["request_id"] == "handoff-fixture-1"
     assert value["phase"] == "complete" and value["blocked"] is None
     assert type(value["replayed"]) is bool
-    if replayed is not None:
-        assert value["replayed"] is replayed
+    assert type(replayed) is bool
+    assert value["replayed"] is replayed
     assert value["verification"]["status"] == "verified"
     assert value["release"]["status"] == "ownership_released"
     assert value["release"]["after"]["task_id"] is None
@@ -147,7 +147,52 @@ def blocked(output, phase):
     assert value["blocked"]["reason"].strip()
     assert value["blocked"]["continuation"].strip()
     assert value["replayed"] is False
+    assert value["task"] == "T1" and value["request_id"] == "handoff-fixture-1"
     return value
+
+
+def blocked_details(output, case, *, identities=()):
+    """Independent cause/action tokens; dynamic IDs identify actual pending work."""
+    expected = fixture("blocked-expectations.json")[case]
+    detail = business(output)["blocked"]
+    reason = detail["reason"].casefold()
+    continuation = detail["continuation"].casefold()
+    assert all(any(token.casefold() in reason for token in alternatives)
+               for alternatives in expected["reason_all"])
+    assert any(all(token.casefold() in continuation for token in action)
+               for action in expected["continuation_any"])
+    assert all(identity.casefold() in continuation for identity in identities)
+
+
+def observe_owner_results(monkeypatch, tools):
+    """Observe real producer returns transparently; no predicted/fabricated results."""
+    observed = {"verification": [], "progression": [], "release": []}
+
+    def observe(phase, owner, name):
+        original = getattr(owner, name)
+
+        def record(*args, **kwargs):
+            value = original(*args, **kwargs)
+            observed[phase].append(deepcopy(value))
+            return value
+
+        monkeypatch.setattr(owner, name, record)
+
+    observe("verification", tools.runtime, "verify")
+    observe("progression", tools.runtime, "advance")
+    observe("release", tools.runtime.ownership.commands, "release")
+    return observed
+
+
+def preserved_owner_results(output, observed, phases):
+    value = business(output)
+    for phase in ("verification", "progression", "release"):
+        if phase in phases:
+            assert observed[phase]
+            # Retention property alongside independent business/effect assertions.
+            assert value[phase] == observed[phase][0]
+        else:
+            assert observed[phase] == [] and value[phase] is None
 
 
 def source_state(tools):

@@ -89,6 +89,15 @@ class WorkResources:
         self.validate_selection_sources(saved)
         return paths
 
+    def prepare_selection(self, factory, items, saved):
+        try:
+            return factory.prepare(items)
+        except (PoiseError, OSError):
+            # Preparation rereads sources too. Attribute only a proved change;
+            # destination and other owner failures keep their original meaning.
+            self.validate_selection_sources(saved)
+            raise
+
     def guard_selection(self, task, saved, publication):
         guard = {key: publication[key] for key in ('tree', 'payload_hash', 'execution_key')}
         guard['artifacts'] = [{'path': item['path'], 'digest': item['digest']} for item in publication['artifacts']]

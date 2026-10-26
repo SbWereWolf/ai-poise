@@ -63,7 +63,7 @@ class SelectedResultSubmission:
             payload = intent.compose_result(context['result_template'], context['required_sections'])
             artifacts, sources = self.resources.prepare_selection_sources(data, intent.value['files'])
             factory = self.resources.factory()
-            prepared = factory.prepare(artifacts)
+            prepared = self.resources.prepare_selection(factory, artifacts, {'sources': sources})
             original_paths = deepcopy(payload['artifact_paths'])
             if not isinstance(original_paths, list) or any(not isinstance(p, str) or not p for p in original_paths):
                 raise SelectionRefusal('selection_contract_invalid', 'metadata.artifact_paths must be an explicit list of existing artifact paths')

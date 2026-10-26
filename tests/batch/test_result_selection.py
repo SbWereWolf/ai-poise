@@ -552,3 +552,106 @@ def test_distinct_selected_sources_with_equal_bytes_have_one_destination(case_fa
     assert len(rows) == 1
     assert tuple(rows[0]) == (str(case.target), hashlib.sha256(bytes.fromhex('00ff70726f6f66800a')).hexdigest())
     assert case.target.read_bytes() == bytes.fromhex('00ff70726f6f66800a')
+
+
+@pytest.mark.parametrize('window', [1, 2], ids=['first', 'second'])
+@pytest.mark.parametrize('fault', ['bytes', 'missing'])
+def test_selection_prepare_change_has_source_recovery(case_factory, monkeypatch, window, fault):
+    case = case_factory()
+    before = case.snapshot()
+    original = FileArtifactFactory.prepare
+    calls = []
+
+    def change_before_prepare(factory, items):
+        if any(item['source'].get('path') == str(case.source) for item in items):
+            calls.append(True)
+            if len(calls) == window:
+                if fault == 'bytes':
+                    case.source.write_bytes(b'changed after selected snapshot')
+                else:
+                    case.source.unlink()
+        return original(factory, items)
+
+    monkeypatch.setattr(FileArtifactFactory, 'prepare', change_before_prepare)
+    with pytest.raises(PoiseError) as error:
+        case.tools.invoke(case.selected())
+    assert len(calls) == window
+    assert str(error.value).startswith('selection_source_changed')
+    assert str(case.source) in str(error.value)
+    continuation = error.value.continuation
+    assert continuation['kind'] == 'restore_source' and continuation['packet'] is None
+    assert str(case.source) in continuation['instruction']
+    assert case.snapshot() == before and not case.target.exists()
+
+
+@pytest.mark.parametrize('window', [1, 2], ids=['first', 'second'])
+def test_selection_prepare_preserves_unrelated_owner_error(case_factory, monkeypatch, window):
+    case = case_factory()
+    before = case.snapshot()
+    original = FileArtifactFactory.prepare
+    calls = []
+
+    def conflict_before_prepare(factory, items):
+        if any(item['source'].get('path') == str(case.source) for item in items):
+            calls.append(True)
+            if len(calls) == window:
+                case.target.parent.mkdir(parents=True, exist_ok=True)
+                case.target.write_bytes(b'existing unrelated destination bytes')
+        return original(factory, items)
+
+    monkeypatch.setattr(FileArtifactFactory, 'prepare', conflict_before_prepare)
+    with pytest.raises(PoiseError) as error:
+        case.tools.invoke(case.selected())
+    assert len(calls) == window
+    assert str(error.value).startswith('Artifact already exists with different content:')
+    assert error.value.continuation['kind'] == 'continue_work'
+    assert case.source.read_bytes() == bytes.fromhex('00ff70726f6f66800a')
+    assert case.target.read_bytes() == b'existing unrelated destination bytes'
+    assert case.snapshot() == before
+
+
+def _cli_collection_limit(case_factory, collection, *, legacy):
+    from tests.batch.test_cli import call
+    from tests.batch.helpers import message
+    case = case_factory()
+    case.release()
+    started = call(case.project, request('bootstrap', {
+        'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None}))
+    assert started.returncode == 0, started.stdout + started.stderr
+    context = json.loads(Path(json.loads(started.stdout)['response_path']).read_text())
+    case.project['cfg']['batch']['max_items'] = 8
+    case.project['config_path'].write_text(json.dumps(case.project['cfg']))
+    packet = case.old() if legacy else selected(context)
+    if collection == 'files':
+        items = packet['input']['artifacts'] if legacy else packet['input']['selection']['files']
+        items.extend(deepcopy(items[0]) for _ in range(8))
+    else:
+        packet['messages'] = [message('limit-' + str(index)) for index in range(9)]
+    before = case.snapshot()
+    rejected = call(case.project, packet)
+    assert rejected.returncode == 2 and rejected.stderr == ''
+    full = json.loads(Path(json.loads(rejected.stdout)['response_path']).read_text())
+    assert full['status'] == 'rejected'
+    assert case.snapshot() == before and not case.target.exists()
+    return full, packet
+
+
+@pytest.mark.parametrize('collection', ['files', 'messages'])
+def test_cli_selection_collection_limit_has_typed_recovery(case_factory, collection):
+    full, packet = _cli_collection_limit(case_factory, collection, legacy=False)
+    assert full['reason'].startswith('selection_contract_invalid')
+    assert 'max_items' in full['reason'] and '8' in full['reason']
+    assert full['continuation']['kind'] == 'correct_input'
+    assert full['continuation']['packet'] is None
+    assert '8' in full['continuation']['instruction']
+    assert full['selection']['schema'] == 'stage-result-selection-1'
+    assert full['selection']['request_id'] == packet['input']['selection']['request_id']
+
+
+@pytest.mark.parametrize('collection', ['files', 'messages'])
+def test_cli_legacy_collection_limit_keeps_existing_rejection(case_factory, collection):
+    full, _ = _cli_collection_limit(case_factory, collection, legacy=True)
+    assert set(full) == {'status', 'reason'}
+    expected = ('Packet collection exceeds configured max_items' if collection == 'files'
+                else 'messages requires a bounded list')
+    assert full['reason'] == expected

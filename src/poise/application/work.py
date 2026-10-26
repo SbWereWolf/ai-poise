@@ -109,7 +109,8 @@ class WorkTools:
         if not isinstance(payload.get('artifact_paths'),list) or any(not isinstance(p,str) or not p for p in payload['artifact_paths']):
             raise PoiseError('artifact_paths must be an explicit list')
         factory=self.resources.factory()
-        prepared=factory.prepare(args['artifacts'])
+        prepared=(factory.prepare(args['artifacts']) if selection_guard is None else
+                  self.resources.prepare_selection(factory, args['artifacts'], selection_guard))
         # Paths can be known before file creation; Task checks only semantic input.
         payload['artifact_paths']=list(dict.fromkeys(payload['artifact_paths']+[str(x.path) for x in prepared]))
         gate = h.validate_stage_entry(data)

@@ -1,13 +1,14 @@
 # Execution public contract
 
-Статус: действующие process/gate/files/lifecycle/advance/outcome API и отдельно отмеченные
+Статус: действующие process/gate/files/lifecycle/advance/outcome/attempt/reuse API и отдельно отмеченные
 проектные материалы.
 Версия публичного протокола: `stride-execution/v1`.
 
 Текущая поставка реализует `process` из §4, `apply/setup_execution`, `gate` из §7.2,
 `files/check|diff`, `query/execution|gate_context|gate_result|file_result|file_diff_result`,
 Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`,
-`advance/next|fast_forward`, `outcome` и `query/progression|outcome`.
+`advance/next|fast_forward`, `outcome`, `attempt/begin|run|recover|finish|abandon`,
+`reuse/prepare|verify|accept` и `query/progression|outcome|attempt|verification|reuse`.
 [Итог выполнения](outcomes-exe.md) описывает текущие полномочия, пакет решения,
 адресуемый факт, повторы и явную передачу отдельным получателям.
 [Продвижение](advance-exe.md) описывает действующие пакеты, доказательства и историю.
@@ -28,9 +29,9 @@ F3/F4 ссылаются на действующую приёмку.
 Остальные схемы §1–3, §5–7, §8.2–11 и F1a/F5/F7–F9/F11 — проектные материалы T012, если явно
 не отмечены в действующих руководствах. Они сами по себе не объявляют возможности
 поставленного provider или новые обязательства реализации. В частности,
-`ValueRule`/`FileRule`, target structured `error`, authority resolver, subprocess
-runner и межзадачный reuse остаются проектом;
-фактический текущий отказ
+`ValueRule`/`FileRule`, проектный structured `error` и authority resolver
+сохраняют статус проектных схем. Действующие runner и reuse описаны в
+[руководстве проверок](verification-exe.md). Фактический текущий отказ
 содержит `reason`, exit `2`, пустой stderr. Реальные секции, trace и файловые
 счётчики описаны у владельца [gate](gate-exe.md).
 
@@ -91,7 +92,8 @@ stdout содержит ровно один JSON response и `\n`. `argv`, ок�
 Точный набор полей envelope — `schema`, `operation`, `input`. Версия точная;
 неизвестная schema/operation/поле отклоняется. `input` — object, не строковый JSON.
 Дубликаты ключей, NaN/Infinity, неверный UTF-8 и несколько JSON values недопустимы.
-`operation` принадлежит `process|apply|gate|attempt|advance|query|transfer|integration`.
+Действующие operation перечислены во введении и [оболочке](shell-exe.md#запуск);
+transfer/integration в проектных разделах имеют свой явно отмеченный статус.
 
 Общие обозначения типов далее — определения, не поля wire:
 
@@ -424,34 +426,19 @@ candidate. Согласованный contract применяется полно
 
 ### 7.1 `attempt`
 
-Common mutation input: `{action,request_id,expected_revision,task_id,generation,
-candidate_id,candidate_digest}` плюс поля таблицы.
+Действующий CLI предоставляет `begin`, `run`, `recover`, `finish`, `abandon`.
+Общие поля — `action,request_id,expected_revision,task_id,expected_generation,
+expected_contract_revision,actor_id`; каждое действие дополнительно принимает
+`attempt_id` и свои поля. Точные пакеты, 16-полевая попытка, полный 28-полевый
+receipt, бюджет, реальные outputs/termination и продолжение после отказа записи
+описаны у [канонического владельца](verification-exe.md#обычная-попытка).
 
-| action | Дополнительные поля | Условие |
-| --- | --- | --- |
-| `begin` | `method_ids:Id[]` | Exact полный ordered schedule текущего этапа; список не выбирается произвольно caller |
-| `run` | `attempt_id:Id,run_id:Id` | Разрешить один ещё не started run существующего intent; реальное исполнение owner runner |
-| `finish` | `attempt_id:Id` | Все required immutable receipts уже записаны runner; caller не присылает `passed:true` |
-| `status` | Только `task_id,attempt_id`; common mutation fields не передаются | Read-only pending/finished projection |
-
-`begin` возвращает `{schema,status:"attempt_reserved",revision,replayed,attempt_id,
-runs:[{run_id,method_id,started:false}]}`. `run` возвращает
-`{schema,status:"run_recorded",revision,replayed,attempt_id,run_id,receipt_id}` либо
-`{schema,status:"pending",revision,intent_id,phase:"check_run"}` при неопределённом
-внешнем результате. `finish` возвращает
-`{schema,status:"observed",revision,replayed,attempt_id,receipt_ids:Id[]}`.
-Read-only status: `{schema,status:"read_only",revision,attempt_id,runs,
-complete:boolean,uncertain:boolean}`. Каждый runs item содержит
-`run_id,method_id,started:boolean,receipt_id:Id|null`.
-
-Перед запуском сохранены method definition/version, exact argv/env/cwd/input,
-source/contract/candidate digests, actual actor, execution key, timeout policy и
-run ID. Started flag выдаёт однократное разрешение запуска; uncertain result не
-повторяется автоматически и не конструирует receipt из exit текста. Полный
-owner-bound receipt содержит actual exit/signal/timed_out и log hashes. Повтор
-`run` при уже started без подтверждённого receipt возвращает `attempt_uncertain`.
-Configured retries создают новую разрешённую attempt, не переписывают старую.
-Нет физической атомарности между subprocess и SQLite.
+Начало резервирует упорядоченные методы текущего этапа, выполнение сохраняет
+реальные наблюдения, finish создаёт evidence. Read-only `query/attempt` читает
+полную попытку, `query/verification` — бюджет текущего прохождения. Pending
+продолжается по прежним адресам через действительный run/recover;
+[восстановление](verification-exe.md#продолжение-после-сбоя) сохраняет историю
+и различает известное отсутствие запуска и реально работающую команду.
 
 ### 7.2 `gate`
 
@@ -468,6 +455,16 @@ Configured retries создают новую разрешённую attempt, н�
 Точный повтор возвращает сохранённый итог; новый кандидат наблюдает факты заново.
 Приёмка оставляет канонические Task state/current_stage/generation/iteration
 своим владельцам и сохраняет различие факта команды, результата этапа и Task outcome.
+
+### 7.3 `reuse`
+
+Действующие prepare/verify/accept используют собственные принятые факты Execution,
+публичные family/eligibility/claim/Workspace от Sequencing, совместимые полные
+контракты и Requirements snapshots, доставленные локальные файлы и свежую проверку.
+Полные пакеты, состояния кандидата и явное собственное принятие описаны в
+[руководстве reuse](verification-exe.md#повторное-использование-принятого-результата).
+Полученный positive outcome передаётся Requirements/Sequencing существующим
+вызывающим; курсор процесса и handler_outcome сохраняют свой договор.
 
 ## 8. Переходы, перемотка и outcome
 
@@ -524,6 +521,8 @@ obligation/receipt передаётся ему явно. Интеграция н
 
 ## 9. Consistent queries
 
+Текущее чтение `attempt|verification|reuse` возвращает полный `result` по
+[договору проверок](verification-exe.md#бюджет-чтение-и-повтор).
 Текущее чтение `outcome` возвращает полный сохранённый факт в поле `result`
 по [действующему договору](outcomes-exe.md#адресное-чтение-и-повтор).
 Текущее чтение `execution|gate_context|gate_result` определено в
@@ -542,6 +541,9 @@ Input точно `{queries:Query[]}`, nonempty bounded, `id` непусты и �
 | `contract` | `task_id,generation` | `{contract_revision,contract:ExecutionContract,process:ProcessDefinition}` |
 | `candidate` | `task_id,candidate_id` | `{candidate:Candidate,candidate_digest,state,gate_id:Id|null}` |
 | `gate` | `task_id,gate_id` | `{gate_id,candidate_id,candidate_digest,source,artifact_ids,receipt_ids,verified:boolean}` |
+| `attempt` (действующий) | `task_id,attempt_id` | Полная попытка в `result` |
+| `verification` (действующий) | `task_id` | Бюджет текущего прохождения в `result` |
+| `reuse` (действующий) | `task_id,reuse_id` | Полный кандидат в `result` |
 | `outcome` (действующий) | `task_id,outcome_id` | Полный `result` из [руководства исходов](outcomes-exe.md#пакет-и-результат), отдельный от проектного `value` |
 | `restart_history` | `task_id` | `{entries:[{proposal_id,proposal_digest,approval_id,decision,source_generation,target_generation:Ordinal|null,actor_id,role_id}]}` |
 | `history` | `task_id,after_event:Id|null,limit:Ordinal` | `{events:[{id,type,generation,subject_id,revision}],next_after:Id|null}` |

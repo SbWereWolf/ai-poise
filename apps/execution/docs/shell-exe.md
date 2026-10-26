@@ -17,8 +17,10 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 `stride-execution/v1`; текущий CLI выполняет `process`, `apply` с
 `setup_execution`, `gate` с `action: declare|evaluate`, `files` с `action: check|diff`,
 `lifecycle` с семью действиями согласования и повторной работы,
-`advance` с `action: next|fast_forward`, `outcome` с `intent: accept|cancel`
-и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression|outcome`.
+`advance` с `action: next|fast_forward`, `outcome` с `intent: accept|cancel`,
+`attempt` с `action: begin|run|recover|finish|abandon`,
+`reuse` с `action: prepare|verify|accept`
+и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression|outcome|attempt|verification|reuse`.
 [Редактор процессов](process-exe.md) описывает create/edit/status/reconcile и
 материализацию выбранного графа.
 
@@ -42,6 +44,11 @@ freeze/enter/present, предложение и решение о пересмо
 факт и передачу получателям. Для новых решений настройте `outcomes.roles`
 по [инструкции](outcomes-exe.md#подготовка-и-настройка); чтение истории и точный
 повтор сохранённого запроса имеют собственный договор.
+
+[Проверки и повторное использование](verification-exe.md) описывают действительный
+runner, полный результат команды, предел попыток, штатное восстановление и собственное
+принятие связанного результата. Все пять параметров необязательного компонента
+`verification` заполните по [инструкции](verification-exe.md#подготовка-и-настройка).
 
 ## Конфигурация приложения
 
@@ -161,6 +168,12 @@ exit `2`, сохраняет решение для `query/file_diff_result`. Ф�
 
 Python-интерфейс записи фактов возвращает `ExecutionError`; порядок продолжения
 после атомарного отказа описан в [руководстве store](store-exe.md#атомарность-и-продолжение).
+
+Команды `attempt` и `reuse` различают запись наблюдения и его успешность.
+`checks_failed` возвращает exit `1`, `pending` — exit `3`; известный отказ запуска
+может сохранить intent или историю до ответа `rejected`/exit `2`. После такого
+ответа читайте состояние и revision, затем следуйте
+[порядку продолжения](verification-exe.md#продолжение-после-сбоя).
 
 ## Проверки
 

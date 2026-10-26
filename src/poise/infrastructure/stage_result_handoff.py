@@ -1,6 +1,7 @@
 """Adapt existing native owners and real source identities to stage handoff."""
 from copy import deepcopy
 
+from ..application.check_attempts import is_check_attempt, require_identity
 from ..modules.foundation.errors import PoiseError
 from ..modules.tasks.ports import TaskReadSet
 
@@ -70,6 +71,17 @@ class RuntimeHandoffEffects:
         publication = data['publication']
         if (publication is not None and publication.get('commit') == current['commit']
                 and publication['tree'] == current['tree'] == state.admitted_source['tree']):
+            return
+        if (current['tree'] == state.admitted_source['tree']
+                and is_check_attempt(data['pending'])):
+            scope = self.runtime.validate_stage_scope(data)
+            checks = self.runtime._select_checks(data, scope['changed'])
+            invocations, execution_key = self.runtime._verification_execution(
+                data, current['tree'], checks, self.runtime._verification_workspace(data))
+            require_identity(data['pending'], self.runtime._attempt_identity(current['tree'], invocations))
+            self.runtime.runner.current_check_attempt(
+                state.task_id, self.runtime.session, current['tree'], execution_key,
+                [method['id'] for method in checks])
             return
         raise PoiseError('Handoff source changed before verification; preserve WIP and use explicit rework')
 

@@ -9,7 +9,7 @@ import tempfile
 from uuid import UUID, uuid5, NAMESPACE_URL
 
 from ..common import PoiseError, encoded as canonical
-from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject, saved_result, native_snapshot
+from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject, saved_result, native_snapshot, select_parser
 from ..modules.placement.contracts import PlacementRequest
 from .goal_config import atomic_write, strict_json
 from .locking import exclusive_lock, blocking_file_lock
@@ -21,9 +21,10 @@ def digest(raw):
 
 def native_result(event, policy):
     """Decode only the selected actual wire; never invent missing process streams."""
-    result = native_snapshot(event, policy)
+    selected = select_parser(event, policy)
+    result = native_snapshot(event, policy, selected=selected)
     if result['pending']: return result
-    parser = policy['parsers'][event['tool_name']]
+    _, parser = selected
     if parser['format'] == 'saved-work-json':
         try:
             envelope = strict_json(result['response']['output'])
@@ -33,8 +34,9 @@ def native_result(event, policy):
             result['response'] = strict_json(address.read_bytes().decode())
         except FileNotFoundError as exc:
             raise ToolResultFailure('source_missing', 'response_path', 'provide:source') from exc
-        except (KeyError, TypeError, ValueError, UnicodeError, OSError) as exc:
+        except (KeyError, TypeError, ValueError, UnicodeError, OSError, PoiseError) as exc:
             raise ToolResultFailure('source_invalid', 'response_path', 'restore:source') from exc
+    result['_selected_parser'] = parser
     return result
 
 

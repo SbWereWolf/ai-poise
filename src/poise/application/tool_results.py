@@ -49,14 +49,16 @@ class ToolResults:
         operation = request['operation']
         if operation in ('capture', 'hook'):
             normalized = deepcopy(request)
+            selected_parser = None
             if operation == 'hook':
                 source = self.native_source(request['event'])
                 if source.pop('pending'):
                     return {'status': 'pending', 'capture': source['capture'], 'exit_code': None}
+                selected_parser = source.pop('_selected_parser')
                 normalized = {k: deepcopy(v) for k, v in request.items() if k != 'event'}
                 normalized.update(source, operation='capture')
             record = self.store.capture(normalized,
-                prepare=lambda record, sources: self.prepare(record, sources, audience))
+                prepare=lambda record, sources: self.prepare(record, sources, audience, selected_parser))
         else:
             record = self.store.load(request['response_path'])
             self.store.validate_prepared(record)
@@ -73,8 +75,8 @@ class ToolResults:
         return inspect_source(record, self.store.source(record, request['channel']), request, self.policy,
                               audience=audience)
 
-    def prepare(self, record, sources, audience):
-        pair = prepare_views(record, sources, self.policy)
+    def prepare(self, record, sources, audience, selected_parser=None):
+        pair = prepare_views(record, sources, self.policy, selected_parser=selected_parser)
         if audience == 'agent':
             candidate = navigation(record)
             candidate.update({k: record[k] for k in ('run_id', 'full_path', 'expanded_path', 'last_path')})

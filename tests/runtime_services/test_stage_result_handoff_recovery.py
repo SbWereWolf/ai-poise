@@ -9,6 +9,7 @@ from batch.helpers import request, result
 from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.tasks.ports import TaskReadSet
 from runtime_services.stage_result_handoff_helpers import (
     blocked, blocked_details, business, complete, configure, count, fixture, handoff, interrupt_after,
     receiver, source_state, start,
@@ -247,7 +248,7 @@ def test_foreign_same_tree_commit_is_not_an_internal_verification_commit(project
     assert git(worktree, "rev-parse", "HEAD") == foreign_commit and count(counter) == "x"
 
 
-@pytest.mark.parametrize("checkpoint", ["direct_handoff", "already_verified"])
+@pytest.mark.parametrize("checkpoint", ["direct_handoff", "already_verified", "dirty_handoff", "different_packet"])
 def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_outcome(project, checkpoint):
     counter = configure(project)
     data = fixture("content-recovery.json")
@@ -260,6 +261,14 @@ def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_o
     packet = fixture("handoff-packet.json")
     packet["input"]["result"] = result(context, "Same result before and after restoring its required artifact.")
     original_packet = deepcopy(packet)
+    worktree = Path(context["worktree"])
+    admitted_head = git(worktree, "rev-parse", "HEAD")
+    if checkpoint == "dirty_handoff":
+        (worktree / "src/double.py").write_text("def double(n):\n    return n * 2\n", encoding="utf-8")
+        git(worktree, "add", "src/double.py")
+    admitted_tree = git(worktree, "write-tree")
+    if checkpoint == "dirty_handoff":
+        assert admitted_tree != git(worktree, "rev-parse", "HEAD^{tree}")
     first = blocked(handoff(tools, packet), "verification")
     original_failure = deepcopy(first["verification"])
     assert original_failure["status"] == "content_requirements_failed"
@@ -276,6 +285,10 @@ def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_o
     assert (initial["status"], initial["stage"], initial["claimed_by"], initial["pending"]) == (
         "active", "author", "handoff-author", None,
     )
+    assert initial["tree"] == admitted_tree and receipt["commit"] == initial["head"]
+    if checkpoint == "dirty_handoff":
+        assert initial["head"] != admitted_head
+        assert tools.runtime.current_task()["publication"] is None
     closed = blocked(handoff(tools, packet), "verification")
     assert closed["verification"]["content_gate"] == data["expected_blocked_gate"]
     assert closed["verification"]["checks"] == original_failure["checks"]
@@ -283,10 +296,32 @@ def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_o
     restored = tools.invoke(request("artifacts", {"items": [data["artifact"]]}))
     assert restored["status"] == "artifacts_created" and len(restored["artifact_paths"]) == 1
     assert Path(restored["artifact_paths"][0]).read_text() == "Required original stage evidence.\n"
-    if checkpoint == "already_verified":
-        verified = tools.invoke(request("verify", {"result": packet["input"]["result"], "artifacts": []}))
+    if checkpoint in ("already_verified", "different_packet"):
+        intents = deepcopy(packet["input"]["artifacts"]) if checkpoint == "already_verified" else []
+        verified = tools.invoke(request("verify", {"result": packet["input"]["result"], "artifacts": intents}))
         assert verified["status"] == "verified" and verified["checks"] == original_failure["checks"]
         assert source_state(tools)["status"] == "verified" and count(counter) == "x"
+        inputs = tools.runtime.store.unit_of_work().capture(TaskReadSet(
+            (), handoff_requests=(packet["input"]["request_id"],),
+        ))
+        saved = inputs.handoff(packet["input"]["request_id"])
+        actual_packet_digest = tools.runtime.work_resources.packet(tools.runtime.current_task())
+        if checkpoint == "different_packet":
+            assert actual_packet_digest != saved.packet_digest
+            with pytest.raises(PoiseError, match="Handoff verification work packet conflict"):
+                tools.runtime.stage_handoff.effects.recovered_verification(saved)
+            before_conflict = source_state(tools)
+            rejected = blocked(handoff(tools, packet), "verification")
+            if "Handoff verification work packet conflict" not in rejected["blocked"]["reason"]:
+                pytest.fail("Mismatched artifact intents must preserve the native work-packet conflict", pytrace=False)
+            assert rejected["verification"] == original_failure
+            assert rejected["progression"] is None and rejected["release"] is None
+            assert source_state(tools) == before_conflict and count(counter) == "x"
+            assert first["verification"] == original_failure and packet == original_packet
+            return
+        assert actual_packet_digest == saved.packet_digest
+        recovered = tools.runtime.stage_handoff.effects.recovered_verification(saved)
+        assert recovered["status"] == "verified" and recovered["checks"] == original_failure["checks"]
     continued = handoff(tools, packet)
     assert business(continued)["status"] == "handoff_completed", (
         "Restored original content gate must resume the same handoff; actual verification="

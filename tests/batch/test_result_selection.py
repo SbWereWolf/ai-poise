@@ -488,9 +488,67 @@ def test_legacy_text_template_and_file_verify_is_preserved(case_factory):
     case = case_factory()
     packet = case.old()
     packet['input']['artifacts'].extend(fixture('legacy-artifacts.json'))
-    assert_saved(case, case.tools.invoke(packet))
+    expected = [case.target, case.root / 'artifacts/notes/text.txt',
+                case.root / 'artifacts/notes/template.md']
+    assert_saved(case, case.tools.invoke(packet), expected_paths=expected)
     assert (case.root / 'artifacts/notes/text.txt').read_bytes() == b'literal text\n'
     assert (case.root / 'artifacts/notes/template.md').read_bytes() == b'# Explicit title\n\nExplicit body\n'
     assert case.saved()['artifact_paths'] == [
         str(case.target), str(case.root / 'artifacts/notes/text.txt'),
         str(case.root / 'artifacts/notes/template.md')]
+
+
+def test_explicit_existing_artifact_choice_and_new_append_match_old_verify(case_factory):
+    for mode in ('old', 'selected'):
+        case = case_factory()
+        case.tools.invoke(request('artifacts', {'items': fixture('existing-artifacts.json')}))
+        chosen = case.root / 'artifacts/existing-a.txt'
+        unchosen = case.root / 'artifacts/existing-b.txt'
+        assert chosen.read_bytes() == b'selected existing evidence A\n'
+        assert unchosen.read_bytes() == b'unselected existing evidence B\n'
+        # Refresh only dynamic version coordinates after real registration.
+        case.context = case.tools.invoke(request('bootstrap', {
+            'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}))
+        if mode == 'old':
+            packet = case.old()
+            packet['input']['result']['artifact_paths'] = [str(chosen)]
+        else:
+            packet = case.selected()
+            packet['input']['selection']['metadata']['artifact_paths'] = [str(chosen)]
+        result = case.tools.invoke(packet)
+        expected = [chosen, case.target]
+        assert_saved(case, result, expected_paths=expected)
+        actual = case.saved()['artifact_paths']
+        assert actual == [str(chosen), str(case.target)]
+        assert str(unchosen) not in actual
+        # Unselected material remains registered history, not a selected input.
+        with case.tools.runtime.store.transaction() as db:
+            assert db.execute('SELECT COUNT(id) FROM artifacts WHERE path=?', (str(unchosen),)).fetchone()[0] == 1
+
+
+def test_distinct_selected_sources_with_equal_bytes_have_one_destination(case_factory):
+    case = case_factory()
+    twin = case.root / 'inputs/equal-bytes.bin'
+    twin.write_bytes(bytes.fromhex('00ff70726f6f66800a'))
+    assert twin != case.source
+    assert case.source.read_bytes() == twin.read_bytes() == bytes.fromhex('00ff70726f6f66800a')
+    # The existing generic file API retains its source-identity contract.
+    old = case.old()
+    second = deepcopy(old['input']['artifacts'][0])
+    second['source']['path'] = str(twin)
+    old['input']['artifacts'].append(second)
+    before = case.snapshot()
+    with pytest.raises(PoiseError, match='Conflicting content'):
+        case.tools.invoke(old)
+    assert case.snapshot() == before and not case.target.exists()
+    packet = case.selected()
+    packet['input']['selection']['files'] = fixture('equal-byte-files.json')
+    result = case.tools.invoke(packet)
+    assert_saved(case, result)
+    assert case.saved()['artifact_paths'] == [str(case.target)]
+    with case.tools.runtime.store.transaction() as db:
+        rows = db.execute('SELECT path,digest FROM artifacts WHERE owner=? AND scope=? AND path=?',
+                          ('T1', 'task', str(case.target))).fetchall()
+    assert len(rows) == 1
+    assert tuple(rows[0]) == (str(case.target), hashlib.sha256(bytes.fromhex('00ff70726f6f66800a')).hexdigest())
+    assert case.target.read_bytes() == bytes.fromhex('00ff70726f6f66800a')

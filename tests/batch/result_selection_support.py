@@ -117,7 +117,7 @@ def selected(context):
     return packet
 
 
-def assert_saved(case, response):
+def assert_saved(case, response, *, expected_paths=None):
     oracle = fixture('oracles.json')
     assert response['status'] == 'verified'
     assert response['stage_outcome'] == 'complete'
@@ -126,6 +126,8 @@ def assert_saved(case, response):
     assert set(case.saved()) == set(oracle['selected_metadata_keys'])
     assert case.saved()['sections'] == {'report': oracle['report']}
     assert case.saved()['commit_message'] == 'Preserve selected proof bytes'
+    chosen_paths = [case.target] if expected_paths is None else expected_paths
+    assert case.saved()['artifact_paths'] == [str(path) for path in chosen_paths]
     with case.tools.runtime.store.transaction() as db:
         rows = db.execute('SELECT scope,owner,path,digest FROM artifacts WHERE path=?', (str(case.target),)).fetchall()
     assert len(rows) == 1

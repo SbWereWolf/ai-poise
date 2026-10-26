@@ -111,6 +111,17 @@ class ScenarioInstallation:
             raise RuntimeError('Own fixture Git preparation failed; see setup.json')
         return result.stdout
 
+    def prepare(self):
+        task = next(iter(self.plan['contracts']))
+        try:
+            code, response = self.client.call('query', {
+                'queries': [{'id': 'preparation', 'kind': 'execution', 'task_id': task}]
+            }, allowed=(0, 2))
+        except CaseFailure as exc:
+            raise RuntimeError('Execution preparation failed: ' + str(exc)) from exc
+        if code != 2 or response.get('reason') != 'execution_not_found':
+            raise RuntimeError(f'Execution preparation failed: {response}')
+
     def publish(self, graph, *, template=False):
         if template:
             raw = self.settings['process']['templates'][self.plan['template_id']]['path']
@@ -202,6 +213,7 @@ class GraphCase:
 
     def execute(self, scenario):
         installation, graph = self.installation, self.graph
+        installation.prepare()
         client = installation.client
         if scenario == 'invalid':
             baseline = installation.publish(self.plan['baseline'])

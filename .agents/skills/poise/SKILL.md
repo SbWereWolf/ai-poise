@@ -469,6 +469,17 @@ Verify](../../../docs/workflows/batch-work.md#verify) and, when files are requir
 File
 creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
+Choose either documented `verify` input form: the complete `result`/`artifacts`
+form or [selected result submission](../../../docs/workflows/batch-work.md#выбранная-сдача-результата).
+For selection, explicitly choose substantive sections, files and metadata decisions
+using fresh Task/stage/iteration/version coordinates. The native owner fills the
+actual template and computes file digests; it does not choose claims or verdicts.
+Each supplied metadata field replaces that whole template field. Use the complete
+form when choosing text/template sources or an external absolute file with digest.
+Preserve the original admitted request identity and exact packet for a retry;
+read the complete saved response and follow its actual continuation. Verification
+does not perform advance, role handoff, acceptance or integration on your behalf.
+
 Batch independent reads that are known before the call into one public `show` packet with
 multiple `queries`. Give each query a stable unique `id` and correlate the returned items by
 that ID. Use the existing `task`, `section`, `content`, `evidence`, `verification_registry`,

@@ -1,0 +1,12 @@
+{
+  "schema": "project-config-pending-1",
+  "request_digest": "@REQUEST_DIGEST@",
+  "before": {
+    "profile": "@BEFORE_PROFILE@",
+    "registry": "@BEFORE_REGISTRY@"
+  },
+  "after": {
+    "profile": "@AFTER_PROFILE@",
+    "registry": "@AFTER_REGISTRY@"
+  }
+}

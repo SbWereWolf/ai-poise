@@ -1,0 +1,35 @@
+{
+  "compete": [
+    "tests/projects/test_registry_publication.py::test_competing_public_writers_preserve_bindings[profile-profile]",
+    "tests/projects/test_registry_publication.py::test_competing_public_writers_preserve_bindings[setup-setup]",
+    "tests/projects/test_registry_publication.py::test_competing_public_writers_preserve_bindings[setup-profile]",
+    "tests/projects/test_registry_publication.py::test_competing_public_writers_preserve_bindings[profile-setup]"
+  ],
+  "own": [
+    "tests/projects/test_registry_publication.py::test_registration_producer_preserves_current_same_binding"
+  ],
+  "busy": [
+    "tests/projects/test_registry_publication.py::test_busy_public_cli_has_truthful_outcome[setup]",
+    "tests/projects/test_registry_publication.py::test_busy_public_cli_has_truthful_outcome[profile]"
+  ],
+  "revision": [
+    "tests/projects/test_registry_publication.py::test_stale_profile_cli_reports_actual_revision_and_continuation"
+  ],
+  "io": [
+    "tests/projects/test_registry_publication.py::test_profile_io_failure_is_structured_and_recoverable[registry]",
+    "tests/projects/test_registry_publication.py::test_profile_io_failure_is_structured_and_recoverable[receipt]"
+  ],
+  "controls": [
+    "tests/projects/test_registry_publication.py::test_sequential_completed_replay_preserves_current_registry[setup]",
+    "tests/projects/test_registry_publication.py::test_sequential_completed_replay_preserves_current_registry[profile]",
+    "tests/projects/test_registry_publication.py::test_identity_conflict_preserves_current_bindings[setup]",
+    "tests/projects/test_registry_publication.py::test_identity_conflict_preserves_current_bindings[profile]",
+    "tests/projects/test_registry_publication.py::test_pending_foreign_drift_remains_protective",
+    "tests/projects/test_registry_publication.py::test_setup_preparation_leaves_other_publication_available"
+  ],
+  "existing": [
+    "tests/projects/test_update.py::test_exact_retry_replays_and_conflicting_request_id_cannot_overwrite",
+    "tests/projects/test_listing.py::test_batch_creation_registers_stable_identity_and_recovers_registry_failure",
+    "tests/projects/test_service.py::test_replay_does_not_require_source_template_to_remain_unchanged"
+  ]
+}

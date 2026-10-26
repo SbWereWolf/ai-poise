@@ -1,0 +1,9 @@
+{
+  "schema": "project-harness-transition-1",
+  "request_id": "architecture-profile-initial",
+  "expected_revision": "@REVISION@",
+  "project_id": "@PROJECT@",
+  "task_config_path": "@TASK_CONFIG@",
+  "harness_config_path": "@PROFILE@",
+  "profile": null
+}

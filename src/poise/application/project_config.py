@@ -26,6 +26,16 @@ def validate_relocation(move):
 
 
 def validate_request(request, max_changes):
+    if isinstance(request, dict) and request.get('schema') == 'project-harness-transition-1':
+        exact_keys(request, {'schema', 'request_id', 'expected_revision', 'project_id',
+                             'task_config_path', 'harness_config_path', 'profile'},
+                   'project harness transition')
+        for key in ('request_id', 'expected_revision', 'project_id',
+                    'task_config_path', 'harness_config_path'):
+            nonempty(request[key], key)
+        from ..modules.projects.harness import HarnessProject
+        HarnessProject.parse(request['profile'])
+        return
     if isinstance(request, dict) and request.get('schema') == 'project-runtime-resources-bootstrap-1':
         exact_keys(request, {'schema', 'request_id', 'config_path', 'expected_revision',
                              'runtime_resources', 'receipt_path'}, 'runtime resources bootstrap')
@@ -70,6 +80,8 @@ class ProjectConfigCommands:
 
     def apply(self, request):
         validate_request(request, self.max_changes)
+        if request['schema'] == 'project-harness-transition-1':
+            return self.port.transition_harness(request)
         if request['schema'] == 'project-runtime-resources-bootstrap-1':
             return self.port.bootstrap_runtime_resources(request)
         return self.port.apply(request)

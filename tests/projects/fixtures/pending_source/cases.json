@@ -1,0 +1,52 @@
+{
+  "source_cases": [
+    "manifest",
+    "manifest-extension",
+    "workflow-primary",
+    "workflow-secondary",
+    "workflow-extension",
+    "workflow-set"
+  ],
+  "extension_before": {
+    "flag": "before"
+  },
+  "extension_after": {
+    "flag": "after"
+  },
+  "writing_path": "config/workflows/writing.json",
+  "primary_instruction": "Pending source independent primary change.",
+  "secondary_instruction": "Pending source independent secondary change.",
+  "bound_request": "pending-source-bound-change",
+  "next_installation": "pending-source-next-profile",
+  "new_intent_request": "pending-source-reviewed-new-intent",
+  "reviewed_installation": "pending-source-reviewed-profile",
+  "source_reason_tokens": [
+    "source",
+    "manifest",
+    "workflow",
+    "исход",
+    "редакц"
+  ],
+  "continuation_tokens": [
+    "restore",
+    "review",
+    "retry",
+    "new request",
+    "восстанов",
+    "провер",
+    "повтор",
+    "нов"
+  ],
+  "unproved_tokens": [
+    "missing",
+    "unverified",
+    "unprov",
+    "cannot",
+    "lack",
+    "unavailable",
+    "отсутств",
+    "не подтверж",
+    "недостат",
+    "не содержит"
+  ]
+}

@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import sqlite3
 import sys
+import uuid
 
 from apps.execution.application.records import ExecutionRecords
 from apps.execution.application.stage_git import StageGit
@@ -19,10 +20,12 @@ from apps.execution.application.execution_state import ExecutionState
 from apps.execution.application.evidence import ExecutionEvidence
 from apps.execution.application.progression import ExecutionProgression
 from apps.execution.application.outcomes import ExecutionOutcomes
+from apps.execution.application.cleanup import ExecutionCleanup
 from apps.execution.application.verification import ExecutionVerification
 from apps.execution.application.reuse import ExecutionReuse
 from apps.execution.verification_protocol import (attempt_packet, reuse_packet, verification_query_item)
 from apps.execution.outcome_protocol import packet as outcome_packet, query_item as outcome_query_item
+from apps.execution.cleanup_protocol import packet as cleanup_packet, query_item as cleanup_query_item
 from apps.execution.advance_protocol import packet as advance_packet, query_item as progression_query_item
 from apps.execution.lifecycle_protocol import (settings as lifecycle_settings,
     packet as lifecycle_packet, query_item as lifecycle_query_item)
@@ -184,6 +187,8 @@ def load_config(config_path):
         result['lifecycle'] = lifecycle_settings(data['lifecycle'])
     if 'outcomes' in data:
         result['outcomes'] = data['outcomes']
+    if 'cleanup' in data:
+        result['cleanup'] = data['cleanup']
     if 'git' in data:
         _config_fields(data['git'], {'seconds', 'observations'}, 'Execution config git')
         relative = Path(_path_text(data['git']['observations'], 'Execution config git.observations'))
@@ -238,6 +243,9 @@ def _packet(value, config):
         raise ExecutionError("unsupported_schema")
     if not isinstance(value["input"], dict):
         raise ExecutionError("Execution packet input must be an object")
+    if value['operation'] == 'cleanup':
+        cleanup_packet(value['input'], config)
+        return value
     if value['operation'] in ('attempt', 'reuse'):
         (attempt_packet if value['operation'] == 'attempt' else reuse_packet)(value['input'], config)
         return value
@@ -286,6 +294,12 @@ def _packet(value, config):
             raise ExecutionError("Execution query queries: required nonempty bounded list")
         seen = set()
         for query in queries:
+            if isinstance(query, dict) and query.get('kind') == 'cleanup':
+                cleanup_query_item(query, config)
+                if query['id'] in seen:
+                    raise ExecutionError('Execution query ids must be unique')
+                seen.add(query['id'])
+                continue
             if isinstance(query, dict) and query.get('kind') in ('attempt', 'verification', 'reuse'):
                 verification_query_item(query, config)
                 if query['id'] in seen:
@@ -362,6 +376,10 @@ class Store:
         self.outcomes = ExecutionOutcomes(
             lambda write: record_unit_of_work(self.locked, self.connect, write),
             config.get('lifecycle'), config.get('outcomes'), state_owner, evidence)
+        self.cleanup = ExecutionCleanup(
+            lambda write: record_unit_of_work(self.locked, self.connect, write),
+            config.get('lifecycle'), config.get('cleanup'), state_owner,
+            lambda: uuid.uuid4().hex)
 
     @contextlib.contextmanager
     def locked(self):
@@ -497,6 +515,11 @@ class Store:
                 records = {}
                 file_queries = False
                 for query in packet["input"]["queries"]:
+                    if query['kind'] == 'cleanup':
+                        result = self._record_call(self.cleanup.query, repository,
+                                                   query['task_id'], query['cleanup_id'])
+                        results.append({'id': query['id'], 'kind': query['kind'], 'result': result})
+                        continue
                     if query['kind'] in ('attempt', 'verification', 'reuse'):
                         if query['kind'] == 'reuse':
                             self.verification.settings()
@@ -556,7 +579,9 @@ def execute(config_path, stream, output):
             raise ExecutionError("invalid_json") from exc
         packet = _packet(_strict_json(text), config)
         store = Store(config)
-        if packet['operation'] == 'attempt':
+        if packet['operation'] == 'cleanup':
+            result = store._record_call(store.cleanup.execute, packet['input'])
+        elif packet['operation'] == 'attempt':
             result = store._record_call(store.verification.execute, packet['input'])
         elif packet['operation'] == 'reuse':
             result = store._record_call(store.reuse.execute, packet['input'])

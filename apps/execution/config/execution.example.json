@@ -30,6 +30,11 @@
       "writer"
     ]
   },
+  "cleanup": {
+    "roles": [
+      "writer"
+    ]
+  },
   "lifecycle": {
     "actors": {
       "executor-A": "writer",

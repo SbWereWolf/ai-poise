@@ -16,6 +16,64 @@ from tests.runtime_services.session_tool_results_support import SessionScenario
 from tests.runtime_services.tool_results_support import FIXTURES, literal
 
 
+@pytest.mark.parametrize('case', ['healthy', 'warning', 'infix', 'ambiguous', 'other-literal'])
+def test_native_loss_marker_producer_uses_declared_profile(project, tmp_path, case):
+    from poise.modules.result_views.tool_results import native_snapshot
+    scene = SessionScenario(project, tmp_path)
+    data = literal('code-native-loss-cases.json')[case]
+    request = scene.native(data['response'], tool=data['tool'])
+    original = deepcopy(request['event'])
+    actual = native_snapshot(request['event'], scene.policy)
+    assert actual['response'] == data['response'] and request['event'] == original
+    assert actual['capture'] == {'state': data['state'], 'reason': data['reason']}, (
+        'F08_NATIVE_LOSS_FACT', case, actual['capture'])
+    assert actual['exit_code'] == data['response'].get('exit_code')
+    print(json.dumps({'boundary': 'actual-native-loss-producer', 'case': case,
+                      'input': original, 'actual': actual}, ensure_ascii=False))
+
+
+@pytest.mark.parametrize('case', ['healthy', 'warning', 'infix', 'ambiguous', 'other-literal'])
+def test_native_loss_marker_public_full_consumer(project, tmp_path, case):
+    from poise.composition import tool_result_tools
+    from poise.infrastructure.project_binding import read_project_checkout
+    from poise.modules.result_views.tool_results import ToolResultPolicy
+    from tests.runtime_services.session_tool_results_support import ParserCalls, prepare_owner
+    scene = SessionScenario(project, tmp_path)
+    previous, _ = scene.stored(scene.input(key='complete-before-marker'))
+    data = literal('code-native-loss-cases.json')[case]
+    request = scene.native(data['response'], key='current-marker-' + case, tool=data['tool'])
+    original = deepcopy(request)
+    code, actual = scene.direct(request, audience='machine')
+    assert code == 0 and actual['status'] == 'stored'
+    assert actual['response'] == data['response'] and request == original
+    assert actual['capture'] == {'state': data['state'], 'reason': data['reason']}, (
+        'F08_NATIVE_LOSS_FULL_CONSUMER', case, actual['capture'])
+    current_id, full, _, last = scene.run_identity(actual)
+    assert current_id != previous['run_id']
+    assert json.loads(full.read_bytes()) == data['response']
+    assert actual['exit_code'] == data['response'].get('exit_code')
+    before = scene.snapshot()
+    full_code, full_result = scene.direct({'schema': 'poise-tool-result-request-1', 'operation': 'full'})
+    if data['state'] == 'complete':
+        assert full_code == 0 and full_result['status'] == 'full'
+        assert full_result['full_path'] == str(full) and full_result['run_id'] == current_id
+    else:
+        assert full_code == 2 and full_result['status'] == 'rejected'
+        assert full_result['error']['code'] == 'source_incomplete'
+        assert 'full_path' not in full_result
+    owner = tool_result_tools(read_project_checkout(scene.config, scene.checkout),
+                              ToolResultPolicy.parse(scene.policy).data, scene.env)
+    with ParserCalls(prepare_owner()) as calls:
+        expanded = owner.execute({'schema': 'poise-tool-result-request-1', 'operation': 'expanded'}, 'agent')
+    assert calls.inputs == [], 'F08_MARKER_SERVICE_REPARSED'
+    assert expanded['run_id'] == current_id and expanded['capture'] == actual['capture']
+    assert json.loads(last.read_bytes()) == {'uuid': current_id}
+    assert scene.snapshot() == before, 'F08_MARKER_SERVICE_REPLACED_SOURCE_OR_LAST'
+    print(json.dumps({'boundary': 'actual-native-loss-full-consumer', 'case': case,
+                      'request': original, 'record': actual, 'full_result': full_result,
+                      'expanded': expanded}, ensure_ascii=False))
+
+
 @pytest.mark.parametrize('case,exit_code', [('healthy', 0), ('failure', 7), ('large', 0)])
 def test_terminal_native_source_is_classified_before_capture(project, tmp_path, case, exit_code):
     scene = SessionScenario(project, tmp_path)

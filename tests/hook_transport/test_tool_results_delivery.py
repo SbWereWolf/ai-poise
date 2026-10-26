@@ -18,6 +18,71 @@ from tests.hook_transport.session_output_support import (
 from tests.runtime_services.session_tool_results_support import ParserCalls, cases, prepare_owner
 
 
+@pytest.mark.parametrize('case', ['parser', 'budget', 'source', 'healthy'])
+def test_output_rejection_crosses_real_hook_boundary(project, tmp_path, case):
+    from tests.runtime_services.tool_results_support import literal
+    chain = Chain(project, tmp_path, 'F08_HOOK_TYPED_REJECTION')
+    scene = scene_for_chain(chain, project, tmp_path)
+    data = literal('code-hook-rejections.json')[case]
+    if case == 'budget':
+        scene.policy['parsers']['mcp__fixture__query']['expanded']['chars'] = data['expanded_chars']
+        scene.save_policy()
+    configure_chain(chain, scene, matcher='Bash|mcp__fixture__query',
+                    before=[chain.command('before')], after=[chain.command('after')])
+    healthy = cases()['mcp']
+    predecessor = scene.native(healthy['response'], key='healthy-before-error', tool=healthy['tool']['name'])['event']
+    predecessor['session_id'] = chain.session
+    first = chain.invoke(predecessor, event_name='PostToolUse')
+    assert first['continue'] is False and first['hookSpecificOutput']['additionalContext'] == healthy['brief']
+    previous = scene.service('full')
+    assert scene.service('expanded')['text'] == healthy['expanded']
+    before = scene.snapshot()
+    event = scene.native(healthy['response'], key='typed-rejection-' + case, tool=healthy['tool']['name'])['event']
+    event['session_id'] = chain.session
+    if case == 'parser':
+        event['tool_response']['structuredContent'].pop('count')
+    elif case == 'budget':
+        event['tool_response']['structuredContent']['names'] = data['names']
+    elif case == 'source':
+        event.pop('tool_response')
+    original = deepcopy(event)
+    with ParserCalls(prepare_owner()) as calls:
+        # Exact public input: Chain.invoke merges default fields and would
+        # accidentally replace the deliberately missing tool_response.
+        actual = chain.service.event(chain.installation['definition_path'], event)
+    binding = chain.service.latest_binding(chain.session, 'primary')
+    with chain.service.registry.read_transaction() as db:
+        chain.last_event_id = db.execute(
+            'SELECT max(id) FROM hook_events WHERE binding=? AND event=?',
+            (binding['session_id'], 'PostToolUse')).fetchone()[0]
+    chain.last_event_name = 'PostToolUse'
+    _, delivery = chain.delivery()
+    assert delivery['event'] == original and event == original
+    assert 'tool-result' in [row['configuration']['handler_id'] for row in delivery['invocations']]
+    assert len(calls.inputs) == (0 if case == 'source' else 1), 'F08_ERROR_SUBJECT_NOT_REACHED'
+    print(json.dumps({'boundary': 'actual-typed-hook-rejection', 'case': case,
+                      'event': original, 'actual': actual, 'delivery': delivery}, ensure_ascii=False))
+    assert actual.get('continue') is False, 'F08_HOOK_ERROR_NOT_DELIVERED'
+    text = actual['hookSpecificOutput']['additionalContext']
+    assert len(text) <= scene.policy['display']['output_chars']
+    assert len(text.encode()) <= scene.policy['display']['output_bytes']
+    if case == 'healthy':
+        assert text == healthy['brief']
+        assert scene.service('expanded')['text'] == healthy['expanded']
+        assert scene.service('full')['run_id'] != previous['run_id']
+        assert [row['label'] for row in chain.order()] == ['before', 'after', 'before', 'after']
+    else:
+        assert json.loads(text) == data['error'], 'F08_HOOK_TYPED_REJECTION_FIELDS'
+        assert 'FULL_ONLY_F08' not in text
+        assert scene.snapshot() == before, 'F08_HOOK_FAILURE_PUBLISHED_OR_REPLACED_LAST'
+        assert scene.service('full')['run_id'] == previous['run_id']
+        assert [row['label'] for row in chain.order()] == ['before', 'after', 'before']
+        output = next(row for row in delivery['invocations']
+                      if row['configuration']['handler_id'] == 'tool-result')
+        assert output['result']['control']['action'] == 'stop'
+        assert output['result']['control']['reason']
+
+
 @pytest.mark.parametrize('case', ['bash-success', 'bash-failure', 'mcp'])
 def test_isolated_post_tool_use_delivers_prepared_brief_and_full_source(project, tmp_path, case):
     chain = Chain(project, tmp_path, 'F08_ISOLATED_OUTPUT')

@@ -9,6 +9,56 @@ from tests.runtime_services.session_tool_results_support import (
 )
 
 
+@pytest.mark.parametrize('case', ['no-final-LF', 'normal-LF', 'stderr-only'])
+def test_separate_channel_lines_prepare_literal_pair(project, tmp_path, case):
+    from poise.infrastructure.tool_results import FileStoredSource, stream_metadata
+    from tests.runtime_services.tool_results_support import literal
+    scene = SessionScenario(project, tmp_path)
+    fixture = literal('code-stream-boundaries.json')
+    data = fixture['cases'][case]
+    sources = {'response': None}
+    for channel in ('stdout', 'stderr'):
+        path = tmp_path / (channel + '.literal.txt')
+        path.write_bytes(data[channel].encode())
+        sources[channel] = FileStoredSource(stream_metadata(path, True, 64))
+    actual = prepare_owner()(deepcopy(fixture['record']), sources, scene.policy)
+    assert actual == {k: data[k] for k in ('brief', 'expanded')}, 'F08_CHANNEL_LINE_BOUNDARY'
+    for channel in ('stdout', 'stderr'):
+        assert sources[channel].path.read_bytes() == data[channel].encode()
+    print(json.dumps({'boundary': 'actual-separate-channel-preparation',
+                      'case': case, 'actual_pair': actual}, ensure_ascii=False))
+
+
+@pytest.mark.parametrize('case', ['no-final-LF', 'normal-LF', 'stderr-only'])
+def test_separate_channel_public_consumer_keeps_literal_pair(project, tmp_path, case):
+    from pathlib import Path
+    from tests.runtime_services.tool_results_support import literal, sha
+    scene = SessionScenario(project, tmp_path)
+    fixture = literal('code-stream-boundaries.json')
+    data = fixture['cases'][case]
+    request = scene.input(key='separate-channel-' + case)
+    request.update(deepcopy(fixture['record']))
+    for channel in ('stdout', 'stderr'):
+        path = tmp_path / (channel + '.literal.txt')
+        path.write_bytes(data[channel].encode())
+        request['streams'][channel] = str(path)
+    code, actual = scene.direct(request)
+    assert code == 0 and actual['status'] == 'stored'
+    assert actual['preview'] == data['brief'], 'F08_CHANNEL_PUBLIC_BRIEF_BOUNDARY'
+    expanded = scene.service('expanded')
+    assert expanded['text'] == data['expanded'], 'F08_CHANNEL_PUBLIC_EXPANDED_BOUNDARY'
+    _, full, expanded_path, _ = scene.run_identity(actual)
+    assert expanded_path.read_bytes() == data['expanded'].encode()
+    assert json.loads(full.read_bytes()) == fixture['record']['response']
+    saved = json.loads(Path(actual['response_path']).read_bytes())
+    for channel in ('stdout', 'stderr'):
+        expected = data[channel].encode()
+        assert Path(saved['streams'][channel]['path']).read_bytes() == expected
+        assert saved['streams'][channel]['sha256'] == sha(expected)
+    print(json.dumps({'boundary': 'actual-separate-channel-consumer',
+                      'case': case, 'stored': saved, 'expanded': expanded}, ensure_ascii=False))
+
+
 @pytest.mark.parametrize('case', ['bash-success', 'bash-failure', 'mcp', 'poise'])
 def test_full_source_prepares_two_independent_forms(project, tmp_path, case):
     scene = SessionScenario(project, tmp_path)

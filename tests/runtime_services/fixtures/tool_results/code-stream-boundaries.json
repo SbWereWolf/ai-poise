@@ -1,0 +1,37 @@
+{
+  "record": {
+    "tool": {
+      "kind": "bash",
+      "name": "Bash"
+    },
+    "response": {
+      "output": "full original envelope",
+      "exit_code": 0
+    },
+    "capture": {
+      "state": "complete",
+      "reason": null
+    },
+    "exit_code": 0
+  },
+  "cases": {
+    "no-final-LF": {
+      "stdout": "RESULT: 2 records",
+      "stderr": "DETAIL: warning\n",
+      "brief": "Bash: exit 0; 2 records",
+      "expanded": "Bash: exit 0; 2 records\nDETAIL: warning"
+    },
+    "normal-LF": {
+      "stdout": "RESULT: 2 records\n",
+      "stderr": "DETAIL: warning\n",
+      "brief": "Bash: exit 0; 2 records",
+      "expanded": "Bash: exit 0; 2 records\nDETAIL: warning"
+    },
+    "stderr-only": {
+      "stdout": "",
+      "stderr": "DETAIL: warning\n",
+      "brief": "Bash: exit 0",
+      "expanded": "Bash: exit 0\nDETAIL: warning"
+    }
+  }
+}

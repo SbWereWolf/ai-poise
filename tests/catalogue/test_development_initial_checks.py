@@ -118,6 +118,11 @@ def _parameters(workflow: dict, checks: dict, methods: list[dict] | None = None)
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {
+                "requirements": [],
+                "definition_of_ready": [],
+                "definition_of_done": [],
+            },
         } for stage in workflow["stages"]],
         "decomposition": {
             "kind": "ordinary",

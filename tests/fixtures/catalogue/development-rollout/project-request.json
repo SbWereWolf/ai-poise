@@ -1,0 +1,10 @@
+{
+  "schema": "project-setup-1",
+  "request_id": "root-derived-${FAMILY}",
+  "destination": "projects/rollout-${FAMILY}/config",
+  "template": {
+    "id": "${FAMILY}"
+  },
+  "edits": [],
+  "probe_repository": true
+}

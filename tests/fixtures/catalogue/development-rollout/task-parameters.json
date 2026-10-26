@@ -1,0 +1,423 @@
+{
+  "identity": "DEVELOPMENT-ROLLOUT-FIXTURE",
+  "membership": null,
+  "goal": "Проверить материализацию согласованного маршрута разработки.",
+  "requirements": [
+    "Подготовленная задача сохраняет явное расписание проверок."
+  ],
+  "dod": [
+    "Результат содержит согласованный маршрут и явные критерии этапов."
+  ],
+  "executable_obligations": [],
+  "methods": [],
+  "method_inputs": [],
+  "checks": {
+    "baseline": [],
+    "baseline_inspection": [],
+    "solution_planning": [],
+    "solution_planning_inspection": [],
+    "verification_planning": [],
+    "verification_planning_inspection": [],
+    "test_implementation": [],
+    "test_inspection": [],
+    "implementation_design": [],
+    "implementation_design_inspection": [],
+    "implementation": [],
+    "implementation_inspection": [],
+    "documentation_planning": [],
+    "documentation_planning_inspection": [],
+    "documentation": [],
+    "documentation_inspection": []
+  },
+  "artifact_requirements": [],
+  "contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "evidence": {
+    "baseline": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "baseline_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "solution_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "solution_planning_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "verification_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "verification_planning_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_design": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_design_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "documentation_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "documentation_planning_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "documentation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "documentation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  },
+  "stage_contracts": [
+    {
+      "stage_id": "baseline",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "baseline_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "solution_planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "solution_planning_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "verification_planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "verification_planning_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "test_implementation",
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "test_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "implementation_design",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "implementation_design_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "implementation",
+      "allowed_paths": [
+        "src/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "implementation_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "documentation_planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "documentation_planning_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "documentation",
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "documentation_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    }
+  ],
+  "decomposition": {
+    "kind": "ordinary",
+    "phases": [
+      {
+        "stage": "baseline",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "baseline_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "solution_planning",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "solution_planning_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "verification_planning",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "verification_planning_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_implementation",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "implementation_design",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "implementation_design_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "implementation",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "implementation_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "documentation_planning",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "documentation_planning_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "documentation",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "documentation_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      }
+    ],
+    "integration": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "source": "Accepted ERP development handoff; immutable external test oracle, not generated Poise root output",
+  "sha256": "ff952f844659dd6e317b6ca63b157af08355ed8c2fabf0ce87eb2a1034d4d1d6",
+  "reported_independent_acceptance": [
+    "SR-REVIEW-DEVELOPMENT-CANDIDATE-DESIGN-002",
+    "SR-REVIEW-DEVELOPMENT-CHECKER-AMENDMENT-001",
+    "SR-REVIEW-DEVELOPMENT-CANDIDATE-EXECUTION-002"
+  ],
+  "consumer_task": "AIP-DEVELOPMENT-PROJECT-ROLLOUT-001",
+  "usage": "Literal test-owned expected contract. No automatic fixture updates. Normalize only unordered stage/content-requirement definitions; preserve every value. Task parameters and obligations are independently stated test-owned inputs, not production-generated expectations."
+}

@@ -155,6 +155,11 @@ def test_development_has_the_six_explicit_design_and_delivery_pairs():
 
 @pytest.mark.parametrize("goal", PAIRED)
 def test_paired_instructions_explain_boundaries_and_inspection(goal):
+    if goal == "development":
+        from tests.catalogue.test_development_root_rollout import assert_accepted_development_contract
+
+        assert_accepted_development_contract(workflow(goal))
+        return
     for stage in workflow(goal)["stages"]:
         if stage["handler"] in ("produce", "observe", "revise", "apply_plan", "inspect"):
             assert "Inputs:" in stage["instruction"]

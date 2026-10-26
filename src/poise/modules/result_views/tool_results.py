@@ -1,6 +1,7 @@
 """Complete tool-result contracts and pure model-facing selections."""
 from copy import deepcopy
 from dataclasses import dataclass
+import json
 import re
 from string import Formatter
 
@@ -164,6 +165,22 @@ class ToolResultPolicy:
                     for view in ('brief', 'expanded'):
                         limits = config(parser[view], 'chars bytes')
                         if any(not integer(n, 1) for n in limits.values()): raise ValueError(view)
+                    if parser['format'] == 'mcp-content-json':
+                        if (parser['parser'] != 'mcp' or not integer(parser['content_index'], 0)
+                                or not integer(parser['expected_version'], 0)):
+                            raise ValueError('Invalid MCP content profile')
+                        for field in ('version_path', 'items_path', 'name_path'):
+                            path = parser[field]
+                            if not isinstance(path, list) or not path or any(not text(k) for k in path):
+                                raise ValueError('Invalid MCP object path')
+                        for field, allowed in (
+                                ('brief_template', {'count'}),
+                                ('expanded_template', {'brief', 'names'}),
+                                ('error_brief_template', {'error'}),
+                                ('error_expanded_template', {'brief', 'error'})):
+                            if not text(parser[field]):
+                                raise ValueError('Invalid MCP template')
+                            template_fields(parser[field], allowed)
                     if 'expanded_fields' in parser or 'expanded_separator' in parser:
                         fields = parser['expanded_fields']
                         if not isinstance(fields, list) or not isinstance(parser['expanded_separator'], str):
@@ -301,7 +318,7 @@ def native_snapshot(event, policy, *, selected=None):
             capture = {'state': 'partial', 'reason': 'native_output_truncated'}
         elif 'tokens truncated' in output or output.startswith('Warning: truncated output'):
             capture = {'state': 'unknown', 'reason': 'native_output_ambiguous'}
-    elif parser['format'] == 'records-json':
+    elif parser['format'] in ('records-json', 'mcp-content-json'):
         if not isinstance(response, dict) or not isinstance(response.get('content'), list):
             reject('unmapped_input', 'tool_response', 'configure:input')
     elif parser['format'] == 'work-json':
@@ -363,6 +380,47 @@ def work_projection(raw, parser):
     return lines
 
 
+def mcp_object_path(value, path):
+    for key in path:
+        if not isinstance(value, dict):
+            raise ValueError('Invalid MCP object path')
+        value = value[key]
+    return value
+
+
+def mcp_json_constant(value):
+    raise ValueError('Invalid MCP JSON constant')
+
+
+def mcp_content_views(raw, parser):
+    if not isinstance(raw, dict) or type(raw['isError']) is not bool:
+        raise ValueError('Invalid MCP envelope')
+    content = raw['content']
+    if not isinstance(content, list) or parser['content_index'] >= len(content):
+        raise ValueError('Missing selected MCP content')
+    selected = content[parser['content_index']]
+    if (not isinstance(selected, dict) or selected['type'] != 'text'
+            or not isinstance(selected['text'], str)):
+        raise ValueError('Invalid MCP text content')
+    if raw['isError']:
+        brief = parser['error_brief_template'].format(error=selected['text'])
+        expanded = parser['error_expanded_template'].format(brief=brief, error=selected['text'])
+    else:
+        body = json.loads(selected['text'], parse_constant=mcp_json_constant)
+        version = mcp_object_path(body, parser['version_path'])
+        if type(version) is not int or version != parser['expected_version']:
+            raise ValueError('Invalid MCP version')
+        items = mcp_object_path(body, parser['items_path'])
+        if not isinstance(items, list):
+            raise ValueError('Invalid MCP items')
+        names = [mcp_object_path(item, parser['name_path']) for item in items]
+        if any(not isinstance(name, str) for name in names):
+            raise ValueError('Invalid MCP name')
+        brief = parser['brief_template'].format(count=len(items))
+        expanded = parser['expanded_template'].format(brief=brief, names=','.join(names))
+    return brief, expanded
+
+
 def prepare_views(record, sources, policy, *, selected_parser=None):
     """Select both forms once from the complete source at its canonical owner."""
     parser = (policy.get('parsers', {}).get(record['tool']['name'])
@@ -389,12 +447,15 @@ def prepare_views(record, sources, policy, *, selected_parser=None):
                 raise ValueError('Missing summary')
             expanded = parser['expanded_template'].format(brief=brief, details=details)
         elif kind == 'mcp':
-            content = raw['structuredContent']
-            if type(content['count']) is not int or not isinstance(content['names'], list):
-                raise ValueError('Invalid records')
-            if any(not isinstance(n, str) for n in content['names']): raise ValueError('Invalid names')
-            brief = parser['brief_template'].format(count=content['count'])
-            expanded = parser['expanded_template'].format(brief=brief, names=','.join(content['names']))
+            if parser['format'] == 'mcp-content-json':
+                brief, expanded = mcp_content_views(raw, parser)
+            else:
+                content = raw['structuredContent']
+                if type(content['count']) is not int or not isinstance(content['names'], list):
+                    raise ValueError('Invalid records')
+                if any(not isinstance(n, str) for n in content['names']): raise ValueError('Invalid names')
+                brief = parser['brief_template'].format(count=content['count'])
+                expanded = parser['expanded_template'].format(brief=brief, names=','.join(content['names']))
         else:
             if not isinstance(raw['status'], str):
                 raise ValueError('Invalid work result')

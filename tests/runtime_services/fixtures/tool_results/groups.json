@@ -99,5 +99,8 @@
     "tests/runtime_services/test_tool_results_poise_profiles.py::test_one_policy_mixed_native_outputs",
     "tests/runtime_services/test_tool_results_poise_profiles.py::test_selection_policy_keeps_actual_service_delivery",
     "tests/runtime_services/test_tool_results_poise_profiles.py::test_known_selection_configuration_refuses"
+  ],
+  "f08-actual-mcp-content": [
+    "tests/runtime_services/test_tool_results_mcp_content.py"
   ]
 }

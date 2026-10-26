@@ -1,0 +1,16 @@
+{
+  "parser": {
+    "code": "parser_failed",
+    "field": "source",
+    "action": "inspect:source"
+  },
+  "native_parser": {
+    "status": "rejected",
+    "error": {
+      "code": "parser_failed",
+      "field": "source",
+      "action": "inspect:source"
+    },
+    "exit_code": null
+  }
+}

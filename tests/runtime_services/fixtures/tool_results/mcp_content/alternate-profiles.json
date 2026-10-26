@@ -1,0 +1,60 @@
+{
+  "alternate-declared-paths": {
+    "parser": "mcp",
+    "format": "mcp-content-json",
+    "content_index": 0,
+    "version_path": [
+      "revision"
+    ],
+    "expected_version": 7,
+    "items_path": [
+      "payload",
+      "entries"
+    ],
+    "name_path": [
+      "name",
+      "label"
+    ],
+    "brief_template": "MCP: {count} projects",
+    "expanded_template": "{brief}\nProjects: {names}",
+    "error_brief_template": "MCP: error",
+    "error_expanded_template": "{brief}\n{error}",
+    "overflow": "reject",
+    "brief": {
+      "chars": 128,
+      "bytes": 256
+    },
+    "expanded": {
+      "chars": 512,
+      "bytes": 2048
+    }
+  },
+  "selected-second-block": {
+    "parser": "mcp",
+    "format": "mcp-content-json",
+    "content_index": 1,
+    "version_path": [
+      "schemaVersion"
+    ],
+    "expected_version": 2,
+    "items_path": [
+      "projects"
+    ],
+    "name_path": [
+      "label"
+    ],
+    "brief_template": "MCP: {count} projects",
+    "expanded_template": "{brief}\nProjects: {names}",
+    "error_brief_template": "MCP: error",
+    "error_expanded_template": "{brief}\n{error}",
+    "overflow": "reject",
+    "brief": {
+      "chars": 128,
+      "bytes": 256
+    },
+    "expanded": {
+      "chars": 512,
+      "bytes": 2048
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "requirement": {
+    "id": "current-result-artifact",
+    "kind": "artifact",
+    "scope": "task",
+    "pattern": "gate.txt",
+    "minimum": 1,
+    "maximum": 1,
+    "stages": [
+      "author"
+    ],
+    "phase": "post",
+    "source": {
+      "kind": "preexisting"
+    }
+  },
+  "artifact": {
+    "scope": "task",
+    "path": "gate.txt",
+    "source": {
+      "kind": "text",
+      "text": "Required original stage evidence.\n"
+    }
+  },
+  "expected_blocked_gate": {
+    "stage": "author",
+    "phase": "post",
+    "passed": false,
+    "requirements": [
+      {
+        "id": "current-result-artifact",
+        "origin": "task",
+        "target": "artifact:task:gate.txt",
+        "passed": false,
+        "detail": "unique_files=0; требуется 1..1"
+      }
+    ]
+  }
+}

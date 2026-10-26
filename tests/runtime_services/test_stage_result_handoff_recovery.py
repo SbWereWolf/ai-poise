@@ -1,14 +1,16 @@
 """Integration subject: exact continuation across committed real-owner effects."""
 from copy import deepcopy
+import json
 from pathlib import Path
 
 import pytest
 
-from batch.helpers import request
-from conftest import git
+from batch.helpers import request, result
+from conftest import WorkPoise, git
+from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runtime_services.stage_result_handoff_helpers import (
-    blocked, blocked_details, business, complete, count, handoff, interrupt_after,
+    blocked, blocked_details, business, complete, configure, count, fixture, handoff, interrupt_after,
     receiver, source_state, start,
 )
 
@@ -243,3 +245,74 @@ def test_foreign_same_tree_commit_is_not_an_internal_verification_commit(project
     assert state["pending"] == pending and state["claimed_by"] == "handoff-author"
     assert state["stage"] == "author" and state["status"] == "active"
     assert git(worktree, "rev-parse", "HEAD") == foreign_commit and count(counter) == "x"
+
+
+@pytest.mark.parametrize("checkpoint", ["direct_handoff", "already_verified"])
+def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_outcome(project, checkpoint):
+    counter = configure(project)
+    data = fixture("content-recovery.json")
+    project["task"]["content_contract"]["requirements"] = [data["requirement"]]
+    project["task"]["stage_contracts"][0]["exit_requirements"] = ["current-result-artifact"]
+    tools = WorkTools(WorkPoise(project["config_path"], "handoff-author"))
+    context = tools.invoke(request("bootstrap", {
+        "task": deepcopy(project["task"]), "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    packet = fixture("handoff-packet.json")
+    packet["input"]["result"] = result(context, "Same result before and after restoring its required artifact.")
+    original_packet = deepcopy(packet)
+    first = blocked(handoff(tools, packet), "verification")
+    original_failure = deepcopy(first["verification"])
+    assert original_failure["status"] == "content_requirements_failed"
+    assert original_failure["content_gate"] == data["expected_blocked_gate"]
+    assert first["progression"] is None and first["release"] is None
+    assert "current-result-artifact" in first["blocked"]["reason"]
+    assert "устраните указанный native gate" in first["blocked"]["continuation"]
+    assert "handoff-fixture-1" in first["blocked"]["continuation"]
+    assert len(original_failure["checks"]) == 1
+    receipt = original_failure["checks"][0]
+    assert receipt["method"] == "CHECK-ONCE" and receipt["passed"] is True
+    assert receipt["actual_exit_code"] == 0 and Path(receipt["stdout"]).read_text() == "CHECK_ONCE\n"
+    initial = source_state(tools)
+    assert (initial["status"], initial["stage"], initial["claimed_by"], initial["pending"]) == (
+        "active", "author", "handoff-author", None,
+    )
+    closed = blocked(handoff(tools, packet), "verification")
+    assert closed["verification"]["content_gate"] == data["expected_blocked_gate"]
+    assert closed["verification"]["checks"] == original_failure["checks"]
+    assert count(counter) == "x" and source_state(tools)["claimed_by"] == "handoff-author"
+    restored = tools.invoke(request("artifacts", {"items": [data["artifact"]]}))
+    assert restored["status"] == "artifacts_created" and len(restored["artifact_paths"]) == 1
+    assert Path(restored["artifact_paths"][0]).read_text() == "Required original stage evidence.\n"
+    if checkpoint == "already_verified":
+        verified = tools.invoke(request("verify", {"result": packet["input"]["result"], "artifacts": []}))
+        assert verified["status"] == "verified" and verified["checks"] == original_failure["checks"]
+        assert source_state(tools)["status"] == "verified" and count(counter) == "x"
+    continued = handoff(tools, packet)
+    assert business(continued)["status"] == "handoff_completed", (
+        "Restored original content gate must resume the same handoff; actual verification="
+        + business(continued)["verification"]["status"]
+    )
+    completed = complete(continued, replayed=False)
+    assert completed["verification"]["checks"] == original_failure["checks"]
+    state = source_state(tools)
+    assert (state["status"], state["stage"], state["claimed_by"], state["pending"]) == (
+        "verified", "author", None, None,
+    )
+    assert state["head"] == initial["head"] and state["tree"] == initial["tree"]
+    assert completed["verification"]["verification_commit"] == initial["head"]
+    assert completed["verification"]["verified_tree"] == initial["tree"]
+    with tools.runtime.store.transaction() as database:
+        history = [json.loads(row["data"]) for row in database.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event=? ORDER BY seq",
+            ("T1", "stage_handoff.state"),
+        )]
+    assert any(item["verification"] == original_failure for item in history)
+    assert history[-1]["verification"] == completed["verification"] and history[-1]["completed"] is True
+    assert first["verification"] == original_failure and packet == original_packet and count(counter) == "x"
+    receiving, _ = receiver(project)
+    receiver_before = source_state(receiving)
+    assert receiver_before["claimed_by"] == "handoff-reviewer"
+    replayed = complete(handoff(tools, packet), replayed=True)
+    assert replayed["verification"] == completed["verification"]
+    assert replayed["progression"] == completed["progression"] and replayed["release"] == completed["release"]
+    assert source_state(receiving) == receiver_before and count(counter) == "x"

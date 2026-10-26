@@ -80,6 +80,13 @@ def parse_request(value, config):
     if op == 'recover_ownership' and isinstance(value['input'], dict) and 'mode' in value['input']:
         from ..ownership.domain import CRASH_RECOVERY_FIELDS
         shapes[op] = set(CRASH_RECOVERY_FIELDS)
+    selected = op == 'verify' and isinstance(value['input'], dict) and 'selection' in value['input']
+    if selected:
+        from .selection import SelectedResultIntent, SelectionRefusal
+        if set(value['input']) != {'selection'}:
+            raise SelectionRefusal('selection_contract_invalid', 'verify selection cannot be combined with other input fields')
+        SelectedResultIntent.parse(value['input']['selection'])
+        shapes[op] = {'selection'}
     if op == 'advance' and isinstance(value['input'], dict):
         shapes[op] = {'request_id', 'task_id'} | ({'target_stage'} if 'target_stage' in value['input'] else set())
         for field in shapes[op]:
@@ -101,7 +108,7 @@ def parse_request(value, config):
     if op=='bootstrap':
         if value['input']['task'] is not None and not isinstance(value['input']['task'],dict):
             raise DomainError('task must be an object or explicit null; files are not input')
-    if op=='verify':
+    if op=='verify' and not selected:
         if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):
             raise DomainError('result must be an object or explicit null')
         if not isinstance(value['input']['artifacts'],list):

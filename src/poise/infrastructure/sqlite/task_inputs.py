@@ -12,6 +12,7 @@ class ReviewIdentityCapture:
     verified: str | None
     started: str | None
     observed: tuple[str, ...]
+    selected_actor: str | None
 
     def restore(self):
         if self.produced is None:
@@ -39,7 +40,7 @@ def capture_review_identity(db, task_id, *, include_unsubmitted=False):
         started = (None if not include_unsubmitted else db.execute(
             "SELECT data FROM task_events WHERE task_id=? AND json_extract(data,'$.event')="
             "'started' ORDER BY seq DESC LIMIT 1", (task_id,)).fetchone())
-        return ReviewIdentityCapture(None, None, None if started is None else started[0], ())
+        return ReviewIdentityCapture(None, None, None if started is None else started[0], (), None)
     verified = db.execute("SELECT data FROM task_events WHERE task_id=? "
         "AND json_extract(data,'$.event')='verified' AND json_extract(data,'$.submission')=? "
         'ORDER BY seq DESC LIMIT 1', (task_id, produced['submission_id'])).fetchone()
@@ -47,8 +48,17 @@ def capture_review_identity(db, task_id, *, include_unsubmitted=False):
         "SELECT DISTINCT session_id FROM journal WHERE task_id=? AND event='verify.start' "
         "AND json_extract(data,'$.stage')=? AND json_extract(data,'$.tree')=? ORDER BY session_id",
         (task_id, produced['stage'], produced['tree'])))
+    selected = db.execute(
+        "SELECT json_extract(j.data,'$.actor') FROM work_packets w JOIN journal j "
+        "ON j.task_id=w.task_id AND j.event='work.selection_admitted' "
+        "AND json_extract(j.data,'$.digest')=w.digest "
+        "AND json_extract(j.data,'$.expected.stage')=w.stage "
+        "AND json_extract(j.data,'$.expected.iteration')=w.iteration "
+        "WHERE w.task_id=? AND w.stage=? AND w.iteration=? ORDER BY j.seq DESC LIMIT 1",
+        (task_id, produced['stage'], produced['iteration']),
+    ).fetchone()
     return ReviewIdentityCapture(dict(produced), None if verified is None else verified[0],
-                                 None, observed)
+                                 None, observed, None if selected is None else selected[0])
 
 
 @dataclass(frozen=True)
@@ -69,6 +79,9 @@ class SqliteTaskInputs:
     eligibility: dict
     materials: dict
     cycles: dict
+
+    def selected_result_author(self, task_id):
+        return self.reviews[task_id].selected_actor
 
     def read_duplicate_family(self, task_id):
         from .duplicate_tasks import restore_duplicate_family

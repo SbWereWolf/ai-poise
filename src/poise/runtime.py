@@ -938,6 +938,27 @@ class Poise:
                 path.mkdir(parents=True, exist_ok=True)
         return roots
 
+    def _result_template(self, data, stage, content, workflow):
+        payload = self.task_queries.current_submission(data['id'])
+        if payload is None:
+            payload = {'sections':stage['sections'].copy(),'artifact_paths':[], 'commit_message':'',
+                'content_additions':{'sections':[],'routes':[],'requirements':[]},'trace':{},'method_additions':[],
+                'stage_work':workflow['stage_work_template'],'evidence_work':{'phase':'prepare','arguments':[],'decisions':[]}}
+            for section in content['sections']:
+                if section['writable']:
+                    name=section['id']
+                    payload['sections'][name]=(content['sections_current'][name] if name in content['sections_current'] else section['template'])
+        return payload
+
+    def result_selection_context(self, data):
+        stage = self._stage(data)
+        content = self.task_commands.content_context(data['id'])
+        workflow = self.runner.context(data['id'])
+        return {'task': data['id'], 'stage': stage['id'], 'iteration': data['iteration'],
+                'version': data['version'], 'progression': data.get('progression'),
+                'required_sections': {name: stage['sections'][name] for name in stage['required_sections']},
+                'result_template': self._result_template(data, stage, content, workflow)}
+
     def _context(self, data: dict, prepare: bool, *, force_duplicate_start=False) -> dict:
         from .modules.tasks.duplicates import assess_duplicate_start
         family = self.task_commands.read_duplicate_family(data['id'])
@@ -953,15 +974,7 @@ class Poise:
         payload = None
         if prepare:
             self._roots(data)
-            payload = self.task_queries.current_submission(data['id'])
-            if payload is None:
-                payload = {'sections':stage['sections'].copy(),'artifact_paths':[], 'commit_message':'',
-                    'content_additions':{'sections':[],'routes':[],'requirements':[]},'trace':{},'method_additions':[],
-                    'stage_work':workflow['stage_work_template'],'evidence_work':{'phase':'prepare','arguments':[],'decisions':[]}}
-                for section in content['sections']:
-                    if section['writable']:
-                        name=section['id']
-                        payload['sections'][name]=(content['sections_current'][name] if name in content['sections_current'] else section['template'])
+            payload = self._result_template(data, stage, content, workflow)
         context = {'session': self.session, 'task': data['id'], 'goal': data['goal'], 'status': data['status'],
                 'version': data['version'],
                 'stage': stage['id'], 'iteration': data['iteration'], 'worktree': data['worktree'],
@@ -1549,15 +1562,15 @@ class Poise:
                 'content_gate':gate,'checks':receipts,'replayed':False,
                 'context':self._context(data,True)}
 
-    def verify(self, payload: dict | None, *, packet_digest: str | None) -> dict:
+    def verify(self, payload: dict | None, *, packet_digest: str | None, selection_guard: dict | None = None) -> dict:
         try:
-            result=self._verify(payload, packet_digest=packet_digest)
+            result=self._verify(payload, packet_digest=packet_digest, selection_guard=selection_guard)
         finally:
             incidents=self.result_views.finish()
         if incidents:result={**result,'incidents':incidents}
         return result
 
-    def _verify(self, payload: dict | None, *, packet_digest: str | None) -> dict:
+    def _verify(self, payload: dict | None, *, packet_digest: str | None, selection_guard: dict | None = None) -> dict:
         data = self.store.current(self.session)
         if data is None:
             self.store.event(self.session,None,'read_only.finalize',{})
@@ -1715,7 +1728,7 @@ class Poise:
         publication = data['publication']
         if (publication is not None and publication['tree']==tree and publication['payload_hash']==payload_hash
                 and publication['execution_key']==execution_key and usable):
-            return self._publish(data, publication, packet_digest=packet_digest)
+            return self._publish(data, publication, packet_digest=packet_digest, selection_guard=selection_guard)
         if intact:
             receipts = batch['receipts']
             attempt = data['attempts']
@@ -1789,7 +1802,7 @@ class Poise:
         if action is not None and 'allocations' in action:
             publication['allocations']=action['allocations']
         data['publication'] = publication; self.store.save(data)
-        return self._publish(data, publication, packet_digest=packet_digest)
+        return self._publish(data, publication, packet_digest=packet_digest, selection_guard=selection_guard)
 
     def _action_incomplete(self,data,payload,action):
         context=self._context(self._task(),True)
@@ -2095,7 +2108,7 @@ class Poise:
             self.store.event(self.session,data['id'],'check.finished',{'run':run_id,'passed':passed,'exit':result['actual_exit_code']})
         return receipts
 
-    def _publish(self, data: dict, publication: dict, *, packet_digest: str) -> dict:
+    def _publish(self, data: dict, publication: dict, *, packet_digest: str, selection_guard: dict | None = None) -> dict:
         worktree = self._verification_workspace(data)
         tree = publication['tree']; stage = self._stage(data)
         if self._current_tree(data) != tree:
@@ -2131,6 +2144,8 @@ class Poise:
         )
         if 'allocations' in publication:report['allocations']=publication['allocations']
         if self.result_views.incidents:report['incidents']=list(self.result_views.incidents)
+        if selection_guard is not None:
+            self.work_resources.guard_selection(data, selection_guard, publication)
         self.runner.verified(data['id'], self.session, publication['payload_hash'], report,
                              self._artifact_facts(publication['artifacts']),
                              packet_digest=packet_digest, permanent_artifacts=permanent)

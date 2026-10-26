@@ -1,4 +1,6 @@
 from pathlib import Path
+import io
+import stat
 from ..common import descendant, PoiseError
 from ..artifacts import artifact_identity
 from ..modules.artifact_factory.domain import ArtifactRecoveryIntent, ArtifactDraftIntent
@@ -7,11 +9,97 @@ from .artifact_factory import FileArtifactFactory
 from .sqlite.work_packets import SqliteWorkPacketRepository
 from .file_publication import BinaryFilePublisher
 from ..modules.task_delivery.domain import MaterialUseIntent
+from ..modules.work.selection import SelectionRefusal
 
 
 class WorkResources:
     """Composition-side file/receipt adapter, not a generic editor of task tables."""
     def __init__(self,runtime):self.runtime=runtime
+
+    def selection_request(self, task, request_id):
+        return self.runtime.task_commands.result_selection_request(task['id'], self.runtime.session, request_id)
+
+    def admit_selection(self, task, record):
+        return self.runtime.task_commands.admit_result_selection(task['id'], self.runtime.session, record)
+
+    def _selection_roots(self, task):
+        h = self.runtime
+        return {'task': task_root(h.state, h.paths, task['id'], task['sprint_id']),
+                'runtime': h.runtime, 'worktree': None if task['worktree'] is None else Path(task['worktree'])}
+
+    def _selection_bytes(self, path):
+        limit = self.runtime.cfg['batch']['max_artifact_bytes']
+        info = path.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
+            raise PoiseError(f'Selected source must be a regular file within max_artifact_bytes: {path}')
+        stream = io.BytesIO()
+        checksum = FileArtifactFactory._read_registered(path, 'Selected source', stream, max_bytes=limit)
+        return stream.getvalue(), checksum
+
+    def prepare_selection_sources(self, task, files):
+        roots = self._selection_roots(task)
+        sources, artifacts, destinations = [], [], {}
+        for item in files:
+            source = item['source']
+            root = roots[source['root']]
+            path = None if root is None else root / source['path']
+            try:
+                if root is None or not path.resolve().is_relative_to(root.resolve()):
+                    raise PoiseError(f'Selected source is outside its current owner: {source}')
+                content, checksum = self._selection_bytes(path)
+            except (PoiseError, OSError) as exc:
+                raise SelectionRefusal('selection_source_invalid', f'{source}: {exc}', kind='restore_source') from exc
+            sources.append({'root': source['root'], 'relative': source['path'], 'path': str(path),
+                            'digest': checksum, 'size': len(content)})
+            key = (item['scope'], item['path'])
+            if key in destinations:
+                if destinations[key] != content:
+                    raise PoiseError(f'Conflicting content for the same artifact path: {item["path"]}')
+                continue
+            destinations[key] = content
+            artifacts.append({'scope': item['scope'], 'path': item['path'],
+                              'source': {'kind': 'file', 'path': str(path), 'digest': checksum}})
+        return artifacts, sources
+
+    def validate_selection_sources(self, saved):
+        task = self.runtime.current_task()
+        roots = self._selection_roots(task)
+        for source in saved['sources']:
+            try:
+                root = roots[source['root']]
+                path = None if root is None else root / source['relative']
+                if path is None or str(path) != source['path'] or not path.resolve().is_relative_to(root.resolve()):
+                    raise PoiseError('Current source owner/path changed')
+                content, checksum = self._selection_bytes(path)
+                if checksum != source['digest'] or len(content) != source['size']:
+                    raise PoiseError('Selected source bytes changed')
+            except (PoiseError, OSError) as exc:
+                raise SelectionRefusal('selection_source_changed',
+                                       f'Restore {source["path"]} to admitted digest {source["digest"]}: {exc}',
+                                       kind='restore_source') from exc
+
+    def materialize_selection(self, factory, prepared, saved):
+        self.validate_selection_sources(saved)
+        try:
+            paths = factory.materialize(prepared)
+        except (PoiseError, OSError):
+            # Attribute only an actually changed source; preserve other owner errors.
+            self.validate_selection_sources(saved)
+            raise
+        self.validate_selection_sources(saved)
+        return paths
+
+    def guard_selection(self, task, saved, publication):
+        guard = {key: publication[key] for key in ('tree', 'payload_hash', 'execution_key')}
+        guard['artifacts'] = [{'path': item['path'], 'digest': item['digest']} for item in publication['artifacts']]
+        guard['checks'] = [item['id'] for item in publication['checks']]
+        current = self.selection_request(task, saved['request_id'])
+        if current.get('guard') is None:
+            self.validate_selection_sources(saved)
+        elif current['guard'] != guard:
+            raise SelectionRefusal('selection_recovery_pending', 'Saved source guard belongs to a different publication; inspect original submission and receipts.', kind='continue_work')
+        self.runtime.task_commands.guard_result_selection(task['id'], self.runtime.session,
+                                                          saved['request_id'], saved['digest'], guard)
 
     def factory(self, task=None):
         h=self.runtime

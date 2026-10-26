@@ -86,8 +86,14 @@ class WorkTools:
         return {**out,'interaction':self.interactions.summary(None if ownership_recovery else h.report_task(out))}
 
     def _verify(self,args):
+        if 'selection' in args:
+            from .result_selection import SelectedResultSubmission
+            return SelectedResultSubmission(self).submit(args)
+        return self._verify_explicit(args)
+
+    def _verify_explicit(self,args, *, packet_digest=None, selection_guard=None):
         h=self.runtime;data=h.current_task()
-        packet_digest=h.packet_digest(args)
+        packet_digest=h.packet_digest(args) if packet_digest is None else packet_digest
         if data is None:
             if args['result'] is not None or args['artifacts']:
                 raise PoiseError('Taskless read-only verify takes explicit null result and no artifacts')
@@ -116,8 +122,11 @@ class WorkTools:
             return continuation
         # Validate submitted AND registered artifacts before producing any new file.
         h.validate_verification_artifacts(args['result']['artifact_paths'],data)
-        factory.materialize(prepared)
-        return h.verify(payload, packet_digest=packet_digest)
+        if selection_guard is None:
+            factory.materialize(prepared)
+            return h.verify(payload, packet_digest=packet_digest)
+        self.resources.materialize_selection(factory, prepared, selection_guard)
+        return h.verify(payload, packet_digest=packet_digest, selection_guard=selection_guard)
 
     def _show(self,queries):
         h=self.runtime;items=[]

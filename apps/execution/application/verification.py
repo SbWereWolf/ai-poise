@@ -256,6 +256,10 @@ class ExecutionVerification:
             data = self.load(repository, execution, value['attempt_id'], check_source=False)
             VerificationPolicy.require_actor(data, value['actor_id'])
             run = VerificationPolicy.validate_run(data['value'], value['run_id'])
+            origin = data['requests'].get(run['run_id'])
+            if (origin is None or origin['request_id'] != value['request_id']
+                    or origin['digest'] != GateCommands.request_digest('attempt', value)):
+                raise RecordsError('Launch outcome belongs to an already resolved request; read its attempt')
             self.record_launch_failure_in(repository, data, run, value, error)
 
     def record_run(self, value, receipt):

@@ -1,0 +1,786 @@
+{
+  "schema": "test-cleanup-contract/v1",
+  "groups": {
+    "terminal_decisions": [
+      "actual_cancelled_outcome_link_and_disposition_required",
+      "resource_free_complete",
+      "nonterminal_or_foreign_outcome_and_wrong_role_refused",
+      "current_generation_contract_and_workspace_binding_match",
+      "branchless_nonempty_null_waits_then_explicit_discard_null_commit"
+    ],
+    "dispositions": [
+      "preserve_owner_receipt_precedes_any_remove",
+      "integrated_owner_fact_matches_selected_commit_and_request",
+      "explicit_discard_needs_no_preservation",
+      "initial_disposition_selection_and_immutable_replay"
+    ],
+    "ordered_effects": [
+      "prepare_and_query_have_no_physical_effect",
+      "worktree_before_branch_even_from_reversed_input",
+      "actual_owner_removes_all_four_resource_kinds",
+      "own_state_changes_follow_real_observation_and_foreign_markers_remain"
+    ],
+    "failure_resume": [
+      "known_failure_retains_reason_remaining_work_and_receipt",
+      "partial_worktree_success_branch_failure_persisted",
+      "new_process_query_and_explicit_retry_finish_remaining_only",
+      "old_failure_and_removed_history_retained"
+    ],
+    "unknown_effect": [
+      "real_caller_loss_before_dispatch_without_any_observe",
+      "real_caller_loss_after_effect_without_any_observe",
+      "same_attempt_owner_lookup_without_receipt_id",
+      "not_started_reopens_same_attempt_and_unknown_stays_reconcile",
+      "saved_completion_reconciles_with_one_effect"
+    ],
+    "replay_history": [
+      "exact_request_replay_and_duplicate_observation_have_no_new_record_or_effect",
+      "changed_intent_and_stale_revision_leave_rows_unchanged",
+      "wrong_step_or_late_old_attempt_observation_refused",
+      "complete_history_read_after_process_reopen_and_later_generation",
+      "outcome_and_noncleanup_execution_records_preserved"
+    ],
+    "input_policy_rejections": [
+      "wire_missing_required",
+      "wire_extra_field",
+      "wire_null_scalar",
+      "wire_wrong_scalar_type",
+      "wire_bool_numeric_guard",
+      "wire_resources_not_list",
+      "wire_resource_not_object",
+      "wire_nested_reference_shape",
+      "wire_duplicate_resource_id",
+      "wire_extra_workspace_pair",
+      "wire_disposition_shape",
+      "wire_observation_shape",
+      "policy_missing_cleanup",
+      "policy_cleanup_not_object",
+      "policy_roles_missing",
+      "policy_roles_wrong_container",
+      "policy_roles_invalid_members",
+      "policy_roles_unknown_role"
+    ]
+  },
+  "config": {
+    "schema": "stride-execution-config/v1",
+    "paths": {
+      "state": "state",
+      "database": "execution.sqlite",
+      "lock": "execution.lock"
+    },
+    "batch": {
+      "max_input_bytes": 65536,
+      "max_items": 256
+    },
+    "read": {
+      "max_queries": 256
+    },
+    "lock": {
+      "seconds": 5.0,
+      "poll_seconds": 0.05
+    },
+    "identifiers": {
+      "task": {
+        "pattern": "^[0-9]{4}$"
+      }
+    },
+    "lifecycle": {
+      "actors": {
+        "executor-A": "writer",
+        "reviewer-B": "reviewer",
+        "executor-C": "writer"
+      },
+      "policies": {
+        "restart-rule": {
+          "approving_roles": [
+            "reviewer"
+          ],
+          "revision_fields": [
+            "requirements_snapshot_revision",
+            "process_ref",
+            "stage_expectations",
+            "methods",
+            "evidence_plan"
+          ]
+        }
+      }
+    },
+    "outcomes": {
+      "roles": [
+        "writer"
+      ]
+    },
+    "cleanup": {
+      "roles": [
+        "writer"
+      ]
+    }
+  },
+  "contract": {
+    "task_id": "0042",
+    "requirements_snapshot_revision": 2,
+    "process_ref": {
+      "goal_type": "writing",
+      "revision": "independent-process-v1"
+    },
+    "admission_id": "admission-cleanup",
+    "workspace_id": "ws-cleanup",
+    "stage_expectations": [
+      {
+        "stage_id": "finish",
+        "values": [],
+        "files": [],
+        "methods": []
+      }
+    ],
+    "restart_policy_id": "restart-rule",
+    "methods": [],
+    "evidence_plan": {}
+  },
+  "setup": {
+    "schema": "stride-execution/v1",
+    "operation": "apply",
+    "input": {
+      "request_id": "setup-cleanup",
+      "expected_revision": 0,
+      "operations": [
+        {
+          "id": "setup",
+          "kind": "setup_execution",
+          "contract": "@CONTRACT"
+        }
+      ]
+    }
+  },
+  "cancel": {
+    "schema": "stride-execution/v1",
+    "operation": "outcome",
+    "input": {
+      "request_id": "cancel-cleanup",
+      "expected_revision": "@REVISION",
+      "task_id": "0042",
+      "expected_generation": 1,
+      "expected_contract_revision": "@CONTRACT_REVISION",
+      "actor_id": "executor-A",
+      "outcome_id": "outcome-cleanup",
+      "intent": "cancel",
+      "reason": "Оператор завершил работу и отдельно определит очистку.",
+      "source": null,
+      "result_commit": null
+    }
+  },
+  "prepare": {
+    "schema": "stride-execution/v1",
+    "operation": "cleanup",
+    "input": {
+      "action": "prepare",
+      "request_id": "@REQUEST",
+      "expected_revision": "@REVISION",
+      "task_id": "0042",
+      "expected_generation": 1,
+      "expected_contract_revision": "@CONTRACT_REVISION",
+      "actor_id": "executor-A",
+      "cleanup_id": "cleanup-1",
+      "outcome_id": "outcome-cleanup",
+      "authorization": "Оператор явно поручил очистку перечисленных ресурсов.",
+      "resources": "@RESOURCES",
+      "commit_disposition": "@DISPOSITION"
+    }
+  },
+  "continue": {
+    "schema": "stride-execution/v1",
+    "operation": "cleanup",
+    "input": {
+      "action": "continue",
+      "request_id": "@REQUEST",
+      "expected_revision": "@REVISION",
+      "task_id": "0042",
+      "expected_generation": 1,
+      "expected_contract_revision": "@CONTRACT_REVISION",
+      "actor_id": "executor-A",
+      "cleanup_id": "cleanup-1",
+      "commit_disposition": "@DISPOSITION",
+      "authorization": "Оператор явно продолжает прежнее решение об очистке."
+    }
+  },
+  "observe": {
+    "schema": "stride-execution/v1",
+    "operation": "cleanup",
+    "input": {
+      "action": "observe",
+      "request_id": "@REQUEST",
+      "expected_revision": "@REVISION",
+      "task_id": "0042",
+      "expected_generation": 1,
+      "expected_contract_revision": "@CONTRACT_REVISION",
+      "actor_id": "executor-A",
+      "cleanup_id": "cleanup-1",
+      "step_id": "@STEP",
+      "attempt_id": "@ATTEMPT",
+      "observation": "@OBSERVATION"
+    }
+  },
+  "query": {
+    "schema": "stride-execution/v1",
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "cleanup-read",
+          "kind": "cleanup",
+          "task_id": "0042",
+          "cleanup_id": "cleanup-1"
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "resource_id": "worktree",
+      "kind": "worktree",
+      "owner": "workspace-owner",
+      "reference": {
+        "workspace_id": "ws-cleanup",
+        "path": "@WORKTREE"
+      }
+    },
+    {
+      "resource_id": "branch",
+      "kind": "branch",
+      "owner": "workspace-owner",
+      "reference": {
+        "workspace_id": "ws-cleanup",
+        "name": "task-cleanup",
+        "commit": "@COMMIT"
+      }
+    },
+    {
+      "resource_id": "temporary",
+      "kind": "temporary",
+      "owner": "file-owner",
+      "reference": {
+        "path": "@TEMPORARY"
+      }
+    },
+    {
+      "resource_id": "temporary_backup",
+      "kind": "temporary_backup",
+      "owner": "file-owner",
+      "reference": {
+        "path": "@BACKUP"
+      }
+    }
+  ],
+  "fields": {
+    "cleanup": [
+      "cleanup_id",
+      "task_id",
+      "generation",
+      "outcome_id",
+      "disposition",
+      "status",
+      "resources",
+      "removed",
+      "history",
+      "work",
+      "issue"
+    ],
+    "work": [
+      "step_id",
+      "attempt_id",
+      "owner",
+      "operation",
+      "resource",
+      "disposition",
+      "mode"
+    ],
+    "event": [
+      "event",
+      "step_id",
+      "attempt_id",
+      "resource_id",
+      "observation"
+    ],
+    "response": [
+      "schema",
+      "status",
+      "revision",
+      "replayed",
+      "cleanup"
+    ],
+    "query": [
+      "schema",
+      "status",
+      "revision",
+      "results"
+    ]
+  },
+  "missing": {
+    "schema": "stride-execution/v1",
+    "status": "rejected",
+    "reason": "Unknown Execution operation: cleanup"
+  },
+  "owner_recovery": {
+    "not_started": {
+      "status": "not_started",
+      "receipt_id": null,
+      "result": {
+        "reason": "not_started",
+        "recovery": "Execute the same addressed attempt once."
+      }
+    },
+    "unknown": {
+      "status": "unknown",
+      "receipt_id": null,
+      "result": {
+        "reason": "owner_outcome_unknown",
+        "recovery": "Query the owner for this same attempt."
+      }
+    },
+    "failed": {
+      "status": "failed",
+      "receipt_id": "@RECEIPT",
+      "result": {
+        "reason": "owner_effect_failed",
+        "recovery": "Resolve the stated owner condition and explicitly continue."
+      }
+    }
+  },
+  "wire_cases": [
+    {
+      "id": "wire_missing_required",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "cleanup_id"
+          ],
+          "remove": true
+        }
+      ],
+      "reason_any": [
+        "cleanup_id",
+        "cleanup id",
+        "identifier"
+      ]
+    },
+    {
+      "id": "wire_extra_field",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "unexpected"
+          ],
+          "value": "extra"
+        }
+      ],
+      "reason_any": [
+        "unexpected",
+        "extra",
+        "unknown field"
+      ]
+    },
+    {
+      "id": "wire_null_scalar",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "cleanup_id"
+          ],
+          "value": null
+        }
+      ],
+      "reason_any": [
+        "cleanup_id",
+        "cleanup id",
+        "identifier",
+        "string"
+      ]
+    },
+    {
+      "id": "wire_wrong_scalar_type",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "cleanup_id"
+          ],
+          "value": []
+        }
+      ],
+      "reason_any": [
+        "cleanup_id",
+        "cleanup id",
+        "identifier",
+        "string"
+      ]
+    },
+    {
+      "id": "wire_bool_numeric_guard",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "expected_revision"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "input",
+            "expected_generation"
+          ],
+          "value": true
+        }
+      ],
+      "reason_any": [
+        "revision",
+        "generation",
+        "integer"
+      ]
+    },
+    {
+      "id": "wire_resources_not_list",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "resources"
+          ],
+          "value": null
+        },
+        {
+          "path": [
+            "input",
+            "resources"
+          ],
+          "value": {}
+        }
+      ],
+      "reason_any": [
+        "resources",
+        "list"
+      ]
+    },
+    {
+      "id": "wire_resource_not_object",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "resources",
+            0
+          ],
+          "value": []
+        }
+      ],
+      "reason_any": [
+        "resource",
+        "object"
+      ]
+    },
+    {
+      "id": "wire_nested_reference_shape",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "resources",
+            0,
+            "reference",
+            "workspace_id"
+          ],
+          "remove": true
+        },
+        {
+          "path": [
+            "input",
+            "resources",
+            1,
+            "reference"
+          ],
+          "value": []
+        },
+        {
+          "path": [
+            "input",
+            "resources",
+            2,
+            "reference",
+            "unexpected"
+          ],
+          "value": "extra"
+        }
+      ],
+      "reason_any": [
+        "reference",
+        "workspace",
+        "path",
+        "extra"
+      ]
+    },
+    {
+      "id": "wire_duplicate_resource_id",
+      "special": "duplicate_resource_id",
+      "reason_any": [
+        "resource",
+        "duplicate",
+        "unique"
+      ]
+    },
+    {
+      "id": "wire_extra_workspace_pair",
+      "special": "extra_workspace_pair",
+      "reason_any": [
+        "worktree",
+        "branch",
+        "pair",
+        "resource"
+      ]
+    },
+    {
+      "id": "wire_disposition_shape",
+      "variants": [
+        {
+          "path": [
+            "input",
+            "commit_disposition",
+            "kind"
+          ],
+          "remove": true
+        },
+        {
+          "path": [
+            "input",
+            "commit_disposition",
+            "unexpected"
+          ],
+          "value": "extra"
+        },
+        {
+          "path": [
+            "input",
+            "commit_disposition",
+            "expected_commit"
+          ],
+          "value": []
+        }
+      ],
+      "reason_any": [
+        "disposition",
+        "commit",
+        "kind"
+      ]
+    },
+    {
+      "id": "wire_observation_shape",
+      "observe": true,
+      "variants": [
+        {
+          "path": [
+            "input",
+            "observation",
+            "result"
+          ],
+          "remove": true
+        },
+        {
+          "path": [
+            "input",
+            "observation",
+            "result"
+          ],
+          "value": []
+        },
+        {
+          "path": [
+            "input",
+            "observation",
+            "status"
+          ],
+          "value": "other"
+        },
+        {
+          "path": [
+            "input",
+            "observation",
+            "receipt_id"
+          ],
+          "value": null
+        }
+      ],
+      "reason_any": [
+        "observation",
+        "receipt",
+        "status",
+        "result"
+      ]
+    }
+  ],
+  "policy_cases": [
+    {
+      "id": "policy_missing_cleanup",
+      "variants": [
+        {
+          "path": [
+            "cleanup"
+          ],
+          "remove": true
+        }
+      ],
+      "reason_any": [
+        "cleanup",
+        "roles",
+        "role"
+      ]
+    },
+    {
+      "id": "policy_cleanup_not_object",
+      "variants": [
+        {
+          "path": [
+            "cleanup"
+          ],
+          "value": null
+        }
+      ],
+      "reason_any": [
+        "cleanup",
+        "roles",
+        "role"
+      ]
+    },
+    {
+      "id": "policy_roles_missing",
+      "variants": [
+        {
+          "path": [
+            "cleanup"
+          ],
+          "value": {}
+        }
+      ],
+      "reason_any": [
+        "cleanup",
+        "roles",
+        "role"
+      ]
+    },
+    {
+      "id": "policy_roles_wrong_container",
+      "variants": [
+        {
+          "path": [
+            "cleanup",
+            "roles"
+          ],
+          "value": null
+        },
+        {
+          "path": [
+            "cleanup",
+            "roles"
+          ],
+          "value": "writer"
+        }
+      ],
+      "reason_any": [
+        "cleanup",
+        "roles",
+        "role"
+      ]
+    },
+    {
+      "id": "policy_roles_invalid_members",
+      "variants": [
+        {
+          "path": [
+            "cleanup",
+            "roles"
+          ],
+          "value": []
+        },
+        {
+          "path": [
+            "cleanup",
+            "roles"
+          ],
+          "value": [
+            "writer",
+            "writer"
+          ]
+        },
+        {
+          "path": [
+            "cleanup",
+            "roles"
+          ],
+          "value": [
+            1
+          ]
+        }
+      ],
+      "reason_any": [
+        "cleanup",
+        "roles",
+        "role"
+      ]
+    },
+    {
+      "id": "policy_roles_unknown_role",
+      "variants": [
+        {
+          "path": [
+            "cleanup",
+            "roles"
+          ],
+          "value": [
+            "absent-role"
+          ]
+        }
+      ],
+      "reason_any": [
+        "cleanup",
+        "roles",
+        "role"
+      ]
+    }
+  ],
+  "owner_success": {
+    "remove": {
+      "status": "succeeded",
+      "receipt_id": "@RECEIPT",
+      "result": {
+        "effect": "removed"
+      }
+    },
+    "preserve": {
+      "status": "succeeded",
+      "receipt_id": "@RECEIPT",
+      "result": {
+        "effect": "preserved",
+        "preservation_ref": "@PRESERVATION"
+      }
+    },
+    "integration_status": {
+      "status": "succeeded",
+      "receipt_id": "@RECEIPT",
+      "result": {
+        "effect": "integrated",
+        "source_commit": "@COMMIT",
+        "target_commit": "@TARGET",
+        "integration_request_id": "@INTEGRATION"
+      }
+    }
+  },
+  "dispositions": {
+    "integrated": {
+      "kind": "integrated",
+      "expected_commit": "@COMMIT",
+      "target_commit": "@COMMIT",
+      "integration_request_id": "integration-actual-1"
+    }
+  }
+}

@@ -1,5 +1,4 @@
 """One declarative entry. Delegates facts/content/files to their owners."""
-from copy import deepcopy
 from ..modules.work.domain import parse_request,read_range
 from ..modules.tasks.domain import is_terminal_task_status
 from ..modules.work.ports import WorkRuntime
@@ -49,7 +48,8 @@ class WorkTools:
             elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='reuse':out=h.reuse(**args)
-            elif op=='verify':out=self._verify(args)
+            elif op=='verify':out=h.stage_verification.verify(args)
+            elif op=='handoff':out=h.stage_handoff.apply(args)
             elif op=='routing':out=h.refresh_development_route(args['facts'])
             elif op=='restore_context':out=h.restore_context(**args)
             elif op=='show':out=self._show(args['queries'])
@@ -84,40 +84,6 @@ class WorkTools:
                 and op in ('verify','reuse','accept','cancel')):
             out={**out,'sprint':h.sprint_tools.overview(sprint_subject['sprint_id'])}
         return {**out,'interaction':self.interactions.summary(None if ownership_recovery else h.report_task(out))}
-
-    def _verify(self,args):
-        h=self.runtime;data=h.current_task()
-        packet_digest=h.packet_digest(args)
-        if data is None:
-            if args['result'] is not None or args['artifacts']:
-                raise PoiseError('Taskless read-only verify takes explicit null result and no artifacts')
-            return h.verify(None, packet_digest=None)
-        if data['status']=='verified':
-            saved=self.resources.packet(data)
-            if not (args['result'] is None and not args['artifacts']) and saved!=packet_digest:
-                raise PoiseError('Different result after delivery requires rework')
-            return h.verify(None, packet_digest=None)
-        if data['status']!='active' or args['result'] is None:
-            raise PoiseError('Active verify requires an explicit result object')
-        payload=deepcopy(args['result'])
-        if not isinstance(payload.get('artifact_paths'),list) or any(not isinstance(p,str) or not p for p in payload['artifact_paths']):
-            raise PoiseError('artifact_paths must be an explicit list')
-        factory=self.resources.factory()
-        prepared=factory.prepare(args['artifacts'])
-        # Paths can be known before file creation; Task checks only semantic input.
-        payload['artifact_paths']=list(dict.fromkeys(payload['artifact_paths']+[str(x.path) for x in prepared]))
-        gate = h.validate_stage_entry(data)
-        if not gate['passed']:
-            raise PoiseError('stage entry requirements are no longer satisfied')
-        h.validate_stage_result(data['id'],payload)
-        h.validate_stage_scope(data)
-        continuation = h.precheck_observation_continuation(data, payload)
-        if continuation is not None:
-            return continuation
-        # Validate submitted AND registered artifacts before producing any new file.
-        h.validate_verification_artifacts(args['result']['artifact_paths'],data)
-        factory.materialize(prepared)
-        return h.verify(payload, packet_digest=packet_digest)
 
     def _show(self,queries):
         h=self.runtime;items=[]

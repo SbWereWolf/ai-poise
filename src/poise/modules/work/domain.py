@@ -11,6 +11,7 @@ STAGE_CONTRACT_OPERATIONS = frozenset({
     'revise_stage_contract',
 })
 BUSINESS_INCOMPLETE_STATUSES = frozenset({
+    'handoff_blocked',
     'duplicate_start_blocked',
     'action_blocked',
     'delivery_blocked',
@@ -48,7 +49,7 @@ def is_observation(request):
 def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'restore_context':{'reason','event_id','facts','cwd','reads'},'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},
-            'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
+            'verify':{'result','artifacts'},'handoff':None,'show':{'queries'},'accept':set(),
             'reuse':{'task_id','source_task_id','request_id','expected_version'},
             'release':{'task_id','request_id','expected_version','reason'},
             'recover_empty_rework':{'task_id','reason'},
@@ -89,7 +90,10 @@ def parse_request(value, config):
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
         shapes[op] = shapes[op] | {'force_duplicate_start'}
-    if op not in ('task','sprint','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
+    if op == 'handoff':
+        from ..tasks.handoff import validate_handoff_input
+        validate_handoff_input(value['input'])
+    elif op not in ('task','sprint','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')

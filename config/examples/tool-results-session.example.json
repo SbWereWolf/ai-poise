@@ -159,6 +159,34 @@
         "bytes": 1024
       },
       "overflow": "reject"
+    },
+    "mcp__example__projects": {
+      "parser": "mcp",
+      "format": "mcp-content-json",
+      "content_index": 0,
+      "version_path": [
+        "schemaVersion"
+      ],
+      "expected_version": 2,
+      "items_path": [
+        "projects"
+      ],
+      "name_path": [
+        "label"
+      ],
+      "brief_template": "MCP: {count} projects",
+      "expanded_template": "{brief}\nProjects: {names}",
+      "error_brief_template": "MCP: error",
+      "error_expanded_template": "{brief}\n{error}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 2048
+      },
+      "overflow": "reject"
     }
   },
   "selection": [
@@ -180,6 +208,13 @@
       "id": "declared-mcp-records",
       "tool_name": "mcp__example__records",
       "profile": "mcp__example__records",
+      "priority": 10,
+      "command_pattern": null
+    },
+    {
+      "id": "declared-mcp-projects",
+      "tool_name": "mcp__example__projects",
+      "profile": "mcp__example__projects",
       "priority": 10,
       "command_pattern": null
     }

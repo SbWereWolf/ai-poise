@@ -353,7 +353,7 @@ transport, обязательный SessionStart и все остальные ev
   "events": [
     {
       "event": "PreToolUse",
-      "matcher": "Bash|mcp__example__records",
+      "matcher": "Bash|mcp__example__records|mcp__example__projects",
       "timeout_seconds": 30,
       "async": false,
       "context_limit": 8192,
@@ -361,7 +361,7 @@ transport, обязательный SessionStart и все остальные ev
     },
     {
       "event": "PostToolUse",
-      "matcher": "Bash|mcp__example__records",
+      "matcher": "Bash|mcp__example__records|mcp__example__projects",
       "timeout_seconds": 30,
       "async": false,
       "context_limit": 8192,
@@ -386,9 +386,11 @@ tool-result заранее. Если события уже есть, не соз
 маршруты остаются прежними. Matcher существующих событий согласуйте с их обработчиками;
 command-intake сохраняет собственную Bash границу.
 
-`mcp__example__records` — имя из примера policy, не установленный endpoint. Перед
-публикацией согласованно замените его настоящим объявленным именем в matcher,
-parsers и selection. Числа30/8192 — явные значения примера, не defaults; timeout
+`mcp__example__records` и `mcp__example__projects` — имена из примера policy, не
+установленные endpoints. Второе показывает явный [профиль MCP content
+JSON](tool-results.md#профиль-mcp-content-json).
+Перед публикацией согласованно замените имена настоящими объявленными именами
+в matcher, parsers и selection. Числа30/8192 — явные значения примера, не defaults; timeout
 должен учитывать execution/cleanup подключённых handlers, context_limit — их вывод.
 Передайте **полную объединённую definition** существующему install/reconfigure owner
 с фактической revision по [публичному интерфейсу](#интерфейсы). Он выполняет preflight

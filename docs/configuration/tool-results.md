@@ -95,8 +95,9 @@ Caller устанавливает [существующий владелец
 В session/handler примерах также замените `@POISE_RESPONSE_ROOT@` абсолютным разрешённым
 корнем настоящих SavedResponse, `@POISE_COMMAND_REGEX@` полным regex действительного
 Poise entry, `@TOOL_RESULTS_POLICY@` абсолютным путём заполненной policy. Имя
-`mcp__example__records` — обозначение MCP с показанной структурой, не установленный
-endpoint: реальное имя меняется согласованно в parsers и selection.
+`mcp__example__records` и `mcp__example__projects` — обозначения MCP с показанными
+структурами, не установленные endpoints: реальные имена меняются согласованно в
+parsers, selection и native matcher.
 В capture/failure запросах замените `@STDOUT@`, `@STDERR@` абсолютными путями
 уже полученных полных потоков. Маркеры — обозначения инструкции; CLI их сам
 не подставляет. Если поток недоступен, передайте `null`, а не фиктивный пустой
@@ -174,6 +175,7 @@ Poise по **полному объявленному command**, обычный B
 |---|---|
 | `bash` / `native-exec-json` | Native object с `output` и terminal integer `exit_code`; `summary_prefix`, `detail_prefix`, `summary_missing`, `brief_without_summary` и шаблоны. Summary берётся по объявленному префиксу; `summary_missing="exit-only"` использует явный шаблон без summary. |
 | `mcp` / `records-json` | Именно объявленная форма с `content` и `structuredContent.count` (integer), `structuredContent.names` (список строк); шаблоны `{count}`/`{names}`. Это не универсальный decoder любого MCP payload. |
+| `mcp` / `mcp-content-json` | Целый MCP envelope с `content` и boolean `isError`; JSON или error text выбирается только по явному `content_index`. Полный [договор профиля](#профиль-mcp-content-json) задаёт paths/version/templates и сохраняет original. |
 | `poise` / `saved-work-json` | Native shell object `output`/`exit_code`; stdout содержит настоящий `response_path` полного SavedResponse под явным абсолютным `source_root`. Парсер получает весь body, original native envelope остаётся у delivery/machine consumer. |
 | `poise` / `work-json` | Уже предоставленный полный объект с действительным строковым `status`; отдельный декодируемый envelope не требуется. |
 
@@ -213,6 +215,154 @@ Session-пример показывает один Poise профиль: brief �
 Это примеры настоящих изолированных CLI ответов, не инструкция создать T1 в рабочем
 проекте. Используйте уже разрешённые операции своего настоящего entry; результат
 не запускают повторно для восстановления вывода.
+
+## Профиль MCP content JSON
+
+Профиль `mcp` / `mcp-content-json` обрабатывает явно объявленный MCP-ответ с JSON
+внутри выбранного `content.text`. Полный session-пример содержит профиль
+`mcp__example__projects` и правило `declared-mcp-projects`. Это обезличенное имя,
+не установленный сервер. Замените его настоящим именем согласованно в ключе
+`parsers`, правиле `selection` и обоих native matcher. Существующий `records-json`
+с `structuredContent` остаётся отдельным объявленным форматом.
+
+| Поле нового профиля | Договор |
+|---|---|
+| `parser`, `format` | Ровно `mcp` и `mcp-content-json` |
+| `content_index` | Явное целое от 0; boolean не подходит. Используется только этот элемент `content`, без поиска другого блока |
+| `version_path` | Непустой список непустых строковых ключей от корня JSON, декодированного из выбранного text |
+| `expected_version` | Явное целое от 0; версия входа должна быть целой и точно равной ему. Boolean, строка или другое целое значение не подходят |
+| `items_path` | Непустой список непустых строковых ключей от корня декодированного JSON к списку элементов |
+| `name_path` | Такой же путь от каждого элемента к строковому имени; пустое имя допускается |
+| `brief_template` | Непустая строка, только простое `{count}` либо постоянный текст |
+| `expanded_template` | Непустая строка, простые `{brief}` и `{names}` либо постоянный текст |
+| `error_brief_template` | Обязательная непустая строка, только простое `{error}` либо постоянный текст |
+| `error_expanded_template` | Обязательная непустая строка, простые `{brief}` и `{error}` либо постоянный текст |
+| `brief`, `expanded`, `overflow` | Прежние положительные `chars`/`bytes` и ровно `reject`; оба лимита каждой формы действуют вместе |
+
+Все пути проходят только объекты по буквальным ключам: это не индексы массива,
+выражения или `eval`. Путь, состоящий из одной строки вместо списка, пустой путь
+или пустой ключ отклоняется. Подстановки шаблона не поддерживают attribute/index
+traversal, conversion, format-spec или другие имена. Известные обязательные опции
+проверяются до I/O; неизвестные исходные опции сохраняются и игнорируются. Новые
+поля не становятся обязательными для старых форматов.
+
+Целый MCP envelope содержит `content` — список и `isError` — boolean. Выбранный
+блок является объектом с `type="text"` и строковым `text`. При `isError=false`
+этот text декодируется как JSON-объект; `NaN` и `Infinity` не принимаются как JSON.
+Версия проверяется по типу и значению, `items_path` выбирает список, `name_path` —
+строку каждого элемента. `count` равен длине списка, `names` сохраняет порядок
+через запятую. Пустой список даёт 0 и пустую строку имён. Отсутствующее поле,
+настоящий null и значение неверного типа не подменяются друг другом.
+
+При `isError=true` выбранный text является настоящим сообщением ошибки и
+передаётся в error-шаблоны без требования version/projects JSON. Пустой text
+допустим: с примерными шаблонами подробная форма равна `MCP: error` и переводу
+строки, без выдуманного сообщения. `isError=true` и MCP `exit_code=null` остаются
+в исходном результате; ошибка не превращается в успешный список или Bash exit 0.
+
+Ни декодированный body, ни вычисленные count/names не записываются как
+синтетический `structuredContent`. Полный исходный envelope, неизвестные значения
+и невыбранные блоки сохраняются для full/machine потребителя. Подробная форма
+содержит только выбранные шаблонами сведения; полный файл читают обычными
+диапазонами строк. Это тот же session/run/last механизм, без нового хранилища.
+
+### Нормальный ответ MCP
+
+Следующий обезличенный вход соответствует полному профилю из session-примера:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"schemaVersion\":2,\"projects\":[{\"projectId\":\"project-a\",\"label\":\"Alpha\"},{\"projectId\":\"project-b\",\"label\":\"Бета\"}],\"unselected\":{\"marker\":\"FULL_ONLY_EXAMPLE\",\"zero\":0,\"flag\":false,\"nullable\":null}}"
+    },
+    {
+      "type": "image",
+      "data": "opaque-unselected-example",
+      "mimeType": "image/example"
+    }
+  ],
+  "isError": false,
+  "transport_extra": {
+    "marker": "FULL_ONLY_EXAMPLE",
+    "keep": [
+      0,
+      false,
+      null
+    ]
+  }
+}
+```
+
+Краткая форма:
+
+```text
+MCP: 2 projects
+```
+
+Подробная форма:
+
+```text
+MCP: 2 projects
+Projects: Alpha,Бета
+```
+
+Маркер `FULL_ONLY_EXAMPLE`, дополнительные значения и image-блок остаются в полном
+ответе, хотя они не выбраны для этих форм. Пример не проверяет доступность
+реального MCP-сервера или доставку через hooks конкретного хоста.
+
+### Ошибка MCP
+
+Ошибка передаётся тем же профилем с настоящим текстовым сообщением:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "permission denied"
+    }
+  ],
+  "isError": true,
+  "transport_extra": {
+    "marker": "FULL_ONLY_EXAMPLE",
+    "keep": [
+      0,
+      false,
+      null
+    ]
+  }
+}
+```
+
+Краткая форма:
+
+```text
+MCP: error
+```
+
+Подробная форма:
+
+```text
+MCP: error
+permission denied
+```
+
+Неверные известные настройки дают `invalid_policy` / `policy` / `correct:policy`: исправьте
+объявленный профиль. Некорректные JSON, selected block, `isError`, path/type/version
+дают `parser_failed` / `source` / `inspect:source`; сначала сравните полный реальный
+вход с объявленной структурой. Например, целая версия 7 при `expected_version=2`
+отклоняется, даже если остальная структура верна. Неподходящий целый envelope может
+раньше дать `unmapped_input` / `tool_response` / `configure:input`. Другой text-блок
+или парсер после ошибки не выбирается.
+
+Если краткий или подробный текст не помещается в свои chars/UTF-8 bytes, отказ —
+`budget_too_small` / `brief` либо `expanded` / `increase:budget`. Пересмотрите
+явный бюджет или выбор значимых сведений. Ошибка подготовки не публикует готовые
+формы и не заменяет last предыдущего успешного запуска. Исправленный новый вызов
+не получает старый успех под новым идентификатором; инструмент не запускают
+повторно лишь для получения его вывода.
 
 ## Чтение последнего результата
 

@@ -169,5 +169,27 @@
         null
       ]
     }
+  },
+  "version-value": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"schemaVersion\":7,\"projects\":[{\"projectId\":\"project-a\",\"label\":\"Alpha\",\"path\":\"/example/alpha\",\"hostId\":\"fixture\",\"isGitRepository\":true},{\"projectId\":\"project-b\",\"label\":\"Бета\",\"path\":\"/example/beta\",\"hostId\":\"fixture\",\"isGitRepository\":false}],\"unselected\":{\"zero\":0,\"flag\":false,\"nullable\":null,\"marker\":\"FULL_ONLY_F08\"}}"
+      },
+      {
+        "type": "image",
+        "data": "opaque-unused-content",
+        "mimeType": "image/example"
+      }
+    ],
+    "isError": false,
+    "transport_extra": {
+      "marker": "FULL_ONLY_F08",
+      "keep": [
+        0,
+        false,
+        null
+      ]
+    }
   }
 }

@@ -113,7 +113,7 @@ def test_mcp_content_forms(tmp_path, case):
 
 
 @pytest.mark.parametrize('case', [
-    'invalid-json', 'missing-version', 'version-type', 'items-type',
+    'invalid-json', 'missing-version', 'version-type', 'version-value', 'items-type',
     'name-type', 'selected-nontext', 'absent-selected-block', 'error-flag-type',
 ])
 def test_mcp_content_invalid_source(tmp_path, case):

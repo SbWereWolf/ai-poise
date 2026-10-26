@@ -42,7 +42,7 @@ def attempt_packet(value, config):
     fields = {'begin': {'context_id', 'candidate_id', 'source', 'method_ids'},
               'run': {'run_id'}, 'recover': {'run_id'},
               'finish': {'evidence_work'}, 'abandon': {'reason'}}
-    if action not in fields:
+    if not isinstance(action, str) or action not in fields:
         raise RecordsError('Attempt action: select begin, run, recover, finish or abandon')
     _common(value, config, fields[action] | {'attempt_id'}, 'Attempt')
     _text(value['attempt_id'], 'Attempt attempt_id')
@@ -70,7 +70,7 @@ def reuse_packet(value, config):
         'verify': {'attempt_id'},
         'accept': {'outcome_id', 'reason', 'result_commit'},
     }
-    if action not in fields:
+    if not isinstance(action, str) or action not in fields:
         raise RecordsError('Reuse action: select prepare, verify or accept')
     _common(value, config, fields[action] | {'reuse_id', 'admission'}, 'Reuse')
     _text(value['reuse_id'], 'Reuse reuse_id')
@@ -78,6 +78,9 @@ def reuse_packet(value, config):
         _text(value[key], 'Reuse ' + key)
     _exact(value['admission'], {'claimant', 'family', 'eligibility'}, 'Reuse admission')
     _text(value['admission']['claimant'], 'Reuse claimant')
+    for key in ('family', 'eligibility'):
+        if not isinstance(value['admission'][key], dict):
+            raise RecordsError('Reuse admission.' + key + ' requires a public fact object')
     if action == 'prepare':
         _task(value['source_task_id'], config)
         _source(value['source'])

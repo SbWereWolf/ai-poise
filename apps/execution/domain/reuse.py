@@ -14,6 +14,8 @@ class ReusePolicy:
         family, eligibility = admission['family'], admission['eligibility']
         if not isinstance(family, dict) or not isinstance(family.get('members'), list):
             raise RecordsError('Reuse requires an explicit public duplicate family')
+        if not isinstance(eligibility, dict):
+            raise RecordsError('Reuse requires an explicit public eligibility fact object')
         members = {m['task']['task_id']: m['task'] for m in family['members']}
         source = members.get(source_fact['task_id'])
         target = members.get(task_id)
@@ -21,6 +23,14 @@ class ReusePolicy:
             raise RecordsError('Reuse source and target must be distinct members of the same family')
         if source['state'] != 'completed' or source_fact['kind'] != 'positive' or not source_fact['result_commit']:
             raise RecordsError('Reuse requires a completed positive source with an accepted result commit')
+        terminal = source.get('terminal')
+        reference = terminal.get('source_ref') if isinstance(terminal, dict) else None
+        if (not isinstance(reference, dict) or reference.get('owner') != 'execution'
+                or reference.get('id') != source_fact['outcome_id']
+                or terminal.get('task_id') != source_fact['task_id']
+                or terminal.get('kind') != 'completed'
+                or terminal.get('result_commit') != source_fact['result_commit']):
+            raise RecordsError('Select the accepted source outcome named by the public completed terminal')
         if eligibility.get('task_id') != task_id or eligibility.get('eligible') is not True:
             raise RecordsError('Reuse target is not eligible under supplied public admission')
         if target['state'] not in ('available', 'claimed'):

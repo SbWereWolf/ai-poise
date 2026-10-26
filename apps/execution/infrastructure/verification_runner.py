@@ -1,10 +1,12 @@
 """Local committed-source observation and one actual retained process capture."""
 import json
 import os
+from contextlib import ExitStack
 from pathlib import Path
 import subprocess
 
 from apps.execution.domain.records import RecordsError
+from apps.execution.domain.verification import KnownLaunchFailure
 
 
 class VerificationRunner:
@@ -49,13 +51,20 @@ class VerificationRunner:
     def run(self, data, run, method, subject_rules):
         attempt = data['value']
         directory = self.directory(run)
-        directory.mkdir(parents=True, exist_ok=True)
-        cwd = (self.root / method['cwd']).resolve()
-        before = self.source()
-        environment = {**os.environ, **method['environment'], 'POISE_RUN_OUTPUT_DIR': str(directory)}
-        with (directory / 'stdout.bin').open('wb') as out, (directory / 'stderr.bin').open('wb') as err:
-            child = subprocess.Popen(method['argv'], cwd=cwd, env=environment,
-                                     stdout=out, stderr=err, start_new_session=True)
+        with ExitStack() as streams:
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+                cwd = (self.root / method['cwd']).resolve()
+                before = self.source()
+                environment = {**os.environ, **method['environment'], 'POISE_RUN_OUTPUT_DIR': str(directory)}
+                out = streams.enter_context((directory / 'stdout.bin').open('wb'))
+                err = streams.enter_context((directory / 'stderr.bin').open('wb'))
+                child = subprocess.Popen(method['argv'], cwd=cwd, env=environment,
+                                         stdout=out, stderr=err, start_new_session=True)
+            except (OSError, RecordsError) as exc:
+                raise KnownLaunchFailure(str(exc)) from exc
+            # Once Popen returns, the command may have effects. Later failures
+            # retain the committed start and never restore launch permission.
             child.communicate()
         try:
             os.killpg(child.pid, 0)

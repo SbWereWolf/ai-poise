@@ -8,6 +8,10 @@ from apps.execution.domain.records import RecordsError
 ATTEMPT_KIND = 'verification_attempt'
 
 
+class KnownLaunchFailure(RecordsError):
+    """The process owner established that the declared command never started."""
+
+
 class VerificationPolicy:
     @staticmethod
     def require_actor(data, actor_id):

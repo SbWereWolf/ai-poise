@@ -87,6 +87,25 @@ def test_latest_partial_cannot_return_older_complete_full_path(project, tmp_path
     ('unknown-wire', 'rejected', 'unmapped_input')])
 def test_native_missing_pending_and_unknown_are_not_complete(project, tmp_path, case, status, code):
     scene = SessionScenario(project, tmp_path)
+    # A real ready predecessor makes replacing last on pending observable.
+    if case == 'pending':
+        previous, _ = scene.stored(scene.input(key='ready-before-native-unavailable'))
+        previous_id, previous_full, previous_expanded, last = scene.run_identity(previous)
+        ready_root = previous_full.parent.parent
+        full_name = scene.policy['session']['full']
+        expanded_name = scene.policy['session']['expanded']
+
+    def ready_publications():
+        # Observe published pairs only, not private pending/staging bookkeeping.
+        return {str(folder): ((folder / full_name).read_bytes(),
+                              (folder / expanded_name).read_bytes())
+                for folder in ready_root.iterdir()
+                if folder.is_dir() and not folder.name.startswith('.')
+                and (folder / full_name).is_file() and (folder / expanded_name).is_file()}
+
+    if case == 'pending':
+        ready_before, last_before = ready_publications(), last.read_bytes()
+        assert str(previous_full.parent) in ready_before
     response = literal('session-native-source-cases.json')['healthy']
     if case == 'pending':
         response = {'session_id': 43, 'output': 'still running'}
@@ -100,10 +119,31 @@ def test_native_missing_pending_and_unknown_are_not_complete(project, tmp_path, 
         assert exit_code == 2 and value['error']['code'] == code, 'F08_NATIVE_SOURCE_GUARD_MISSING'
     else:
         assert exit_code == 0 and value['capture']['state'] == 'unknown'
+        assert last.read_bytes() == last_before, 'F08_PENDING_REPLACED_READY_LAST'
+        assert ready_publications() == ready_before, 'F08_PENDING_PUBLISHED_READY_RUN'
+        assert scene.service('full')['run_id'] == previous_id
+        assert scene.service('expanded')['run_id'] == previous_id
         terminal = literal('session-native-source-cases.json')['healthy']
-        terminal_code, completed = scene.direct(scene.native(terminal), audience='machine')
+        callback = scene.native(terminal, key=request['event']['tool_use_id'])
+        assert callback['event']['session_id'] == request['event']['session_id']
+        assert callback['event']['tool_use_id'] == request['event']['tool_use_id']
+        terminal_code, completed = scene.direct(callback, audience='machine')
         assert terminal_code == 0 and completed['capture']['state'] == 'complete'
-        assert completed['run_id']
+        assert completed['response'] == terminal, 'F08_PENDING_TERMINAL_ORIGINAL_CHANGED'
+        completed_id, full, expanded, completed_last = scene.run_identity(completed)
+        assert completed_id != previous_id and completed_last == last
+        assert json.loads(full.read_bytes()) == terminal
+        ready_after = ready_publications()
+        assert set(ready_after) - set(ready_before) == {str(full.parent)}, (
+            'F08_PENDING_TERMINAL_READY_PUBLICATION_COUNT', ready_after.keys())
+        assert {key: ready_after[key] for key in ready_before} == ready_before
+        assert scene.service('full')['run_id'] == completed_id
+        print(json.dumps({'boundary': 'pending-terminal-ready-publication',
+                          'session': callback['event']['session_id'],
+                          'tool_use_id': callback['event']['tool_use_id'],
+                          'previous_run_id': previous_id, 'terminal_run_id': completed_id,
+                          'ready_before': list(ready_before), 'ready_after': list(ready_after),
+                          'full_path': str(full), 'expanded_path': str(expanded)}))
     if case != 'pending':
         assert scene.snapshot() == before
 

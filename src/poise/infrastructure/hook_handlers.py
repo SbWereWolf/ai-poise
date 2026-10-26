@@ -121,22 +121,31 @@ class BuiltinHandlers:
             response.update(output)
         elif name == 'tool-result':
             from ..composition import tool_result_tools
-            from ..modules.result_views.tool_results import ToolResultPolicy
+            from ..modules.result_views.tool_results import ToolResultPolicy, ToolResultFailure, encoded
             from .tool_results import service_delivery
             policy = ToolResultPolicy.parse(strict_json(resources[options['policy_path']])).data
             caller = CallerIdentity.harness('native', self.binding['external_session'])
             owner = tool_result_tools(None, policy, {}, caller=caller, resources=resources)
-            text = service_delivery(event, owner, options['policy_path'], self.service.settings)
-            if text is None:
-                result = owner.execute({'schema': 'poise-tool-result-request-1', 'operation': 'hook',
-                    'request_id': event['tool_use_id'], 'event': event,
-                    'streams': {'stdout': None, 'stderr': None},
-                    'capture': {'state': 'unknown', 'reason': 'native source not yet classified'},
-                    'exit_code': None}, 'agent')
-                if result['status'] == 'pending':
-                    return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
-                            'response': response, 'control': {'action': 'continue', 'reason': None}}, execution
-                text = result['preview']
+            try:
+                text = service_delivery(event, owner, options['policy_path'], self.service.settings)
+                if text is None:
+                    result = owner.execute({'schema': 'poise-tool-result-request-1', 'operation': 'hook',
+                        'request_id': event['tool_use_id'], 'event': event,
+                        'streams': {'stdout': None, 'stderr': None},
+                        'capture': {'state': 'unknown', 'reason': 'native source not yet classified'},
+                        'exit_code': None}, 'agent')
+                    if result['status'] == 'pending':
+                        return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
+                                'response': response, 'control': {'action': 'continue', 'reason': None}}, execution
+                    text = result['preview']
+            except ToolResultFailure as error:
+                native = event.get('tool_response')
+                code = native.get('exit_code') if isinstance(native, dict) else None
+                code = code if type(code) is int else None
+                response = append_context(response, event['hook_event_name'], encoded(error.result(code)))
+                response['continue'] = False
+                return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
+                        'response': response, 'control': {'action': 'stop', 'reason': str(error)}}, execution
             response = append_context(response, event['hook_event_name'], text)
             response['continue'] = False
         elif name == 'lifecycle-consumer':

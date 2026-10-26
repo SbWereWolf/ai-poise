@@ -243,8 +243,12 @@ def native_snapshot(event, policy):
         if type(response.get('exit_code')) is not int:
             reject('unmapped_input', 'exit_code', 'configure:input')
         exit_code = response['exit_code']
-        if response['output'].startswith('Warning: truncated output'):
+        output = response['output']
+        if (re.match(r'Warning: truncated output \(original token count: \d+\)', output)
+                or re.search(r'…\d+ tokens truncated…', output)):
             capture = {'state': 'partial', 'reason': 'native_output_truncated'}
+        elif 'tokens truncated' in output or output.startswith('Warning: truncated output'):
+            capture = {'state': 'unknown', 'reason': 'native_output_ambiguous'}
     elif parser['format'] == 'records-json':
         if not isinstance(response, dict) or not isinstance(response.get('content'), list):
             reject('unmapped_input', 'tool_response', 'configure:input')
@@ -270,8 +274,8 @@ def prepare_views(record, sources, policy):
             actual = []
             for channel in ('stdout', 'stderr'):
                 if sources[channel] is not None:
-                    actual.extend(sources[channel].lines())
-            lines = ''.join(actual).splitlines() if actual else raw['output'].splitlines()
+                    actual.extend(''.join(sources[channel].lines()).splitlines())
+            lines = actual if actual else raw['output'].splitlines()
             summaries = [line[len(parser['summary_prefix']):] for line in lines
                          if line.startswith(parser['summary_prefix'])]
             details = '\n'.join(line for line in lines if line.startswith(parser['detail_prefix']))

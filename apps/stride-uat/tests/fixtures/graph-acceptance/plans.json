@@ -1,0 +1,1077 @@
+{
+  "full": {
+    "schema": "execution-graph-case-plan/v1",
+    "execution_config": {
+      "schema": "stride-execution-config/v1",
+      "paths": {
+        "state": "state",
+        "database": "execution.sqlite",
+        "lock": "execution.lock"
+      },
+      "batch": {
+        "max_input_bytes": 1048576,
+        "max_items": 128
+      },
+      "read": {
+        "max_queries": 128
+      },
+      "lock": {
+        "seconds": 2,
+        "poll_seconds": 0.05
+      },
+      "identifiers": {
+        "task": {
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "process": {
+        "database": "process-editor.sqlite",
+        "lock": "process-editor.lock",
+        "workflows": {
+          "casework": "processes/casework.json"
+        },
+        "templates": {
+          "chosen": {
+            "path": "templates/chosen.json"
+          }
+        },
+        "max_changes": 32,
+        "file_mode": 420,
+        "json_indent": 2
+      },
+      "gates": {
+        "roots": {
+          "runtime": "files/runtime",
+          "task": "files/task",
+          "sprint": "files/sprint"
+        }
+      },
+      "lifecycle": {
+        "actors": {
+          "observer-A": "tester",
+          "observer-B": "tester"
+        },
+        "policies": {
+          "case-policy": {
+            "approving_roles": [
+              "tester"
+            ],
+            "revision_fields": []
+          }
+        }
+      },
+      "verification": {
+        "roles": [
+          "tester"
+        ],
+        "max_attempts": 4,
+        "repository": "@REPOSITORY@",
+        "base_ref": "case-base",
+        "output_root": "@ATTEMPTS@"
+      }
+    },
+    "instance_directory": "subject",
+    "observation_file": "calls.jsonl",
+    "template_id": "chosen",
+    "baseline": {
+      "goal_type": "casework",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [],
+        "sections": [
+          "report"
+        ]
+      },
+      "route": {
+        "entry": "collect-note"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "stages": [
+        {
+          "id": "seal-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": null
+          },
+          "rework_targets": [
+            "seal-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "collect-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "collect-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "op": "put_stage",
+        "value": {
+          "id": "inspect-fragment",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "inspect-fragment"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      },
+      {
+        "op": "patch_stage",
+        "id": "collect-note",
+        "set": {
+          "transitions": {
+            "complete": "inspect-fragment"
+          }
+        }
+      }
+    ],
+    "contracts": {
+      "2042": {
+        "task_id": "2042",
+        "requirements_snapshot_revision": 1,
+        "process_ref": {
+          "goal_type": "casework",
+          "revision": "@SELECTED_PROCESS@"
+        },
+        "admission_id": "case-admission-2042",
+        "workspace_id": null,
+        "stage_expectations": [
+          {
+            "stage_id": "seal-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "collect-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          }
+        ],
+        "restart_policy_id": "case-policy",
+        "methods": [],
+        "evidence_plan": {
+          "seal-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "collect-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          }
+        }
+      }
+    },
+    "snapshots": {
+      "2042": {
+        "task_id": "2042",
+        "snapshot_revision": 1,
+        "statement_revision": 1,
+        "statement": {
+          "task_id": "2042",
+          "statement_revision": 1,
+          "goal": "Проверить выбранный граф."
+        }
+      }
+    },
+    "actor_id": "observer-A",
+    "expected_routes": {
+      "2042": [
+        "collect-note",
+        "seal-note"
+      ]
+    },
+    "expected_verdict": "PASS",
+    "expected_rejection_token": null
+  },
+  "template": {
+    "schema": "execution-graph-case-plan/v1",
+    "execution_config": {
+      "schema": "stride-execution-config/v1",
+      "paths": {
+        "state": "state",
+        "database": "execution.sqlite",
+        "lock": "execution.lock"
+      },
+      "batch": {
+        "max_input_bytes": 1048576,
+        "max_items": 128
+      },
+      "read": {
+        "max_queries": 128
+      },
+      "lock": {
+        "seconds": 2,
+        "poll_seconds": 0.05
+      },
+      "identifiers": {
+        "task": {
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "process": {
+        "database": "process-editor.sqlite",
+        "lock": "process-editor.lock",
+        "workflows": {
+          "casework": "processes/casework.json"
+        },
+        "templates": {
+          "chosen": {
+            "path": "templates/chosen.json"
+          }
+        },
+        "max_changes": 32,
+        "file_mode": 420,
+        "json_indent": 2
+      },
+      "gates": {
+        "roots": {
+          "runtime": "files/runtime",
+          "task": "files/task",
+          "sprint": "files/sprint"
+        }
+      },
+      "lifecycle": {
+        "actors": {
+          "observer-A": "tester",
+          "observer-B": "tester"
+        },
+        "policies": {
+          "case-policy": {
+            "approving_roles": [
+              "tester"
+            ],
+            "revision_fields": []
+          }
+        }
+      },
+      "verification": {
+        "roles": [
+          "tester"
+        ],
+        "max_attempts": 4,
+        "repository": "@REPOSITORY@",
+        "base_ref": "case-base",
+        "output_root": "@ATTEMPTS@"
+      }
+    },
+    "instance_directory": "subject",
+    "observation_file": "calls.jsonl",
+    "template_id": "chosen",
+    "baseline": {
+      "goal_type": "casework",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [],
+        "sections": [
+          "report"
+        ]
+      },
+      "route": {
+        "entry": "collect-note"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "stages": [
+        {
+          "id": "seal-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": null
+          },
+          "rework_targets": [
+            "seal-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "collect-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "collect-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "op": "put_stage",
+        "value": {
+          "id": "inspect-fragment",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "inspect-fragment"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      },
+      {
+        "op": "patch_stage",
+        "id": "collect-note",
+        "set": {
+          "transitions": {
+            "complete": "inspect-fragment"
+          }
+        }
+      }
+    ],
+    "contracts": {
+      "2042": {
+        "task_id": "2042",
+        "requirements_snapshot_revision": 1,
+        "process_ref": {
+          "goal_type": "casework",
+          "revision": "@SELECTED_PROCESS@"
+        },
+        "admission_id": "case-admission-2042",
+        "workspace_id": null,
+        "stage_expectations": [
+          {
+            "stage_id": "publish-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "capture-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "check-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          }
+        ],
+        "restart_policy_id": "case-policy",
+        "methods": [],
+        "evidence_plan": {
+          "publish-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "capture-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "check-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          }
+        }
+      }
+    },
+    "snapshots": {
+      "2042": {
+        "task_id": "2042",
+        "snapshot_revision": 1,
+        "statement_revision": 1,
+        "statement": {
+          "task_id": "2042",
+          "statement_revision": 1,
+          "goal": "Проверить выбранный граф."
+        }
+      }
+    },
+    "actor_id": "observer-A",
+    "expected_routes": {
+      "2042": [
+        "capture-note",
+        "check-note",
+        "publish-note"
+      ]
+    },
+    "expected_verdict": "PASS",
+    "expected_rejection_token": null
+  },
+  "edited": {
+    "schema": "execution-graph-case-plan/v1",
+    "execution_config": {
+      "schema": "stride-execution-config/v1",
+      "paths": {
+        "state": "state",
+        "database": "execution.sqlite",
+        "lock": "execution.lock"
+      },
+      "batch": {
+        "max_input_bytes": 1048576,
+        "max_items": 128
+      },
+      "read": {
+        "max_queries": 128
+      },
+      "lock": {
+        "seconds": 2,
+        "poll_seconds": 0.05
+      },
+      "identifiers": {
+        "task": {
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "process": {
+        "database": "process-editor.sqlite",
+        "lock": "process-editor.lock",
+        "workflows": {
+          "casework": "processes/casework.json"
+        },
+        "templates": {
+          "chosen": {
+            "path": "templates/chosen.json"
+          }
+        },
+        "max_changes": 32,
+        "file_mode": 420,
+        "json_indent": 2
+      },
+      "gates": {
+        "roots": {
+          "runtime": "files/runtime",
+          "task": "files/task",
+          "sprint": "files/sprint"
+        }
+      },
+      "lifecycle": {
+        "actors": {
+          "observer-A": "tester",
+          "observer-B": "tester"
+        },
+        "policies": {
+          "case-policy": {
+            "approving_roles": [
+              "tester"
+            ],
+            "revision_fields": []
+          }
+        }
+      },
+      "verification": {
+        "roles": [
+          "tester"
+        ],
+        "max_attempts": 4,
+        "repository": "@REPOSITORY@",
+        "base_ref": "case-base",
+        "output_root": "@ATTEMPTS@"
+      }
+    },
+    "instance_directory": "subject",
+    "observation_file": "calls.jsonl",
+    "template_id": "chosen",
+    "baseline": {
+      "goal_type": "casework",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [],
+        "sections": [
+          "report"
+        ]
+      },
+      "route": {
+        "entry": "collect-note"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "stages": [
+        {
+          "id": "seal-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": null
+          },
+          "rework_targets": [
+            "seal-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "collect-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "collect-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "op": "put_stage",
+        "value": {
+          "id": "inspect-fragment",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "inspect-fragment"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      },
+      {
+        "op": "patch_stage",
+        "id": "collect-note",
+        "set": {
+          "transitions": {
+            "complete": "inspect-fragment"
+          }
+        }
+      }
+    ],
+    "contracts": {
+      "2042": {
+        "task_id": "2042",
+        "requirements_snapshot_revision": 1,
+        "process_ref": {
+          "goal_type": "casework",
+          "revision": "@SELECTED_PROCESS@"
+        },
+        "admission_id": "case-admission-2042",
+        "workspace_id": null,
+        "stage_expectations": [
+          {
+            "stage_id": "seal-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "collect-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          }
+        ],
+        "restart_policy_id": "case-policy",
+        "methods": [],
+        "evidence_plan": {
+          "seal-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "collect-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          }
+        }
+      },
+      "2043": {
+        "task_id": "2043",
+        "requirements_snapshot_revision": 1,
+        "process_ref": {
+          "goal_type": "casework",
+          "revision": "@SELECTED_PROCESS@"
+        },
+        "admission_id": "case-admission-2043",
+        "workspace_id": null,
+        "stage_expectations": [
+          {
+            "stage_id": "seal-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "inspect-fragment",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "collect-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          }
+        ],
+        "restart_policy_id": "case-policy",
+        "methods": [],
+        "evidence_plan": {
+          "seal-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "inspect-fragment": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "collect-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          }
+        }
+      }
+    },
+    "snapshots": {
+      "2042": {
+        "task_id": "2042",
+        "snapshot_revision": 1,
+        "statement_revision": 1,
+        "statement": {
+          "task_id": "2042",
+          "statement_revision": 1,
+          "goal": "Проверить выбранный граф."
+        }
+      },
+      "2043": {
+        "task_id": "2043",
+        "snapshot_revision": 1,
+        "statement_revision": 1,
+        "statement": {
+          "task_id": "2043",
+          "statement_revision": 1,
+          "goal": "Проверить выбранный граф."
+        }
+      }
+    },
+    "actor_id": "observer-A",
+    "expected_routes": {
+      "2042": [
+        "collect-note",
+        "seal-note"
+      ],
+      "2043": [
+        "collect-note",
+        "inspect-fragment",
+        "seal-note"
+      ]
+    },
+    "expected_verdict": "PASS",
+    "expected_rejection_token": null
+  },
+  "invalid": {
+    "schema": "execution-graph-case-plan/v1",
+    "execution_config": {
+      "schema": "stride-execution-config/v1",
+      "paths": {
+        "state": "state",
+        "database": "execution.sqlite",
+        "lock": "execution.lock"
+      },
+      "batch": {
+        "max_input_bytes": 1048576,
+        "max_items": 128
+      },
+      "read": {
+        "max_queries": 128
+      },
+      "lock": {
+        "seconds": 2,
+        "poll_seconds": 0.05
+      },
+      "identifiers": {
+        "task": {
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "process": {
+        "database": "process-editor.sqlite",
+        "lock": "process-editor.lock",
+        "workflows": {
+          "casework": "processes/casework.json"
+        },
+        "templates": {
+          "chosen": {
+            "path": "templates/chosen.json"
+          }
+        },
+        "max_changes": 32,
+        "file_mode": 420,
+        "json_indent": 2
+      },
+      "gates": {
+        "roots": {
+          "runtime": "files/runtime",
+          "task": "files/task",
+          "sprint": "files/sprint"
+        }
+      },
+      "lifecycle": {
+        "actors": {
+          "observer-A": "tester",
+          "observer-B": "tester"
+        },
+        "policies": {
+          "case-policy": {
+            "approving_roles": [
+              "tester"
+            ],
+            "revision_fields": []
+          }
+        }
+      },
+      "verification": {
+        "roles": [
+          "tester"
+        ],
+        "max_attempts": 4,
+        "repository": "@REPOSITORY@",
+        "base_ref": "case-base",
+        "output_root": "@ATTEMPTS@"
+      }
+    },
+    "instance_directory": "subject",
+    "observation_file": "calls.jsonl",
+    "template_id": "chosen",
+    "baseline": {
+      "goal_type": "casework",
+      "worktree_required": false,
+      "benefit": {
+        "git_categories": [],
+        "sections": [
+          "report"
+        ]
+      },
+      "route": {
+        "entry": "collect-note"
+      },
+      "content_contract": {
+        "sections": [],
+        "routes": [],
+        "requirements": []
+      },
+      "stages": [
+        {
+          "id": "seal-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": null
+          },
+          "rework_targets": [
+            "seal-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        },
+        {
+          "id": "collect-note",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "collect-note"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "op": "put_stage",
+        "value": {
+          "id": "inspect-fragment",
+          "instruction": "Записать наблюдение выбранного этапа.",
+          "read_only": true,
+          "allowed_paths": [],
+          "normalization": "exact",
+          "sections": {
+            "report": "Наблюдение выполнено."
+          },
+          "required_sections": [
+            "report"
+          ],
+          "artifact_requirements": [],
+          "handler": "observe",
+          "role": "tester",
+          "transitions": {
+            "complete": "seal-note"
+          },
+          "rework_targets": [
+            "inspect-fragment"
+          ],
+          "purpose": "observation",
+          "criteria_authority": {
+            "propose": [],
+            "decide": []
+          }
+        }
+      },
+      {
+        "op": "patch_stage",
+        "id": "collect-note",
+        "set": {
+          "transitions": {
+            "complete": "inspect-fragment"
+          }
+        }
+      }
+    ],
+    "contracts": {
+      "2042": {
+        "task_id": "2042",
+        "requirements_snapshot_revision": 1,
+        "process_ref": {
+          "goal_type": "casework",
+          "revision": "@SELECTED_PROCESS@"
+        },
+        "admission_id": "case-admission-2042",
+        "workspace_id": null,
+        "stage_expectations": [
+          {
+            "stage_id": "seal-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          },
+          {
+            "stage_id": "collect-note",
+            "values": [],
+            "files": [],
+            "methods": []
+          }
+        ],
+        "restart_policy_id": "case-policy",
+        "methods": [],
+        "evidence_plan": {
+          "seal-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          },
+          "collect-note": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": []
+          }
+        }
+      }
+    },
+    "snapshots": {
+      "2042": {
+        "task_id": "2042",
+        "snapshot_revision": 1,
+        "statement_revision": 1,
+        "statement": {
+          "task_id": "2042",
+          "statement_revision": 1,
+          "goal": "Проверить выбранный граф."
+        }
+      }
+    },
+    "actor_id": "observer-A",
+    "expected_routes": {},
+    "expected_verdict": "FAIL",
+    "expected_rejection_token": "absent-phase"
+  }
+}

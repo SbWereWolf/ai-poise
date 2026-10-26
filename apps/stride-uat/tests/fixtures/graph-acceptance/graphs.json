@@ -1,0 +1,352 @@
+{
+  "full": {
+    "goal_type": "casework",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [],
+      "sections": [
+        "report"
+      ]
+    },
+    "route": {
+      "entry": "collect-note"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "seal-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "seal-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "collect-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": "seal-note"
+        },
+        "rework_targets": [
+          "collect-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "template": {
+    "goal_type": "casework",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [],
+      "sections": [
+        "report"
+      ]
+    },
+    "route": {
+      "entry": "capture-note"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "publish-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "publish-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "capture-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": "check-note"
+        },
+        "rework_targets": [
+          "capture-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "check-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": "publish-note"
+        },
+        "rework_targets": [
+          "check-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "edited": {
+    "goal_type": "casework",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [],
+      "sections": [
+        "report"
+      ]
+    },
+    "route": {
+      "entry": "collect-note"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "seal-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "seal-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "collect-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": "inspect-fragment"
+        },
+        "rework_targets": [
+          "collect-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "inspect-fragment",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": "seal-note"
+        },
+        "rework_targets": [
+          "inspect-fragment"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  },
+  "invalid": {
+    "goal_type": "casework",
+    "worktree_required": false,
+    "benefit": {
+      "git_categories": [],
+      "sections": [
+        "report"
+      ]
+    },
+    "route": {
+      "entry": "collect-note"
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    },
+    "stages": [
+      {
+        "id": "seal-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "seal-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      },
+      {
+        "id": "collect-note",
+        "instruction": "Записать наблюдение выбранного этапа.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "exact",
+        "sections": {
+          "report": "Наблюдение выполнено."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "observe",
+        "role": "tester",
+        "transitions": {
+          "complete": "absent-phase"
+        },
+        "rework_targets": [
+          "collect-note"
+        ],
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        }
+      }
+    ]
+  }
+}

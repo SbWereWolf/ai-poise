@@ -1,0 +1,121 @@
+{
+  "schema": "stride-uat-config/v1",
+  "state_root": "@STATE@",
+  "workspace_root": "@WORKSPACE@",
+  "input_roots": "@INPUT_ROOTS@",
+  "limits": {
+    "packet_bytes": 1048576,
+    "program_bytes": 67108864,
+    "steps": 32,
+    "id_bytes": 128,
+    "argv_items": 32,
+    "argument_bytes": 8192,
+    "result_bytes": 4194304,
+    "stdout_bytes": 65536,
+    "stderr_bytes": 65536,
+    "step_timeout_seconds": 120,
+    "lock_timeout_seconds": 2,
+    "total_timeout_seconds": 240
+  },
+  "profiles": {
+    "local": {
+      "os_ids": [
+        "@OS_ID@"
+      ],
+      "os_versions": [
+        "@OS_VERSION@"
+      ],
+      "python_versions": [
+        [
+          3,
+          13
+        ]
+      ],
+      "allow_root": true,
+      "isolation_id": "own-identity",
+      "environment": {
+        "PATH": "@PATH@",
+        "LANG": "C.UTF-8",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      }
+    }
+  },
+  "commands": {
+    "case": {
+      "application_id": "execution-case",
+      "argv": [
+        "@PYTHON@",
+        "-B",
+        "@ADAPTER@"
+      ],
+      "source_inputs": [
+        "adapter",
+        "plan",
+        "python",
+        "launcher",
+        "git"
+      ]
+    }
+  },
+  "applications": {
+    "execution-case": {
+      "public_argv": "@PUBLIC_ARGV@",
+      "delivery_inputs": [
+        "execution",
+        "python",
+        "git",
+        "forwarder"
+      ]
+    }
+  },
+  "inputs": {
+    "adapter": {
+      "kind": "file",
+      "path": "@ADAPTER@"
+    },
+    "plan": {
+      "kind": "file",
+      "path": "@PLAN@"
+    },
+    "python": {
+      "kind": "file",
+      "path": "@PYTHON@"
+    },
+    "launcher": {
+      "kind": "file",
+      "path": "/usr/bin/setpriv"
+    },
+    "git": {
+      "kind": "file",
+      "path": "/usr/bin/git"
+    },
+    "execution": {
+      "kind": "delivery",
+      "path": "@EXECUTION@",
+      "excludes": []
+    },
+    "forwarder": {
+      "kind": "file",
+      "path": "@FORWARDER@"
+    },
+    "selected": {
+      "kind": "file",
+      "path": "@GRAPH@"
+    }
+  },
+  "isolations": {
+    "own-identity": {
+      "kind": "linux-setpriv/v1",
+      "launcher": "/usr/bin/setpriv",
+      "uid": 62058,
+      "gid": 1000,
+      "test_roots": [
+        "@TEST@"
+      ],
+      "forbidden_roots": [
+        "@PROTECTED@"
+      ],
+      "lease_root": "@LEASE@"
+    }
+  }
+}

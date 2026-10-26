@@ -1,0 +1,19 @@
+{
+  "schema": "stride-uat-program/v1",
+  "program_id": "execution-graph-cases",
+  "version": "1",
+  "application_ids": [
+    "execution-case"
+  ],
+  "graphs": "@GRAPHS@",
+  "steps": [
+    {
+      "id": "case",
+      "application_id": "execution-case",
+      "command_id": "case",
+      "arguments": "@ARGUMENTS@",
+      "graph_id": "@GRAPH_ID@",
+      "timeout_seconds": 120
+    }
+  ]
+}

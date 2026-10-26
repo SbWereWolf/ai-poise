@@ -8,13 +8,12 @@ import io
 import json
 from pathlib import Path
 import shlex
-import subprocess
 
 import pytest
 
 from tests.hook_transport.architecture_support import Chain, WorkerBarrier, write
 from tests.hook_transport.session_output_support import (
-    configure_chain, install_output, output_handler, scene_for_chain,
+    configure_chain, output_handler, scene_for_chain,
 )
 from tests.runtime_services.session_tool_results_support import ParserCalls, cases, prepare_owner
 
@@ -208,27 +207,29 @@ def test_output_keeps_real_bash_intake_coverage(project, tmp_path):
         'schema': 'hook-handler-configuration-1', 'id': 'output-with-intake',
         'handlers': [output_handler(scene.policy_path)]})
     definition['routes']['PostToolUse'].append(str(output))
-    installed = install_output(chain.service, definition, 'f08-real-intake-with-output')
     start = next(row for row in events if row['hook_event_name'] == 'SessionStart')
-    chain.service.event(installed['definition_path'], start)
     before = next(row for row in events if row['hook_event_name'] == 'PreToolUse')
-    pre = chain.service.event(installed['definition_path'], before)
-    assert pre.get('hookSpecificOutput', {}).get('permissionDecision') != 'deny'
-    command = before['tool_input']['command']
-    cp = subprocess.run(['bash', '-c', command], cwd=project['app'],
-                        capture_output=True, check=False)
-    assert cp.returncode == 0 and cp.stdout == b'A01\nA02\n' and cp.stderr == b''
-    post = deepcopy(before)
-    post.update(hook_event_name='PostToolUse',
-                tool_response={'output': cp.stdout.decode(), 'exit_code': cp.returncode})
-    result = chain.service.event(installed['definition_path'], post)
-    assert result['continue'] is False
+    post = next(row for row in events if row['hook_event_name'] == 'PostToolUse')
+    end = next(row for row in events if row['hook_event_name'] == 'SessionEnd')
+    # Establish the isolated native caller in its own real process. The existing
+    # driver owns install/admission/prepare_template before actual lifecycle use.
     environment = dict(chain.general.env)
     environment.pop('POISE_CALLER_BINDING')
     environment['CODEX_THREAD_ID'] = start['session_id']
-    observed = chain.general.invoke('reader', packet={'operation': 'coverage'},
-                                    policy=inputs['reader_policy'], environment=environment)
-    coverage = json.loads(observed['stdout'])
+    observed = chain.general.invoke('native-builtins', environment=environment,
+        settings=str(chain.general.settings_path), definition=definition,
+        events=[start, before, post, end], builtin_inputs=inputs, post_wire='native-exec-json')
+    pre_result = next(row for row in observed['responses']
+                      if row['event']['hook_event_name'] == 'PreToolUse')
+    assert pre_result['response'].get('hookSpecificOutput', {}).get('permissionDecision') != 'deny'
+    actual, = observed['commands']
+    assert actual['actual_exit_code'] == 0 and actual['stdout'] == 'A01\nA02\n' and actual['stderr'] == ''
+    delivered = next(row for row in observed['responses']
+                     if row['event']['hook_event_name'] == 'PostToolUse')
+    assert delivered['event']['tool_input']['command'] == before['tool_input']['command']
+    assert delivered['event']['tool_response'] == {'output': actual['stdout'], 'exit_code': 0}
+    assert delivered['response']['continue'] is False
+    coverage = observed['coverage_before']
     document, = [row for row in coverage['details']['documents']
                  if row['path'] == 'docs/sample.txt']
     assert document['ranges'] == [[1, 2]]

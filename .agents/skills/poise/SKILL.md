@@ -478,19 +478,11 @@ cross-read-model SQL snapshot, and no token saving has been measured or may be c
 [Evidence-based review → Batched subject
 reads](../../../docs/workflows/evidence-based-review.md#пакетное-чтение-предмета).
 
-For an author proof, create a separate current Task file first and submit the exact
-eight fields `id/kind/claim/path/covers/verdict/observation_ids/correction` through
-`evidence_work.arguments`. Keep its ID and absolute path stable. Do not register that
-editable proof as an ordinary artifact or reclassify machine receipts. Read its current
-bytes through `show` query `id/kind:proof_file/argument_id/representation:text|base64`;
-use the complete saved response. An inspection decision contains only
-`argument_id/decision/reason`, without `revision`. A lawful same-path correction uses
-`reviewer_rejected` or `author_unreliable` with a real reason and requires fresh review;
-the same reason may recur in a new genuine presentation context. Exact same-context
-replay stays idempotent. Preserve ordinary artifact and machine-evidence provenance.
-Follow the [canonical file-proof input](../../../docs/workflows/evidence.md#один-пакет-результата),
-[current reading](../../../docs/workflows/evidence.md#чтение-нынешнего-содержимого) and
+When submitting, reading or correcting a current author proof, use the
+[canonical proof input](../../../docs/workflows/evidence.md#один-пакет-результата),
+[current-byte reading](../../../docs/workflows/evidence.md#чтение-нынешнего-содержимого) and
 [same-path correction](../../../docs/workflows/evidence.md#исправление-на-прежнем-пути).
+Classify registered acceptance artifacts separately using their lifecycle below.
 
 Let the exact workflow schema decide whether Task creation contains
 `executable_obligations`. A schema with a `test_registry` inspection route requires the field,
@@ -953,18 +945,10 @@ contract](../../../docs/workflows/batch-work.md#восстановление-з�
 
 ### Editable acceptance drafts
 
-Classify an acceptance file before its first registration. Keep ordinary registered artifacts
-immutable. If review and
-rework must edit the same working path, declare that task-scoped path through `artifact_drafts`
-before registration,
-submit every authorized same-path revision explicitly, and release the Task before taskless review
-or finalization.
-Each review preserves an independently registered immutable byte snapshot. If a released nonterminal
-Task already froze
-the path by mistake, use only explicitly authorized `artifact_drafts/recover` with the exact ID,
-scope, path and current
-version; do not create a renamed version as a workaround. Follow the
-[public draft lifecycle](../../../docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
+Before registering an acceptance artifact that may need same-path review/rework, or
+recovering a prematurely frozen artifact, read the
+[canonical draft lifecycle](../../../docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
+For a current author proof, use the separate proof contract above.
 
 ### Ambiguous legacy ownership
 

@@ -11,26 +11,26 @@ tool-result не добавляет универсальный либо MCP hook
 
 ## Доставка launcher при старте
 
-Каждый поддерживаемый старт native-сессии — `startup`, `resume`, `clear`, `compact`
-и `fork` — передаёт агенту путь к его session-scoped launcher через
-`hookSpecificOutput.additionalContext`. Переменная окружения `AI_POISE_WORK`
-для этой доставки не создаётся. Агент использует точный путь из текущего native
-контекста; launcher другой сессии не удостоверяет его личность.
+В профиле с подключённым Task adapter выберите `task-context` для `SessionStart`:
+его `options.context_template` содержит `{launcher}` и `{state}`. Тогда поддерживаемые
+`startup`, `resume`, `clear`, `compact` и `fork` передают путь session-scoped launcher
+в `hookSpecificOutput.additionalContext`. Переменная `AI_POISE_WORK` не создаётся.
+Агент использует точный доставленный путь; launcher другой сессии не подтверждает identity.
 
-Старт сначала проверяет обязательные настройки транспорта, привязку проекта и
-native identity, создаёт собственную binding и launcher, затем записывает
-наблюдённый `SessionStart`. Получение состояния задачи и восстановление её
-контекста выполняются после этого. Ошибка workflow или основного runtime
-возвращается как явное предупреждение вместе с launcher. Она не означает
-готовность задачи к исполнению: обычный рабочий запрос по-прежнему проверяет
-полную конфигурацию и собственные условия допуска.
+При `task_adapter: null` общая сессия не создаёт Task launcher или Task runtime.
+Общие команды получают явный профиль и сохраняют собственные интерфейсы.
+Обработчики и их порядок выбираются в [конфигурации цепочки](#настраиваемая-цепочка-обработчиков).
+Транспорт проверяет конфигурацию и native identity до эффектов, сохраняет binding и
+настоящий Start; затем исполняет выбранные handlers. Ошибка конфигурации или handler
+имеет собственный наблюдаемый исход. Полученный entry сам по себе не доказывает
+готовность Task: обычный рабочий запрос проверяет полный договор и допуск.
 
-Полная диагностика такого предупреждения сохраняется существующим владельцем
+Полные результаты и диагностика сохраняются существующим владельцем
 ответов в `observations/<идентификатор>/<response_file>` из hook settings.
 Native JSON и сохранённый ответ имеют корректный UTF-8; одиночные суррогаты
-передаются JSON-экранированием с сохранением исходного значения. Короткая ошибка
-остаётся в `systemMessage`. Если она превышает бюджет вывода, общее представление
-ответов сохраняет весь контекст launcher и выводит настроенный
+передаются JSON-экранированием с сохранением исходного значения. Если ответ содержит
+короткое предупреждение, оно передаётся в `systemMessage`. При превышении бюджета
+общее представление сохраняет сформированный контекст и выводит настроенный
 `unknown_outcome_message` со ссылкой на полный файл. Полные данные для программных
 потребителей не сокращаются. Бюджет должен вмещать контекст и адрес диагностики.
 
@@ -79,10 +79,10 @@ launcher или успешный синтетический вызов hook не
   "input": {
     "request_id": "share-project-session-entry-1",
     "expected_settings_digest": "<наблюдённая редакция исходных settings>",
-    "expected_revision": "<наблюдённая редакция исходного native-файла>",
+    "expected_revision": "<наблюдённая полная revision исходной установки>",
     "target_revision": null,
     "settings": "<полный объект целевых hook-settings-1>",
-    "definition": "<полный объект hook-definition-1 того же профиля>"
+    "definition": "<полный объект hook-definition-2 того же профиля>"
   }
 }
 ```
@@ -91,19 +91,18 @@ launcher или успешный синтетический вызов hook не
 `target_revision: null` означает отсутствие целевого файла; для существующего
 файла передаётся его наблюдённая редакция. Полный объект settings сохраняет
 неизвестные параметры и все остальные значения. Эта операция разрешает изменить
-только `hooks_file`, `hooks_lock`, `repository_scope`, `capability_summary`, явно выбранный
+только `hooks_file`, `hooks_lock`, `repository_scope`, явно выбранный
 `source_root`, необязательный `project_launcher` для
 [явного выбора проекта](#явный-выбор-проекта-через-session-launcher)
-и необязательный `lifecycle_consumer` для доставки подтверждённых native-событий.
+и исторические `capability_summary`/`lifecycle_consumer`. Активные возможности выбираются
+через routes и handler options; изменение старого поля settings не подключает handler.
 Рабочая установка сохраняет настроенный installation source; кандидатный код
 проверяется в явно отделённой тестовой среде.
 
-До блокировок native-файлов и сохранения intent владелец проверяет обязательную
-секцию `capability_summary` целевых settings. Для существующей установки без секции
-передайте её явно в полном целевом объекте `settings` этого же запроса. Предварительно
-редактировать исходный settings-файл не требуется: владелец согласует настройки и
-существующие привязки при публикации. Отказ проверки целевого объекта оставляет
-файлы и записи установки прежними.
+До native-мутаций владелец проверяет definition2 и весь выбранный план, включая
+полные файлы конфигураций и политики builtin. Summary проверяется по выбранному
+`capability-summary.options.summary`; отсутствие такого handler не включает сводку
+неявно. Согласованные bindings и прежние foreign groups сохраняются владельцем.
 
 Обновление на прежнем пути native hooks поддерживает локальную установку без
 `repository_scope` и `hooks_lock`. Перенос в другой native-файл требует этих явных
@@ -227,25 +226,237 @@ Trust и реальная доставка в Codex остаются отдел�
 MCP stdio. Настройки hooks создаёт инструмент. Он не изменяет trust/permissions и не устанавливает
 Codex/IDE.
 
-При SessionStart агент автоматически получает краткую сводку настроенных возможностей.
+При выбранном для SessionStart builtin `capability-summary` агент получает краткую сводку настроенных возможностей.
 Полная последняя сводка сохраняется в данных сессии; её можно прочитать без новых
 проверок либо явно обновить. Порядок описан в [сводке готовности](#сводка-готовности-сессии).
 
-Поддерживаются SessionStart, UserPromptSubmit, Stop и SessionEnd основного агента;
+Поддерживаются SessionStart, UserPromptSubmit, Stop, SessionEnd и явно подключённые PreCompact/PostCompact основного агента;
 при явном включении учёта чтения — парные PreToolUse/PostToolUse для Bash.
 SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не поддерживаются этим адаптером. Configured
 `agent_id` выбирает профиль hook, но не создаёт отдельного исполнителя. Файлы launcher учитывают
 проект, источник, внешнюю сессию и профиль; Task caller определяется реальной native session через
 общего SessionEstablisher. Переименование профиля не отделяет делегата от отправителя.
 
+## Настраиваемая цепочка обработчиков
+
+Активная установка использует `hook-definition-2`, полный общий профиль
+[команд и сессии](project-setup.md#общий-профиль-команд-и-сессии) и явные конфигурации
+`hook-handler-configuration-1`. Исторический `hook-definition-1` читается владельцем
+старых квитанций и диагностики; новые install/reconcile/reconfigure и активная доставка
+требуют definition2. Прежние шаблоны с top-level `probes`, `gate_operations`,
+`context_template`, `tool_intake` или `general_context` сами по себе новую цепочку
+не подключают. Рабочие значения и файлы остаются вне source Git.
+
+### Определение и порядок конфигураций
+
+У definition обязательны `schema`, `id`, `agent_id`, `message_source`, `events`,
+`routes`, `transport`. `routes` имеет ровно ключи настроенных событий; каждое значение —
+явный список абсолютных путей конфигураций. Порядок — сначала позиции этого списка,
+затем handlers каждой конфигурации. Сортировка по имени и удаление повторных command-позиций
+не выполняются. Один effectful builtin name нельзя повторить в маршруте события:
+preflight отвергает такой дубль до native-коммита и эффектов.
+
+Ниже полный общий пример definition. До установки создайте оба указанных файла
+конфигурации по следующим примерам, заполните реальный общий профиль и зарегистрированную
+связь проекта/установки. Замените пути, ID и числовые настройки осознанно: это значения
+примера, а не defaults. Источник `batch.message_source` профиля должен точно совпадать
+с `message_source` definition при режиме `runtime_event`. `SessionStart` обязателен;
+`SessionEnd` имеет timeout от 1 до 3 секунд. Пустой маршрут явно выбирает отсутствие handlers.
+
+```json
+{
+  "schema": "hook-definition-2",
+  "id": "demo-hooks",
+  "agent_id": "primary",
+  "message_source": "codex-hook-main",
+  "events": [
+    {
+      "event": "SessionStart",
+      "matcher": "",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": 8192,
+      "status_message": "Запустить выбранные обработчики"
+    },
+    {
+      "event": "SessionEnd",
+      "matcher": "",
+      "timeout_seconds": 3,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Завершить native-сессию"
+    }
+  ],
+  "routes": {
+    "SessionStart": [
+      "/srv/poise/config/capabilities.json",
+      "/srv/poise/config/commands.json"
+    ],
+    "SessionEnd": []
+  },
+  "transport": {
+    "unknown_outcome_message": "Прочитайте сохранённый полный ответ по указанному пути."
+  }
+}
+```
+
+### Конфигурация и встроенные возможности
+
+`schema`, `id`, `handlers` обязательны. В одной конфигурации handler ID уникальны.
+Каждый handler имеет `id`, `implementation`, `mode`, `options`, `execution`, `on_error`.
+`implementation.kind` — `command` с полным непустым `argv` или `builtin` с именем из
+таблицы. `mode` — `sync` либо `async`; встроенные handlers поддерживают только `sync`.
+`execution.run_seconds` и `cleanup_seconds` — положительные конечные секунды;
+для async дополнительно обязателен `launch_seconds`. Текущий `on_error` равен `stop`.
+
+| Builtin | События | Обязательные options |
+|---|---|---|
+| `capability-summary` | SessionStart | `probes` и `summary` с `file`, `header_template`, `item_template`. |
+| `general-context` | SessionStart, PreCompact, PostCompact, SessionEnd | Абсолютный `policy_path` к полной политике общей сводки; End сам не восстанавливает ресурс reader. |
+| `command-intake` | PreToolUse, PostToolUse | Абсолютный `policy_path` к полному reader profile, содержащему `command_intake.policy`. |
+| `lifecycle-consumer` | SessionStart, SessionEnd | Полный `consumer` по [договору потребителя](#настроенный-потребитель-lifecycle). |
+| `task-context` | SessionStart, UserPromptSubmit, Stop | `context_template` с полями ровно `{launcher}`, `{state}`; `stop_template` с `{state}`; явный `gate_operations` из bootstrap/verify/artifacts. Нужен Task adapter. |
+| `task-runtime-cleanup` | SessionEnd | Явный объект `options`; используется существующий Task cleanup owner. Нужен Task adapter. |
+
+Полный файл `/srv/poise/config/capabilities.json` для примера выше:
+
+```json
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "common-capabilities",
+  "handlers": [
+    {
+      "id": "readiness",
+      "implementation": {
+        "kind": "builtin",
+        "name": "capability-summary"
+      },
+      "mode": "sync",
+      "options": {
+        "probes": [],
+        "summary": {
+          "file": "capabilities.json",
+          "header_template": "Готовность: {ready}; {checked_at}; {workspace}; {snapshot_path}",
+          "item_template": "{id}: {status}; required={required}; reason={reason}; remediation={remediation}"
+        }
+      },
+      "execution": {
+        "run_seconds": 30,
+        "cleanup_seconds": 1
+      },
+      "on_error": "stop"
+    }
+  ]
+}
+```
+
+Пустой `probes` в этом примере не проверяет доступность средств. Заполните его реальными
+[command/MCP probes](#проверки-capabilities) выбранной установки. `summary.file` —
+относительный путь внутри каталога binding, отличный от binding/launcher.
+Поля `summary.header_template` — ровно `ready`, `checked_at`, `workspace`, `snapshot_path`;
+поля `summary.item_template` — ровно `id`, `status`, `required`, `reason`, `remediation`.
+Таблицы ниже описывают содержимое этих options, а не неявное подключение через settings.
+
+### Контракты синхронной и асинхронной команды
+
+Полный второй файл `/srv/poise/config/commands.json`:
+
+```json
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "configured-commands",
+  "handlers": [
+    {
+      "id": "echo-response",
+      "implementation": {
+        "kind": "command",
+        "argv": [
+          "/srv/poise/venv/bin/python",
+          "-c",
+          "import json,sys; p=json.load(sys.stdin); print(json.dumps({'schema':'poise-hook-handler-result-1','invocation_id':p['invocation_id'],'response':p['response'],'control':{'action':'continue','reason':None}}))"
+        ]
+      },
+      "mode": "sync",
+      "options": {},
+      "execution": {
+        "run_seconds": 20,
+        "cleanup_seconds": 1
+      },
+      "on_error": "stop"
+    },
+    {
+      "id": "async-observation",
+      "implementation": {
+        "kind": "command",
+        "argv": [
+          "/srv/poise/venv/bin/python",
+          "-c",
+          "import json,sys; p=json.load(sys.stdin); print(json.dumps({'schema':'poise-hook-async-result-1','invocation_id':p['invocation_id'],'effects':{'observed':True}}))"
+        ]
+      },
+      "mode": "async",
+      "options": {},
+      "execution": {
+        "run_seconds": 20,
+        "cleanup_seconds": 1,
+        "launch_seconds": 3
+      },
+      "on_error": "stop"
+    }
+  ]
+}
+```
+
+Команды примера читают пакет со stdin. Первая возвращает полученный response без изменения;
+вторая записывает только собственный факт обработки. Это иллюстрация протокола, не проверка
+бизнес-эффекта и не native-событие. Путь Python заменяется фактическим установленным executable.
+
+Вход `poise-hook-handler-input-1` содержит `invocation_id`, `mode`, `event`,
+`event_receipt`, `configuration`, `response`. Синхронный результат
+`poise-hook-handler-result-1` содержит тот же `invocation_id`, объект `response`
+и `control`: `continue` с `reason: null` либо `stop` с непустой причиной.
+Следующий sync-handler получает текущий response. Stop завершает оставшуюся цепочку;
+уже запущенный async-процесс сохраняет собственный срок и результат.
+
+Async-команда получает snapshot response на своей позиции и возвращает
+`poise-hook-async-result-1` с тем же `invocation_id` и объектом `effects`.
+`response`/`control` не являются async-выходом. Порядок запуска задан конфигурацией;
+порядок завершения независимых процессов не обещается. Поздний async-результат не меняет
+выданный native-ответ. Отделённый worker сохраняет свои execution/stdout/stderr и terminal
+result после завершения callback; capture и очистка принадлежат существующим владельцам.
+
+### Сохранённый результат, ошибки и повтор
+
+Доставка хранится как `poise-hook-event-delivery-2`: настоящий event receipt,
+configuration revisions, запланированные UUID, invocation outcomes, текущий response,
+`chain_complete`, `chain_failed`. Неизвестные опции рабочих конфигураций сохраняются raw,
+игнорируются при исполнении и участвуют в revision; обязательные известные поля и строгие
+handler input/result/control остаются проверяемыми контрактами.
+
+Некорректная конфигурация/неподключённая Task-возможность отвергается до коммита события
+и handler effects. Ошибка sync-команды записывает outcome/error/execution, завершает цепочку
+и сохраняет текущий response. Возврат этого response не превращает failed delivery в
+успешный бизнес-результат. Ошибка async сохраняется в его собственном результате.
+Полные файлы читаются по сохранённым путям; короткий ответ не заменяет их исход.
+
+Обычный повтор завершённой доставки возвращает сохранённый response, а известный launched
+async не запускается снова. `hook --retry` выбирает настоящую сохранённую доставку,
+проверяет её definition/settings/receipt и сохраняет identity. Это операция продолжения,
+а не универсальное read-only чтение или гарантия нового исполнения. Не-launchable/unknown
+исход требует установленного результата и восстановления у его владельца.
+
+Гарантия атомарного допуска двух конкурирующих callers одной незавершённой delivery
+здесь не предоставляется. Поддержанный обычный replay нельзя выдавать за concurrent
+exactly-once. Осознанный новый запуск команды агентом остаётся новой операцией.
+
 ## Интерфейсы
 - `poise runtime-setup --settings <new-file> --max-input-bytes <explicit-limit>`: stdin `{settings:
   <full settings>, installation: {request_id, expected_revision, definition}}`. Создаёт settings,
-  все native hooks и выполняет probes одним запросом. При повторе те же настройки принимаются;
+  все native hooks и выполняет выбранные probes одним запросом. При повторе те же настройки принимаются;
   другое содержимое существующего settings не перезаписывается. Начальный лимит задан аргументом,
   потому что settings ещё нет.
 - `poise runtime-config --settings <file>`: stdin `{operation: install, input: {request_id,
-  expected_revision, definition}}` устанавливает весь definition и проверяет все probes одним
+  expected_revision, definition}}` устанавливает весь definition и проверяет probes выбранного capability handler одним
   вызовом. `operation: probe` принимает `definition_path` и `workspace` для явной повторной
   диагностики. Ошибка проверки доступности не отменяет факт создания настроек.
 - `operation: summary` читает сохранённую сводку своей сессии; `operation: refresh`
@@ -253,8 +464,8 @@ SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не �
   принимают только `binding_path`; [точные пакеты и результаты](#сводка-готовности-сессии).
 - `poise hook --settings <file> --definition <immutable-definition>`: внешний протокол Codex, один
   native event на stdin; не агентский lifecycle API.
-- `poise hook --settings <file> --definition <definition> --retry <saved-response>` повторяет
-  доставку сохранённого lifecycle-события потребителю. Новое native-событие не создаётся.
+- `poise hook --settings <file> --definition <definition> --retry <saved-response>` продолжает
+  либо возвращает сохранённую доставку по её действительному состоянию. Новое native-событие не создаётся.
 - Сгенерированный `work.sh`: принимает обычный пакет WorkTools на stdin. Повторять task ID/session
   ID не требуется.
 - Старые `work`, `runtime` и `goal-config` остаются самостоятельными явными интерфейсами.
@@ -262,8 +473,8 @@ SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не �
 
 Bootstrap-настройки устанавливают root, project_config, interpreter, source_root, native hooks file,
 storage paths, modes и лимиты. Это не настройки из AGENTS.md и не угадывание по cwd.
-`config/hook-templates` — явно выбираемые исходные шаблоны примера, не скрытый источник
-отсутствующих полей.
+`config/hook-templates` содержит исторические исходные шаблоны; активную definition2
+составляют по текущему договору цепочки. Шаблон не восполняет отсутствующие поля.
 
 ## Настройки установки
 
@@ -277,7 +488,7 @@ storage paths, modes и лимиты. Это не настройки из AGENTS
 |---|---|
 | `schema` | Ровно `hook-settings-1`. |
 | `root` | Существующий общий файловый корень; относительное значение разрешается от файла settings. |
-| `project_config` | Путь manifest относительно `root`; выбранный проект определяется manifest. |
+| `project_config` | Путь общего профиля `poise-harness-project-1` внутри `root`, относительный либо абсолютный в той же границе. |
 | `python`, `source_root` | Явные абсолютные пути исполняемого Python и единственного каталога исходников Poise с `poise/__init__.py` и `poise/__main__.py`. |
 | `hooks_file`, `definitions` | Пути native hooks и неизменяемых определений относительно `root`. Общий native-файл может иметь абсолютный путь при явном `repository_scope`; definitions и operational state разделены. |
 | `repository_scope`, `hooks_lock` | Необязательный режим общей установки: объект с абсолютным `repository` и положительным `timeout_seconds`, плюс отдельный абсолютный writer lock. Все писатели общего native-файла используют один lock. |
@@ -286,9 +497,6 @@ storage paths, modes и лимиты. Это не настройки из AGENTS
 | `lock` | Lock-файл относительно `root`, рядом с БД. |
 | `bindings`, `observations` | Каталоги привязок и диагностических наблюдений относительно `state`. |
 | `launcher`, `binding_file`, `response_file` | Непустые относительные имена выходных файлов; launcher и binding различаются. |
-| `capability_summary.file` | Непустой относительный путь сводки внутри каталога конкретной binding; отличается от `binding_file` и `launcher`. |
-| `capability_summary.header_template` | Непустой шаблон заголовка с именованными полями ровно `ready`, `checked_at`, `workspace`, `snapshot_path`. |
-| `capability_summary.item_template` | Непустой шаблон строки с именованными полями ровно `id`, `status`, `required`, `reason`, `remediation`. |
 | `cwd_roots` | Непустой список явных абсолютных разрешённых рабочих каталогов. |
 | `file_mode`, `executable_mode` | Целые POSIX modes `0..511`; executable mode содержит бит исполнения владельцем. JSON записывает числа десятично: `384` = `0600`, `448` = `0700`. |
 | `lock_seconds`, `lock_poll_seconds` | Явные положительные числовые интервалы ожидания и опроса блокировки. |
@@ -303,19 +511,18 @@ Settings не выбирает другой интерпретатор при о
 Изменение settings действующей установки требует согласованной публикации через владельца;
 существующие binding/launcher не переписываются произвольно.
 
-Секция `capability_summary` обязательна для SessionStart, `summary`, `refresh`, установки
-и согласования через `install`, `reconcile`, `runtime-setup`, `reconfigure`.
-Отсутствие секции отклоняется до probes и публикации настроек/обработчиков. Если секция
-присутствует, все её известные
-поля проверяются при чтении settings; неверный тип, пустое значение или неправильные
-поля шаблона дают ошибку конфигурации. Неизвестные конфигурационные значения сохраняются.
-Административное чтение основных настроек и самостоятельная диагностика могут читать
-исторические settings без этой секции; это не подтверждение готовности новой сводки.
+Опции возможностей задаются выбранными handler configurations, а не автоматическим
+разбором прежних top-level capability полей settings. Для `summary`/`refresh` необходим
+один согласованный `capability-summary` в маршруте SessionStart; его `options.summary`
+проверяется соответствующим владельцем. Install без этого builtin не запускает чужие
+capability probes. Неизвестные рабочие настройки сохраняются raw; известные транспортные
+поля остаются обязательными.
 
-Новая установка получает полный набор настроек одним пакетом. Для действующей установки
-передайте полный целевой объект с явной секцией `capability_summary` через `reconfigure`.
-Владелец согласует разрешённые параметры с сохранением существующих привязок;
-остальные значения settings остаются прежними.
+Новая установка получает полный settings/definition2 intent; для действующей используется
+разрешённый `reconfigure`. Он сохраняет project/stores и собственные bindings. Выбор нового
+общего профиля вместо прежнего `project_config` не является разрешённым полем этого вызова;
+такой переход требует конкретного согласованного owner-плана с проверкой действующей
+установки. Успех изолированных примеров не подтверждает live cutover.
 
 ## Установка
 
@@ -330,8 +537,12 @@ Settings не выбирает другой интерпретатор при о
 Существующие чужие группы hooks сохраняются. Заменяются только ранее установленные целые группы
 данного definition. Изменённая вручную owned-группа вызывает отказ, а не перезапись.
 
-`expected_revision` — digest фактического native файла либо explicit null для нового файла. Повтор
-request_id с тем же намерением возвращает receipt; другое намерение под тем же ID отвергается.
+`expected_revision` — наблюдённая полная revision установки из `HookService(settings_path).revision()`
+либо explicit null при отсутствии native-файла. Она учитывает raw settings/профиль/связь проекта,
+Task-источник при подключённом adapter и выбранные конфигурации/политики. В новой квитанции
+`revision` — эта полная версия, `native_file_revision` — digest native-файла. Историческая квитанция
+возвращается в своём исходном формате. Повтор request_id с тем же намерением возвращает receipt;
+другое намерение под тем же ID отвергается.
 Незавершённая запись использует сохранённый кандидат и проверяет состояние before/after.
 
 Сначала публикуется неизменяемый definition в config root, потом одним atomic replace обновляется
@@ -381,8 +592,9 @@ Native-реестр независимо фиксирует binding и факт 
 неизменности managed hook-файла сохраняется, но отдельный anti-tamper протокол для generated
 caller binding не вводится.
 
-SessionStart и UserPromptSubmit создают или восстанавливают отсутствующую binding и launcher
-и выдают рабочий вход агенту. UserPromptSubmit фиксирует
+Настоящий SessionStart создаёт или восстанавливает binding; при подключённом Task adapter
+создаётся launcher, который выдаёт выбранный task-context handler. UserPromptSubmit использует
+уже существующую настоящую Start binding и фиксирует
 source/session/turn_id без хранения prompt; все причины, включая неизвестные, считаются. Повтор
 этого turn_id не увеличивает число. Два разных turn_id с одинаковым текстом — два события. До выбора
 задачи факт остаётся известным проекту; текущий пользовательский ход связывается при выборе/работе
@@ -390,26 +602,26 @@ source/session/turn_id без хранения prompt; все причины, в
 
 Stop сообщает текущую позицию. Он НЕ возвращает `decision: block`, НЕ создаёт synthetic user turn,
 НЕ принимает этап и НЕ запускает следующую работу. SessionEnd фиксирует факт окончания,
-а при настроенном потребителе доставляет этот факт ему без восстановления Task-runtime.
+а выбранный lifecycle-consumer доставляет этот факт приложению без восстановления Task-runtime.
 Общий work-context использует этот же committed End, не отдельный lifecycle или cleanup owner.
-После успешной доставки потребителю, либо сразу при его отсутствии,
-владелец освобождает временный runtime сессии и её operational binding:
+После завершения обработанной End-цепочки transport owner освобождает временный runtime
+сессии и operational binding. Запись failed invocation сама по себе не удерживает live binding;
+действительные End receipt и сохранённые результаты остаются историей. Освобождаются:
 строку рабочего реестра,
 binding-файл, launcher и настроенную capabilities-сводку. Пустой каталог binding удаляется;
 посторонние файлы в нём сохраняются. Результаты нужно выдать до завершения сессии.
 Переходы Task и обычное освобождение владения остаются операциями своих владельцев.
 
 Повторный Stop или SessionEnd после освобождения не создаёт binding заново. Настоящий
-SessionStart или UserPromptSubmit восстанавливает рабочую привязку той же сессии и выдаёт
-launcher; отсутствие привязки не требует ручного повторения старта. Восстановление не
-создаёт поддельный SessionStart. Диагностические наблюдения остаются доступными без binding.
+SessionStart восстанавливает рабочую привязку той же сессии. Prompt без предшествующей
+живой Start binding даёт явный отказ; агент не создаёт поддельный старт ради допуска. Диагностические наблюдения остаются доступными без binding.
 Освобождение одной Task в продолжающейся сессии снимает Task/worktree ownership, сохраняя
 доступ сессии для следующей разрешённой работы.
 
 Очистка повторно проверяет, что последним native-фактом остаётся именно выбранный End.
 Более новый Start сохраняет свой runtime и привязку. Для очистки читаются настроенные
-пути; восстановление контекста Task не запускается. Незавершённая доставка сохраняет
-привязку для публичного retry. Зафиксированный End хранит собственную запись привязки
+пути; восстановление контекста Task не запускается. Незавершённый эффект сохраняет свои исходные данные для восстановления владельцем;
+его результат и историческая End authority не подменяются наличием live binding. Зафиксированный End хранит собственную запись привязки
 в истории события: её освобождение не лишает настоящую квитанцию возможности проверки
 и повторной доставки. Start проверяется по действующей operational binding.
 Диагностика End сопоставляет сохранённый native-факт с точными квитанциями запусков.
@@ -426,29 +638,33 @@ SessionEnd синхронен по внешнему протоколу. Ника
 
 ## Общая сводка после сокращения контекста
 
-Необязательный `general_context` включает встроенный work-context consumer для текущего
-проекта/checkout/эпизода. Он наблюдает PreCompact/PostCompact и продолжение SessionStart,
-использует прежние general-reader resources и выдаёт короткую карточку без обязательной Task.
-[Сценарии, поля и восстановление](../workflows/context-recovery.md#общая-механическая-сводка)
+Общая механическая сводка выбирается builtin `general-context` с абсолютным
+`options.policy_path` к полному JSON политики. Она наблюдает PreCompact/PostCompact
+и продолжение SessionStart, использует прежние general-reader resources и выдаёт
+короткую карточку без обязательной Task. При `task_adapter: null` её `work_owner.enabled`
+и `check_owner.enabled` должны быть `false`; включённый Task owner требует adapter.
+[Сценарии и восстановление](../workflows/context-recovery.md#общая-механическая-сводка)
 принадлежат каноническому workflow guide. Полный текст инструкций читает
-[ProjectInstructions](development-routing.md#подготовка-инструкций-по-файлам), а specialized
-SourceReader сохраняет отдельный acknowledged-reader контракт.
+[ProjectInstructions](development-routing.md#подготовка-инструкций-по-файлам);
+специализированный SourceReader сохраняет отдельный acknowledged-reader контракт.
 
-Поставлены полные обезличенные
-[settings](../../config/examples/context-recovery-settings.example.json) и
-[definition](../../config/examples/context-recovery-hooks.example.json). Definition содержит
-четыре lifecycle-события, два обычных Bash tool events и PreCompact/PostCompact. Последние два
-события сами не выполняют произвольную команду чтения. Пример выбирает Start budget4096,
-Pre/Post timeout30 и прочие явно записанные значения; это не defaults runtime.
+Прежние обезличенные [settings](../../config/examples/context-recovery-settings.example.json)
+и [definition](../../config/examples/context-recovery-hooks.example.json) показывают историческое
+расположение данных. Для новой установки вынесите содержимое политики в отдельный файл
+и создайте актуальные definition2/handler configuration по
+[договору цепочки](#настраиваемая-цепочка-обработчиков). Подключите нужные восемь событий
+явно: lifecycle, парные Bash tool events и PreCompact/PostCompact. Последние сами не
+выполняют произвольную команду чтения. Числовые значения примеров не являются defaults.
 
 ### Первичное подключение общей сводки
 
 1. Выберите установленную совместимую версию Poise/CPython3.15, проект и зарегистрированный
    checkout. Заполните полный reader profile с command policy по
    [существующему порядку](project-file-reading.md#подключение-учёта-обычных-команд),
-   instruction catalogue/policy и два новых полных templates. Совпадение project message source
+   instruction catalogue/policy, отдельную политику сводки и handler configurations. Совпадение project message source
    и definition проверяет существующий владелец конфигурации проекта.
-2. Передайте полный объект settings и полный definition в один
+2. Передайте полный settings и `hook-definition-2`, ссылающийся на подготовленные
+   handler configurations, в один
    [runtime-setup пакет](#первоначальная-настройка-без-ручного-json-файла). Settings destination —
    новый путь внутри configured root вне operational state. `expected_revision` описывает
    настоящий native-файл: null только для отсутствующего файла. Не устанавливайте второй
@@ -474,21 +690,21 @@ Runtime раскрывает только свои документирован�
 | `@ROOT@` | Абсолютный корень выбранной установки; settings/project paths разрешаются по существующим правилам. |
 | `@PYTHON@` | Абсолютный Python выбранного установленного пакета. |
 | `@SOURCE_ROOT@` | Единственный корень выбранного Poise с `poise/__init__.py` и `poise/__main__.py`, а не читаемый checkout. |
-| `@CHECKOUT@` | Зарегистрированный абсолютный checkout; в примере одновременно выбран instruction root. Для внешних навыков задайте другое явное `general_context.instructions.root`. |
-| `@READER@` | Абсолютный полный reader profile; тот же путь в `tool_intake.reader_policy`. |
+| `@CHECKOUT@` | Зарегистрированный абсолютный checkout; в примере одновременно выбран instruction root. Для внешних навыков задайте другое явное `instructions.root` в политике сводки. |
+| `@READER@` | Абсолютный reader profile; его выбирает `command-intake.options.policy_path`, а политика сводки ссылается на него через `reader_policy`. |
 | `@CATALOG@`, `@INSTRUCTIONS@` | Абсолютные instruction catalogue и policy для выбранных файлов. |
 
 Reader profile и command policy переиспользуют собственные
 [маркеры и параметры](project-file-reading.md#подключение-учёта-обычных-команд).
-Согласуйте `general_context.reader_policy`, `tool_intake.reader_policy`, reader
-`command_intake.policy`, подтверждённую native authority и подготовленный schema-2 template.
+Согласуйте `reader_policy` политики общей сводки, `command-intake.options.policy_path`,
+reader `command_intake.policy`, настоящую native authority и подготовленный schema-2 template.
 Пути файлов `instructions.paths` выбраны явно для примера и заменяются файлами вашего проекта.
 Рабочие settings/policies и state не коммитятся; versioned templates остаются обезличенными.
 
 ### Параметры general_context
 
-При наличии раздела все перечисленные поля обязательны; неизвестные параметры не применяются,
-их исходные значения не удаляются из raw settings. Раздел не добавляется автоматически.
+В отдельном JSON политики по `general-context.options.policy_path` все перечисленные поля
+обязательны. Неизвестные опции сохраняются raw и игнорируются; файл не добавляется автоматически.
 
 | Поле | Допустимое значение и смысл |
 | --- | --- |
@@ -526,22 +742,22 @@ workspace/order и matching cycle удостоверяет прежний native
 
 ### Изменение уже существующей установки
 
-`runtime-setup` повторяет тот же полный settings/installation intent, но не заменяет
-существующий settings другим содержимым. В текущем `runtime-config reconfigure` поле
-`general_context` **не входит** в разрешённую поверхность изменений. Нельзя обещать этим
-вызовом включение/выключение или перенастройку общей сводки. Согласованный пакет сохраняет
-неизменённое значение раздела. Не обходите ограничение ручной правкой managed settings,
-подменой session ID или новым profile ID для присвоения прежних groups.
+`runtime-setup` повторяет прежний полный intent и сохраняет настройки, а существующую
+установку перенастраивает `runtime-config reconfigure`. Политика общей сводки выбирается
+новой handler configuration через `options.policy_path`; её путь включён в definition2/routes,
+а её полные байты входят в текущую configuration revision. Предварительно подготовьте полный
+набор согласованных reader/instruction policies; владелец проверяет его до публикации.
 
-Новая процедура изменения этой части действующей установки требует своего поддержанного
-configuration owner; здесь описана реализованная первичная установка. Это не инструкция
-развернуть вторую установку вместо первой. Любая разрешённая смена definition/policy должна
-сохранить соответствие фактической authority до следующих native deliveries.
+`reconfigure` не меняет произвольные transport settings, project или stores. В частности,
+старое поле settings.general_context не является каналом изменения активной сводки.
+Сохраните действительные identity/association/revisions; изменения существующих consumers
+и source/config cutover требуют настоящего согласованного owner-плана. Чужие группы,
+активные binding и unknown outcomes не исправляются подстановкой session/profile ID.
 
 ## Настроенный потребитель lifecycle
 
-Поле `lifecycle_consumer` в hook settings необязательно: самостоятельный Poise работает без
-потребителя приложения. При наличии раздела обязательны все его известные поля:
+Потребитель приложения подключается builtin `lifecycle-consumer`. Общий Poise работает
+без него. Для выбранного handler `options.consumer` содержит все известные поля:
 
 | Поле | Значение |
 | --- | --- |
@@ -555,10 +771,15 @@ configuration owner; здесь описана реализованная пер
 | `max_output_bytes` | Положительный целочисленный предел принимаемых stdout и stderr вместе |
 
 Неизвестные параметры не применяются. Невалидные известные поля отклоняются до native-мутаций.
-Добавлять, менять или убирать раздел нужно через публичный `runtime-config reconfigure`;
-его существующий владелец обновляет зарегистрированные настройки и собственные группы.
+Подлинная identity дочернего процесса сохраняется; `options.consumer.environment`
+не может подменить полученные CODEX_THREAD_ID/CODEX_SESSION_ID/POISE_CALLER_BINDING.
 
-После native-коммита сохраняется pending-наблюдение `poise-hook-lifecycle-delivery-1`, затем
+Выбор handler и его полной конфигурации публикуется в definition2/routes через
+существующий `runtime-config` owner. Старое settings.lifecycle_consumer не заменяет
+`options.consumer` в активной цепочке.
+
+Внутри общего event delivery выбранный consumer сохраняет собственное наблюдение
+`poise-hook-lifecycle-delivery-1`, затем
 потребитель получает на stdin объект `poise-hook-lifecycle-1` с полями `native_event`,
 `event_receipt` и `deadline_monotonic`. `native_event` содержит исходное событие. Квитанция:
 
@@ -568,11 +789,14 @@ configuration owner; здесь описана реализованная пер
   "event": "SessionStart",
   "event_id": 122,
   "project_id": "example-project",
-  "session_id": "native-session",
-  "binding_id": "native-session",
+  "session_id": "external-native-session",
+  "binding_id": "internal-session-id",
   "native_start_event_id": 122
 }
 ```
+
+`session_id` — внешняя native identity, `binding_id` — внутренняя привязка Poise;
+они не обязаны совпадать и не заменяются друг другом.
 
 Для Start `native_start_event_id` равен самому событию, для End — реальному предшествующему
 Start. Это факт доставки, а не замена канонического anchor приложения. Read-only метод
@@ -616,25 +840,24 @@ Resume, clear и compact не переименовывают уже выбран
 JSON или незавершённый teardown оставляют явное incomplete-наблюдение и сохранённый
 native-факт; stderr потребителя не копируется в автоматический контекст.
 
-Когда `general_context` не подключён, после успешной доставки Start тот же process owner
-ограничивает восстановление Task-контекста остатком общего срока. Этот дочерний вызов использует записанное событие и существующего
-владельца контекста; native event повторно не создаётся. Необязательные command/MCP probes
-тоже получают оставшийся срок и резерв teardown. Недоступность Task-контекста не отменяет
-binding или уже доставленный факт; текущую задачу можно восстановить через `bootstrap`
-своего `work.sh`. Для явного retry сохраняется квитанция того же события, а новый бюджет
-доставки образуется из настроенных timeout и резервов.
-
-При включённом `general_context` встроенная обработка выполняется в том же delivery/retry
-контракте. Внешнему lifecycle consumer по-прежнему передаются Start/End; Pre/PostCompact
-обрабатывает встроенный владелец. Optional work/check metadata не равны полному `ContextRecovery`.
+Task-контекст и общая сводка — отдельные явно выбранные handlers.
+`task-context` использует подключённый adapter и прежний ContextRecovery при наличии
+reader; `general-context` использует свою политику и независимые work/check metadata.
+Последние не равны полному Task ContextRecovery. Их порядок относительно lifecycle
+consumer задаётся routes/configurations, а не условным скрытым fallback.
+Pre/PostCompact обрабатывает выбранный общий handler; внешний consumer поддерживает Start/End.
 
 Потребитель возвращает JSON-объект: для Start допустим `hookSpecificOutput`
 с `hookEventName: SessionStart` и строкой `additionalContext`, для End достаточно `{}`;
 `systemMessage` при наличии — строка. Применяются существующие native-лимиты контекста и
 вывода. Другие управляющие поля потребителя не становятся командами платформе.
 
-Публичный `HookService.probe_lifecycle_consumer()` запускает тот же argv с `--dry-run` через
-тот же ограниченный process owner и возвращает JSON готовности без native-события.
+Исторический `HookService.probe_lifecycle_consumer()` читает consumer из старого
+settings.lifecycle_consumer. Его результат не доказывает готовность другого `options.consumer`
+из активной цепочки. Действующий consumer проверяют по его фактическим argv/cwd/environment
+через существующую диагностику владельца приложения; если он поддерживает `--dry-run`,
+это отдельный явный probe без native-события. Выбранный capability command probe также
+может вызывать эту настоящую команду с полными параметрами.
 Смысл готовности проверяет владелец приложения перед удалением своих raw Start/End-групп.
 Он проверяет выбранный проект, корень, native-настройки и definition, сохраняет чужие группы
 и повторяет собственную операцию после прерывания. Готовность потребителя не подтверждает
@@ -651,7 +874,8 @@ native-файла и настроек вызывает
 сохраняет native-факты; приложение использует своё публичное activate/recover.
 
 ## Проверки capabilities
-Все probes задаются одним массивом, сначала валидируется весь массив. Ошибка одного внешнего
+Все probes выбранной возможности задаются массивом `capability-summary.options.probes`;
+сначала валидируется весь массив. Ошибка одного внешнего
 инструмента не прячет результаты остальных. Каждый probe имеет exact argv/cwd/environment, срок
 выполнения, ограничения вывода, признак required, tool_ref и исполнимую рекомендацию восстановления.
 Окружение не наследуется неявно; секреты не следует записывать в параметры/вывод.
@@ -677,16 +901,16 @@ Stream/SSE и OAuth не реализованы. Для JetBrains использ
 
 ## Сводка готовности сессии
 
-SessionStart с причиной `startup`, `resume`, `compact` или `clear` синхронно проверяет
-настроенный массив `probes`. Агент получает заголовок и строки из `capability_summary`
-вместе с прежними launcher, состоянием и указателем восстановления контекста. У каждой
+Выбранный `capability-summary` на SessionStart с причиной startup/resume/compact/clear/fork
+синхронно проверяет свой `options.probes`. Агент получает заголовок и строки по
+`options.summary`; остальные части контекста производят их явно выбранные handlers. У каждой
 возможности указаны `status`, `required`, `reason` и `remediation`. Готовность `ready`
 определяется обязательными условиями: недоступное необязательное средство видно в сводке,
 но при выполненных обязательных условиях готовность сохраняется. Обычный отказ команды,
 timeout или несовместимый ответ MCP сохраняет результаты остальных проверок и конкретную
 причину восстановления. Неисправный план проверок отклоняется до их запуска.
 
-Полный JSON находится по `capability_summary.file` внутри каталога сессионной binding.
+Полный JSON находится по `capability-summary.options.summary.file` внутри каталога binding.
 Формат `capability-summary-1` содержит `schema`, `session_id`, `workspace`, `checked_at`,
 `ready`, `missing_required`, `observations`. Время `checked_at` — UTC-наблюдение завершённой
 проверки. Список сохраняет полные результаты существующих probes, включая MCP `tools`,
@@ -694,8 +918,8 @@ timeout или несовместимый ответ MCP сохраняет ре
 У доступного средства `reason` равен `null`; пример текстового шаблона показывает булевы
 значения как `True`/`False`, а отсутствие причины как `None`.
 
-Оператор задаёт явные значения по [полному примеру](../../config/hook-settings.example.json).
-Поля `header_template` и `item_template` перечислены в [настройках установки](#настройки-установки);
+Оператор задаёт явные значения в [конфигурации capability handler](#конфигурация-и-встроенные-возможности).
+Там перечислены поля `header_template` и `item_template`;
 шаблоны не заменяют полную сохранённую сводку. Ограничение `max_input_bytes` применяется
 к её чтению и записи. `context_limit` события и `output_chars` ограничивают показ агенту,
 а не обрезают данные файла.
@@ -757,7 +981,7 @@ native hook имеет exit `1` и stderr, сохраняя протокол х�
 зависимостей, ремонт служб и фоновое обновление в эту операцию не входят.
 
 ## Рабочие границы
-Проверка включается в configured gate_operations, без дополнительного model tool call на каждую
+Task capability gate включается в `task-context.options.gate_operations`, без дополнительного model tool call на каждую
 capability. При bootstrap сначала подготавливается реально выбранный worktree, затем проверяется
 привязка к нему; при недоступности возвращается blocked context, а не успешное разрешение писать
 код. При verify проверка выполняется до запуска task methods. Read-only show, cancel и release не
@@ -829,8 +1053,10 @@ bash "$native_launcher" --project "$project_id" < "$packet"
 выданный entry без селектора продолжает работать. Изменение hook settings публикуется
 через `runtime-config` → `reconfigure`, который обновляет собственные bindings и точный
 прежний entry без передачи аргументов. Чужое содержимое launcher блокирует обновление.
-Инструкция включается в SessionStart, включая startup, resume, fork, clear и compact,
-и UserPromptSubmit; действуют существующие лимиты native context.
+Пояснение использования `--project` включите явно в `task-context.options.context_template`
+для Start/Prompt. Поле settings.project_launcher.context_template сохраняет свой обязательный
+синтаксис настроек, но представление цепочки не добавляет его автоматически; действуют
+обычные лимиты native context и явно выбранный handler.
 
 Каждый явный вызов заново читает настройки запуска и реестр через общего владельца
 [выбора проекта](stride-launcher.md#выполнение-команды). Он проверяет точный ID,
@@ -1082,7 +1308,7 @@ ID, но отсутствует в его ownership receipt. Вместо доб
     "expected_revision": "<sha256-текущего-hooks.json>",
     "previous_installation_id": "harness-main",
     "live_definition_path": "<абсолютный-путь-immutable-live-definition.json>",
-    "definition": "<полный-объект-hook-definition-1-с-id-poise-main>"
+    "definition": "<полный-объект-hook-definition-2-с-id-poise-main>"
   }
 }
 ```
@@ -1145,9 +1371,9 @@ hooks](https://learn.chatgpt.com/docs/hooks).
 и непустой `status_message`. Пример задаёт15 секунд / 2000 контекстных единиц; это значения установки,
 не скрытые defaults. Один event без второго либо другой matcher отклоняются.
 
-Hook settings явно содержат абсолютный `tool_intake.reader_policy`. Полный reader profile
-содержит абсолютный `command_intake.policy`; command policy проверяется до установки
-определения с tool events. Остальные обязательные настройки сохраняются по
+Оба события выбирают builtin `command-intake` с абсолютным `options.policy_path`
+к полному reader profile. В нём задан абсолютный `command_intake.policy`; эти политики
+проверяются до установки definition2 с tool events. Остальные обязательные настройки сохраняются по
 [основному справочнику](#настройки-установки). Generic четырёхсобытийные шаблоны остаются
 отдельным выбором и сами учёт обычных команд не включают. Их пробы и command example
 согласованы с выбранным package runtime Python 3.15 (`>=3.15,<3.16`).
@@ -1160,7 +1386,7 @@ Hook settings явно содержат абсолютный `tool_intake.reader
 {"operation":"install","input":{"request_id":"operator-selected-install-id","expected_revision":"OBSERVED_REVISION","definition":{}}}
 ```
 
-Здесь `{}` обозначает место полного объекта из command hooks example, а не готовое
+Здесь `{}` обозначает место полного объекта `hook-definition-2` с реальными routes, а не готовое
 определение для отправки. `OBSERVED_REVISION` заменяется фактическим значением; null
 допустим только при реальном отсутствии файла. Пакет `runtime-setup` для новой установки
 содержит полные settings/installation по [основному интерфейсу](#интерфейсы).

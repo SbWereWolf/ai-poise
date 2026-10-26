@@ -1,0 +1,108 @@
+{
+  "bash-success": {
+    "tool": {
+      "kind": "bash",
+      "name": "Bash"
+    },
+    "response": {
+      "output": "RESULT: 2 records\nDETAIL: checked A and B\nFULL_ONLY_F08\n",
+      "exit_code": 0,
+      "chunk_id": "native-a",
+      "original_token_count": 22,
+      "unknown": {
+        "value": [
+          0,
+          false,
+          null,
+          "Ж🙂"
+        ]
+      }
+    },
+    "exit_code": 0,
+    "brief": "Bash: exit 0; 2 records",
+    "expanded": "Bash: exit 0; 2 records\nDETAIL: checked A and B"
+  },
+  "bash-failure": {
+    "tool": {
+      "kind": "bash",
+      "name": "Bash"
+    },
+    "response": {
+      "output": "RESULT: failed\nDETAIL: invalid input\nFULL_ONLY_F08\n",
+      "exit_code": 7,
+      "chunk_id": "native-b",
+      "unknown": {
+        "value": [
+          0,
+          false,
+          null,
+          "Ж🙂"
+        ]
+      }
+    },
+    "exit_code": 7,
+    "brief": "Bash: exit 7; failed",
+    "expanded": "Bash: exit 7; failed\nDETAIL: invalid input"
+  },
+  "mcp": {
+    "tool": {
+      "kind": "mcp",
+      "name": "mcp__fixture__query"
+    },
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "2 records"
+        },
+        {
+          "type": "image",
+          "mimeType": "application/octet-stream",
+          "data": "AAEC"
+        }
+      ],
+      "structuredContent": {
+        "count": 2,
+        "names": [
+          "A",
+          "B"
+        ],
+        "unselected": "FULL_ONLY_F08"
+      },
+      "isError": false,
+      "extra_transport": {
+        "value": [
+          0,
+          false,
+          null,
+          "Ж🙂"
+        ]
+      }
+    },
+    "exit_code": null,
+    "brief": "MCP: 2 records",
+    "expanded": "MCP: 2 records\nNames: A,B"
+  },
+  "poise": {
+    "tool": {
+      "kind": "generic",
+      "name": "Poise"
+    },
+    "response": {
+      "status": "verified",
+      "next_work": "inspect tests",
+      "result": {
+        "unselected": "FULL_ONLY_F08",
+        "value": [
+          0,
+          false,
+          null,
+          "Ж🙂"
+        ]
+      }
+    },
+    "exit_code": 0,
+    "brief": "Poise: verified",
+    "expanded": "Poise: verified\nNext: inspect tests"
+  }
+}

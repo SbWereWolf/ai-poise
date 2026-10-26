@@ -1,0 +1,84 @@
+{
+  "empty": {
+    "base": "bash-success",
+    "response": {
+      "output": "",
+      "exit_code": 0
+    },
+    "exit_code": 0,
+    "streams": {
+      "stdout": null,
+      "stderr": null
+    },
+    "brief": "Bash: exit 0",
+    "expanded": "Bash: exit 0\n"
+  },
+  "crlf-unicode": {
+    "base": "bash-success",
+    "response": {
+      "output": "RESULT: Ж🙂\r\nDETAIL: A\r\nFULL_ONLY_F08\r\n",
+      "exit_code": 0
+    },
+    "exit_code": 0,
+    "streams": {
+      "stdout": null,
+      "stderr": null
+    },
+    "brief": "Bash: exit 0; Ж🙂",
+    "expanded": "Bash: exit 0; Ж🙂\nDETAIL: A"
+  },
+  "stderr-only": {
+    "base": "bash-failure",
+    "response": {
+      "output": "",
+      "exit_code": 7
+    },
+    "exit_code": 7,
+    "streams": {
+      "stdout": "",
+      "stderr": "RESULT: failed\nDETAIL: invalid input\nFULL_ONLY_F08\n"
+    },
+    "brief": "Bash: exit 7; failed",
+    "expanded": "Bash: exit 7; failed\nDETAIL: invalid input"
+  },
+  "binary-mcp": {
+    "base": "mcp",
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "2 records"
+        },
+        {
+          "type": "image",
+          "mimeType": "application/octet-stream",
+          "data": "AAEC"
+        }
+      ],
+      "structuredContent": {
+        "count": 2,
+        "names": [
+          "A",
+          "B"
+        ],
+        "unselected": "FULL_ONLY_F08"
+      },
+      "isError": false,
+      "extra_transport": {
+        "value": [
+          0,
+          false,
+          null,
+          "Ж🙂"
+        ]
+      }
+    },
+    "exit_code": null,
+    "streams": {
+      "stdout": null,
+      "stderr": null
+    },
+    "brief": "MCP: 2 records",
+    "expanded": "MCP: 2 records\nNames: A,B"
+  }
+}

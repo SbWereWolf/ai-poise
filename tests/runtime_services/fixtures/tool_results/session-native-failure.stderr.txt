@@ -1,0 +1,3 @@
+RESULT: failed
+DETAIL: invalid input
+FULL_ONLY_F08

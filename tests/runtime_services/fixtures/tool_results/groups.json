@@ -40,5 +40,35 @@
     "tests/runtime_services/test_tool_results_reader.py::test_reader_selects_actual_structured_or_stderr_source[search-response]",
     "tests/runtime_services/test_tool_results_reader.py::test_unicode_excerpt_contains_exact_bounded_source_fragment",
     "tests/runtime_services/test_tool_results_installed.py::test_installed_tool_result_consumer"
+  ],
+  "f08-parsers": [
+    "tests/runtime_services/test_tool_results_parsers.py"
+  ],
+  "f08-session": [
+    "tests/runtime_services/test_tool_results_session.py"
+  ],
+  "f08-source": [
+    "tests/runtime_services/test_tool_results_source_contract.py"
+  ],
+  "f08-hook": [
+    "tests/hook_transport/test_tool_results_delivery.py"
+  ],
+  "f08-existing": [
+    "tests/runtime_services/test_tool_results_capture.py::test_bash_full_capture_and_machine_consumer[short-success]",
+    "tests/runtime_services/test_tool_results_capture.py::test_bash_full_capture_and_machine_consumer[large-failure]",
+    "tests/runtime_services/test_tool_results_capture.py::test_mcp_full_envelope_and_machine_consumer[small]",
+    "tests/runtime_services/test_tool_results_capture.py::test_mcp_full_envelope_and_machine_consumer[large]",
+    "tests/runtime_services/test_tool_results_capture.py::test_complete_partial_unknown_are_not_inferred",
+    "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget",
+    "tests/runtime_services/test_tool_results_capture.py::test_taskless_placement_and_identity_replay",
+    "tests/runtime_services/test_tool_results_boundaries.py"
+  ],
+  "f08-dispatch-preservation": [
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+    "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+    "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+    "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response"
   ]
 }

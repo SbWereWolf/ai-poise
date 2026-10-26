@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from batch.helpers import request
+from conftest import git
 from poise.common import PoiseError
 from runtime_services.stage_result_handoff_helpers import (
     blocked, blocked_details, business, complete, count, handoff, interrupt_after,
@@ -152,3 +153,93 @@ def test_source_drift_during_incomplete_handoff_never_advances_or_discards_the_c
     )
     assert path.read_text(encoding="utf-8") == "def double(n):\n    return n * 3\n"
     assert count(counter) == "x"
+
+
+@pytest.mark.parametrize("checkpoint", ["unknown_gate", "restored_receipt"])
+def test_dirty_source_native_commit_preserves_unknown_gate_and_exact_receipt_recovery(project, monkeypatch, checkpoint):
+    tools, context, packet, counter = start(project)
+    worktree = Path(context["worktree"])
+    source = worktree / "src/double.py"
+    source.write_text("def double(n):\n    return n * 2\n", encoding="utf-8")
+    git(worktree, "add", "src/double.py")
+    before_head = git(worktree, "rev-parse", "HEAD")
+    admitted_tree = git(worktree, "write-tree")
+    assert admitted_tree != git(worktree, "rev-parse", "HEAD^{tree}")
+    original = tools.runtime.evidence_commands.record_receipt
+    captured = []
+
+    def lose_original_receipt(*args, **kwargs):
+        captured.append((deepcopy(args), deepcopy(kwargs)))
+        raise PoiseError("fixture terminal receipt persistence unavailable")
+
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", lose_original_receipt)
+    first = blocked(handoff(tools, packet), "verification")
+    pending = deepcopy(source_state(tools)["pending"])
+    assert pending["kind"] == "check_attempt" and pending["runs"][0]["started"] is True
+    assert first["verification"] is None and first["progression"] is None and first["release"] is None
+    blocked_details(first, "receipt_unavailable", identities=[pending["attempt_id"], pending["runs"][0]["run_id"]])
+    committed_head = git(worktree, "rev-parse", "HEAD")
+    assert committed_head != before_head
+    assert git(worktree, "rev-parse", "HEAD^{tree}") == admitted_tree
+    assert git(worktree, "show", "HEAD:src/double.py") == "def double(n):\n    return n * 2"
+    assert tools.runtime.current_task()["publication"] is None
+    assert captured and count(counter) == "x"
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", original)
+    second = blocked(handoff(tools, packet), "verification")
+    assert source_state(tools)["pending"] == pending and count(counter) == "x"
+    assert source_state(tools)["claimed_by"] == "handoff-author"
+    assert second["progression"] is None and second["release"] is None
+    if checkpoint == "unknown_gate":
+        assert "Unknown check outcome" in second["blocked"]["reason"]
+        blocked_details(second, "unknown", identities=[pending["attempt_id"], pending["runs"][0]["run_id"]])
+        return
+    # Restore the exact captured real command receipt through its owner, not a synthetic PASS.
+    for args, kwargs in captured:
+        original(*args, **kwargs)
+    completed = complete(handoff(tools, packet), replayed=False)
+    assert completed["verification"]["verification_commit"] == committed_head
+    assert completed["verification"]["verified_tree"] == admitted_tree
+    state = source_state(tools)
+    assert state["pending"] is None and state["claimed_by"] is None
+    assert state["status"] == "verified" and state["stage"] == "author"
+    assert state["counts"][0] == 1 and count(counter) == "x"
+    assert git(worktree, "rev-parse", "HEAD") == committed_head
+    complete(handoff(tools, packet), replayed=True)
+    assert source_state(tools) == state and count(counter) == "x"
+
+
+def test_foreign_same_tree_commit_is_not_an_internal_verification_commit(project, monkeypatch):
+    tools, context, packet, counter = start(project)
+    worktree = Path(context["worktree"])
+    (worktree / "src/double.py").write_text("def double(n):\n    return n * 2\n", encoding="utf-8")
+    git(worktree, "add", "src/double.py")
+    admitted_tree = git(worktree, "write-tree")
+    assert admitted_tree != git(worktree, "rev-parse", "HEAD^{tree}")
+    original = tools.runtime.evidence_commands.record_receipt
+    captured = []
+
+    def lose_original_receipt(*args, **kwargs):
+        captured.append((deepcopy(args), deepcopy(kwargs)))
+        raise PoiseError("fixture terminal receipt persistence unavailable")
+
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", lose_original_receipt)
+    blocked(handoff(tools, packet), "verification")
+    pending = deepcopy(source_state(tools)["pending"])
+    own_commit = git(worktree, "rev-parse", "HEAD")
+    committed_tree = git(worktree, "rev-parse", "HEAD^{tree}")
+    assert committed_tree == admitted_tree
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", original)
+    assert captured
+    for args, kwargs in captured:
+        original(*args, **kwargs)
+    git(worktree, "commit", "--allow-empty", "-m", "Foreign same-tree commit")
+    foreign_commit = git(worktree, "rev-parse", "HEAD")
+    assert foreign_commit != own_commit and git(worktree, "rev-parse", "HEAD^{tree}") == committed_tree
+    result = blocked(handoff(tools, packet), "verification")
+    assert "source" in result["blocked"]["reason"].casefold()
+    assert "changed" in result["blocked"]["reason"].casefold()
+    assert result["verification"] is None and result["progression"] is None and result["release"] is None
+    state = source_state(tools)
+    assert state["pending"] == pending and state["claimed_by"] == "handoff-author"
+    assert state["stage"] == "author" and state["status"] == "active"
+    assert git(worktree, "rev-parse", "HEAD") == foreign_commit and count(counter) == "x"

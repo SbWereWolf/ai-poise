@@ -17,11 +17,12 @@ BUILTINS = {
     'lifecycle-consumer': {'SessionStart', 'SessionEnd'},
     'task-context': {'SessionStart', 'UserPromptSubmit', 'Stop'},
     'task-runtime-cleanup': {'SessionEnd'},
+    'tool-result': {'PostToolUse'},
 }
 
 
 def validate_builtin_options(name, options):
-    if name in ('general-context', 'command-intake'):
+    if name in ('general-context', 'command-intake', 'tool-result'):
         values = configuration_fields(options, {'policy_path'}, name)
         nonempty(values['policy_path'], name + '.policy_path')
         if not PurePath(values['policy_path']).is_absolute():

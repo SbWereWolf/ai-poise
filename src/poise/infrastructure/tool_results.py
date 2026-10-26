@@ -6,16 +6,36 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+from uuid import UUID, uuid5, NAMESPACE_URL
 
 from ..common import PoiseError, encoded as canonical
-from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject, saved_result
+from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject, saved_result, native_snapshot
 from ..modules.placement.contracts import PlacementRequest
 from .goal_config import atomic_write, strict_json
-from .locking import exclusive_lock
+from .locking import exclusive_lock, blocking_file_lock
 
 
 def digest(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def native_result(event, policy):
+    """Decode only the selected actual wire; never invent missing process streams."""
+    result = native_snapshot(event, policy)
+    if result['pending']: return result
+    parser = policy['parsers'][event['tool_name']]
+    if parser['format'] == 'saved-work-json':
+        try:
+            envelope = strict_json(result['response']['output'])
+            address = Path(envelope['response_path'])
+            if not address.is_absolute() or not address.resolve().is_relative_to(Path(parser['source_root']).resolve()):
+                reject('source_invalid', 'response_path', 'restore:source')
+            result['response'] = strict_json(address.read_bytes().decode())
+        except FileNotFoundError as exc:
+            raise ToolResultFailure('source_missing', 'response_path', 'provide:source') from exc
+        except (KeyError, TypeError, ValueError, UnicodeError, OSError) as exc:
+            raise ToolResultFailure('source_invalid', 'response_path', 'restore:source') from exc
+    return result
 
 
 def metadata(raw, path, nul_binary):
@@ -68,8 +88,13 @@ class FileStoredSource:
 class ResultPlacement:
     def __init__(self, service, policy, max_items):
         self.service, self.policy, self.max_items = service, policy, max_items
+        self.general_policy = None
 
     def prepare(self, paths):
+        if self.general_policy is not None:
+            for path in paths:
+                self.general_policy.admit_harness_path(str(Path(path).resolve()), self.policy['placement'])
+            return
         root = Path(self.policy['storage']['root'])
         intent = self.policy['placement']
         items = [{'key': digest(str(p).encode()), 'name': Path(p).name,
@@ -83,16 +108,43 @@ class ResultPlacement:
         actual = {r['absolute_path'] for r in result['items'] if r['reserved'] and r['versioning'] == 'ignored'}
         if actual != expected: reject('invalid_policy', 'placement', 'correct:policy')
 
+    @classmethod
+    def general(cls, policy, resources=None):
+        from ..modules.placement.policy import PlacementPolicy
+        instance = cls(None, policy, None)
+        try:
+            address = policy['placement']['policy']
+            raw = Path(address).read_text() if resources is None else resources[address]
+            instance.general_policy = PlacementPolicy.from_configuration(strict_json(raw))
+            for root in instance.general_policy.roots.values():
+                if root['path'] is not None: root['path'] = str(Path(root['path']).resolve())
+        except (PoiseError, OSError, ValueError, UnicodeError) as exc:
+            raise ToolResultFailure('invalid_policy', 'placement', 'correct:policy') from exc
+        return instance
+
 
 class FileToolResultStore:
     def __init__(self, bound, caller, policy, placement):
         self.policy, self.placement = policy, placement
         self.root = Path(policy['storage']['root'])
+        self.prepared = 'session' in policy
+        if self.prepared:
+            session = policy['session']
+            self.scope = caller.key
+            self.session = Path(session['root']) / caller.key
+            if not self.session.resolve().is_relative_to(self.root.resolve()):
+                reject('invalid_policy', 'session.root', 'correct:policy')
+            self.namespace = self.session / session['runs']
+            self.last = self.session / session['last']
+            return
         self.scope = digest(encoded([bound.config['project'], str(bound.checkout), caller.key]).encode())
         self.namespace = self.root / self.scope
         self.wait, self.poll = bound.config['limits']['lock_seconds'], bound.config['limits']['lock_poll_seconds']
 
     def address(self, request_id):
+        if self.prepared:
+            run = str(uuid5(NAMESPACE_URL, encoded([self.scope, request_id])))
+            return str(self.namespace / run / self.policy['storage']['response'])
         return str(self.namespace / digest(request_id.encode()) / self.policy['storage']['response'])
 
     def _raw(self, path):
@@ -108,7 +160,15 @@ class FileToolResultStore:
             reject('source_invalid', 'response_path', 'restore:source')
         raw = self._raw(path)
         try:
-            return saved_result(strict_json(raw.decode()), str(path), self.scope)
+            value = saved_result(strict_json(raw.decode()), str(path), self.scope, prepared=self.prepared)
+            if self.prepared:
+                expected = self.namespace / value['run_id']
+                if (path != expected / self.policy['storage']['response']
+                        or value['full_path'] != str(expected / self.policy['session']['full'])
+                        or value['expanded_path'] != str(expected / self.policy['session']['expanded'])
+                        or value['last_path'] != str(self.last)):
+                    reject('source_invalid', 'source', 'restore:source')
+            return value
         except (PoiseError, TypeError, KeyError, ValueError, UnicodeError, RecursionError) as exc:
             raise ToolResultFailure('source_invalid', 'source', 'restore:source') from exc
 
@@ -117,7 +177,9 @@ class FileToolResultStore:
         try: os.fsync(fd)
         finally: os.close(fd)
 
-    def capture(self, request):
+    def capture(self, request, *, prepare=None):
+        if self.prepared:
+            return self._capture_prepared(request, prepare)
         s = self.policy['storage']; final = Path(self.address(request['request_id'])); directory = final.parent
         raw_inputs = {}
         # Inputs are completed producer files. Never execute a producer to recover bytes.
@@ -176,6 +238,107 @@ class FileToolResultStore:
         finally:
             if stage is not None: shutil.rmtree(stage)
 
+    def _capture_prepared(self, request, prepare):
+        s, session = self.policy['storage'], self.policy['session']
+        final = Path(self.address(request['request_id']))
+        directory = final.parent
+        raw_inputs = {name: stream_metadata(path, self.policy['display']['binary']['nul_byte_is_binary'],
+                                            s['chunk_bytes'])
+                      for name, path in request['streams'].items() if path is not None}
+        fingerprint = digest(canonical({'request': request,
+            'streams': {k: v['sha256'] for k, v in raw_inputs.items()}}).encode('utf-8', 'backslashreplace'))
+        stage = None
+        try:
+            self.placement.prepare([final, directory / session['full'], directory / session['expanded'], self.last])
+            with blocking_file_lock(self.session / '.capture.lock'):
+                if final.is_file():
+                    record = self.load(str(final))
+                    if record['_fingerprint'] != fingerprint:
+                        reject('request_conflict', 'request_id', 'choose:new_key')
+                    self.validate_prepared(record)
+                    if not record['_published']:
+                        self._publish_last(record)
+                    # A completed replay does not rewind the session's last tool.
+                    return record
+                self.namespace.mkdir(parents=True, exist_ok=True)
+                stage = Path(tempfile.mkdtemp(prefix='.' + directory.name + '.', dir=self.namespace))
+                record = {'schema': 'poise-tool-result-1', 'status': 'stored', 'response_path': str(final),
+                          **{k: deepcopy(request[k]) for k in ('tool', 'response', 'capture', 'exit_code')},
+                          'streams': {'stdout': None, 'stderr': None}, '_scope': self.scope,
+                          '_fingerprint': fingerprint, 'run_id': directory.name,
+                          '_published': False,
+                          'full_path': str(directory / session['full']),
+                          'expanded_path': str(directory / session['expanded']), 'last_path': str(self.last)}
+                nul = self.policy['display']['binary']['nul_byte_is_binary']
+                sources = {}
+                for name, original in raw_inputs.items():
+                    target = stage / s[name]
+                    with Path(original['path']).open('rb') as src, target.open('xb') as dest:
+                        os.fchmod(dest.fileno(), s['file_mode'])
+                        shutil.copyfileobj(src, dest, s['chunk_bytes'])
+                        dest.flush(); os.fsync(dest.fileno())
+                    copied = stream_metadata(target, nul, s['chunk_bytes'])
+                    if {**copied, 'path': original['path']} != original:
+                        reject('source_invalid', 'streams', 'restore:source')
+                    record['streams'][name] = {**copied, 'path': str(directory / s[name])}
+                    sources[name] = FileStoredSource(copied)
+                raw = response_text(request['response']).encode()
+                atomic_write(stage / s['text'], raw, s['file_mode'])
+                record['_response_source'] = metadata(raw, directory / s['text'], nul)
+                sources['response'] = FileStoredSource(metadata(raw, stage / s['text'], nul))
+                for channel in ('stdout', 'stderr'): sources.setdefault(channel, None)
+                record['_prepared'] = prepare(record, sources)
+                atomic_write(stage / session['full'], raw, s['file_mode'])
+                atomic_write(stage / session['expanded'], record['_prepared']['expanded'].encode(), s['file_mode'])
+                atomic_write(stage / s['response'], response_text(record).encode(), s['file_mode'])
+                self._sync(stage)
+                os.rename(stage, directory); stage = None
+                self._sync(self.namespace)
+                self._publish_last(record)
+                return self.load(str(final))
+        except ToolResultFailure:
+            raise
+        except (PoiseError, OSError, ValueError) as exc:
+            raise ToolResultFailure('storage_write', 'storage', 'retry:capture') from exc
+        finally:
+            if stage is not None: shutil.rmtree(stage)
+
+    def _publish_last(self, record):
+        mode = self.policy['storage']['file_mode']
+        atomic_write(self.last, encoded({'uuid': record['run_id']}).encode(), mode)
+        self._sync(self.session)
+        record['_published'] = True
+        atomic_write(Path(record['response_path']), response_text(record).encode(), mode)
+        self._sync(Path(record['response_path']).parent)
+
+    def validate_prepared(self, record):
+        self.source(record, 'response')
+        for channel in ('stdout', 'stderr'):
+            if record['streams'][channel] is not None: self.source(record, channel)
+        full = self._raw(record['full_path'])
+        if digest(full) != record['_response_source']['sha256']:
+            reject('source_invalid', 'full', 'restore:source')
+        expanded = self._raw(record['expanded_path'])
+        if expanded != record['_prepared']['expanded'].encode():
+            reject('source_invalid', 'expanded', 'restore:source')
+
+    def latest(self):
+        try:
+            value = strict_json(self._raw(self.last).decode())
+            if set(value) != {'uuid'} or str(UUID(value['uuid'])) != value['uuid']:
+                reject('source_invalid', 'last', 'restore:source')
+        except (PoiseError, ValueError, TypeError, KeyError, UnicodeError) as exc:
+            if isinstance(exc, ToolResultFailure): raise
+            raise ToolResultFailure('source_invalid', 'last', 'restore:source') from exc
+        record = self.load(str(self.namespace / value['uuid'] / self.policy['storage']['response']))
+        if not record['_published']:
+            reject('source_invalid', 'publication', 'retry:capture')
+        self.validate_prepared(record)
+        return record
+
+    def expanded(self, record):
+        return self._raw(record['expanded_path']).decode()
+
     def source(self, record, channel):
         item = record['_response_source'] if channel == 'response' else record['streams'][channel]
         if item is None: reject('source_missing', 'channel', 'provide:source')
@@ -193,3 +356,56 @@ class FileToolResultStore:
                 sources[name] = None; continue
             sources[name] = self.source(record, name)
         return sources
+
+
+def service_delivery(event, owner, policy_path, settings):
+    """Associate an actual owned service call and saved response, never a flag alone."""
+    import shlex
+    if event.get('tool_name') != 'Bash': return None
+    native = event.get('tool_response')
+    if not isinstance(native, dict) or native.get('exit_code') != 0:
+        return None
+    try:
+        result = strict_json(native['output'])
+    except (PoiseError, KeyError, TypeError, ValueError):
+        return None
+    if (not isinstance(result, dict) or result.get('purpose') != 'harness-service'
+            or result.get('capability') != 'tool-result'):
+        return None
+    command = event.get('tool_input', {}).get('command')
+    try:
+        argv = shlex.split(command, comments=True)
+        request = None
+        if '<<<' in argv:
+            position = argv.index('<<<')
+            if len(argv) != position + 2: raise ValueError('Ambiguous stdin')
+            request = strict_json(argv[-1]); argv = argv[:position]
+        if not argv or argv[0] != settings.raw['python']: raise ValueError('Different entry')
+        pos = 1
+        while pos < len(argv) and argv[pos] in ('-B', '-I', '-P', '-s'): pos += 1
+        if argv[pos:pos + 3] != ['-m', 'poise', 'tool-result']: raise ValueError('Different operation')
+        rest = argv[pos + 3:]
+        if len(rest) % 2: raise ValueError('Invalid CLI arguments')
+        arguments = {}
+        for key, value in zip(rest[::2], rest[1::2]):
+            if key not in ('--config', '--checkout', '--policy', '--audience') or key in arguments:
+                raise ValueError('Invalid CLI selection')
+            arguments[key] = value
+        if (arguments.get('--policy') != str(policy_path)
+                or arguments.get('--audience') != 'agent'
+                or ('--config' in arguments) != ('--checkout' in arguments)):
+            raise ValueError('Different policy or audience')
+        if '--config' in arguments:
+            if Path(arguments['--config']).resolve() != settings.project_config.resolve():
+                raise ValueError('Different selected project')
+            if Path(arguments['--checkout']).resolve() != Path(event['cwd']).resolve():
+                raise ValueError('Different selected checkout')
+        operation = result['status']
+        if operation not in ('expanded', 'full'): raise ValueError('Not a saved-output read')
+        if request is not None and request != {'schema': 'poise-tool-result-request-1', 'operation': operation}:
+            raise ValueError('Different service request')
+        expected = owner.saved_service(operation)
+        if result != expected: raise ValueError('Service result differs from owned saved bytes')
+        return result['text'] if operation == 'expanded' else result['full_path']
+    except (PoiseError, KeyError, TypeError, ValueError, OSError) as exc:
+        raise ToolResultFailure('source_invalid', 'service', 'inspect:source') from exc

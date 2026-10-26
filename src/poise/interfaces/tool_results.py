@@ -12,7 +12,9 @@ from ..modules.result_views.tool_results import ToolResultFailure, ToolResultPol
 def execute(config_path, checkout, policy_path, audience, stream, output):
     original_exit = None
     try:
-        if not all(Path(p).is_absolute() for p in (config_path, checkout, policy_path)):
+        if (config_path is None) != (checkout is None):
+            raise ToolResultFailure('invalid_request', 'selection', 'provide:request')
+        if not all(Path(p).is_absolute() for p in (config_path, checkout, policy_path) if p is not None):
             raise ToolResultFailure('invalid_request', 'selection', 'provide:request')
         try: raw_policy = Path(policy_path).read_bytes()
         except OSError as exc:
@@ -21,8 +23,9 @@ def execute(config_path, checkout, policy_path, audience, stream, output):
         except (PoiseError, UnicodeError) as exc:
             raise ToolResultFailure('invalid_policy', 'policy', 'correct:policy') from exc
         policy = ToolResultPolicy.parse(value).data
-        bound = read_project_checkout(config_path, checkout)
-        limit = min(policy['input']['max_bytes'], bound.config['batch']['max_input_bytes'])
+        bound = None if config_path is None else read_project_checkout(config_path, checkout)
+        limit = policy['input']['max_bytes']
+        if bound is not None: limit = min(limit, bound.config['batch']['max_input_bytes'])
         raw = stream.read(limit+1)
         if len(raw) > limit: raise ToolResultFailure('invalid_request', 'request', 'provide:request')
         try: request = strict_json(raw.decode())

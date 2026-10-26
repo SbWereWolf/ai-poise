@@ -1,8 +1,15 @@
-def tool_result_tools(bound, policy, environment):
+def tool_result_tools(bound, policy, environment, *, caller=None, resources=None):
     """Taskless output uses the same explicit caller and placement owners."""
     from .application.tool_results import ToolResults
-    from .infrastructure.tool_results import FileToolResultStore, ResultPlacement
-    from .infrastructure.session_establishment import direct_caller
+    from .infrastructure.tool_results import FileToolResultStore, ResultPlacement, native_result
+    from .infrastructure.session_establishment import direct_caller, harness_caller
+    if 'session' in policy:
+        caller = harness_caller(environment) if caller is None else caller
+        return ToolResults(policy, FileToolResultStore(bound, caller, policy, ResultPlacement.general(policy, resources)),
+                           lambda event: native_result(event, policy))
+    if bound is None:
+        from .modules.result_views.tool_results import reject
+        reject('invalid_policy', 'session', 'correct:policy')
     caller = direct_caller(bound.config['project'], environment)
     placement = ResultPlacement(placement_tools(bound, policy['placement']['policy'], environment),
                                 policy, bound.config['batch']['max_items'])

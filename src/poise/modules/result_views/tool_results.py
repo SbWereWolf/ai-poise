@@ -49,11 +49,14 @@ def tool_identity(tool):
     if not text(tool['name']): reject()
 
 
-def saved_result(value, address, scope):
+def saved_result(value, address, scope, *, prepared=False):
     """Validate the complete stored wire shape before exposing source pointers."""
     try:
-        exact(value, {'schema', 'status', 'response_path', 'tool', 'response', 'capture',
-                      'exit_code', 'streams', '_scope', '_fingerprint', '_response_source'})
+        fields = {'schema', 'status', 'response_path', 'tool', 'response', 'capture',
+                  'exit_code', 'streams', '_scope', '_fingerprint', '_response_source'}
+        if prepared:
+            fields |= {'run_id', 'full_path', 'expanded_path', 'last_path', '_prepared', '_published'}
+        exact(value, fields)
         if (value['schema'] != 'poise-tool-result-1' or value['status'] != 'stored'
                 or value['response_path'] != address or value['_scope'] != scope): reject()
         if not isinstance(value['_fingerprint'], str) or not re.fullmatch('[0-9a-f]{64}', value['_fingerprint']): reject()
@@ -66,6 +69,14 @@ def saved_result(value, address, scope):
                     or not integer(item['bytes'], 0) or not integer(item['lines'], 0)
                     or type(item['binary']) is not bool or not isinstance(item['sha256'], str)
                     or not re.fullmatch('[0-9a-f]{64}', item['sha256'])): reject()
+        if prepared:
+            from uuid import UUID
+            if str(UUID(value['run_id'])) != value['run_id']: reject()
+            exact(value['_prepared'], {'brief', 'expanded'})
+            if any(not isinstance(v, str) for v in value['_prepared'].values()): reject()
+            if type(value['_published']) is not bool: reject()
+            if any(not text(value[k]) or not value[k].startswith('/')
+                   for k in ('full_path', 'expanded_path', 'last_path')): reject()
         return value
     except (DomainError, KeyError, TypeError, ValueError) as exc:
         raise ToolResultFailure('source_invalid', 'source', 'restore:source') from exc
@@ -135,7 +146,25 @@ class ToolResultPolicy:
             if p['hook']['mode'] not in ('audit', 'enforce'): raise ValueError('Invalid hook mode')
             for k in ('max_response_bytes', 'max_response_lines'):
                 if not integer(p['hook'][k], 1): raise ValueError(k)
-            return cls(deepcopy(p))
+            if 'session' in raw or 'parsers' in raw:
+                session = config(raw['session'], 'root runs last expanded full')
+                if not text(session['root']) or not session['root'].startswith('/'):
+                    raise ValueError('Explicit session root required')
+                names = [session[k] for k in ('runs', 'last', 'expanded', 'full')]
+                if any(not text(n) or '/' in n or n in ('.', '..') for n in names) or len(set(names)) != 4:
+                    raise ValueError('Distinct session names required')
+                if not isinstance(raw['parsers'], dict) or not raw['parsers']:
+                    raise ValueError('Explicit tool parsers required')
+                for name, parser in raw['parsers'].items():
+                    if not text(name) or not isinstance(parser, dict): raise ValueError('Invalid parser')
+                    for field in ('parser', 'format', 'brief_template', 'expanded_template', 'overflow'):
+                        if not text(parser[field]): raise ValueError(field)
+                    if parser['overflow'] != 'reject': raise ValueError('Unsupported overflow')
+                    for view in ('brief', 'expanded'):
+                        limits = config(parser[view], 'chars bytes')
+                        if any(not integer(n, 1) for n in limits.values()): raise ValueError(view)
+                p.update(session=deepcopy(session), parsers=deepcopy(raw['parsers']))
+            return cls(deepcopy(raw))
         except (DomainError, KeyError, TypeError, ValueError, re.error) as exc:
             raise ToolResultFailure('invalid_policy', 'policy', 'correct:policy') from exc
 
@@ -152,12 +181,16 @@ class ToolResultRequest:
         fields = {
             'capture': {'request_id', 'tool', 'response', 'streams', 'capture', 'exit_code'},
             'hook': {'request_id', 'event', 'streams', 'capture', 'exit_code'},
+            'expanded': set(), 'full': set(),
             'view': {'response_path', 'view'}, 'summary': {'response_path', 'channel'},
             'lines': {'response_path', 'channel', 'from_line', 'to_line'},
             'bytes': {'response_path', 'channel', 'start', 'end'},
             'search': {'response_path', 'channel', 'pattern', 'context', 'max_matches'}}
         if not text(operation) or operation not in fields: reject()
         exact(value, base | fields[operation])
+        if operation in ('expanded', 'full'):
+            if 'session' not in policy: reject('invalid_policy', 'session', 'correct:policy')
+            return cls(deepcopy(value))
         if operation in ('capture', 'hook'):
             if not text(value['request_id']): reject()
             exact(value['streams'], {'stdout', 'stderr'})
@@ -168,9 +201,12 @@ class ToolResultRequest:
             else:
                 event = value['event']
                 required = {'session_id', 'turn_id', 'tool_use_id', 'hook_event_name', 'tool_name',
-                            'tool_input', 'tool_response', 'cwd'}
+                            'tool_input', 'cwd'}
                 if not isinstance(event, dict) or not required.issubset(event): reject()
-                if event['hook_event_name'] != 'PostToolUse' or event['tool_name'] != 'Bash':
+                if 'tool_response' not in event:
+                    reject('source_missing', 'tool_response', 'provide:source')
+                if event['hook_event_name'] != 'PostToolUse' or (event['tool_name'] != 'Bash'
+                        and 'session' not in policy):
                     reject('unmapped_input', 'event', 'configure:input')
                 if event['tool_use_id'] != value['request_id']: reject()
         else:
@@ -189,6 +225,82 @@ class ToolResultRequest:
                 try: re.compile(value['pattern'])
                 except re.error: reject('invalid_pattern', 'pattern', 'correct:pattern')
         return cls(deepcopy(value))
+
+
+def native_snapshot(event, policy):
+    """Classify the declared whole wire value without reading or running a source."""
+    name = event['tool_name']
+    parser = policy['parsers'].get(name)
+    if parser is None: reject('unmapped_input', 'tool_name', 'configure:input')
+    response = deepcopy(event['tool_response'])
+    capture = {'state': 'complete', 'reason': None}
+    exit_code = None
+    if parser['format'] in ('native-exec-json', 'saved-work-json'):
+        if not isinstance(response, dict) or not isinstance(response.get('output'), str):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+        if 'session_id' in response and type(response.get('exit_code')) is not int:
+            return {'pending': True, 'capture': {'state': 'unknown', 'reason': 'native_process_pending'}}
+        if type(response.get('exit_code')) is not int:
+            reject('unmapped_input', 'exit_code', 'configure:input')
+        exit_code = response['exit_code']
+        if response['output'].startswith('Warning: truncated output'):
+            capture = {'state': 'partial', 'reason': 'native_output_truncated'}
+    elif parser['format'] == 'records-json':
+        if not isinstance(response, dict) or not isinstance(response.get('content'), list):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+    elif parser['format'] == 'work-json':
+        if not isinstance(response, dict) or not isinstance(response.get('status'), str):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+    else:
+        reject('unmapped_input', 'format', 'configure:input')
+    return {'pending': False, 'tool': {'name': name,
+            'kind': 'mcp' if parser['parser'] == 'mcp' else 'bash' if name == 'Bash' else 'generic'},
+            'response': response, 'capture': capture, 'exit_code': exit_code}
+
+
+def prepare_views(record, sources, policy):
+    """Select both forms once from the complete source at its canonical owner."""
+    parser = policy.get('parsers', {}).get(record['tool']['name'])
+    if parser is None or parser.get('parser') not in ('bash', 'mcp', 'poise'):
+        reject('unmapped_input', 'parser', 'configure:input')
+    try:
+        raw = record['response']
+        kind = parser['parser']
+        if kind == 'bash':
+            actual = []
+            for channel in ('stdout', 'stderr'):
+                if sources[channel] is not None:
+                    actual.extend(sources[channel].lines())
+            lines = ''.join(actual).splitlines() if actual else raw['output'].splitlines()
+            summaries = [line[len(parser['summary_prefix']):] for line in lines
+                         if line.startswith(parser['summary_prefix'])]
+            details = '\n'.join(line for line in lines if line.startswith(parser['detail_prefix']))
+            if summaries:
+                brief = parser['brief_template'].format(exit_code=record['exit_code'], summary=summaries[0])
+            elif parser['summary_missing'] == 'exit-only':
+                brief = parser['brief_without_summary'].format(exit_code=record['exit_code'])
+            else:
+                raise ValueError('Missing summary')
+            expanded = parser['expanded_template'].format(brief=brief, details=details)
+        elif kind == 'mcp':
+            content = raw['structuredContent']
+            if type(content['count']) is not int or not isinstance(content['names'], list):
+                raise ValueError('Invalid records')
+            if any(not isinstance(n, str) for n in content['names']): raise ValueError('Invalid names')
+            brief = parser['brief_template'].format(count=content['count'])
+            expanded = parser['expanded_template'].format(brief=brief, names=','.join(content['names']))
+        else:
+            if not isinstance(raw['status'], str) or not isinstance(raw['next_work'], str):
+                raise ValueError('Invalid work result')
+            brief = parser['brief_template'].format(status=raw['status'])
+            expanded = parser['expanded_template'].format(brief=brief, next_work=raw['next_work'])
+    except (KeyError, TypeError, ValueError, AttributeError, UnicodeError) as exc:
+        raise ToolResultFailure('parser_failed', 'source', 'inspect:source') from exc
+    pair = {'brief': brief, 'expanded': expanded}
+    for name, value in pair.items():
+        if len(value) > parser[name]['chars'] or len(value.encode()) > parser[name]['bytes']:
+            reject('budget_too_small', name, 'increase:budget')
+    return pair
 
 
 def navigation(record, mode=None):

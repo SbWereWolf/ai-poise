@@ -23,7 +23,7 @@ class HookDispatcher:
                 continue
             if status == 'completed':
                 if invocation['mode'] == 'sync':
-                    response = deepcopy(invocation['result']['response'])
+                    response = {**response, **deepcopy(invocation['result']['response'])}
                     if invocation['result']['control']['action'] == 'stop':
                         break
                 continue
@@ -51,7 +51,7 @@ class HookDispatcher:
                 raw, execution = self.executor.execute(handler, packet, directory,
                                                        resources=invocation['resources'])
                 result = HandlerResult.parse(raw, identifier)
-                response = deepcopy(result['response'])
+                response = {**response, **deepcopy(result['response'])}
                 self.store.update_invocation(path, identifier, status='completed',
                                              execution=execution, result=result)
                 if result['control']['action'] == 'stop':

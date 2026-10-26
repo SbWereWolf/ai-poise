@@ -153,6 +153,14 @@ class FileDispatchDeliveryStore:
             identifier = str(uuid.UUID(invocation['invocation_id']))
             (self.invocation_directory(path, identifier) / 'input.json').unlink(missing_ok=True)
         event = value['event']
+        if event['hook_event_name'] == 'PostToolUse' and any(
+                item['handler']['implementation']['kind'] == 'builtin'
+                and item['handler']['implementation']['name'] == 'tool-result'
+                for item in value['planned_invocations']):
+            # The result owner retains the complete machine source/provenance.
+            # Only temporary handler stdin is retired, never that tool result.
+            value['inputs_retired'] = True
+            return
         value['event'] = {key: deepcopy(event[key]) for key in (
             'hook_event_name', 'session_id', 'cwd', 'source', 'reason', 'turn_id', 'trigger') if key in event}
         if event['hook_event_name'] == 'UserPromptSubmit':

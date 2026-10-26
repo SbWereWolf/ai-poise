@@ -79,7 +79,18 @@ class StageResultHandoffCommands:
                 'task action=restart после остановки/проверки эффектов. Чтение контекста не разрешает '
                 f'повторный запуск неизвестной команды. {continuation}'
             )
-        elif phase == 'verification' and state.verification is not None:
+        elif error is not None and any(word in reason.casefold() for word in ('work packet', 'receipt')):
+            if 'work packet' in reason.casefold():
+                continuation = (
+                    f'show kind=task для Task {task}; согласуйте explicit rework текущего результата '
+                    'через его владельца, затем используйте новый handoff request_id.'
+                )
+            elif 'receipt' in reason.casefold():
+                continuation = (
+                    f'show kind=evidence для Task {task}; восстановите исходные immutable receipts '
+                    f'и их файлы через владельца доказательств. {continuation}'
+                )
+        elif error is None and phase == 'verification' and state.verification is not None:
             outcome = state.verification
             if outcome['status'] == 'checks_failed':
                 failed = [f'{r["method"]}: exit={r["actual_exit_code"]}' for r in outcome['checks'] if not r['passed']]
@@ -93,7 +104,7 @@ class StageResultHandoffCommands:
             else:
                 reason = json.dumps(outcome, ensure_ascii=False, sort_keys=True)
                 continuation = f'show kind=evidence для Task {task}; устраните указанный native gate. {continuation}'
-        elif phase == 'progression' and state.progression is not None and not normal_progression(state.progression):
+        elif error is None and phase == 'progression' and state.progression is not None and not normal_progression(state.progression):
             reason = json.dumps(state.progression, ensure_ascii=False, sort_keys=True)
             stage = state.progression['stage']
             continuation = (
@@ -153,12 +164,12 @@ class StageResultHandoffCommands:
             state, prepared = self._admit(args, intent_digest)
         phase = 'verification'
         try:
-            if state.verification is None:
+            if state.needs_verification:
                 outcome = self.effects.recovered_verification(state)
                 if outcome is None:
-                    self.effects.require_unverified_source(state)
                     if prepared is None:
                         prepared = self.effects.prepare_verification(args)
+                    self.effects.require_unverified_source(state, prepared)
                     outcome = self.effects.execute_verification(prepared)
                 proof = ({'commit': outcome['verification_commit'], 'tree': outcome['verified_tree']}
                          if outcome['status'] == 'verified' else None)

@@ -64,6 +64,10 @@ class StageHandoffState:
         if (self.actor, self.task_id, self.intent_digest) != (actor, task_id, intent_digest):
             raise DomainError('Stage handoff caller or request identity conflict')
 
+    @property
+    def needs_verification(self):
+        return self.verification is None or self.verification['status'] == 'content_requirements_failed'
+
     def changed(self, **values):
         if self.completed:
             raise DomainError('Completed stage handoff is immutable')
@@ -74,7 +78,8 @@ class StageHandoffState:
         for name in ('verification', 'verified_source', 'progression_started', 'release_context', 'release'):
             previous = getattr(self, name)
             if previous is not None and name in values and values[name] != previous:
-                raise DomainError(f'Confirmed handoff {name} is immutable')
+                if not (name == 'verification' and self.needs_verification and values[name] is not None):
+                    raise DomainError(f'Confirmed handoff {name} is immutable')
         if normal_progression(self.progression) and values.get('progression', self.progression) != self.progression:
             raise DomainError('Confirmed handoff progression is immutable')
         if self.release_intent is not None and 'release_intent' in values:

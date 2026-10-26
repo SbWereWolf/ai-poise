@@ -59,7 +59,7 @@ class RuntimeHandoffEffects:
             raise PoiseError('Current verification receipt missing or changed; restore its original bytes')
         return deepcopy(report)
 
-    def require_unverified_source(self, state):
+    def require_unverified_source(self, state, prepared):
         data = self.require_owner(state.task_id)
         context = self.context(state.task_id)
         if (context['stage'], context['iteration']) != (
@@ -73,16 +73,30 @@ class RuntimeHandoffEffects:
                 and publication['tree'] == current['tree'] == state.admitted_source['tree']):
             return
         if (current['tree'] == state.admitted_source['tree']
-                and is_check_attempt(data['pending'])):
+                and (is_check_attempt(data['pending']) or data['pending'] is None)):
             scope = self.runtime.validate_stage_scope(data)
             checks = self.runtime._select_checks(data, scope['changed'])
             invocations, execution_key = self.runtime._verification_execution(
                 data, current['tree'], checks, self.runtime._verification_workspace(data))
-            require_identity(data['pending'], self.runtime._attempt_identity(current['tree'], invocations))
-            self.runtime.runner.current_check_attempt(
-                state.task_id, self.runtime.session, current['tree'], execution_key,
-                [method['id'] for method in checks])
-            return
+            if is_check_attempt(data['pending']):
+                require_identity(data['pending'], self.runtime._attempt_identity(current['tree'], invocations))
+                self.runtime.runner.current_check_attempt(
+                    state.task_id, self.runtime.session, current['tree'], execution_key,
+                    [method['id'] for method in checks])
+                return
+            if prepared.payload is None or prepared.packet_digest != state.packet_digest:
+                raise PoiseError('Handoff verification work packet conflict')
+            submitted = self.runtime.runner.matching_submission_digest(
+                state.task_id, self.runtime.session, prepared.payload)
+            if submitted is None:
+                raise PoiseError('Handoff verification work packet conflict')
+            batch = self.runtime.task_commands.submission_observation_batch(
+                state.task_id, submitted, current['tree'], execution_key)
+            if batch is not None:
+                if not self.runtime._usable_receipts(state.task_id, batch['receipts'], invocations, current['tree']):
+                    raise PoiseError('Completed native receipts unavailable; restore original immutable receipts and files')
+                if state.verification is None or state.verification['checks'] == batch['receipts']:
+                    return
         raise PoiseError('Handoff source changed before verification; preserve WIP and use explicit rework')
 
     def require_verified_source(self, state):

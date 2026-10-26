@@ -13,9 +13,9 @@ owner](tool-results.md#контролируемый-hook-вход).
 с builtin `tool-result` и абсолютным `options.policy_path` на заполненный
 [session policy](../../config/examples/tool-results-session.example.json).
 Policy/placement resources проверяются до установки; handler сохраняет свою
-объявленную execution/on_error политику. Он включается в routes `PostToolUse`
-настоящей `hook-definition-2`; остальные routes, Start/admission, foreign groups
-и текущие handlers сохраняет существующий владелец установки.
+объявленную execution/on_error политику. Его подключение показано в
+[фрагменте events/routes](#фрагмент-подключения-tool-result); остальные routes,
+Start/admission, foreign groups и текущие handlers сохраняет существующий владелец установки.
 
 Native descriptor matcher выбирает поддержанные имена, например Bash и точный
 объявленный MCP. Это не выбор parser: внутри policy его делает
@@ -338,6 +338,63 @@ preflight отвергает такой дубль до native-коммита и
 }
 ```
 
+### Фрагмент подключения tool-result
+
+Ниже **MERGE-фрагмент**, а не самостоятельная definition или пакет установки.
+Сохраните полный текущий `hook-definition-2`: его schema/id/agent_id/message_source/
+transport, обязательный SessionStart и все остальные events/routes. Сначала заполните
+[полный handler](../../config/examples/tool-results-handler.example.json), замените
+`@TOOL_RESULTS_POLICY@` абсолютным путём session policy и сохраните его по абсолютному
+пути `/srv/poise/config/tool-results-handler.json` либо осознанно выбранному своему пути.
+Тот же путь укажите в routes ниже.
+
+```json
+{
+  "events": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash|mcp__example__records",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": 8192,
+      "status_message": "Проверить native-вход инструмента"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash|mcp__example__records",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": 8192,
+      "status_message": "Подготовить краткий вывод инструмента"
+    }
+  ],
+  "routes": {
+    "PreToolUse": [],
+    "PostToolUse": [
+      "/srv/poise/config/tool-results-handler.json"
+    ]
+  }
+}
+```
+
+Владелец требует **пару PreToolUse/PostToolUse**, даже если tool-result работает только
+на PostToolUse. При отсутствии пары добавьте оба descriptor и оба route. Пустой
+PreToolUse route явно означает отсутствие handlers на этом событии; он не запускает
+tool-result заранее. Если события уже есть, не создавайте повторные descriptor и
+не заменяйте их routes пустыми списками: сохраните прежние handlers и их порядок,
+добавьте путь tool-result к существующему PostToolUse route ровно один раз. Остальные
+маршруты остаются прежними. Matcher существующих событий согласуйте с их обработчиками;
+command-intake сохраняет собственную Bash границу.
+
+`mcp__example__records` — имя из примера policy, не установленный endpoint. Перед
+публикацией согласованно замените его настоящим объявленным именем в matcher,
+parsers и selection. Числа30/8192 — явные значения примера, не defaults; timeout
+должен учитывать execution/cleanup подключённых handlers, context_limit — их вывод.
+Передайте **полную объединённую definition** существующему install/reconfigure owner
+с фактической revision по [публичному интерфейсу](#интерфейсы). Он выполняет preflight
+всей конфигурации и ресурсов до публикации; наличие фрагмента само по себе ничего
+не устанавливает и не подтверждает доставку хука на действующем хосте.
+
 ### Конфигурация и встроенные возможности
 
 `schema`, `id`, `handlers` обязательны. В одной конфигурации handler ID уникальны.
@@ -352,6 +409,7 @@ preflight отвергает такой дубль до native-коммита и
 | `capability-summary` | SessionStart | `probes` и `summary` с `file`, `header_template`, `item_template`. |
 | `general-context` | SessionStart, PreCompact, PostCompact, SessionEnd | Абсолютный `policy_path` к полной политике общей сводки; End сам не восстанавливает ресурс reader. |
 | `command-intake` | PreToolUse, PostToolUse | Абсолютный `policy_path` к полному reader profile, содержащему `command_intake.policy`. |
+| `tool-result` | PostToolUse | Абсолютный `options.policy_path` к полной [session policy](tool-results.md#сессия-и-два-сохранённых-представления). |
 | `lifecycle-consumer` | SessionStart, SessionEnd | Полный `consumer` по [договору потребителя](#настроенный-потребитель-lifecycle). |
 | `task-context` | SessionStart, UserPromptSubmit, Stop | `context_template` с полями ровно `{launcher}`, `{state}`; `stop_template` с `{state}`; явный `gate_operations` из bootstrap/verify/artifacts. Нужен Task adapter. |
 | `task-runtime-cleanup` | SessionEnd | Явный объект `options`; используется существующий Task cleanup owner. Нужен Task adapter. |

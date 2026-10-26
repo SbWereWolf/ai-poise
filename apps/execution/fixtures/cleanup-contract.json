@@ -782,5 +782,19 @@
       "target_commit": "@COMMIT",
       "integration_request_id": "integration-actual-1"
     }
-  }
+  },
+  "integration_fact_mismatches": [
+    {
+      "field": "source_commit",
+      "value": "0000000000000000000000000000000000000000"
+    },
+    {
+      "field": "target_commit",
+      "value": "0000000000000000000000000000000000000000"
+    },
+    {
+      "field": "integration_request_id",
+      "value": "other-integration-request"
+    }
+  ]
 }

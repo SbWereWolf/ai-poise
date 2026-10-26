@@ -109,9 +109,11 @@ def dispositions(root):
     cleanup = integrated.prepare()
     assert cleanup['work']['operation'] == 'integration_status'
     observation = physical(integrated.owner_root, cleanup['work'])
-    bad = deepcopy(observation)
-    bad['result']['target_commit'] = '0' * 40
-    integrated.refuse(integrated.packet('observe', work=cleanup['work'], observation=bad))
+    for mismatch in DATA['integration_fact_mismatches']:
+        bad = deepcopy(observation)
+        bad['result'][mismatch['field']] = mismatch['value']
+        integrated.refuse(integrated.packet('observe', work=cleanup['work'], observation=bad))
+        assert integrated.query() == cleanup
     cleanup = integrated.observe(cleanup['work'], observation)
     integrated.drain(cleanup, ORDER)
     assert integrated.owner_state()['effects']['integration_status:branch'] == 1
@@ -209,6 +211,11 @@ def lost_caller(root, position):
     assert last['status'] == 'cleanup_pending' and last['work']['mode'] == 'execute'
     assert all(event['observation'] is None for event in last['history'])
     assert s.query() == last
+    if position == 'before':
+        # A well-shaped observation cannot grant permission outside reconcile.
+        s.refuse(s.packet('observe', work=last['work'],
+                          observation=DATA['owner_recovery']['not_started']))
+        assert s.query() == last
     assert s.temporary.exists() is (position == 'before')
     expected_effects = {} if position == 'before' else {'remove:temporary': 1}
     assert s.owner_state()['effects'] == expected_effects

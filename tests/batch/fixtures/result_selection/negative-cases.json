@@ -1,0 +1,111 @@
+[
+  {
+    "path": [
+      "expected",
+      "task"
+    ],
+    "value": "FOREIGN",
+    "code": "selection_stale"
+  },
+  {
+    "path": [
+      "expected",
+      "stage"
+    ],
+    "value": "audit",
+    "code": "selection_stale"
+  },
+  {
+    "path": [
+      "expected",
+      "iteration"
+    ],
+    "value": 99,
+    "code": "selection_stale"
+  },
+  {
+    "path": [
+      "expected",
+      "version"
+    ],
+    "value": 9999,
+    "code": "selection_stale"
+  },
+  {
+    "path": [
+      "expected",
+      "version"
+    ],
+    "value": true,
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "schema"
+    ],
+    "value": "invented",
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "sections"
+    ],
+    "value": {},
+    "code": "selection_missing_sections"
+  },
+  {
+    "path": [
+      "sections",
+      "report"
+    ],
+    "value": "Record actual result.",
+    "code": "selection_missing_sections"
+  },
+  {
+    "path": [
+      "sections",
+      "unknown"
+    ],
+    "value": "undeclared",
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "metadata",
+      "sections"
+    ],
+    "value": {},
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "metadata"
+    ],
+    "value": null,
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "files"
+    ],
+    "value": null,
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "sections"
+    ],
+    "value": null,
+    "code": "selection_contract_invalid"
+  },
+  {
+    "path": [
+      "files",
+      0,
+      "source",
+      "digest"
+    ],
+    "value": "0000000000000000000000000000000000000000000000000000000000000000",
+    "code": "selection_contract_invalid"
+  }
+]

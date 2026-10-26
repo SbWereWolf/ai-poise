@@ -1,0 +1,32 @@
+[
+  {
+    "root": "task",
+    "path": "../foreign.bin",
+    "code": "selection_contract_invalid"
+  },
+  {
+    "root": "task",
+    "path": "/tmp/foreign.bin",
+    "code": "selection_contract_invalid"
+  },
+  {
+    "root": "sprint",
+    "path": "task/FOREIGN/proof.bin",
+    "code": "selection_contract_invalid"
+  },
+  {
+    "root": "unlisted",
+    "path": "proof.bin",
+    "code": "selection_contract_invalid"
+  },
+  {
+    "root": "task",
+    "path": "missing.bin",
+    "code": "selection_source_invalid"
+  },
+  {
+    "root": "task",
+    "path": "inputs",
+    "code": "selection_source_invalid"
+  }
+]

@@ -169,6 +169,7 @@ class ExecutionVerification:
     def start_run(self, value):
         runner = self.runner()
         started_now = False
+        launch_error = None
         with self.unit_of_work(write=True) as repository:
             prior = self.prior(repository, value, 'attempt')
             if prior is not None:
@@ -192,29 +193,34 @@ class ExecutionVerification:
             if value['action'] == 'recover':
                 if not run['started']:
                     raise RecordsError('Only a started run can recover its actual capture')
-                receipt = runner.recover(data, run)
-                if receipt is None:
+                try:
+                    receipt = runner.recover(data, run)
+                except KnownLaunchFailure as exc:
+                    launch_error = str(exc)
+                    self.record_launch_failure_in(repository, data, run, value, launch_error)
+                    receipt = None
+                if receipt is None and launch_error is None:
                     return self.response(repository, value, data, 'pending', save=False)
             else:
                 run['started'] = True
                 data['value']['state'] = 'running'
                 data['requests'][run['run_id']] = {'request_id': value['request_id'],
-                    'digest': GateCommands.request_digest('attempt', value)}
+                    'digest': GateCommands.request_digest('attempt', value), 'launch_id': str(uuid4())}
                 self.save(repository, data)
                 repository.set_revision(repository.get_revision() + 1)
                 started_now = True
                 receipt = None
             process = self.state.process(repository, execution)
             subject_rules = execution['contract']['evidence_plan'][data['value']['stage_id']]['subject_methods']
+        if launch_error is not None:
+            raise RecordsError(self.launch_failure_message(launch_error))
         if receipt is None:
             method = next(m for m in data['methods'] if m['id'] == run['method_id'])
             try:
                 receipt = runner.run(data, run, method, subject_rules)
             except KnownLaunchFailure as exc:
                 self.record_launch_failure(value, str(exc))
-                raise RecordsError('Command was not started. Fix its declared executable/cwd, '
-                    'read the current revision and retry this reserved run, or abandon the attempt. '
-                    + str(exc)) from exc
+                raise RecordsError(self.launch_failure_message(str(exc))) from exc
         try:
             return self.record_run(value, receipt)
         except sqlite3.Error:
@@ -223,24 +229,34 @@ class ExecutionVerification:
                 data = self.load(repository, execution, value['attempt_id'], check_source=False)
                 return self.response(repository, value, data, 'pending', save=False, changed=started_now)
 
+    @staticmethod
+    def launch_failure_message(error):
+        return ('Command was not started. Fix its declared executable/cwd, read the current revision '
+                'and retry this reserved run, or abandon the attempt. ' + error)
+
+    def record_launch_failure_in(self, repository, data, run, value, error):
+        """Release only permission proved unused; preserve its actual origin."""
+        if not run['started'] or run['receipt'] is not None:
+            raise RecordsError('Known launch failure must resolve its own started permission')
+        origin = data['requests'][run['run_id']]
+        data.setdefault('launch_failures', []).append({
+            'run_id': run['run_id'], 'request_id': origin['request_id'],
+            'recorded_by_request_id': value['request_id'], 'launch_id': origin['launch_id'],
+            'actor_id': value['actor_id'], 'command_not_started': True, 'error': error})
+        run['started'] = False
+        data['requests'].pop(run['run_id'])
+        data['value']['state'] = ('running' if any(r['started'] for r in data['value']['runs'])
+                                  else 'reserved')
+        self.save(repository, data)
+        repository.set_revision(repository.get_revision() + 1)
+
     def record_launch_failure(self, value, error):
-        """Release only permission proved unused; preserve failure and budget."""
         with self.unit_of_work(write=True) as repository:
             execution = self.state.execution(repository, value['task_id'])
             data = self.load(repository, execution, value['attempt_id'], check_source=False)
             VerificationPolicy.require_actor(data, value['actor_id'])
             run = VerificationPolicy.validate_run(data['value'], value['run_id'])
-            if not run['started'] or run['receipt'] is not None:
-                raise RecordsError('Known launch failure must resolve its own started permission')
-            data.setdefault('launch_failures', []).append({
-                'run_id': run['run_id'], 'request_id': value['request_id'],
-                'actor_id': value['actor_id'], 'command_not_started': True, 'error': error})
-            run['started'] = False
-            data['requests'].pop(run['run_id'])
-            data['value']['state'] = ('running' if any(r['started'] for r in data['value']['runs'])
-                                      else 'reserved')
-            self.save(repository, data)
-            repository.set_revision(repository.get_revision() + 1)
+            self.record_launch_failure_in(repository, data, run, value, error)
 
     def record_run(self, value, receipt):
         with self.unit_of_work(write=True) as repository:

@@ -35,6 +35,12 @@ class VerificationRunner:
         return self.settings['output_root'] / run['run_id']
 
     @staticmethod
+    def save_capture(path, value):
+        temporary = path.with_name(path.name + '.writing')
+        temporary.write_text(json.dumps(value, ensure_ascii=False), encoding='utf-8')
+        temporary.replace(path)
+
+    @staticmethod
     def capture_outputs(declarations, directory):
         complete, outputs = True, []
         for declaration in declarations:
@@ -62,7 +68,15 @@ class VerificationRunner:
                 child = subprocess.Popen(method['argv'], cwd=cwd, env=environment,
                                          stdout=out, stderr=err, start_new_session=True)
             except (OSError, RecordsError) as exc:
-                raise KnownLaunchFailure(str(exc)) from exc
+                error = str(exc)
+                try:
+                    self.save_capture(directory / 'launch-failure.json', {
+                        'launch_id': data['requests'][run['run_id']]['launch_id'],
+                        'attempt_id': attempt['attempt_id'], 'run_id': run['run_id'],
+                        'command_not_started': True, 'error': error})
+                except OSError as storage_error:
+                    error += '; launch capture unavailable: ' + str(storage_error)
+                raise KnownLaunchFailure(error) from exc
             # Once Popen returns, the command may have effects. Later failures
             # retain the committed start and never restore launch permission.
             child.communicate()
@@ -97,14 +111,25 @@ class VerificationRunner:
                    'execution_key': data['execution_key'], 'stdout_bytes_hex': stdout.hex(),
                    'stderr_bytes_hex': stderr.hex(), 'resolved_cwd': str(cwd),
                    'output_directory': str(directory), 'outputs': outputs, 'termination': termination}
-        (directory / 'capture.json').write_text(json.dumps(receipt, ensure_ascii=False), encoding='utf-8')
+        self.save_capture(directory / 'capture.json', {
+            'launch_id': data['requests'][run['run_id']]['launch_id'], 'receipt': receipt})
         return receipt
 
     def recover(self, data, run):
-        path = self.directory(run) / 'capture.json'
-        if not path.is_file():
+        directory = self.directory(run)
+        launch_id = data['requests'][run['run_id']]['launch_id']
+        path = directory / 'capture.json'
+        capture = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
+        if capture is None or capture['launch_id'] != launch_id:
+            failed_path = directory / 'launch-failure.json'
+            failed = json.loads(failed_path.read_text(encoding='utf-8')) if failed_path.is_file() else None
+            if failed is not None and failed['launch_id'] == launch_id:
+                if (failed['attempt_id'] != data['value']['attempt_id']
+                        or failed['run_id'] != run['run_id'] or failed['command_not_started'] is not True):
+                    raise RecordsError('Select the launch outcome for this actual reserved run')
+                raise KnownLaunchFailure(failed['error'])
             return None
-        receipt = json.loads(path.read_text(encoding='utf-8'))
+        receipt = capture['receipt']
         if (receipt['attempt_id'] != data['value']['attempt_id'] or receipt['run_id'] != run['run_id']
                 or receipt['execution_key'] != data['execution_key']):
             raise RecordsError('Retained run capture belongs to another reserved attempt')

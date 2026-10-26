@@ -16,12 +16,19 @@ class ReusePolicy:
             raise RecordsError('Reuse requires an explicit public duplicate family')
         if not isinstance(eligibility, dict):
             raise RecordsError('Reuse requires an explicit public eligibility fact object')
-        members = {m['task']['task_id']: m['task'] for m in family['members']}
+        members = {}
+        for member in family['members']:
+            card = member.get('task') if isinstance(member, dict) else None
+            if not isinstance(card, dict) or not isinstance(card.get('task_id'), str) or not card['task_id']:
+                raise RecordsError('Reuse family members require Task objects with a string task_id')
+            if card['task_id'] in members:
+                raise RecordsError('Reuse family must identify each Task once')
+            members[card['task_id']] = card
         source = members.get(source_fact['task_id'])
         target = members.get(task_id)
         if source is None or target is None or source['task_id'] == task_id:
             raise RecordsError('Reuse source and target must be distinct members of the same family')
-        if source['state'] != 'completed' or source_fact['kind'] != 'positive' or not source_fact['result_commit']:
+        if source.get('state') != 'completed' or source_fact['kind'] != 'positive' or not source_fact['result_commit']:
             raise RecordsError('Reuse requires a completed positive source with an accepted result commit')
         terminal = source.get('terminal')
         reference = terminal.get('source_ref') if isinstance(terminal, dict) else None
@@ -33,13 +40,13 @@ class ReusePolicy:
             raise RecordsError('Select the accepted source outcome named by the public completed terminal')
         if eligibility.get('task_id') != task_id or eligibility.get('eligible') is not True:
             raise RecordsError('Reuse target is not eligible under supplied public admission')
-        if target['state'] not in ('available', 'claimed'):
+        if target.get('state') not in ('available', 'claimed'):
             raise RecordsError('Reuse target must be available or claimed by this caller')
         claim = target.get('claim')
-        if claim is not None and claim.get('claimant') != admission['claimant']:
+        if claim is not None and (not isinstance(claim, dict) or claim.get('claimant') != admission['claimant']):
             raise RecordsError('Reuse target is claimed by another claimant')
         workspace = target.get('workspace')
-        if workspace is not None and workspace['status'] != 'ready':
+        if workspace is not None and (not isinstance(workspace, dict) or workspace.get('status') != 'ready'):
             raise RecordsError('Reuse requires the supplied Workspace to be ready')
 
     @staticmethod

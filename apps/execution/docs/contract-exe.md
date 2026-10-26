@@ -1,6 +1,6 @@
 # Execution public contract
 
-Статус: действующие process/gate/files/lifecycle/advance/outcome/attempt/reuse API и отдельно отмеченные
+Статус: действующие process/gate/files/lifecycle/advance/outcome/attempt/reuse/cleanup API и отдельно отмеченные
 проектные материалы.
 Версия публичного протокола: `stride-execution/v1`.
 
@@ -8,7 +8,10 @@
 `files/check|diff`, `query/execution|gate_context|gate_result|file_result|file_diff_result`,
 Python-интерфейсы записи/чтения фактов и `Store.prepare_stage_commit`,
 `advance/next|fast_forward`, `outcome`, `attempt/begin|run|recover|finish|abandon`,
-`reuse/prepare|verify|accept` и `query/progression|outcome|attempt|verification|reuse`.
+`reuse/prepare|verify|accept`, `cleanup/prepare|continue|observe`
+и `query/progression|outcome|attempt|verification|reuse|cleanup`.
+[Очистка ресурсов](cleanup-exe.md) описывает реализованную обязанность, адресуемую
+работу владельца и реальные наблюдения; физический провайдер подключается явно.
 [Итог выполнения](outcomes-exe.md) описывает текущие полномочия, пакет решения,
 адресуемый факт, повторы и явную передачу отдельным получателям.
 [Продвижение](advance-exe.md) описывает действующие пакеты, доказательства и историю.
@@ -26,7 +29,7 @@ query/lifecycle|restart_history. Точные текущие пакеты и р�
 API,
 F3/F4 ссылаются на действующую приёмку.
 
-Остальные схемы §1–3, §5–7, §8.2–11 и F1a/F5/F7–F9/F11 — проектные материалы T012, если явно
+Остальные схемы §1–3, §5–7, §8.2, §9–11 и F1a/F5/F7–F9/F11 — проектные материалы T012, если явно
 не отмечены в действующих руководствах. Они сами по себе не объявляют возможности
 поставленного provider или новые обязательства реализации. В частности,
 `ValueRule`/`FileRule`, проектный structured `error` и authority resolver
@@ -519,7 +522,25 @@ Physical Workspace removal принадлежит Sequencing; отдельная
 obligation/receipt передаётся ему явно. Интеграция не является скрытым разрешением
 удалить грязный/чужой Workspace или чужую ветку.
 
+### 8.3 `cleanup`: собственная обязанность и работа владельца
+
+Действующие `prepare`, `continue`, `observe` и `query/cleanup` сохраняют исходное
+намерение, решение о результате, наблюдения физического владельца и полный остаток
+работы. Их точные текущие поля, явная настройка `cleanup.roles`, ответы и правильные
+примеры принадлежат [руководству очистки](cleanup-exe.md).
+
+Вызывающий передаёт выданный `work` владельцу и возвращает его реальный результат.
+При потере процесса новый `continue` сначала выдаёт `reconcile` прежней попытки;
+подтверждённое `not_started` разрешает `execute` той же попытки. Известный отказ
+продолжается явным решением с новой попыткой и прежним логическим шагом.
+Текущее внедрение этого процессного API сохраняет отдельный статус физической
+интеграции §8.2 и физических операций соседних приложений.
+
 ## 9. Consistent queries
+
+Текущее чтение `cleanup` возвращает полный сохранённый результат по адресу Task
+и `cleanup_id` через [действующий договор](cleanup-exe.md#результат-и-история),
+включая историю после последующих поколений. Оно сохраняет состояние и адреса.
 
 Текущее чтение `attempt|verification|reuse` возвращает полный `result` по
 [договору проверок](verification-exe.md#бюджет-чтение-и-повтор).

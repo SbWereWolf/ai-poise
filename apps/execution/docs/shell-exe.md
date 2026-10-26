@@ -19,8 +19,9 @@ python -B apps/execution/bin/execution --config "$EXECUTION_CONFIG"
 `lifecycle` с семью действиями согласования и повторной работы,
 `advance` с `action: next|fast_forward`, `outcome` с `intent: accept|cancel`,
 `attempt` с `action: begin|run|recover|finish|abandon`,
-`reuse` с `action: prepare|verify|accept`
-и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression|outcome|attempt|verification|reuse`.
+`reuse` с `action: prepare|verify|accept`,
+`cleanup` с `action: prepare|continue|observe`
+и `query` с `kind: execution|gate_context|gate_result|file_result|file_diff_result|lifecycle|restart_history|progression|outcome|attempt|verification|reuse|cleanup`.
 [Редактор процессов](process-exe.md) описывает create/edit/status/reconcile и
 материализацию выбранного графа.
 
@@ -49,6 +50,12 @@ freeze/enter/present, предложение и решение о пересмо
 runner, полный результат команды, предел попыток, штатное восстановление и собственное
 принятие связанного результата. Все пять параметров необязательного компонента
 `verification` заполните по [инструкции](verification-exe.md#подготовка-и-настройка).
+
+[Очистка ресурсов](cleanup-exe.md) описывает собственную обязанность, явное решение,
+публичную работу владельца и возвращаемые наблюдения. Для новых действий настройте
+`cleanup.roles` по [инструкции](cleanup-exe.md#подготовка-и-настройка).
+После потери вызывающего сначала выполните новый `continue` для
+[адресной сверки прежней попытки](cleanup-exe.md#продолжение-и-сверка).
 
 ## Конфигурация приложения
 

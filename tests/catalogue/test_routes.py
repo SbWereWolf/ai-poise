@@ -52,7 +52,8 @@ def test_every_declared_feedback_edge_has_a_walkthrough(tmp_path):
         (Path(__file__).resolve().parents[2] / 'config/catalogue/reference.json').read_text()
     )
     assert report['nodes'] == sum(len(goal['stages']) for goal in reference['goal_types'])
-    assert report['feedback_edges']==34
+    # The two feedback edges belonging to deleted development follow-up inspectors disappear.
+    assert report['feedback_edges']==32
     assert report['unmapped']==[]
 
 

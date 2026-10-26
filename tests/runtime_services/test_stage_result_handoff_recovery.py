@@ -9,6 +9,7 @@ from batch.helpers import request, result
 from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.foundation.errors import VersionConflict
 from poise.modules.tasks.ports import TaskReadSet
 from runtime_services.stage_result_handoff_helpers import (
     blocked, blocked_details, business, complete, configure, count, fixture, handoff, interrupt_after,
@@ -351,3 +352,57 @@ def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_o
     assert replayed["verification"] == completed["verification"]
     assert replayed["progression"] == completed["progression"] and replayed["release"] == completed["release"]
     assert source_state(receiving) == receiver_before and count(counter) == "x"
+
+
+def test_native_journal_cas_conflict_advises_exact_retry_without_source_drift(project, monkeypatch):
+    tools, _, packet, counter = start(project)
+    commands = tools.runtime.stage_handoff
+    original_save = commands._save
+    schedule = {}
+
+    def stale_confirmation(state, inputs=None):
+        if not schedule and state.verification is not None and state.progression_started is None:
+            schedule["started"] = True
+            saved = original_save(state, inputs)
+            newer = original_save(saved.changed(
+                progression_started=commands.effects.progression_context(saved),
+            ))
+            schedule["saved_revision"] = saved.revision
+            schedule["newer_revision"] = newer.revision
+            try:
+                return original_save(saved)
+            except VersionConflict as error:
+                schedule["actual_error"] = error
+                raise
+        return original_save(state, inputs)
+
+    monkeypatch.setattr(commands, "_save", stale_confirmation)
+    before = source_state(tools)
+    first = blocked(handoff(tools, packet), "verification")
+    assert isinstance(schedule["actual_error"], VersionConflict)
+    assert schedule["newer_revision"] == schedule["saved_revision"] + 1
+    assert first["blocked"]["reason"] == "Stage handoff revision changed; retry its exact public request"
+    assert first["verification"]["status"] == "verified"
+    assert first["progression"] is None and first["release"] is None
+    after_conflict = source_state(tools)
+    assert (after_conflict["head"], after_conflict["tree"]) == (before["head"], before["tree"])
+    assert (after_conflict["status"], after_conflict["stage"], after_conflict["claimed_by"]) == (
+        "verified", "author", "handoff-author",
+    )
+    assert after_conflict["pending"] is None and count(counter) == "x"
+    completed = complete(handoff(tools, packet), replayed=False)
+    assert completed["verification"] == first["verification"]
+    after_retry = source_state(tools)
+    assert after_retry["claimed_by"] is None and after_retry["pending"] is None
+    assert after_retry["head"] == before["head"] and after_retry["tree"] == before["tree"]
+    assert after_retry["counts"][0] == 1 and count(counter) == "x"
+    receiving, _ = receiver(project)
+    receiver_before = source_state(receiving)
+    assert receiver_before["claimed_by"] == "handoff-reviewer"
+    replayed = complete(handoff(tools, packet), replayed=True)
+    assert replayed["verification"] == completed["verification"]
+    assert replayed["progression"] == completed["progression"] and replayed["release"] == completed["release"]
+    assert source_state(receiving) == receiver_before and count(counter) == "x"
+    assert first["blocked"]["continuation"] == (
+        "Повторите точный handoff request_id=handoff-fixture-1 task_id=T1."
+    ), "Native journal CAS conflict must keep the exact original handoff retry"

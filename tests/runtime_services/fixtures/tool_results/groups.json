@@ -92,5 +92,12 @@
     "tests/runtime_services/test_tool_results_parsers.py::test_separate_channel_public_consumer_keeps_literal_pair",
     "tests/runtime_services/test_tool_results_source_contract.py::test_native_loss_marker_producer_uses_declared_profile",
     "tests/runtime_services/test_tool_results_source_contract.py::test_native_loss_marker_public_full_consumer"
+  ],
+  "f08-poise-profiles": [
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_explicit_profile_selector",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_actual_poise_source_forms",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_one_policy_mixed_native_outputs",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_selection_policy_keeps_actual_service_delivery",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_known_selection_configuration_refuses"
   ]
 }

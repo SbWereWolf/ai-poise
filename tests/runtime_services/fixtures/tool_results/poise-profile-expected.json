@@ -1,0 +1,42 @@
+{
+  "bootstrap": {
+    "brief": "Poise: active",
+    "expanded": "Poise: active\nTask: \"T1\"\nStage: \"tests\""
+  },
+  "show": {
+    "brief": "Poise: read_only",
+    "expanded": "Poise: read_only\nQueries: 1"
+  },
+  "release": {
+    "brief": "Poise: ownership_released",
+    "expanded": "Poise: ownership_released\nTask: \"T1\"\nTask claim: null\nWorktree claim: null"
+  },
+  "show-status-only": {
+    "brief": "Poise: read_only",
+    "expanded": "Poise: read_only"
+  },
+  "bash-success": {
+    "argv": [
+      "bash",
+      "-c",
+      "printf 'RESULT: 2 records\\nDETAIL: ordinary Bash\\n'"
+    ],
+    "stdout": "RESULT: 2 records\nDETAIL: ordinary Bash\n",
+    "stderr": "",
+    "exit_code": 0,
+    "brief": "Bash: exit 0; 2 records",
+    "expanded": "Bash: exit 0; 2 records\nDETAIL: ordinary Bash"
+  },
+  "bash-failure": {
+    "argv": [
+      "bash",
+      "-c",
+      "printf 'RESULT: 2 records\\nDETAIL: ordinary Bash\\n'; exit 7"
+    ],
+    "stdout": "RESULT: 2 records\nDETAIL: ordinary Bash\n",
+    "stderr": "",
+    "exit_code": 7,
+    "brief": "Bash: exit 7; 2 records",
+    "expanded": "Bash: exit 7; 2 records\nDETAIL: ordinary Bash"
+  }
+}

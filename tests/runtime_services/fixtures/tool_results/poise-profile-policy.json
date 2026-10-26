@@ -1,0 +1,68 @@
+{
+  "selection": [
+    {
+      "id": "ordinary-poise",
+      "tool_name": "Bash",
+      "profile": "Poise",
+      "priority": 20,
+      "command_pattern": "@POISE_COMMAND_PATTERN@"
+    },
+    {
+      "id": "ordinary-bash",
+      "tool_name": "Bash",
+      "profile": "Bash",
+      "priority": 10,
+      "command_pattern": null
+    }
+  ],
+  "poise": {
+    "format": "saved-work-json",
+    "expanded_template": "{brief}",
+    "source_root": "@SOURCE_ROOT@",
+    "expanded_separator": "\n",
+    "expanded_fields": [
+      {
+        "path": [
+          "task"
+        ],
+        "required": false,
+        "format": "json",
+        "template": "Task: {value}"
+      },
+      {
+        "path": [
+          "stage"
+        ],
+        "required": false,
+        "format": "json",
+        "template": "Stage: {value}"
+      },
+      {
+        "path": [
+          "results"
+        ],
+        "required": false,
+        "format": "count",
+        "template": "Queries: {value}"
+      },
+      {
+        "path": [
+          "after",
+          "task_id"
+        ],
+        "required": false,
+        "format": "json",
+        "template": "Task claim: {value}"
+      },
+      {
+        "path": [
+          "after",
+          "worktree_task_id"
+        ],
+        "required": false,
+        "format": "json",
+        "template": "Worktree claim: {value}"
+      }
+    ]
+  }
+}

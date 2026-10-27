@@ -18,7 +18,7 @@ class ProgressionStep:
 
 
 def crossed_role_boundary(task: Task, actor: str, history: dict | None) -> bool:
-    """Prove ownership transfer of this verified result, retaining receiver self-cycles."""
+    """Prove lawful role continuation of this exact verified result."""
     if (history is None
             or history["task_id"] != task.state.task_id
             or history["submission_digest"] != task.state.submission_digest
@@ -38,19 +38,19 @@ def crossed_role_boundary(task: Task, actor: str, history: dict | None) -> bool:
     if not isinstance(owner, str) or not owner.strip():
         raise DomainError("Current verified result has no proven author")
     crossed = False
-    released_owner, released_crossed = None, False
+    released_owner = None
     for event in events[1:]:
         kind, receiver = event["event"], event["actor"]
         if kind in ("handed_off", "ownership_released"):
             if owner is None or receiver is not None:
                 raise DomainError("Current result release has no proven owner")
-            released_owner, released_crossed = owner, crossed
+            released_owner = owner
             owner = None
         elif kind in ("handoff_resumed", "ownership_acquired"):
             if (owner is not None or released_owner is None
                     or not isinstance(receiver, str) or not receiver.strip()):
                 raise DomainError("Current result acquisition has no proven release")
-            crossed = released_crossed if receiver == released_owner else True
+            crossed = True
             owner = receiver
         elif kind == "user_accept":
             if owner is None or receiver != owner or task.state.status != TaskStatus.ACCEPTED:

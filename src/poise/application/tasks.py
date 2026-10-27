@@ -34,7 +34,7 @@ def require_reviewer_identity(
     source, task: Task, actor: str, *,
     target_stage: str | None = None, acquiring: bool = False,
 ) -> dict | None:
-    """Require distinct effective actors only for different configured stage roles."""
+    """Capture actual review provenance; the user assigns agents to roles."""
     from ..modules.workflow.domain import HandlerKind
     current = task.stage.stage_id
     node = task.route.node(current)
@@ -59,18 +59,8 @@ def require_reviewer_identity(
     if producer_role == inspection_role:
         return None  # A single-role workflow does not require identity separation.
     executor = identity["executor_actor"]
-    if executor is None:
-        raise DomainError(
-            "Reviewer identity provenance is unavailable for the produced result; "
-            "a distinct native reviewer session must be established from saved evidence"
-        )
-    if executor == actor:
-        raise DomainError(
-            f"Reviewer actor {actor!r} equals executor {executor!r} "
-            f"({identity['source']}, stage {identity['stage']}); "
-            "use a distinct native reviewer session and public handoff"
-        )
-    return {**identity, "reviewer_actor": actor, "distinct_actor": True}
+    return {**identity, "reviewer_actor": actor,
+            "distinct_actor": executor is not None and executor != actor}
 
 
 def _action_digest(action: str, payload: dict) -> str:

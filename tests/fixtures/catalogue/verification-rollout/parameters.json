@@ -15,8 +15,7 @@
         "${PYTHON}",
         "-B",
         "-c",
-        "import json,sys; from pathlib import Path; value=json.loads(Path(sys.argv[1]).read_text())['value']; print('VALUE='+str(value)); raise SystemExit(0 if value==4 else 1)",
-        "${VALUE_FILE}"
+        "import json; from pathlib import Path; value=json.loads(Path(${VALUE_FILE_LITERAL}).read_text())['value']; print('VALUE='+str(value)); raise SystemExit(0 if value==4 else 1)"
       ],
       "cwd": ".",
       "environment": {

@@ -74,7 +74,7 @@ def assert_accepted_blueprint(document):
 def _parameters(home):
     home.mkdir(parents=True, exist_ok=True)
     value_file = write_json(home / "fixture-value.json", {"value": 4})
-    return fill_markers(fixture("parameters.json"), {"PYTHON": sys.executable, "VALUE_FILE": value_file})
+    return fill_markers(fixture("parameters.json"), {"PYTHON": sys.executable, "VALUE_FILE_LITERAL": json.dumps(str(value_file), ensure_ascii=False)})
 
 
 def _instantiate(values, document=None, blueprint=None):

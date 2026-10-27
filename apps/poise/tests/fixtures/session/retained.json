@@ -1,0 +1,34 @@
+{
+  "poise_sessions": [],
+  "poise_bindings": [],
+  "poise_role_assignments": [],
+  "poise_hook_bindings": [
+    [
+      "hook-keep",
+      "@SESSION@",
+      "{\"kept\":\"binding\"}"
+    ]
+  ],
+  "poise_hook_events": [
+    [
+      10,
+      "hook-keep",
+      "event-keep",
+      "SessionStart",
+      "{\"kept\":\"event\"}"
+    ]
+  ],
+  "poise_reader_state": [
+    [
+      "@SESSION@",
+      "{\"generation\":7,\"ack\":[1]}"
+    ]
+  ],
+  "poise_cursors": [
+    [
+      "@SESSION@",
+      "notes.txt",
+      "{\"line\":3}"
+    ]
+  ]
+}

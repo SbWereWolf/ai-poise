@@ -1,0 +1,5 @@
+{
+  "schema": "stride-poise/v1",
+  "operation": "@OPERATION@",
+  "input": "@INPUT@"
+}

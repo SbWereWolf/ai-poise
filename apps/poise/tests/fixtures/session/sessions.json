@@ -1,0 +1,81 @@
+{
+  "initial-native": {
+    "id": "@SESSION@",
+    "origin": "native",
+    "status": "open",
+    "revision": 1,
+    "role": null,
+    "role_assignment": null,
+    "locked": false
+  },
+  "initial-generated": {
+    "id": "@SESSION@",
+    "origin": "generated",
+    "status": "open",
+    "revision": 1,
+    "role": null,
+    "role_assignment": null,
+    "locked": false
+  },
+  "closed-native": {
+    "id": "@SESSION@",
+    "origin": "native",
+    "status": "closed",
+    "revision": 1,
+    "role": null,
+    "role_assignment": null,
+    "locked": false
+  },
+  "author": {
+    "id": "@SESSION@",
+    "origin": "native",
+    "status": "open",
+    "revision": 2,
+    "role": "author",
+    "role_assignment": {
+      "request_id": "assign-1",
+      "authorization_ref": "operator-decision-1",
+      "assigned_revision": 2
+    },
+    "locked": true
+  },
+  "reviewer": {
+    "id": "@SESSION@",
+    "origin": "native",
+    "status": "open",
+    "revision": 2,
+    "role": "reviewer",
+    "role_assignment": {
+      "request_id": "review-1",
+      "authorization_ref": "operator-review",
+      "assigned_revision": 2
+    },
+    "locked": true
+  },
+  "generated-author": {
+    "id": "@SESSION@",
+    "origin": "generated",
+    "status": "open",
+    "revision": 2,
+    "role": "author",
+    "role_assignment": {
+      "request_id": "assign-1",
+      "authorization_ref": "operator-decision-1",
+      "assigned_revision": 2
+    },
+    "locked": true
+  },
+  "utf8": {
+    "id": "@SESSION@",
+    "origin": "native",
+    "status": "open",
+    "revision": 2,
+    "role": "автор",
+    "role_assignment": {
+      "request_id": "назначение-1",
+      "authorization_ref": "решение-оператора-1",
+      "assigned_revision": 2
+    },
+    "locked": true
+  }
+}

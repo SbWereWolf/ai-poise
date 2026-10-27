@@ -1,0 +1,16 @@
+{
+  "schema": "stride-poise-config/v1",
+  "installation_id": "session-test",
+  "session_store": "@DATABASE@",
+  "caller": {
+    "mode": "native"
+  },
+  "roles": [
+    "author",
+    "reviewer"
+  ],
+  "limits": {
+    "packet_bytes": 65536,
+    "sqlite_timeout_seconds": 0
+  }
+}

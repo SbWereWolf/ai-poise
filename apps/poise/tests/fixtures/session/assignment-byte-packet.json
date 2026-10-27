@@ -1,0 +1,9 @@
+{
+  "schema": "stride-poise/v1",
+  "operation": "session.assign_role",
+  "input": {
+    "request_id": "назначение-1",
+    "role": "автор",
+    "authorization_ref": "решение-оператора-1"
+  }
+}

@@ -1,0 +1,59 @@
+[
+  {
+    "path": [
+      "session_store"
+    ],
+    "remove": true,
+    "pointer": "/session_store"
+  },
+  {
+    "path": [
+      "limits",
+      "packet_bytes"
+    ],
+    "value": 0,
+    "pointer": "/limits/packet_bytes"
+  },
+  {
+    "path": [
+      "limits",
+      "packet_bytes"
+    ],
+    "value": true,
+    "pointer": "/limits/packet_bytes"
+  },
+  {
+    "path": [
+      "limits",
+      "sqlite_timeout_seconds"
+    ],
+    "value": -0.1,
+    "pointer": "/limits/sqlite_timeout_seconds"
+  },
+  {
+    "path": [
+      "limits",
+      "sqlite_timeout_seconds"
+    ],
+    "value": true,
+    "pointer": "/limits/sqlite_timeout_seconds"
+  },
+  {
+    "path": [
+      "caller",
+      "mode"
+    ],
+    "value": "unknown",
+    "pointer": "/caller/mode"
+  },
+  {
+    "path": [
+      "roles"
+    ],
+    "value": [
+      "author",
+      "author"
+    ],
+    "pointer": "/roles"
+  }
+]

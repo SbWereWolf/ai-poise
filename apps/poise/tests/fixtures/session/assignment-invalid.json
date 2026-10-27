@@ -1,0 +1,80 @@
+[
+  {
+    "input": {
+      "role": "author",
+      "authorization_ref": "operator-decision-1"
+    },
+    "path": "/input/request_id"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "authorization_ref": "operator-decision-1"
+    },
+    "path": "/input/role"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "role": "author"
+    },
+    "path": "/input/authorization_ref"
+  },
+  {
+    "input": {
+      "request_id": 17,
+      "role": "author",
+      "authorization_ref": "operator-decision-1"
+    },
+    "path": "/input/request_id"
+  },
+  {
+    "input": {
+      "request_id": "",
+      "role": "author",
+      "authorization_ref": "operator-decision-1"
+    },
+    "path": "/input/request_id"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "role": true,
+      "authorization_ref": "operator-decision-1"
+    },
+    "path": "/input/role"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "role": "",
+      "authorization_ref": "operator-decision-1"
+    },
+    "path": "/input/role"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "role": "author",
+      "authorization_ref": []
+    },
+    "path": "/input/authorization_ref"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "role": "author",
+      "authorization_ref": ""
+    },
+    "path": "/input/authorization_ref"
+  },
+  {
+    "input": {
+      "request_id": "assign-1",
+      "role": "author",
+      "authorization_ref": "operator-decision-1",
+      "session_id": "other-session"
+    },
+    "path": "/input"
+  }
+]

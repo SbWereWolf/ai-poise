@@ -1,0 +1,207 @@
+{
+  "session_not_found": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "session_not_found",
+      "details": {},
+      "action": "ensure:session"
+    },
+    "evidence": []
+  },
+  "role_not_allowed": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "role_not_allowed",
+      "details": {
+        "role": "@REQUESTED@"
+      },
+      "action": "select:role"
+    },
+    "evidence": []
+  },
+  "role_locked": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "role_locked",
+      "details": {
+        "current_role": "@CURRENT@",
+        "requested_role": "@REQUESTED@"
+      },
+      "action": "select:session"
+    },
+    "evidence": []
+  },
+  "session_closed": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "session_closed",
+      "details": {
+        "status": "closed"
+      },
+      "action": "select:session"
+    },
+    "evidence": []
+  },
+  "identity_conflict": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "identity_conflict",
+      "details": {
+        "session_id": "@SESSION@"
+      },
+      "action": "select:caller"
+    },
+    "evidence": []
+  },
+  "invalid_caller": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_caller",
+      "details": {
+        "reason": "@REASON@"
+      },
+      "action": "correct:caller"
+    },
+    "evidence": []
+  },
+  "caller_io": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "caller_io",
+      "details": {
+        "reason": "@REASON@"
+      },
+      "action": "configure:caller"
+    },
+    "evidence": []
+  },
+  "invalid_config": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_config",
+      "details": {
+        "path": "@PATH@"
+      },
+      "action": "correct:config"
+    },
+    "evidence": []
+  },
+  "invalid_request": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_request",
+      "details": {
+        "path": "@PATH@"
+      },
+      "action": "correct:request"
+    },
+    "evidence": []
+  },
+  "invalid_json": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_json",
+      "details": {},
+      "action": "provide:json"
+    },
+    "evidence": []
+  },
+  "unsupported_schema": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "unsupported_schema",
+      "details": {
+        "schema": "@SCHEMA@"
+      },
+      "action": "select:schema"
+    },
+    "evidence": []
+  },
+  "packet_limit": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "packet_limit",
+      "details": {
+        "limit": "packet_bytes"
+      },
+      "action": "reduce:packet"
+    },
+    "evidence": []
+  },
+  "state_not_found": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "state_not_found",
+      "details": {
+        "database": "@DATABASE@"
+      },
+      "action": "prepare:state"
+    },
+    "evidence": []
+  },
+  "state_not_prepared": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "state_not_prepared",
+      "details": {
+        "version": 0
+      },
+      "action": "prepare:state"
+    },
+    "evidence": []
+  },
+  "state_incompatible": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "state_incompatible",
+      "details": {
+        "version": 2
+      },
+      "action": "select:state"
+    },
+    "evidence": []
+  },
+  "state_busy": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "state_busy",
+      "details": {
+        "database": "@DATABASE@"
+      },
+      "action": "retry:state"
+    },
+    "evidence": []
+  }
+}

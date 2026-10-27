@@ -1,0 +1,17 @@
+{
+  "author": {
+    "request_id": "assign-1",
+    "role": "author",
+    "authorization_ref": "operator-decision-1"
+  },
+  "reviewer": {
+    "request_id": "review-1",
+    "role": "reviewer",
+    "authorization_ref": "operator-review"
+  },
+  "utf8": {
+    "request_id": "назначение-1",
+    "role": "автор",
+    "authorization_ref": "решение-оператора-1"
+  }
+}

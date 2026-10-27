@@ -136,11 +136,13 @@ def lifecycle_checks():
 
 def refused_insert(db, query, values):
     refused = False
+    entry = {'sql': query, 'parameters': values}
+    SQL_LOG.append(entry)
     try:
-        db.execute(query, values)
+        entry['rowcount'] = db.execute(query, values).rowcount
     except sqlite3.IntegrityError as exc:
         refused = True
-        SQL_LOG.append({'sql': query, 'parameters': values, 'actual_constraint_error': str(exc)})
+        entry['actual_constraint_error'] = str(exc)
     assert refused, (query, values)
 
 
@@ -167,6 +169,14 @@ def fact_checks():
                            ('session-A', 'reviewer', FACTS['poise_role_assignments'][0][2]))
             refused_insert(db, 'INSERT INTO poise_bindings(identity_key,session_id,inventory) VALUES(?,?,?)',
                            ('caller-ghost', 'missing-session', '[]'))
+            refused_insert(db, 'INSERT INTO poise_hook_events(seq,binding_id,event_id,event,data) VALUES(?,?,?,?,?)',
+                           (30, 'hook-A', 'event-1', 'SessionStart', FACTS['poise_hook_events'][0][4]))
+            refused_insert(db, 'INSERT INTO poise_cursors(session_id,path,data) VALUES(?,?,?)',
+                           ('session-A', 'transcript.jsonl', FACTS['poise_cursors'][0][2]))
+            for values in [('invalid-origin', 'unknown', 'open', 1),
+                           ('invalid-status', 'native', 'pending', 1),
+                           ('invalid-revision', 'native', 'open', 0)]:
+                refused_insert(db, 'INSERT INTO poise_sessions(id,origin,status,revision) VALUES(?,?,?,?)', values)
         assert app.facts() == expected
         assert FACTS['poise_role_assignments'] == app.facts()['rows']['poise_role_assignments']
         # The same transcript path exists independently for both Sessions.
@@ -221,8 +231,13 @@ def historical_checks():
         child, record = process([PY, '-I', '-S', '-B', isolated / 'state_peer.py',
             '--mode', 'historical', '--migration', isolated / 'v1.py',
             '--fixtures', isolated / 'fixtures', '--directory', isolated], raw='', cwd=isolated)
+        try:
+            record['historical_report'] = json.loads(child.stdout)
+        except json.JSONDecodeError as exc:
+            raise AssertionError('Historical peer returned no structured report; full IO retained') from exc
         assert child.returncode == 0 and child.stderr == '', record
-        result = json.loads(child.stdout)
+        result = record['historical_report']
+        assert result['status'] == 'passed', result
         assert result['isolated'] is True
         assert result['before'] == result['after'] == read(FIX / 'snapshot.json')
         assert len(result['rollback']['ddl_attempts']) == 2
@@ -318,6 +333,25 @@ def prerequisites():
     if not value['python'].startswith('3.13.') or value['foreign_keys'] != 1 or not all(
             value[key] for key in ['duplicate_refused', 'foreign_refused', 'ddl_rolled_back']):
         raise RuntimeError('Selected Python/SQLite cannot exercise the agreed tests')
+    failed, record = process([PY, '-I', '-S', '-B', TESTS / 'state_peer.py',
+                              '--mode', 'diagnostic'], raw='')
+    diagnostic = json.loads(failed.stdout)
+    record['diagnostic_report'] = diagnostic
+    section = diagnostic.get('diagnostic', {})
+    trace = section.get('trace', [])
+    observation = section.get('observation', {})
+    if (failed.returncode != 1 or failed.stderr or diagnostic.get('status') != 'failed'
+            or diagnostic.get('error') != {'type': 'AssertionError', 'message': 'intentional diagnostic failure'}
+            or section.get('rows') != [['before-failure']]
+            or section.get('raised') != diagnostic.get('error')
+            or observation.get('version') != 0 or not observation.get('in_transaction')
+            or not any(row[0] == 'q_diagnostic' for row in observation.get('tables', []))
+            or not all(any(fragment in statement for statement in trace) for fragment in
+                       ['BEGIN', 'CREATE TABLE q_diagnostic', 'INSERT INTO q_diagnostic',
+                        'SELECT value FROM q_diagnostic'])
+            or not diagnostic.get('sql')):
+        raise RuntimeError('Test peer did not retain its actual pre-cleanup failure observations')
+    value['diagnostic_capture_qualified'] = True
     return value
 
 

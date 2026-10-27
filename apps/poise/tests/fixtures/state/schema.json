@@ -14,7 +14,18 @@
     ],
     "order_by": [
       "id"
-    ]
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "not_null": [
+      "id",
+      "origin",
+      "status",
+      "revision"
+    ],
+    "foreign_keys": [],
+    "unique": []
   },
   "poise_bindings": {
     "columns": [
@@ -29,6 +40,26 @@
     ],
     "order_by": [
       "identity_key"
+    ],
+    "primary_key": [
+      "identity_key"
+    ],
+    "not_null": [
+      "identity_key",
+      "session_id",
+      "inventory"
+    ],
+    "foreign_keys": [
+      [
+        "session_id",
+        "poise_sessions",
+        "id"
+      ]
+    ],
+    "unique": [
+      [
+        "session_id"
+      ]
     ]
   },
   "poise_role_assignments": {
@@ -44,7 +75,23 @@
     ],
     "order_by": [
       "session_id"
-    ]
+    ],
+    "primary_key": [
+      "session_id"
+    ],
+    "not_null": [
+      "session_id",
+      "role",
+      "data"
+    ],
+    "foreign_keys": [
+      [
+        "session_id",
+        "poise_sessions",
+        "id"
+      ]
+    ],
+    "unique": []
   },
   "poise_hook_bindings": {
     "columns": [
@@ -59,7 +106,23 @@
     ],
     "order_by": [
       "id"
-    ]
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "not_null": [
+      "id",
+      "session_id",
+      "data"
+    ],
+    "foreign_keys": [
+      [
+        "session_id",
+        "poise_sessions",
+        "id"
+      ]
+    ],
+    "unique": []
   },
   "poise_hook_events": {
     "columns": [
@@ -78,6 +141,28 @@
     ],
     "order_by": [
       "seq"
+    ],
+    "primary_key": [
+      "seq"
+    ],
+    "not_null": [
+      "binding_id",
+      "event_id",
+      "event",
+      "data"
+    ],
+    "foreign_keys": [
+      [
+        "binding_id",
+        "poise_hook_bindings",
+        "id"
+      ]
+    ],
+    "unique": [
+      [
+        "binding_id",
+        "event_id"
+      ]
     ]
   },
   "poise_reader_state": {
@@ -91,7 +176,22 @@
     ],
     "order_by": [
       "session_id"
-    ]
+    ],
+    "primary_key": [
+      "session_id"
+    ],
+    "not_null": [
+      "session_id",
+      "data"
+    ],
+    "foreign_keys": [
+      [
+        "session_id",
+        "poise_sessions",
+        "id"
+      ]
+    ],
+    "unique": []
   },
   "poise_cursors": {
     "columns": [
@@ -107,6 +207,23 @@
     "order_by": [
       "session_id",
       "path"
-    ]
+    ],
+    "primary_key": [
+      "session_id",
+      "path"
+    ],
+    "not_null": [
+      "session_id",
+      "path",
+      "data"
+    ],
+    "foreign_keys": [
+      [
+        "session_id",
+        "poise_sessions",
+        "id"
+      ]
+    ],
+    "unique": []
   }
 }

@@ -9,7 +9,10 @@ import tempfile
 from uuid import UUID, uuid5, NAMESPACE_URL
 
 from ..common import PoiseError, encoded as canonical
-from ..modules.result_views.tool_results import ToolResultFailure, encoded, response_text, reject, saved_result, native_snapshot, select_parser
+from ..modules.result_views.tool_results import (
+    ToolResultFailure, encoded, response_text, reject, require_budget,
+    saved_result, native_snapshot, select_parser,
+)
 from ..modules.placement.contracts import PlacementRequest
 from .goal_config import atomic_write, strict_json
 from .locking import exclusive_lock, blocking_file_lock
@@ -363,51 +366,81 @@ class FileToolResultStore:
         return sources
 
 
-def service_delivery(event, owner, policy_path, settings):
-    """Associate an actual owned service call and saved response, never a flag alone."""
+def _service_request(event, policy_path, settings):
+    """Validate the same entry, selection and optional recorded stdin for both outcomes."""
     import shlex
+    command = event.get('tool_input', {}).get('command')
+    argv = shlex.split(command, comments=True)
+    request = None
+    if '<<<' in argv:
+        position = argv.index('<<<')
+        if len(argv) != position + 2: raise ValueError('Ambiguous stdin')
+        request = strict_json(argv[-1]); argv = argv[:position]
+    if not argv or argv[0] != settings.raw['python']: raise ValueError('Different entry')
+    pos = 1
+    while pos < len(argv) and argv[pos] in ('-B', '-I', '-P', '-s'): pos += 1
+    if argv[pos:pos + 3] != ['-m', 'poise', 'tool-result']: raise ValueError('Different operation')
+    rest = argv[pos + 3:]
+    if len(rest) % 2: raise ValueError('Invalid CLI arguments')
+    arguments = {}
+    for key, value in zip(rest[::2], rest[1::2]):
+        if key not in ('--config', '--checkout', '--policy', '--audience') or key in arguments:
+            raise ValueError('Invalid CLI selection')
+        arguments[key] = value
+    if (arguments.get('--policy') != str(policy_path)
+            or arguments.get('--audience') != 'agent'
+            or ('--config' in arguments) != ('--checkout' in arguments)):
+        raise ValueError('Different policy or audience')
+    if '--config' in arguments:
+        if Path(arguments['--config']).resolve() != settings.project_config.resolve():
+            raise ValueError('Different selected project')
+        if Path(arguments['--checkout']).resolve() != Path(event['cwd']).resolve():
+            raise ValueError('Different selected checkout')
+    if request is not None and request not in (
+            {'schema': 'poise-tool-result-request-1', 'operation': 'expanded'},
+            {'schema': 'poise-tool-result-request-1', 'operation': 'full'}):
+        raise ValueError('Different service request')
+    return request
+
+
+def service_delivery(event, owner, policy_path, settings):
+    """Associate an actual owned service result or refusal, never a flag alone."""
     if event.get('tool_name') != 'Bash': return None
     native = event.get('tool_response')
     if isinstance(native, str):
         output = native
-    elif isinstance(native, dict) and native.get('exit_code') == 0:
+    elif isinstance(native, dict) and native.get('exit_code') in (0, 2):
         output = native.get('output')
     else: return None
     try:
         result = strict_json(output)
     except (PoiseError, KeyError, TypeError, ValueError):
         return None
-    if (not isinstance(result, dict) or result.get('purpose') != 'harness-service'
-            or result.get('capability') != 'tool-result'):
+    if not isinstance(result, dict): return None
+    claimed = (result.get('purpose') == 'harness-service'
+               and result.get('capability') == 'tool-result')
+    if not claimed and result.get('status') != 'rejected': return None
+    if isinstance(native, dict) and native['exit_code'] != (0 if claimed else 2):
         return None
-    command = event.get('tool_input', {}).get('command')
     try:
-        argv = shlex.split(command, comments=True)
-        request = None
-        if '<<<' in argv:
-            position = argv.index('<<<')
-            if len(argv) != position + 2: raise ValueError('Ambiguous stdin')
-            request = strict_json(argv[-1]); argv = argv[:position]
-        if not argv or argv[0] != settings.raw['python']: raise ValueError('Different entry')
-        pos = 1
-        while pos < len(argv) and argv[pos] in ('-B', '-I', '-P', '-s'): pos += 1
-        if argv[pos:pos + 3] != ['-m', 'poise', 'tool-result']: raise ValueError('Different operation')
-        rest = argv[pos + 3:]
-        if len(rest) % 2: raise ValueError('Invalid CLI arguments')
-        arguments = {}
-        for key, value in zip(rest[::2], rest[1::2]):
-            if key not in ('--config', '--checkout', '--policy', '--audience') or key in arguments:
-                raise ValueError('Invalid CLI selection')
-            arguments[key] = value
-        if (arguments.get('--policy') != str(policy_path)
-                or arguments.get('--audience') != 'agent'
-                or ('--config' in arguments) != ('--checkout' in arguments)):
-            raise ValueError('Different policy or audience')
-        if '--config' in arguments:
-            if Path(arguments['--config']).resolve() != settings.project_config.resolve():
-                raise ValueError('Different selected project')
-            if Path(arguments['--checkout']).resolve() != Path(event['cwd']).resolve():
-                raise ValueError('Different selected checkout')
+        request = _service_request(event, policy_path, settings)
+    except (PoiseError, KeyError, TypeError, ValueError, OSError) as exc:
+        if not claimed: return None
+        raise ToolResultFailure('source_invalid', 'service', 'inspect:source') from exc
+    try:
+        if not claimed:
+            # Without recorded stdin, only these existing read operations can
+            # authenticate a refusal. They read the same owned saved source;
+            # neither captures, prepares, publishes or replaces last.
+            operations = ('expanded', 'full') if request is None else (request['operation'],)
+            for operation in operations:
+                try:
+                    owner.saved_service(operation)
+                except ToolResultFailure as refusal:
+                    if result == refusal.result():
+                        require_budget(result, owner.policy)
+                        return encoded(result)
+            raise ValueError('Service refusal differs from owned saved source')
         operation = result['status']
         if operation not in ('expanded', 'full'): raise ValueError('Not a saved-output read')
         if request is not None and request != {'schema': 'poise-tool-result-request-1', 'operation': operation}:

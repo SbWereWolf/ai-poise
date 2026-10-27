@@ -1,0 +1,9 @@
+{
+  "status": "rejected",
+  "error": {
+    "code": "source_incomplete",
+    "field": "capture",
+    "action": "inspect:source"
+  },
+  "exit_code": null
+}

@@ -114,13 +114,23 @@
     "tests/runtime_services/test_tool_results_native_text.py::test_saved_work_text_source_failures_are_precise_and_do_not_invent_exit",
     "tests/hook_transport/test_native_text_delivery.py::test_actual_shaped_text_reaches_real_dispatcher_and_delivers_prepared_brief",
     "tests/hook_transport/test_native_text_delivery.py::test_actual_text_service_response_crosses_hook_without_new_capture",
-    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_poise_text_envelope_and_same_json_as_bash_have_distinct_sources"
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_poise_text_envelope_and_same_json_as_bash_have_distinct_sources",
+    "tests/hook_transport/test_native_text_delivery.py::test_partial_full_refusal_crosses_hook_without_recapture"
   ],
   "f08-native-wire-controls": [
     "tests/runtime_services/test_tool_results_native_text.py::test_legacy_object_wire_remains_strict_about_text",
     "tests/hook_transport/test_native_text_delivery.py::test_mcp_object_control_survives_explicit_text_bash_profile",
     "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_snapshot",
     "tests/runtime_services/test_tool_results_source_contract.py::test_native_missing_pending_and_unknown_are_not_complete",
-    "tests/runtime_services/test_tool_results_source_contract.py::test_terminal_native_source_is_classified_before_capture"
+    "tests/runtime_services/test_tool_results_source_contract.py::test_terminal_native_source_is_classified_before_capture",
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_bash_rejection_json_remains_an_ordinary_result"
+  ],
+  "f08-service-refusal-red": [
+    "tests/hook_transport/test_native_text_delivery.py::test_partial_full_refusal_crosses_hook_without_recapture"
+  ],
+  "f08-service-refusal-controls": [
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_bash_rejection_json_remains_an_ordinary_result",
+    "tests/hook_transport/test_native_text_delivery.py::test_actual_text_service_response_crosses_hook_without_new_capture",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_selection_policy_keeps_actual_service_delivery"
   ]
 }

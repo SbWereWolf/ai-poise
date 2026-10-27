@@ -8,6 +8,7 @@ import io
 import json
 from pathlib import Path
 import shlex
+import subprocess
 
 import pytest
 
@@ -155,3 +156,106 @@ def test_mcp_object_control_survives_explicit_text_bash_profile(project, tmp_pat
     full = scene.service('full')
     assert json.loads(Path(full['full_path']).read_bytes()) == source
     assert scene.service('expanded')['text'] == expected['expanded']
+
+
+def test_partial_full_refusal_crosses_hook_without_recapture(project, tmp_path):
+    chain = Chain(project, tmp_path, 'F08_SERVICE_REFUSAL')
+    scene = scene_for_chain(chain, project, tmp_path)
+    select_text(scene)
+    configure_chain(chain, scene)
+    partial = wire_case('partial')
+    event = scene.native(partial['raw'], key='partial-before-refusal')['event']
+    event['session_id'] = chain.session
+    expected_refusal = literal('native_wire/service-refusal.json')
+
+    with ParserCalls(prepare_owner()) as prepared:
+        chain.invoke(event, event_name='PostToolUse')
+        assert prepared.inputs == [partial['raw']], 'PARTIAL_PRODUCER_NOT_REACHED'
+        expanded = scene.service('expanded')
+        assert expanded['capture'] == {
+            'state': 'partial', 'reason': 'native_output_truncated',
+        }
+        before = scene.snapshot()
+        last_name, = (name for name in before if Path(name).name == 'last-tool.json')
+        assert json.loads(before[last_name]) == {'uuid': expanded['run_id']}
+        full_name, = (name for name in before if Path(name).name == 'full')
+        assert before[full_name] == partial['raw'].encode()
+        directories = sorted(str(path.relative_to(scene.root))
+                             for path in scene.root.rglob('*') if path.is_dir())
+
+        # The actual public expanded response already passes the same boundary.
+        expanded_cli = scene.calls[-1]
+        expanded_event = scene.native(expanded_cli['stdout'], key='partial-expanded')['event']
+        expanded_event['session_id'] = chain.session
+        expanded_event['tool_input']['command'] = shlex.join(expanded_cli['argv'])
+        delivered = chain.invoke(expanded_event, event_name='PostToolUse')
+        assert delivered['hookSpecificOutput']['additionalContext'] == expanded['text']
+        assert scene.snapshot() == before and prepared.inputs == [partial['raw']]
+
+        request = {'schema': 'poise-tool-result-request-1', 'operation': 'full'}
+        code, text, stderr = scene.invoke(request)
+        assert code == 2 and stderr == ''
+        assert json.loads(text) == expected_refusal
+        scene.bounded(text)
+        assert scene.snapshot() == before, 'PUBLIC_FULL_REFUSAL_MUTATED_SOURCE'
+        actual_cli = scene.calls[-1]
+        refusal_event = scene.native(text, key='actual-full-refusal')['event']
+        refusal_event['session_id'] = chain.session
+        refusal_event['tool_input']['command'] = shlex.join(actual_cli['argv'])
+        original = deepcopy(refusal_event)
+        response = chain.invoke(refusal_event, event_name='PostToolUse')
+        _, delivery = chain.delivery()
+        assert delivery['event']['tool_response'] == actual_cli['stdout']
+        after = scene.snapshot()
+        print(json.dumps({
+            'boundary': 'actual-partial-full-refusal-post',
+            'partial_event': event, 'expanded_cli': expanded_cli, 'full_cli': actual_cli,
+            'refusal_event': original, 'delivery': delivery, 'response': response,
+            'original_last': json.loads(before[last_name]),
+            'actual_last': json.loads(after[last_name]),
+            'original_files': sorted(before), 'actual_files': sorted(after),
+            'parser_inputs': prepared.inputs,
+        }, ensure_ascii=False))
+        assert after == before, 'SERVICE_REFUSAL_RECAPTURED_OR_REPLACED_LAST'
+        assert sorted(str(path.relative_to(scene.root))
+                      for path in scene.root.rglob('*') if path.is_dir()) == directories
+        assert prepared.inputs == [partial['raw']], 'SERVICE_REFUSAL_REPREPARED'
+        context = response['hookSpecificOutput']['additionalContext']
+        assert context.startswith('{'), ('HARNESS_REFUSAL_NOT_DELIVERED', context)
+        assert json.loads(context) == expected_refusal
+        assert len(context) <= scene.policy['display']['output_chars']
+        assert len(context.encode()) <= scene.policy['display']['output_bytes']
+        assert response['continue'] is False and refusal_event == original
+
+
+def test_ordinary_bash_rejection_json_remains_an_ordinary_result(project, tmp_path):
+    from tests.runtime_services.tool_results_support import FIXTURES
+
+    chain = Chain(project, tmp_path, 'F08_ORDINARY_REFUSAL')
+    scene = scene_for_chain(chain, project, tmp_path)
+    select_text(scene)
+    configure_chain(chain, scene)
+    healthy = wire_case('healthy')
+    first = scene.native(healthy['raw'], key='before-ordinary-refusal')['event']
+    first['session_id'] = chain.session
+    with ParserCalls(prepare_owner()) as prepared:
+        chain.invoke(first, event_name='PostToolUse')
+        previous = scene.service('full')
+        command = shlex.join(['cat', str(FIXTURES / 'native_wire/service-refusal.json')])
+        producer = subprocess.run(['bash', '-c', command], cwd=scene.checkout,
+                                  env=scene.env, capture_output=True, check=False)
+        assert producer.returncode == 0 and producer.stderr == b''
+        assert json.loads(producer.stdout) == literal('native_wire/service-refusal.json')
+        event = scene.native(producer.stdout.decode(), key='ordinary-refusal-json')['event']
+        event['session_id'] = chain.session
+        event['tool_input']['command'] = command
+        original = deepcopy(event)
+        response = chain.invoke(event, event_name='PostToolUse')
+        assert chain.delivery()[1]['event']['tool_response'] == producer.stdout.decode()
+        assert response['hookSpecificOutput']['additionalContext'] == (
+            'Bash: output received; exit unavailable')
+        assert response['continue'] is False and event == original
+        assert prepared.inputs == [healthy['raw'], producer.stdout.decode()]
+        current = scene.service('full')
+        assert current['run_id'] != previous['run_id']
+        assert Path(current['full_path']).read_bytes() == producer.stdout

@@ -1,5 +1,10 @@
 # Poise public contract
 
+Действующие общие функции отдельного `bin/poise-generic` описаны в
+[операторском договоре](generic-poi.md). Они используют собственную конфигурацию
+и схему `poise-generic/v1`. Ниже сохранён целевой договор Session/role/tools;
+его поля относятся к своей области и последующим поставкам.
+
 Status: target design for `PS-DEV-002-T016` (`M01.T016`).
 
 This document defines the standalone Poise Session, immutable-role, status and

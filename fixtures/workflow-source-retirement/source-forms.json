@@ -1,0 +1,667 @@
+{
+  "project_a": {
+    "goal_type": "development",
+    "worktree_required": true,
+    "route": {
+      "entry": "tests"
+    },
+    "stages": [
+      {
+        "id": "tests",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Selected project A",
+        "read_only": false,
+        "allowed_paths": [
+          "tests/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "test_review"
+        },
+        "rework_targets": [
+          "tests"
+        ]
+      },
+      {
+        "id": "test_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "implementation"
+        },
+        "rework_targets": [
+          "test_review"
+        ]
+      },
+      {
+        "id": "implementation",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": false,
+        "allowed_paths": [
+          "src/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "code_review"
+        },
+        "rework_targets": [
+          "implementation"
+        ]
+      },
+      {
+        "id": "code_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "code_review"
+        ]
+      }
+    ],
+    "benefit": {
+      "git_categories": [
+        "code",
+        "documentation"
+      ],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "project_b": {
+    "goal_type": "development",
+    "worktree_required": true,
+    "route": {
+      "entry": "tests"
+    },
+    "stages": [
+      {
+        "id": "tests",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Selected project B",
+        "read_only": false,
+        "allowed_paths": [
+          "tests/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "test_review"
+        },
+        "rework_targets": [
+          "tests"
+        ]
+      },
+      {
+        "id": "test_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "implementation"
+        },
+        "rework_targets": [
+          "test_review"
+        ]
+      },
+      {
+        "id": "implementation",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": false,
+        "allowed_paths": [
+          "src/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "code_review"
+        },
+        "rework_targets": [
+          "implementation"
+        ]
+      },
+      {
+        "id": "code_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "code_review"
+        ]
+      }
+    ],
+    "benefit": {
+      "git_categories": [
+        "code",
+        "documentation"
+      ],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "decoy": {
+    "goal_type": "development",
+    "worktree_required": true,
+    "route": {
+      "entry": "tests"
+    },
+    "stages": [
+      {
+        "id": "tests",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Unselected decoy",
+        "read_only": false,
+        "allowed_paths": [
+          "tests/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "test_review"
+        },
+        "rework_targets": [
+          "tests"
+        ]
+      },
+      {
+        "id": "test_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "implementation"
+        },
+        "rework_targets": [
+          "test_review"
+        ]
+      },
+      {
+        "id": "implementation",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": false,
+        "allowed_paths": [
+          "src/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "code_review"
+        },
+        "rework_targets": [
+          "implementation"
+        ]
+      },
+      {
+        "id": "code_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "code_review"
+        ]
+      }
+    ],
+    "benefit": {
+      "git_categories": [
+        "code",
+        "documentation"
+      ],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "catalogue_development": {
+    "goal_type": "development",
+    "worktree_required": true,
+    "route": {
+      "entry": "tests"
+    },
+    "stages": [
+      {
+        "id": "tests",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Unselected catalogue development",
+        "read_only": false,
+        "allowed_paths": [
+          "tests/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "test_review"
+        },
+        "rework_targets": [
+          "tests"
+        ]
+      },
+      {
+        "id": "test_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "implementation"
+        },
+        "rework_targets": [
+          "test_review"
+        ]
+      },
+      {
+        "id": "implementation",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": false,
+        "allowed_paths": [
+          "src/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "code_review"
+        },
+        "rework_targets": [
+          "implementation"
+        ]
+      },
+      {
+        "id": "code_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "code_review"
+        ]
+      }
+    ],
+    "benefit": {
+      "git_categories": [
+        "code",
+        "documentation"
+      ],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "catalogue_only": {
+    "goal_type": "catalogue_only",
+    "worktree_required": true,
+    "route": {
+      "entry": "tests"
+    },
+    "stages": [
+      {
+        "id": "tests",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Selected catalogue-only starter",
+        "read_only": false,
+        "allowed_paths": [
+          "tests/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "test_review"
+        },
+        "rework_targets": [
+          "tests"
+        ]
+      },
+      {
+        "id": "test_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "implementation"
+        },
+        "rework_targets": [
+          "test_review"
+        ]
+      },
+      {
+        "id": "implementation",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": false,
+        "allowed_paths": [
+          "src/**"
+        ],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": "code_review"
+        },
+        "rework_targets": [
+          "implementation"
+        ]
+      },
+      {
+        "id": "code_review",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "instruction": "Exercise the isolated source-selection fixture.",
+        "read_only": true,
+        "allowed_paths": [],
+        "normalization": "strip",
+        "sections": {
+          "report": "Record the isolated fixture result."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "role": "executor",
+        "transitions": {
+          "complete": null
+        },
+        "rework_targets": [
+          "code_review"
+        ]
+      }
+    ],
+    "benefit": {
+      "git_categories": [
+        "code",
+        "documentation"
+      ],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  }
+}

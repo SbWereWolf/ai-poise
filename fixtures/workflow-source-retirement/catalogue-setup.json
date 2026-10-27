@@ -1,0 +1,92 @@
+{
+  "editor": {
+    "schema": "goal-config-editor-1",
+    "root": ".",
+    "database": "state/editor.sqlite",
+    "lock": "state/editor.lock",
+    "responses": "state/responses",
+    "file_mode": 384,
+    "json_indent": 2,
+    "lock_seconds": 2.0,
+    "lock_poll_seconds": 0.01,
+    "max_changes": 1000,
+    "max_input_bytes": 1048576,
+    "output_chars": 2000,
+    "exit_codes": {
+      "success": 0,
+      "rejected": 2,
+      "pending": 3
+    },
+    "workflows": {
+      "development": "published/development.json",
+      "catalogue_only": "published/catalogue_only.json"
+    },
+    "templates": {
+      "test-development": {
+        "path": "catalogue-development.json"
+      },
+      "test-catalogue-only": {
+        "path": "catalogue-only.json"
+      }
+    }
+  },
+  "catalogue": {
+    "schema": "workflow-catalogue-1",
+    "editor": "editor.json",
+    "max_items": 10,
+    "task_templates": {
+      "test-development": {
+        "path": "development-task.json",
+        "goal_type": "development"
+      },
+      "test-catalogue-only": {
+        "path": "catalogue-only-task.json",
+        "goal_type": "catalogue_only"
+      }
+    }
+  },
+  "blueprints": {
+    "development": {
+      "schema": "task-blueprint-1",
+      "goal_type": "development",
+      "parameters": {
+        "identity": "text",
+        "membership": "nullable_text",
+        "goal": "text"
+      },
+      "task": {
+        "id": {
+          "$input": "identity"
+        },
+        "sprint_id": {
+          "$input": "membership"
+        },
+        "goal_type": "development",
+        "goal": {
+          "$input": "goal"
+        }
+      }
+    },
+    "catalogue_only": {
+      "schema": "task-blueprint-1",
+      "goal_type": "catalogue_only",
+      "parameters": {
+        "identity": "text",
+        "membership": "nullable_text",
+        "goal": "text"
+      },
+      "task": {
+        "id": {
+          "$input": "identity"
+        },
+        "sprint_id": {
+          "$input": "membership"
+        },
+        "goal_type": "catalogue_only",
+        "goal": {
+          "$input": "goal"
+        }
+      }
+    }
+  }
+}

@@ -101,7 +101,7 @@ def routed_case(project, tmp_path, consumer, retained_previous_files):
         write_json(root / 'catalog.json', catalog)
         (root / 'resource').write_text('valid')
         defaults = write_json(root / 'defaults.json', {'selected': 'default-values'})
-        configuration = json.loads((ROOT / 'config/bootstrap.example.json').read_text())
+        configuration = json.loads((FIXTURES / 'catalog_bootstrap.example.json').read_text())
         configuration['parameters'] = {'python': str(consumer), 'tool_config': str(defaults)}
         config = write_json(root / 'bootstrap.json', configuration)
         values = write_json(root / 'forwarded-values.json', {'selected': 'from-values'})

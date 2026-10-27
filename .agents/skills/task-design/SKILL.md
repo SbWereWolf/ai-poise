@@ -54,8 +54,10 @@ workflow, routing and supported public Task schema.
    verification of that record uses only reading code, documentation and tests; it does
    not replace the workflow-owned behavioral checks or prove that tests passed.
 3. Do not predict future class names, test names or commands as readiness gates.
-   Supply the complete initial checks object explicitly; an empty object is valid
-   for a development Task. Concrete test and code design belong to execution.
+   Supply every workflow stage key in the initial checks object explicitly;
+   `methods: []` and empty stage lists are valid. Concrete method design belongs to
+   its planning stage; register methods through the stage that owns `test_registry`
+   after their sources exist. Follow the [registry contract](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
 4. Declare explicit stage purpose and criteria authority using the canonical
    [stage criteria contract](../../../docs/workflows/stage-criteria.md), separately
    from stage roles and handlers. Supply initial stage criteria from known facts.

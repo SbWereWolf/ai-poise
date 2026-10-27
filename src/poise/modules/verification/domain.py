@@ -26,6 +26,18 @@ def exact_keys(value: dict, keys: set[str], where: str) -> None:
     validate_exact_keys(value, keys, where, DomainError)
 
 
+def _valid_method_id(value: object) -> bool:
+    return isinstance(value, str) and bool(value)
+
+
+def _creation_structure_error(field: str, remedy: str) -> DomainError:
+    return DomainError(
+        f'{field}: {remedy}; methods: [] допустимы; '
+        'пустые списки проверок допустимы; '
+        'конкретные методы определяются на этапе планирования проверок'
+    )
+
+
 def declared_executable_obligations(value, catalog, where):
     if (not isinstance(value, list)
             or any(not isinstance(item, str) or not item for item in value)
@@ -221,7 +233,7 @@ def validate_method(
     if 'artifact_inputs' in method:
         from .retention import ArtifactInputs
         ArtifactInputs.parse(method['artifact_inputs'], method['environment'])
-    if not isinstance(method['id'], str) or not method['id']:
+    if not _valid_method_id(method['id']):
         raise DomainError(f'{where}: требуется id метода')
     if not isinstance(method['cwd'], str):
         raise DomainError(f'{where}: cwd должен быть задан')
@@ -416,13 +428,37 @@ class CheckRegistry:
             raise DomainError("Повтор идентификатора метода")
         return cls(stages,entries)
 
+    @staticmethod
+    def require_creation_structure(methods: object, checks: object) -> None:
+        """Validate readable shapes without granting historical schedules current authority."""
+        if not isinstance(methods, list):
+            raise _creation_structure_error('methods', 'требуется список методов')
+        for index, method in enumerate(methods):
+            field = f'methods[{index}]'
+            if not isinstance(method, dict):
+                raise _creation_structure_error(field, 'требуется объект метода')
+            if 'id' not in method or not _valid_method_id(method['id']):
+                raise _creation_structure_error(f'{field}.id', 'требуется непустой строковый id метода')
+        if not isinstance(checks, dict):
+            raise _creation_structure_error('checks', 'требуется объект расписания этапов')
+        for stage, values in checks.items():
+            field = f'checks.{stage}'
+            if not isinstance(values, list):
+                raise _creation_structure_error(field, 'требуется список ID методов')
+            for index, value in enumerate(values):
+                if not isinstance(value, str):
+                    raise _creation_structure_error(f'{field}[{index}]', 'требуется строковый ID метода')
+
     @classmethod
     def from_task(cls, methods: list[dict], checks: dict, stages: tuple[str, ...]) -> CheckRegistry:
-        if not isinstance(methods,list) or not isinstance(checks,dict) or set(checks)!=set(stages):
-            raise DomainError("Требуются методы и явное расписание каждого этапа")
-        for values in checks.values():
-            if not isinstance(values,list) or any(not isinstance(v,str) for v in values):
-                raise DomainError("Расписание должно содержать списки ID методов")
+        cls.require_creation_structure(methods, checks)
+        if set(checks) != set(stages):
+            raise _creation_structure_error(
+                'checks',
+                f'требуется явное расписание каждого этапа; '
+                f'отсутствуют: {sorted(set(stages) - set(checks))}; '
+                f'лишние: {sorted(set(checks) - set(stages))}',
+            )
         registry=cls.from_items(
             [{'method':m,'stages':[s for s in stages if m['id'] in checks[s]]} for m in methods],
             stages,

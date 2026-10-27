@@ -8,7 +8,7 @@ from pathlib import PurePosixPath
 
 from ..foundation.errors import DomainError
 from ..foundation.paths import matches_allowed_path
-from ..verification.domain import exact_keys
+from ..verification.domain import CheckRegistry, exact_keys
 from ..workflow.domain import RouteDefinition
 
 
@@ -213,6 +213,7 @@ class CreationPreflight:
         declared = contract["method_inputs"]
         if not isinstance(declared, list):
             raise DomainError("method_inputs must be an explicit list; declare one entry for every method")
+        CheckRegistry.require_creation_structure(methods, contract["checks"])
         method_ids = [method["id"] for method in methods]
         declared_ids = [value.get("method_id") for value in declared if isinstance(value, dict)]
         if (len(declared_ids) != len(declared) or len(declared) != len(methods)

@@ -54,8 +54,10 @@ class CommandConfiguration:
     def handler_options(self) -> dict:
         return self.raw["handler"]["options"]
 
-    def rendered_commands(self, catalog_dir: str, *, values: dict | None = None) -> dict[str, list[str]]:
-        values = {**self.raw["parameters"], **(values or {}), "catalog_dir": catalog_dir}
+    def rendered_commands(self, catalog_dir: str | None = None, *, values: dict | None = None) -> dict[str, list[str]]:
+        values = {**self.raw["parameters"], **(values or {})}
+        if catalog_dir is not None:
+            values["catalog_dir"] = catalog_dir
         return {
             name: [Template(argument).substitute(values) for argument in arguments]
             for name, arguments in self.raw["commands"].items()

@@ -1,0 +1,436 @@
+{
+  "stages": [
+    "compile",
+    "inspect"
+  ],
+  "guidance_tokens": [
+    "methods: []",
+    "пуст",
+    "планирован"
+  ],
+  "empty_schedule": {
+    "compile": [],
+    "inspect": []
+  },
+  "nonempty_schedule": {
+    "compile": [],
+    "inspect": [
+      "CHECK"
+    ]
+  },
+  "unknown_schedule": {
+    "compile": [],
+    "inspect": [
+      "UNKNOWN"
+    ]
+  },
+  "method": {
+    "id": "CHECK",
+    "argv": [
+      "python",
+      "-B",
+      "-c",
+      "print('OK')"
+    ],
+    "cwd": ".",
+    "environment": {},
+    "source_under_test": {
+      "kind": "repository",
+      "bindings": [
+        {
+          "kind": "cwd",
+          "path": "."
+        }
+      ]
+    },
+    "verification_plan": {
+      "responsibility": "Verify the declared schedule.",
+      "change_surface": [
+        "src/**"
+      ],
+      "red_stages": [],
+      "green_stages": [
+        "inspect"
+      ],
+      "red_failure": null
+    },
+    "expected_exit_code": 0,
+    "stdout_contains": [
+      "OK"
+    ],
+    "stderr_contains": []
+  },
+  "diagnostics": [
+    {
+      "id": "methods-null",
+      "methods": null,
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "methods-object",
+      "methods": {},
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "methods-text",
+      "methods": "bad",
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "methods-number",
+      "methods": 7,
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "methods-boolean",
+      "methods": false,
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "checks-null",
+      "checks": null,
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "checks-list",
+      "checks": [],
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "checks-text",
+      "checks": "bad",
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "checks-number",
+      "checks": 7,
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "checks-boolean",
+      "checks": false,
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "stages-empty",
+      "checks": {},
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: ['compile', 'inspect']",
+        "лишние: []"
+      ]
+    },
+    {
+      "id": "stages-missing-first",
+      "checks": {
+        "inspect": []
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: ['compile']",
+        "лишние: []"
+      ]
+    },
+    {
+      "id": "stages-missing-last",
+      "checks": {
+        "compile": []
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: ['inspect']",
+        "лишние: []"
+      ]
+    },
+    {
+      "id": "stages-extra",
+      "checks": {
+        "compile": [],
+        "inspect": [],
+        "extra": []
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: []",
+        "лишние: ['extra']"
+      ]
+    },
+    {
+      "id": "stages-missing-extra",
+      "checks": {
+        "inspect": [],
+        "extra": []
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: ['compile']",
+        "лишние: ['extra']"
+      ]
+    },
+    {
+      "id": "stages-multiple-missing-extra",
+      "checks": {
+        "zeta": [],
+        "alpha": []
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: ['compile', 'inspect']",
+        "лишние: ['alpha', 'zeta']"
+      ]
+    },
+    {
+      "id": "value-null",
+      "checks": {
+        "compile": null,
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "value-object",
+      "checks": {
+        "compile": {},
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "value-text",
+      "checks": {
+        "compile": "bad",
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "value-number",
+      "checks": {
+        "compile": 7,
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "value-boolean",
+      "checks": {
+        "compile": false,
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "entry-first",
+      "checks": {
+        "compile": [
+          null
+        ],
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "строк",
+        "ID"
+      ]
+    },
+    {
+      "id": "entry-later",
+      "checks": {
+        "compile": [
+          "CHECK",
+          7
+        ],
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "строк",
+        "ID"
+      ]
+    },
+    {
+      "id": "entry-boolean",
+      "checks": {
+        "compile": [
+          false
+        ],
+        "inspect": []
+      },
+      "field": "checks.compile",
+      "tokens": [
+        "строк",
+        "ID"
+      ]
+    },
+    {
+      "id": "method-record-null",
+      "methods": [
+        null
+      ],
+      "field": "methods[0]",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "method-record-missing-id",
+      "methods": [
+        {}
+      ],
+      "field": "methods[0]",
+      "tokens": [
+        "id"
+      ]
+    }
+  ],
+  "ready_diagnostics": [
+    {
+      "id": "methods-null",
+      "patch": {
+        "methods": null
+      },
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "methods-object",
+      "patch": {
+        "methods": {}
+      },
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "methods-text",
+      "patch": {
+        "methods": "bad"
+      },
+      "field": "methods",
+      "tokens": [
+        "список"
+      ]
+    },
+    {
+      "id": "checks-list",
+      "patch": {
+        "checks": []
+      },
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "checks-empty",
+      "patch": {
+        "checks": {}
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют:",
+        "лишние: []"
+      ]
+    },
+    {
+      "id": "missing-extra",
+      "patch": {
+        "checks": {
+          "tests": [],
+          "EXTRA": []
+        }
+      },
+      "field": "checks",
+      "tokens": [
+        "отсутствуют: ['code_review', 'implementation', 'test_review']",
+        "лишние: ['EXTRA']"
+      ]
+    },
+    {
+      "id": "stage-value",
+      "patch": {},
+      "field": "checks.tests",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "method-record-null",
+      "patch": {
+        "methods": [
+          null
+        ]
+      },
+      "field": "methods[0]",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "method-record-missing-id",
+      "patch": {
+        "methods": [
+          {}
+        ]
+      },
+      "field": "methods[0]",
+      "tokens": [
+        "id"
+      ]
+    }
+  ]
+}

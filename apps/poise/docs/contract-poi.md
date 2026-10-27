@@ -13,8 +13,9 @@ Status: target design for `PS-DEV-002-T016` (`M01.T016`).
 This document defines the standalone Poise Session, immutable-role, status and
 configured-tool boundary after extraction. It does not claim the current combined
 `poise work` implementation already has an independent Session store or role lock.
-T060 delivers own state preparation; T061–T062 own Session operations and hook
-transport. T063–T070 own richer reader/path/command contracts.
+T060 предоставляет подготовку собственного состояния; T061–T062 отвечают за
+операции Session и транспорт hooks. T063–T070 отвечают за расширенные договоры
+reader, путей и команд.
 
 ## 1. Ownership and independence
 

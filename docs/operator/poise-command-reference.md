@@ -51,7 +51,8 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 ### Результаты инструментов
 
 Отдельная команда `tool-result` принимает операции capture/view/summary/lines/
-bytes/search/hook по [каноническому справочнику](../configuration/tool-results.md#подготовка-и-вызов).
+bytes/search/hook по [каноническому
+справочнику](../configuration/tool-results.md#подготовка-и-вызов).
 Настройка policy, заполнение четырёх примеров, настоящий caller, machine/agent,
 исходный exit_code и восстановление принадлежат этому справочнику. Сама команда
 не запускает производителя и не устанавливает native hooks.
@@ -221,58 +222,59 @@ adapter](../configuration/runtime-services.md#один-существующий-
 
 ## Обслуживание окружения
 
-[Инструкция публикации полного рабочего профиля
-catalog/v2](maintenance-profile-v2.md#развёртывание-из-примера).
-[Инструкция настройки команды и рабочего файла
-Bootstrap](bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла).
-[ERP-профиль](maintenance-profile-v2.md#профиль-erp) выбирается через
-`--profile-spec`: его подготовка, параметры, обслуживание и диагностика описаны
-отдельно от базового 14-ресурсного каталога и исторического requirements/v1.
-
-`poise_environment.profile` публикует выбранный профиль. Полная команда и [все аргументы
-материализатора](maintenance-profile-v2.md#аргументы-материализатора) находятся в инструкции.
+[Полная инструкция собственного
+operation-профиля](maintenance-profile-v2.md#развёртывание-из-примера)
+содержит подготовку, заполнение рабочих файлов и последовательность `infra → deps → check → run`.
+[Все аргументы материализатора](maintenance-profile-v2.md#аргументы-материализатора) и
+[контракт Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды) имеют своих владельцев.
+`poise_environment.profile` публикует файлы, отдельный SDK выполняет действия.
 
 ### Действующий делегированный CLI
 
-`poise infra`, `poise deps` и `poise check` передают управление установленному
-внешнему `environment_maintenance` через выбранный Python. Этот маршрут
-`requirements/v1` отделён от корневого Bootstrap данной поставки.
+`poise infra/deps/check` — отдельное делегирование выбранному внешнему
+`environment_maintenance`, сохраняющее его requirements/v1 контракт.
+Выберите совместимую установленную поставку и её собственные входы:
 
 | Аргумент внешнего CLI | Назначение |
 |---|---|
-| `infra`, `deps`, `check` | Выбранная операция внешнего обслуживания. |
-| `--catalog PATH` | Обязательный каталог требований. |
-| `--repairs PATH` | Необязательное описание исправлений. |
-| `--values PATH` | Файл значений параметров; допускается повторение. |
-| `--set NAME=VALUE` | Переопределение параметра; допускается повторение. |
-| `--dry-run` | Пробный запуск внешней операции. |
-| `-h/--help` | Справка установленного внешнего CLI. |
+| `infra`, `deps`, `check` | Операция выбранного делегированного инструмента. |
+| `--catalog PATH` | Обязательные требования этого отдельного профиля. |
+| `--repairs PATH` | Необязательное описание его исправлений. |
+| `--values PATH` | Повторяемый файл значений. |
+| `--set NAME=VALUE` | Повторяемое переопределение. |
+| `--dry-run` | Пробный режим выбранного контракта. |
+| `-h/--help` | Справка установленного приложения. |
 
 ```bash
 "${poise[@]}" check --catalog "$requirements_catalog" --values "$values_file"
 "${poise[@]}" infra --catalog "$requirements_catalog" --repairs "$repairs_file" --dry-run
-"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" \
-  --set python=/srv/poise/tool-venv/bin/python --dry-run
+"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" --set python="$actions_python" --dry-run
 ```
 
-`requirements_catalog`, `repairs_file`, `values_file` выбираются оператором
-по контракту установленного внешнего приложения.
+Эти входы относятся к выбранному делегированному оператору. Новый собственный
+operation-профиль и ниже описанный Bootstrap выбираются отдельно.
 
 ### Подготовленный standalone Bootstrap
 
+После [подготовки собственного профиля](maintenance-profile-v2.md#развёртывание-из-примера)
+используйте опубликованный `profile/bootstrap.json`, Python Poise и выбранный repository:
+
 ```bash
-cd "$poise_root"
-"$bootstrap_python" -I -B "$poise_root/bootstrap" check \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"
-"$bootstrap_python" -I -B "$poise_root/bootstrap" infra \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir" --dry-run
-"$bootstrap_python" -I -B "$poise_root/bootstrap" deps \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir" --dry-run
+"$poise_python" -I -B "$poise_source/bootstrap" infra --config "$profile/bootstrap.json" --base-dir "$repository"
+"$poise_python" -I -B "$poise_source/bootstrap" deps --config "$profile/bootstrap.json" --base-dir "$repository"
+"$poise_python" -I -B "$poise_source/bootstrap" check --config "$profile/bootstrap.json" --base-dir "$repository"
+"$poise_python" -I -B "$poise_source/bootstrap" run --config "$profile/bootstrap.json" --base-dir "$repository"
 ```
 
-Все аргументы, настройки, интерфейс плагина, результаты и порядок исправления
-описаны в [руководстве Bootstrap](bootstrap-catalog-v2.md).
-Оператор отдельно выбирает и устанавливает профиль эксплуатационного каталога.
+Каждая строка выполняет одну операцию. `run` только запускает заданную цепочку.
+Для этого профиля обязательны непустой `--base-dir` и `--config`; отдельный каталожный
+потребитель вместо `--base-dir` выбирает `--catalog-dir` и свою совместимую рабочую
+команду. [Все флаги, контексты и
+результаты](bootstrap-catalog-v2.md#подготовка-и-безопасная-проверка)
+включают справку, порядок передаваемых опций и единственную разрешённую попытку
+исправления. [ERP-профиль](maintenance-profile-v2.md#профиль-erp) выбирается явно
+своей спецификацией и конфигами; автоматическая Task-подготовка описана
+[отдельно](worktree-preparation.md#подготовка-рабочей-области).
 
 ### Обслуживание catalog/v2 через Stride
 
@@ -280,7 +282,9 @@ cd "$poise_root"
 направляет `infra`, `deps`, `check` в корневой Bootstrap. Это другой маршрут,
 чем прямой делегированный `poise check --catalog` выше. Перед его выбором пройдите
 [процедуру перехода и возврата](maintenance-profile-v2.md#переход-на-новый-маршрут-и-возврат).
-Значения ниже — явно выбранные пути установки; рабочие настройки остаются вне Git:
+Значения ниже — явно выбранные пути существующего каталожного оператора;
+`catalog-bootstrap.json` — его заранее подготовленная совместимая рабочая команда,
+а не копия нового operation-примера. Рабочие настройки остаются вне Git:
 
 ```bash
 stride_entry=/srv/poise/app/stride.sh
@@ -288,7 +292,7 @@ poise_root=/srv/poise/app
 project_id=example
 stride_settings="$poise_root/config/stride.env"
 profile="$poise_root/operator/poise-profile"
-bootstrap_config="$poise_root/config/bootstrap.json"
+bootstrap_config="$profile/catalog-bootstrap.json"
 bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" \
   "$stride_settings" check --config "$bootstrap_config" --catalog-dir "$profile"
 bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" \
@@ -366,7 +370,8 @@ bash "$native_launcher" --project "$project_id" < "$packet"
 аргументами. Это пакет операций reader, без Work `input/messages`. Полные примеры и все поля —
 [в контракте](../configuration/project-file-reading.md#семь-операций), заполнение политики —
 [у её владельца](../configuration/project-file-reading.md#подготовка-политики-и-примеры), admission
-и actual End/recover — [в жизненном цикле](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+и actual End/recover — [в жизненном
+цикле](../workflows/file-intake-lifecycle.md#завершение-и-восстановление).
 Специализированный `tools/source_read.py` с acknowledgement остаётся отдельным интерфейсом.
 
 
@@ -386,6 +391,7 @@ input/messages. JSON-SDK execute имеет тот же пакет. Это metad
 
 [Полная исполняемая форма](../configuration/project-file-reading.md#сводка-покрытия),
 [options/examples](../configuration/project-file-reading.md#параметры-политики-обычных-команд) и
-[продолжение после отказов](../configuration/project-file-reading.md#решения-и-восстановление-учёта-команд)
+[продолжение после
+отказов](../configuration/project-file-reading.md#решения-и-восстановление-учёта-команд)
 принадлежат каноническому reader owner. Рабочий каталог доказан literal absolute cd prefix
 либо независимым absolute operand; ambient cwd не угадывается.

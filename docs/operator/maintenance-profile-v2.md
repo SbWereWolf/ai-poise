@@ -1,312 +1,320 @@
-# Рабочий профиль обслуживания catalog/v2
+# Рабочие профили обслуживания Poise
 
 ## Назначение и условия
 
-Материализатор `poise_environment.profile` публикует полный каталог обслуживания
-Poise из выбранной поставки и параметров оператора. Само обслуживание выполняет
-внешний инструмент по действиям каталога. Команду запуска и обработчик результата
-задаёт [Bootstrap](bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла).
+Собственный экземпляр обслуживается через самостоятельный `environment-maintenance`:
+`infra`, `deps`, `check`, `run` используют конфиги одинакового формата.
+`poise_environment.profile` только публикует рабочие файлы из выбранных примеров.
+Команду внешнего приложения и обработчик результата задаёт
+[Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды).
 
-Выделите отдельную папку профиля, используйте её же при повторной публикации.
-Её родитель должен существовать. Обслуживаемые базы и пользовательские данные
-размещайте вне заменяемого дерева профиля. Публикуйте при остановленных владельцах
-записей профиля и обслуживаемых данных. Для самостоятельного обслуживания используйте существующий Git-репозиторий
-и доступную локальную базовую ревизию. Эти условия относятся и к повтору.
+Выберите существующий Git-репозиторий обслуживаемого Poise с доступной базовой
+ревизией, его Python 3.15, совместимые исходники с материализатором/шаблонами и
+подготовленную установку SDK. Источник шаблонов и обслуживаемый репозиторий могут
+быть разными копиями. Исполняемые модули действий берутся из обслуживаемой копии.
+Данные разместите отдельно от заменяемой папки профиля и Task-worktree.
+Родитель профиля должен существовать; при публикации закройте других его писателей.
 
-В примере рабочая папка — `operator/profile/` внутри выбранной копии Poise;
-она исключена из Git. Для другого расположения внутри репозитория настройте
-соответствующее исключение до записи рабочих файлов. Исходные примеры остаются
-отслеживаемыми. Пути `/srv/...` ниже — явно выбранные значения примера установки.
+Рабочий профиль в примере — `operator/profile/` внутри выбранного репозитория:
+он уже исключён из Git. Для своего расположения настройте исключение до записи.
+Исходные заполненные `.example.json` отслеживаются. Пути `/srv/...` ниже —
+явно выбранные значения примера, а не зашитые расположения установки.
 
 ## Развёртывание из примера
 
-Выберите поставку Poise с её `src/` и `config/`, Python 3.15 для Poise и окружение
-внешнего инструмента с поддержкой `catalog/v2`. Устанавливайте внешний инструмент
-пакетным менеджером по процедуре его поставки. Каждый Python, выполняющий действия,
-должен иметь доступ к модулям `poise_environment` выбранной поставки.
-В рабочих values согласуйте выбранный интерпретатор действий и диапазон:
-для собственного Python3.15 задайте minimum3.15 включительно и maximum3.16
-исключительно через `python_minimum`/`python_maximum`.
+Подготовьте исходную и обслуживаемую копии, доступный Python3.15, установленный
+SDK и локальный wheelhouse с зависимостями обслуживаемого Poise. Шаблон `deps`
+использует обычный pip с явными `--no-index --find-links --target`; пакетный
+менеджер разрешает пакет `psutil`, а приложение не сравнивает внешние версии.
 
 ```bash
-poise_root=/srv/poise/app
-poise_python=/srv/poise/poise-venv/bin/python
-consumer_python=/srv/poise/environment-venv/bin/python
-catalog_dir="$poise_root/operator/profile"
-state_root=/srv/poise/data/maintenance-example
-repository=/srv/projects/example
-cd "$poise_root"
-mkdir -p "$poise_root/operator"
-PYTHONPATH="$poise_root/src" "$poise_python" -B -m poise_environment.profile \
-  --source "$poise_root" --output "$catalog_dir" --state "$state_root" \
-  --repository "$repository" --project example --base-ref main \
-  --author-name Operator --author-email operator@example.invalid \
-  --module-path "$poise_root/src"
+poise_source=/srv/poise/source
+repository=/srv/poise/instance
+python_runtime=/srv/runtime/python3.15
+tool_prefix=/srv/tools/environment-maintenance
+tool_python="$tool_prefix/node_modules/environment-maintenance/.venv/bin/python"
+wheelhouse=/srv/packages/poise-wheels
+state_root=/srv/poise/data/own-instance
+profile="$repository/operator/profile"
+project_id=own-instance
+base_ref=master
+author_name=Operator
+author_email=operator@example.invalid
+
+"$python_runtime" -m venv "$repository/.venv"
+poise_python="$repository/.venv/bin/python"
+mkdir -p "$repository/operator"
+PYTHONPATH="$poise_source/src:$poise_source" "$poise_python" -P -s -B -m poise_environment.profile \
+  --source "$poise_source" \
+  --profile-spec "$poise_source/config/maintenance/start-app/profile.example.json" \
+  --output "$profile" --state "$state_root" --repository "$repository" \
+  --project "$project_id" --base-ref "$base_ref" \
+  --author-name "$author_name" --author-email "$author_email" \
+  --module-path "$poise_source/src"
+
+"$poise_python" -I -B - "$profile" "$tool_python" "$wheelhouse" <<'PYCONFIG'
+import json
+from pathlib import Path
+import sys
+profile, tool_python, wheelhouse = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+command = json.loads((profile / 'bootstrap.json').read_text())
+command['parameters']['python'] = tool_python
+(profile / 'bootstrap.json').write_text(json.dumps(command, ensure_ascii=False, indent=2) + '\n')
+parameters = json.loads((profile / 'parameters.json').read_text())
+parameters['wheelhouse'] = wheelhouse
+(profile / 'parameters.json').write_text(json.dumps(parameters, ensure_ascii=False, indent=2) + '\n')
+PYCONFIG
+
+"$poise_python" -I -B "$poise_source/bootstrap" infra --config "$profile/bootstrap.json" --base-dir "$repository"
+"$poise_python" -I -B "$poise_source/bootstrap" deps --config "$profile/bootstrap.json" --base-dir "$repository"
+"$poise_python" -I -B "$poise_source/bootstrap" check --config "$profile/bootstrap.json" --base-dir "$repository"
+"$poise_python" -I -B "$poise_source/bootstrap" run --config "$profile/bootstrap.json" --base-dir "$repository"
 ```
 
-Для этого source-запуска `PYTHONPATH` обеспечивает импорт материализатора;
-`--module-path` задаёт доступ к модулям будущих действий, а не самого контроллера.
-Здесь Python запускается без `-I`. Публичный корневой `bootstrap` ниже поддерживает
-`-I`. Сама публикация не создаёт обслуживаемый state и не запускает engine.
+При публикации stdout содержит `status=created` либо `replaced`, абсолютный
+`profile`, число ресурсов `requirements` и `state_created=false`, exit0.
+Публикация не создаёт обслуживаемые state и БД. `infra` создаёт настроенный проект,
+каталоги и три БД; `deps` устанавливает зависимость в
+`repository/.runtime/dependencies`; `check` подтверждает ресурсы.
+`run` выполняет только заданную цепочку — здесь публичный `poise project list`.
+Подготовленный экземпляр возвращает выбранный проект и его manifest без ошибок;
+вложенные полные потоки и exit находятся в результате SDK внутри ответа Bootstrap.
+Успех Bootstrap — `status=ready`, `exit_code=0`.
+
+Task-деревья размещаются в `repository/.runtime/worktrees`: именно этот абсолютный
+путь записан в project manifest, parameters и командах `infra`/`check`. Выбранный
+state должен быть вне этого каталога и отдельно от профиля. Изменение cwd запуска
+не перепривязывает ранее сохранённый repository.
+
+Для новой установки внешнего инструмента заранее выберите принятый npm-пакет
+с operation-интерфейсами и выполните его установку отдельно, например:
+
+```bash
+tool_package=/srv/packages/environment-maintenance-2.0.0.tgz
+npm install --prefix "$tool_prefix" --no-audit --no-fund "$tool_package"
+```
+
+Это установка выбранного артефакта, а не утверждение о публикации версии в registry.
+Для уже подготовленного `tool_python` повторная установка не требуется.
+Подготовка runtime внешнего приложения принадлежит его инструкции поставки.
 
 ### Аргументы материализатора
 
 | Аргумент | Назначение |
 |---|---|
-| `--source PATH` | Обязательный корень выбранной поставки с примерами и assets. |
-| `--output PATH` | Обязательная выделенная папка рабочего профиля. |
-| `--state PATH` | Обязательный отдельный корень обслуживаемых ресурсов. |
-| `--repository PATH` | Обязательный явный корень целевого Git-репозитория. Для самостоятельного обслуживания — существующий checkout; при подготовке Task-профиля допустим точно выбранный будущий worktree по отдельной инструкции. |
-| `--project ID` | Обязательный идентификатор создаваемой конфигурации проекта. |
-| `--base-ref REF` | Обязательная доступная локальная Git-ревизия. |
-| `--author-name NAME` | Обязательное имя автора в конфигурации проекта. |
-| `--author-email EMAIL` | Обязательная почта автора. |
-| `--template ID` | Выбор из `templates` спецификации; по умолчанию `linux-reference`. |
-| `--module-path PATH` | Значение `PYTHONPATH` действий; по умолчанию пустая строка для установленного доступного модуля. |
-| `--profile-spec PATH` | Явная спецификация публикации; по умолчанию `config/maintenance/profile.example.json` внутри `--source`. |
-| `-h`, `--help` | Стандартная справка argparse, без публикации. |
+| `--source PATH` | Обязательный источник materializer, примеров, templates/assets. |
+| `--profile-spec PATH` | Явная спецификация. Для собственного operation-профиля — `config/maintenance/start-app/profile.example.json`; без опции выбирается отдельный прежний `config/maintenance/profile.example.json`. |
+| `--output PATH` | Обязательная выделенная папка публикуемых рабочих файлов. |
+| `--state PATH` | Обязательный отдельный корень данных обслуживаемого экземпляра. |
+| `--repository PATH` | Обязательный корень выбранного обслуживаемого Git checkout. |
+| `--project ID` | Обязательная идентичность публикуемой конфигурации проекта. |
+| `--base-ref REF` | Обязательная доступная локальная базовая ревизия выбранного checkout. |
+| `--author-name NAME` | Обязательное имя автора проекта. |
+| `--author-email EMAIL` | Обязательная почта автора проекта. |
+| `--template ID` | ID из спецификации; исходное значение CLI — `linux-reference`. |
+| `--module-path PATH` | Публикуемое значение `module_path`; исходное значение — пустая строка. Новый operation-профиль отдельно задаёт исполняемый `runtime_module_path`. |
+| `-h`, `--help` | Стандартная справка без публикации. |
 
-Source/output/state/repository приводятся к абсолютным путям от cwd запуска.
-Явный относительный `--profile-spec` относится к cwd; ссылки на входы внутри
-спецификации относятся к `--source`. Для воспроизводимости выбирайте абсолютные
-аргументы, как в примере. Template должен быть объявлен выбранной спецификацией.
-
-При успехе stdout содержит JSON со `status=created` либо `replaced`, абсолютным
-`profile`, числом `requirements=14` и `state_created=false`; exit=0.
-Перехваченная ошибка чтения, JSON, подстановки или подготовки возвращает
-`status=invalid`, `error` и exit=2. Ошибки CLI и справка имеют стандартный вывод
-argparse, а не этот JSON-контракт. Сохранность прежнего профиля при ошибке
-чтения/разбора/подстановки входов проверена до публикации.
+Source/output/state/repository становятся абсолютными от cwd. Относительный
+`--profile-spec` относится к cwd; пути входов спецификации — к `--source`.
+Публикация выбирает объявленную schema: новый `poise-start-app-profile-1` или
+сохраняемый отдельный `poise-maintenance-profile-1`; неизвестная schema — ошибка.
+Публичный Bootstrap допускает `-I`, исходный `-m poise_environment.profile` выше
+получает импорт через явный `PYTHONPATH` и `-P -s -B`.
 
 ## Поставляемая спецификация
 
-Отслеживаются три самостоятельных входа:
+Канонические заполненные входы — [спецификация
+публикации](../../config/maintenance/start-app/profile.example.json),
+[app](../../config/maintenance/start-app/app.example.json),
+[infra](../../config/maintenance/start-app/infra.example.json),
+[deps](../../config/maintenance/start-app/deps.example.json),
+[check](../../config/maintenance/start-app/check.example.json),
+[run](../../config/maintenance/start-app/run.example.json),
+[Bootstrap](../../config/maintenance/start-app/bootstrap.example.json).
 
-- [profile.example.json](../../config/maintenance/profile.example.json) — публикация;
-- [environment-maintenance.example.json](../../config/maintenance/environment-maintenance.example.json) — полный каталог действий;
-- [recommendations.example.json](../../config/maintenance/recommendations.example.json) — предметные рекомендации.
-
-`profile.example.json` имеет schema `poise-maintenance-profile-1`:
-
-| Поле | Назначение |
+| Поле спецификации | Назначение |
 |---|---|
-| `schema` | Идентичность спецификации публикации. |
-| `catalog`, `settings`, `recommendations` | Пути входного каталога, примера project-setup и рекомендаций от source. |
-| `templates` | Соответствие ID выбранного шаблона пути его blueprint от source. |
-| `asset_directories` | Список объектов `source`, `destination`, `patterns`: исходная папка, назначение в профиле и явно поставляемые glob patterns. |
-| `documents` | Проекции JSON: `source`, `destination`, список `edits` с `path` и `value`. |
-| `workflow_source_prefix` | Явный префикс source references в blueprint, удаляемый при публикации assets. |
-| `outputs` | Имена `catalog`, `settings`, `registry`, `edits`, `recommendations` внутри профиля. Выбранный v2 consumer читает `catalog.json`. |
-| `settings_overrides` | Явные значения root/registry/lock публикуемого project-setup. |
+| `schema` | `poise-start-app-profile-1`, выбор этого контракта публикации. |
+| `settings`, `recommendations` | Пути примера project-setup и рекомендаций от source. |
+| `templates` | ID → путь исходного blueprint. |
+| `parameters` | Явные исходные значения параметров. |
+| `derived_parameters` | Упорядоченные стандартные шаблоны производных значений после привязки CLI. |
+| `operation_documents` | Список `source`/`destination`: полные JSON-документы операций копируются с неизвестными полями. |
+| `bootstrap` | Исходный шаблон JSON команды Bootstrap. |
+| `resource_inventory` | Список документов ресурсов для подсчёта `requirements` публикации. |
+| `outputs` | Имена `settings`, `registry`, `edits`, `recommendations`, `bootstrap`, `parameters` в профиле. |
+| `asset_directories` | Объекты `source`, `destination`, `patterns` для поставляемых assets. |
+| `documents` | JSON-проекции `source`, `destination`, `edits` с массивом `path` и `value`. |
+| `workflow_source_prefix` | Явный префикс исходных workflow references, снимаемый при проекции. |
+| `project_edits` | Правки blueprint проекта через существующего владельца. |
+| `settings_overrides` | Явные root/registry/lock настройки project-setup. |
 | `preserve_paths` | Рабочие пути, переносимые из существующего профиля при повторе. |
-| `project_edits` | Список явных правок project blueprint: `path` — массив ключей, `value` — значение. |
 
-Задавайте destinations, outputs и preserve paths корректными относительными путями
-внутри выбранного профиля. Источники должны содержать объявленные assets и поля
-редактируемых документов. Значения правок и выходов рендерятся стандартным
-`string.Template.substitute`: `$name`, `${name}`, `$$`. Поздние placeholders
-в самих Task/workflow templates сохраняются как данные.
+Назначения задаются корректными относительными путями внутри профиля; объявленные
+источники и поля документов должны существовать. Подстановка публикации использует
+стандартный `string.Template.substitute`. В исходном Bootstrap-шаблоне `$$` сохраняет
+`$` для более поздней подстановки команды. Документы действий копируются целиком:
+их placeholders исполняет SDK при запросе операции. Классы/методы исполнения
+не зашивают пути этой установки.
 
-Рабочие настройки каталога и редактора создаются из sanitized примеров. Они
-ссылаются на отдельные поставляемые templates и на проектные рабочие workflows.
-Проект публикует существующий владелец `ProjectCommands/FileProjectSetup`;
-его [конфигурация и параметры](../configuration/project-setup.md) остаются отдельным
-контрактом. Профиль получает `setup.json`, `configured-projects.json`,
-`project-edits.json`, `recommendations.json` и `catalog.json`.
+Проект получает `setup.json`, `configured-projects.json`, `project-edits.json`,
+`recommendations.json`, необходимые catalogue/workflow assets и рабочие конфиги
+приложения. Сам `selected-project/project.json` создаёт отдельная команда `infra`
+через `ProjectCommands/FileProjectSetup`; [их контракт](../configuration/project-setup.md)
+сохраняется. Данные и схемы БД остаются у своих владельцев.
 
 ### Каталог и параметры
 
-Каталог имеет schema `environment-maintenance/catalog/v2`, `parameters`,
-`inherit_env` и упорядоченные `requirements`. У каждой записи — `id` и три
-действия `check`, `install`, `repair`. Каждое объявляет `argv`, `cwd`, `env`,
-`output.schema`, `max_output_bytes` и `execution_bound_seconds`. В примере пределы
-составляют 65536 байт и 60 секунд на действие; наследуются `PATH`, `HOME`, `LANG`.
-Конкретное исполнение и рендер действий принадлежат внешнему потребителю.
+Новый app содержит `operations` (имя операции → путь файла от app) и
+`interpreters` (имя → `module`/`attribute`). Каждый файл операции имеет
+`requirements`: список объектов с `id` и цепочкой `commands`.
+Команда содержит `argv`, `cwd`, `env` и `interpreter` с `name`/`options`.
+Для ресурсов `infra`/`deps` поле `checks.presence` задаёт обязательную проверку
+наличия; `checks.availability` — необязательную проверку доступности.
+Каждая проверка использует такую же цепочку `commands`. Дополнительные проверки
+согласованности задаются требованиями собственного `check.json`; в заполненном
+собственном примере их список пуст. `run.json` задаёт обычную цепочку запуска.
+Схему, CRUD и исполнение этих документов предоставляет внешний SDK.
 
-Все 15 параметров примера строковые:
-
-| Параметр | Источник значения опубликованного профиля |
+| Параметр рабочего parameters.json | Привязка/назначение |
 |---|---|
-| `python` | `sys.executable` материализатора; при обслуживании переопределяется выбранным Python действий через values. |
-| `module_path` | `--module-path`. |
+| `python` | `sys.executable` материализатора: Python обслуживаемого Poise. |
+| `module_path` | Сохранённый `--module-path`; отдельные прежние профили используют его для действий. |
 | `profile_root` | Абсолютный `--output`. |
 | `state_root` | Абсолютный `--state`. |
-| `repository` | Абсолютный `--repository`. |
+| `repository` | Абсолютный `--repository`, исполняемая копия Poise. |
 | `project_id` | `--project`. |
-| `base_ref` | `--base-ref`; исходный пример содержит `main`. |
-| `author_name` | `--author-name`. |
-| `author_email` | `--author-email`. |
-| `git` | Выбранный пример: `git`. |
-| `directory_mode` | Выбранный пример: `0750`. |
-| `python_minimum` | Выбранный пример: `3.13`, включительно. |
-| `python_maximum` | Выбранный пример: `3.14`, исключительно. |
-| `template_id` | `--template`, по умолчанию `linux-reference`. |
-| `remote` | Выбранный пример: `disabled`. |
+| `base_ref` | `--base-ref`. |
+| `author_name`, `author_email` | Соответствующие аргументы CLI. |
+| `template_id` | Выбранный `--template`. |
+| `git` | Исполняемый Git, в примере `git`. |
+| `directory_mode` | Режим каталогов, в примере `0750`. |
+| `python_minimum`, `python_maximum` | Диапазон собственного Python Poise: `3.15` включительно, `3.16` исключительно. |
+| `remote` | Явное значение примера `disabled`. |
+| `env_executable` | Настроенный исполнитель установки environment для команды SDK; здесь `env`. |
+| `wheelhouse` | Явный локальный источник pip-зависимостей; заполняется оператором. |
+| `dependency_target` | Производное `${repository}/.runtime/dependencies`. |
+| `path_separator` | Разделитель путей платформы материализатора. |
+| `runtime_module_path` | Производное repository/src, dependency_target, repository с этим разделителем. |
+| `worktree_root` | Производное `${repository}/.runtime/worktrees`, общее для проекта и действий. |
 
-Дополнительные значения принадлежат выбранному примеру, а не угадываются из
-установки. Собственные схемы и диапазон Python характеризуют эту поставку;
-версию внешнего пакета при запуске материализатор не проверяет.
+В `bootstrap.json` отдельно опубликованы строковые `python`, `env_executable`,
+`runtime_module_path`, `tool_config`, `parameters_file`: команда внешнего SDK,
+его импортный контекст, app и параметры. Контекст `base_dir` поступает из
+обязательного аргумента Bootstrap. Поля команд и плагина описаны в
+[контракте Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды).
 
 ## Ресурсы и действия
 
-Пути в таблице — значения поставляемого примера, а не встроенные пути ядра.
-
-| ID | Реальное наблюдение и владелец эффекта |
+| Ресурс | Проверка и владелец эффекта |
 |---|---|
-| `python-runtime` | Диапазон выбранного исполняемого Python; адаптер `python_runtime`. |
-| `git-executable` | Реальный `git --version`; адаптер `git_executable`. |
-| `target-repository` | Корень репозитория и доступность base ref; адаптер `repository`. |
-| `state-root` | Сам `state_root`; адаптер `directory`. |
-| `runtime-directory` | `state_root/runtime`; адаптер `directory`. |
-| `task-directory` | `state_root/standalone`; адаптер `directory`. |
-| `sprint-directory` | `state_root/sprints`; адаптер `directory`. |
-| `worktree-directory` | `state_root/worktrees`; адаптер `directory`. |
-| `requirements-directory` | `state_root/database`; адаптер `directory`. |
-| `telemetry-directory` | `state_root/telemetry`; адаптер `directory`. |
-| `poise-project-config` | `profile_root/project/project.json`; существующий project owner. |
-| `poise-task-database` | `state_root/state.sqlite`; `Database`, схема этой поставки 13. |
-| `poise-requirements-database` | `state_root/database/requirements.sqlite`; `RequirementsStore`, схема 2. |
-| `poise-telemetry-database` | `state_root/telemetry/events.sqlite`; `TelemetryDatabase`, схема 13. |
+| `python-runtime` | Исполняемый Python и его собственный диапазон; существующий адаптер Python. |
+| `git-executable` | Реальный Git; существующий адаптер Git. |
+| `target-repository` | Выбранный корень и доступная base ref; адаптер репозитория. |
+| `state-root` | Отдельный state_root; адаптер каталога. |
+| `runtime-directory` | state_root/runtime. |
+| `task-directory` | state_root/standalone. |
+| `sprint-directory` | state_root/sprints. |
+| `worktree-directory` | repository/.runtime/worktrees вне state, согласованный с manifest. |
+| `requirements-directory` | state_root/database. |
+| `telemetry-directory` | state_root/telemetry. |
+| `poise-project-config` | selected-project/project.json через владельца публикации проекта. |
+| `poise-task-database` | База Task, существующий Database. |
+| `poise-requirements-database` | База Requirements, существующий RequirementsStore. |
+| `poise-telemetry-database` | База accounting, существующий TelemetryDatabase. |
+| `poise-python-dependencies` | Обычный pip install psutil в явный target, реальный import/Process для presence и availability. |
 
-Для всех 14 записей объявлены самостоятельные check/install/repair. Внешний
-`check` только наблюдает; `run` для missing выбирает install, для invalid — repair
-и затем вновь проверяет ресурс. Готовый ресурс идемпотентен. Каталоги создаются
-и получают объявленный mode. Отсутствующие БД создают настоящие schema owners.
-Существующие занятые/повреждённые/несовместимые БД диагностируются без пересоздания.
-Недоступные Python/Git/repository требуют действий оператора по рекомендациям.
+`infra` и `deps` выполняют явно объявленные команды установки/настройки по порядку.
+`check` использует проверки обоих файлов и собственные дополнительные цепочки.
+Если availability отсутствует, SDK сообщает `not_configured` и сохраняет результат
+presence. Отрицательный предметный state при exit0 интерпретируется как неготовность,
+а не как успех по одному exit. Конкретные проверки доступности и согласованности
+пишет обслуживаемое приложение своими инструментами и подключает через ту же схему.
 
 ### Аргументы предметных адаптеров
 
-Engine запускает модули `poise_environment.repairs.<module>` из объявленных argv.
-Общие обязательные аргументы: `--requirement-id` — ID записи; `--action` —
-check/install/repair; `--schema` — объявленная schema ответа; `--recommendations` —
-файл рекомендаций. `-h/--help` показывает справку выбранного модуля.
+Все существующие адаптеры принимают обязательные `--requirement-id`,
+`--action check|install|repair`, `--schema`, `--recommendations`.
+Дополнительные параметры передаются явно:
 
-| Модуль | Дополнительные обязательные аргументы |
+| Адаптер | Обязательные параметры |
 |---|---|
-| `python_runtime` | `--minimum`, `--maximum`: границы версии Python. |
-| `git_executable` | `--git`: исполняемый Git. |
-| `repository` | `--repository`, `--base-ref`, `--git`: выбранный репозиторий, ревизия и Git. |
-| `directory` | `--path`, `--permissions`: каталог и восьмеричный mode. |
-| `project_config` | `--config`, `--settings`, `--edits`, `--destination`, `--template`: manifest, setup, правки, назначение проекта от setup root и ID шаблона. |
-| `task_database`, `requirements_database`, `telemetry_database` | `--config`, `--state-root`: выбранный manifest и ожидаемый отдельный state. |
+| `python_runtime` | `--minimum`, `--maximum`. |
+| `git_executable` | `--git`. |
+| `repository` | `--repository`, `--base-ref`, `--git`. |
+| `directory` | `--path`, `--permissions` (восьмеричный режим). |
+| `project_config` | `--config`, `--settings`, `--edits`, `--destination`, `--template`. |
+| `task_database`, `requirements_database`, `telemetry_database` | `--config`, `--state-root`. |
 
-Файл рекомендаций имеет schema `poise-maintenance-recommendations-1` и `entries`:
-ID требования → cause → список строк. По объявленной cause выбирается этот список,
-подстановка в строках принадлежит `string.Template` и использует именованные
-аргументы выбранного адаптера (`config`, `path`, `git` и другие из таблицы).
-Неизвестная причина имеет явно заданную запись `unknown`; диагностический stderr
-и ненулевой результат не превращаются в успех.
+`check` адаптера возвращает schema/requirement_id/action/state; фактический exit0
+включает отрицательные состояния. Успешные install/repair возвращают
+`outcome=completed`, exit0, отказ — outcome/cause/recommendations и exit2.
+SDK-интерпретатор оценивает и тело, и exit. Существующие БД с несовместимой схемой,
+занятостью или повреждением не пересоздаются этими действиями.
 
 ## Обслуживание через Bootstrap
 
-Подготовьте рабочие файлы внутри выбранного Poise:
+Полная последовательность приведена [выше](#развёртывание-из-примера).
+Каждую её команду можно запросить отдельно с тем же JSON и `--base-dir`.
+Повторные `infra`, `deps`, `check` поддерживают подготовленный экземпляр.
+`run` не дополняет цепочку подготовкой: он исполняет ровно объявленный запуск.
+Интерпретатор собственного запуска требует непустой корректный `projects` и пустой
+`errors`, поэтому неподготовленный выбранный экземпляр получает диагностируемый
+отказ даже при успешном exit самой команды чтения реестра.
 
-```bash
-cd "$poise_root"
-cp config/bootstrap.example.json config/bootstrap.json
-cp config/environment-maintenance.example.json config/environment-maintenance.json
-```
-
-Заполните `config/bootstrap.json`: `parameters.python` — фактический
-`consumer_python`, `parameters.tool_config` — абсолютный путь рабочего
-`config/environment-maintenance.json`. В рабочем values-файле задайте, например:
-
-```json
-{"python": "/srv/poise/environment-venv/bin/python"}
-```
-
-`${PYTHON_EXECUTABLE}` в sanitized примере заменяется оператором реальным значением
-в рабочем файле. Values — объект значений параметров внешнего каталога; это не
-полный каталог действий. `catalog.json` уже находится в `catalog_dir`.
-Оба рабочих файла исключены из Git. Полный [контракт команды, плагина и
-аргументов Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды) остаётся его владельцем.
-
-```bash
-"$poise_python" -I -B "$poise_root/bootstrap" deps \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"
-"$poise_python" -I -B "$poise_root/bootstrap" infra \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"
-"$poise_python" -I -B "$poise_root/bootstrap" check \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"
-"$poise_python" -I -B "$poise_root/bootstrap" infra \
-  --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir" --dry-run
-```
-
-В этом примере deps/infra/check сначала вызывают внешний check всего переданного
-каталога. Названия deps/infra не фильтруют 14 записей. Плагин для разрешённого
-action_required вызывает внешний run, затем check. Dry-run сохраняет наблюдение
-без изменения ресурсов. Этот порядок deps→infra→check проверен на реальных
-ресурсах в изолированной установке. Готовность требует satisfied всех 14 записей.
+[Все аргументы и обработчики](bootstrap-catalog-v2.md#подготовка-и-безопасная-проверка)
+принадлежат Bootstrap. ERP, действующий catalog/v2 и подготовка Task-worktree
+сохраняют отдельные command config и свои операции. Выбирайте их собственные
+профили, не меняя входы другого оператора. Для автоматической Task-подготовки
+используйте [её инструкцию](worktree-preparation.md#подготовка-рабочей-области).
 
 ## Повторная публикация и диагностика
 
-Для повтора выполните ту же команду материализации с той же выделенной output
-папкой. Supply assets заменяются. Поставляемый `preserve_paths` сохраняет bytes:
+Повторите материализацию в той же выделенной папке при остановленных писателях.
+Сохраняются объявленные `preserve_paths`: выбранный проект, реестр, настройки
+каталога/редактора и их рабочие данные. JSON команд и параметров создаются заново
+из примеров и аргументов: после повторной публикации заполните свои `tool_python`
+и `wheelhouse` тем же шагом инструкции. Изменение параметров не переписывает
+молча уже существующий managed project: рассогласование сообщается как ошибка,
+корректируется через его владельца.
 
-- `project/` — существующий manifest и рабочие workflow packs;
-- `configured-projects.json` — реестр владельца project setup;
-- `setup.lock`;
-- `editor-state/`;
-- `config/catalogue/editor.json`;
-- `config/catalogue/settings.json`.
+Подготовка входов выполняется в соседней временной папке до замены профиля.
+При обычной ошибке второй rename восстанавливается прежняя папка. Это не контракт
+конкурентного редактирования или восстановления после любого падения процесса.
+Нужные входы, parent directory и отсутствие других писателей — условия использования.
+Перехваченная ошибка чтения/JSON/подстановки/подготовки возвращает
+`status=invalid`, `error`, exit2. Справка и синтаксические отказы — argparse.
 
-Обслуживаемые БД остаются в отдельном state и не заменяются публикацией профиля.
-Существующий project config не перенастраивается повтором. Если новые выбранные
-параметры с ним расходятся, последующая проверка возвращает configuration_drift;
-согласованные изменения существующего проекта выполняет его владелец. После
-работы владельца выполните явный check. Это не скрытая миграция настроек.
-
-У check-адаптера schema `poise/maintenance-action/v2`, `requirement_id`, `action`,
-`state` (satisfied/missing/invalid/unavailable). При unavailable присутствуют
-`cause` и `recommendations`. Корректное наблюдение имеет exit=0, даже когда
-готовность не достигнута. Для изменяющего действия подтверждённый успех —
-`outcome=completed`, exit=0; невозможность — `outcome=unavailable`, cause,
-recommendations и exit=2. Ошибка конфигурации самого адаптера диагностируется
-в stderr с exit=2. Внешний engine сопоставляет полный ответ и реальный exit.
-
-Занятость, повреждение, несовместимая версия/структура БД и drift возвращаются
-агенту/оператору с рекомендациями. Сохраните полный JSON, stderr и exit.
-Итоговый внешний ответ имеет schema `environment-maintenance/result/v2`;
-Bootstrap-плагин фиксирует ready/error и [одну попытку исправления в текущем
-вызове](bootstrap-catalog-v2.md#результаты-и-ошибки). Следующую проблему решает агент.
+При обслуживании читайте полный ответ Bootstrap и вложенные потоки SDK.
+Распознанный и явно разрешённый ремонт выполняется один раз с проверкой;
+неизвестная или последующая ошибка передаётся агенту. Исправьте соответствующий
+рабочий конфиг или причину ресурса и выполните нужную отдельную проверку.
+[Коды и полный результат](bootstrap-catalog-v2.md#результаты-и-ошибки) не заменяются preview.
 
 ### Недоступные Python и каталоги
 
-Для текущей поставки Poise выбирайте Python3.15 и задайте в рабочих values
-`python_minimum="3.15"`, `python_maximum="3.16"`: нижняя граница включительна,
-верхняя исключительна. Это явно выбранный рабочий диапазон, а не автоматическая
-правка исходного примера. Пути семи ресурсов каталогов задаются выбранным
-профилем; используйте корректные пути каталогов для этой установки.
-
-| Ресурс и причина | Рекомендация оператора |
-|---|---|
-| `python-runtime`, `unavailable/version` | Выберите поддерживаемый интерпретатор в параметрах профиля. |
-| Семь ресурсов каталогов, `unavailable/type` | Укажите каталог для выбранного ресурса вместо файла и повторите проверку. |
-
-При этих состояниях прямой `check` возвращает наблюдение с exit=0, а прямые
-`install` и `repair` возвращают `outcome=unavailable` с exit=2. Существующий файл
-по выбранному пути каталога сохраняет свои байты. Внешний ответ со статусом
-`unavailable` имеет exit=3; Bootstrap-плагин представляет его как `error` с exit=4.
-Полный [контракт статусов и повторной проверки](bootstrap-catalog-v2.md#состояния-и-повторная-проверка)
-принадлежит компоненту и обработчику Bootstrap.
+Выберите Python по собственному диапазону Poise и корректные пути каталогов
+этого экземпляра. `unavailable/version`, `unavailable/type` и другие предметные
+причины сохраняются с рекомендациями. SDK отличает успешное исполнение диагностической
+команды от готовности ресурса. Существующий файл по пути требуемого каталога
+не заменяется каталогом. После устранения причины повторите самостоятельную `check`.
 
 ## Границы проверенной поставки
 
-Проверены первая/повторная публикация, сохранность значимых строк и bytes трёх БД,
-реальные самостоятельные действия, отказы БД, Bootstrap и чтение опубликованных
-ссылок настоящим FileCatalogue. Полнота чтения каталога не означает готовности
-native Task runtime, editor DB или hooks. Действующий requirements/v1 CLI остаётся
-отдельным маршрутом; переключение live-установки принадлежит её процедуре поставки.
+Подтверждены две независимые пары source/repository с пробелами/Unicode, настоящая
+подготовка трёх БД и независимое SQL-чтение их необходимой схемы/состояния,
+установка и работа зависимости из выбранного target, проверки ресурсов и
+реальный выбранный запуск. Task-worktree manifest/parameter/физический каталог
+согласованы с repository/.runtime/worktrees вне state. Пустой raw `--base-dir`
+отклоняется до дочерней команды; явный `.` и перенесённые пути поддерживаются.
 
-Проверены также неподдерживаемая версия Python, сохранность файла при отказе
-обслуживания каждого из семи ресурсов каталогов и сохранность рабочих настроек
-каталога, редактора и реестра при повторной публикации профиля.
-
-Текущая публикация использует подготовленный соседний временный каталог и откат
-при обычной ошибке второго rename. Это не гарантия атомарного восстановления
-при произвольном падении процесса или конкурентных записях. Описанные выше
-условия выделенного профиля, отдельного state и остановленных writers обязательны.
+Проверены отсутствие подготовки при run, отсутствие создания state при check,
+объявленные availability/coherence, полный большой и нетекстовый вывод и одна
+разрешённая попытка исправления. Ссылки и синтаксис инструкции — отдельные проверки.
+Готовность экземпляра по этим ресурсам не означает принятую Task/Sprint, настроенные
+native hooks, редактор или проверенный бизнес-маршрут ERP. Поставка нового профиля
+не переключает уже работающий launcher. Готовность других ОС отдельно не заявляется.
 
 ## Профиль ERP
 
@@ -330,7 +338,8 @@ runtime выбраны `python_minimum="3.15"` и `python_maximum="3.16"`.
 Исходные примеры не заменяют заполнения рабочих значений; их старые значения
 в таблицах ниже описывают сами примеры, не текущую рекомендацию для установки.
 Оставшееся исправление несовместимых границ в примере общей установки учитывается
-отдельно в [известных ограничениях](../operations/known-bugs.md#aip-operator-upgrade-compatibility-001--согласование-runtime-после-обновления).
+отдельно в [известных
+ограничениях](../operations/known-bugs.md#aip-operator-upgrade-compatibility-001--согласование-runtime-после-обновления).
 
 Для автоматической подготовки новых Task подключите
 [установленный start-app](start-app-worktree-setup.md#подключение-установленного-инструмента)
@@ -566,6 +575,13 @@ settlement ошибки остаются ошибками с доступной 
 
 ## Переход на новый маршрут и возврат
 
+Ниже сохранена операторская процедура перехода отдельно выбранных catalog/v2
+профилей Poise и ERP. Их resource counts, values и команды относятся к этим
+профилям. Новый собственный operation-профиль использует описанную выше
+[инструкцию](#развёртывание-из-примера) и `--base-dir`; его публикация не выполняет
+это переключение. Для существующего каталожного оператора выбирайте его сохранённую
+совместимую поставку, source и рабочую команду.
+
 Это операторская процедура выбора команды обслуживания, а не новый автоматический
 координатор ворот. Версии внешних зависимостей выбирает пакетный менеджер.
 Poise исполняет явно настроенную команду и передаёт полный результат выбранному
@@ -581,7 +597,8 @@ Poise исполняет явно настроенную команду и пе�
 не зашиваются в продуктовый код. Для текущего Python действий3.15 заполните
 рабочие `python_minimum="3.15"` и `python_maximum="3.16"`.
 
-Материализуйте [полный профиль Poise](#развёртывание-из-примера) и
+Подготовьте [полный отдельный каталог Poise](bootstrap-catalog-v2.md#входы-универсального-каталога)
+и
 [полный профиль ERP](#подготовка-erp-профиля) в разные выделенные папки внутри
 выбранного Poise. Для каждого задайте отдельные state/cache и заполните values,
 рабочую команду Bootstrap и источники конфигураций. Согласуйте Python действий,
@@ -605,7 +622,8 @@ consumer и пути по инструкциям профилей. Для Task �
 
 До замены текущего launcher выполняйте проверки непосредственно через абсолютный
 `bootstrap`, как в инструкциях обоих профилей. Необходимые ERP настройки и
-test-execution задаются по [инструкции подготовки области](worktree-preparation.md#рабочий-файл-и-подключение-проекта).
+test-execution задаются по [инструкции подготовки
+области](worktree-preparation.md#рабочий-файл-и-подключение-проекта).
 Изолированная Task должна иметь законное поручение и собственные данные;
 её подготовка не подменяет приёмку рабочей задачи или бизнес-CJM ERP.
 
@@ -659,7 +677,8 @@ cp -- "$prepared_new" "$selector.next" &&
 Шаблон команды рендерится существующим стандартным механизмом Bootstrap;
 для перехода не нужен собственный renderer, gate engine или менеджер версий.
 
-После выбора выполните через [Stride](poise-command-reference.md#обслуживание-catalogv2-через-stride)
+После выбора выполните через
+[Stride](poise-command-reference.md#обслуживание-catalogv2-через-stride)
 реальные `infra`, `deps`, `check` с явными `--config` и `--catalog-dir` каждого
 профиля. Сохраните полные результаты и проверьте фактические bytes selector.
 `--values`, `--set` и `--dry-run` передаются тем же буквальным suffix по
@@ -714,7 +733,8 @@ VERIFIED, передайте сохранённые файлы следующе�
 
 Task/Sprint artifact и его зарегистрированный путь сами по себе не являются
 согласованной постоянной поставкой. До terminal retirement задайте нужные
-результаты через [delivery/agree и delivery/settle](../workflows/terminal-materials.md#публичный-договор-поставки),
+результаты через [delivery/agree и
+delivery/settle](../workflows/terminal-materials.md#публичный-договор-поставки),
 проверьте фактические постоянные файлы, digests, mapping и всех потребителей
 ссылок. Приёмка, интеграция Git и удаление служебных материалов имеют отдельные
 результаты. Новый commit документации или интеграционного кандидата получает

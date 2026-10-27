@@ -111,7 +111,7 @@ class StageResultHandoffCommands:
                 f'show kind=stage_criteria stage_id={stage} для Task {task}; '
                 f'проверьте конкретный native gate из progression.failure/recovery. {continuation}'
             )
-        elif reason and any(word in reason.casefold() for word in ('source', 'исход', 'changed', 'измен')):
+        elif not isinstance(error, VersionConflict) and reason and any(word in reason.casefold() for word in ('source', 'исход', 'changed', 'измен')):
             continuation = (
                 f'show kind=task для Task {task}; сохраните WIP и согласуйте explicit rework '
                 f'через текущего владельца результата, затем используйте новый handoff request_id. {continuation}'

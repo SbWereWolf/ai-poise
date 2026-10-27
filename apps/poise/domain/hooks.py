@@ -93,7 +93,7 @@ class NativeEvent:
             invalid('/input/event/hook_event_name')
         session = text(native.get('session_id'), '/input/event/session_id')
         workspace = text(native.get('cwd'), '/input/event/cwd')
-        if native.get('agent_id') not in (None, ''):
+        if 'agent_id' in native:
             invalid('/input/event/agent_id')
         turn, source, reason = None, None, None
         if kind == 'SessionStart':

@@ -418,9 +418,10 @@ Keep this English projection and its Russian source consistent in the same chang
   creation initializes the public registry projection with an explicit empty list. Preserve historical definitions and
   receipts. Test-inspection exit requires a non-empty current GREEN executable set whose collective coverage includes
   every declared executable obligation, but does not require obsolete methods or an unfiltered repository-wide suite.
-- Pass the complete initial checks object explicitly when creating a development Task; `{}` is a valid complete
-  schedule. Design and register later RED/GREEN methods, schedules and future-output provenance at
-  `verification_planning`, after their real sources are known.
+- Pass every workflow stage key in the initial checks object explicitly when preparing a development Task;
+  `methods: []` and empty stage lists are valid. Design concrete methods at `verification_planning`; register
+  definitions, schedules and provenance at the stage that owns `test_registry`, after their sources exist.
+  Follow the [registry contract](docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
 - Verification methods do not declare execution timeouts. Once a verification or declared action command starts, wait
   for its terminal result; do not convert elapsed time into an unknown execution outcome.
 - When execution is stale at `pending=checks`, replay only the exact submitted `verify` packet. Recovery is allowed

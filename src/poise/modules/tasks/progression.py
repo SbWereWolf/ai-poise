@@ -34,7 +34,7 @@ def crossed_role_boundary(task: Task, actor: str, history: dict | None) -> bool:
                    or event["stage"] != task.stage.stage_id
                    or event["iteration"] != task.state.iteration for event in events)):
         raise DomainError("Current verified ownership history is incomplete or mismatched")
-    owner = events[0]["actor"]
+    owner = events[0].get("actor")
     if not isinstance(owner, str) or not owner.strip():
         raise DomainError("Current verified result has no proven author")
     crossed = False

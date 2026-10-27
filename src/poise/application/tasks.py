@@ -558,11 +558,6 @@ class TaskCommands:
             target = ownership
             if target.worktree_owner not in (None, actor):
                 raise DomainError('Task workspace is owned by another session; handoff is required')
-            if (isinstance(authorization, dict) and authorization.get('role') == 'reviewer'
-                    and (current.draft.get('planning') is not None or current.restart_history)):
-                reviewer = inputs.review_identity(task_id, include_unsubmitted=True)
-                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
-                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             changed = current.restart_draft(actor, reason, authorization)
             before = inputs.ownership(actor)
             context = inputs.restart_context(task_id)
@@ -578,12 +573,6 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Task worktree is owned by another session; handoff is required")
             context = inputs.restart_context(task_id)
-            if (context['contract'].get('planning') is not None
-                    and isinstance(authorization, dict)
-                    and authorization.get('role') == 'reviewer'):
-                reviewer = inputs.review_identity(task_id, include_unsubmitted=True)
-                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
-                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             restart_contract = deepcopy(context["contract"])
             if context["requirements_snapshot"] is not None:
                 restart_contract["requirements_snapshot"] = deepcopy(

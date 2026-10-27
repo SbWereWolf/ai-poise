@@ -1,0 +1,9 @@
+{
+  "context_template": "Use {launcher}; current state {state}.",
+  "stop_template": "Current state {state}.",
+  "gate_operations": [
+    "bootstrap",
+    "verify",
+    "artifacts"
+  ]
+}

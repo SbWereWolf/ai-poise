@@ -1,0 +1,20 @@
+{
+  "sections": {
+    "report": "Проверяемый результат: данные сохранены точно."
+  },
+  "artifact_paths": [],
+  "commit_message": "Preserve selected proof bytes",
+  "content_additions": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "trace": {},
+  "method_additions": [],
+  "stage_work": {},
+  "evidence_work": {
+    "phase": "prepare",
+    "arguments": [],
+    "decisions": []
+  }
+}

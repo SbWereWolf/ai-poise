@@ -110,6 +110,10 @@ class HookNativeAuthority:
         if not valid and not released:
             raise _ObservationFailure("Native session binding is not valid")
         event = diagnostic.get("native_event")
+        if (isinstance(event, dict) and event.get('status') == 'unsupported'
+                and kind in ('UserPromptSubmit', 'Stop')
+                and kind not in {item['event'] for item in self.definition.data['events']}):
+            return None  # General reading does not require optional Task events.
         if isinstance(event, dict) and event.get("status") == "not_observed":
             return None
         if not isinstance(event, dict) or event.get("status") != "observed":

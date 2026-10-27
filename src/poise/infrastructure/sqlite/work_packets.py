@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timezone
+
 from ...modules.foundation.errors import PoiseError
 
 
@@ -28,3 +31,46 @@ class SqliteWorkPacketRepository:
 
     def invalidate(self, task_id: str) -> None:
         self.db.execute("DELETE FROM work_packets WHERE task_id=?", (task_id,))
+
+    def selection_request(self, task_id, request_id, stage, iteration):
+        rows = self.db.execute(
+            "SELECT event,data FROM journal WHERE task_id=? AND event IN "
+            "('work.selection_admitted','work.selection_guarded') "
+            "AND json_extract(data,'$.request_id')=? "
+            "AND json_extract(data,'$.expected.stage')=? "
+            "AND json_extract(data,'$.expected.iteration')=? ORDER BY seq",
+            (task_id, request_id, stage, iteration),
+        ).fetchall()
+        admitted = None
+        for event, raw in rows:
+            value = json.loads(raw)
+            if event == 'work.selection_admitted':
+                admitted = value
+            elif admitted is not None:
+                admitted['guard'] = value['guard']
+        return admitted
+
+    def _selection_event(self, task_id, actor, event, record):
+        self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+                        (datetime.now(timezone.utc).isoformat(), actor, task_id, event,
+                         json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(',', ':'))))
+
+    def admit_selection(self, task_id, actor, record):
+        prior = self.selection_request(task_id, record['request_id'], record['expected']['stage'], record['expected']['iteration'])
+        if prior is not None:
+            if prior['digest'] != record['digest']:
+                raise PoiseError('selection_request_conflict: request_id already binds different input')
+            return prior
+        self._selection_event(task_id, actor, 'work.selection_admitted', record)
+        return record
+
+    def record_selection_guard(self, task_id, actor, request_id, expected, guard):
+        saved = self.selection_request(task_id, request_id, expected['stage'], expected['iteration'])
+        if saved is None:
+            raise PoiseError('selection_recovery_pending: admitted request is missing')
+        if saved.get('guard') == guard:
+            return
+        if saved.get('guard') is not None:
+            raise PoiseError('selection_recovery_pending: guarded publication identity changed')
+        self._selection_event(task_id, actor, 'work.selection_guarded',
+                              {'request_id': request_id, 'expected': expected, 'guard': guard})

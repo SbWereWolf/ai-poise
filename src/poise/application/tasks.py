@@ -64,6 +64,11 @@ def require_reviewer_identity(
             "Reviewer identity provenance is unavailable for the produced result; "
             "a distinct native reviewer session must be established from saved evidence"
         )
+    if (executor == actor and acquiring and current != target
+            and task.route.node(current).handler != HandlerKind.INSPECT
+            and source.selected_result_author(task.state.task_id) == actor):
+        # Reacquire one's saved selected result; advance still guards the reviewer role.
+        return None
     if executor == actor:
         raise DomainError(
             f"Reviewer actor {actor!r} equals executor {executor!r} "
@@ -1273,6 +1278,42 @@ class TaskCommands:
             uow.artifacts.link_task(task_id, permanent_artifacts)
             uow.work_packets.remember(task_id, task.stage.stage_id, task.state.iteration, packet_digest)
         return change.task.state
+
+    def result_selection_request(self, task_id, actor, request_id):
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,)))
+        inputs.task(task_id)._owned(actor)
+        with self.unit_of_work() as uow:
+            uow.require_inputs(inputs)
+            return uow.work_packets.selection_request(task_id, request_id, inputs.task(task_id).stage.stage_id, inputs.task(task_id).state.iteration)
+
+    def admit_result_selection(self, task_id, actor, record):
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,)))
+        task = inputs.task(task_id)
+        task._owned(actor)
+        expected = record['expected']
+        actual = {'task': task_id, 'stage': task.stage.stage_id,
+                  'iteration': task.state.iteration, 'version': task.state.version}
+        if task.state.status != TaskStatus.ACTIVE or actual != expected:
+            raise DomainError(f'selection_stale: admission expected {expected}; current {actual}')
+        with self.unit_of_work() as uow:
+            uow.require_inputs(inputs)
+            return uow.work_packets.admit_selection(task_id, actor, record)
+
+    def guard_result_selection(self, task_id, actor, request_id, digest, guard):
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,)))
+        task = inputs.task(task_id)
+        task._owned(actor)
+        with self.unit_of_work() as uow:
+            uow.require_inputs(inputs)
+            saved = uow.work_packets.selection_request(task_id, request_id, inputs.task(task_id).stage.stage_id, inputs.task(task_id).state.iteration)
+            if (saved is None or saved['digest'] != digest or saved['actor'] != actor
+                    or saved['expected']['stage'] != task.stage.stage_id
+                    or saved['expected']['iteration'] != task.state.iteration):
+                raise DomainError('selection_recovery_pending: source guard no longer binds the current owned intent')
+            uow.work_packets.record_selection_guard(task_id, actor, request_id, saved['expected'], guard)
 
     @staticmethod
     def _accept_change(

@@ -13,7 +13,6 @@ from ..modules.result_views.domain import (
     OutputPolicy, primary_text, command_receipts, terminal_materials_notice,
     require_result_budget, result_view,
 )
-from ..modules.tasks.domain import is_terminal_task_status
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from .goal_config import atomic_write
 from .task_paths import task_root, sprint_root
@@ -39,6 +38,7 @@ class SavedResponse:
 
 def task_response_root(h, task):
     """Use the existing live/retired Task owner, never resurrect its materials."""
+    from ..modules.tasks.domain import is_terminal_task_status
     saved = h.task_queries.record(task['id'])
     sprint_id = task.get('sprint_id') if saved is None else saved['sprint_id']
     if ((saved is not None and is_terminal_task_status(saved['status']))

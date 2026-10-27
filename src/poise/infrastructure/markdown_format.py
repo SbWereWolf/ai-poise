@@ -8,7 +8,6 @@ import re
 import tempfile
 
 from ..common import PoiseError
-from .test_packages import AiPoiseTestPackages
 
 def split_lines(text: str) -> list[str]:
     return re.split(r"\r\n|\n|\r", text)
@@ -118,14 +117,16 @@ def format_files(checkout, files, width, eol, mode, fallback_reason):
         raise PoiseError('Record why preferred IDE formatting is unavailable or unsuitable')
     if not isinstance(files, list) or not files or any(not isinstance(v, str) or not v for v in files):
         raise PoiseError('Explicit nonempty file paths required')
-    directory = AiPoiseTestPackages._assert_ai_poise_checkout(Path(checkout))
+    directory = Path(checkout).resolve()
+    if not directory.is_dir():
+        raise PoiseError('Select an existing Markdown checkout directory')
     newline = {'LF': '\n', 'CR': '\r', 'CRLF': '\r\n'}[eol]
     prepared, seen = [], set()
     for value in files:
         original = Path(value)
         path = original.resolve()
         if original.is_symlink() or not path.is_relative_to(directory) or not path.is_file() or path.suffix.lower() != '.md':
-            raise PoiseError(f'Expected explicit regular AI-poise Markdown file: {value}')
+            raise PoiseError(f'Expected explicit regular Markdown file within checkout: {value}')
         if path in seen: continue
         seen.add(path)
         try:

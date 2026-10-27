@@ -1,0 +1,158 @@
+[
+  {
+    "descriptor": {
+      "event": "SessionStart",
+      "matcher": "startup|resume|compact|clear",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe SessionStart"
+    },
+    "payload": {
+      "hook_event_name": "SessionStart",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "source": "startup"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "UserPromptSubmit",
+      "matcher": "",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe UserPromptSubmit"
+    },
+    "payload": {
+      "hook_event_name": "UserPromptSubmit",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "turn_id": "architecture-turn",
+      "prompt": "PRIVATE_ARCHITECTURE_PROMPT"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe PreToolUse"
+    },
+    "payload": {
+      "hook_event_name": "PreToolUse",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "true"
+      },
+      "tool_use_id": "architecture-tool-1",
+      "turn_id": "architecture-turn"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe PostToolUse"
+    },
+    "payload": {
+      "hook_event_name": "PostToolUse",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "true"
+      },
+      "tool_use_id": "architecture-tool-1",
+      "tool_response": {
+        "stdout": "",
+        "stderr": "",
+        "exit_code": 0
+      },
+      "turn_id": "architecture-turn"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "PreCompact",
+      "matcher": "",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Observe PreCompact"
+    },
+    "payload": {
+      "hook_event_name": "PreCompact",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "turn_id": "architecture-turn",
+      "trigger": "manual"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "PostCompact",
+      "matcher": "",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Observe PostCompact"
+    },
+    "payload": {
+      "hook_event_name": "PostCompact",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "turn_id": "architecture-turn",
+      "trigger": "manual"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "Stop",
+      "matcher": "",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Observe Stop"
+    },
+    "payload": {
+      "hook_event_name": "Stop",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "turn_id": "architecture-turn",
+      "stop_hook_active": false,
+      "last_assistant_message": "PRIVATE_ARCHITECTURE_ASSISTANT"
+    }
+  },
+  {
+    "descriptor": {
+      "event": "SessionEnd",
+      "matcher": "other",
+      "timeout_seconds": 3,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Observe SessionEnd"
+    },
+    "payload": {
+      "hook_event_name": "SessionEnd",
+      "session_id": "architecture-native",
+      "cwd": "@CHECKOUT@",
+      "transcript_path": null,
+      "reason": "other"
+    }
+  }
+]

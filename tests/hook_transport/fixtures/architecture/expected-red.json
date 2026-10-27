@@ -1,0 +1,593 @@
+{
+  "dispatch": {
+    "collection_errors": [],
+    "exit_code": 1,
+    "reports": [
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_each_position_invoked_once",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_each_position_invoked_once",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_each_position_invoked_once",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_invalid_configuration_has_no_effects",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_invalid_configuration_has_no_effects",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_invalid_configuration_has_no_effects",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "async": {
+    "collection_errors": [],
+    "exit_code": 1,
+    "reports": [
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_launch_order_and_isolated_snapshot",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_launch_order_and_isolated_snapshot",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_launch_order_and_isolated_snapshot",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_sync_stop_keeps_started_async",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_sync_stop_keeps_started_async",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_sync_stop_keeps_started_async",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_worker_failure_preserves_response",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_worker_failure_preserves_response",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_later_worker_failure_preserves_response",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_launch_failure_stops_later_handlers",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_launch_failure_stops_later_handlers",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/hook_transport/test_architecture_async.py::test_launch_failure_stops_later_handlers",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "general": {
+    "collection_errors": [],
+    "exit_code": 1,
+    "reports": [
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_common_profile_admits_without_task_fields",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_common_profile_admits_without_task_fields",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_common_profile_admits_without_task_fields",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_connected_task_adapter_preserves_identity_and_anchors",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_connected_task_adapter_preserves_identity_and_anchors",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_connected_task_adapter_preserves_identity_and_anchors",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_named_checks_and_cli_without_task_owner",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_named_checks_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_named_checks_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_placement_without_task_owner",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_placement_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_placement_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_reader_without_task_owner",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_reader_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_reader_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_tool_result_and_cli_without_task_owner",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_tool_result_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_general_tool_result_and_cli_without_task_owner",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_profile_transition_preserves_task_data_and_authority",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_profile_transition_preserves_task_data_and_authority",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/runtime_services/test_general_harness_profile.py::test_profile_transition_preserves_task_data_and_authority",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  },
+  "formatter": {
+    "collection_errors": [],
+    "exit_code": 1,
+    "reports": [
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_different_project_names_share_check_and_fix",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_different_project_names_share_check_and_fix",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_different_project_names_share_check_and_fix",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_late_invalid_file_keeps_generic_batch_unchanged",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_late_invalid_file_keeps_generic_batch_unchanged",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_late_invalid_file_keeps_generic_batch_unchanged",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_only_selected_files_change_in_generic_project",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_only_selected_files_change_in_generic_project",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_only_selected_files_change_in_generic_project",
+        "outcome": "passed",
+        "phase": "teardown"
+      },
+      {
+        "code": null,
+        "exception": "AssertionError",
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_rename_does_not_change_result",
+        "outcome": "failed",
+        "phase": "call"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_rename_does_not_change_result",
+        "outcome": "passed",
+        "phase": "setup"
+      },
+      {
+        "code": null,
+        "exception": null,
+        "nodeid": "tests/documentation/test_generic_markdown_files.py::test_rename_does_not_change_result",
+        "outcome": "passed",
+        "phase": "teardown"
+      }
+    ]
+  }
+}

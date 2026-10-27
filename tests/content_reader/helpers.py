@@ -90,6 +90,8 @@ class Scenario:
     def __init__(self, project, parent, *, identity='reader-fixture-caller'):
         self.base, self.parent = project, parent
         self.checkout, self.config = project['app'], project['config_path']
+        from tests.hook_transport.helpers import harness_profile
+        self.config = harness_profile(project, parent, task_adapter=True)
         self.root = project['root']
         self.state = self.root / project['cfg']['paths']['state']
         self.project = project['cfg']['project']

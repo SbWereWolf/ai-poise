@@ -21,7 +21,6 @@ from ..modules.document_intake.contracts import ReadFailure
 from ..modules.foundation.validation import configuration_fields, nonempty
 from ..application.capabilities import CapabilityChecks,SessionReadiness
 from ..application.hook_transport import HookCommands
-from ..application.work import WorkTools
 from .capabilities import LocalProbeExecutor,FileCapabilitySummary
 from .goal_config import read_document,atomic_write
 from .session_establishment import establish_poise,native_session
@@ -42,22 +41,11 @@ class HookSettings:
 
     def _validate(self):
         s=self.raw
-        from .hook_lifecycle import consumer_options
         configuration_fields(s,{'schema','root','project_config','python','source_root','hooks_file','definitions',
             'state','lock','database','bindings','launcher','binding_file','observations','response_file',
             'cwd_roots','file_mode','executable_mode','lock_seconds','lock_poll_seconds','max_input_bytes',
             'output_chars','max_probes','exit_codes','probe_files'},'hook settings')
         if s['schema']!='hook-settings-1':raise PoiseError('Unsupported hook settings schema')
-        self.consumer=consumer_options(s['lifecycle_consumer']) if 'lifecycle_consumer' in s else None
-        from ..modules.work_context.domain import ContextPolicy
-        self.general_context = ContextPolicy.from_configuration(s['general_context']) if 'general_context' in s else None
-        if self.general_context is not None:
-            options = self.general_context.data
-            for key, value in [('reader_policy', options['reader_policy']),
-                               *[('instructions.' + key, options['instructions'][key])
-                                 for key in ('catalog', 'root', 'policy')]]:
-                if not Path(value).is_absolute():
-                    raise PoiseError('general_context.' + key + ': absolute path required')
         for key in ('root','project_config','python','source_root','hooks_file','definitions',
                     'state','lock','database','bindings','launcher','binding_file','observations','response_file'):
             nonempty(s[key], 'hook settings.' + key)
@@ -75,7 +63,13 @@ class HookSettings:
             if not Path(p).is_absolute():raise PoiseError('cwd_roots require absolute paths')
         self.root=(self.path.parent/s['root']).resolve()
         if not self.root.is_dir():raise PoiseError('hook settings.root: existing directory required')
-        self.project_config=descendant(self.root,s['project_config'])
+        selected_config = Path(s['project_config'])
+        if selected_config.is_absolute():
+            try:
+                selected_config = selected_config.relative_to(self.root)
+            except ValueError as exc:
+                raise PoiseError('project_config must belong to the selected hook owner root') from exc
+        self.project_config=descendant(self.root,str(selected_config))
         native_path = Path(s['hooks_file'])
         if native_path.is_absolute():
             if 'repository_scope' not in s:
@@ -120,8 +114,6 @@ class HookSettings:
         if not s['executable_mode'] & 0o100:raise PoiseError('Launcher mode must allow owner execution')
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
-        if 'capability_summary' in s:
-            self.require_summary()
         if 'project_launcher' in s:
             value=configuration_fields(s['project_launcher'],{'settings_path','context_template'},'project_launcher')
             nonempty(value['settings_path'],'project_launcher.settings_path')
@@ -135,11 +127,22 @@ class HookSettings:
             except (KeyError,ValueError,IndexError) as exc:
                 raise PoiseError('Invalid project_launcher.context_template') from exc
 
-    def require_summary(self):
+    @property
+    def consumer(self):
+        """Historical lifecycle owner only; active routes select handler options."""
+        from .hook_lifecycle import consumer_options
+        return consumer_options(self.raw['lifecycle_consumer']) if 'lifecycle_consumer' in self.raw else None
+
+    @property
+    def general_context(self):
+        from ..modules.work_context.domain import ContextPolicy
+        return ContextPolicy.from_configuration(self.raw['general_context']) if 'general_context' in self.raw else None
+
+    def require_summary(self, raw=None):
         """The feature is mandatory for its operations, independent of core inspection."""
-        if 'capability_summary' not in self.raw:
+        if raw is None and 'capability_summary' not in self.raw:
             raise PoiseError('Missing capability_summary; configure file, header_template and item_template')
-        value = configuration_fields(self.raw['capability_summary'],
+        value = configuration_fields(self.raw['capability_summary'] if raw is None else raw,
             {'file', 'header_template', 'item_template'}, 'capability_summary')
         nonempty(value['file'], 'capability_summary.file')
         path = descendant(self.bindings, value['file'])
@@ -361,9 +364,64 @@ class FileHookRepository:
                        (encoded({'groups': desired, 'receipt': receipt}), target['installation_id']))
             return receipt
 
-    def revision(self):
+    def native_revision(self):
         p=self.settings.hooks_file
         return file_digest(p) if p.exists() else None
+
+    def _configuration_revision(self, native_revision, overrides=None, *, settings_raw=None):
+        """Full raw working inputs, independent of the native-file CAS token."""
+        if native_revision is None:
+            return None
+        definitions = {}
+        if self.settings.database.is_file():
+            from .diagnostic_io import readonly_database
+            reader = (self.registry.read_transaction() if self.registry is not None
+                      else readonly_database(self.settings.database))
+            with reader as db:
+                installed = db.execute('SELECT id,data FROM installations ORDER BY id').fetchall()
+            for identifier, raw in installed:
+                record = json.loads(raw)
+                if record.get('migrated_to') is None:
+                    definitions[identifier] = read_document(Path(record['receipt']['definition_path']))
+        definitions.update({} if overrides is None else overrides)
+        sources = {}
+        for identifier, raw in definitions.items():
+            if raw.get('schema') != 'hook-definition-2':
+                continue  # Historical schema has no configurable chain sources.
+            from .hook_dispatch import FileDispatchConfiguration
+            from .harness_config import load_harness_config
+            _, profile, _ = load_harness_config(self.settings.project_config)
+            definition = HookDefinition.parse(raw)
+            sources[identifier] = {}
+            for event in raw['routes']:
+                # The same owner fingerprints full raw handler documents and
+                # every referenced policy, including unknown working options.
+                plan = FileDispatchConfiguration.load_plan(definition, event, profile, self.settings)
+                sources[identifier][event] = list(plan.revisions)
+        project = read_document(self.settings.project_config)
+        from .projects import ProjectSettings, FileProjectSetup
+        owner = ProjectSettings(project['runtime_resources']['project_setup'])
+        association = FileProjectSetup(owner)._registry()
+        task = None
+        if project.get('schema') == 'poise-harness-project-1' and project['task_adapter'] is not None:
+            from .task_harness_adapter import TaskHarnessAdapter
+            path = TaskHarnessAdapter.resolve_task_configuration(self.settings.project_config)
+            _, _, workflows = load_config(path)
+            task = {'config': read_document(path), 'workflows': workflows}
+        return digest({'native_file': native_revision, 'definitions': definitions,
+                       'sources': sources, 'settings': (read_document(self.settings.path)
+                           if settings_raw is None else settings_raw),
+                       'project': project, 'association': association, 'task': task})
+
+    def revision(self):
+        return self._configuration_revision(self.native_revision())
+
+    @staticmethod
+    def _public_receipt(receipt):
+        if 'configuration_revision' not in receipt:
+            return receipt  # Exact historical receipt, never rewritten.
+        return {**receipt, 'native_file_revision': receipt['revision'],
+                'revision': receipt['configuration_revision']}
 
     def _groups(self,definition,path):
         command=self.settings.command('hook','--definition',str(path))
@@ -461,21 +519,25 @@ class FileHookRepository:
     def _install(self,request_id,expected_revision,definition,reconciliation):
         s=self.settings
         s.require_runtime()
-        if any(e['event'] in ('PreToolUse','PostToolUse') for e in definition.data['events']):
-            from .document_intake.command_configuration import load_command_profile
-            from ..modules.document_intake.command import CommandFailure
-            try:
-                load_command_profile(s)
-            except CommandFailure as exc:
-                raise PoiseError(f'{exc.code}: {exc.field}; restore the explicit command policy chain') from exc
-        if len(definition.data['probes'])>s.raw['max_probes']:raise PoiseError('Too many probes')
-        _,project,_=load_config(s.project_config)
-        if project['batch']['message_source']!={'id':definition.data['message_source'],'mode':'runtime_event'}:
-            raise PoiseError('Project message source must explicitly match the hook event source')
         intent=[request_id,expected_revision,definition.data,str(s.hooks_file)]
         if reconciliation is not None:intent.append(reconciliation)
         packet=digest(intent)
         state=self._installation_state(request_id,definition,reconciliation)
+        if state['operation'] is not None:
+            operation = json.loads(state['operation'])
+            if operation.get('digest') != packet:
+                raise PoiseError('Request id reused with conflicting hook definition/destination')
+            if operation['phase'] == 'completed':
+                return self._public_receipt(self._publish_installation(request_id, packet))
+        from .harness_config import load_harness_config
+        from .hook_dispatch import FileDispatchConfiguration
+        if definition.data['schema'] != 'hook-definition-2':
+            raise PoiseError('Publish explicit hook-definition-2; legacy definitions are historical read-only inputs')
+        _,project,_=load_harness_config(s.project_config)
+        for event in definition.data['events']:
+            FileDispatchConfiguration.load_plan(definition, event['event'], project, s)
+        if project['batch']['message_source']!={'id':definition.data['message_source'],'mode':'runtime_event'}:
+            raise PoiseError('Project message source must explicitly match the hook event source')
         if state['installation'] is not None:
             owned=json.loads(state['installation'])
             if owned.get('migrated_to') is not None:
@@ -485,7 +547,7 @@ class FileHookRepository:
             self._save_installation_intent(request_id,definition,reconciliation,packet,state,operation)
         elif json.loads(state['operation']).get('digest')!=packet:
             raise PoiseError('Request id reused with conflicting hook definition/destination')
-        return self._publish_installation(request_id,packet)
+        return self._public_receipt(self._publish_installation(request_id,packet))
 
     def _installation_state(self,request_id,definition,reconciliation):
         """Capture only the rows whose configuration this request can replace."""
@@ -507,7 +569,8 @@ class FileHookRepository:
             raise PoiseError(f'Hook configuration revision changed: {before}; read the current revision and submit a new request with that expected input')
         owned=None if state['installation'] is None else json.loads(state['installation'])
         previous=[] if owned is None else owned['groups']
-        document=None if before is None else read_document(s.hooks_file)
+        native_before = self.native_revision()
+        document=None if native_before is None else read_document(s.hooks_file)
         proof=None;prior_installation=None
         if reconciliation is None:self._reject_unregistered_groups(document,previous,definition)
         else:
@@ -523,8 +586,11 @@ class FileHookRepository:
             'definition_path':str(definition_path),'hooks_path':str(s.hooks_file),
             'events':[e['event'] for e in definition.data['events']],
             'trust_status':'requires_user_review','live_codex':'not_observed'}
+        receipt['configuration_revision'] = self._configuration_revision(revision,
+            {definition.data['id']: definition.data})
         if proof is not None:receipt['reconciliation']=proof
-        operation={'digest':packet,'phase':'pending','before':before,'candidate':candidate,
+        operation={'digest':packet,'phase':'pending','before':native_before,
+            'before_configuration':before,'candidate':candidate,
             'groups':desired,'definition':definition.data,'receipt':receipt}
         if proof is not None:operation['prior_installation']=prior_installation
         return operation
@@ -543,7 +609,7 @@ class FileHookRepository:
                 (reconciliation['previous_installation_id'],)).fetchone())
             if ((None if identity is None else identity[0])!=state['installation']
                     or (None if prior is None else prior[0])!=state['previous']
-                    or self.revision()!=operation['before']):
+                    or self.revision()!=operation['before_configuration']):
                 raise PoiseError('Hook installation changed during preparation; preserve the newer publication, read its current revision and submit a new request with matching expected inputs')
             db.execute('INSERT INTO operations VALUES(?,?)',(request_id,body))
             self.registry.event_in(db,None,'install.pending',{'request_id':request_id})
@@ -555,11 +621,15 @@ class FileHookRepository:
             operation=json.loads(db.execute('SELECT data FROM operations WHERE id=?',(request_id,)).fetchone()[0])
             if operation.get('digest')!=packet:
                 raise PoiseError('Request id reused with conflicting hook definition/destination')
-            receipt=operation['receipt'];now=self.revision()
+            receipt=operation['receipt'];now=self.native_revision()
             if operation['phase']=='completed':
                 if now!=receipt['revision']:raise PoiseError('Installed hooks changed since the saved receipt')
                 return receipt
             if now not in (operation['before'],receipt['revision']):raise PoiseError('Pending hook installation conflicts with current file')
+            if self._configuration_revision(receipt['revision'],
+                    {operation['definition']['id']: operation['definition']}) != receipt['configuration_revision']:
+                raise PoiseError('Pending handler/settings configuration changed; restore its recorded inputs '
+                                 'before retrying the saved publication')
             proof=receipt.get('reconciliation')
             if proof is not None:
                 prior=db.execute('SELECT data FROM installations WHERE id=?',
@@ -604,11 +674,9 @@ class HookService:
 
     def revision(self):return self.repository.revision()
     def install(self,packet):
-        self.settings.require_summary()
         with self.project_fence.locked():
             return self.commands.install(packet)
     def reconcile(self,packet):
-        self.settings.require_summary()
         with self.project_fence.locked():
             return self.commands.reconcile(packet)
 
@@ -662,6 +730,27 @@ class HookService:
     def retry_lifecycle(self, definition_path, path):
         from .hook_lifecycle import deliver,save
         path=Path(path).resolve();record=read_document(path)
+        if record.get('schema') == 'poise-hook-event-delivery-2':
+            from .hook_dispatch import FileDispatchDeliveryStore, HandlerProcessExecutor
+            from .hook_handlers import BuiltinHandlers
+            from ..application.hook_dispatch import HookDispatcher
+            if (not path.is_relative_to(self.settings.observations)
+                    or record['settings_path'] != str(self.settings.path)
+                    or record['definition_path'] != str(Path(definition_path).resolve())):
+                raise PoiseError('Select the admitted delivery with its recorded settings and definition')
+            receipt = record['event_receipt']
+            definition = self.definition(definition_path)
+            binding = self._dispatch_binding(definition, receipt, record['event'])
+            if record['chain_complete']:
+                return deepcopy(record['response'])
+            # Prepared positions have no effect; other positions retain their
+            # saved owner status and cannot silently be launched a second time.
+            deadline = time.monotonic() + next(e['timeout_seconds'] for e in definition.data['events']
+                                               if e['event'] == receipt['event'])
+            store = FileDispatchDeliveryStore(self.settings)
+            builtins = BuiltinHandlers(self, definition, binding, deadline, path)
+            return HookDispatcher(store, HandlerProcessExecutor(self.settings, store,
+                builtins.invoke, deadline=deadline)).dispatch(path)
         if (record.get('schema')!='poise-hook-lifecycle-delivery-1'
                 or record.get('settings_path')!=str(self.settings.path)
                 or record.get('definition_path')!=str(Path(definition_path).resolve())):
@@ -695,6 +784,34 @@ class HookService:
         return self._complete_native_result(output,definition,native,binding,
             deadline=record['packet']['deadline_monotonic'])
 
+    def _dispatch_binding(self, definition, receipt, event):
+        """Read the same owned live or released batch without restoring it."""
+        exact_keys(receipt, {'schema_version', 'event', 'event_id', 'project_id', 'session_id',
+                             'binding_id', 'native_start_event_id'}, 'dispatch event receipt')
+        if (type(receipt['schema_version']) is not int or receipt['schema_version'] != 1
+                or any(type(receipt[k]) is not int or receipt[k] <= 0
+                       for k in ('event_id', 'native_start_event_id'))):
+            raise PoiseError('Invalid admitted event identity; select its saved owner receipt')
+        self.require_lifecycle_event(self.settings.definitions / (digest(definition.data)+'.json'), receipt, event)
+        observed = self.registry.observe(definition.data['id'], receipt['binding_id'], receipt['event'], receipt['event_id'])
+        binding = observed['binding']
+        if binding is None:
+            with self.registry.read_transaction() as db:
+                ended = self.registry.released_binding_record(db, receipt['binding_id'])
+            if ended is None or ended[0] < receipt['event_id']:
+                raise PoiseError('Admitted batch ownership is not confirmed; retain its saved delivery')
+            binding = ended[1]
+        expected = {'session_id': receipt['binding_id'], 'external_session': receipt['session_id'],
+                    'project': receipt['project_id'], 'agent_id': definition.data['agent_id'],
+                    'settings': str(self.settings.path),
+                    'definition_path': str(self.settings.definitions / (digest(definition.data)+'.json'))}
+        if (any(binding.get(k) != v for k, v in expected.items())
+                or receipt['project_id'] != self.project_fence.hook_manifest()['project']
+                or observed['event'] is None
+                or self.registry.preceding_start(receipt['binding_id'], receipt['event_id']) != receipt['native_start_event_id']):
+            raise PoiseError('Saved dispatch differs from its same-binding native authority and Start anchor')
+        return binding
+
     def _bind(self,definition_path,event):
         with self.project_fence.locked():
             return self._bind_locked(definition_path,event)
@@ -718,13 +835,17 @@ class HookService:
             {'kind':'external','session_id':native['session_id'],'agent_id':d['agent_id']})
         root=descendant(self.settings.bindings,identity.key)
         launcher=descendant(root,self.settings.raw['launcher']);binding=descendant(root,self.settings.raw['binding_file'])
-        assigned=native['session_id']
+        from .project_binding import read_project_checkout
+        from .session_establishment import establish_project_session
+        bound = read_project_checkout(self.settings.project_config, cfg['git']['repository'])
+        assigned = establish_project_session(bound, CallerIdentity.native(cfg['project'], native['session_id'])).session_id
         if binding.exists():
             prior,_=self._binding_record(binding)
             assigned=prior['session_id']
         record={'session_id':assigned,'external_session':native['session_id'],'agent_id':d['agent_id'],
             'project':cfg['project'],'settings':str(self.settings.path),'settings_digest':digest(self.settings.raw),
-            'definition_path':str(Path(definition_path).resolve()),'launcher':str(launcher),'binding_path':str(binding)}
+            'definition_path':str(Path(definition_path).resolve()),
+            'launcher':str(launcher) if cfg['task_adapter'] is not None else None,'binding_path':str(binding)}
         if binding.exists() and binding_context(prior)!=binding_context(record):
             raise PoiseError('Existing hook binding differs from the selected session/settings; '
                              'use its matching settings and definition, then retry SessionStart')
@@ -732,6 +853,8 @@ class HookService:
         # Both files are deterministic for the binding; no task root or global current file.
         raw=(json.dumps(record,ensure_ascii=False,indent=2)+'\n').encode()
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
+        if record['launcher'] is None:
+            return definition,native,record
         script=self.settings.launcher_bytes(binding)
         priors=self.settings.prior_launcher_bytes(binding)
         if launcher.exists():
@@ -760,7 +883,7 @@ class HookService:
         root=descendant(self.settings.bindings,identity.key)
         expected={'project':cfg['project'],'settings':str(self.settings.path),
             'agent_id':definition.data['agent_id'],'binding_path':str(p),
-            'launcher':str(descendant(root,self.settings.raw['launcher']))}
+            'launcher':str(descendant(root,self.settings.raw['launcher'])) if cfg['task_adapter'] is not None else None}
         if (p!=descendant(root,self.settings.raw['binding_file'])
                 or any(stored.get(key)!=value for key,value in expected.items())):
             raise PoiseError('Binding object does not match the selected project/settings; select its matching configuration')
@@ -784,70 +907,74 @@ class HookService:
         if record['settings'] != str(self.settings.path):
             raise PoiseError('Select the matching hook settings before releasing this binding')
         binding = Path(record['binding_path'])
-        launcher = Path(record['launcher'])
         if binding.exists():
             observed, _ = self._binding_record(binding)
             if observed != record:
-                raise PoiseError('Binding changed before release; Recovery: reload the current binding and '
-                                 'latest SessionEnd, then retry only if that session is still ended')
-        allowed = [self.settings.launcher_bytes(binding)] + [
-            ('#!/bin/sh\nexec ' + command + '\n').encode()
-            for command in self.settings.prior_launcher_commands('hook-work', '--binding', str(binding))]
-        if launcher.exists() and launcher.read_bytes() not in allowed:
-            raise PoiseError('Foreign launcher content before release: ' + str(launcher) +
-                             '; Recovery: preserve the edited launcher and exclude its binding from cleanup '
-                             'until its ownership is resolved')
-        summary = self._readiness(record).store.path
+                raise PoiseError('Binding changed before release; reload its matching native End and retry')
+        paths = [binding]
+        if record['launcher'] is not None:
+            launcher = Path(record['launcher'])
+            allowed = [self.settings.launcher_bytes(binding)] + [
+                ('#!/bin/sh\nexec ' + command + '\n').encode()
+                for command in self.settings.prior_launcher_commands('hook-work', '--binding', str(binding))]
+            if launcher.exists() and launcher.read_bytes() not in allowed:
+                raise PoiseError('Foreign launcher content before release; preserve it until ownership is resolved')
+            paths.append(launcher)
+        definition = self.definition(record['definition_path'])
+        if definition.data['schema'] == 'hook-definition-2':
+            from .hook_handlers import BuiltinHandlers
+            options = BuiltinHandlers.options(definition, 'capability-summary', required=False)
+            if options is not None:
+                paths.append(self._readiness(record, summary_options=options['summary']).store.path)
+        else:
+            paths.append(self._readiness(record).store.path)
         from .session_establishment import cleanup_project_session_runtime
-        cleanup_project_session_runtime(self.settings.project_config,record['session_id'])
-        return {path: path.read_bytes() if path.exists() else None for path in (binding, launcher, summary)}
+        cleanup_project_session_runtime(self.settings.project_config, record['session_id'])
+        return {path: path.read_bytes() if path.exists() else None for path in paths}
 
     def release_ended_binding(self, record, end_event_id):
         return self.registry.release_ended(record, end_event_id, lambda: self._release_files(record))
 
     def event(self,definition_path,event, *, started_at=None):
-        started=time.monotonic() if started_at is None else started_at
-        if isinstance(event, dict) and event.get('hook_event_name') in ('PreToolUse','PostToolUse'):
-            from .document_intake.command_transport import tool_event
-            return tool_event(self, definition_path, event)
-        if isinstance(event, dict) and event.get('hook_event_name') == 'SessionStart':
-            self.settings.require_summary()
-        delivery=None
+        from .harness_config import load_harness_config
+        from .hook_dispatch import FileDispatchConfiguration, FileDispatchDeliveryStore, HandlerProcessExecutor
+        from .hook_handlers import BuiltinHandlers
+        from ..application.hook_dispatch import HookDispatcher
+        started = time.monotonic() if started_at is None else started_at
+        definition = self.definition(definition_path)
+        native = parse_native_event(event, definition)
+        _, profile, _ = load_harness_config(self.settings.project_config)
+        # Resolve the complete chain before binding, event commitment or effects.
+        plan = FileDispatchConfiguration.load_plan(definition, native['event'], profile, self.settings)
+        deadline = started + next(item['timeout_seconds'] for item in definition.data['events']
+                                  if item['event'] == native['event'])
         with self.project_fence.locked():
-            lifecycle = isinstance(event,dict) and (
-                self.settings.consumer is not None and event.get('hook_event_name') in ('SessionStart','SessionEnd')
-                or self.settings.general_context is not None and event.get('hook_event_name') in
-                    ('SessionStart','SessionEnd','PreCompact','PostCompact'))
-            if lifecycle:
-                from .hook_lifecycle import prepare
-                if event['hook_event_name']=='SessionEnd':
-                    selected=self.definition(definition_path)
-                    observed=parse_native_event(event,selected)
-                    if self.registry.liveness(observed['session_id']).value == 'dead':
+            if native['event'] != 'SessionStart':
+                try:
+                    self.registry.find(native['session_id'], definition.data['agent_id'])
+                except MissingHookBinding:
+                    if native['event'] in ('SessionEnd', 'Stop'):
                         return {}
-                definition,native,binding=self._bind(definition_path,event)
-                deadline=started+next(item['timeout_seconds'] for item in definition.data['events'] if item['event']==native['event'])
-                event_id=self.registry.record_event(binding['session_id'],native['event'],native['turn_id'],None,
-                    native_event_metadata(event,native))
-                anchor=event_id if native['event']=='SessionStart' else self.registry.preceding_start(binding['session_id'],event_id)
-                receipt={'schema_version':1,'event':native['event'],'event_id':event_id,
-                         'project_id':binding['project'],'session_id':native['session_id'],
-                         'binding_id':binding['session_id'],'native_start_event_id':anchor}
-                delivery=prepare(self.settings,definition_path,event,receipt,deadline)
-            else:
-                result, definition, native, binding = self._event_locked(definition_path,event)
-        if delivery is not None:
-            from .hook_lifecycle import deliver
-            path,record=delivery
-            if self.settings.general_context is not None:
-                return self._deliver_general_context(definition,native,binding,event,path,record)
-            result=deliver(self.settings,path,record)
-            if native['event']=='SessionStart':
-                result=self._delivered_start(definition,native,binding,event,event_id,path,result)
-            elif native['event']=='SessionEnd':
-                self.release_ended_binding(binding,event_id)
-        return self._complete_native_result(result,definition,native,binding,
-            deadline=None if delivery is None else deadline)
+                    raise PoiseError('Native event requires its genuine preceding SessionStart binding')
+            definition, native, binding = self._bind(definition_path, event)
+            event_id = self.registry.record_event(binding['session_id'], native['event'], native['turn_id'],
+                None, native_event_metadata(event, native))
+            anchor = (event_id if native['event'] == 'SessionStart' else
+                      self.registry.preceding_start(binding['session_id'], event_id))
+            if type(anchor) is not int or anchor <= 0:
+                raise PoiseError('Native event has no committed Start anchor; use its genuine session')
+            receipt = {'schema_version': 1, 'event': native['event'], 'event_id': event_id,
+                       'project_id': binding['project'], 'session_id': native['session_id'],
+                       'binding_id': binding['session_id'], 'native_start_event_id': anchor}
+            store = FileDispatchDeliveryStore(self.settings)
+            path = store.prepare(Path(definition_path).resolve(), event, receipt, plan)
+        builtins = BuiltinHandlers(self, definition, binding, deadline, path)
+        executor = HandlerProcessExecutor(self.settings, store, builtins.invoke, deadline=deadline)
+        result = HookDispatcher(store, executor).dispatch(path)
+        result = self._complete_native_result(result, definition, native, binding, deadline=deadline)
+        if native['event'] == 'SessionEnd':
+            self.release_ended_binding(binding, event_id)
+        return result
 
     @staticmethod
     def _native_start_context(definition,native,binding,event):
@@ -856,7 +983,8 @@ class HookService:
 
     def _delivered_start(self,definition,native,binding,event,event_id,path,output):
         try:
-            result=self._runtime_event(definition,native,binding,event,event_id,path)
+            from .hook_lifecycle import subject_context
+            result=subject_context(self.settings,path)
         except Exception as exc:
             result=self._native_start_context(definition,native,binding,event)
             result['systemMessage']=str(exc)
@@ -935,81 +1063,15 @@ class HookService:
                         self._complete_native_result(result,definition,native,binding,deadline=packet['deadline_monotonic']))
             return result,False,reason
 
-    def _event_locked(self,definition_path,event):
-        selected = self.definition(definition_path)
-        observed = parse_native_event(event, selected)
-        if observed['event'] in ('SessionEnd', 'Stop'):
-            try:
-                self.registry.find(observed['session_id'], selected.data['agent_id'])
-            except MissingHookBinding:
-                return {}, selected, observed, None
-        definition,native,binding=self._bind(definition_path,event)
-        if native['event'] == 'SessionStart':
-            event_id = self.registry.record_event(
-                binding['session_id'], native['event'], native['turn_id'], None,
-                {'source': event['source'], 'workspace': native['cwd']})
-            try:
-                result = self._runtime_event(definition, native, binding, event, event_id)
-            except Exception as exc:
-                # Transport authority/binding already succeeded. Subject runtime
-                # recovery cannot take the session's own entry away from it.
-                result=self._native_start_context(definition,native,binding,event)
-                result['systemMessage']=str(exc)
-        elif native['event']=='SessionEnd':
-            event_id=self.registry.record_event(binding['session_id'],native['event'],native['turn_id'],None,{'reason':event['reason']})
-            self.release_ended_binding(binding,event_id)
-            result={}
-        else:
-            result = self._runtime_event(definition, native, binding, event, None)
-        return result, definition, native, binding
 
-    def _runtime_event(self,definition,native,binding,event,event_id,lifecycle_delivery=None):
-        if lifecycle_delivery is not None:
-            from .hook_lifecycle import subject_context
-            return subject_context(self.settings,lifecycle_delivery)
-        from .clock import SystemClock
-        caller=CallerIdentity.native(binding['project'],binding['external_session'])
-        h=establish_poise(self.settings.project_config,caller,[],SystemClock(),binding['session_id']).runtime
-        task=h.current_task()
-        active=task if task is not None and task['status'] not in ('completed','cancelled') else None
-        message=None
-        if native['event']=='UserPromptSubmit':
-            message={'conversation_id':native['session_id'],'message_id':native['turn_id'],
-                     'occurred_at':None,'reason':None,'subject':None}
-            h.interactions.record(h.interactions.prepare([message]),h.session,active)
-        if native['event'] != 'SessionStart':
-            event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message)
-        if native['event'] == 'SessionEnd':
-            self.release_ended_binding(binding, event_id)
-        recovery = None
-        if native['event'] == 'SessionStart' and h.context_reader is not None:
-            recovery = h.restore_context(reason=event['source'], event_id=f'hook-event:{event_id}',
-                facts=[], cwd=native['cwd'], reads=[])
 
-        state='idle' if task is None else f"{task['id']} / {task['status']} / {task['workflow']['stages'][task['stage_index']]['id']}"
-        if native['event'] in ('SessionStart','UserPromptSubmit'):
-            context=definition.data['context_template'].format(launcher=binding['launcher'],state=state)
-            if recovery is not None:
-                # Only a bounded pointer/generation goes into automatic hook context.
-                # Full Task/route metadata and selected text use the explicit work operation.
-                context += ('\nContext generation: ' + str(recovery['reader']['generation'])
-                            + '; event: ' + recovery['reader']['event_id']
-                            + '; reason: ' + recovery['reader']['reason']
-                            + '. Use restore_context with that identity and explicit reads. '
-                            + 'Prior receipts do not prove remembered text.')
-                limit = next(e['context_limit'] for e in definition.data['events']
-                             if e['event'] == native['event'])
-                if native['event'] != 'SessionStart' and len(context) > limit:
-                    raise PoiseError('Context recovery exceeds configured native context limit')
-            result = {'hookSpecificOutput':{'hookEventName':native['event'],'additionalContext':context}}
-        elif native['event']=='Stop':
-            result = {'systemMessage':definition.data['stop_template'].format(state=state)}
-        else:
-            result = {}  # Advisory observation; no Task transition or direct PID signal.
-        return result
-
-    def _readiness(self, record, *, deadline=None, cleanup_seconds=None, poll_seconds=None):
-        options = self.settings.require_summary()
+    def _readiness(self, record, *, deadline=None, cleanup_seconds=None, poll_seconds=None, summary_options=None):
+        if summary_options is None:
+            definition = self.definition(record['definition_path'])
+            if definition.data['schema'] == 'hook-definition-2':
+                from .hook_handlers import BuiltinHandlers
+                summary_options = BuiltinHandlers.options(definition, 'capability-summary')['summary']
+        options = self.settings.require_summary(summary_options)
         path = descendant(Path(record['binding_path']).parent, options['file'])
         store = FileCapabilitySummary(path, self.settings.raw['file_mode'],
                                       self.settings.raw['max_input_bytes'], self.project_fence)
@@ -1019,7 +1081,6 @@ class HookService:
         return SessionReadiness(checks, store)
 
     def read_summary(self, packet):
-        self.settings.require_summary()
         exact_keys(packet, {'binding_path'}, 'summary packet')
         nonempty(packet['binding_path'], 'binding_path')
         record, _ = self._owned_record(packet['binding_path'])
@@ -1027,21 +1088,27 @@ class HookService:
 
     def refresh_summary(self, packet):
         from .clock import SystemClock
-        self.settings.require_summary()
         exact_keys(packet, {'binding_path'}, 'refresh packet')
         nonempty(packet['binding_path'], 'binding_path')
         record, _ = self._owned_record(packet['binding_path'])
         workspace = self.registry.session_workspace(record['session_id'])
         definition = self.definition(record['definition_path'])
-        return self._readiness(record).refresh(record['session_id'], workspace,
-                                               definition.data['probes'], SystemClock()).to_dict()
+        from .hook_handlers import BuiltinHandlers
+        probes = BuiltinHandlers.options(definition, 'capability-summary')['probes']
+        return self._readiness(record).refresh(record['session_id'], workspace, probes, SystemClock()).to_dict()
 
-    def probes(self,definition_path,workspace):
+    def probes(self,definition_path,workspace, *, required=True):
         d=self.definition(definition_path)
+        from .hook_handlers import BuiltinHandlers
+        options = BuiltinHandlers.options(d, 'capability-summary', required=required)
+        if options is None:
+            return None
+        probes = options['probes']
         return CapabilityChecks(LocalProbeExecutor(self.settings.observations,self.settings.raw['file_mode'],self.settings.raw['probe_files']),
-            self.settings.raw['max_probes']).run(d.data['probes'],workspace)
+            self.settings.raw['max_probes']).run(probes,workspace)
 
     def _execute(self,h,record,req,definition):
+        from ..application.work import WorkTools
         from .result_views import preflight_work_result
         preflight_work_result(h, req)
         if req['operation']=='verify':
@@ -1049,7 +1116,9 @@ class HookService:
         def invoke():
             return WorkTools(h).invoke(req)
 
-        gated=req['operation'] in definition['gate_operations']
+        from .hook_handlers import BuiltinHandlers
+        task_options = BuiltinHandlers.options(HookDefinition.parse(definition), 'task-context')
+        gated=req['operation'] in task_options['gate_operations']
         result=None;checks=None
         # Bootstrap prepares a worktree before its project-bound capability probe.
         if req['operation']=='bootstrap':result=invoke()
@@ -1076,6 +1145,7 @@ class HookService:
         return record, message
 
     def _selected_work(self, project_id, record, packet):
+        from ..application.work import WorkTools
         from ..application.project_launch import ProjectLaunchCommands
         from .project_launch import FileProjectLaunch
         from ..modules.projects.launch import text
@@ -1089,7 +1159,9 @@ class HookService:
         port=FileProjectLaunch()
         selected=replace(port.read_settings(options['settings_path']),project_id=project_id)
         config_path=Path(ProjectLaunchCommands(port).resolve(selected)).resolve()
-        if config_path==self.settings.project_config:
+        from .task_harness_adapter import TaskHarnessAdapter
+        current_task_config = TaskHarnessAdapter.resolve_task_configuration(self.settings.project_config)
+        if config_path==current_task_config:
             return None
         _,cfg,_=load_config(config_path)
         hooks=cfg['runtime_resources']['hooks']
@@ -1097,7 +1169,8 @@ class HookService:
             candidates=[]
             for association in hooks:
                 target=HookService(association['settings_path'])
-                if target.settings.project_config!=config_path:
+                selected_general = TaskHarnessAdapter.resolve_harness_configuration(config_path)
+                if target.settings.project_config!=selected_general:
                     raise PoiseError('Selected hook association does not bind its project manifest')
                 try:
                     binding=target.registry.find(record['external_session'],None)
@@ -1163,11 +1236,16 @@ def setup_runtime(settings_path,packet):
     if value['expected_revision'] is not None:nonempty(value['expected_revision'],'expected_revision')
     definition=HookDefinition.parse(value['definition'])
     s=HookSettings.proposed(settings_path,packet['settings'])
-    s.require_summary()
+    s.require_runtime()
     if not s.path.is_relative_to(s.root):raise PoiseError('Adapter settings must live in the Poise codebase')
     if s.path.is_relative_to(s.state):raise PoiseError('Adapter settings must not live in operational state')
-    if len(definition.data['probes'])>s.raw['max_probes']:raise PoiseError('Too many probes')
-    _,project,_=load_config(s.project_config)
+    if definition.data['schema'] != 'hook-definition-2':
+        raise PoiseError('Setup requires explicit hook-definition-2')
+    from .harness_config import load_harness_config
+    from .hook_dispatch import FileDispatchConfiguration
+    _,project,_=load_harness_config(s.project_config)
+    for event in definition.data['events']:
+        FileDispatchConfiguration.load_plan(definition,event['event'],project,s)
     if project['batch']['message_source']!={'id':definition.data['message_source'],'mode':'runtime_event'}:
         raise PoiseError('Project message source must explicitly match the hook event source')
     from .locking import exclusive_lock
@@ -1176,10 +1254,11 @@ def setup_runtime(settings_path,packet):
             if read_document(s.path)!=s.raw:raise PoiseError('Existing settings differ; do not rewrite active bindings')
         else:
             before=file_digest(s.hooks_file) if s.hooks_file.exists() else None
-            if before!=value['expected_revision']:raise PoiseError('Hook configuration revision changed before setup')
+            observed = FileHookRepository(s,None)._configuration_revision(before, settings_raw=s.raw)
+            if observed!=value['expected_revision']:raise PoiseError('Hook configuration revision changed before setup')
             if before is not None:merge_hook_document(read_document(s.hooks_file),[],[])
             atomic_write(s.path,(json.dumps(s.raw,ensure_ascii=False,indent=2)+'\n').encode(),s.raw['file_mode'])
     service=HookService(s.path)
     installed=service.install(value)
     return {**installed,'settings_path':str(s.path),
-            'capability_checks':service.probes(installed['definition_path'],project['git']['repository'])}
+            'capability_checks':service.probes(installed['definition_path'],project['git']['repository'],required=False)}

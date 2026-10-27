@@ -131,6 +131,10 @@ class SqliteTaskRepository:
         return capture_review_identity(self.db, task_id,
                                        include_unsubmitted=include_unsubmitted).restore()
 
+    def selected_result_author(self, task_id: str) -> str | None:
+        from .task_inputs import capture_review_identity
+        return capture_review_identity(self.db, task_id).selected_actor
+
     def _event_range(self, task_id, after_version, through_version):
         from .task_history import capture_history
         return capture_history(self.db, task_id).event_range(after_version, through_version)

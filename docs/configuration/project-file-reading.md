@@ -10,7 +10,11 @@
 Требуется выбранная установка Python 3.15 (`>=3.15,<3.16`) с явно установленной версией пакета.
 CLI получает обязательные абсолютные `--config`, `--checkout`, `--policy` и обязательный
 `--format json|text`; аргументы выбора не повторяются. Config связывает проект с его
-зарегистрированным checkout. Рабочая папка процесса не выбирает другой проект автоматически.
+зарегистрированным checkout. `--config` выбирает
+[общий профиль харнесса](project-setup.md#общий-профиль-команд-и-сессии), включая явное
+`task_adapter: null` для общего режима. Общий reader не загружает workflow или Task kernel;
+его настоящая native admission и собственные ресурсы сохраняются. Рабочая папка процесса
+не выбирает другой проект автоматически.
 
 Пакет передаётся JSON на stdin, без оболочки Work `input/messages`. Например, после заполнения
 реальных путей и при действующем native episode:
@@ -297,19 +301,24 @@ Top status: `ready` при успехе, `partial` при mixed items, `failed` 
 
 ## Подключение учёта обычных команд
 
-Четыре полных файла образуют один пример установки:
+Полные примеры [политики команд](../../config/examples/command-intake-policy.example.json)
+и [reader profile](../../config/examples/command-intake-reader.example.json) задают текущие
+политики. Файлы прежнего
+[определения](../../config/examples/command-intake-hooks.example.json) и
+[hook settings](../../config/examples/command-intake-settings.example.json) сохраняют исторический
+формат; их нельзя отправлять как готовую актуальную установку цепочки.
 
-- [Политика команд](../../config/examples/command-intake-policy.example.json).
-- [Профиль reader](../../config/examples/command-intake-reader.example.json).
-- [Определение шести событий](../../config/examples/command-intake-hooks.example.json).
-- [Настройки hook owner](../../config/examples/command-intake-settings.example.json).
+Подготовьте `hook-definition-2` и конфигурацию `hook-handler-configuration-1` по
+[действующему справочнику](runtime-hooks.md#настраиваемая-цепочка-обработчиков).
+На обоих событиях `PreToolUse`/`PostToolUse` явно выберите builtin `command-intake`
+с `options.policy_path`, указывающим абсолютный адрес полного reader profile.
+Связь: `handler.options.policy_path` → reader profile → `command_intake.policy` →
+command policy. У каждого события matcher `Bash`; пара событий обязательна.
+`settings.project_config` выбирает общий профиль внутри `settings.root`, а не Task workflow.
 
-Скопируйте их в рабочие операторские пути вне Git. Значения чисел — выбранные значения примера,
-не встроенные defaults. Общие параметры reader описаны [выше](#справочник-опций), настройки
-установки — [у hook owner](runtime-hooks.md#настройки-установки). Сохраните соответствие:
-`settings.tool_intake.reader_policy` → полный reader profile → `command_intake.policy` →
-полная command policy. Обе новые ссылки требуют абсолютных путей. `settings.project_config`
-остаётся относительным путём внутри `settings.root`: пример использует `project.json`.
+Рабочие политики и конфигурации размещаются вне source Git. Значения чисел в примерах
+явно выбраны для этого примера и не являются defaults. Общие параметры reader описаны
+[выше](#справочник-опций), настройки установки — [у hook owner](runtime-hooks.md#настройки-установки).
 
 | Маркер примера | Чем заменить |
 | --- | --- |
@@ -321,10 +330,10 @@ Top status: `ready` при успехе, `partial` при mixed items, `failed` 
 | `@COMMAND_POLICY@` | Абсолютный адрес рабочей копии command policy. |
 
 Это явные текстовые маркеры; runtime их не раскрывает. Аргумент CLI `--config` задаёт фактический
-абсолютный manifest, соответствующий относительному `settings.project_config`; условное
+абсолютный общий профиль, соответствующий `settings.project_config`; условное
 `/absolute/project/config.json` в командах ниже нужно заменить на этот адрес.
 
-1. Установите явно выбранную версию пакета и заполните policy/profile/settings/definition.
+1. Установите явно выбранную версию пакета и заполните policy/profile/settings/definition2/handler configuration.
    Укажите в профиле фактический `admission.hook_settings`; исходный `definition-pending.json`
    является только временным адресом до установки. Проверьте root, project association,
    свободный template path и разделение temporary/control ресурсов.

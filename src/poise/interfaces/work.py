@@ -2,6 +2,7 @@
 import json
 import uuid
 from ..application.work import WorkTools
+from ..modules.work.selection import SelectionRefusal
 from ..common import PoiseError,configured_root,descendant
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
@@ -31,7 +32,7 @@ def execute(runtime,stream,output,request=None):
             else 'success'
         )
     except (PoiseError,UnicodeError,RecursionError) as exc:
-        result={'status':'rejected','reason':str(exc)}
+        result=_rejection_result(exc)
         if not h.store.database.read_only:
             current=h.store.current(h.session)
             h.store.event(h.session,None if current is None else current['id'],'work.blocked',result)
@@ -54,11 +55,20 @@ def write_result(h,result,output):
     _write_response(h.cfg,root,presented,output,metadata,command_views,required)
 
 
+def _rejection_result(reason):
+    result = {'status': 'rejected', 'reason': str(reason)}
+    if isinstance(reason, SelectionRefusal):
+        result['continuation'] = reason.continuation
+        if hasattr(reason, 'selection'):
+            result['selection'] = reason.selection
+    return result
+
+
 def write_rejection(config_root,config,reason,output):
     """Persist a valid-config packet refusal without establishing a caller/store."""
     state=configured_root(config_root,config['paths']['state'])
     root=descendant(state,config['paths']['runtime'])
-    _write_response(config,root,{'status':'rejected','reason':str(reason)},output,
+    _write_response(config,root,_rejection_result(reason),output,
                     {'details':'full_result'},(),None)
 
 

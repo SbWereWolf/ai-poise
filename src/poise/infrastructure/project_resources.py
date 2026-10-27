@@ -25,11 +25,14 @@ class ProjectRuntimeFence:
         self._validate()
 
     def _configuration(self):
+        config = read_document(self.config_path)
+        if config.get('schema') == 'poise-harness-project-1':
+            from .harness_config import load_harness_config
+            return load_harness_config(self.config_path)
         if self.hook_settings is None:
             return load_config(self.config_path)
         # Binding a native entry uses transport authority, not Task workflows.
         from ..modules.foundation.validation import configuration_fields, nonempty
-        config = read_document(self.config_path)
         nonempty(config.get('project'), 'hook project')
         paths = config.get('paths')
         if not isinstance(paths, dict) or 'state' not in paths:
@@ -73,7 +76,8 @@ def require_project_association(settings, config_path, config, resources):
         raise PoiseError('Project setup association does not match selected settings')
     registry = FileProjectSetup(settings)._registry()['projects']
     entry = registry.get(config['project'])
-    if entry is None or (settings.root / entry['config_path']).resolve() != config_path:
+    key = 'harness_config_path' if config.get('schema') == 'poise-harness-project-1' else 'config_path'
+    if entry is None or key not in entry or (settings.root / entry[key]).resolve() != config_path:
         raise PoiseError('Project registry authority does not bind this manifest')
 
 

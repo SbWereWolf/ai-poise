@@ -11,6 +11,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 from copy import deepcopy
+from contextlib import contextmanager
 from ..common import (
     descendant,
     configured_root,
@@ -21,9 +22,10 @@ from ..common import (
     prohibit_remote_git_publication,
 )
 from ..modules.projects.domain import ProjectBlueprint
-from ..modules.foundation.errors import PoiseError,VersionConflict
+from ..modules.foundation.errors import LockUnavailable,PoiseError,VersionConflict
 from ..modules.foundation.validation import configuration_fields, nonempty
 from .goal_config import read_document,atomic_write
+from .locking import exclusive_lock
 from .workflow_files import workflow_path
 
 
@@ -142,20 +144,35 @@ class FileProjectSetup:
             confined(self.settings.root,entry['config_path'])
         return document
 
+    @contextmanager
+    def registry_transition(self):
+        """Hold the configured resource while a writer uses its fresh document."""
+        settings = self.settings
+        try:
+            with exclusive_lock(settings.lock, settings.raw['lock_seconds'],
+                                settings.raw['lock_poll_seconds']):
+                yield self._registry()
+        except LockUnavailable as exc:
+            raise LockUnavailable(
+                f'Project registry {settings.registry} is busy at {settings.lock}; '
+                'retry the same request after the current publication releases the lock') from exc
+
     def _relative_config_path(self,target):
         return str((target/self.settings.raw['manifest']).resolve().relative_to(self.settings.root))
 
     def _register(self,document,project,target):
+        """Treat the supplied document as preflight, not publication authority."""
         relative=self._relative_config_path(target)
-        existing=document['projects'].get(project)
-        if existing is not None:
-            if confined(self.settings.root, existing['config_path']) != (target / self.settings.raw['manifest']).resolve():
-                raise VersionConflict(f'Project identity {project} already registered to another configuration')
-            return False
-        updated=deepcopy(document)
-        updated['projects'][project]={'config_path':relative}
-        publish_registry(self.settings,updated)
-        return True
+        with self.registry_transition() as document:
+            existing=document['projects'].get(project)
+            if existing is not None:
+                if confined(self.settings.root, existing['config_path']) != (target / self.settings.raw['manifest']).resolve():
+                    raise VersionConflict(f'Project identity {project} already registered to another configuration')
+                return False
+            updated=deepcopy(document)
+            updated['projects'][project]={'config_path':relative}
+            publish_registry(self.settings,updated)
+            return True
 
     def list(self):
         s=self.settings

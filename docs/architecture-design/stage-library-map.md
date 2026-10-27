@@ -2,7 +2,27 @@
 
 Создано: **2026-09-06T16:04:53+05:00**.
 
-Это дополнение прежней карты семи обработчиков, не новые процессы. Все 98 исходных IDs сохранены. Прямой SQL и самостоятельный переход на следующий этап запрещены всем handlers. Конкретный publisher у трёх mechanical узлов выбирается явной ссылкой в route config. Общие services runner не копируются в обработчики.
+Карта возникла из исторического сопоставления 98 узлов семи семейств обработчиков.
+Раздел `development` теперь содержит 16 обычных этапов: восемь сохранили исходные
+`GS-DEV-*` IDs, восемь используют существующие `source_id` справочника. Четыре записи
+удалённых отдельных этапов исправления исключены. Остальные 86 записей сохранены.
+
+Всего в этой описательной карте 102 записи при 143 узлах текущего справочника.
+Для `development` соответствие полное; 41 отсутствующее сопоставление относится к другим
+типам задач. В `coverage()` поле `unmapped` означает записи карты без узла справочника,
+а `extra` — узлы справочника без записи карты. После синхронизации `development`
+`unmapped=[]`, а эти 41 узел остаются в `extra`. Статус карты
+`DESCRIPTIVE_MAPPING_NOT_EXECUTED` сохраняется: сопоставление описывает ответственность,
+исполнение сценариев подтверждают отдельные проверки.
+
+В строках `development` указан текущий вход `Task.submit` и чистая функция
+`evaluate_stage`: она вычисляет результат обработчика и объединяет область замечаний.
+Сохранение жизненного цикла и принятие feedback остаются у Task, в том числе
+`Task.mark_verified`. Конкретные классы расположены в `poise.modules.workflow.handlers`.
+
+Прямой SQL и самостоятельный переход на следующий этап запрещены всем handlers.
+Конкретный publisher у трёх mechanical узлов выбирается явной ссылкой в route config.
+Общие services runner не копируются в обработчики.
 
 | Goal type | Stage ID / этап | Handler | Библиотеки | Доменный/прикладной вход |
 |---|---|---|---|---|
@@ -19,18 +39,22 @@
 | `design` | `GS-DES-06` · design_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.record_inspection` |
 | `design` | `GS-DES-07` · remediation | `revise` | `tasks`, `content`, `verification`, `executions` | `Task.propose_resolution + Task.apply_submission` |
 | `design` | `GS-DES-08` · remediation_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.record_inspection` |
-| `development` | `GS-DEV-01` · baseline | `observe` | `executions`, `artifacts`, `verification` | `Task.attach_observations` |
-| `development` | `GS-DEV-02` · solution_planning | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
-| `development` | `GS-DEV-03` · verification_planning | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
-| `development` | `GS-DEV-04` · test_implementation | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
-| `development` | `GS-DEV-05` · test_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.record_inspection` |
-| `development` | `GS-DEV-06` · test_remediation | `revise` | `tasks`, `content`, `verification`, `executions` | `Task.propose_resolution + Task.apply_submission` |
-| `development` | `GS-DEV-07` · test_remediation_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.record_inspection` |
-| `development` | `GS-DEV-08` · implementation | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
-| `development` | `GS-DEV-09` · implementation_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.record_inspection` |
-| `development` | `GS-DEV-10` · implementation_remediation | `revise` | `tasks`, `content`, `verification`, `executions` | `Task.propose_resolution + Task.apply_submission` |
-| `development` | `GS-DEV-11` · implementation_remediation_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.record_inspection` |
-| `development` | `GS-DEV-12` · documentation | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
+| `development` | `GS-DEV-01` · baseline | `observe` | `executions`, `artifacts`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-baseline_inspection` · baseline_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-02` · solution_planning | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-solution_planning_inspection` · solution_planning_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-03` · verification_planning | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-verification_planning_inspection` · verification_planning_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-04` · test_implementation | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-05` · test_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-implementation_design` · implementation_design | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-implementation_design_inspection` · implementation_design_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-08` · implementation | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-09` · implementation_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-documentation_planning` · documentation_planning | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-documentation_planning_inspection` · documentation_planning_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `GS-DEV-12` · documentation | `produce` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
+| `development` | `PAIRED-20261003-documentation_inspection` · documentation_inspection | `inspect` | `tasks`, `content`, `verification` | `Task.submit + evaluate_stage` |
 | `documentation` | `GS-DOC-01` · framing | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
 | `documentation` | `GS-DOC-02` · outline | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
 | `documentation` | `GS-DOC-03` · drafting | `produce` | `tasks`, `content`, `verification` | `Task.apply_submission` |
@@ -111,10 +135,12 @@
 |---|---:|
 | `apply_plan` | 2 |
 | `check` | 9 |
-| `inspect` | 24 |
+| `inspect` | 28 |
 | `observe` | 8 |
-| `produce` | 43 |
+| `produce` | 45 |
 | `publish` | 3 |
-| `revise` | 9 |
+| `revise` | 7 |
 
-Исходные условия feedback остаются в [неизменённой карте](reference/feedback-map.json). DDD-декомпозиция меняет владельцев кода и доступ к данным, а не бизнес-переходы и не пользовательский порядок приёмки.
+Исходные условия feedback остаются в [неизменённой карте](reference/feedback-map.json).
+DDD-декомпозиция меняет владельцев кода и доступ к данным, а не бизнес-переходы и не
+пользовательский порядок приёмки.

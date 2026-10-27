@@ -1,0 +1,7 @@
+{
+  "label": "fixture",
+  "folder": "@EFFECTS@",
+  "barrier": null,
+  "action": "continue",
+  "failure": null
+}

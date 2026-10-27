@@ -122,8 +122,8 @@ def native_output(value, event):
     return output
 
 
-def deliver(settings, path, record):
-    options = settings.consumer
+def deliver(settings, path, record, *, options=None):
+    options = settings.consumer if options is None else options
     packet = record['packet']
     if packet['event_receipt']['native_start_event_id'] is None:
         record.update(status='incomplete', reason='missing_start')

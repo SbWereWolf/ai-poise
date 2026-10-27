@@ -188,9 +188,12 @@ class RegisteredCheckRunner:
         cleanup_seconds: float = 0.25,
         capture_observer=None,
         stdin_file=None,
+        launch_observer=None,
     ) -> dict:
         if capture_observer is not None and not callable(capture_observer):
             raise ValueError('Capture observer must be callable or None')
+        if launch_observer is not None and not callable(launch_observer):
+            raise ValueError('Launch observer must be callable or None')
         if os.name != 'posix' or not callable(getattr(os, 'killpg', None)):
             raise PoiseError('RegisteredCheckRunner requires POSIX process groups; use Linux/WSL')
         if not isinstance(run_id, str) or not run_id:
@@ -253,6 +256,8 @@ class RegisteredCheckRunner:
                     for stream, target in ((child.stdout, out), (child.stderr, err)):
                         os.set_blocking(stream.fileno(), False)
                         selector.register(stream, selectors.EVENT_READ, target)
+                    if launch_observer is not None:
+                        launch_observer(child.pid)
                     while True:
                         now = time.monotonic()
                         code = child.poll()

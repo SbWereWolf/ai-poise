@@ -1,0 +1,22 @@
+{
+  "schema": "hook-definition-2",
+  "id": "architecture-hooks",
+  "agent_id": "primary",
+  "message_source": "codex-hook-main",
+  "events": [
+    {
+      "event": "SessionStart",
+      "matcher": "startup|resume|compact|clear",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Observe architecture fixture"
+    }
+  ],
+  "routes": {
+    "SessionStart": []
+  },
+  "transport": {
+    "unknown_outcome_message": "Inspect the actual saved architecture delivery"
+  }
+}

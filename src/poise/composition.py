@@ -115,7 +115,6 @@ def placement_tools(bound, policy_path, environ):
     from .infrastructure.goal_config import strict_json
     from .infrastructure.session_establishment import direct_caller
     from .infrastructure.placement import FilePlacementWorkspace
-    from .infrastructure.placement_owners import PoiseCurrentPlacementOwners
     try:
         raw = Path(policy_path).read_bytes()
     except OSError as exc:
@@ -135,7 +134,16 @@ def placement_tools(bound, policy_path, environ):
     except (PoiseError, OSError, ValueError) as exc:
         raise PlacementInputError('invalid_caller', 'caller', 'provide:caller') from exc
     workspace = FilePlacementWorkspace(bound, policy, caller.key)
-    owners = PoiseCurrentPlacementOwners(bound, caller.key) if policy.owner_provider is not None else None
+    owners = None
+    if policy.owner_provider is not None:
+        from .infrastructure.task_harness_adapter import TaskHarnessAdapter
+        from .infrastructure.placement_owners import PoiseCurrentPlacementOwners
+        from .infrastructure.project_binding import BoundProject
+        from .common import load_config
+        task_path = TaskHarnessAdapter.resolve_task_configuration(bound.config_path)
+        root, cfg, workflows = load_config(task_path)
+        task_bound = BoundProject(root, task_path, cfg, workflows, bound.checkout)
+        owners = PoiseCurrentPlacementOwners(task_bound, caller.key)
     return PlacementCommands(bound.config['project'], str(bound.checkout), caller.key,
                              policy, hashlib.sha256(raw).hexdigest(), workspace, owners,
                              lambda content: strict_json(content.decode('utf-8')))

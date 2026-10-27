@@ -1,0 +1,20 @@
+{
+  "report": "Проверяемый результат: данные сохранены точно.",
+  "bytes_hex": "00ff70726f6f66800a",
+  "proof_relative": "artifacts/proofs/input.bin",
+  "selected_metadata_keys": [
+    "sections",
+    "artifact_paths",
+    "commit_message",
+    "content_additions",
+    "trace",
+    "method_additions",
+    "stage_work",
+    "evidence_work"
+  ],
+  "inspection_work": {
+    "coverage": "Проверены выбранные секции и байты.",
+    "findings": [],
+    "resolution_decisions": []
+  }
+}

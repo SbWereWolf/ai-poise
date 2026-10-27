@@ -232,14 +232,12 @@ and [execution limits](docs/workflows/commit-messages.md#запуск-и-гра�
 
 ## Shared agent policy
 
-Author proofs use separate current Task files with stable IDs and absolute paths.
-Present metadata through evidence_work; read actual current bytes through public
-show/proof_file before deciding, and repeat that read after lawful same-path correction.
-Do not register an editable author proof as an ordinary immutable artifact or reclassify
-machine receipts. Keep prior inline records as historical evidence. Follow the
-[canonical file-proof contract](docs/workflows/evidence.md#один-пакет-результата),
-[current reading](docs/workflows/evidence.md#чтение-нынешнего-содержимого) and
+When presenting or reviewing a current author proof, read the
+[proof contract](docs/workflows/evidence.md#один-пакет-результата),
+[current-byte reading](docs/workflows/evidence.md#чтение-нынешнего-содержимого) and
 [same-path correction](docs/workflows/evidence.md#исправление-на-прежнем-пути).
+Before registering or reworking an acceptance artifact, read the separate
+[artifact lifecycle](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 
 Keep at most one Task and one worktree per session, with independent claims and all
 four combinations. Acquire the complete set atomically through its owner; never steal
@@ -264,12 +262,14 @@ Keep this English projection and its Russian source consistent in the same chang
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts
   implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation
   with behaviour, configuration or workflow changes.
+- When changing AI-agent rules, skills or operating instructions, follow
+  [Instruction development scope](.agents/skills/poise/SKILL.md#instruction-development-scope)
+  before declaring the affected stage ready or editing files.
 - Keep the existing path resolution of AI poise-owned hooks, tools, runtime code and configuration. Pass a checkout or
   working directory as an explicit filesystem path/cwd only to the operation that needs it; see [path resolution and
   working copies](docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии).
 - Keep Requirements at exactly three semantic levels: System → Application → Task. Bottom-up Task discovery may create proposed System/Application requirements. Future/projected chains may use explicit typed empty placeholders at missing levels once the owner supports them; placeholders are gaps, not satisfaction and not a fourth level. Virtual grouping is orthogonal. Never invent ancestry when the mapping is unclear; ask for the missing decision.
 - Reuse evidence and artifacts through their owners. Repository evidence is valid only for the exact commit hash it proves (plus its compatible requirement/method provenance); a changed commit hash requires fresh evidence. Do not manually copy receipts to manufacture reuse.
-- Classify acceptance files before first registration. An ordinary registered artifact is immutable. When later review/rework must edit the same working path, declare it through the public `artifact_drafts` lifecycle before registration, submit every authorized edit explicitly, and release the Task before taskless review/finalize. Each review preserves a separately registered immutable byte snapshot; finalization restores ordinary immutability. Recover a prematurely frozen file only on a released nonterminal Task with explicit authority and exact ID/scope/path; preserve its baseline snapshot and do not create a `v7` workaround. See the [editable acceptance draft contract](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 - Read applicable nested agent rules before working on their surface. Use specific rules within root constraints,
   subject to higher-priority platform and user instructions. Load only skills and reference sections needed for the
   active phase.
@@ -512,7 +512,7 @@ The canonical rule is [path immutability, rework, and stage graphs](docs/governa
 - **TASK-PATH-01.** Task creation must not declare a path immutable when a later normal or rework stage must modify or create it; every planned write path belongs in that stage's `allowed_paths` before `ready`.
 - **TASK-PATH-02.** A later stage or rework plan must not require a write to a path frozen by the resolved Task contract; authorized planning or `restart` must remove the contradiction before stage admission.
 - **TASK-PATH-03.** Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.
-- **TASK-PATH-04.** Ordinary registered immutable artifacts are not overwritten; `artifact_drafts` preserves one working path and identity only for a predeclared draft or explicitly authorized recovery of a prematurely frozen nonterminal file, while every review creates a separate immutable snapshot.
+- **TASK-PATH-04.** Before registering or reworking an acceptance artifact, apply its [canonical lifecycle](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 - **TASK-PATH-05.** An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.
 
 Contradiction validation treats `method_inputs.future_outputs` and active post
@@ -521,8 +521,6 @@ freezes its path before the Task, `declared_arrival` at `arrival_stage` entry, a
 `stage_output` after `producer_stage` exits. Conflicts use path-pattern language
 intersection rather than string equality alone. A predicate with `maximum: 0` requires
 absence and does not freeze its path.
-
-An acceptance working draft is not automatically immutable evidence. Declare it through `artifact_drafts` before first registration when later review or rework requires same-path edits. Recover a prematurely frozen file only under the exact public authorization and nonterminal-release guards. Do not silently overwrite ordinary registered bytes or proliferate versioned filenames as a workaround. Follow the [editable acceptance draft contract](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 
 ## Mandatory bootstrap and verification
 

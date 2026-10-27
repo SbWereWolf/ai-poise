@@ -1,0 +1,6 @@
+{
+  "extra_api_member": "not-an-option",
+  "unknown_handler": "unregistered",
+  "unknown_mode": "unsupported",
+  "unknown_event": "ImaginaryEvent"
+}

@@ -42,6 +42,8 @@ class Scenario:
         self.project = project
         self.checkout = project['app']
         self.config = project['config_path']
+        from tests.hook_transport.helpers import harness_profile
+        self.config = harness_profile(project, parent, task_adapter=False)
         self.parent = parent
         self.root = parent / 'tool-results'
         self.root.mkdir()

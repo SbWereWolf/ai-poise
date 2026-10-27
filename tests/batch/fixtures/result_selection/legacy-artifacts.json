@@ -1,0 +1,23 @@
+[
+  {
+    "scope": "task",
+    "path": "notes/text.txt",
+    "source": {
+      "kind": "text",
+      "text": "literal text\n"
+    }
+  },
+  {
+    "scope": "task",
+    "path": "notes/template.md",
+    "source": {
+      "kind": "template",
+      "id": "note",
+      "version": "1",
+      "values": {
+        "title": "Explicit title",
+        "body": "Explicit body"
+      }
+    }
+  }
+]

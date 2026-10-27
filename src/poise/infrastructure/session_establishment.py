@@ -27,7 +27,13 @@ def remove_session_runtime(runtime):
 
 def cleanup_project_session_runtime(config_path, session_id):
     """Retire session files without establishing or restoring a Task runtime."""
-    root, cfg, _ = load_config(Path(config_path).resolve())
+    from .harness_config import load_harness_config
+    from .task_harness_adapter import TaskHarnessAdapter
+    selected = Path(config_path).resolve()
+    from ..common import read_json
+    if read_json(selected).get('schema') == 'ddd-accounting-12':
+        selected = TaskHarnessAdapter.resolve_harness_configuration(selected)
+    root, cfg, _ = load_harness_config(selected)
     state = configured_root(root, cfg['paths']['state'])
     remove_session_runtime(descendant(state, cfg['paths']['runtime']) / session_id)
 
@@ -137,7 +143,8 @@ def _validate_observation_requirements(root, cfg):
 
 
 def establish_direct_poise(config_path, environ, clock, *, read_only):
-    config_path = Path(config_path).resolve()
+    from .task_harness_adapter import TaskHarnessAdapter
+    config_path = TaskHarnessAdapter.resolve_task_configuration(config_path)
     root, cfg, _ = load_config(config_path)
     caller = direct_caller(cfg['project'], environ, create_binding=not read_only)
     if caller is None:
@@ -153,13 +160,23 @@ def establish_direct_poise(config_path, environ, clock, *, read_only):
 def establish_project_session(bound, caller):
     """Register identity through its owner without composing a Task runtime.
 
-    Runtime bindings share physical SQLite storage with Task data. This path
-    initializes that owner when necessary and writes runtime identity only;
-    it never acquires Task/worktree ownership or observes a Clock.
+    Select the standalone session owner or an explicitly connected Task store.
+    Session identity grants no Task/worktree ownership.
     """
     from ..application.session_establishment import SessionEstablisher
     from .sqlite.runtime_adapter import RuntimeRegistry
-    database = _database(bound.root, bound.config, bound.config_path, False)
+    from .project_resources import ProjectRuntimeFence
+    from .sqlite.session_database import SessionDatabase
+    from .task_harness_adapter import TaskHarnessAdapter
+    cfg = bound.config
+    if cfg['task_adapter'] is not None:
+        database = TaskHarnessAdapter.session_database(bound.config_path, cfg)
+    else:
+        state = configured_root(bound.root, cfg['paths']['state'])
+        database = SessionDatabase(descendant(state, cfg['paths']['database']),
+            descendant(state, cfg['paths']['lock']), cfg['limits']['lock_seconds'],
+            cfg['limits']['lock_poll_seconds'], cfg['limits']['sqlite_read_seconds'],
+            ProjectRuntimeFence(bound.config_path, state))
     return SessionEstablisher(RuntimeRegistry(database)).establish(caller, [])
 
 
@@ -168,7 +185,8 @@ def establish_poise(config_path, caller, inventory, clock, preferred_session=Non
     from ..application.session_establishment import SessionEstablisher
     from ..runtime import Poise
     from .sqlite.runtime_adapter import RuntimeRegistry
-    config_path = Path(config_path).resolve()
+    from .task_harness_adapter import TaskHarnessAdapter
+    config_path = TaskHarnessAdapter.resolve_task_configuration(config_path)
     root,cfg,_ = load_config(config_path,legacy_workflow_requirements)
     database = _database(root, cfg, config_path, read_only)
     registry = RuntimeRegistry(database)

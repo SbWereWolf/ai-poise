@@ -17,12 +17,12 @@ from .configuration import ReaderConfiguration
 from .native import HookNativeAuthority
 
 
-def compose(service, definition_path, event):
+def compose(service, definition_path, event, *, policy_path=None, snapshots=None):
     definition = service.definition(definition_path)
     if event['hook_event_name'] not in {e['event'] for e in definition.data['events']}:
         raise CommandFailure('invalid_event', field='hook_event_name')
     parse_tool_event(event)
-    path, profile, policy, digest = load_command_profile(service.settings)
+    path, profile, policy, digest = load_command_profile(service.settings, policy_path=policy_path, snapshots=snapshots)
     # The native session checkout is independently admitted even for cd to B.
     native_bound = read_project_checkout(service.settings.project_config, Path(event['cwd']))
     base = execution_cwd(event['tool_input']['command'])
@@ -32,7 +32,7 @@ def compose(service, definition_path, event):
     if not binding or binding['definition_path'] != str(Path(definition_path).resolve()):
         raise CommandFailure('authority_mismatch', field='session_id')
     establish_project_session(bound, caller)
-    configuration = ReaderConfiguration.load(bound, path)
+    configuration = ReaderConfiguration.load(bound, path, snapshots=snapshots)
 
     def authority():
         admission = configuration.policy['admission']
@@ -76,7 +76,7 @@ def _present(result, service, definition_path, policy):
     return {'systemMessage': text} if result['status'] in ('unconfirmed', 'conflict', 'unmatched') else {}
 
 
-def tool_event(service, definition_path, event):
+def tool_event(service, definition_path, event, *, policy_path=None, snapshots=None):
     phase = 'pre' if event.get('hook_event_name') == 'PreToolUse' else 'post'
     result, intake, policy = CommandIntake.result(phase), None, None
     if isinstance(event.get('tool_use_id'), str) and isinstance(event.get('tool_name'), str):
@@ -85,7 +85,7 @@ def tool_event(service, definition_path, event):
     fallback = (service.settings.observations / identity([event.get('session_id'), event.get('tool_use_id'), phase, identity(event)])
                 / service.settings.raw['response_file'])
     try:
-        intake, normalized = compose(service, definition_path, event)
+        intake, normalized = compose(service, definition_path, event, policy_path=policy_path, snapshots=snapshots)
         policy = intake.policy
         result = intake.execute(normalized)
     except (CommandFailure, ReadFailure, PoiseError, ProjectBindingFailure, OSError, ValueError, TypeError) as exc:

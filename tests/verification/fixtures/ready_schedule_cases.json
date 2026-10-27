@@ -505,5 +505,109 @@
     "(?:^|[.;]\\s*)methods:\\s*\\[\\]\\s+(?:допустим|разреш[её]н)(?:ы)?(?=\\s*[.;]|$)",
     "(?:^|[.;]\\s*)пустые списки(?:\\s+проверок)?\\s+(?:допустимы|разрешены)(?=\\s*[.;]|$)",
     "(?:^|[.;]\\s*)(?:конкретные\\s+)?методы\\s+определяются\\s+на\\s+этапе\\s+планирования(?:\\s+проверок)?(?=\\s*[.;]|$)"
+  ],
+  "nonempty_ready": {
+    "methods": [
+      {
+        "id": "CHECK",
+        "argv": [
+          "python",
+          "-B",
+          "-c",
+          "print('OK')"
+        ],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+          "kind": "repository",
+          "bindings": [
+            {
+              "kind": "cwd",
+              "path": "."
+            }
+          ]
+        },
+        "verification_plan": {
+          "responsibility": "Verify the declared schedule.",
+          "change_surface": [
+            "src/**"
+          ],
+          "red_stages": [],
+          "green_stages": [
+            "implementation"
+          ],
+          "red_failure": null
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": [
+          "OK"
+        ],
+        "stderr_contains": []
+      }
+    ],
+    "method_inputs": [
+      {
+        "method_id": "CHECK",
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+          "runner": "python",
+          "parser": "inline-no-path-arguments",
+          "version": 1
+        }
+      }
+    ],
+    "checks": {
+      "tests": [],
+      "implementation": [
+        "CHECK"
+      ],
+      "test_review": [],
+      "code_review": []
+    }
+  },
+  "nonempty_ready_diagnostics": [
+    {
+      "id": "checks-null",
+      "patch": {
+        "checks": null
+      },
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "checks-list",
+      "patch": {
+        "checks": []
+      },
+      "field": "checks",
+      "tokens": [
+        "объект"
+      ]
+    },
+    {
+      "id": "first-stage-null",
+      "patch": {},
+      "stage": "tests",
+      "value": null,
+      "field": "checks.tests",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "second-stage-null",
+      "patch": {},
+      "stage": "implementation",
+      "value": null,
+      "field": "checks.implementation",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    }
   ]
 }

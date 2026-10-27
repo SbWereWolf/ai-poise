@@ -105,6 +105,43 @@ def test_preservation_ready_can_correct_schedule_then_replay_success(project):
         row for row in before["tasks"] if row[0] == "FOREIGN")
 
 
+@pytest.mark.parametrize("case", DATA["nonempty_ready_diagnostics"], ids=lambda case: case["id"])
+def test_diagnostics_nonempty_ready_reports_schedule_before_consumption(project, case):
+    patch = deepcopy(DATA["nonempty_ready"])
+    patch.update(deepcopy(case["patch"]))
+    if "stage" in case:
+        patch["checks"][case["stage"]] = deepcopy(case["value"])
+    client, filled, _ = prepare(project, patch)
+    (project["app"] / "foreign-note.txt").write_bytes(b"foreign bytes must remain\n")
+    before = state(client, project)
+    try:
+        ready(client, filled["revision"])
+    except Exception as error:
+        observed = error
+    else:
+        pytest.fail("READY_INVALID_SCHEDULE_ACCEPTED")
+    assert state(client, project) == before
+    assert_ready_diagnostic(observed, case)
+
+
+def test_preservation_nonempty_ready_accepts_valid_control_and_replays(project):
+    client, filled, _ = prepare(project, DATA["nonempty_ready"])
+    (project["app"] / "foreign-note.txt").write_bytes(b"foreign bytes must remain\n")
+    before = state(client, project)
+    first = ready(client, filled["revision"], "ready-nonempty-control")
+    assert {key: first[key] for key in ("status", "ready", "claimed_by")} == {
+        "status": "available", "ready": True, "claimed_by": None}
+    after = state(client, project)
+    replay = ready(client, filled["revision"], "ready-nonempty-control")
+    assert replay["replayed"] is True
+    assert {key: value for key, value in replay.items() if key != "replayed"} == first
+    assert state(client, project) == after
+    for key in ("head", "index", "foreign", "config", "worktrees"):
+        assert after[key] == before[key]
+    assert next(row for row in after["tasks"] if row[0] == "FOREIGN") == next(
+        row for row in before["tasks"] if row[0] == "FOREIGN")
+
+
 @pytest.mark.parametrize("field", ["methods", "checks", "method_inputs"])
 def test_preservation_required_creation_field_cannot_be_removed(project, field):
     client, filled, _ = prepare(project)

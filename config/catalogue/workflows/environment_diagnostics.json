@@ -141,24 +141,672 @@
         ]
       },
       {
-        "id": "self_inspection-input-root_cause",
+        "id": "analysis_planning-input-experiments.facts",
         "kind": "section",
         "phase": "pre",
-        "section": "root_cause",
+        "section": "experiments.facts",
         "stages": [
-          "self_inspection"
+          "analysis_planning"
         ],
         "states": [
           "populated"
         ]
       },
       {
-        "id": "self_inspection-input-recommendations",
+        "id": "analysis_planning-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-hypotheses",
+        "kind": "section",
+        "phase": "pre",
+        "section": "hypotheses",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-experiments.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiments.facts",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-experiments.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiments.facts",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-confirmation.confirmation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation.confirmation",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-experiments.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiments.facts",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-recommendations",
         "kind": "section",
         "phase": "pre",
         "section": "recommendations",
         "stages": [
-          "self_inspection"
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "diagnostics_inspection-input-root_cause",
+        "kind": "section",
+        "phase": "pre",
+        "section": "root_cause",
+        "stages": [
+          "diagnostics_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "experiments"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "experiments"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments_inspection-input-diagnostic_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "diagnostic_plan",
+        "stages": [
+          "experiments_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments_inspection-input-experiments.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiments.facts",
+        "stages": [
+          "experiments_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments_inspection-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "experiments_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments_inspection-input-hypotheses",
+        "kind": "section",
+        "phase": "pre",
+        "section": "hypotheses",
+        "stages": [
+          "experiments_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments_inspection-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "experiments_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-reproduction_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "hypothesis_planning-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "hypothesis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "hypothesis_planning-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "hypothesis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "hypothesis_planning_inspection-input-diagnostic_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "diagnostic_plan",
+        "stages": [
+          "hypothesis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "hypothesis_planning_inspection-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "hypothesis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "hypothesis_planning_inspection-input-hypotheses",
+        "kind": "section",
+        "phase": "pre",
+        "section": "hypotheses",
+        "stages": [
+          "hypothesis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "hypothesis_planning_inspection-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "hypothesis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "reproduction"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction-input-reproduction_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction_plan",
+        "stages": [
+          "reproduction"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction_inspection-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "reproduction_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction_inspection-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "reproduction_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction_inspection-input-reproduction_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction_plan",
+        "stages": [
+          "reproduction_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "reproduction_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "root_cause_analysis-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "root_cause_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "root_cause_analysis-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "root_cause_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "root_cause_analysis-input-experiments.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiments.facts",
+        "stages": [
+          "root_cause_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "root_cause_analysis-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "root_cause_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "root_cause_analysis-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "root_cause_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-confirmation.confirmation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation.confirmation",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-experiments.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiments.facts",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-framing.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "framing.facts",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-recommendations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "recommendations",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-reproduction.reproduction",
+        "kind": "section",
+        "phase": "pre",
+        "section": "reproduction.reproduction",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-root_cause",
+        "kind": "section",
+        "phase": "pre",
+        "section": "root_cause",
+        "stages": [
+          "synthesis"
         ],
         "states": [
           "populated"
@@ -202,7 +850,6 @@
     ]
   },
   "goal_type": "environment_diagnostics",
-  "worktree_required": true,
   "route": {
     "entry": "framing"
   },
@@ -210,79 +857,73 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "framing",
-      "instruction": "Определить симптом и необходимые факты среды. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before subject work agree coarse Task phases with the independent reviewer. Publish genuine already-obtained intake/preparation facts in declared framing.facts with exact provenance, distinguishing reported symptoms from observed facts. Do not invent missing prerequisites or perform substantive reproduction/experiments here. Design only imminent reproduction: goal, result requirements, acceptance criteria, actual environment/source/input identity, methods, capture completeness, bounds and preservation.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
-        "verification_plan"
+        "verification_plan",
+        "reproduction_plan"
       ],
       "rework_targets": [
-        "framing",
-        "reproduction",
-        "hypothesis_planning",
-        "experiments",
-        "root_cause_analysis",
-        "confirmation",
-        "self_inspection"
+        "framing"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions.",
+        "reproduction_plan": "State imminent reproduction goal, result requirements, acceptance criteria, actual intake facts and reported symptoms, exact environment/runtime/source/input identity, read-only methods, observations needed to distinguish reproduced/not-reproduced, capture completeness, limits and preservation.",
+        "verification_plan": "For imminent reproduction only, bind requirement/DoD references to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, before/after predicates, phase applicability, reuse/retry/limits. Use actual method inputs, runtime/source identity and stage receipts. Runtime records real BoundExecution digests; never fabricate future methods or hashes."
       },
       "transitions": {
-        "complete": "reproduction"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "framing_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "observe",
-      "role": "executor",
       "id": "reproduction",
-      "instruction": "Проверить исходный симптом. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only the independently accepted reproduction design through exact registered methods. Publish actual declared reproduction.reproduction with check/stage receipts, environment/runtime/source/input identities, observed symptom or truthful non-reproduction, distinguishing checks and completeness. Preserve intake facts and project state; no repairs or write operations.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "reproduction",
-        "framing",
-        "hypothesis_planning",
-        "experiments",
-        "root_cause_analysis",
-        "confirmation",
-        "self_inspection"
+        "reproduction"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
       },
       "transitions": {
-        "complete": "hypothesis_planning"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "reproduction_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "hypothesis_planning",
-      "instruction": "Составить проверяемые альтернативные причины. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Only after actual reproduction results are independently accepted, design imminent discriminating experiments: goal, result requirements, acceptance criteria, falsifiable alternative hypotheses, existing exact read-only methods, controlled variables, expected distinguishing observations, limits and preservation. Bind actual framing/reproduction receipts; do not decide an unsupported future cause or predesign later analysis.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
@@ -290,170 +931,343 @@
         "diagnostic_plan"
       ],
       "rework_targets": [
-        "hypothesis_planning",
-        "framing",
-        "reproduction",
-        "experiments",
-        "root_cause_analysis",
-        "confirmation",
-        "self_inspection"
+        "hypothesis_planning"
       ],
+      "role": "executor",
       "sections": {
-        "diagnostic_plan": "ordered hypothesis checks, exact commands, allowed temporary effects, restoration и budget.",
-        "hypotheses": "id, statement, supporting/contradicting facts, exact test, expected true/false observations, unresolved/supported/refuted.",
-        "report": "Record the substantive result for this stage."
+        "diagnostic_plan": "State imminent experiment goal, required result, acceptance criteria, actual accepted reproduction identity, ordered discriminating hypothesis checks, existing exact read-only commands/methods, controlled variables, expected information, resource bounds and preservation. This workflow permits no instrumentation, configuration, database or product writes.",
+        "hypotheses": "For each alternative cause state its ID, falsifiable statement, actual supporting/opposing facts, assumptions, exact distinguishing test and expected true/false observations. Mark actual supported/refuted/unresolved status and avoid presupposing a cause.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
       },
       "transitions": {
-        "complete": "experiments"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "hypothesis_planning_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "observe",
-      "role": "executor",
       "id": "experiments",
-      "instruction": "Выполнить диагностические experiments. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only accepted diagnostic experiments against accepted reproduction/source identity. Publish actual declared experiments.facts with hypothesis IDs, exact check/stage receipts, controlled variables, input/runtime/source identities, actual distinguishing observations, completeness and limitations. Do not rewrite accepted intake/reproduction facts or perform repair, instrumentation, configuration, database or product writes.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "experiments",
-        "framing",
-        "reproduction",
-        "hypothesis_planning",
-        "root_cause_analysis",
-        "confirmation",
-        "self_inspection"
+        "experiments"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
       },
       "transitions": {
-        "complete": "root_cause_analysis"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "experiments_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "root_cause_analysis",
-      "instruction": "Обосновать причину и отвергнутые альтернативы. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Produce a draft causal report under accepted current analysis/confirmation plans using independently accepted actual intake, reproduction and experiment records. Link claim IDs to exact receipts and environment/source/input identity, falsifiable alternatives, reproducible causal inference summaries, assumptions and limitations. Distinguish correlation from causation. Do not expose private chain-of-thought, rewrite accepted records or execute recommendations. The report is not accepted before actual confirmation, synthesis and independent review.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report",
         "root_cause",
-        "recommendations",
-        "confirmation_plan"
+        "recommendations"
       ],
       "rework_targets": [
-        "root_cause_analysis",
-        "framing",
-        "reproduction",
-        "hypothesis_planning",
-        "experiments",
-        "confirmation",
-        "self_inspection"
+        "root_cause_analysis"
       ],
+      "role": "executor",
       "sections": {
-        "confirmation_plan": "Root cause refs, точный controlled confirmation method, expected distinguishing observations, restore operation/probe и limits. Формируется root_cause_analysis.",
-        "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
-        "report": "Record the substantive result for this stage.",
-        "root_cause": "cause statement, symptoms/facts/experiments links, rejected alternatives, confirmation refs, limitations; inconclusive только если разрешён DoD задачи."
+        "recommendations": "Propose actions only from current supported causal conclusions and exact evidence, expected effect, risks and subsequent verification. Revise recommendations after confirmation/refutation. Never execute a repair or optimization automatically.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions.",
+        "root_cause": "For each current causal claim ID state its status, exact symptoms/facts/reproduction/experiment/confirmation receipts and environment/source/input identities, causal inference summary, assumptions, rejected alternatives and limitations. Correlation or report editing does not prove causation; reconcile actual counterevidence. Inconclusive is acceptable only under explicit accepted Task criteria."
       },
       "transitions": {
         "complete": "confirmation"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "check",
-      "role": "executor",
       "id": "confirmation",
-      "instruction": "Проверить причинность контролируемым изменением. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute exact accepted controlled read-only confirmation methods against actual causal claim IDs and environment/source/input identities. Publish actual declared confirmation.confirmation with receipts, distinguishing observations and confirmed/refuted/unresolved dispositions; a placeholder or correlation is not causal proof. All three real outcomes proceed to synthesis; never manufacture success, perform repairs or waive missing required capture.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "confirmation",
-        "framing",
-        "reproduction",
-        "hypothesis_planning",
-        "experiments",
-        "root_cause_analysis",
-        "self_inspection"
+        "confirmation"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
       },
       "transitions": {
-        "inconclusive": "self_inspection",
-        "not_satisfied": "self_inspection",
-        "satisfied": "self_inspection"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "inconclusive": "synthesis",
+        "not_satisfied": "synthesis",
+        "satisfied": "synthesis"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
-      "handler": "inspect",
-      "role": "executor",
-      "id": "self_inspection",
-      "instruction": "Проверить диагноз и рекомендацию. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "root_cause_analysis",
+          "synthesis"
+        ]
+      },
+      "handler": "produce",
+      "id": "analysis_planning",
+      "instruction": "Only after actual experiment results are independently accepted, design imminent causal-report production: draft the causal argument, obtain real confirmation and reconcile this same unaccepted report. Define goal, required result, acceptance criteria, reproducible inference and counterexample methods, actual confirmation procedures/claim selectors, completeness and permitted uncertainty. Use actual accepted evidence; never invent future causes, commands, measurements or hashes.",
       "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "analysis_plan",
+        "confirmation_plan"
+      ],
+      "rework_targets": [
+        "analysis_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "analysis_plan": "State current causal-report goal, result requirements, acceptance criteria, exact accepted reproduction/experiment receipts and runtime/source/input identities, reproducible inference and counterexample procedures, claim IDs, limits, actual confirmation and report reconciliation. Distinguish symptoms, observed facts, assumptions and causal claims.",
+        "confirmation_plan": "Define exact existing controlled/read-only discriminating methods and claim selectors from accepted actual facts, expected confirming/refuting observations, input selectors, repeated checks, limits and permitted uncertainty. Do not invent a future cause, available command, measurement or hash. Any necessary write belongs to separately authorized work.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
+      },
+      "transitions": {
+        "complete": "analysis_planning_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "root_cause_analysis",
+          "synthesis"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "analysis_planning_inspection",
+      "instruction": "Independently review imminent analytical/confirmation plans against actual accepted facts for executability, completeness and unambiguity. Check traceable causal claim selectors, alternatives and independent discriminating evidence, exact read-only methods, required capture, reconciliation and explicit uncertainty criteria. Decide criteria only for root_cause_analysis and synthesis execution in this same report phase. Reject design to analysis_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "analysis_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "analysis_planning",
+        "clear": "root_cause_analysis"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "diagnostics_inspection",
+      "instruction": "Independently verify the final current reconciled root_cause/recommendations against accepted plans and actual intake/reproduction/experiment/confirmation receipts, claim IDs and environment/source/input identity. Check causal discrimination against alternatives, fact/assumption separation, complete required capture, development rules and general result requirements. Distinguish report quality from a positive causal verdict; uncertainty needs explicit agreed criteria. Reject analytical execution to root_cause_analysis in the same phase, never to accepted earlier designs or evidence. Do not edit reports, invent authority or execute recommendations.",
+      "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report",
         "result"
       ],
       "rework_targets": [
-        "self_inspection",
-        "reproduction",
-        "hypothesis_planning",
-        "experiments",
-        "root_cause_analysis",
-        "confirmation",
+        "root_cause_analysis"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions.",
+        "result": "Record final reconciled substantive diagnosis, actual fulfilled/unfulfilled DoD/verdicts, deliverables and evidence identities, limitations, incidents and remaining delivery obligations. Keep report acceptance separate from a positive causal verdict; record any waiver only with actual authority/provenance."
+      },
+      "transitions": {
+        "changes_requested": "root_cause_analysis",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "experiments_inspection",
+      "instruction": "Independently verify actual experiments.facts and receipts against accepted diagnostic design and reproduction/runtime/source/input identity. Check hypothesis IDs, controlled variables, discriminating observations, completeness and preservation. Reject execution to experiments; accept actual facts before analytical design.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "experiments"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "experiments",
+        "clear": "analysis_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "framing_inspection",
+      "instruction": "Independently review imminent reproduction design for executability, completeness and unambiguity: genuine intake framing.facts/provenance, reported versus observed symptoms, actual runtime/source/input, goal/result/acceptance, exact methods, capture, limits and preservation. Reject design to framing; no substantive reproduction before acceptance.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
         "framing"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "framing",
+        "clear": "reproduction"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "hypothesis_planning_inspection",
+      "instruction": "Independently review current hypothesis/diagnostic design against accepted actual intake/reproduction for executability, completeness and unambiguity: goal/results/acceptance, alternative causes, distinguishing observations, exact read-only methods, controlled variables, bounds and preservation. Reject design to hypothesis_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "hypothesis_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "hypothesis_planning",
+        "clear": "experiments"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "reproduction_inspection",
+      "instruction": "Independently verify actual reproduction.reproduction and exact receipts against accepted reproduction design and actual runtime/source/input identity, symptom or non-reproduction evidence, coverage and preservation. Missing required capture or a placeholder cannot pass. Reject execution to reproduction; accept actual results before hypothesis planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "reproduction"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions."
       },
       "transitions": {
         "changes_requested": "reproduction",
-        "clear": null
-      },
-      "purpose": "observation",
+        "clear": "hypothesis_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [],
+        "propose": []
+      },
+      "handler": "produce",
+      "id": "synthesis",
+      "instruction": "Reconcile root_cause and recommendations in this same unaccepted report using actual confirmation.confirmation and accepted intake/reproduction/experiment receipts. Update refuted or unresolved claim IDs, causal status, rejected alternatives, assumptions, limitations and affected recommendations consistently. Preserve accepted facts. Report editing cannot prove an unsupported cause; a negative diagnosis can be a correct report, while missing required coverage is not completion. Inconclusive acceptance requires explicit agreed criteria; never invent waivers or execute repairs.",
+      "normalization": "strip",
+      "purpose": "execution",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "root_cause",
+        "recommendations"
+      ],
+      "rework_targets": [
+        "synthesis"
+      ],
+      "role": "executor",
+      "sections": {
+        "recommendations": "Propose actions only from current supported causal conclusions and exact evidence, expected effect, risks and subsequent verification. Revise recommendations after confirmation/refutation. Never execute a repair or optimization automatically.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record justified findings and decisions.",
+        "root_cause": "For each current causal claim ID state its status, exact symptoms/facts/reproduction/experiment/confirmation receipts and environment/source/input identities, causal inference summary, assumptions, rejected alternatives and limitations. Correlation or report editing does not prove causation; reconcile actual counterevidence. Inconclusive is acceptable only under explicit accepted Task criteria."
+      },
+      "transitions": {
+        "complete": "diagnostics_inspection"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

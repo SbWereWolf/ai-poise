@@ -78,36 +78,444 @@
         ]
       },
       {
-        "id": "remediation-input-integration_plan",
-        "kind": "section",
-        "phase": "pre",
-        "section": "integration_plan",
-        "stages": [
-          "remediation"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "remediation-input-verification_plan",
-        "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
-        "stages": [
-          "remediation"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
         "id": "publication-input-integration_plan",
         "kind": "section",
         "phase": "pre",
         "section": "integration_plan",
         "stages": [
           "publication"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-task_phases",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_phases",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-integration.conflict_resolutions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration.conflict_resolutions",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-integration_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_plan",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-verification.verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification.verdict",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "integration"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "integration"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "integration_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning-input-task_phases",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_phases",
+        "stages": [
+          "integration_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning_inspection-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "integration_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning_inspection-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "integration_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning_inspection-input-integration_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_plan",
+        "stages": [
+          "integration_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "integration_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-delivery_obligation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "delivery_obligation",
+        "stages": [
+          "publication"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-publication_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "publication_plan",
+        "stages": [
+          "publication"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-delivery_obligation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "delivery_obligation",
+        "stages": [
+          "publication_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-publication_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "publication_plan",
+        "stages": [
+          "publication_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-publication_result",
+        "kind": "section",
+        "phase": "pre",
+        "section": "publication_result",
+        "stages": [
+          "publication_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "publication_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-integration_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_plan",
+        "stages": [
+          "publication_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-verification.verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification.verdict",
+        "stages": [
+          "publication_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "publication_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-delivery_obligation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "delivery_obligation",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-integration_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_plan",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-publication_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "publication_plan",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-verification.verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification.verdict",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-delivery_obligation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "delivery_obligation",
+        "stages": [
+          "publication_result"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-integration_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_plan",
+        "stages": [
+          "publication_result"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-publication_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "publication_plan",
+        "stages": [
+          "publication_result"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-verification.verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification.verdict",
+        "stages": [
+          "publication_result"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-integration.conflict_resolutions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration.conflict_resolutions",
+        "stages": [
+          "verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-integration_context",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_context",
+        "stages": [
+          "verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-integration_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "integration_plan",
+        "stages": [
+          "verification"
         ],
         "states": [
           "populated"
@@ -135,7 +543,6 @@
     ]
   },
   "goal_type": "integration",
-  "worktree_required": true,
   "route": {
     "entry": "framing"
   },
@@ -143,46 +550,50 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "framing",
-      "instruction": "Зафиксировать source/target и нужные требования источников. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before subject work perform the user-required Task-level coarse-phase/scope/constraints agreement with the independent reviewer. Record actual read-only source/target/base/index/worktree/proof and configured publication/delivery context. This is meta-level framing before the two subject phases, not a third execution phase or recursive design-of-design. Do not mutate Git/product files, run a prototype or prescribe detailed later integration/publication methods.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
-        "constraints"
+        "constraints",
+        "task_phases",
+        "integration_context"
       ],
       "rework_targets": [
-        "framing",
-        "integration_planning",
-        "integration",
-        "verification",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "framing"
       ],
+      "role": "executor",
       "sections": {
-        "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
-        "report": "Record the substantive result for this stage."
+        "constraints": "Identify actual source/target/base scope, requirements and constraints, owner/object/action authority, Git/data preservation and configured delivery policy. Give each constraint an ID, source/predicate/scope/check and justify none.",
+        "integration_context": "Record genuine read-only planning facts: repository/worktree/private namespace, actual reviewed source refs/commits/trees and approval/proof identities, target/base/current HEAD/index/merge state and foreign changes, requirements, configured local-publication and ultimate-delivery execution contract/owner/method/authority. Do not invent sources, approvals or missing configuration.",
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "task_phases": "Record the user-required Task-level coarse phase agreement: integrate and prove the candidate, then record native local publication and collect its actual result. Identify each required result/input, independent reviewer and boundaries. Keep ultimate configured target delivery explicit; do not predesign later phase details."
       },
       "transitions": {
-        "complete": "integration_planning"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "framing_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "integration"
+        ]
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "integration_planning",
-      "instruction": "Задать стратегию и exact checks. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "After actual Task framing agreement, design only imminent candidate integration and proof: goal, required result, acceptance criteria, exact reviewed sources/target/base/index/candidate, explicit accepted strategy/order, owned namespace, conflict semantics, actual methods and guarded retries/partial-state refusal. Bind current candidate/source correctness and target ADMISSION, not an imagined future target advance. Preserve foreign changes and accepted tests; no implementation or future publication detail here.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
@@ -190,26 +601,16 @@
         "verification_plan"
       ],
       "rework_targets": [
-        "integration_planning",
-        "framing",
-        "integration",
-        "verification",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "integration_planning"
       ],
+      "role": "executor",
       "sections": {
-        "integration_plan": "explicit merge/rebase/cherry-pick strategy, order, private refs, conflicts policy, exact targeted checks и target publication predicate.",
-        "report": "Record the substantive result for this stage.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
+        "integration_plan": "State current integration goal, result requirements, acceptance criteria, explicit accepted merge/rebase/cherry-pick strategy/order and exact reviewed source/target/base/candidate/index identities, owned namespace, conflict semantics, preservation, state-aware retry/partial-state refusal and actual registered methods. Distinguish candidate/source correctness and CURRENT target-admission predicate from the eventual actual target-delivery/source-inclusion predicate under its configured owner. Never assume a future target advance already happened.",
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "verification_plan": "Bind current integration requirements/DoD to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, source/candidate/tree/index and current target-admission predicates, before/after applicability, reuse/retry/limits. Runtime adds actual BoundExecution/receipt identities. Require latest complete current candidate/source/no-regression proof and actual verification.verdict; no fabricated future commands/hashes, stale success or rewriting accepted test oracles. Eventual delivery proof belongs to its real configured execution owner."
       },
       "transitions": {
-        "complete": "integration"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "integration_planning_inspection"
       }
     },
     {
@@ -220,207 +621,288 @@
         "docs/**"
       ],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "apply_plan",
-      "role": "executor",
       "id": "integration",
-      "instruction": "Выполнить объединение и решить semantic conflicts. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only accepted integration_plan within src/**, tests/**, fixtures/** and docs/** through actual admitted methods. Before EVERY attempt verify actual source/target/base/candidate/index/branch/merge state, ownership and retry/partial-state preconditions; never blindly repeat a Git action or substitute unreviewed sources. Preserve unrelated WIP, rows and refs; never reset/restore/stash/stage unrelated work. Resolve only scoped semantic conflicts while preserving all accepted requirements/test oracles; a real earlier accepted-test/design error needs its actual owner/lifecycle, not silent test rewriting or automatic redesign. Publish actual declared integration.conflict_resolutions including genuine no-conflict evidence. Do not push or infer target delivery from a private candidate.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": false,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "integration",
-        "framing",
-        "integration_planning",
-        "verification",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "integration"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
       },
       "transitions": {
         "complete": "verification"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "check",
-      "role": "executor",
       "id": "verification",
-      "instruction": "Подтвердить совместный результат. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute accepted exact read-only checks for the ACTUAL latest candidate/source/tree/index and CURRENT target-admission predicate, requirements and no regressions. Publish actual verification.verdict and complete fresh receipts, not placeholders/stale checks or changed test oracles. Satisfied proceeds to independent candidate review; failure/inconclusive returns SAME execution integration with its guarded retry policy. Do not demand a future post-workflow target advance or call local records target-delivery proof.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "verification",
-        "framing",
-        "integration_planning",
-        "integration",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "verification"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
       },
       "transitions": {
-        "inconclusive": "inspection",
-        "not_satisfied": "inspection",
+        "inconclusive": "integration",
+        "not_satisfied": "integration",
         "satisfied": "inspection"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "inspect",
-      "role": "reviewer",
       "id": "inspection",
-      "instruction": "Read-only проверить сохранность source intentions. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Independently verify the actual latest integrated candidate/diff, declared integration.conflict_resolutions and verification.verdict against accepted integration/verification plans, all reviewed source requirements, current target-admission predicate, complete no-regression proof, development rules and general result requirements. Preserve accepted tests and unrelated work; missing/stale proof cannot pass. Reject SAME integration execution to integration, never automatically to accepted design. Accept only the frozen candidate/current predicates, not an unperformed future target delivery.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "inspection",
-        "remediation",
-        "framing",
-        "integration_planning",
-        "integration",
-        "verification",
-        "remediation_inspection"
+        "integration"
       ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "changes_requested": "remediation",
-        "clear": "publication"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "allowed_paths": [
-        "src/**",
-        "tests/**",
-        "fixtures/**",
-        "docs/**"
-      ],
-      "artifact_requirements": [],
-      "handler": "revise",
-      "role": "executor",
-      "id": "remediation",
-      "instruction": "Исправить дефекты объединения без новой функциональности. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
-      "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report",
-        "conflict_resolutions"
-      ],
-      "rework_targets": [
-        "remediation",
-        "framing",
-        "integration_planning",
-        "integration",
-        "verification",
-        "inspection",
-        "remediation_inspection"
-      ],
-      "sections": {
-        "conflict_resolutions": "После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set AI poise сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее.",
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "complete": "remediation_inspection"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "allowed_paths": [],
-      "artifact_requirements": [],
-      "handler": "inspect",
       "role": "reviewer",
-      "id": "remediation_inspection",
-      "instruction": "Осмотреть corrections. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
-      "normalization": "strip",
-      "read_only": true,
-      "required_sections": [
-        "report"
-      ],
-      "rework_targets": [
-        "remediation_inspection",
-        "remediation",
-        "framing",
-        "integration_planning",
-        "integration",
-        "verification",
-        "inspection"
-      ],
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
       },
       "transitions": {
-        "changes_requested": "remediation",
-        "clear": "publication"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "changes_requested": "integration",
+        "clear": "publication_planning"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "publish",
-      "role": "executor",
       "id": "publication",
-      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration. Publish only after explicit user authorization. Publish the reviewed commit, not unreviewed edits.",
+      "instruction": "Through the ACTUAL configured public wrapper/native local owner submit only exact stage_work {target_ref,expected_commit,authorization}, NO kind, using real existing exact user authority and the frozen reviewed commit/tree. Native PlanCommands.publish_local requires the current accepted inspect.clear commit/verified_tree/entry_tree/branch, no pending merge and immutable started intent; target must meet expected_commit. Configuration must explicitly permit local mode (git.push_required=False); no remote fallback or push. Inspect actual receipts/state before any supported same-intent retry while this stage is active; unresolved/mismatched state requires the actual admitted owner/refusal, never payload/ID replacement or overwriting newer work. Its receipt effect=local_record_only, remote_publication=False,target_updated=False is local observation ONLY, not target advancement/source inclusion or complete delivery. Do not advance blocked/incomplete work or invent success.",
       "normalization": "strip",
+      "purpose": "other",
       "read_only": true,
       "required_sections": [],
-      "rework_targets": [
-        "framing",
-        "integration_planning",
-        "integration",
-        "verification",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
+      "rework_targets": [],
+      "role": "executor",
       "sections": {},
       "transitions": {
-        "complete": null
-      },
-      "purpose": "other",
+        "complete": "publication_result"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "framing_inspection",
+      "instruction": "Independently accept the Task-level coarse phase/scope/constraints agreement and actual read-only integration context before subject work. Check source/target/base/proof/ownership/preservation and actual configured publication/delivery contract, completeness and unambiguity. Do not treat this framing agreement as a third subject execution phase or approve detailed later work prematurely. Reject framing to framing.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "framing"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "framing",
+        "clear": "integration_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "integration"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "integration_planning_inspection",
+      "instruction": "Independently review imminent integration/verification plans for executability, completeness and unambiguity against actual agreed context. Check goal/results/acceptance, exact reviewed sources/target/base/candidate/index, strategy/order, conflict semantics, owned scope, actual methods/current target admission, state-aware retries and preservation of WIP/data/accepted tests. Decide only integration execution criteria. Reject design to integration_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "integration_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "integration_planning",
+        "clear": "integration"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "publication_inspection",
+      "instruction": "Independently verify actual executor publication_result, canonical LOCAL receipt, frozen reviewed candidate/tree, target/admission/readback and actual authority against accepted plan. local_record_only with remote_publication=False,target_updated=False is not actual target integration or source inclusion. Recognize legitimate later progress without overwriting it. Check development rules/general result requirements and explicit mandatory ultimate delivery_obligation under the REAL configured owner/method; no full Goal/DoD/final user success until actual delivery proof, no waiver or circular preterminal demand. Reject SAME result execution to publication_result for admitted owner reconciliation/refusal, never replay publication. Do not mutate Git/data, replace accepted sources or infer push/consent.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "rework_targets": [
+        "publication_result"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "result": "Record actual current workflow results, fulfilled/unfulfilled current predicates and outstanding mandatory delivery obligation, candidate/source/local-receipt/readback identities, incidents, limitations and actual owner recovery. Native workflow acceptance is not full Goal/DoD/delivery success: require the configured ultimate owner's actual target/source-inclusion proof before any final success claim."
+      },
+      "transitions": {
+        "changes_requested": "publication_result",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "publication_result"
+        ]
+      },
+      "handler": "produce",
+      "id": "publication_planning",
+      "instruction": "After independent candidate acceptance, design only native local publication and result collection: freeze exact reviewed commit/tree/sources, actual full target_ref/expected_commit/admission and existing authority; identify the REAL configured public wrapper/native method and mandatory ultimate delivery owner/method. Current native PlanCommands.publish_local uses stage_work exact {target_ref,expected_commit,authorization}, NO kind, and only records local evidence with target_updated=False. Keep ultimate real target delivery explicitly unfulfilled until actual configured owner proof; no DoD waiver, inferred push, guessed fallback or circular preterminal target-update gate.",
+      "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "publication_plan",
+        "delivery_obligation"
+      ],
+      "rework_targets": [
+        "publication_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "delivery_obligation": "Carry the mandatory ultimate target integration/delivery predicate and actual configured public Task/Git delivery owner, REAL registered method/execution-contract reference, scope/authority and required target/source-inclusion/current-state receipt/readback. Record actual fulfilled proof when already available, otherwise explicitly unfulfilled mandatory delivery after the workflow where that contract places it. Native local publication/stage acceptance is distinct from delivery acceptance: no full Goal/DoD/final user success until real delivery is verified. Missing or unsupported owner/method/authority is an explicit refusal with actual owner recovery, never an optional obligation, guessed fallback or circular preterminal demand for a post-completion effect.",
+        "publication_plan": "After candidate acceptance state current native LOCAL publication/result-collection goal, result requirements and acceptance criteria, frozen reviewed commit/tree/source identities, actual full target_ref and expected_commit/current target admission, existing exact user authorization and configured public wrapper. Identify real native owner PlanCommands.publish_local through the actual configured public stage_work route with exact {target_ref,expected_commit,authorization} and NO kind. Require accepted current inspect/commit/tree/entry_tree/branch/no pending merge and immutable intent. Its receipt is local_record_only, remote_publication=False,target_updated=False; it does NOT advance target or prove source inclusion. Bind actual readback/legitimate later progress and supported authorized owner recovery/refusal. Never infer push or invent a delivery API.",
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "transitions": {
+        "complete": "publication_planning_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "publication_result"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "publication_planning_inspection",
+      "instruction": "Independently review imminent local-publication/result plan for executability, completeness and unambiguity against frozen accepted candidate/tree, actual native {target_ref,expected_commit,authorization} protocol with NO kind, exact current authority/admission and configured wrapper/method. Check actual local-only effect and readback, no push/fallback, immutable intent and supported recovery/refusal. Require explicit mandatory ultimate delivery owner/REAL method/predicate/proof, preserving its unfulfilled status without a circular preterminal target-update gate. Decide criteria only for publication_result execution, never publish other. Reject design to publication_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "publication_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "publication_planning",
+        "clear": "publication"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "produce",
+      "id": "publication_result",
+      "instruction": "After actual native local publication completes, collect its canonical receipt/effect, reviewed candidate/tree, actual target_ref/expected_commit/observed target/readback and authority provenance under the accepted plan. Report local_record_only, remote_publication=False,target_updated=False truthfully; never label it actual target integration/source inclusion. Distinguish legitimate later target progress and preserve newer work. Carry the explicit unfulfilled mandatory ultimate delivery_obligation to its REAL configured public Task/Git owner/method; do not claim full Goal/DoD/final user success before actual target/source-inclusion/current-state proof. Missing/unsupported owner/method/authority requires truthful refusal and real recovery. Do not invoke publication outside its active node, republish, rewrite accepted sources/IDs, guess APIs, edit raw data or push. There is no automatic replay edge; no circular preterminal demand for a post-completion effect.",
+      "normalization": "strip",
+      "purpose": "execution",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "publication_result"
+      ],
+      "rework_targets": [
+        "publication_result"
+      ],
+      "role": "executor",
+      "sections": {
+        "publication_result": "Record actual canonical local publication receipt/effect, accepted candidate/tree, target_ref/expected_commit/observed target/current readback and real authorization provenance. local_record_only with remote_publication=False,target_updated=False proves only local recording. Record blocked/incomplete outcomes truthfully, recognize legitimate later target progress without overwriting it, and retain mandatory ultimate delivery_obligation status/owner. Only supported authorized owner recovery may be recorded; no republish, source replacement, guessed API, push or invented target integration.",
+        "report": "Record current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "transitions": {
+        "complete": "publication_inspection"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

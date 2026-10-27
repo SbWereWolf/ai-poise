@@ -40,18 +40,25 @@
     },
     "checks": {
       "framing": [],
+      "framing_inspection": [],
       "baseline_measurement": [
         "BASELINE"
       ],
+      "baseline_inspection": [],
       "experiment_planning": [],
+      "experiment_planning_inspection": [],
       "measurement": [
         "MEASURE"
       ],
+      "measurement_inspection": [],
+      "analysis_planning": [],
+      "analysis_planning_inspection": [],
       "analysis": [],
       "confirmation": [
         "CONFIRM"
       ],
-      "self_inspection": []
+      "synthesis": [],
+      "profiling_inspection": []
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

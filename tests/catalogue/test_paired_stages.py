@@ -115,6 +115,11 @@ def workflow(goal):
 
 @pytest.mark.parametrize("goal", PAIRED)
 def test_every_executor_result_has_an_independent_immediate_inspection(goal):
+    if goal == "test_development":
+        from tests.catalogue.test_test_development_root_rollout import assert_accepted_test_development_contract
+
+        assert_accepted_test_development_contract(workflow(goal))
+        return
     data = GoalTypeDefinition.parse(workflow(goal)).data
     stages = {stage["id"]: stage for stage in data["stages"]}
     for stage in stages.values():
@@ -155,6 +160,11 @@ def test_development_has_the_six_explicit_design_and_delivery_pairs():
 
 @pytest.mark.parametrize("goal", PAIRED)
 def test_paired_instructions_explain_boundaries_and_inspection(goal):
+    if goal == "test_development":
+        from tests.catalogue.test_test_development_root_rollout import assert_accepted_test_development_contract
+
+        assert_accepted_test_development_contract(workflow(goal))
+        return
     if goal == "development":
         from tests.catalogue.test_development_root_rollout import assert_accepted_development_contract
 

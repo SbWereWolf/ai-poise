@@ -197,13 +197,6 @@
           "after": []
         },
         {
-          "id": "test_implementation_inspection",
-          "source_id": "PAIRED-20261003-test_implementation_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "sensitivity_verification",
           "source_id": "GS-TST-05",
           "handler": "check",
@@ -216,29 +209,12 @@
           "handler": "inspect",
           "before": [],
           "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-TST-07",
-          "handler": "revise",
-          "before": [
-            "test_registry"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-TST-08",
-          "handler": "inspect",
-          "before": [],
-          "after": []
         }
       ],
       "method_schedule": {
         "baseline": "BASELINE",
         "test_implementation": "TEST_GREEN",
-        "sensitivity_verification": "SENSITIVITY",
-        "remediation": "TEST_GREEN"
+        "sensitivity_verification": "SENSITIVITY"
       }
     },
     {
@@ -1616,21 +1592,11 @@
       "id": "FB-TST-01",
       "goal_type": "test_development",
       "from_stage": "test_inspection",
-      "to_stage": "remediation",
+      "to_stage": "test_implementation",
       "from_handler": "inspect",
-      "to_handler": "revise",
+      "to_handler": "produce",
       "reason": "Дефект качества теста или фикстуры подтверждён осмотром.",
       "source_line": 38
-    },
-    {
-      "id": "FB-TST-02",
-      "goal_type": "test_development",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправленный тест всё ещё зависит от порядка/среды или неправильно проверяет требование.",
-      "source_line": 39
     },
     {
       "id": "FB-VER-01",

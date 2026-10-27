@@ -52,9 +52,12 @@ def test_every_declared_feedback_edge_has_a_walkthrough(tmp_path):
         (Path(__file__).resolve().parents[2] / 'config/catalogue/reference.json').read_text()
     )
     assert report['nodes'] == sum(len(goal['stages']) for goal in reference['goal_types'])
-    # The two feedback edges belonging to deleted development follow-up inspectors disappear.
-    assert report['feedback_edges']==32
-    assert report['unmapped']==[]
+    # Retired test-development remediation nodes remain in the historical source map.
+    assert report['feedback_edges']==31, "test_development: expected 31 active feedback edges"
+    assert report['unmapped']==[
+        ("test_development", "remediation"),
+        ("test_development", "remediation_inspection"),
+    ]
 
 
 @pytest.mark.parametrize("goal", [

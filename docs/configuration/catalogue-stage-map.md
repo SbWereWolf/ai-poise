@@ -1,11 +1,19 @@
 # Карта исполняемого каталога DDD-09
 
-Обновлено: **2026-09-24**.
+Обновлено: **2026-10-27**.
 
 Семантика и границы: [workflow-catalogue](workflow-catalogue.md).
 
-Колонка «Роль» — каноническая карта ownership для действующего каталога. Каждый этап имеет
-ровно одну явно сохранённую `role`; в этих пресетах это `executor` или `reviewer`.
+Колонка «Роль» отражает явно сохранённую `role` конкретного определения workflow.
+Разделы [development](#development) и [test_development](#test_development) синхронизированы
+с текущими корневыми определениями. Остальные 11 разделов сохраняют табличный срез
+2026-09-24; выбор действующего процесса опирается на его собственный workflow-конфиг.
+Текущий `reference.json` содержит 140 узлов; эта страница сочетает два обновлённых раздела
+с датированными таблицами остальных типов. Именованные feedback-ребра соответствуют
+31 связи текущего справочника.
+
+Каждый этап имеет ровно одну явно сохранённую `role`; в приведённых таблицах это
+`executor` или `reviewer`.
 Другие процессы могут задавать свои роли и одноролевую самопроверку. Роль не выводится автоматически из обработчика,
 статуса, `read_only` или наличия теста. `observe`, `produce`, `check`, `apply_plan`, `revise`
 и `publish` относятся к исполнителю, если строка не принадлежит goal type `review`;
@@ -27,31 +35,41 @@
 
 | Этап | Обработчик | Роль | Обоснование | Основной переход | Возвраты |
 |---|---|---|---|---|---|
-| baseline | observe | executor | Сбор фактов для исполнительского результата | complete → solution_planning | baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| solution_planning | produce | executor | Создание исполнительского результата | complete → verification_planning | solution_planning, baseline, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| verification_planning | produce | executor | Создание исполнительского результата | complete → test_implementation | verification_planning, baseline, solution_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| test_implementation | produce | executor | Создание исполнительского результата | complete → test_inspection | test_implementation, baseline, solution_planning, verification_planning, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| test_inspection | inspect | reviewer | Независимый осмотр результата или исправления | changes_requested → test_remediation; clear → implementation | test_inspection, test_remediation, baseline, solution_planning, verification_planning, test_implementation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| test_remediation | revise | executor | Изменение или исправление результата исполнителем | complete → test_remediation_inspection | test_remediation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| test_remediation_inspection | inspect | reviewer | Независимый осмотр результата или исправления | changes_requested → test_remediation; clear → implementation | test_remediation_inspection, test_remediation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| implementation | produce | executor | Создание исполнительского результата | complete → implementation_inspection | implementation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation_inspection, implementation_remediation, implementation_remediation_inspection, documentation |
-| implementation_inspection | inspect | reviewer | Независимый осмотр результата или исправления | changes_requested → implementation_remediation; clear → documentation | implementation_inspection, implementation_remediation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_remediation_inspection, documentation |
-| implementation_remediation | revise | executor | Изменение или исправление результата исполнителем | complete → implementation_remediation_inspection | implementation_remediation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation_inspection, documentation |
-| implementation_remediation_inspection | inspect | reviewer | Независимый осмотр результата или исправления | changes_requested → implementation_remediation; clear → documentation | implementation_remediation_inspection, implementation_remediation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, documentation |
-| documentation | produce | executor | Создание исполнительского результата | complete → завершение | documentation, baseline, solution_planning, verification_planning, test_implementation, test_inspection, test_remediation, test_remediation_inspection, implementation, implementation_inspection, implementation_remediation, implementation_remediation_inspection |
+| baseline | observe | executor | Сбор исходных наблюдений | complete → baseline_inspection | baseline |
+| solution_planning | produce | executor | Проектирование ближайшего исполнения | complete → solution_planning_inspection | solution_planning |
+| verification_planning | produce | executor | Проектирование ближайшего исполнения | complete → verification_planning_inspection | verification_planning |
+| test_implementation | produce | executor | Выполнение согласованного проекта | complete → test_inspection | test_implementation |
+| test_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → test_implementation; clear → implementation_design | test_inspection, test_implementation |
+| implementation | produce | executor | Выполнение согласованного проекта | complete → implementation_inspection | implementation |
+| implementation_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → implementation; clear → documentation_planning | implementation_inspection, implementation |
+| documentation | produce | executor | Выполнение согласованного проекта | complete → documentation_inspection | documentation |
+| baseline_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → baseline; clear → solution_planning | baseline |
+| documentation_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → documentation; clear → завершение | documentation |
+| documentation_planning | produce | executor | Проектирование ближайшего исполнения | complete → documentation_planning_inspection | documentation_planning |
+| documentation_planning_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → documentation_planning; clear → documentation | documentation_planning |
+| implementation_design | produce | executor | Проектирование ближайшего исполнения | complete → implementation_design_inspection | implementation_design |
+| implementation_design_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → implementation_design; clear → implementation | implementation_design |
+| solution_planning_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → solution_planning; clear → verification_planning | solution_planning |
+| verification_planning_inspection | inspect | reviewer | Независимый осмотр результата | changes_requested → verification_planning; clear → test_implementation | verification_planning |
+
 
 ## test_development
 
+Подробный [маршрут и критерии](../workflows/paired-task-stages.md#исполнимый-маршрут-test_development),
+а также [исходник, подготовленная форма и историческое сопоставление](workflow-catalogue.md#самостоятельная-разработка-тестов).
+
 | Этап | Обработчик | Роль | Обоснование | Основной переход | Возвраты |
 |---|---|---|---|---|---|
-| baseline | observe | executor | Сбор фактов для исполнительского результата | complete → coverage_planning | baseline, coverage_planning, test_planning, test_implementation, sensitivity_verification, test_inspection, remediation, remediation_inspection |
-| coverage_planning | produce | executor | Создание исполнительского результата | complete → test_planning | coverage_planning, baseline, test_planning, test_implementation, sensitivity_verification, test_inspection, remediation, remediation_inspection |
-| test_planning | produce | executor | Создание исполнительского результата | complete → test_implementation | test_planning, baseline, coverage_planning, test_implementation, sensitivity_verification, test_inspection, remediation, remediation_inspection |
-| test_implementation | produce | executor | Создание исполнительского результата | complete → sensitivity_verification | test_implementation, baseline, coverage_planning, test_planning, sensitivity_verification, test_inspection, remediation, remediation_inspection |
-| sensitivity_verification | check | executor | Обязательная проверка внутри исполнительского участка | inconclusive → test_implementation; not_satisfied → test_implementation; satisfied → test_inspection | sensitivity_verification, baseline, coverage_planning, test_planning, test_implementation, test_inspection, remediation, remediation_inspection |
-| test_inspection | inspect | reviewer | Независимый осмотр результата или исправления | changes_requested → remediation; clear → завершение | test_inspection, remediation, baseline, coverage_planning, test_planning, test_implementation, sensitivity_verification, remediation_inspection |
-| remediation | revise | executor | Изменение или исправление результата исполнителем | complete → remediation_inspection | remediation, baseline, coverage_planning, test_planning, test_implementation, sensitivity_verification, test_inspection, remediation_inspection |
-| remediation_inspection | inspect | reviewer | Независимый осмотр результата или исправления | changes_requested → remediation; clear → завершение | remediation_inspection, remediation, baseline, coverage_planning, test_planning, test_implementation, sensitivity_verification, test_inspection |
+| baseline | observe | executor | Сбор исходных наблюдений | complete → baseline_inspection | baseline |
+| baseline_inspection | inspect | reviewer | Независимый осмотр результата | clear → coverage_planning; changes_requested → baseline | baseline |
+| coverage_planning | produce | executor | Проектирование ближайшего исполнения | complete → coverage_planning_inspection | coverage_planning |
+| coverage_planning_inspection | inspect | reviewer | Независимый осмотр результата | clear → test_planning; changes_requested → coverage_planning | coverage_planning |
+| test_planning | produce | executor | Проектирование ближайшего исполнения | complete → test_planning_inspection | test_planning |
+| test_planning_inspection | inspect | reviewer | Независимый осмотр результата | clear → test_implementation; changes_requested → test_planning | test_planning |
+| test_implementation | produce | executor | Выполнение согласованного проекта | complete → sensitivity_verification | test_implementation |
+| sensitivity_verification | check | executor | Механическое наблюдение чувствительности | satisfied → test_inspection; not_satisfied → test_implementation; inconclusive → test_implementation | sensitivity_verification, test_implementation |
+| test_inspection | inspect | reviewer | Независимый осмотр результата | clear → завершение; changes_requested → test_implementation | test_inspection, test_implementation |
+
 
 ## verification
 
@@ -195,10 +213,8 @@
 | FB-ANA-03 | analysis | self_inspection | challenge |
 | FB-DES-01 | design | design_inspection | remediation |
 | FB-DES-02 | design | remediation_inspection | remediation |
-| FB-DEV-01 | development | test_inspection | test_remediation |
-| FB-DEV-02 | development | test_remediation_inspection | test_remediation |
-| FB-DEV-03 | development | implementation_inspection | implementation_remediation |
-| FB-DEV-04 | development | implementation_remediation_inspection | implementation_remediation |
+| FB-DEV-01 | development | test_inspection | test_implementation |
+| FB-DEV-03 | development | implementation_inspection | implementation |
 | FB-DIA-01 | environment_diagnostics | self_inspection | reproduction |
 | FB-DIA-02 | environment_diagnostics | self_inspection | hypothesis_planning |
 | FB-DIA-03 | environment_diagnostics | self_inspection | experiments |
@@ -219,8 +235,7 @@
 | FB-SPL-02 | sprint_planning | remediation_inspection | remediation |
 | FB-TPL-01 | task_planning | task_inspection | remediation |
 | FB-TPL-02 | task_planning | remediation_inspection | remediation |
-| FB-TST-01 | test_development | test_inspection | remediation |
-| FB-TST-02 | test_development | remediation_inspection | remediation |
+| FB-TST-01 | test_development | test_inspection | test_implementation |
 | FB-VER-01 | verification | self_inspection | planning |
 | FB-VER-02 | verification | self_inspection | execution |
 | FB-VER-03 | verification | self_inspection | analysis |

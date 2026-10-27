@@ -252,15 +252,18 @@ def test_ready_classification_guards_are_atomic(project, case):
 def test_user_assigned_reviewer_can_grant_its_own_classification_revision(project):
     tools, _ = setup_current(project)
     before = persisted(tools, "T1")
-    registry_before = projection(tools)
     newborn = authority_restart(tools, fields=["executable_obligations"])
     assert newborn['status'] == 'newborn'
-    assert projection(tools) == registry_before
+    after_restart = persisted(tools, "T1")
+    for key in ('methods', 'results', 'submissions', 'evidence', 'layers'):
+        assert after_restart[key] == before[key]
     revised = edit_classification(tools, newborn, ["requirements[0]"])
     assert revised['draft']['executable_obligations'] == ["requirements[0]"]
     assert revised['draft']['goal'] == project['task']['goal']
-    assert persisted(tools, "T1") != before
-    assert projection(tools) == registry_before
+    after_edit = persisted(tools, "T1")
+    assert after_edit != before
+    for key in ('methods', 'results', 'submissions', 'evidence', 'layers'):
+        assert after_edit[key] == before[key]
 
 
 def test_reclassified_task_preserves_old_green_but_executes_fresh_candidate(project):

@@ -530,7 +530,9 @@ def test_one_agent_assigned_both_roles_can_acquire_reviewer_boundary(project, en
         same_agent.runtime.ownership.acquire_task("T1")
     context = advance(same_agent)
     assert context["stage"] == "code_review"
-    assert verify(same_agent, result(context))["status"] == "verified"
+    payload = result(context)
+    payload["stage_work"]["coverage"] = "Checked the implementation against the accepted result."
+    assert verify(same_agent, payload)["status"] == "verified"
 
 
 def test_reviewer_relay_retains_author_provenance_without_banning_that_author(project):
@@ -541,7 +543,9 @@ def test_reviewer_relay_retains_author_provenance_without_banning_that_author(pr
     assert release_current(reviewer, "reviewer-role-reassigned")["status"] == "ownership_released"
     resumed = bootstrap(executor, {"id": "T1"})
     assert resumed["stage"] == "code_review"
-    assert verify(executor, result(resumed))["status"] == "verified"
+    payload = result(resumed)
+    payload["stage_work"]["coverage"] = "Checked the result after the reviewer role was reassigned."
+    assert verify(executor, payload)["status"] == "verified"
 
 
 def test_one_agent_role_change_keeps_verified_worktree_and_report(project):
@@ -585,7 +589,9 @@ def test_same_actor_reviewer_runs_verification_workspace_normally(project, monke
         return original(*args, **kwargs)
 
     monkeypatch.setattr(executor.runtime, "_verification_workspace", record_workspace)
-    assert verify(executor, result(context))["status"] == "verified"
+    payload = result(context)
+    payload["stage_work"]["coverage"] = "Checked the implementation using the ordinary verification workspace."
+    assert verify(executor, payload)["status"] == "verified"
     assert calls
 
 

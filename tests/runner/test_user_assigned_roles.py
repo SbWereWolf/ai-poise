@@ -82,7 +82,9 @@ def test_one_user_assigned_agent_performs_execution_and_review(project, entry):
         same_agent.runtime.ownership.acquire_task("T1")
     context = advance(same_agent)
     assert context["stage"] == "code_review"
-    assert verify(same_agent, result(context))["status"] == "verified"
+    payload = result(context)
+    payload["stage_work"]["coverage"] = "Checked the implementation against the accepted result."
+    assert verify(same_agent, payload)["status"] == "verified"
     saved = same_agent.runtime.task_queries.record("T1")
     assert saved["stage_index"] == 2
     assert saved["claimed_by"] == "executor"

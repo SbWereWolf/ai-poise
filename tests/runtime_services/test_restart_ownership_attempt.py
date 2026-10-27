@@ -101,14 +101,19 @@ def test_reviewer_archival_still_rejects_a_running_check(project, monkeypatch):
     assert calls == [original['pending']['runs'][0]['run_id']]
 
 
-def test_executor_cannot_authorise_its_own_review_restart(project, monkeypatch):
+def test_user_assigned_reviewer_can_restart_its_own_stopped_attempt(project, monkeypatch):
     producer, receiver, original, calls = uncertain(project, monkeypatch)
     receiver.runtime.ownership.release_task('T1')
     producer.runtime.bootstrap({'id': 'T1'})
     before = deepcopy(producer.runtime.current_task())
-    with pytest.raises(PoiseError, match='distinct reviewer'):
-        authorised_restart(producer, before['version'])
-    assert producer.runtime.current_task() == before
+    born = authorised_restart(producer, before['version'])
+    assert born['status'] == 'newborn'
+    after = producer.runtime.task_queries.record('T1')
+    assert after['claimed_by'] == producer.runtime.session
+    assert after['pending'] is None
+    assert after['worktree'] == before['worktree']
+    assert after['restart_history'][-1]['abandoned_check_attempt'] == original['pending']
+    assert after['history'][:len(before['history'])] == before['history']
     assert calls == [original['pending']['runs'][0]['run_id']]
 
 

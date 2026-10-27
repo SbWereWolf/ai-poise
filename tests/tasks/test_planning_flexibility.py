@@ -343,20 +343,47 @@ def test_ready_sprint_newborn_is_already_frozen_before_publication(project):
         edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Unapproved acceptance']}, 'denied')
 
 
-def test_executor_cannot_declare_itself_the_independent_restart_reviewer(project):
+@pytest.mark.parametrize('state', ['active', 'newborn'])
+@pytest.mark.parametrize('author', ['same', 'unknown'])
+def test_user_assigned_reviewer_can_restart_its_task(project, monkeypatch, state, author):
     c = client(project)
     create(c, 'FLEX')
     out = edit(c, 'FLEX', 0, full_draft(project), 'complete')
     ready(c, 'FLEX', out['revision'])
     c.runtime.bootstrap({'id': 'FLEX'})
+    authorization = {
+        'role': 'reviewer',
+        'decision': 'The user-assigned reviewer agrees to revise acceptance.',
+        'revision_fields': ['definition_of_done'],
+    }
+    if state == 'newborn':
+        c.runtime.ownership.release_task('FLEX')
+        other = WorkTools(WorkPoise(project['config_path'], 'first-restart-reviewer'))
+        other.runtime.bootstrap({'id': 'FLEX'})
+        rec = other.runtime.task_queries.record('FLEX')
+        restart(other, 'FLEX', rec['version'], request_id='first-restart', authorization=authorization)
+        other.runtime.ownership.release_task('FLEX')
+        c.runtime.bootstrap({'id': 'FLEX'})
+    if author == 'unknown':
+        from poise.infrastructure.sqlite.task_inputs import SqliteTaskInputs
+        original = SqliteTaskInputs.review_identity
+
+        def unavailable(self, task_id, *, include_unsubmitted=False):
+            identity = original(self, task_id, include_unsubmitted=include_unsubmitted)
+            assert identity is not None
+            return {**identity, 'executor_actor': None, 'source': 'unavailable'}
+
+        monkeypatch.setattr(SqliteTaskInputs, 'review_identity', unavailable)
     rec = c.runtime.task_queries.record('FLEX')
-    with pytest.raises(PoiseError, match='distinct reviewer'):
-        restart(c, 'FLEX', rec['version'], authorization={
-            'role': 'reviewer',
-            'decision': 'I accept my own changed constraints.',
-            'revision_fields': ['definition_of_done'],
-        })
-    assert c.runtime.task_queries.record('FLEX') == rec
+    out = restart(c, 'FLEX', rec['version'], authorization=authorization)
+    assert out['status'] == 'newborn'
+    assert out['claimed_by'] == 'planner'
+    assert out['draft']['goal'] == project['task']['goal']
+    revised = edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Revised acceptance']}, 'granted-dod')
+    before = c.runtime.task_queries.record('FLEX')
+    with pytest.raises(PoiseError, match='revision policy'):
+        edit(c, 'FLEX', revised['revision'], {'methods': []}, 'ungranted-methods')
+    assert c.runtime.task_queries.record('FLEX') == before
 
 
 def test_allocated_workspace_is_preserved_not_silently_replaced(project):

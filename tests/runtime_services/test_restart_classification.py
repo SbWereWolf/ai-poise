@@ -249,13 +249,17 @@ def test_ready_classification_guards_are_atomic(project, case):
     assert conservation(tools, root, wip) == before
 
 
-def test_executor_cannot_grant_own_reviewer_classification_revision(project):
+def test_user_assigned_reviewer_can_grant_its_own_classification_revision(project):
     tools, _ = setup_current(project)
     before = persisted(tools, "T1")
     registry_before = projection(tools)
-    with pytest.raises(DomainError, match="distinct reviewer"):
-        authority_restart(tools, fields=["executable_obligations"])
-    assert persisted(tools, "T1") == before
+    newborn = authority_restart(tools, fields=["executable_obligations"])
+    assert newborn['status'] == 'newborn'
+    assert projection(tools) == registry_before
+    revised = edit_classification(tools, newborn, ["requirements[0]"])
+    assert revised['draft']['executable_obligations'] == ["requirements[0]"]
+    assert revised['draft']['goal'] == project['task']['goal']
+    assert persisted(tools, "T1") != before
     assert projection(tools) == registry_before
 
 

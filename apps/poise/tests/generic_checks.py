@@ -168,6 +168,13 @@ class Installation:
         assert set(body) == {'schema', 'status', 'result', 'error', 'evidence'}, body
         assert body['schema'] == 'poise-generic/v1'
         assert body['result'] is None or isinstance(body['result'], dict)
+        outcomes = {'ok': 0, 'unavailable': 1, 'needs_inputs': 1, 'rejected': 2}
+        assert body['status'] in outcomes, body
+        assert child.returncode == outcomes[body['status']], record
+        if body['status'] == 'ok':
+            assert body['error'] is None and isinstance(body['result'], dict), body
+        else:
+            assert isinstance(body['error'], dict), body
         if body['error'] is not None:
             assert set(body['error']) == {'code', 'details', 'action'}
             assert isinstance(body['error']['details'], dict)
@@ -476,6 +483,21 @@ def boundary_checks():
         assert code == 2
         app.error(body, 'packet_limit')
         app.config = deepcopy(original)
+        unicode_request = app.context()
+        unicode_request['facts'] = ['кириллица-🧪']
+        packet = {'schema': 'poise-generic/v1', 'operation': 'context', 'input': unicode_request}
+        exact = json.dumps(packet, ensure_ascii=False, separators=(',', ':')) + '\n'
+        byte_count = len(exact.encode('utf-8'))
+        assert byte_count > len(exact)
+        app.config['limits']['packet_bytes'] = byte_count
+        code, body = app.call('context', unicode_request, raw=exact)
+        assert code == 0 and body['result']['facts'] == ['кириллица-🧪']
+        one_more = exact[:-1] + ' \n'
+        assert len(one_more.encode('utf-8')) == byte_count + 1
+        code, body = app.call('context', unicode_request, raw=one_more)
+        assert code == 2
+        app.error(body, 'packet_limit')
+        app.config = deepcopy(original)
         app.config['limits']['input_bytes'] = 32
         code, body = app.call('skills.list', app.skills())
         assert code == 2
@@ -495,6 +517,25 @@ def boundary_checks():
             code, body = app.call('capabilities', {'workspace': str(app.project), 'probes': [probe]})
             assert code == 2 and not app.trace.exists()
             app.error(body, 'invalid_request', path='/input/probes/0/' + field)
+        app.config = deepcopy(original)
+        later = app.probe('invalid-later')
+        later['max_output_bytes'] = app.config['limits']['provider_output_bytes'] + 1
+        code, body = app.call('capabilities', {'workspace': str(app.project),
+                              'probes': [app.probe('would-run-first'), later]})
+        assert code == 2 and not app.trace.exists()
+        app.error(body, 'invalid_request', path='/input/probes/1/max_output_bytes')
+        first, later = app.provider('ide'), app.provider('ast')
+        later['probe']['max_output_bytes'] = app.config['limits']['provider_output_bytes'] + 1
+        navigation = {'checkout': str(app.project), 'operation': 'symbol',
+                      'files': ['sample.py'], 'providers': [first, later]}
+        code, body = app.call('navigation', navigation)
+        assert code == 2 and not app.trace.exists()
+        app.error(body, 'invalid_request', path='/input/providers/1/probe/max_output_bytes')
+        app.config['limits']['batch_count'] = 1
+        navigation['providers'] = [app.provider('ide'), app.provider('ast')]
+        code, body = app.call('navigation', navigation)
+        assert code == 2 and not app.trace.exists()
+        app.error(body, 'batch_limit')
         app.config = deepcopy(original)
         app.config['limits']['provider_timeout_seconds'] = 0.05
         code, body = app.call('context', app.context(app.external('timeout')))

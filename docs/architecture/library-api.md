@@ -215,6 +215,15 @@ register/merge/receipt/refresh для модели не требуется. То
 - `OutputParser.render(primary|materialize)` — один парсер над неизменным receipt.
 - `ResultViews.capture/finish` — запуск subprocess worker и финализационный barrier.
 - `OwnershipCommands.release` — собственный версионный claim, accounting cycle и receipt одной UoW.
+- `StageResultHandoffCommands` — композиция существующих verification, progression и
+  ownership owners; полный подтверждённый исход каждого шага сохраняется для exact retry.
+- `StageResultVerification` — общий preparation/execute owner для `verify` и `handoff`;
+  отдельный путь подготовки результата не дублируется.
+- `StageHandoffState` — Task-owned identity, подтверждённые результаты и завершение;
+  `HandoffEffects` задаёт границу к существующим владельцам, `RuntimeHandoffEffects`
+  связывает их с реальными source/packet/receipt proofs.
+- `SqliteHandoffRepository` — append-only snapshots в существующем Task journal с CAS;
+  конфликт версии не переписывает сохранённый исход.
 - Task bootstrap — захват того же сохранённого состояния и существующего worktree.
 - `EvidenceCommands.list_for` — адресный список receipts текущей задачи через UoW.
 - `Sprint.overview(states,resumable)` — состояния и явно разрешённые освобождённые участники;
@@ -228,7 +237,9 @@ register/merge/receipt/refresh для модели не требуется. То
 
 Scoped export/import и прежние `TransferCommands`/`RuntimeTransfers` удалены.
 Продолжение работы использует существующие `OwnershipCommands.release` и Task bootstrap
-в одной рабочей области; public Work grammar отклоняет `handoff` и `transfer`.
+в одной рабочей области. Public Work принимает
+[`handoff`](../workflows/batch-work.md#передача-результата-одной-командой) как композицию
+verify/advance/release; `transfer` остаётся вне grammar.
 `release` закрывает accounting cycle и снимает собственные claims в одной UoW,
 сохраняет исходный receipt для точного replay и не создаёт commit либо копии материалов.
 

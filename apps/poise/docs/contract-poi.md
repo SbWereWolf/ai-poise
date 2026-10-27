@@ -4,13 +4,17 @@
 [операторском договоре](generic-poi.md). Они используют собственную конфигурацию
 и схему `poise-generic/v1`. Ниже сохранён целевой договор Session/role/tools;
 его поля относятся к своей области и последующим поставкам.
+Подготовка и чтение собственного состояния уже доступны через `bin/poise-state`
+и описаны в [действующем договоре состояния](state-poi.md). Session API и hook
+transport ниже сохраняют статус целевого проекта.
 
 Status: target design for `PS-DEV-002-T016` (`M01.T016`).
 
 This document defines the standalone Poise Session, immutable-role, status and
 configured-tool boundary after extraction. It does not claim the current combined
 `poise work` implementation already has an independent Session store or role lock.
-T060–T062 own that extraction; T063–T070 own richer reader/path/command contracts.
+T060 delivers own state preparation; T061–T062 own Session operations and hook
+transport. T063–T070 own richer reader/path/command contracts.
 
 ## 1. Ownership and independence
 

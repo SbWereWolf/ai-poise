@@ -3,6 +3,9 @@
 Эта страница относится к Session-входу `bin/poise`. Поставленные общие контекст,
 навыки, проверки возможностей и навигация имеют самостоятельный вход
 `bin/poise-generic` и [отдельный операторский договор](generic-poi.md).
+Подготовка и чтение версии собственного хранилища доступны через `bin/poise-state`
+и [договор состояния](state-poi.md). Этот вход отделён от описанного здесь
+`session.status`; поведение прежней оболочки сохраняется.
 
 T024 предоставляет собственную точку входа, явный конфиг и проверку пакета Poise.
 Текущий срез обслуживает только чтение отсутствующей Session. Полный целевой
@@ -114,7 +117,7 @@ Envelope содержит ровно `schema`, `operation` и `input`. Неиз�
 
 | Задача | Оставшаяся граница |
 | --- | --- |
-| T060 | Отдельные миграции Session/bindings/hooks/reader state без Task stores |
+| T060 | Подготовка собственного Session/bindings/hooks/reader state поставлена через [poise-state](state-poi.md); операции Session остаются T061 |
 | T061 | Session без начальной роли, однократное назначение роли и её статус |
 | T062 | Generic hook transport, interception и read-only probes без обязательного task runtime |
 | T063 | Сравнение ERP File API и SourceReader 044A, включая ranges, bytes, next, версии, acknowledgements и generations |

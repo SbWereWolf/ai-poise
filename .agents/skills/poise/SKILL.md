@@ -51,7 +51,8 @@ Retain the genuine native caller and omit `POISE_CALLER_BINDING`, or use an expl
 persistent binding in a separate direct process without native session variables.
 Do not combine those identities or change the session launcher to prepare a check.
 For independently reviewing test-only RED in an unfinished `revise` stage, use the
-existing [partial-material handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
+existing [partial-material
+handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
 save immutable materials through public artifacts, then ordinary release of the same Task.
 Do not invent resolution proposals or native stage completion before actual fixes.
 
@@ -83,13 +84,17 @@ Do not invent resolution proposals or native stage completion before actual fixe
 
 ### Environment maintenance
 
-Use the [five-gate cutover and explicit return procedure](../../../docs/operator/maintenance-profile-v2.md#переход-на-новый-маршрут-и-возврат)
+Use the [five-gate cutover and explicit return
+procedure](../../../docs/operator/maintenance-profile-v2.md#переход-на-новый-маршрут-и-возврат)
 before selecting the prepared Stride maintenance overrides. The configured
 absolute Bootstrap entry uses `-I -B`; source `-m poise` uses `-P -s -B`.
-See [Stride arguments and examples](../../../docs/operator/poise-command-reference.md#обслуживание-catalogv2-через-stride).
-Example after accepted cutover: `bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" "$stride_settings" check --config "$bootstrap_config" --catalog-dir "$profile"`.
+See [Stride arguments and
+examples](../../../docs/operator/poise-command-reference.md#обслуживание-catalogv2-через-stride).
+Example after accepted cutover: `bash "$stride_entry" --poise-root "$poise_root" --project
+"$project_id" "$stride_settings" check --config "$bootstrap_config" --catalog-dir "$profile"`.
 
-[Automatic Task-worktree preparation](../../../docs/operator/worktree-preparation.md#автоматическая-подготовка-обоих-проектов)
+[Automatic Task-worktree
+preparation](../../../docs/operator/worktree-preparation.md#автоматическая-подготовка-обоих-проектов)
 links directly to the complete installed start-app setup and sanitized examples.
 Configure the selected installation once; genuine bootstrap coordinates own each Task profile.
 The [preparation protocol](../../../docs/operator/worktree-preparation.md#опции-рабочего-json)
@@ -122,20 +127,27 @@ Run standalone examples from the explicitly selected `poise_root`; populate
 the ignored working files from tracked examples first. The configured plugin
 owns full result analysis and the single invocation-local correction/recheck.
 For ERP, follow the configured initial run/check commands and
-[literal values and explicit roots](../../../docs/operator/maintenance-profile-v2.md#параметры-и-корни-erp).
-Use the documented [serial Linux action runtime and diagnostics](../../../docs/operator/maintenance-profile-v2.md#процессы-и-диагностика-erp).
-For observed harness limitations, use the [replay](../../../docs/operations/known-bugs.md#stage-replay-semantic-001--историческая-промотка-не-выполняет-новое-проектирование),
+[literal values and explicit
+roots](../../../docs/operator/maintenance-profile-v2.md#параметры-и-корни-erp).
+Use the documented [serial Linux action runtime and
+diagnostics](../../../docs/operator/maintenance-profile-v2.md#процессы-и-диагностика-erp).
+For observed harness limitations, use the
+[replay](../../../docs/operations/known-bugs.md#stage-replay-semantic-001--историческая-промотка-не-выполняет-новое-проектирование),
 [lock](../../../docs/operations/known-bugs.md#aip-external-lock-diagnostics-001--отказ-не-называет-держателя)
-and [IDE source-preservation](../../../docs/operations/known-bugs.md#aip-ide-format-source-preservation-001--потеря-правок-после-форматирования)
+and [IDE
+source-preservation](../../../docs/operations/known-bugs.md#aip-ide-format-source-preservation-001--потеря-правок-после-форматирования)
 guidance; apply the actual current-stage recovery owner, not a blanket restart.
 For historical snapshot metadata refusals, follow the
-[verified recovery procedure](../../../docs/operations/known-bugs.md#восстановление-сохранённых-снимков-этапов):
+[verified recovery
+procedure](../../../docs/operations/known-bugs.md#восстановление-сохранённых-снимков-этапов):
 inventory Sprint drafts as well as Tasks, use the public owner first, and preserve
 the exact authorized scope and audit for a necessary manual correction.
 Before an agreed restart, both roles check the actual
-[progression and current position](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
+[progression and current
+position](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
 Publish permanent proofs while ACTIVE before verify; use saved native receipts
-afterward. Follow the [handoff material timing](../../../docs/workflows/local-handoff.md#постоянный-комплект-при-передаче).
+afterward. Follow the [handoff material
+timing](../../../docs/workflows/local-handoff.md#постоянный-комплект-при-передаче).
 
 ### Operator recovery and migrations
 
@@ -181,6 +193,15 @@ reason to force a valid Task into a starter shape. The planner owns the newborn 
 Use the explicitly selected project configuration. Each project owns its Task DB and its copied
 workflow catalogue; never
 edit managed SQLite, workflow JSON, or task artifacts as bookkeeping.
+
+For an existing Task, use its saved process and current public stage, instruction
+and workflow.stage_contract. Active workflow is execution context, not a raw
+stages graph. For a typed newborn with a selected or supplied process, read the
+full top-level workflow, separate from draft; do not invent draft.workflow or
+assume an untyped newborn already has a graph. Choose a new Task's source through
+the explicitly selected project and starter. Follow the canonical
+[source-selection procedure](../../../docs/workflows/task-planning.md#выбор-источника-процесса)
+for fields, relative paths and source failures.
 
 Before storage setup or recovery, read the current [owners and schema
 versions](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии). Configuration schema
@@ -268,7 +289,8 @@ frozen-scope gap through the public Task contract owner before writing. Preserve
 ownership and independent review gates.
 
 Keep the procedure here and a short obligation in AI-agent rules linking to this
-exact section. Follow the canonical Russian [instruction-development rule](../../../docs/governance/development-rules.md#неизменность-путей-rework-и-граф-этапов).
+exact section. Follow the canonical Russian [instruction-development
+rule](../../../docs/governance/development-rules.md#неизменность-путей-rework-и-граф-этапов).
 
 ## Harness refusal and manual continuation
 
@@ -363,7 +385,8 @@ a lawful restart. The API can edit the newborn goal field; that capability does
 not grant agent authority to change it. Agree the stage sequence first and design
 only the imminent stage immediately before execution, with independent design and
 result review. Ordinary refinement of an unstarted stage uses its criteria owner
-and does not restart the Task; follow [the shared contract](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом).
+and does not restart the Task; follow [the shared
+contract](../../../docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом).
 
 Read task_decomposition from the selected project's project-specific routing. Declare every workflow
 phase before an
@@ -410,7 +433,8 @@ replacement projection.
 Follow [post-restart handoff](../../../docs/workflows/local-handoff.md#передача-после-перезапуска):
 restart preserves historical results, proof and provenance; restart alone does not make
 proof inapplicable. Apply the existing source/condition/provenance rules. A historical
-submission is not new work. Current templates use only the Task's authoritative current submission, never a latest
+submission is not new work. Current templates use only the Task's authoritative current submission,
+never a latest
 historical stage/iteration match. Save partial material through the artifact owner before release.
 Without a new current result, preserve actual Task state; with one, transfer that result.
 Ready preserves the feedback book, including open findings and previous review decisions;
@@ -492,7 +516,8 @@ File
 creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
 Choose either documented `verify` input form: the complete `result`/`artifacts`
-form or [selected result submission](../../../docs/workflows/batch-work.md#выбранная-сдача-результата).
+form or [selected result
+submission](../../../docs/workflows/batch-work.md#выбранная-сдача-результата).
 For selection, explicitly choose substantive sections, files and metadata decisions
 using fresh Task/stage/iteration/version coordinates. The native owner fills the
 actual template and computes file digests; it does not choose claims or verdicts.
@@ -578,11 +603,14 @@ publication authority. A publish stage opens only through the separately authori
 acceptance path.
 
 Continue the exact current verified result through its proved ownership history after an
-authorized ordinary release/acquire or authenticated historical ownership events. A receiver's later self-cycle
+authorized ordinary release/acquire or authenticated historical ownership events. A receiver's later
+self-cycle
 retains the already proved transfer; the original verified author alone does not establish one.
 Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
-Follow the canonical [verified-result continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
-this does not replace the paired handoff/message procedure or grant acceptance/publication authority.
+Follow the canonical [verified-result
+continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
+this does not replace the paired handoff/message procedure or grant acceptance/publication
+authority.
 
 Poise isolates the temporary Git index for every repository snapshot invocation and cleans only that
 invocation's owned
@@ -715,7 +743,8 @@ authorized accept completes it. Replay the original packet, including its origin
 without inventing a
 stage result. Before acceptance replay validates local inputs; after completion it returns the
 historical accepted
-receipt without reacquiring a Task/worktree. Ordinary release/bootstrap resumes the same working area and validates saved reuse provenance.
+receipt without reacquiring a Task/worktree. Ordinary release/bootstrap resumes the same working
+area and validates saved reuse provenance.
 Reuse automatically delivers the accepted permanent Task/Sprint artifact set into local owner roots.
 It preserves bytes,
 assigns local identities, checks the active delivery obligations and refuses conflicting paths.
@@ -815,7 +844,8 @@ in both directions:
    resolve a lost acknowledgement through the original request before assuming a claim.
 2. Stop Task/worktree changes, then use the available direct-message tool to notify that known
    counterpart. Include
-   project/Task ID, stage and receiving role, result/findings and ownership-release receipt links, next action
+   project/Task ID, stage and receiving role, result/findings and ownership-release receipt links,
+   next action
    and any limits of
    the user's Task-start instruction. Do not ask the user to relay the message or authorize each
    ordinary review.
@@ -993,7 +1023,8 @@ contract](../../../docs/workflows/batch-work.md#восстановление-з�
 
 Before registering an acceptance artifact that may need same-path review/rework, or
 recovering a prematurely frozen artifact, read the
-[canonical draft lifecycle](../../../docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
+[canonical draft
+lifecycle](../../../docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 For a current author proof, use the separate proof contract above.
 
 ### Ambiguous legacy ownership
@@ -1134,8 +1165,10 @@ Use installed `poise content-read` for complete or bounded project-file content 
 Select absolute config, registered checkout and operator-owned policy, plus explicit `--format
 json` or `--format text`; preserve genuine caller identity and native admission. Send the reader
 operation packet directly, not a Work envelope. Follow the canonical
-[setup and examples](../../../docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
-and [episode recovery](../../../docs/workflows/file-intake-lifecycle.md#завершение-и-восстановление).
+[setup and
+examples](../../../docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
+and [episode
+recovery](../../../docs/workflows/file-intake-lifecycle.md#завершение-и-восстановление).
 Keep complete machine JSON/frames and saved responses; a registered read is not acknowledgement
 or model-memory proof. New context transitions accept only reason `manual`; replay preserves the
 saved transition generation without rolling back live state. The specialized acknowledged source
@@ -1149,13 +1182,16 @@ shares this reading generation; it does not turn explicit reader requests into n
 
 Use the explicitly installed Bash PreToolUse/PostToolUse adapter only through its genuine
 host events. Keep the settings → reader profile → command policy and immutable authority
-links from the [operator setup](../../../docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд).
+links from the [operator
+setup](../../../docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд).
 The same F04 episode/ledger serves direct reads and supported ordinary commands without a Task.
 Use [coverage](../../../docs/configuration/project-file-reading.md#сводка-покрытия) for bounded
 metadata, and select needed ranges using the actual reason/action. A pending Pre is not
 confirmed coverage; a Post warning cannot undo an executed command. Preserve the
-[proved cwd and reader limits](../../../docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог)
-and the [existing recovery owner](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения).
+[proved cwd and reader
+limits](../../../docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог)
+and the [existing recovery
+owner](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения).
 Do not infer host delivery, model memory, acknowledgements or automatic compaction handling
 from recorded metadata. This guidance grants no Task acceptance, publication or integration.
 
@@ -1163,7 +1199,8 @@ from recorded metadata. This guidance grants no Task acceptance, publication or 
 
 Use the genuine native `Work context: ` card only as current scoped metadata. The optional
 `general_context` setup and complete inputs belong to the
-[operator guide](../../../docs/configuration/runtime-hooks.md#общая-сводка-после-сокращения-контекста).
+[operator
+guide](../../../docs/configuration/runtime-hooks.md#общая-сводка-после-сокращения-контекста).
 The card can be taskless. Disabled work/check owners do not query Task state; a completed check
 means process/capture completion, not test success or acceptance. Follow each current read or
 refresh action. Resolve skill addresses against the configured instruction root, which may be

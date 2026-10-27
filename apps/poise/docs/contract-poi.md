@@ -371,8 +371,10 @@ secret values are never exposed by descriptor/status output.
 A file read binding delegates the existing bounded reader rather than copying it:
 explicit cwd/range/generation, acknowledgement of actual receipts, all-input
 validation before receipt mutation, and no false suppression of unacknowledged
-text. Current `source-read-result-1` remains a provider result; future cursor/byte
-contracts must be explicitly versioned by T064–T065. A Poise Session does not imply
+text. Current `source-read-result-1` remains a provider result.
+Будущий версионированный [договор reader/2](poi-file-contract.md) определяет
+строки, байты, продолжение и ACK; его наличие не означает поставку операций.
+A Poise Session does not imply
 model memory or authorization over every filesystem root.
 
 A generic command binding uses explicit argv/cwd/env and configured budgets, writes

@@ -1,0 +1,73 @@
+{
+  "invalid_config": {
+    "code": "invalid_config",
+    "details": {
+      "path": "@PATH@"
+    },
+    "action": "correct:config"
+  },
+  "invalid_json": {
+    "code": "invalid_json",
+    "details": {},
+    "action": "provide:json"
+  },
+  "unsupported_schema": {
+    "code": "unsupported_schema",
+    "details": {
+      "schema": "other/v1"
+    },
+    "action": "select:schema"
+  },
+  "invalid_request": {
+    "code": "invalid_request",
+    "details": {
+      "path": "@PATH@"
+    },
+    "action": "correct:request"
+  },
+  "packet_limit": {
+    "code": "packet_limit",
+    "details": {
+      "limit": "packet_bytes"
+    },
+    "action": "reduce:packet"
+  },
+  "input_limit": {
+    "code": "input_limit",
+    "details": {
+      "path": "@PATH@",
+      "limit": "input_bytes"
+    },
+    "action": "adjust:input"
+  },
+  "batch_limit": {
+    "code": "batch_limit",
+    "details": {
+      "limit": "batch_count"
+    },
+    "action": "reduce:batch"
+  },
+  "provider_timeout": {
+    "code": "provider_timeout",
+    "details": {
+      "id": "external",
+      "limit": 0.05
+    },
+    "action": "adjust:provider"
+  },
+  "provider_output_limit": {
+    "code": "provider_output_limit",
+    "details": {
+      "id": "external",
+      "limit": 256
+    },
+    "action": "adjust:provider"
+  },
+  "result_limit": {
+    "code": "result_limit",
+    "details": {
+      "limit": "result_bytes"
+    },
+    "action": "read:result"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "unchanged": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "content": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "key": "skill:backend:instructions:.agents/skills/backend/SKILL.md",
+        "fields": [
+          "content"
+        ]
+      }
+    ]
+  },
+  "docs": {
+    "added": [
+      "profile:docs:checkout:.agents/profiles/docs.md"
+    ],
+    "removed": [
+      "profile:python:checkout:.agents/profiles/python.md",
+      "rule:src/AGENTS.md:checkout:src/AGENTS.md",
+      "rule:src/billing/AGENTS.md:checkout:src/billing/AGENTS.md",
+      "skill:backend:instructions:.agents/skills/backend/SKILL.md",
+      "skill:testing:instructions:.agents/skills/testing/SKILL.md"
+    ],
+    "changed": [
+      {
+        "key": "rule:AGENTS.md:checkout:AGENTS.md",
+        "fields": [
+          "reasons",
+          "scopes"
+        ]
+      },
+      {
+        "key": "skill:workflow:instructions:.agents/skills/workflow/SKILL.md",
+        "fields": [
+          "reasons",
+          "scopes"
+        ]
+      }
+    ]
+  }
+}

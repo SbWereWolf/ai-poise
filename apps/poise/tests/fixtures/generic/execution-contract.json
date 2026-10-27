@@ -1,0 +1,27 @@
+{
+  "task_id": "6142",
+  "requirements_snapshot_revision": 1,
+  "process_ref": {
+    "goal_type": "generic-context",
+    "revision": "@PROCESS@"
+  },
+  "admission_id": "generic-context-6142",
+  "workspace_id": null,
+  "stage_expectations": [
+    {
+      "stage_id": "observe",
+      "values": [],
+      "files": [],
+      "methods": []
+    }
+  ],
+  "restart_policy_id": "case-policy",
+  "methods": [],
+  "evidence_plan": {
+    "observe": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  }
+}

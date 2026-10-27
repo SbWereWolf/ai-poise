@@ -1,0 +1,17 @@
+[
+  {
+    "path": [
+      "structuredContent",
+      "checkout"
+    ],
+    "equals": "${workspace}"
+  },
+  {
+    "path": [
+      "structuredContent",
+      "symbol",
+      "line"
+    ],
+    "equals": 1
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "checkout": {
+    "AGENTS.md": "root.md",
+    "src/AGENTS.md": "src.md",
+    "src/billing/AGENTS.md": "billing.md",
+    ".agents/profiles/python.md": "python.md",
+    ".agents/profiles/docs.md": "docs.md"
+  },
+  "instructions": {
+    ".agents/skills/workflow/SKILL.md": "workflow.md",
+    ".agents/skills/testing/SKILL.md": "testing.md",
+    ".agents/skills/backend/SKILL.md": "backend.md"
+  }
+}

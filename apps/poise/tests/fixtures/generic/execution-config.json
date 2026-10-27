@@ -1,0 +1,69 @@
+{
+  "schema": "stride-execution-config/v1",
+  "paths": {
+    "state": "state",
+    "database": "execution.sqlite",
+    "lock": "execution.lock"
+  },
+  "batch": {
+    "max_input_bytes": 1048576,
+    "max_items": 128
+  },
+  "read": {
+    "max_queries": 128
+  },
+  "lock": {
+    "seconds": 2,
+    "poll_seconds": 0.05
+  },
+  "identifiers": {
+    "task": {
+      "pattern": "^[0-9]{4}$"
+    }
+  },
+  "process": {
+    "database": "process-editor.sqlite",
+    "lock": "process-editor.lock",
+    "workflows": {
+      "generic-context": "processes/context.json"
+    },
+    "templates": {
+      "chosen": {
+        "path": "templates/chosen.json"
+      }
+    },
+    "max_changes": 32,
+    "file_mode": 420,
+    "json_indent": 2
+  },
+  "gates": {
+    "roots": {
+      "runtime": "files/runtime",
+      "task": "files/task",
+      "sprint": "files/sprint"
+    }
+  },
+  "lifecycle": {
+    "actors": {
+      "observer-A": "tester",
+      "observer-B": "tester"
+    },
+    "policies": {
+      "case-policy": {
+        "approving_roles": [
+          "tester"
+        ],
+        "revision_fields": []
+      }
+    }
+  },
+  "verification": {
+    "roles": [
+      "tester"
+    ],
+    "max_attempts": 4,
+    "repository": "@REPOSITORY@",
+    "base_ref": "case-base",
+    "output_root": "@ATTEMPTS@"
+  }
+}

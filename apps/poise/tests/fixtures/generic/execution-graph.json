@@ -1,0 +1,47 @@
+{
+  "goal_type": "generic-context",
+  "worktree_required": false,
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "report"
+    ]
+  },
+  "route": {
+    "entry": "observe"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": [
+    {
+      "id": "observe",
+      "instruction": "Записать наблюдение выбранного этапа.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "exact",
+      "sections": {
+        "report": "Наблюдение выполнено."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "role": "tester",
+      "transitions": {
+        "complete": null
+      },
+      "rework_targets": [
+        "observe"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    }
+  ]
+}

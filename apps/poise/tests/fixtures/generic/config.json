@@ -1,0 +1,19 @@
+{
+  "schema": "poise-generic-config/v1",
+  "results_root": "@RESULTS@",
+  "file_mode": 420,
+  "files": {
+    "stdout": "stdout.txt",
+    "stderr": "stderr.txt",
+    "receipt": "receipt.json",
+    "result": "result.json"
+  },
+  "limits": {
+    "packet_bytes": 262144,
+    "input_bytes": 65536,
+    "result_bytes": 131072,
+    "batch_count": 8,
+    "provider_timeout_seconds": 5,
+    "provider_output_bytes": 65536
+  }
+}

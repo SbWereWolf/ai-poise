@@ -1,0 +1,10 @@
+{
+  "task_id": "6142",
+  "snapshot_revision": 1,
+  "statement_revision": 1,
+  "statement": {
+    "task_id": "6142",
+    "statement_revision": 1,
+    "goal": "Проверить выбранный граф."
+  }
+}

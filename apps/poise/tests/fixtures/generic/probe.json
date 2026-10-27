@@ -1,0 +1,40 @@
+{
+  "id": "working",
+  "kind": "command",
+  "required": true,
+  "argv": [
+    "@PYTHON@",
+    "-I",
+    "-S",
+    "-B",
+    "@PEER@",
+    "command",
+    "${workspace}"
+  ],
+  "cwd": "${workspace}",
+  "environment": {
+    "FIXTURE_VALUE": "explicit",
+    "TRACE": "@TRACE@"
+  },
+  "timeout_seconds": 2,
+  "max_output_bytes": 32768,
+  "expected_exit_code": 0,
+  "stdout_contains": [
+    "READY"
+  ],
+  "stderr_contains": [
+    "COMMAND-DETAIL"
+  ],
+  "json_assertions": [
+    {
+      "path": [
+        "checkout"
+      ],
+      "equals": "${workspace}"
+    }
+  ],
+  "mcp": null,
+  "tool_ref": "fixture.command",
+  "project_bound": true,
+  "remediation": "Configure the selected fixture command."
+}

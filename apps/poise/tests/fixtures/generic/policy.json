@@ -1,0 +1,33 @@
+{
+  "schema": "poise-project-instruction-policy-1",
+  "version": "fixture-1",
+  "universal_skills": [
+    "workflow"
+  ],
+  "profiles": [
+    {
+      "name": "python",
+      "paths": [
+        "src/"
+      ],
+      "baseline": [
+        "backend"
+      ],
+      "recommended_skills": [
+        "testing"
+      ],
+      "profile_file": ".agents/profiles/python.md"
+    },
+    {
+      "name": "docs",
+      "paths": [
+        "docs/"
+      ],
+      "baseline": [
+        "workflow"
+      ],
+      "recommended_skills": [],
+      "profile_file": ".agents/profiles/docs.md"
+    }
+  ]
+}

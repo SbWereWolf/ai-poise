@@ -1,0 +1,26 @@
+[
+  {
+    "id": "backend",
+    "path": ".agents/skills/backend/SKILL.md",
+    "purpose": "Implement backend behavior.",
+    "class": "working",
+    "level": 1,
+    "responsibility": "backend"
+  },
+  {
+    "id": "testing",
+    "path": ".agents/skills/testing/SKILL.md",
+    "purpose": "Check meaningful observations.",
+    "class": "common",
+    "level": null,
+    "responsibility": null
+  },
+  {
+    "id": "workflow",
+    "path": ".agents/skills/workflow/SKILL.md",
+    "purpose": "Coordinate explicit work.",
+    "class": "meta",
+    "level": null,
+    "responsibility": null
+  }
+]

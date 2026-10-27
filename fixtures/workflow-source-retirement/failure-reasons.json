@@ -1,0 +1,5 @@
+{
+  "missing": "Не удалось прочитать JSON",
+  "malformed": "отсутствуют обязательные поля",
+  "wrong-goal": "Неоднозначный workflow development"
+}

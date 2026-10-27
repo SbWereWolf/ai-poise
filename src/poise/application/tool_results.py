@@ -50,15 +50,19 @@ class ToolResults:
         if operation in ('capture', 'hook'):
             normalized = deepcopy(request)
             selected_parser = None
+            source_text = None
             if operation == 'hook':
                 source = self.native_source(request['event'])
                 if source.pop('pending'):
                     return {'status': 'pending', 'capture': source['capture'], 'exit_code': None}
                 selected_parser = source.pop('_selected_parser')
+                if selected_parser['format'] == 'native-text':
+                    source_text = source['response']
                 normalized = {k: deepcopy(v) for k, v in request.items() if k != 'event'}
                 normalized.update(source, operation='capture')
             record = self.store.capture(normalized,
-                prepare=lambda record, sources: self.prepare(record, sources, audience, selected_parser))
+                prepare=lambda record, sources: self.prepare(record, sources, audience, selected_parser),
+                source_text=source_text)
         else:
             record = self.store.load(request['response_path'])
             self.store.validate_prepared(record)

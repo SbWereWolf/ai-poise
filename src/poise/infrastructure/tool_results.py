@@ -25,9 +25,10 @@ def native_result(event, policy):
     result = native_snapshot(event, policy, selected=selected)
     if result['pending']: return result
     _, parser = selected
-    if parser['format'] == 'saved-work-json':
+    if parser['format'] in ('saved-work-json', 'saved-work-text'):
         try:
-            envelope = strict_json(result['response']['output'])
+            envelope = strict_json(result['response'] if parser['format'] == 'saved-work-text'
+                                   else result['response']['output'])
             address = Path(envelope['response_path'])
             if not address.is_absolute() or not address.resolve().is_relative_to(Path(parser['source_root']).resolve()):
                 reject('source_invalid', 'response_path', 'restore:source')
@@ -179,9 +180,9 @@ class FileToolResultStore:
         try: os.fsync(fd)
         finally: os.close(fd)
 
-    def capture(self, request, *, prepare=None):
+    def capture(self, request, *, prepare=None, source_text=None):
         if self.prepared:
-            return self._capture_prepared(request, prepare)
+            return self._capture_prepared(request, prepare, source_text)
         s = self.policy['storage']; final = Path(self.address(request['request_id'])); directory = final.parent
         raw_inputs = {}
         # Inputs are completed producer files. Never execute a producer to recover bytes.
@@ -240,15 +241,17 @@ class FileToolResultStore:
         finally:
             if stage is not None: shutil.rmtree(stage)
 
-    def _capture_prepared(self, request, prepare):
+    def _capture_prepared(self, request, prepare, source_text):
         s, session = self.policy['storage'], self.policy['session']
         final = Path(self.address(request['request_id']))
         directory = final.parent
         raw_inputs = {name: stream_metadata(path, self.policy['display']['binary']['nul_byte_is_binary'],
                                             s['chunk_bytes'])
                       for name, path in request['streams'].items() if path is not None}
-        fingerprint = digest(canonical({'request': request,
-            'streams': {k: v['sha256'] for k, v in raw_inputs.items()}}).encode('utf-8', 'backslashreplace'))
+        identity = {'request': request, 'streams': {k: v['sha256'] for k, v in raw_inputs.items()}}
+        if source_text is not None:
+            identity['source_text'] = source_text
+        fingerprint = digest(canonical(identity).encode('utf-8', 'backslashreplace'))
         stage = None
         try:
             self.placement.prepare([final, directory / session['full'], directory / session['expanded'], self.last])
@@ -284,7 +287,7 @@ class FileToolResultStore:
                         reject('source_invalid', 'streams', 'restore:source')
                     record['streams'][name] = {**copied, 'path': str(directory / s[name])}
                     sources[name] = FileStoredSource(copied)
-                raw = response_text(request['response']).encode()
+                raw = (response_text(request['response']) if source_text is None else source_text).encode()
                 atomic_write(stage / s['text'], raw, s['file_mode'])
                 record['_response_source'] = metadata(raw, directory / s['text'], nul)
                 sources['response'] = FileStoredSource(metadata(raw, stage / s['text'], nul))
@@ -365,10 +368,13 @@ def service_delivery(event, owner, policy_path, settings):
     import shlex
     if event.get('tool_name') != 'Bash': return None
     native = event.get('tool_response')
-    if not isinstance(native, dict) or native.get('exit_code') != 0:
-        return None
+    if isinstance(native, str):
+        output = native
+    elif isinstance(native, dict) and native.get('exit_code') == 0:
+        output = native.get('output')
+    else: return None
     try:
-        result = strict_json(native['output'])
+        result = strict_json(output)
     except (PoiseError, KeyError, TypeError, ValueError):
         return None
     if (not isinstance(result, dict) or result.get('purpose') != 'harness-service'

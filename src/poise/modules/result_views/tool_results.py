@@ -162,6 +162,13 @@ class ToolResultPolicy:
                     for field in ('parser', 'format', 'brief_template', 'expanded_template', 'overflow'):
                         if not text(parser[field]): raise ValueError(field)
                     if parser['overflow'] != 'reject': raise ValueError('Unsupported overflow')
+                    if parser['format'] == 'native-text':
+                        if parser['parser'] != 'bash': raise ValueError('Invalid text parser')
+                        template_fields(parser['brief_template'], {'summary'})
+                        template_fields(parser['brief_without_summary'], set())
+                        template_fields(parser['expanded_template'], {'brief', 'details'})
+                    if parser['format'] == 'saved-work-text' and parser['parser'] != 'poise':
+                        raise ValueError('Invalid saved work parser')
                     for view in ('brief', 'expanded'):
                         limits = config(parser[view], 'chars bytes')
                         if any(not integer(n, 1) for n in limits.values()): raise ValueError(view)
@@ -304,7 +311,12 @@ def native_snapshot(event, policy, *, selected=None):
     response = deepcopy(event['tool_response'])
     capture = {'state': 'complete', 'reason': None}
     exit_code = None
-    if parser['format'] in ('native-exec-json', 'saved-work-json'):
+    output = None
+    if parser['format'] in ('native-text', 'saved-work-text'):
+        if not isinstance(response, str):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+        output = response
+    elif parser['format'] in ('native-exec-json', 'saved-work-json'):
         if not isinstance(response, dict) or not isinstance(response.get('output'), str):
             reject('unmapped_input', 'tool_response', 'configure:input')
         if 'session_id' in response and type(response.get('exit_code')) is not int:
@@ -313,11 +325,6 @@ def native_snapshot(event, policy, *, selected=None):
             reject('unmapped_input', 'exit_code', 'configure:input')
         exit_code = response['exit_code']
         output = response['output']
-        if (re.match(r'Warning: truncated output \(original token count: \d+\)', output)
-                or re.search(r'…\d+ tokens truncated…', output)):
-            capture = {'state': 'partial', 'reason': 'native_output_truncated'}
-        elif 'tokens truncated' in output or output.startswith('Warning: truncated output'):
-            capture = {'state': 'unknown', 'reason': 'native_output_ambiguous'}
     elif parser['format'] in ('records-json', 'mcp-content-json'):
         if not isinstance(response, dict) or not isinstance(response.get('content'), list):
             reject('unmapped_input', 'tool_response', 'configure:input')
@@ -326,6 +333,12 @@ def native_snapshot(event, policy, *, selected=None):
             reject('unmapped_input', 'tool_response', 'configure:input')
     else:
         reject('unmapped_input', 'format', 'configure:input')
+    if output is not None:
+        if (re.match(r'Warning: truncated output \(original token count: \d+\)', output)
+                or re.search(r'…\d+ tokens truncated…', output)):
+            capture = {'state': 'partial', 'reason': 'native_output_truncated'}
+        elif 'tokens truncated' in output or output.startswith('Warning: truncated output'):
+            capture = {'state': 'unknown', 'reason': 'native_output_ambiguous'}
     return {'pending': False, 'tool': {'name': name,
             'kind': 'mcp' if parser['parser'] == 'mcp' else 'bash' if name == 'Bash' else 'generic'},
             'response': response, 'capture': capture, 'exit_code': exit_code}
@@ -435,7 +448,8 @@ def prepare_views(record, sources, policy, *, selected_parser=None):
             for channel in ('stdout', 'stderr'):
                 if sources[channel] is not None:
                     actual.extend(''.join(sources[channel].lines()).splitlines())
-            lines = actual if actual else raw['output'].splitlines()
+            lines = actual if actual else (
+                raw if parser['format'] == 'native-text' else raw['output']).splitlines()
             summaries = [line[len(parser['summary_prefix']):] for line in lines
                          if line.startswith(parser['summary_prefix'])]
             details = '\n'.join(line for line in lines if line.startswith(parser['detail_prefix']))

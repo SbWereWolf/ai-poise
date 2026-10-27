@@ -102,5 +102,25 @@
   ],
   "f08-actual-mcp-content": [
     "tests/runtime_services/test_tool_results_mcp_content.py"
+  ],
+  "f08-native-wire-red": [
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_classifier_keeps_exact_value_and_unknown_process_facts",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_public_capture_and_services_keep_original_physical_text",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_loss_cannot_return_older_complete_full",
+    "tests/runtime_services/test_tool_results_native_text.py::test_real_process_text_capture_does_not_invent_its_unavailable_native_exit",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_large_full_file_has_readable_original_line_ranges",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_wrong_value_type_is_rejected_at_response_boundary",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_policy_rejects_templates_that_require_unavailable_exit",
+    "tests/runtime_services/test_tool_results_native_text.py::test_saved_work_text_source_failures_are_precise_and_do_not_invent_exit",
+    "tests/hook_transport/test_native_text_delivery.py::test_actual_shaped_text_reaches_real_dispatcher_and_delivers_prepared_brief",
+    "tests/hook_transport/test_native_text_delivery.py::test_actual_text_service_response_crosses_hook_without_new_capture",
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_poise_text_envelope_and_same_json_as_bash_have_distinct_sources"
+  ],
+  "f08-native-wire-controls": [
+    "tests/runtime_services/test_tool_results_native_text.py::test_legacy_object_wire_remains_strict_about_text",
+    "tests/hook_transport/test_native_text_delivery.py::test_mcp_object_control_survives_explicit_text_bash_profile",
+    "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_snapshot",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_native_missing_pending_and_unknown_are_not_complete",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_terminal_native_source_is_classified_before_capture"
   ]
 }

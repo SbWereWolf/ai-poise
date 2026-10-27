@@ -424,6 +424,10 @@ JSON](tool-results.md#профиль-mcp-content-json).
 | `task-context` | SessionStart, UserPromptSubmit, Stop | `context_template` с полями ровно `{launcher}`, `{state}`; `stop_template` с `{state}`; явный `gate_operations` из bootstrap/verify/artifacts. Нужен Task adapter. |
 | `task-runtime-cleanup` | SessionEnd | Явный объект `options`; используется существующий Task cleanup owner. Нужен Task adapter. |
 
+Подтверждённый отказ [чтения сохранённого результата](tool-results.md#чтение-последнего-результата)
+доставляется как служебный ответ без нового capture и замены last. Произвольный JSON
+со статусом `rejected` остаётся обычным результатом инструмента.
+
 Полный файл `/srv/poise/config/capabilities.json` для примера выше:
 
 ```json

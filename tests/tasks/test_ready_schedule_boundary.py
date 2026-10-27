@@ -8,6 +8,7 @@ import pytest
 from conftest import git
 from poise.modules.foundation.errors import PoiseError
 from tasks.test_newborn_lifecycle import create, edit, task_action, tools
+from verification.ready_schedule_oracle import assert_diagnostic_text
 
 
 DATA = json.loads((Path(__file__).parents[1] / "verification/fixtures/ready_schedule_cases.json").read_text())
@@ -54,12 +55,18 @@ def ready(client, revision, request_id="ready-schedule"):
                        expected_revision=revision, request_id=request_id)
 
 
+def assert_ready_diagnostic(observed, case):
+    assert isinstance(observed, PoiseError), "READY_DOMAIN_DIAGNOSTIC_MISSING"
+    assert_diagnostic_text(str(observed), case, DATA["guidance_patterns"],
+                           "READY_FIELD_DIAGNOSTIC_MISSING", "READY_REMEDY_DIAGNOSTIC_MISSING")
+
+
 @pytest.mark.parametrize("case", DATA["ready_diagnostics"], ids=lambda case: case["id"])
 def test_diagnostics_ready_reports_field_and_preserves_task(project, case):
     patch = deepcopy(case["patch"])
-    if case["id"] == "stage-value":
+    if "stage" in case:
         patch["checks"] = {stage["id"]: [] for stage in project["workflow"]["stages"]}
-        patch["checks"]["tests"] = None
+        patch["checks"][case["stage"]] = deepcopy(case["value"])
     client, filled, _ = prepare(project, patch)
     (project["app"] / "foreign-note.txt").write_bytes(b"foreign bytes must remain\n")
     before = state(client, project)
@@ -70,11 +77,7 @@ def test_diagnostics_ready_reports_field_and_preserves_task(project, case):
     else:
         pytest.fail("READY_INVALID_SCHEDULE_ACCEPTED")
     assert state(client, project) == before
-    assert isinstance(observed, PoiseError), "READY_DOMAIN_DIAGNOSTIC_MISSING"
-    text = str(observed)
-    assert text.startswith(case["field"]), "READY_FIELD_DIAGNOSTIC_MISSING"
-    for token in case["tokens"] + DATA["guidance_tokens"]:
-        assert token in text, "READY_REMEDY_DIAGNOSTIC_MISSING"
+    assert_ready_diagnostic(observed, case)
 
 
 def test_preservation_ready_can_correct_schedule_then_replay_success(project):

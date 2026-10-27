@@ -7,6 +7,7 @@ import pytest
 
 from poise.modules.foundation.errors import DomainError
 from poise.modules.verification.domain import CheckRegistry
+from verification.ready_schedule_oracle import assert_diagnostic_text, assert_guidance
 
 
 DATA = json.loads((Path(__file__).parent / "fixtures/ready_schedule_cases.json").read_text())
@@ -16,9 +17,8 @@ STAGES = tuple(DATA["stages"])
 def assert_diagnostic(error, case):
     text = str(error)
     assert isinstance(error, DomainError), "SCHEDULE_FIELD_DIAGNOSTIC_MISSING"
-    assert text.startswith(case["field"]), "SCHEDULE_FIELD_DIAGNOSTIC_MISSING"
-    for token in case["tokens"] + DATA["guidance_tokens"]:
-        assert token in text, "SCHEDULE_REMEDY_DIAGNOSTIC_MISSING"
+    assert_diagnostic_text(text, case, DATA["guidance_patterns"],
+                           "SCHEDULE_FIELD_DIAGNOSTIC_MISSING", "SCHEDULE_REMEDY_DIAGNOSTIC_MISSING")
 
 
 @pytest.mark.parametrize("case", DATA["diagnostics"], ids=lambda case: case["id"])
@@ -27,7 +27,7 @@ def test_diagnostics_identify_field_and_remedy(case):
     checks = deepcopy(case.get("checks", DATA["empty_schedule"]))
     before = deepcopy((methods, checks))
     try:
-        CheckRegistry.from_task(methods, checks, STAGES)
+        CheckRegistry.from_task(methods, checks, tuple(case.get("stages", DATA["stages"])))
     except Exception as error:
         observed = error
     else:
@@ -42,9 +42,8 @@ def test_diagnostics_report_one_real_field_for_simultaneous_faults():
         with pytest.raises(DomainError) as caught:
             CheckRegistry.from_task(None, None, STAGES)
         text = str(caught.value)
-        assert text.startswith(("methods", "checks")), "SCHEDULE_FIELD_DIAGNOSTIC_MISSING"
-        for token in DATA["guidance_tokens"]:
-            assert token in text, "SCHEDULE_REMEDY_DIAGNOSTIC_MISSING"
+        assert text.partition(":")[0].strip() in ("methods", "checks"), "SCHEDULE_FIELD_DIAGNOSTIC_MISSING"
+        assert_guidance(text, DATA["guidance_patterns"], "SCHEDULE_REMEDY_DIAGNOSTIC_MISSING")
         messages.append(text)
     assert messages[0] == messages[1]
 

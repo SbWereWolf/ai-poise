@@ -3,11 +3,6 @@
     "compile",
     "inspect"
   ],
-  "guidance_tokens": [
-    "methods: []",
-    "пуст",
-    "планирован"
-  ],
   "empty_schedule": {
     "compile": [],
     "inspect": []
@@ -281,7 +276,8 @@
       "tokens": [
         "строк",
         "ID"
-      ]
+      ],
+      "allow_index": true
     },
     {
       "id": "entry-later",
@@ -296,7 +292,8 @@
       "tokens": [
         "строк",
         "ID"
-      ]
+      ],
+      "allow_index": true
     },
     {
       "id": "entry-boolean",
@@ -310,7 +307,8 @@
       "tokens": [
         "строк",
         "ID"
-      ]
+      ],
+      "allow_index": true
     },
     {
       "id": "method-record-null",
@@ -327,9 +325,52 @@
       "methods": [
         {}
       ],
-      "field": "methods[0]",
+      "field": "methods[0].id",
       "tokens": [
         "id"
+      ]
+    },
+    {
+      "id": "value-second-stage",
+      "checks": {
+        "compile": [],
+        "inspect": null
+      },
+      "field": "checks.inspect",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "entry-second-stage",
+      "checks": {
+        "compile": [],
+        "inspect": [
+          null
+        ]
+      },
+      "field": "checks.inspect",
+      "allow_index": true,
+      "tokens": [
+        "строк",
+        "ID"
+      ]
+    },
+    {
+      "id": "value-collision-stage",
+      "stages": [
+        "compile",
+        "compile_extra"
+      ],
+      "checks": {
+        "compile": [],
+        "compile_extra": null
+      },
+      "field": "checks.compile_extra",
+      "tokens": [
+        "список",
+        "ID"
       ]
     }
   ],
@@ -406,7 +447,9 @@
       "tokens": [
         "список",
         "ID"
-      ]
+      ],
+      "stage": "tests",
+      "value": null
     },
     {
       "id": "method-record-null",
@@ -427,10 +470,40 @@
           {}
         ]
       },
-      "field": "methods[0]",
+      "field": "methods[0].id",
       "tokens": [
         "id"
       ]
+    },
+    {
+      "id": "second-stage-value",
+      "patch": {},
+      "stage": "implementation",
+      "value": null,
+      "field": "checks.implementation",
+      "tokens": [
+        "список",
+        "ID"
+      ]
+    },
+    {
+      "id": "second-stage-entry",
+      "patch": {},
+      "stage": "implementation",
+      "value": [
+        null
+      ],
+      "field": "checks.implementation",
+      "allow_index": true,
+      "tokens": [
+        "строк",
+        "ID"
+      ]
     }
+  ],
+  "guidance_patterns": [
+    "(?:^|[.;]\\s*)methods:\\s*\\[\\]\\s+(?:допустим|разреш[её]н)(?:ы)?(?=\\s*[.;]|$)",
+    "(?:^|[.;]\\s*)пустые списки(?:\\s+проверок)?\\s+(?:допустимы|разрешены)(?=\\s*[.;]|$)",
+    "(?:^|[.;]\\s*)(?:конкретные\\s+)?методы\\s+определяются\\s+на\\s+этапе\\s+планирования(?:\\s+проверок)?(?=\\s*[.;]|$)"
   ]
 }

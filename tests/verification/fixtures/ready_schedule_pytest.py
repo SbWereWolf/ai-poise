@@ -54,6 +54,8 @@ def main():
     else:
         selected = ["tests/verification/test_ready_schedule_diagnostics.py",
                     "tests/tasks/test_ready_schedule_boundary.py", "-k", "test_" + args.group]
+        if args.group == "preservation":
+            selected.insert(2, "tests/verification/test_ready_schedule_oracles.py")
     recorder = Recorder()
     stdout, stderr = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):

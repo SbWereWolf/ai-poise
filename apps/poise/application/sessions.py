@@ -37,21 +37,23 @@ class SessionOperations:
         existing = self.repository.observe(caller.key)
         if existing is not None:
             return {'session': existing.view(), 'created': False}
+        with self.repository.transaction() as unit:
+            session, created = self.ensure_in(unit, caller)
+        return {'session': session.view(), 'created': created}
+
+    def ensure_in(self, unit, caller):
+        existing = unit.observe(caller.key)
+        if existing is not None:
+            return existing, False
         while True:
             identity = caller.native_session or self.session_factory()
-            with self.repository.transaction() as unit:
-                existing = unit.observe(caller.key)
-                if existing is not None:
-                    result = {'session': existing.view(), 'created': False}
-                elif unit.exists(identity):
-                    if caller.native_session is not None:
-                        raise Problem('identity_conflict', {'session_id': identity}, 'select:caller')
-                    continue
-                else:
-                    session = Session.initial(identity, caller.mode)
-                    unit.create(caller.key, session)
-                    result = {'session': session.view(), 'created': True}
-            return result
+            if unit.exists(identity):
+                if caller.native_session is not None:
+                    raise Problem('identity_conflict', {'session_id': identity}, 'select:caller')
+                continue
+            session = Session.initial(identity, caller.mode)
+            unit.create(caller.key, session)
+            return session, True
 
     def assign_role(self, value):
         assignment = assignment_input(value, self.roles)

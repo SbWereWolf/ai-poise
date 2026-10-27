@@ -19,14 +19,19 @@ class CapabilityChecks:
                  for index, value in enumerate(values)]
         if len({value.data['id'] for value in specs}) != len(specs):
             invalid('/input/probes')
-        observations = [self.executor.observe(spec, workspace) for spec in specs]
-        missing = [spec.data['id'] for spec, item in zip(specs, observations)
-                   if spec.data['required'] and item['status'] != 'available']
-        result = {'ready': not missing, 'missing_required': missing, 'observations': observations}
+        result = self.observe(specs, workspace)
+        missing, observations = result['missing_required'], result['observations']
         if missing:
             error = observations[0].get('error') if len(specs) == 1 else None
             if error and error['code'] in ('provider_timeout', 'provider_output_limit'):
                 raise Problem(error['code'], error['details'], error['action'], 'unavailable', result)
             raise Problem('capabilities_unavailable', {'ids': missing}, 'configure:capability',
                           'unavailable', result)
+        return result
+
+    def observe(self, specs, workspace):
+        observations = [self.executor.observe(spec, workspace) for spec in specs]
+        missing = [spec.data['id'] for spec, item in zip(specs, observations)
+                   if spec.data['required'] and item['status'] != 'available']
+        result = {'ready': not missing, 'missing_required': missing, 'observations': observations}
         return result

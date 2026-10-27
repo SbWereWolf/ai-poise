@@ -40,5 +40,17 @@
     "field": "agent_id",
     "value": "ambiguous",
     "pointer": "/input/event/agent_id"
+  },
+  {
+    "kind": "SessionStart",
+    "field": "agent_id",
+    "value": null,
+    "pointer": "/input/event/agent_id"
+  },
+  {
+    "kind": "SessionStart",
+    "field": "agent_id",
+    "value": "",
+    "pointer": "/input/event/agent_id"
   }
 ]

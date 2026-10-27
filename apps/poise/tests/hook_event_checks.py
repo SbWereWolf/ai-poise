@@ -70,6 +70,7 @@ def repeat_isolation():
         equal(left.facts()['rows']['poise_sessions'], right.facts()['rows']['poise_sessions'])
     with Installation() as app:
         app.prepare()
+        app.config['limits']['sqlite_timeout_seconds'] = 1
         values = concurrent_events(app, app.event_input())
         assert sorted(value['result']['replayed'] for value in values) == [False, True], values
         binding = None

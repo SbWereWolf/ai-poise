@@ -1,24 +1,25 @@
 # Карта исполняемого каталога DDD-09
 
-Обновлено: **2026-10-27**.
+Обновлено: **2026-10-28**.
 
 Семантика и границы: [workflow-catalogue](workflow-catalogue.md).
 
 Колонка «Роль» отражает явно сохранённую `role` конкретного определения workflow.
-Разделы [development](#development) и [test_development](#test_development) синхронизированы
-с текущими корневыми определениями. Остальные 11 разделов сохраняют табличный срез
-2026-09-24; выбор действующего процесса опирается на его собственный workflow-конфиг.
-Текущий `reference.json` содержит 140 узлов; эта страница сочетает два обновлённых раздела
-с датированными таблицами остальных типов. Именованные feedback-ребра соответствуют
-31 связи текущего справочника.
+Разделы [development](#development), [test_development](#test_development) и
+[verification](#verification) синхронизированы с текущими корневыми определениями.
+Остальные 10 разделов сохраняют табличный срез 2026-09-24; выбор действующего процесса
+опирается на его собственный workflow-конфиг. Текущий `reference.json` содержит 141 узел;
+эта страница сочетает три обновлённых раздела с датированными таблицами остальных типов.
+Именованные feedback-ребра соответствуют 30 связям текущего справочника.
 
 Каждый этап имеет ровно одну явно сохранённую `role`; в приведённых таблицах это
 `executor` или `reviewer`.
 Другие процессы могут задавать свои роли и одноролевую самопроверку. Роль не выводится автоматически из обработчика,
 статуса, `read_only` или наличия теста. `observe`, `produce`, `check`, `apply_plan`, `revise`
 и `publish` относятся к исполнителю, если строка не принадлежит goal type `review`;
-независимые `inspect`-этапы относятся к ревьюеру. Исключение `self_inspection` вне `review`
-явно остаётся самопроверкой исполнителя. Весь goal type `review`, включая `planning` и
+независимые `inspect`-этапы относятся к ревьюеру. В датированных одноролевых разделах
+`self_inspection` вне `review` отражает локальную самопроверку исполнителя.
+Весь goal type `review`, включая `planning` и
 `self_inspection`, принадлежит ревьюеру. `publish` обозначает роль исполнителя, но не заменяет
 отдельное полномочие на приёмку, публикацию или интеграцию. Семантика поручений и переходов
 между ролями определена в [правилах разработки](../governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
@@ -73,12 +74,16 @@
 
 ## verification
 
+Подробные [этапы и критерии](../workflows/paired-task-stages.md#исполнимый-маршрут-verification),
+[метод VERIFY и поставка пары](workflow-catalogue.md#проверка-соответствия-результата).
+
 | Этап | Обработчик | Роль | Обоснование | Основной переход | Возвраты |
 |---|---|---|---|---|---|
-| planning | produce | executor | Создание исполнительского результата | complete → execution | planning, execution, analysis, self_inspection |
-| execution | check | executor | Обязательная проверка внутри исполнительского участка | inconclusive → analysis; not_satisfied → analysis; satisfied → analysis | execution, planning, analysis, self_inspection |
-| analysis | produce | executor | Создание исполнительского результата | complete → self_inspection | analysis, planning, execution, self_inspection |
-| self_inspection | inspect | executor | Локальная самопроверка результата исполнителя, не независимое ревью | changes_requested → planning; clear → завершение | self_inspection, planning, execution, analysis |
+| planning | produce | executor | Проектирование ближайшего исполнения | complete → planning_inspection | planning |
+| planning_inspection | inspect | reviewer | Независимый осмотр программы и решение по критериям execution | clear → execution; changes_requested → planning | planning |
+| execution | check | executor | Выполнение согласованной программы наблюдений | satisfied → analysis; not_satisfied → analysis; inconclusive → analysis | execution |
+| analysis | produce | executor | Анализ наблюдений по принятой программе | complete → execution_inspection | analysis, execution |
+| execution_inspection | inspect | reviewer | Независимый осмотр результата и доказательств | clear → завершение; changes_requested → execution | execution_inspection, execution |
 
 ## review
 
@@ -236,6 +241,5 @@
 | FB-TPL-01 | task_planning | task_inspection | remediation |
 | FB-TPL-02 | task_planning | remediation_inspection | remediation |
 | FB-TST-01 | test_development | test_inspection | test_implementation |
-| FB-VER-01 | verification | self_inspection | planning |
-| FB-VER-02 | verification | self_inspection | execution |
-| FB-VER-03 | verification | self_inspection | analysis |
+| FB-VER-01 | verification | planning_inspection | planning |
+| FB-VER-02 | verification | execution_inspection | execution |

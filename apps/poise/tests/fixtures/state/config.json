@@ -1,0 +1,9 @@
+{
+  "schema": "poise-state-config/v1",
+  "database": "@DATABASE@",
+  "target_version": 1,
+  "limits": {
+    "packet_bytes": 65536,
+    "sqlite_timeout_seconds": 0
+  }
+}

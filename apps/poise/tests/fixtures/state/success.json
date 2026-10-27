@@ -1,0 +1,11 @@
+{
+  "schema": "poise-state/v1",
+  "status": "ok",
+  "result": {
+    "database": "@DATABASE@",
+    "version": 1,
+    "applied_versions": "@APPLIED@"
+  },
+  "error": null,
+  "evidence": []
+}

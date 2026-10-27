@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "rows": {
+    "poise_sessions": [
+      [
+        "session-A",
+        "native",
+        "open",
+        2
+      ],
+      [
+        "session-B",
+        "generated",
+        "open",
+        1
+      ]
+    ],
+    "poise_bindings": [
+      [
+        "caller-A",
+        "session-A",
+        "[\"tool-A\"]"
+      ],
+      [
+        "caller-B",
+        "session-B",
+        "[\"tool-B\"]"
+      ]
+    ],
+    "poise_role_assignments": [
+      [
+        "session-A",
+        "author",
+        "{\"request_id\":\"role-1\",\"authorization_ref\":\"operator-1\",\"assigned_revision\":2}"
+      ]
+    ],
+    "poise_hook_bindings": [
+      [
+        "hook-A",
+        "session-A",
+        "{\"external_session\":\"native-A\",\"agent_id\":\"author\",\"project\":\"fixture-A\"}"
+      ],
+      [
+        "hook-B",
+        "session-B",
+        "{\"external_session\":\"native-B\",\"agent_id\":\"observer\",\"project\":\"fixture-A\"}"
+      ]
+    ],
+    "poise_hook_events": [
+      [
+        10,
+        "hook-A",
+        "event-1",
+        "SessionStart",
+        "{\"workspace\":\"/workspace/проект A\",\"turn\":\"turn-1\"}"
+      ],
+      [
+        20,
+        "hook-A",
+        "event-2",
+        "ContextReset",
+        "{\"reason\":\"compact\",\"turn\":\"turn-2\"}"
+      ]
+    ],
+    "poise_reader_state": [
+      [
+        "session-A",
+        "{\"generation\":3,\"reason\":\"compact\",\"event_id\":\"context-7\",\"receipts\":[{\"receipt_id\":\"read-1\",\"generation\":3,\"acknowledged\":true,\"path\":\"src/пример.py\",\"start\":1,\"end\":2}]}"
+      ],
+      [
+        "session-B",
+        "{\"generation\":1,\"reason\":\"startup\",\"event_id\":null,\"receipts\":[]}"
+      ]
+    ],
+    "poise_cursors": [
+      [
+        "session-A",
+        "transcript.jsonl",
+        "{\"position\":17,\"token\":\"cursor-A\"}"
+      ],
+      [
+        "session-B",
+        "transcript.jsonl",
+        "{\"position\":2,\"token\":\"cursor-B\"}"
+      ]
+    ]
+  }
+}

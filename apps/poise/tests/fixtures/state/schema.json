@@ -1,0 +1,112 @@
+{
+  "poise_sessions": {
+    "columns": [
+      "id",
+      "origin",
+      "status",
+      "revision"
+    ],
+    "types": [
+      "TEXT",
+      "TEXT",
+      "TEXT",
+      "INTEGER"
+    ],
+    "order_by": [
+      "id"
+    ]
+  },
+  "poise_bindings": {
+    "columns": [
+      "identity_key",
+      "session_id",
+      "inventory"
+    ],
+    "types": [
+      "TEXT",
+      "TEXT",
+      "TEXT"
+    ],
+    "order_by": [
+      "identity_key"
+    ]
+  },
+  "poise_role_assignments": {
+    "columns": [
+      "session_id",
+      "role",
+      "data"
+    ],
+    "types": [
+      "TEXT",
+      "TEXT",
+      "TEXT"
+    ],
+    "order_by": [
+      "session_id"
+    ]
+  },
+  "poise_hook_bindings": {
+    "columns": [
+      "id",
+      "session_id",
+      "data"
+    ],
+    "types": [
+      "TEXT",
+      "TEXT",
+      "TEXT"
+    ],
+    "order_by": [
+      "id"
+    ]
+  },
+  "poise_hook_events": {
+    "columns": [
+      "seq",
+      "binding_id",
+      "event_id",
+      "event",
+      "data"
+    ],
+    "types": [
+      "INTEGER",
+      "TEXT",
+      "TEXT",
+      "TEXT",
+      "TEXT"
+    ],
+    "order_by": [
+      "seq"
+    ]
+  },
+  "poise_reader_state": {
+    "columns": [
+      "session_id",
+      "data"
+    ],
+    "types": [
+      "TEXT",
+      "TEXT"
+    ],
+    "order_by": [
+      "session_id"
+    ]
+  },
+  "poise_cursors": {
+    "columns": [
+      "session_id",
+      "path",
+      "data"
+    ],
+    "types": [
+      "TEXT",
+      "TEXT",
+      "TEXT"
+    ],
+    "order_by": [
+      "session_id",
+      "path"
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "invalid_config": {
+    "code": "invalid_config",
+    "details": {
+      "path": "@PATH@"
+    },
+    "action": "correct:config"
+  },
+  "invalid_json": {
+    "code": "invalid_json",
+    "details": {},
+    "action": "provide:json"
+  },
+  "invalid_request": {
+    "code": "invalid_request",
+    "details": {
+      "path": "@PATH@"
+    },
+    "action": "correct:request"
+  },
+  "packet_limit": {
+    "code": "packet_limit",
+    "details": {
+      "limit": "packet_bytes"
+    },
+    "action": "reduce:packet"
+  },
+  "state_not_found": {
+    "code": "state_not_found",
+    "details": {
+      "database": "@DATABASE@"
+    },
+    "action": "prepare:state"
+  },
+  "state_not_prepared": {
+    "code": "state_not_prepared",
+    "details": {
+      "version": 0
+    },
+    "action": "prepare:state"
+  },
+  "state_incompatible": {
+    "code": "state_incompatible",
+    "details": {
+      "version": 2
+    },
+    "action": "select:state"
+  },
+  "state_busy": {
+    "code": "state_busy",
+    "details": {
+      "database": "@DATABASE@"
+    },
+    "action": "retry:state"
+  }
+}

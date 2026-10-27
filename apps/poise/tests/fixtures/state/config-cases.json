@@ -1,0 +1,61 @@
+[
+  {
+    "path": [
+      "database"
+    ],
+    "remove": true,
+    "value": null,
+    "pointer": "/database"
+  },
+  {
+    "path": [
+      "target_version"
+    ],
+    "remove": false,
+    "value": 2,
+    "pointer": "/target_version"
+  },
+  {
+    "path": [
+      "target_version"
+    ],
+    "remove": false,
+    "value": 1.0,
+    "pointer": "/target_version"
+  },
+  {
+    "path": [
+      "target_version"
+    ],
+    "remove": false,
+    "value": true,
+    "pointer": "/target_version"
+  },
+  {
+    "path": [
+      "limits",
+      "packet_bytes"
+    ],
+    "remove": false,
+    "value": 0,
+    "pointer": "/limits/packet_bytes"
+  },
+  {
+    "path": [
+      "limits",
+      "packet_bytes"
+    ],
+    "remove": false,
+    "value": true,
+    "pointer": "/limits/packet_bytes"
+  },
+  {
+    "path": [
+      "limits",
+      "sqlite_timeout_seconds"
+    ],
+    "remove": false,
+    "value": -0.1,
+    "pointer": "/limits/sqlite_timeout_seconds"
+  }
+]

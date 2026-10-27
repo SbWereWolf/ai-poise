@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "rows": {
+    "poise_sessions": [],
+    "poise_bindings": [],
+    "poise_role_assignments": [],
+    "poise_hook_bindings": [],
+    "poise_hook_events": [],
+    "poise_reader_state": [],
+    "poise_cursors": []
+  }
+}

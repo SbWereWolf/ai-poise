@@ -1,132 +1,33 @@
-"""Independent Poise CLI/config foundation; Session ownership follows in T060."""
-from __future__ import annotations
-
+"""Standalone Session entry: explicit configuration, bounded packet and response."""
 import json
-import math
+import os
 from pathlib import Path
 import sys
 
+from application.sessions import SessionOperations
+from application.state import StateOperations
+from domain.generic import Problem, exact_fields, invalid
+from domain.session_config import parse_settings
+from domain.state import StateSettings, invalid_config
+from infrastructure.callers import CallerResolver
 from infrastructure.json_io import loads
+from infrastructure.sessions import SessionRepository
+from infrastructure.state import StateStore
 
 
-SCHEMA = "stride-poise/v1"
-CONFIG_SCHEMA = "stride-poise-config/v1"
-CONFIG_FIELDS = {
-    "schema", "installation_id", "state_root", "session_store", "lock_path",
-    "results_root", "caller", "roles", "authorization", "tools", "limits",
-    "paths", "environment",
-}
-COUNT_LIMITS = {
-    "packet_bytes", "result_bytes", "input_bytes", "id_bytes", "batch_count",
-    "provider_output_bytes",
-}
-DURATION_LIMITS = {
-    "lock_timeout_seconds", "lock_poll_milliseconds", "provider_timeout_seconds",
-}
-MESSAGES = {
-    "invalid_json": "Invalid JSON packet",
-    "unsupported_schema": "Unsupported Poise schema",
-    "invalid_packet": "Invalid Poise packet",
-    "limit_exceeded": "Configured limit exceeded",
-    "session_not_found": "Session was not found",
-    "store_incompatible": "Session store requires the Poise Session implementation",
-}
+SCHEMA = 'stride-poise/v1'
 
 
-class Problem(Exception):
-    def __init__(self, code: str, details: dict):
-        super().__init__(MESSAGES[code])
-        self.code = code
-        self.details = details
-
-
-def invalid(path: str):
-    raise Problem("invalid_packet", {"path": path})
-
-
-def exact(value, fields: set[str], path: str):
-    if not isinstance(value, dict):
-        invalid(path)
-    missing = sorted(fields - value.keys())
-    unknown = value.keys() - fields
-    if unknown or len(missing) > 1:
-        invalid(path)
-    if missing:
-        invalid(path.rstrip("/") + "/" + missing[0])
-
-
-def positive_count(value, path: str):
-    if type(value) is not int or value <= 0:
-        invalid(path)
-
-
-def positive_duration(value, path: str):
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        invalid(path)
+def load_config(path):
     try:
-        finite = math.isfinite(value)
-    except OverflowError:
-        finite = False
-    if not finite or value <= 0:
-        invalid(path)
+        value = loads(path.read_bytes())
+    except (OSError, ValueError, RecursionError):
+        invalid_config('/config')
+    return parse_settings(value)
 
 
-def identifier(value, bound: int, path: str):
-    if not isinstance(value, str) or not value or value in {".", ".."}:
-        invalid(path)
-    if any(character in value for character in ("\x00", "/", "\\")):
-        invalid(path)
-    if len(value.encode("utf-8")) > bound:
-        invalid(path)
-
-
-def resolve_path(base: Path, value, path: str) -> Path:
-    if not isinstance(value, str) or not value or "\x00" in value:
-        invalid(path)
-    try:
-        selected = Path(value)
-        return (selected if selected.is_absolute() else base / selected).resolve()
-    except (OSError, RuntimeError, ValueError):
-        invalid(path)
-
-
-def load_config(path: Path):
-    try:
-        config = loads(path.read_bytes())
-        base = path.resolve().parent
-    except (OSError, ValueError, RecursionError, RuntimeError):
-        invalid("/config")
-    exact(config, CONFIG_FIELDS, "/config")
-    if config["schema"] != CONFIG_SCHEMA:
-        invalid("/config/schema")
-    limits = config["limits"]
-    exact(limits, COUNT_LIMITS | DURATION_LIMITS, "/config/limits")
-    for name in sorted(COUNT_LIMITS):
-        positive_count(limits[name], "/config/limits/" + name)
-    for name in sorted(DURATION_LIMITS):
-        positive_duration(limits[name], "/config/limits/" + name)
-    identifier(config["installation_id"], limits["id_bytes"], "/config/installation_id")
-    roles = config["roles"]
-    if not isinstance(roles, list) or not roles:
-        invalid("/config/roles")
-    seen = set()
-    for index, role in enumerate(roles):
-        label = f"/config/roles/{index}"
-        identifier(role, limits["id_bytes"], label)
-        if role in seen:
-            invalid(label)
-        seen.add(role)
-    for name in ("caller", "authorization", "tools", "paths", "environment"):
-        if not isinstance(config[name], dict):
-            invalid("/config/" + name)
-    for name in ("state_root", "session_store", "lock_path", "results_root"):
-        config[name] = resolve_path(base, config[name], "/config/" + name)
-    return config
-
-
-def read_packet(limit: int):
-    remaining = limit + 1
-    data = bytearray()
+def read_packet(limit):
+    remaining, data = limit + 1, bytearray()
     while remaining:
         chunk = sys.stdin.buffer.read(min(remaining, 65536))
         if not chunk:
@@ -134,54 +35,50 @@ def read_packet(limit: int):
         data.extend(chunk)
         remaining -= len(chunk)
     if len(data) > limit:
-        raise Problem("limit_exceeded", {"limit": "packet_bytes"})
+        raise Problem('packet_limit', {'limit': 'packet_bytes'}, 'reduce:packet')
     try:
         return loads(data)
     except (ValueError, RecursionError):
-        raise Problem("invalid_json", {}) from None
-
-
-def session_status(config):
-    try:
-        config["session_store"].lstat()
-    except FileNotFoundError:
-        raise Problem("session_not_found", {}) from None
-    except OSError:
-        raise Problem("store_incompatible", {"schema": None}) from None
-    # T060 owns Session persistence and caller resolution. Do not infer a Session
-    # or open an existing file with a guessed SQLite schema in this foundation.
-    raise Problem("store_incompatible", {"schema": None})
+        raise Problem('invalid_json', {}, 'provide:json') from None
 
 
 def main(argv=None):
     arguments = sys.argv[1:] if argv is None else argv
     try:
-        if len(arguments) != 2 or arguments[0] != "--config" or not arguments[1]:
-            invalid("/config")
-        config = load_config(Path(arguments[1]))
-        packet = read_packet(config["limits"]["packet_bytes"])
-        exact(packet, {"schema", "operation", "input"}, "/")
-        if packet["schema"] != SCHEMA:
-            value = packet["schema"] if isinstance(packet["schema"], str) else None
-            raise Problem("unsupported_schema", {"schema": value})
-        if packet["operation"] != "session.status":
-            invalid("/operation")
-        exact(packet["input"], set(), "/input")
-        session_status(config)
+        if len(arguments) != 2 or arguments[0] != '--config' or not arguments[1]:
+            invalid_config('/config')
+        path = Path(arguments[1]).absolute()
+        settings = load_config(path)
+        packet = exact_fields(read_packet(settings.packet_bytes), {'schema', 'operation', 'input'}, '/')
+        if packet['schema'] != SCHEMA:
+            value = packet['schema'] if isinstance(packet['schema'], str) else None
+            raise Problem('unsupported_schema', {'schema': value}, 'select:schema')
+        operation = packet['operation']
+        if operation not in ('session.ensure', 'session.assign_role', 'session.status'):
+            invalid('/operation')
+        if operation != 'session.assign_role':
+            exact_fields(packet['input'], set(), '/input')
+        state_settings = StateSettings(settings.session_store, 1, settings.packet_bytes,
+                                       settings.sqlite_timeout_seconds)
+        store = StateStore(state_settings, path)
+        operations = SessionOperations(StateOperations(store, 1),
+            CallerResolver(settings, path, os.environ), SessionRepository(store), settings.roles)
+        if operation == 'session.ensure':
+            result = operations.ensure()
+        elif operation == 'session.assign_role':
+            result = operations.assign_role(packet['input'])
+        else:
+            result = operations.status()
+        response = {'schema': SCHEMA, 'status': 'ok', 'result': result, 'error': None, 'evidence': []}
+        exit_code = 0
     except Problem as problem:
-        response = {
-            "schema": SCHEMA, "status": "rejected",
-            "error": {
-                "code": problem.code, "message": str(problem),
-                "retryable": False, "details": problem.details,
-            },
-        }
-        wire = json.dumps(
-            response, ensure_ascii=False, allow_nan=False, separators=(",", ":")
-        ).encode("utf-8") + b"\n"
-        sys.stdout.buffer.write(wire)
-        return 2
+        response = {'schema': SCHEMA, 'status': problem.status, 'result': problem.result,
+                    'error': problem.error, 'evidence': []}
+        exit_code = 1 if problem.status == 'unavailable' else 2
+    sys.stdout.buffer.write((json.dumps(response, ensure_ascii=False, allow_nan=False,
+                            separators=(',', ':')) + '\n').encode('utf-8'))
+    return exit_code
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())

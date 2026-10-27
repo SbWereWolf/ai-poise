@@ -1,25 +1,16 @@
 {
   "schema": "stride-poise-config/v1",
-  "installation_id": "standalone-poise",
-  "state_root": "../state",
+  "installation_id": "example-poise",
   "session_store": "../state/sessions.sqlite",
-  "lock_path": "../state/poise.lock",
-  "results_root": "../results",
-  "caller": {},
-  "roles": ["author"],
-  "authorization": {},
-  "tools": {},
-  "limits": {
-    "packet_bytes": 1048576,
-    "result_bytes": 8388608,
-    "input_bytes": 1048576,
-    "id_bytes": 128,
-    "batch_count": 64,
-    "lock_timeout_seconds": 10,
-    "lock_poll_milliseconds": 10,
-    "provider_timeout_seconds": 300,
-    "provider_output_bytes": 8388608
+  "caller": {
+    "mode": "native"
   },
-  "paths": {},
-  "environment": {}
+  "roles": [
+    "author",
+    "reviewer"
+  ],
+  "limits": {
+    "packet_bytes": 65536,
+    "sqlite_timeout_seconds": 0
+  }
 }

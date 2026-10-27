@@ -111,7 +111,7 @@
         "paths",
         "worktrees"
       ],
-      "value": "worktrees"
+      "value": "${worktree_root}"
     },
     {
       "path": [
@@ -638,7 +638,8 @@
   },
   "derived_parameters": {
     "dependency_target": "${repository}/.runtime/dependencies",
-    "runtime_module_path": "${repository}/src${path_separator}${dependency_target}${path_separator}${repository}"
+    "runtime_module_path": "${repository}/src${path_separator}${dependency_target}${path_separator}${repository}",
+    "worktree_root": "${repository}/.runtime/worktrees"
   },
   "bootstrap": "config/maintenance/start-app/bootstrap.example.json",
   "resource_inventory": [

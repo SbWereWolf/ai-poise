@@ -31,7 +31,7 @@ def _parse(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--config", required=True, type=Path)
     context = parser.add_mutually_exclusive_group(required=True)
     context.add_argument("--catalog-dir")
-    context.add_argument("--base-dir", type=Path)
+    context.add_argument("--base-dir")
     parser.add_argument("--values", action=ForwardArgument)
     parser.add_argument("--set", action=ForwardArgument)
     parser.add_argument("--dry-run", action=ForwardArgument, nargs=0, default=False)
@@ -39,6 +39,10 @@ def _parse(arguments: list[str]) -> argparse.Namespace:
     parsed = parser.parse_args(arguments)
     if parsed.catalog_dir == "":
         parser.error("--catalog-dir must name a directory")
+    if parsed.base_dir == "":
+        parser.error("--base-dir must name a directory")
+    if parsed.base_dir is not None:
+        parsed.base_dir = Path(parsed.base_dir)
     return parsed
 
 

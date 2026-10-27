@@ -642,7 +642,13 @@ def test_legacy_review_provenance_is_explicit_and_ambiguity_is_not_guessed(proje
     assert identity["source"] == "unavailable"
     assert identity["executor_actor"] is None
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
-    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
-    with pytest.raises(PoiseError, match="identity provenance is unavailable"):
-        bootstrap(reviewer, {"id": "T1"})
-    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
+    bootstrap(reviewer, {"id": "T1"})
+    with reviewer.runtime.store.unit_of_work() as unit:
+        identity = unit.tasks.review_identity("T1")
+    assert identity["source"] == "unavailable"
+    assert identity["executor_actor"] is None
+    assert reviewer.runtime.task_queries.record("T1")["claimed_by"] == "reviewer"
+    before = state_snapshot(reviewer.runtime, ("executor", "reviewer"))
+    with pytest.raises(PoiseError, match="Current verified result has no proven author"):
+        advance(reviewer)
+    assert state_snapshot(reviewer.runtime, ("executor", "reviewer")) == before

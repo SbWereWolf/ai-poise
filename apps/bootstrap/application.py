@@ -27,16 +27,22 @@ class ForwardArgument(argparse.Action):
 
 def _parse(arguments: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="bootstrap")
-    parser.add_argument("command", choices=("infra", "deps", "check"))
+    parser.add_argument("command", choices=("infra", "deps", "check", "run"))
     parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument("--catalog-dir", required=True)
+    context = parser.add_mutually_exclusive_group(required=True)
+    context.add_argument("--catalog-dir")
+    context.add_argument("--base-dir")
     parser.add_argument("--values", action=ForwardArgument)
     parser.add_argument("--set", action=ForwardArgument)
     parser.add_argument("--dry-run", action=ForwardArgument, nargs=0, default=False)
     parser.set_defaults(forwarded=None)
     parsed = parser.parse_args(arguments)
-    if not parsed.catalog_dir:
+    if parsed.catalog_dir == "":
         parser.error("--catalog-dir must name a directory")
+    if parsed.base_dir == "":
+        parser.error("--base-dir must name a directory")
+    if parsed.base_dir is not None:
+        parsed.base_dir = Path(parsed.base_dir)
     return parsed
 
 
@@ -60,9 +66,11 @@ def main(arguments: list[str] | None = None) -> int:
     try:
         configuration = CommandConfiguration.load(parsed.config)
         handler: ResultHandler = load_handler(configuration.handler_selector)
+        selected = parsed.base_dir.absolute() if parsed.base_dir is not None else Path.cwd()
+        values = {"base_dir": str(selected)} if parsed.base_dir is not None else {}
         executor = CommandExecutor(
-            configuration.rendered_commands(parsed.catalog_dir),
-            parsed.forwarded or [], Path.cwd(),
+            configuration.rendered_commands(parsed.catalog_dir, values=values),
+            parsed.forwarded or [], selected,
         )
         initial = executor.run(parsed.command)
         context: OperationContext = {

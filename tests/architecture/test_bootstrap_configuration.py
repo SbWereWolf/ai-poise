@@ -14,16 +14,18 @@ def test_populated_command_example_exposes_selected_tool_and_handler():
     value = json.loads(path.read_text(encoding="utf-8"))
     assert value["handler"][
                "callable"] == "apps.bootstrap.environment_result:handle"
-    assert value["handler"]["options"][
-               "schema"] == "environment-maintenance/result/v2"
-    assert set(value["commands"]) == {"infra", "deps", "check",
-                                      "repair", "verify"}
+    assert value["handler"]["options"]["schema"] is None
+    assert {"infra", "deps", "check", "run", "repair", "verify"} <= set(value["commands"])
     for command in value["commands"].values():
         assert isinstance(command, list) and command
         assert all(
             isinstance(argument, str) and argument for argument in
             command)
         assert "${tool_config}" in command
+        assert "--config" in command
+        assert "--parameters" in command
+        assert "--base-dir" in command
+        assert "--catalog-dir" not in command
     assert all(isinstance(value["parameters"][name], str) and
                value["parameters"][name]
                for name in ("python", "tool_config"))

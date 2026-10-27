@@ -1,85 +1,136 @@
 {
   "parameters": {
     "python": "${PYTHON_EXECUTABLE}",
-    "tool_config": "${POISE_SOURCE_ROOT}/config/environment-maintenance.json"
+    "env_executable": "env",
+    "runtime_module_path": "${POISE_MODULE_PATH}",
+    "tool_config": "${POISE_PROFILE_ROOT}/app.json",
+    "parameters_file": "${POISE_PROFILE_ROOT}/parameters.json"
   },
   "commands": {
     "infra": [
+      "${env_executable}",
+      "PYTHONPATH=${runtime_module_path}",
       "${python}",
-      "-I",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "environment_maintenance",
-      "check",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${tool_config}"
+      "infra",
+      "--config",
+      "${tool_config}",
+      "--parameters",
+      "${parameters_file}",
+      "--base-dir",
+      "${base_dir}",
+      "--requirements",
+      "all"
     ],
     "deps": [
+      "${env_executable}",
+      "PYTHONPATH=${runtime_module_path}",
       "${python}",
-      "-I",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "environment_maintenance",
-      "check",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${tool_config}"
+      "deps",
+      "--config",
+      "${tool_config}",
+      "--parameters",
+      "${parameters_file}",
+      "--base-dir",
+      "${base_dir}",
+      "--requirements",
+      "all"
     ],
     "check": [
+      "${env_executable}",
+      "PYTHONPATH=${runtime_module_path}",
       "${python}",
-      "-I",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "environment_maintenance",
       "check",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${tool_config}"
+      "--config",
+      "${tool_config}",
+      "--parameters",
+      "${parameters_file}",
+      "--base-dir",
+      "${base_dir}"
     ],
-    "repair": [
+    "run": [
+      "${env_executable}",
+      "PYTHONPATH=${runtime_module_path}",
       "${python}",
-      "-I",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "environment_maintenance",
       "run",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${tool_config}"
+      "--config",
+      "${tool_config}",
+      "--parameters",
+      "${parameters_file}",
+      "--base-dir",
+      "${base_dir}",
+      "--requirements",
+      "all"
+    ],
+    "repair": [
+      "${env_executable}",
+      "PYTHONPATH=${runtime_module_path}",
+      "${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "infra",
+      "--config",
+      "${tool_config}",
+      "--parameters",
+      "${parameters_file}",
+      "--base-dir",
+      "${base_dir}",
+      "--requirements",
+      "all"
     ],
     "verify": [
+      "${env_executable}",
+      "PYTHONPATH=${runtime_module_path}",
       "${python}",
-      "-I",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "environment_maintenance",
       "check",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${tool_config}"
+      "--config",
+      "${tool_config}",
+      "--parameters",
+      "${parameters_file}",
+      "--base-dir",
+      "${base_dir}"
     ]
   },
   "handler": {
     "callable": "apps.bootstrap.environment_result:handle",
     "options": {
-      "schema": "environment-maintenance/result/v2",
+      "schema": null,
       "status_exit_codes": {
-        "ready": 0,
-        "action_required": 2,
-        "unavailable": 3,
-        "failed": 4
+        "succeeded": 0,
+        "failed": 1
       },
       "success_statuses": [
-        "ready"
+        "succeeded"
       ],
       "repairable_statuses": [
-        "action_required"
+        "failed"
       ],
       "repair_operations": [
         "infra",

@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "selected": "first",
+  "operation": "run",
+  "stdout": "actual output",
+  "stderr": "actual error",
+  "actual_exit": 9
+}

@@ -1,0 +1,40 @@
+{
+  "requirements": [
+    {
+      "id": "selected-poise-cli",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-P",
+            "-s",
+            "-B",
+            "-m",
+            "poise",
+            "project",
+            "list",
+            "--settings",
+            "${profile_root}/setup.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "project-list",
+            "options": {
+              "accept": [
+                0
+              ],
+              "projects_field": "projects",
+              "errors_field": "errors",
+              "minimum_project_count": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

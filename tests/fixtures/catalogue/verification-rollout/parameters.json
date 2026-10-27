@@ -1,0 +1,239 @@
+{
+  "identity": "T1",
+  "membership": null,
+  "goal": "Проверить согласованное значение по принятой программе.",
+  "requirements": [
+    "Наблюдение подтверждает заданное значение."
+  ],
+  "dod": [
+    "Результат проверки подтверждён сохранённым наблюдением."
+  ],
+  "methods": [
+    {
+      "id": "VERIFY",
+      "argv": [
+        "${PYTHON}",
+        "-B",
+        "-c",
+        "import json,sys; from pathlib import Path; value=json.loads(Path(sys.argv[1]).read_text())['value']; print('VALUE='+str(value)); raise SystemExit(0 if value==4 else 1)",
+        "${VALUE_FILE}"
+      ],
+      "cwd": ".",
+      "environment": {
+        "LANG": "C.UTF-8"
+      },
+      "source_under_test": {
+        "kind": "external",
+        "reason": "This command reads an explicitly supplied test-owned value outside the configuration repository."
+      },
+      "verification_plan": {
+        "responsibility": "Observe the supplied value at execution.",
+        "change_surface": [],
+        "red_stages": [],
+        "green_stages": [
+          "execution"
+        ],
+        "red_failure": null
+      },
+      "expected_exit_code": 0,
+      "stdout_contains": [
+        "VALUE=4"
+      ],
+      "stderr_contains": []
+    }
+  ],
+  "method_inputs": [
+    {
+      "method_id": "VERIFY",
+      "repository_inputs": [],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "python",
+        "parser": "inline-no-path-arguments",
+        "version": 1
+      }
+    }
+  ],
+  "artifact_requirements": [],
+  "contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "evidence": {
+    "planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "planning_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "execution": {
+      "subject_methods": {
+        "VERIFY": {
+          "exit_codes": [
+            0
+          ],
+          "stdout_contains": [
+            "VALUE=4"
+          ],
+          "stderr_contains": []
+        }
+      },
+      "arguments": [
+        {
+          "id": "VALUE-PROOF",
+          "kind": "logical",
+          "phase": "continue",
+          "observation_methods": [
+            "VERIFY"
+          ]
+        }
+      ],
+      "review_arguments": []
+    },
+    "analysis": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "execution_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": [
+        "VALUE-PROOF"
+      ]
+    }
+  },
+  "stage_contracts": [
+    {
+      "stage_id": "planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [
+          "Наблюдение подтверждает заданное значение."
+        ],
+        "definition_of_ready": [
+          "Программа проверки согласована."
+        ],
+        "definition_of_done": [
+          "Результат подтверждён наблюдением."
+        ]
+      }
+    },
+    {
+      "stage_id": "planning_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [
+          "Наблюдение подтверждает заданное значение."
+        ],
+        "definition_of_ready": [
+          "Программа проверки согласована."
+        ],
+        "definition_of_done": [
+          "Результат подтверждён наблюдением."
+        ]
+      }
+    },
+    {
+      "stage_id": "execution",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [
+          "Наблюдение подтверждает заданное значение."
+        ],
+        "definition_of_ready": [
+          "Программа проверки согласована."
+        ],
+        "definition_of_done": [
+          "Результат подтверждён наблюдением."
+        ]
+      }
+    },
+    {
+      "stage_id": "analysis",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [
+          "Наблюдение подтверждает заданное значение."
+        ],
+        "definition_of_ready": [
+          "Программа проверки согласована."
+        ],
+        "definition_of_done": [
+          "Результат подтверждён наблюдением."
+        ]
+      }
+    },
+    {
+      "stage_id": "execution_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [
+          "Наблюдение подтверждает заданное значение."
+        ],
+        "definition_of_ready": [
+          "Программа проверки согласована."
+        ],
+        "definition_of_done": [
+          "Результат подтверждён наблюдением."
+        ]
+      }
+    }
+  ],
+  "decomposition": {
+    "kind": "ordinary",
+    "phases": [
+      {
+        "stage": "planning",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "planning_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "execution",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "analysis",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "execution_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      }
+    ],
+    "integration": null
+  }
+}

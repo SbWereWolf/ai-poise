@@ -1,0 +1,11 @@
+{
+  "schema": "goal-config-batch-1",
+  "request_id": "fixture-seed-writing",
+  "goal_type": "writing",
+  "mode": "create",
+  "expected_revision": null,
+  "template": {
+    "id": "writing-v1"
+  },
+  "changes": []
+}

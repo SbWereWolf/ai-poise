@@ -52,11 +52,12 @@ def test_every_declared_feedback_edge_has_a_walkthrough(tmp_path):
         (Path(__file__).resolve().parents[2] / 'config/catalogue/reference.json').read_text()
     )
     assert report['nodes'] == sum(len(goal['stages']) for goal in reference['goal_types'])
-    # Retired test-development remediation nodes remain in the historical source map.
-    assert report['feedback_edges']==31, "test_development: expected 31 active feedback edges"
+    # Retired test-development and verification nodes remain in the historical source map.
+    assert report['feedback_edges']==30, "verification: expected 30 active feedback edges"
     assert report['unmapped']==[
         ("test_development", "remediation"),
         ("test_development", "remediation_inspection"),
+        ("verification", "self_inspection"),
     ]
 
 

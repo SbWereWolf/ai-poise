@@ -35,7 +35,9 @@ def test_historical_nodes_remain_present_in_the_expanded_reference_graph():
     expected={(n['goal_type'],n['stage']) for n in source}
     actual={(g,s['id']) for g in GOALS for s in documents(g)[0]['stages']}
     retired = {("test_development", "remediation"), ("test_development", "remediation_inspection")}
+    retired.add(("verification", "self_inspection"))
     assert retired <= expected
+    assert ("verification", "self_inspection") not in actual, "verification: retired self_inspection remains active"
     assert not (retired & actual), "test_development: retired remediation nodes remain active"
     assert expected - retired <= actual
 

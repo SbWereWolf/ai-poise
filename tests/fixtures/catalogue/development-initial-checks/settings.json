@@ -1,0 +1,11 @@
+{
+  "schema": "workflow-catalogue-1",
+  "editor": "editor.json",
+  "task_templates": {
+    "development-v1": {
+      "path": "task-templates/development.json",
+      "goal_type": "development"
+    }
+  },
+  "max_items": 1000
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "scope": "input",
+    "change": "remove",
+    "field": "event_id",
+    "pointer": "/input/event_id"
+  },
+  {
+    "scope": "event",
+    "change": "set",
+    "field": "session_id",
+    "value": "",
+    "pointer": "/input/event/session_id"
+  },
+  {
+    "scope": "input",
+    "change": "set",
+    "field": "session_id",
+    "value": "other-session",
+    "pointer": "/input"
+  }
+]

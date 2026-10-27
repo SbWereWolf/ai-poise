@@ -132,6 +132,7 @@ def interception_preconditions():
         app.ensure()
         app.external(probes=[app.probe()])
         before = app.facts()
+        output_before = app.output_snapshot()
         for case in fixture('intercept-invalid.json'):
             value = {'workspace': str(app.state.cwd), 'request': fixture('request.json')}
             if case['change'] == 'remove':
@@ -142,9 +143,11 @@ def interception_preconditions():
                          'correct:request', status='rejected')
             assert app.effects() == []
             equal(app.facts(), before)
+            equal(app.output_snapshot(), output_before)
         app.config['hooks']['external'] = None
         assert_error(app.intercept(), 'external_not_configured', {}, 'configure:external')
         equal(app.facts(), before)
+        equal(app.output_snapshot(), output_before)
         assert app.effects() == []
         app.external()
         first = app.probe('valid-first')
@@ -154,6 +157,7 @@ def interception_preconditions():
         assert_error(app.intercept(), 'invalid_config', {'path': '/hooks/probes/1'},
                      'correct:config', status='rejected')
         equal(app.facts(), before)
+        equal(app.output_snapshot(), output_before)
         assert app.effects() == []
     for generated in [False, True]:
         with Installation() as app:
@@ -163,8 +167,10 @@ def interception_preconditions():
                 app.native = {'CODEX_THREAD_ID': 'native-A'}
             app.external(probes=[app.probe()])
             before = app.facts()
+            output_before = app.output_snapshot()
             assert_error(app.intercept(), 'session_not_found', {}, 'ensure:session')
             equal(app.facts(), before)
+            equal(app.output_snapshot(), output_before)
             assert app.effects() == []
             if generated:
                 assert not binding.exists()
@@ -240,3 +246,26 @@ def advisory_probes():
                 assert observed['exit_code'] == 0 and observed['timed_out'] is False
                 assert files[observed['stdout']] == b'{'
             equal(app.facts(), before)
+
+    with Installation() as app:
+        app.prepare()
+        app.ensure()
+        app.external('accepted', [app.probe('optional-missing', 'unavailable', required=False)])
+        before = app.facts()
+        body = app.intercept()
+        summary = body['result']['capability_checks']
+        assert set(summary) == {'ready', 'missing_required', 'observations'}, summary
+        assert summary['ready'] is True
+        equal(summary['missing_required'], [])
+        assert len(summary['observations']) == 1, summary
+        observation(app, summary['observations'][0], 'optional-missing', 'unavailable')
+        app.assert_intercept(body, fixture('accepted.json'), summary=summary)
+        primary_effect(app)
+        effects = app.effects()
+        assert [(item.get('mode'), item.get('variant')) for item in effects] == [
+            ('primary', 'accepted'), ('probe', 'unavailable')], effects
+        observed, files = receipt(app, body)
+        assert observed['exit_code'] == 0 and observed['timed_out'] is False
+        assert observed['launch_error'] is None
+        assert files[observed['stdout']] == (Path(__file__).parent / 'fixtures/hooks/accepted.json').read_bytes()
+        equal(app.facts(), before)

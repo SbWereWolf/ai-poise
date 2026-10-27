@@ -31,6 +31,11 @@ def native_lifecycle():
             assert len(facts['rows']['poise_hook_bindings']) == 1
             assert len(facts['rows']['poise_hook_events']) == 4
             assert not list(app.install.glob('src')) and not list(app.install.glob('apps'))
+    with Installation() as app:
+        app.prepare()
+        binding = app.assert_event(app.event())
+        app.assert_event(app.event('UserPromptSubmit', event_id='empty-prompt', prompt=''),
+                         kind='UserPromptSubmit', event_id='empty-prompt', sequence=2, binding=binding)
     for source in ['resume', 'clear', 'compact', 'fork']:
         with Installation() as app:
             app.prepare()
@@ -159,6 +164,16 @@ def boundaries_atomic():
             assert_error(app.call('hook.event', value)[2], 'invalid_request', {'path': pointer},
                          'correct:request', status='rejected')
             equal(app.facts(), before)
+        for case in fixture('event-input-invalid.json'):
+            value = app.event_input()
+            target = value if case['scope'] == 'input' else value['event']
+            if case['change'] == 'remove':
+                del target[case['field']]
+            else:
+                target[case['field']] = case['value']
+            assert_error(app.call('hook.event', value)[2], 'invalid_request',
+                         {'path': case['pointer']}, 'correct:request', status='rejected')
+            equal(app.facts(), before)
         assert_error(app.event('Stop'), 'session_not_found', {}, 'ensure:session')
         app.ensure()
         before = app.facts()
@@ -233,6 +248,11 @@ def retained_standalone():
             equal(app.facts()['rows'][table], before[table])
         assert len(app.facts()['rows']['poise_hook_bindings']) == 2
         assert len(app.facts()['rows']['poise_hook_events']) == 2
+        for table, key in [('poise_hook_bindings', 'hook-keep'), ('poise_hook_events', 10)]:
+            retained_before = [row for row in before[table] if row[0] == key]
+            retained_after = [row for row in app.facts()['rows'][table] if row[0] == key]
+            assert len(retained_before) == 1, retained_before
+            equal(retained_after, retained_before)
         assert app.path.read_bytes() == raw_config
         app.native = {'CODEX_THREAD_ID': 'native-A'}
         app.call('session.assign_role', fixture('assign.json'))

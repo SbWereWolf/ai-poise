@@ -142,6 +142,9 @@ class Installation(Sessions):
         self.assert_session(target['session'])
         rows = self.execute('SELECT session_id,data FROM poise_hook_bindings WHERE id=?', (binding,))
         assert len(rows) == 1 and rows[0][0] == identity, rows
+        stored_definition = json.loads(rows[0][1])
+        assert isinstance(stored_definition, dict), rows
+        assert stored_definition.get('definition_id') == 'example-hooks', stored_definition
         events = self.execute('SELECT seq,event_id,event,data FROM poise_hook_events WHERE binding_id=? AND event_id=?',
                               (binding, event_id))
         assert len(events) == 1 and events[0][:3] == [sequence, event_id, kind], events
@@ -181,6 +184,15 @@ class Installation(Sessions):
 
     def effects(self):
         return [json.loads(line) for line in self.trace.read_text().splitlines()] if self.trace.exists() else []
+
+    def output_snapshot(self):
+        snapshot = {'exists': self.results.exists(), 'entries': {}}
+        if self.results.exists():
+            for path in sorted(self.results.rglob('*')):
+                snapshot['entries'][str(path.relative_to(self.results))] = (
+                    {'hex': path.read_bytes().hex()} if path.is_file() else {'directory': True})
+        OBSERVATIONS.append({'output_root': str(self.results), 'snapshot': snapshot})
+        return snapshot
 
     def outputs(self, body):
         """Keep every referenced complete output, including terminal exceptions."""

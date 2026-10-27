@@ -13,26 +13,14 @@ from poise.modules.workflow.domain import RouteDefinition
 
 
 def workflow(producer_role='executor', review_role='executor'):
-    return {
-        'goal_type': 'role-contract', 'worktree_required': False,
-        'route': {'entry': 'build'},
-        'benefit': {'git_categories': [], 'sections': ['report']},
-        'content_contract': {'sections': [], 'routes': [], 'requirements': []},
-        'stages': [
-            {'id': 'build', 'role': producer_role, 'handler': 'produce',
-             'transitions': {'complete': 'inspect'}, 'rework_targets': ['build'],
-             'read_only': False, 'allowed_paths': ['src/**'],
-             'instruction': 'Produce the result.', 'normalization': 'strip',
-             'sections': {'report': 'Result'}, 'required_sections': ['report'],
-             'artifact_requirements': []},
-            {'id': 'inspect', 'role': review_role, 'handler': 'inspect',
-             'transitions': {'clear': None, 'changes_requested': 'build'},
-             'rework_targets': ['build'], 'read_only': True, 'allowed_paths': [],
-             'instruction': 'Inspect the result.', 'normalization': 'strip',
-             'sections': {'report': 'Review'}, 'required_sections': ['report'],
-             'artifact_requirements': []},
-        ],
-    }
+    from pathlib import Path
+    import json
+    path = Path(__file__).resolve().parents[1] / 'fixtures/runner/user-assigned-roles/workflow.json'
+    value = json.loads(path.read_text())
+    value['goal_type'] = 'role-contract'
+    value['stages'][0]['role'] = producer_role
+    value['stages'][1]['role'] = review_role
+    return value
 
 
 def task_for(definition, *, current='build', status=TaskStatus.VERIFIED, outcome='complete'):
@@ -107,10 +95,11 @@ def test_same_role_guard_also_applies_after_entry_to_inspection():
     assert require_reviewer_identity_in(uow_for(), task, 'session-A') is None
 
 
-def test_different_roles_reject_same_effective_session():
+def test_different_roles_allow_user_assigned_same_effective_session():
     task = task_for(workflow('author', 'assayer'))
-    with pytest.raises(DomainError, match='equals executor'):
-        require_reviewer_identity_in(uow_for(), task, 'session-A', target_stage='inspect')
+    receipt = require_reviewer_identity_in(uow_for(), task, 'session-A', target_stage='inspect')
+    assert receipt['executor_actor'] == receipt['reviewer_actor'] == 'session-A'
+    assert receipt['distinct_actor'] is False
 
 
 def test_different_roles_accept_distinct_effective_session():
@@ -121,10 +110,12 @@ def test_different_roles_accept_distinct_effective_session():
     assert receipt['distinct_actor'] is True
 
 
-def test_different_roles_fail_closed_if_producer_identity_unavailable():
+def test_different_roles_preserve_missing_producer_as_audit_provenance():
     task = task_for(workflow('author', 'assayer'))
-    with pytest.raises(DomainError, match='identity provenance is unavailable'):
-        require_reviewer_identity_in(uow_for(None), task, 'session-B', target_stage='inspect')
+    receipt = require_reviewer_identity_in(uow_for(None), task, 'session-B', target_stage='inspect')
+    assert receipt['executor_actor'] is None
+    assert receipt['reviewer_actor'] == 'session-B'
+    assert receipt['distinct_actor'] is False
 
 
 def test_actual_producing_stage_role_is_used_not_a_relay_or_previous_list_index():

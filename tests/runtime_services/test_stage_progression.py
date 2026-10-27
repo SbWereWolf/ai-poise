@@ -521,78 +521,72 @@ def _released_review_boundary(project):
 
 
 @pytest.mark.parametrize("entry", ["bootstrap", "acquire"])
-def test_shared_executor_identity_cannot_acquire_reviewer_boundary(project, entry):
+def test_one_agent_assigned_both_roles_can_acquire_reviewer_boundary(project, entry):
     executor = _released_review_boundary(project)
-    before = state_snapshot(executor.runtime, ("executor",))
-    same_native_actor = WorkTools(Poise(project["config_path"], "executor"))
-    with pytest.raises(PoiseError, match="distinct native reviewer session"):
-        if entry == "bootstrap":
-            bootstrap(same_native_actor, {"id": "T1"})
-        else:
-            same_native_actor.runtime.ownership.acquire_task("T1")
-    assert state_snapshot(executor.runtime, ("executor",)) == before
+    same_agent = WorkTools(Poise(project["config_path"], "executor"))
+    if entry == "bootstrap":
+        bootstrap(same_agent, {"id": "T1"})
+    else:
+        same_agent.runtime.ownership.acquire_task("T1")
+    context = advance(same_agent)
+    assert context["stage"] == "code_review"
+    assert verify(same_agent, result(context))["status"] == "verified"
 
 
-def test_reviewer_relay_does_not_erase_the_original_executor_identity(project):
+def test_reviewer_relay_retains_author_provenance_without_banning_that_author(project):
     executor = _released_review_boundary(project)
     reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
     bootstrap(reviewer, {"id": "T1"})
     assert advance(reviewer)["stage"] == "code_review"
-    assert release_current(reviewer, "reviewer-session-archived")["status"] == "ownership_released"
-    before = state_snapshot(reviewer.runtime, ("executor", "reviewer"))
-    with pytest.raises(PoiseError, match="distinct native reviewer session"):
-        bootstrap(executor, {"id": "T1"})
-    assert state_snapshot(reviewer.runtime, ("executor", "reviewer")) == before
-    resumed = WorkTools(Poise(project["config_path"], "reviewer"))
-    assert bootstrap(resumed, {"id": "T1"})["stage"] == "code_review"
-    assert advance(resumed)["status"] == "progression_target_reached"
+    assert release_current(reviewer, "reviewer-role-reassigned")["status"] == "ownership_released"
+    resumed = bootstrap(executor, {"id": "T1"})
+    assert resumed["stage"] == "code_review"
+    assert verify(executor, result(resumed))["status"] == "verified"
 
 
-def test_review_guard_rejects_legacy_same_actor_progression_without_mutation(project):
+def test_one_agent_role_change_keeps_verified_worktree_and_report(project):
     executor = _released_review_boundary(project)
-    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
-    bootstrap(reviewer, {"id": "T1"})
-    with reviewer.runtime.store.transaction() as db:
-        db.execute("UPDATE tasks SET claimed_by='executor' WHERE id='T1'")
-        db.execute("UPDATE sessions SET task_id=NULL WHERE id='reviewer'")
-        db.execute("UPDATE sessions SET task_id='T1' WHERE id='executor'")
-    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
-    with pytest.raises(PoiseError, match="distinct native reviewer session"):
-        advance(executor)
-    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
+    before = executor.runtime.task_queries.record("T1")
+    tree = Path(before["worktree"])
+    source = (tree / "src/double.py").read_bytes()
+    bootstrap(executor, {"id": "T1"})
+    context = advance(executor)
+    assert context["stage"] == "code_review"
+    after = executor.runtime.task_queries.record("T1")
+    assert after["worktree"] == before["worktree"]
+    assert (tree / "src/double.py").read_bytes() == source
+    assert after["last_report"] == before["last_report"]
 
 
-def test_same_actor_bootstrap_rejects_before_worktree_entry_checks(project, monkeypatch):
+def test_same_actor_role_change_preserves_ordinary_entry_checks(project, monkeypatch):
     executor = _released_review_boundary(project)
-    before = state_snapshot(executor.runtime, ("executor",))
+    calls = []
+    original = executor.runtime._require_entry
 
-    def unexpected_entry(_):
-        pytest.fail("Reviewer rejection must precede entry/worktree processing")
+    def record_entry(value):
+        calls.append(value)
+        return original(value)
 
-    monkeypatch.setattr(executor.runtime, "_require_entry", unexpected_entry)
-    with pytest.raises(PoiseError, match="distinct native reviewer session"):
-        executor.runtime.bootstrap(task={"id": "T1"})
-    assert state_snapshot(executor.runtime, ("executor",)) == before
+    monkeypatch.setattr(executor.runtime, "_require_entry", record_entry)
+    bootstrap(executor, {"id": "T1"})
+    assert calls
+    assert advance(executor)["stage"] == "code_review"
 
 
-def test_legacy_self_review_rejects_before_verification_workspace(project, monkeypatch):
+def test_same_actor_reviewer_runs_verification_workspace_normally(project, monkeypatch):
     executor = _released_review_boundary(project)
-    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
-    bootstrap(reviewer, {"id": "T1"})
-    review = advance(reviewer)
-    with reviewer.runtime.store.transaction() as db:
-        db.execute("UPDATE tasks SET claimed_by='executor' WHERE id='T1'")
-        db.execute("UPDATE sessions SET task_id=NULL WHERE id='reviewer'")
-        db.execute("UPDATE sessions SET task_id='T1' WHERE id='executor'")
-    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
+    bootstrap(executor, {"id": "T1"})
+    context = advance(executor)
+    calls = []
+    original = executor.runtime._verification_workspace
 
-    def unexpected_workspace(_):
-        pytest.fail("Reviewer rejection must precede workspace or check execution")
+    def record_workspace(*args, **kwargs):
+        calls.append((args, kwargs))
+        return original(*args, **kwargs)
 
-    monkeypatch.setattr(executor.runtime, "_verification_workspace", unexpected_workspace)
-    with pytest.raises(PoiseError, match="distinct native reviewer session"):
-        executor.runtime.verify(result(review),packet_digest=executor.runtime.packet_digest({'result':result(review),'artifacts':[]}))
-    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
+    monkeypatch.setattr(executor.runtime, "_verification_workspace", record_workspace)
+    assert verify(executor, result(context))["status"] == "verified"
+    assert calls
 
 
 def test_completed_review_returns_to_original_executor_without_false_self_review(project):

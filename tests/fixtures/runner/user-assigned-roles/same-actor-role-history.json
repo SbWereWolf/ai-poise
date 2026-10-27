@@ -1,0 +1,34 @@
+{
+  "task_id": "T-role",
+  "submission_digest": "submission-role-fixture",
+  "stage_id": "build",
+  "iteration": 1,
+  "through_version": 3,
+  "submission_id": 17,
+  "events": [
+    {
+      "event": "verified",
+      "actor": "session-A",
+      "version": 1,
+      "submission": 17,
+      "stage": "build",
+      "iteration": 1
+    },
+    {
+      "event": "ownership_released",
+      "actor": null,
+      "version": 2,
+      "submission": 17,
+      "stage": "build",
+      "iteration": 1
+    },
+    {
+      "event": "ownership_acquired",
+      "actor": "session-A",
+      "version": 3,
+      "submission": 17,
+      "stage": "build",
+      "iteration": 1
+    }
+  ]
+}

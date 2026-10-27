@@ -159,6 +159,12 @@ project's configured repository checkout. See [worktree
 placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
 not register them manually.
 
+The user assigns roles to agents. An agent may perform both executor and reviewer
+roles only when the user assigns both; keep their stage work and decisions separate.
+Different roles do not require different agent/session identities. Tool access does
+not grant an additional role. Preserve native caller identity, ownership and truthful
+provenance. Follow the [canonical role-assignment rule](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
+
 One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and agree the exact restart and Task-contract correction with the independent reviewer instead of bypassing the harness. The agents decide and execute a restart through the public Task action without seeking another user decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the exact Task fields in `authorization.revision_fields`; the executor must not impersonate the reviewer. Project/harness rule changes still require separate user authority. Stop for a real blocker, a decision about global rules, or separately controlled acceptance/publication/integration. Before changing tasks, finish, release ownership through the ordinary public API, or safely discard the current work. A read-only query about another task does not switch ownership.
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
@@ -287,8 +293,8 @@ Keep this English projection and its Russian source consistent in the same chang
   role boundaries and separately controlled publish acceptance; after ordinary public release, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
-  Continue the current verified result through its proved ownership history: a receiver's self-cycle
-  preserves an earlier transfer, while the original author alone does not establish one. Keep the same
+  Continue the current verified result through its proved ownership history: a lawful release/acquire can continue the next role
+  with the same actor when the user assigned both roles; another actor is not mandatory. Keep the same
   progression intent and existing source/claim/unknown/review gates; follow
   [verified-result continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
 - Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New
@@ -669,9 +675,9 @@ Native caller isolation: a session launcher is not caller identity. Use only the
 for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
 Never set these values to impersonate a stored binding or combine native identity with
 POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
-parent-only signals must not mutate the parent's Task. The sender uses ordinary public release;
-a genuinely separate native session obtains its own SessionStart launcher and bootstraps
-the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
+parent-only signals must not mutate the parent's Task. For a handoff to another assigned agent, the sender uses ordinary public release;
+the receiving native session uses its own SessionStart launcher and bootstraps the exact Task.
+When the user assigned both roles to one agent, the same native actor may resume after release. Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
 
 ## Local recovery after imported duplicate results

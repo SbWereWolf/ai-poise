@@ -223,7 +223,6 @@
       "stages": [
         {
           "id": "planning",
-          "source_id": "GS-VER-01",
           "handler": "produce",
           "before": [
             "verification_criteria",
@@ -231,32 +230,40 @@
             "verification_methods",
             "environment"
           ],
-          "after": []
+          "after": [],
+          "source_id": "GS-VER-01"
+        },
+        {
+          "id": "planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": [],
+          "source_id": "ERP-SR-REVIEW-VERIFICATION-CANDIDATE-EXECUTION-001-planning_inspection"
         },
         {
           "id": "execution",
-          "source_id": "GS-VER-02",
           "handler": "check",
           "before": [],
-          "after": []
+          "after": [],
+          "source_id": "GS-VER-02"
         },
         {
           "id": "analysis",
-          "source_id": "GS-VER-03",
           "handler": "produce",
           "before": [
             "verdict",
             "result",
             "product_findings"
           ],
-          "after": []
+          "after": [],
+          "source_id": "GS-VER-03"
         },
         {
-          "id": "self_inspection",
-          "source_id": "GS-VER-04",
+          "id": "execution_inspection",
           "handler": "inspect",
           "before": [],
-          "after": []
+          "after": [],
+          "source_id": "ERP-SR-REVIEW-VERIFICATION-CANDIDATE-EXECUTION-001-execution_inspection"
         }
       ],
       "method_schedule": {
@@ -1601,32 +1608,24 @@
     {
       "id": "FB-VER-01",
       "goal_type": "verification",
-      "from_stage": "self_inspection",
+      "from_stage": "planning_inspection",
       "to_stage": "planning",
       "from_handler": "inspect",
       "to_handler": "produce",
-      "reason": "Программа не покрывает критерий или метод не способен его проверить.",
-      "source_line": 40
+      "reason": "Проверяющий отклонил программу проверки; исполнитель исправляет её на этапе проектирования.",
+      "source_line": 296,
+      "source_path": "config/catalogue/workflow-templates/verification.json"
     },
     {
       "id": "FB-VER-02",
       "goal_type": "verification",
-      "from_stage": "self_inspection",
+      "from_stage": "execution_inspection",
       "to_stage": "execution",
       "from_handler": "inspect",
       "to_handler": "check",
-      "reason": "Нужное фактическое наблюдение отсутствует либо получено неверно.",
-      "source_line": 41
-    },
-    {
-      "id": "FB-VER-03",
-      "goal_type": "verification",
-      "from_stage": "self_inspection",
-      "to_stage": "analysis",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Наблюдения достаточны, но вывод или finding оформлены неверно.",
-      "source_line": 42
+      "reason": "Проверяющий отклонил доказательство результата; исполнитель повторяет наблюдения и анализ по согласованной программе.",
+      "source_line": 380,
+      "source_path": "config/catalogue/workflow-templates/verification.json"
     }
   ],
   "methods": {

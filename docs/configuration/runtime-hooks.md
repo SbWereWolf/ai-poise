@@ -23,6 +23,14 @@ Native descriptor matcher выбирает поддержанные имена, 
 Command-intake сохраняет собственную Bash границу; общего Bash-only ограничения
 для tool-result нет. Настройка не добавляет MCP server или второй dispatcher.
 
+Для фактической строки `tool_response` Bash заполненный session-пример выбирает
+`native-text`, для обычного Poise через Bash — `saved-work-text`. Код завершения и
+раздельные stdout/stderr, которых нет в native callback, остаются недоступными;
+вложенный программный ответ инструмента проверяется отдельно. Форматы требуют
+явного выбора и поддерживающей их поставки; подробнее —
+[строковый native-вход](tool-results.md#строковый-native-вход). Объектный транспорт
+с `output`/integer `exit_code` выбирает прежние структурированные профили явно.
+
 Handler сначала проверяет настоящую [service
 association](tool-results.md#чтение-последнего-результата).
 Иначе один selected profile определяет native source/snapshot/подготовку форм;

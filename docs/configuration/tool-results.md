@@ -70,7 +70,7 @@ Caller устанавливает [существующий владелец
 |---|---|
 | `schema`, `version` | Точно `poise-tool-result-policy-1` и явная версия оператора |
 | `storage.root` | Абсолютный корень, разрешённый placement как ignored |
-| `storage.response`, `stdout`, `stderr`, `text` | Четыре разных непустых basename; без `/`, `.` и `..`. JSON record, два raw-потока и читаемый JSON source |
+| `storage.response`, `stdout`, `stderr`, `text` | Четыре разных непустых basename; без `/`, `.` и `..`. JSON record, два raw-потока и полный читаемый источник: исходный текст для выбранного native-text либо JSON для структурированных форматов |
 | `storage.file_mode` | Число от0 до511 (например384 =0600), права создаваемых файлов |
 | `storage.chunk_bytes` | Положительный размер порции чтения/копирования потоков |
 | `storage.retention` | Ровно `operator-managed`; срок и удаление обслуживает оператор |
@@ -120,13 +120,21 @@ Placement state и его lock получают собственные разр�
 | `root` | Абсолютный корень сессий внутри разрешённого `storage.root` |
 | `runs` | Имя каталога запусков |
 | `last` | Имя JSON-указателя последнего готового UUID |
-| `expanded`, `full` | Имена сохранённого подробного текста и полного JSON |
+| `expanded`, `full` | Имена сохранённого подробного текста и полного источника выбранного формата |
 
 Все четыре имени — различные непустые basename, без `/`, `.` и `..`.
 Файлы принадлежат настоящему caller: `session.root/<caller-key>/runs/<uuid>/`.
-В last хранится `{"uuid":"<run-uuid>"}`. Полный JSON сохраняет все значения,
-raw streams при наличии копируются точно. JSON whitespace не является побайтовым
-договором. Подробный текст записывается один раз вместе с полной формой.
+В last хранится `{"uuid":"<run-uuid>"}`. Для выбранного hook-профиля `native-text`
+полный файл содержит точные UTF-8 байты исходной строки, включая физические переводы
+строк, пустой текст, Unicode и NUL. Это текст, а не однострочная JSON-сериализация
+строки. JSON record отдельно сохраняет эту же строку как значение `response`.
+Для структурированных форматов полный JSON сохраняет все значения; JSON whitespace
+не является побайтовым договором. Raw streams при наличии копируются точно.
+Подробный текст записывается один раз вместе с полной формой.
+
+Session-пример явно задаёт `full="full"`: такое имя подходит исходному тексту Bash
+и полному JSON других профилей. `storage.response="result.json"` по-прежнему обозначает
+JSON record. Сохранённые пути прежних запусков не переименовываются при смене policy.
 
 Готовая публикация и last согласованы существующим storage owner. Pending не заменяет
 последний готовый run. Ошибка записи не выдаёт старый успех с identity нового вызова.
@@ -173,16 +181,20 @@ Poise по **полному объявленному command**, обычный B
 
 | Профиль | Полный вход и явные настройки |
 |---|---|
+| `bash` / `native-text` | Строка `tool_response`, включая пустую и JSON-подобную. Исходный код завершения и отдельные stdout/stderr недоступны; `exit_code=null`, streams отсутствуют. Префиксы summary/detail и бюджеты задаются явно; шаблоны не требуют недоступного exit. |
 | `bash` / `native-exec-json` | Native object с `output` и terminal integer `exit_code`; `summary_prefix`, `detail_prefix`, `summary_missing`, `brief_without_summary` и шаблоны. Summary берётся по объявленному префиксу; `summary_missing="exit-only"` использует явный шаблон без summary. |
 | `mcp` / `records-json` | Именно объявленная форма с `content` и `structuredContent.count` (integer), `structuredContent.names` (список строк); шаблоны `{count}`/`{names}`. Это не универсальный decoder любого MCP payload. |
 | `mcp` / `mcp-content-json` | Целый MCP envelope с `content` и boolean `isError`; JSON или error text выбирается только по явному `content_index`. Полный [договор профиля](#профиль-mcp-content-json) задаёт paths/version/templates и сохраняет original. |
+| `poise` / `saved-work-text` | Строка native Bash с JSON envelope настоящего Poise, содержащим абсолютный `response_path` под явным `source_root`. Парсер читает весь сохранённый body; исходная строка остаётся у delivery/machine consumer. Код процесса из body не выводится. |
 | `poise` / `saved-work-json` | Native shell object `output`/`exit_code`; stdout содержит настоящий `response_path` полного SavedResponse под явным абсолютным `source_root`. Парсер получает весь body, original native envelope остаётся у delivery/machine consumer. |
 | `poise` / `work-json` | Уже предоставленный полный объект с действительным строковым `status`; отдельный декодируемый envelope не требуется. |
 
-Native pending без terminal exit остаётся pending. Объявленные native truncation
-markers дают partial либо unknown; exit 0 и наличие счётчика токенов сами не доказывают
-полноту. Отдельные stdout/stderr не изобретаются из merged native output. Если upstream
-обрезал данные, полный service не обещает восстановить их из preview.
+У структурированного native object наличие `session_id` без terminal integer exit
+означает pending. Строка не содержит такого подтверждения состояния процесса.
+Объявленные native truncation markers дают partial либо unknown; exit 0 и наличие
+счётчика токенов сами не доказывают полноту. Отдельные stdout/stderr не изобретаются
+из merged native output. Если upstream обрезал данные, полный service не обещает
+восстановить их из preview.
 
 Poise требует `status:string`; остальные строковые поля нужны только при использовании
 шаблоном. `expanded_template="{brief}"` принимает настоящие show/release без `next_work`.
@@ -215,6 +227,52 @@ Session-пример показывает один Poise профиль: brief �
 Это примеры настоящих изолированных CLI ответов, не инструкция создать T1 в рабочем
 проекте. Используйте уже разрешённые операции своего настоящего entry; результат
 не запускают повторно для восстановления вывода.
+
+### Строковый native-вход
+
+Настоящий Bash callback может передавать `tool_response` как строку, тогда как вложенный
+программный вызов инструмента возвращает объект с известным ему кодом процесса и потоками.
+Это разные границы. Полный session-пример выбирает `Bash/native-text` и
+`Poise/saved-work-text` для строковой границы. Установленная поставка должна поддерживать
+выбранные форматы; публикация policy сама по себе не обновляет пакет.
+
+Для `native-text` строка сохраняется без декодирования напечатанного JSON. Например,
+текст `{"exit_code":0}` остаётся stdout-текстом и не доказывает exit 0. Пустая строка —
+полученный пустой результат; отсутствующее поле или значение другого типа даёт
+`unmapped_input/tool_response/configure:input`. Native `exit_code` остаётся `null`,
+оба отдельных потока — `null`; успешный код операции сохранения не является кодом Bash.
+
+Шаблон `brief_template` допускает только `{summary}`, `brief_without_summary` —
+постоянный текст, `expanded_template` — `{brief}` и `{details}`. В примере это
+`Bash: {summary}; exit unavailable` либо `Bash: output received; exit unavailable`.
+Историческое имя `summary_missing="exit-only"` выбирает второй явный шаблон;
+оно не подставляет код завершения. Требование `{exit_code}` в этих текстовых шаблонах
+отклоняется как `invalid_policy`.
+
+Полнота полученной строки и исход выполнения независимы. Распознанный оформленный
+маркер обрезки даёт `partial/native_output_truncated`, неоднозначный текстовый маркер —
+`unknown/native_output_ambiguous`. `complete` описывает полученный источник в пределах
+объявленного транспорта, а не подтверждает не наблюдавшиеся потоки или отсутствие
+скрытой обрезки upstream. Проверка большого результата требует сравнения фактических
+native байтов с независимо сохранённым источником производителя. Для partial/unknown
+полный service отвечает `source_incomplete`; новый запуск не получает полный файл
+предыдущего успешного результата.
+
+`saved-work-text` выбирается только явным правилом команды Poise. Его строка должна
+содержать корректный JSON envelope с настоящим абсолютным `response_path` в
+`source_root`. Недостающий файл даёт `source_missing/response_path/provide:source`,
+неверный envelope или адрес вне корня — `source_invalid/response_path/restore:source`.
+Читается существующий полный ответ; повторного work-вызова нет. Обычный Bash с тем же
+JSON-подобным текстом остаётся `native-text`. Статус сохранённого body не подменяет
+неизвестный код процесса.
+
+Если ваш транспорт действительно предоставляет объект `output`/integer `exit_code`,
+выберите явно `Bash.format="native-exec-json"` и `Poise.format="saved-work-json"`.
+Для Bash задайте соответствующие шаблоны `Bash: exit {exit_code}; {summary}` и
+`Bash: exit {exit_code}`. Остальные общие опции полного примера сохраняются.
+Прежние объектные форматы требуют объект и отвергают строку; текстовые требуют строку
+и отвергают объект. Ошибка выбранного формата не запускает другой decoder.
+Оба MCP-профиля остаются самостоятельными объектными контрактами.
 
 ## Профиль MCP content JSON
 
@@ -402,6 +460,9 @@ caller/session ID.
 caller/run и точное совпадение ответа с сохранённым результатом. Одних полей
 `purpose="harness-service"`/`capability="tool-result"` недостаточно. Подлинный service
 передаётся агенту как сохранённый текст либо путь, не становится новым tool run.
+Поддержана фактическая строка native Bash с этим ответом; код исходного процесса
+из неё не выводится. Прежний структурированный ответ с `output`/exit 0 сохраняет
+свой отдельный контракт. В обоих случаях действуют те же проверки команды и владельца.
 Соседний обычный Poise ответ проходит capture и обновляет last.
 
 ## Сохранение и повтор
@@ -433,6 +494,11 @@ JSON сохраняется целиком по значениям; исходн
 побайтовым договором. Raw stdout/stderr копируются точно, включая CRLF, Unicode,
 NUL и пустой файл. Читаемый source `response` — отдельная сериализация именно
 сохранённого JSON-значения, а не строка preview и не произвольный внешний JSON.
+Исключение с явно выбранным представлением — native hook `native-text`: его source
+и полный файл содержат точный исходный UTF-8 текст, а JSON record сохраняет эту
+строку как значение. Проверка целостности полного файла использует ту же фактическую
+форму источника, а не хеш JSON-экранированной строки. У других форматов сериализация
+остаётся прежней.
 
 В режиме без session адрес `response_path` находится в пространстве project/checkout/caller
 и ключа request. В session-режиме используется namespace caller и run UUID выше. Файлы копируются и

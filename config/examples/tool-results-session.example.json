@@ -1,6 +1,6 @@
 {
   "schema": "poise-tool-result-policy-1",
-  "version": "session-example-1",
+  "version": "session-example-2",
   "storage": {
     "root": "@RESULTS@",
     "response": "result.json",
@@ -62,17 +62,17 @@
     "runs": "runs",
     "last": "last-tool.json",
     "expanded": "expanded.txt",
-    "full": "full.json"
+    "full": "full"
   },
   "parsers": {
     "Bash": {
       "parser": "bash",
-      "format": "native-exec-json",
+      "format": "native-text",
       "summary_prefix": "RESULT: ",
       "detail_prefix": "DETAIL: ",
       "summary_missing": "exit-only",
-      "brief_template": "Bash: exit {exit_code}; {summary}",
-      "brief_without_summary": "Bash: exit {exit_code}",
+      "brief_template": "Bash: {summary}; exit unavailable",
+      "brief_without_summary": "Bash: output received; exit unavailable",
       "expanded_template": "{brief}\n{details}",
       "brief": {
         "chars": 128,
@@ -86,7 +86,7 @@
     },
     "Poise": {
       "parser": "poise",
-      "format": "saved-work-json",
+      "format": "saved-work-text",
       "source_root": "@POISE_RESPONSE_ROOT@",
       "brief_template": "Poise: {status}",
       "expanded_template": "{brief}",

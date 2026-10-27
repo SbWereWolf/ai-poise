@@ -1,0 +1,30 @@
+{
+  "create": {
+    "operation": "task",
+    "input": {
+      "action": "create",
+      "request_id": "create-SOURCE-1",
+      "task_id": "SOURCE-1",
+      "sprint_id": null,
+      "goal_type": "development",
+      "patch": {
+        "goal": "Exercise explicit workflow source selection."
+      }
+    },
+    "messages": []
+  },
+  "reselect": {
+    "operation": "task",
+    "input": {
+      "action": "edit",
+      "request_id": "reselect-saved-source",
+      "task_id": "SOURCE-1",
+      "expected_revision": 0,
+      "patch": {
+        "goal_type": "development"
+      },
+      "remove": []
+    },
+    "messages": []
+  }
+}

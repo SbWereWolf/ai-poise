@@ -191,6 +191,15 @@ Use the explicitly selected project configuration. Each project owns its Task DB
 workflow catalogue; never
 edit managed SQLite, workflow JSON, or task artifacts as bookkeeping.
 
+For an existing Task, use its saved process and current public stage, instruction
+and workflow.stage_contract. Active workflow is execution context, not a raw
+stages graph. For a typed newborn with a selected or supplied process, read the
+full top-level workflow, separate from draft; do not invent draft.workflow or
+assume an untyped newborn already has a graph. Choose a new Task's source through
+the explicitly selected project and starter. Follow the canonical
+[source-selection procedure](../../../docs/workflows/task-planning.md#выбор-источника-процесса)
+for fields, relative paths and source failures.
+
 Before storage setup or recovery, read the current [owners and schema
 versions](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии). Configuration schema
 and SQLite version

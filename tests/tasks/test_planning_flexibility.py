@@ -375,7 +375,8 @@ def test_user_assigned_reviewer_can_restart_its_task(project, monkeypatch, state
 
         monkeypatch.setattr(SqliteTaskInputs, 'review_identity', unavailable)
     rec = c.runtime.task_queries.record('FLEX')
-    out = restart(c, 'FLEX', rec['version'], authorization=authorization)
+    version = rec['revision'] if state == 'newborn' else rec['version']
+    out = restart(c, 'FLEX', version, authorization=authorization)
     assert out['status'] == 'newborn'
     assert out['claimed_by'] == 'planner'
     assert out['draft']['goal'] == project['task']['goal']

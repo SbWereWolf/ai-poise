@@ -202,6 +202,34 @@ SDK-интерпретаторы являются отдельным интер�
 имя и настройки. `raw` содержит полный `exit_code`, `stdout`, `stderr`.
 `success` — bool; успешный `error` равен null, неуспешный — непустая строка.
 
+### Опции SDK-интерпретаторов
+
+Ниже перечислены обязательные ключи `interpreter.options` поставляемых экземпляров
+из `poise_environment.result_interpreters`. Настройки принадлежат выбранному
+интерпретатору; значения по умолчанию для этих ключей не подставляются.
+
+| Интерпретатор / attribute | Ключ | Тип JSON | Назначение и заполненное значение |
+|---|---|---|---|
+| `MaintenanceResult` / `maintenance_result` | `accept` | Массив целых | Допустимые exit дочернего процесса; `[0]`. |
+| `MaintenanceResult` / `maintenance_result` | `schema` | Строка | Ожидаемое поле `schema` JSON-ответа; `poise/maintenance-action/v2`. |
+| `MaintenanceResult` / `maintenance_result` | `field` | Строка | Проверяемое поле JSON: `state` для presence, `outcome` для установки. |
+| `MaintenanceResult` / `maintenance_result` | `values` | Массив допустимых значений | В примере строки: `["satisfied"]` для `state`, `["completed"]` для `outcome`. |
+| `ExitResult` / `exit_result` | `accept` | Массив целых | Допустимые exit обычной команды; `[0]`. |
+| `ProjectListResult` / `project_list_result` | `accept` | Массив целых | Допустимые exit команды запуска; `[0]`. |
+| `ProjectListResult` / `project_list_result` | `projects_field` | Строка | Имя обязательного списка проектов в JSON-ответе; `projects`. |
+| `ProjectListResult` / `project_list_result` | `errors_field` | Строка | Имя обязательного списка ошибок в JSON-ответе; `errors`. |
+| `ProjectListResult` / `project_list_result` | `minimum_project_count` | Целое | Минимальное число элементов списка проектов для готовности; `1`. |
+
+`MaintenanceResult` подтверждает успех при одновременном совпадении exit, schema
+и значения выбранного поля. Иное состояние ресурса даёт неуспех; повреждённый JSON
+или отсутствие нужного поля диагностирует SDK как ошибку интерпретации.
+`ExitResult` оценивает только указанный exit, сохраняя полный сырой результат в SDK.
+`ProjectListResult` требует оба правильно типизированных списка, достаточное число
+проектов и пустой список ошибок вместе с допустимым exit. Недостаточный, неполный,
+повреждённый ответ либо сообщённые ошибки дают неуспех. Отсутствующие обязательные
+настройки диагностируются при интерпретации. Полные исходные потоки и exit остаются
+в записи SDK независимо от успеха разбора.
+
 ## Результаты и ошибки
 
 Встроенный обработчик выводит `status=ready`, `exit_code=0` либо `status=error`

@@ -1,0 +1,14 @@
+{
+  "request_id": "public-1",
+  "operation": "external.example",
+  "input": {
+    "value": "Данные",
+    "unknown": {
+      "retained": [
+        false,
+        null,
+        0
+      ]
+    }
+  }
+}

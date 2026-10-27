@@ -1,0 +1,12 @@
+{
+  "id": "@PROBE@",
+  "status": "@STATUS@",
+  "tool_ref": "fixture.hook-probe",
+  "project_path": "@WORKSPACE@",
+  "version": null,
+  "observation": "@OBSERVATION@",
+  "tools": [],
+  "receipt": "@RECEIPT@",
+  "remediation": "Configure the read-only fixture probe.",
+  "reason": "@REASON@"
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "stride-poise/v1",
+  "status": "ok",
+  "result": "@RESULT@",
+  "error": null,
+  "evidence": "@EVIDENCE@"
+}

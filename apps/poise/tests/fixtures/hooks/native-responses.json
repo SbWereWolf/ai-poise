@@ -1,0 +1,18 @@
+{
+  "SessionStart": {
+    "hookSpecificOutput": {
+      "hookEventName": "SessionStart",
+      "additionalContext": "Session @SESSION@; workspace @WORKSPACE@"
+    }
+  },
+  "UserPromptSubmit": {
+    "hookSpecificOutput": {
+      "hookEventName": "UserPromptSubmit",
+      "additionalContext": "Session @SESSION@; workspace @WORKSPACE@"
+    }
+  },
+  "Stop": {
+    "systemMessage": "Session @SESSION@; workspace @WORKSPACE@"
+  },
+  "SessionEnd": {}
+}

@@ -1,0 +1,28 @@
+{
+  "SessionStart": {
+    "hook_event_name": "SessionStart",
+    "session_id": "@SESSION@",
+    "cwd": "@WORKSPACE@",
+    "source": "startup"
+  },
+  "UserPromptSubmit": {
+    "hook_event_name": "UserPromptSubmit",
+    "session_id": "@SESSION@",
+    "cwd": "@WORKSPACE@",
+    "turn_id": "turn-1",
+    "prompt": "PRIVATE-PROMPT-TEXT",
+    "last_assistant_message": "PRIVATE-ASSISTANT-TEXT"
+  },
+  "Stop": {
+    "hook_event_name": "Stop",
+    "session_id": "@SESSION@",
+    "cwd": "@WORKSPACE@",
+    "turn_id": "turn-1"
+  },
+  "SessionEnd": {
+    "hook_event_name": "SessionEnd",
+    "session_id": "@SESSION@",
+    "cwd": "@WORKSPACE@",
+    "reason": "other"
+  }
+}

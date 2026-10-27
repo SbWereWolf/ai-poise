@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "SessionStart",
+    "field": "source",
+    "change": "remove",
+    "pointer": "/input/event/source"
+  },
+  {
+    "kind": "SessionStart",
+    "field": "source",
+    "value": "unsupported",
+    "pointer": "/input/event/source"
+  },
+  {
+    "kind": "SessionStart",
+    "field": "cwd",
+    "value": "relative",
+    "pointer": "/input/event/cwd"
+  },
+  {
+    "kind": "UserPromptSubmit",
+    "field": "prompt",
+    "value": 17,
+    "pointer": "/input/event/prompt"
+  },
+  {
+    "kind": "Stop",
+    "field": "turn_id",
+    "change": "remove",
+    "pointer": "/input/event/turn_id"
+  },
+  {
+    "kind": "SessionEnd",
+    "field": "reason",
+    "value": "unsupported",
+    "pointer": "/input/event/reason"
+  },
+  {
+    "kind": "SessionStart",
+    "field": "agent_id",
+    "value": "ambiguous",
+    "pointer": "/input/event/agent_id"
+  }
+]

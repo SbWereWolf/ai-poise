@@ -1,0 +1,16 @@
+{
+  "session": "@SESSION_VALUE@",
+  "binding": {
+    "id": "@BINDING@",
+    "session_id": "@SESSION@",
+    "definition_id": "example-hooks"
+  },
+  "event": {
+    "id": "@EVENT_ID@",
+    "sequence": "@SEQUENCE@",
+    "event": "@KIND@",
+    "data": "@EVENT_DATA@"
+  },
+  "native_response": "@NATIVE_RESPONSE@",
+  "replayed": "@REPLAYED@"
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "stride-poise/v1",
+  "status": "@STATUS@",
+  "result": "@RESULT@",
+  "error": {
+    "code": "@CODE@",
+    "details": "@DETAILS@",
+    "action": "@ACTION@"
+  },
+  "evidence": "@EVIDENCE@"
+}

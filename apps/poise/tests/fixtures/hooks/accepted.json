@@ -1,0 +1,14 @@
+{
+  "status": "completed",
+  "verdict": "accepted",
+  "result": {
+    "value": "Данные",
+    "unknown_fields": {
+      "preserved": [
+        false,
+        null,
+        0
+      ]
+    }
+  }
+}

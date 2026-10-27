@@ -1,0 +1,44 @@
+{
+  "id": "@PROBE@",
+  "kind": "command",
+  "required": true,
+  "argv": [
+    "@PYTHON@",
+    "-I",
+    "-S",
+    "-B",
+    "@PEER@",
+    "probe",
+    "@MODE@"
+  ],
+  "cwd": "${workspace}",
+  "environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TRACE": "@TRACE@",
+    "PID_FILE": "@PID@"
+  },
+  "timeout_seconds": 2,
+  "max_output_bytes": 32768,
+  "expected_exit_code": 0,
+  "stdout_contains": [],
+  "stderr_contains": [],
+  "json_assertions": [
+    {
+      "path": [
+        "checkout"
+      ],
+      "equals": "${workspace}"
+    },
+    {
+      "path": [
+        "message"
+      ],
+      "equals": "READY"
+    }
+  ],
+  "mcp": null,
+  "tool_ref": "fixture.hook-probe",
+  "project_bound": true,
+  "remediation": "Configure the read-only fixture probe."
+}

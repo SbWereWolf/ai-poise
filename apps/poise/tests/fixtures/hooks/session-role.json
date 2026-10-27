@@ -1,0 +1,13 @@
+{
+  "id": "@SESSION@",
+  "origin": "@ORIGIN@",
+  "status": "open",
+  "revision": 2,
+  "role": "author",
+  "role_assignment": {
+    "request_id": "assign-1",
+    "authorization_ref": "operator-decision-1",
+    "assigned_revision": 2
+  },
+  "locked": true
+}

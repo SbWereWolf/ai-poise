@@ -1,0 +1,14 @@
+{
+  "id": "example-hooks",
+  "events": [
+    "SessionStart",
+    "UserPromptSubmit",
+    "Stop",
+    "SessionEnd"
+  ],
+  "context_template": "Session {session_id}; workspace {workspace}",
+  "stop_template": "Session {session_id}; workspace {workspace}",
+  "generic_config": null,
+  "external": null,
+  "probes": []
+}

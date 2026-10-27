@@ -1,0 +1,13 @@
+{
+  "schema": "stride-poise/v1",
+  "status": "rejected",
+  "result": null,
+  "error": {
+    "code": "invalid_request",
+    "details": {
+      "path": "/operation"
+    },
+    "action": "correct:request"
+  },
+  "evidence": []
+}

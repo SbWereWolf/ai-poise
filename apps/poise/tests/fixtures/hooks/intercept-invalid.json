@@ -1,0 +1,42 @@
+[
+  {
+    "change": "remove",
+    "field": "workspace",
+    "pointer": "/input/workspace"
+  },
+  {
+    "change": "remove",
+    "field": "request",
+    "pointer": "/input/request"
+  },
+  {
+    "change": "set",
+    "field": "request",
+    "value": [],
+    "pointer": "/input/request"
+  },
+  {
+    "change": "set",
+    "field": "workspace",
+    "value": 17,
+    "pointer": "/input/workspace"
+  },
+  {
+    "change": "set",
+    "field": "workspace",
+    "value": "relative-directory",
+    "pointer": "/input/workspace"
+  },
+  {
+    "change": "set",
+    "field": "workspace",
+    "value": "@MISSING@",
+    "pointer": "/input/workspace"
+  },
+  {
+    "change": "set",
+    "field": "session_id",
+    "value": "other-session",
+    "pointer": "/input"
+  }
+]

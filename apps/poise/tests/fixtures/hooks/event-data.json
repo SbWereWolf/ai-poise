@@ -1,0 +1,26 @@
+{
+  "SessionStart": {
+    "workspace": "@WORKSPACE@",
+    "turn_id": null,
+    "source": "startup",
+    "reason": null
+  },
+  "UserPromptSubmit": {
+    "workspace": "@WORKSPACE@",
+    "turn_id": "turn-1",
+    "source": null,
+    "reason": null
+  },
+  "Stop": {
+    "workspace": "@WORKSPACE@",
+    "turn_id": "turn-1",
+    "source": null,
+    "reason": null
+  },
+  "SessionEnd": {
+    "workspace": "@WORKSPACE@",
+    "turn_id": null,
+    "source": null,
+    "reason": "other"
+  }
+}

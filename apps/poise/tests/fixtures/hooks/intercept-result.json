@@ -1,0 +1,5 @@
+{
+  "session": "@SESSION_VALUE@",
+  "external": "@EXTERNAL@",
+  "capability_checks": "@PROBES@"
+}

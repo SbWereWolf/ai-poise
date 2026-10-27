@@ -1,0 +1,9 @@
+{
+  "status": "inspected",
+  "verdict": "changes_required",
+  "findings": [
+    {
+      "reason": "literal target decision"
+    }
+  ]
+}

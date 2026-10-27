@@ -1,0 +1,17 @@
+{
+  "limit": {
+    "code": "@ERROR@",
+    "details": {
+      "id": "@ID@",
+      "limit": "@LIMIT@"
+    },
+    "action": "adjust:provider"
+  },
+  "config": {
+    "code": "invalid_config",
+    "details": {
+      "path": "@PATH@"
+    },
+    "action": "correct:config"
+  }
+}

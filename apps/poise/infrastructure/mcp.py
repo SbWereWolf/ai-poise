@@ -6,6 +6,7 @@ import signal
 import subprocess
 import time
 
+from domain.generic import Problem
 from infrastructure.json_io import loads
 
 
@@ -61,7 +62,9 @@ class StdioProbe:
             self.total += len(chunk)
             self.buffer += chunk
             if self.total > self.spec['max_output_bytes']:
-                raise ValueError('MCP configured output bound exceeded')
+                raise Problem('provider_output_limit',
+                              {'id': self.spec['id'], 'limit': self.spec['max_output_bytes']},
+                              'adjust:provider', 'unavailable')
             if b'\n' not in self.buffer and len(self.buffer) > limits['max_message_bytes']:
                 raise ValueError('MCP configured message bound exceeded')
         line, self.buffer = self.buffer.split(b'\n', 1)
@@ -90,29 +93,27 @@ class StdioProbe:
             return message['result']
 
     def finish(self, error, stderr):
+        timed_out = False
         if self.child is not None:
             try:
                 self.child.stdin.close()
             except BrokenPipeError:
                 pass
+            self.child.stdin = None
+            remaining = max(0, min(self.deadline - time.monotonic(),
+                                   self.spec['mcp']['shutdown_seconds']))
             try:
-                self.child.wait(timeout=self.spec['mcp']['shutdown_seconds'])
+                tail, _ = self.child.communicate(timeout=remaining)
             except subprocess.TimeoutExpired:
+                timed_out = True
                 if self.child.poll() is None:
                     try:
                         os.killpg(self.child.pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
-                self.child.wait()
-            while True:
-                try:
-                    tail = os.read(self.child.stdout.fileno(), 65536)
-                except BlockingIOError:
-                    break
-                if not tail:
-                    break
+                tail, _ = self.child.communicate()
+            if tail:
                 self.raw.write(tail)
-            self.child.stdout.close()
         self.raw.flush()
         stderr.flush()
         self.output.evidence(self.paths['stdout'], 'stdout')
@@ -125,9 +126,10 @@ class StdioProbe:
             'exit_code': None if self.child is None else self.child.returncode,
             'error': error or ('MCP configured output bound exceeded' if overflow else None),
             'output_limit_exceeded': overflow, 'max_output_bytes': self.spec['max_output_bytes'],
+            'timed_out': timed_out,
             'timeout_seconds': self.spec['timeout_seconds'],
             'stdout': str(self.paths['stdout']), 'stderr': str(self.paths['stderr'])})
-        return overflow
+        return overflow, timed_out
 
     def run(self):
         self.deadline = time.monotonic() + self.spec['timeout_seconds']
@@ -180,15 +182,28 @@ class StdioProbe:
                     if smoke.get('isError', False) is not False:
                         raise ValueError('MCP operation returned isError')
                 if self.paths['stdout'].stat().st_size + self.paths['stderr'].stat().st_size > self.spec['max_output_bytes']:
-                    raise ValueError('MCP configured output bound exceeded')
+                    raise Problem('provider_output_limit',
+                                  {'id': self.spec['id'], 'limit': self.spec['max_output_bytes']},
+                                  'adjust:provider', 'unavailable')
                 result = {'server': server, 'tools': list(tools), 'smoke': smoke,
                         'observation': 'mcp_tools_listed' if smoke is None else 'mcp_smoke_passed',
                         'receipt': str(self.paths['receipt'])}
-            except (OSError, ValueError) as exc:
+            except TimeoutError as exc:
+                error = str(exc)
+                raise Problem('provider_timeout',
+                              {'id': self.spec['id'], 'limit': self.spec['timeout_seconds']},
+                              'adjust:provider', 'unavailable') from exc
+            except (Problem, OSError, ValueError) as exc:
                 error = str(exc)
                 raise
             finally:
-                overflow = self.finish(error, stderr)
+                overflow, timed_out = self.finish(error, stderr)
+        if timed_out:
+            raise Problem('provider_timeout',
+                          {'id': self.spec['id'], 'limit': self.spec['timeout_seconds']},
+                          'adjust:provider', 'unavailable')
         if overflow:
-            raise ValueError('MCP configured output bound exceeded')
+            raise Problem('provider_output_limit',
+                          {'id': self.spec['id'], 'limit': self.spec['max_output_bytes']},
+                          'adjust:provider', 'unavailable')
         return result

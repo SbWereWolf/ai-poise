@@ -45,14 +45,16 @@ def load_config(path):
     config['limits'] = limits
     files = config_fields(config['files'], {'stdout', 'stderr', 'receipt', 'result'}, '/files')
     for key, name in files.items():
-        if not isinstance(name, str) or not name or Path(name).name != name or name in ('.', '..'):
+        if (not isinstance(name, str) or not name or '\0' in name
+                or Path(name).name != name or name in ('.', '..')):
             raise Problem('invalid_config', {'path': '/files/' + key}, 'correct:config')
     if len(set(files.values())) != len(files):
         raise Problem('invalid_config', {'path': '/files'}, 'correct:config')
     config['files'] = files
     if type(config['file_mode']) is not int or not 0 <= config['file_mode'] <= 0o777:
         raise Problem('invalid_config', {'path': '/file_mode'}, 'correct:config')
-    if not isinstance(config['results_root'], str) or not config['results_root']:
+    if (not isinstance(config['results_root'], str) or not config['results_root']
+            or '\0' in config['results_root']):
         raise Problem('invalid_config', {'path': '/results_root'}, 'correct:config')
     root = Path(config['results_root'])
     config['results_root'] = str((root if root.is_absolute() else path.parent / root).resolve())
@@ -116,9 +118,14 @@ def main():
     if result is not None and config is not None:
         encoded = json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
         if len(encoded) > config['limits']['result_bytes']:
-            output.save_result(result)
+            try:
+                output.save_result(result)
+            except OSError as exc:
+                error = {'code': 'io_unavailable', 'details': {'reason': str(exc)},
+                         'action': 'configure:files'}
+            else:
+                error = {'code': 'result_limit', 'details': {'limit': 'result_bytes'}, 'action': 'read:result'}
             status, result = 'unavailable', None
-            error = {'code': 'result_limit', 'details': {'limit': 'result_bytes'}, 'action': 'read:result'}
     return respond(status, result, error, [] if output is None else output.references)
 
 

@@ -24,6 +24,9 @@ class CapabilityChecks:
                    if spec.data['required'] and item['status'] != 'available']
         result = {'ready': not missing, 'missing_required': missing, 'observations': observations}
         if missing:
+            error = observations[0].get('error') if len(specs) == 1 else None
+            if error and error['code'] in ('provider_timeout', 'provider_output_limit'):
+                raise Problem(error['code'], error['details'], error['action'], 'unavailable', result)
             raise Problem('capabilities_unavailable', {'ids': missing}, 'configure:capability',
                           'unavailable', result)
         return result

@@ -94,7 +94,10 @@ class LocalProbeExecutor:
                 result.update(observation=call['observation'], tools=call['tools'],
                               version=call['server']['version'])
             result['status'] = 'available'
-        except (Problem, OSError, ValueError) as exc:
+        except Problem as exc:
+            result['reason'] = str(exc)
+            result['error'] = exc.error
+        except (OSError, ValueError) as exc:
             result['reason'] = str(exc)
         if result['receipt'] is None:
             references = self.output.references[before:]

@@ -31,5 +31,3 @@ def loads(raw: bytes):
     # Escaped lone surrogates also cannot represent UTF-8 text on this boundary.
     json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")
     return value
-
-

@@ -1,148 +1,250 @@
 # Самостоятельная оболочка Poise
 
-Эта страница относится к Session-входу `bin/poise`. Поставленные общие контекст,
-навыки, проверки возможностей и навигация имеют самостоятельный вход
-`bin/poise-generic` и [отдельный операторский договор](generic-poi.md).
-Подготовка и чтение версии собственного хранилища доступны через `bin/poise-state`
-и [договор состояния](state-poi.md). Этот вход отделён от описанного здесь
-`session.status`; поведение прежней оболочки сохраняется.
+`bin/poise` устанавливает собственную Session для вызывающего, закрепляет её первую
+роль и читает текущий статус. Для этих операций достаточно явной конфигурации,
+CPython 3.13 со стандартной библиотекой и подготовленного собственного SQLite-хранилища.
 
-T024 предоставляет собственную точку входа, явный конфиг и проверку пакета Poise.
-Текущий срез обслуживает только чтение отсутствующей Session. Полный целевой
-[контракт Poise](contract-poi.md) реализуется последующими задачами; ниже описано
-поведение поставленной оболочки.
+Эта страница — действующий договор Session. Подготовка состояния описана в
+[договоре poise-state](state-poi.md), общие контекст, навыки, проверки возможностей
+и навигация — в [договоре poise-generic](generic-poi.md). Более широкий
+[проект Poise](contract-poi.md) сохраняет будущие возможности в своей области.
 
 ## Запуск
 
-Из корня поставки, с `python3` в `PATH`:
+Из корня поставки запускайте существующий `apps/poise/bin/poise --config PATH`.
+Исполняемый файл использует `python3` из `PATH`; для явного выбора интерпретатора
+используйте `"$POISE_PYTHON" -I -S -B apps/poise/bin/poise --config PATH`.
+Задайте `POISE_PYTHON` абсолютным путём выбранного CPython 3.13.
+Относительный `PATH` относится к текущему рабочему каталогу; пути внутри конфига —
+к каталогу этого конфига. Один вызов получает один JSON-пакет UTF-8 на stdin и EOF.
+Ответ — один JSON-объект UTF-8 с завершающим LF и пустым stderr.
+
+### Самостоятельный пример
+
+Следующая последовательность создаёт отдельную временную установку. Обе конфигурации
+из поставки выбирают один `../state/sessions.sqlite`. Выполняйте команды из корня
+checkout. Выбранный `POISE_PYTHON` должен быть доступен в текущей оболочке.
 
 ```bash
+POISE_EXAMPLE="$(mktemp -d)"
+mkdir -p "$POISE_EXAMPLE/config"
+cp apps/poise/config/poise.example.json "$POISE_EXAMPLE/config/poise.json"
+cp apps/poise/config/state.example.json "$POISE_EXAMPLE/config/state.json"
+"$POISE_PYTHON" - "$POISE_EXAMPLE/config/poise.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+config = json.loads(path.read_text())
+config['caller'] = {'mode': 'generated', 'binding_file': '../caller.json'}
+path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n')
+PY
+printf '%s\n' '{"schema":"poise-state/v1","operation":"prepare","input":{}}' |
+  "$POISE_PYTHON" -I -S -B apps/poise/bin/poise-state \
+    --config "$POISE_EXAMPLE/config/state.json"
+
+poise_example() {
+  env -u CODEX_SESSION_ID -u CODEX_THREAD_ID \
+    "$POISE_PYTHON" -I -S -B apps/poise/bin/poise \
+    --config "$POISE_EXAMPLE/config/poise.json"
+}
+printf '%s\n' '{"schema":"stride-poise/v1","operation":"session.ensure","input":{}}' |
+  poise_example
+printf '%s\n' '{"schema":"stride-poise/v1","operation":"session.assign_role","input":{"request_id":"assign-1","role":"author","authorization_ref":"operator-decision-1"}}' |
+  poise_example
+printf '%s\n' '{"schema":"stride-poise/v1","operation":"session.assign_role","input":{"request_id":"assign-1","role":"author","authorization_ref":"operator-decision-1"}}' |
+  poise_example
 printf '%s\n' '{"schema":"stride-poise/v1","operation":"session.status","input":{}}' |
-  apps/poise/bin/poise --config apps/poise/config/poise.json
+  poise_example
 ```
 
-Исполняемый файл загружает собственный `apps/poise/shell.py` и стандартную
-библиотеку Python. Аргументы имеют ровно форму `--config PATH`. Конфиг обязателен;
-автоматического поиска конфига, выбора проекта или подстановки пути из окружения
-нет. Относительный аргумент `PATH` относится к текущему рабочему каталогу.
+`env -u` относится только к отдельному дочернему процессу этого примера: он использует
+собственный generated caller. Native identity текущей оболочки остаётся прежней.
+Подготовка возвращает версию `1`. Первый `ensure` возвращает `created=true`,
+`origin="generated"`, `status="open"`, `revision=1`, `role=null`,
+`role_assignment=null`, `locked=false`. Назначение возвращает `changed=true`,
+`role="author"`, `revision=2`, `locked=true` и происхождение решения:
 
-После одного JSON-объекта на stdin вызывающий закрывает поток. Оболочка читает
-вход как UTF-8 и выдаёт один JSON-объект в UTF-8 с завершающим LF. Кодировка ответа
-не зависит от `PYTHONIOENCODING`. Обработанные отказы возвращают exit code `2`,
-`status="rejected"` и пустой stderr.
+```json
+{"request_id":"assign-1","authorization_ref":"operator-decision-1","assigned_revision":2}
+```
 
-При отсутствующем файле Session store пример возвращает
-`error.code="session_not_found"`. Это ожидаемый результат данного среза.
-Каталоги состояния, БД, lock-файл и Session при таком чтении не создаются.
+Повтор возвращает `changed=false` с теми же сохранёнными фактами; `status` возвращает
+ту же Session. Все четыре Session-вызова имеют `status="ok"` и exit `0`.
+В рабочей установке сохраните каталог состояния и caller binding между запусками;
+идентификатор Session берётся из ответа приложения.
 
 ## Явная конфигурация
 
-Шаблон рабочей конфигурации — [config/poise.example.json](../config/poise.example.json).
-Подготовьте из него собственный `config/poise.json`. Тестовый пример —
-[fixtures/poise-config.json](../fixtures/poise-config.json). Верхний объект
-принимает только перечисленные обязательные поля.
+Используйте [config/poise.example.json](../config/poise.example.json) как шаблон
+собственного рабочего файла. Обязательны шесть полей верхнего уровня:
 
-| Поле | Проверка и поведение в T024 |
+| Поле | Действующий смысл |
 | --- | --- |
 | `schema` | Ровно `stride-poise-config/v1` |
-| `installation_id` | Непустой идентификатор установки в пределах `limits.id_bytes` |
-| `state_root` | Явно заданный путь собственного состояния |
-| `session_store` | Явно заданный путь собственного Session store; проверяется существование файла |
-| `lock_path` | Явно заданный путь собственного lock-файла; блокировка пока не берётся |
-| `results_root` | Явно заданный путь собственных результатов; каталог пока не создаётся |
-| `roles` | Непустой список уникальных идентификаторов; роль Session из него не назначается |
-| `caller`, `authorization`, `tools`, `paths`, `environment` | Обязательные объекты, в этом срезе зарезервированы; содержимое не активирует адаптеры или политики |
-| `limits` | Обязательный объект с точным набором положительных ограничений ниже |
+| `installation_id` | Постоянная непустая строка имени своей установки |
+| `session_store` | Путь к собственному SQLite-хранилищу версии `1` |
+| `caller` | Объект с обязательным `mode`: `native` или `generated` |
+| `roles` | Непустой список уникальных непустых строк допустимых ролей |
+| `limits` | Объект с обязательными `packet_bytes` и `sqlite_timeout_seconds` |
 
-Идентификаторы `installation_id` и элементы `roles` не могут быть `.` или `..`,
-содержать NUL, `/` или `\`. Ограничение длины считается в байтах UTF-8.
+Все значимые строки содержат UTF-8 без NUL. `packet_bytes` — положительное целое
+число, `sqlite_timeout_seconds` — конечное число от нуля включительно; булевы значения
+для этих настроек не используются. В примере предел пакета равен `65536` байтам,
+ожидание SQLite — `0` секунд. Для обычной совместной записи можно явно выбрать
+подходящее время ожидания в своём конфиге.
 
-Счётчики `packet_bytes`, `result_bytes`, `input_bytes`, `id_bytes`, `batch_count`
-и `provider_output_bytes` должны быть положительными целыми числами;
-булевы значения не подходят. Длительности `lock_timeout_seconds`,
-`lock_poll_milliseconds` и `provider_timeout_seconds` должны быть положительными
-конечными числами; дробные значения разрешены, булевы — нет.
+Для `generated` дополнительно задайте непустой `caller.binding_file`. Неизвестные
+опции, включая вложенные, игнорируются; приложение сохраняет исходный файл конфига
+без перезаписи. Рабочие файлы конфигурации принадлежат оператору.
 
-В T024 `packet_bytes` ограничивает чтение stdin, а `id_bytes` — идентификаторы
-конфига. Остальные ограничения проверяются при загрузке конфига и сохраняются
-для последующего владельца соответствующего поведения. Reader, batch, tool
-provider, запись результатов и блокировки в этом срезе не выполняются.
+### Caller и постоянная идентичность
+
+В native-режиме запускайте Poise в настоящем контексте хоста, который предоставляет
+`CODEX_SESSION_ID` или `CODEX_THREAD_ID`. При наличии обеих переменных значения должны
+совпадать и быть непустыми. Хост владеет этими значениями. Native-значение становится
+первоначальным ID Session; уже сохранённая привязка имеет приоритет.
+
+В generated-режиме используйте отдельный процесс без native-сигналов и явно выбранный
+постоянный `binding_file`. Подготовьте его родительский каталог. Первый `session.ensure`
+сначала проверяет подготовленное состояние, затем публикует полный файл привязки с
+двумя полями: `schema="poise-caller-binding-1"` и непустым `caller_id`.
+Сохранённый файл используется при следующих вызовах. Созданный ID Session непрозрачен
+и устойчив для этой привязки. Для другого caller выберите собственный binding file.
+
+Одновременное первое обращение сохраняет одну привязку и одну Session. Новая Session
+возникает без роли. Чтение статуса и назначение роли используют существующую привязку;
+для первоначального создания вызывайте `session.ensure`.
 
 ## Пути и владение состоянием
 
-Четыре пути состояния разрешаются относительно каталога фактического файла
-конфига, после разрешения символических ссылок; абсолютные пути используются
-явно. Каждый путь должен быть непустой строкой без NUL. Изменение рабочего
-каталога при том же абсолютном `--config` не выбирает другую установку.
+`session_store` и `caller.binding_file` разрешаются относительно каталога конфига;
+абсолютные пути используются прямо. Постоянные `installation_id`, store и binding
+определяют вашу установку и caller. Два конфига могут использовать независимые корни;
+смена cwd при том же абсолютном `--config` сохраняет выбор установки.
 
-В поставленном конфиге `../state` и `../results` относятся к `apps/poise/`.
-Два разных конфига могут задавать независимые корни. Оболочка не ищет fallback
-в соседних конфигурациях или БД и не заменяет отсутствующее обязательное поле
-значением по умолчанию.
+Подготовьте тот же store через `bin/poise-state` с `target_version=1`, как в примере.
+Операции Session читают подготовленную схему; её подготовка остаётся отдельной командой.
+Poise хранит Session, её caller binding и первое назначение роли в своей БД.
+Requirements владеет требованиями и формулировками задач; Sequencing — claims и
+workspaces; Execution — этапами, проверками и результатами. Их конфигурации и БД
+для этих трёх Session-операций не требуются.
 
-Poise владеет Session, ролями и generic tools. Requirements владеет требованиями
-и формулировками задач; Sequencing — claims и workspaces; Execution — этапами,
-проверками и результатами. Оболочка T024 не импортирует приложения этих владельцев
-и не читает их private stores. Дальнейшие обращения к другим областям должны
-использовать их настроенные публичные интерфейсы. Наличие Session само по себе
-не означает принятие задачи или независимость проверяющего.
+Короткая SQLite-транзакция объединяет создание Session и привязки либо первое
+назначение роли и увеличение редакции. Результат записи возвращается после COMMIT.
+При обычном отказе записи изменения откатываются, затем запрос можно повторить.
+Статус, существующий `ensure` и повтор уже назначенной роли читаются без допуска
+SQLite-писателя. У Session сохраняются исходные inventory и происхождение назначения,
+а также данные hooks, reader и cursor соответствующих владельцев.
 
-`session.status` принимает только пустой `input`. Если собственный
-`session_store` отсутствует, результат — `session_not_found`. При наличии пути
-или ошибке доступа результат — `store_incompatible` с `details.schema=null`:
-оболочка ещё не распознаёт содержимое Session store. SQLite не открывается,
-миграции и скрытое восстановление не запускаются. Установление Session и выбор
-caller binding здесь не выполняются.
+## Операции и ответы
+
+Пакет содержит ровно `schema`, `operation`, `input`; схема равна `stride-poise/v1`.
+Вход целиком ограничен числом байтов UTF-8 в `limits.packet_bytes`, включая пробелы
+и завершающий LF. Используйте три операции:
+
+| Операция | `input` | Поля успешного `result` |
+| --- | --- | --- |
+| `session.ensure` | `{}` | `session`, `created` |
+| `session.assign_role` | Ровно строки `request_id`, `role`, `authorization_ref` | `session`, `changed` |
+| `session.status` | `{}` | `session` |
+
+Каждая строка назначения непустая, `role` берётся из настроенного `roles`.
+`authorization_ref` — ссылка оператора на решение; приложение сохраняет её как
+происхождение назначения. Операция применяется к собственной Session caller.
+
+Первое назначение открытой Session сохраняет роль и увеличивает редакцию на один.
+Повтор той же роли, в том числе с новым `request_id` или `authorization_ref`, возвращает
+`changed=false` и первоначальное происхождение решения. Для другой роли используйте
+другую Session. `ensure` существующей Session возвращает `created=false` и её текущие
+факты, включая закрытое состояние. Историческая роль остаётся читаемой после изменения
+списка `roles`; новое назначение использует текущий список.
+
+Session содержит ровно семь полей:
+
+| Поле | Значение |
+| --- | --- |
+| `id` | Непустой ID сохранённой Session |
+| `origin` | Сохранённое `native` или `generated` |
+| `status` | `open` или сохранённое `closed` |
+| `revision` | Целое число от `1` |
+| `role` | Первая роль либо `null` |
+| `role_assignment` | Сохранённый объект происхождения решения либо `null` |
+| `locked` | `true` при наличии первого назначения, иначе `false` |
+
+`locked` описывает закреплённую роль, а не общую блокировку работы.
+Публичное закрытие Session относится к будущим возможностям. Уже сохранённое закрытое
+состояние доступно для чтения; назначение выполняется для открытой Session.
+
+Ответ всегда содержит ровно `schema`, `status`, `result`, `error`, `evidence`.
+При успехе `error=null`, `result` содержит описанные поля. Обработанный отказ возвращает
+`result=null` и ровно `error.code`, `error.details`, `error.action`.
+В текущем интерфейсе `evidence=[]`. Соответствие статуса и exit code:
+`ok` → `0`, `unavailable` → `1`, `rejected` → `2`.
+Кодировка ответа UTF-8 сохраняется при любом `PYTHONIOENCODING` вызывающего.
 
 ## Диагностируемые отказы
 
-| Условие | `error.code` и существенные данные |
-| --- | --- |
-| Нет корректного `--config`, конфиг недоступен или некорректен | `invalid_packet`; `details.path` указывает `/config` или конкретное поле |
-| Одно отсутствующее обязательное поле конфига | `invalid_packet`; например, `/config/state_root` |
-| Неизвестное поле конфига или несколько отсутствующих полей | `invalid_packet`; путь к соответствующему объекту |
-| Вход превышает `limits.packet_bytes` | `limit_exceeded`, `details.limit="packet_bytes"` |
-| Некорректный UTF-8/JSON, повторный ключ, неконечное число или непарный суррогат во входе | `invalid_json` |
-| Неподдерживаемая схема входного пакета | `unsupported_schema`; строковое значение сохраняется в `details.schema`, иначе там `null` |
-| Неизвестная операция, неправильные поля envelope или непустой `input` | `invalid_packet` с путём к нарушенному полю или объекту |
-| Собственный store отсутствует | `session_not_found` |
-| Собственный store уже существует или недоступен | `store_incompatible`, `details.schema=null` |
+Используйте `error.code`, существенные `details` и `action` для выбора следующего
+правильного действия. Таблица описывает обработанные исходы текущего входа.
 
-Envelope содержит ровно `schema`, `operation` и `input`. Неизвестные операции,
-включая `session.ensure`, отклоняются до вызова состояния или провайдера.
-Для конфига некорректный JSON также даёт `invalid_packet` по пути `/config`;
-`invalid_json` относится к входному пакету.
+| `error.code` | Статус; данные; `action` | Правильное действие |
+| --- | --- | --- |
+| `state_not_found` | `unavailable`; `database`; `prepare:state` | Подготовить выбранный store через poise-state |
+| `state_not_prepared` | `unavailable`; `version=0`; `prepare:state` | Выполнить подготовку версии `1` |
+| `state_incompatible` | `unavailable`; фактическая `version`; `select:state` | Выбрать собственный store поддержанной версии `1` |
+| `state_busy` | `unavailable`; `database`; `retry:state` | Дождаться завершения текущей SQLite-транзакции и повторить запрос |
+| `state_io` | `unavailable`; фактический `reason`; `configure:state` | Настроить доступ к выбранному состоянию |
+| `session_not_found` | `unavailable`; `{}`; `ensure:session` | Выполнить `session.ensure` для своего caller |
+| `caller_io` | `unavailable`; фактический `reason`; `configure:caller` | Подготовить каталог binding file и доступ к нему |
+| `invalid_caller` | `rejected`; `reason`; `correct:caller` | Выбрать согласованный native-контекст либо подготовленный generated binding |
+| `identity_conflict` | `rejected`; `session_id`; `select:caller` | Использовать отдельный действительный caller-контекст |
+| `role_not_allowed` | `rejected`; `role`; `select:role` | Выбрать роль из текущего настроенного списка |
+| `role_locked` | `rejected`; `current_role`, `requested_role`; `select:session` | Использовать другую Session для другой роли |
+| `session_closed` | `rejected`; `status="closed"`; `select:session` | Использовать открытую Session для назначения |
+| `invalid_config` | `rejected`; `path`; `correct:config` | Заполнить известные настройки по этому руководству |
+| `invalid_request` | `rejected`; `path`; `correct:request` | Сформировать точный пакет выбранной операции |
+| `invalid_json` | `rejected`; `{}`; `provide:json` | Передать один корректный JSON-объект UTF-8 и EOF |
+| `unsupported_schema` | `rejected`; строковая `schema` либо `null`; `select:schema` | Использовать схему `stride-poise/v1` |
+| `packet_limit` | `rejected`; `limit="packet_bytes"`; `reduce:packet` | Передать пакет в настроенном байтовом пределе |
+
+`invalid_caller.details.reason` различает `native_missing`, `native_invalid`,
+`native_conflict`, `native_generated_conflict` и `binding_invalid`. Настройте один
+выбранный способ идентичности. Для generated используйте целый постоянный файл
+указанного формата, для native — значения настоящего контекста хоста.
 
 ## Последующие задачи
 
-| Задача | Оставшаяся граница |
-| --- | --- |
-| T060 | Подготовка собственного Session/bindings/hooks/reader state поставлена через [poise-state](state-poi.md); операции Session остаются T061 |
-| T061 | Session без начальной роли, однократное назначение роли и её статус |
-| T062 | Generic hook transport, interception и read-only probes без обязательного task runtime |
-| T063 | Сравнение ERP File API и SourceReader 044A, включая ranges, bytes, next, версии, acknowledgements и generations |
-| T064 | Контракт ranges/next/cursor по результатам сравнения |
-| T065 | Выбранный reader с line/byte/next, generation/ack/cursor и обнаружением изменения версии |
-
-Наличие зарезервированных полей в конфиге не включает перечисленное поведение.
+Поставленный вход обслуживает три описанные Session-операции. Общие контекст, навыки,
+пробы и навигация работают через `bin/poise-generic`; подготовка схемы — через
+`bin/poise-state`. Транспорт hooks, расширенный reader, файловая политика,
+допуск инструментов, асинхронные команды и публичное закрытие Session имеют свои
+границы реализации. Их проекты доступны в [общем договоре](contract-poi.md),
+[сравнении reader](poi-reader-comparison.md), [файловом договоре](poi-fs-contract.md)
+и [договоре команд](poi-command-contract.md).
 
 ## Узкая проверка
 
-Из корня поставки:
+Из корня checkout, с выбранным `POISE_PYTHON` и собственным каталогом
+`POISE_SESSION_CHECK_OUTPUT` для полных отчётов:
 
 ```bash
-python3 -B apps/poise/tests/test_shell.py --suite behavior
-python3 -B apps/poise/tests/test_shell.py --suite documentation
+"$POISE_PYTHON" -B apps/poise/tests/test_session.py --suite behavior \
+  --output-root "$POISE_SESSION_CHECK_OUTPUT/session"
+"$POISE_PYTHON" -B apps/poise/tests/test_shell.py --suite behavior \
+  --output-root "$POISE_SESSION_CHECK_OUTPUT/shell"
+"$POISE_PYTHON" -B apps/poise/tests/test_state.py --suite behavior \
+  --output-root "$POISE_SESSION_CHECK_OUTPUT/state"
+"$POISE_PYTHON" -B apps/poise/tests/test_shell.py --suite documentation \
+  --output-root "$POISE_SESSION_CHECK_OUTPUT/documentation"
 ```
 
-Behavior suite содержит восемь групп: точка входа, изоляция, независимые конфиги,
-обязательные поля, неизвестные поля, лимит пакета, некорректный JSON и закрытая
-граница операций/схем. Последняя группа проверяет сырые байты ответа при
-`PYTHONIOENCODING=latin-1` и `ascii`, включая строгий UTF-8, exit code `2`, пустой
-stderr и единственный завершающий LF. Ожидание находится в самостоятельной
-[фикстуре ответа](../fixtures/unsupported-schema.response.json).
-
-Documentation suite проверяет четыре группы обязательных сведений этой страницы.
-Успешный тестовый runner завершается кодом `0` и выдаёт JSON с пустыми `errors`
-и `failures`. Эти команды проверяют срез T024; при выполнении задачи полный
-регрессионный набор поставки не требуется.
+Шесть групп Session проверяют native/generated, изоляцию, конкурентные обращения,
+обычные границы и сохранение существующих фактов. Успех: `status="passed"`,
+`groups=6`, `executed=6`, `errors=0`, `failures=0`. Восемь shell-проверок сохраняют
+точку входа, изоляцию, конфиг и байтовый/JSON-договор. Пять групп состояния проверяют
+подготовку схемы и сохранение фактов. Четыре проверки документации подтверждают наличие
+опорных терминов; смысл текста и исполнимость примера проверяются отдельно.
+Полные отчёты — `session-details.json`, `shell-details.json`, `state-details.json`
+в соответствующих явно выбранных каталогах.

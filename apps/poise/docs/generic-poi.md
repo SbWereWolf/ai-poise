@@ -14,8 +14,9 @@
 Общие функции используют собственные входы без обязательных Task, Stage, Workspace
 или Session. Внешний контекст подключается явным публичным вызовом его владельца.
 Каталог приложения можно перенести целиком; вход добавляет в импорт только свой корень.
-Отдельная [Session-оболочка](shell-poi.md) сохраняет команду `bin/poise` и схему
-`stride-poise/v1`. [Целевой Session-договор](contract-poi.md) описывает свою область.
+Отдельный [действующий вход Session](shell-poi.md) использует команду `bin/poise`
+и схему `stride-poise/v1`. [Целевой договор Poise](contract-poi.md) описывает
+более широкие будущие возможности.
 Общие операции этой страницы используют отдельную схему `poise-generic/v1`.
 
 ## Подготовка и первый вызов
@@ -297,7 +298,8 @@ stdout/stderr. При настоящем timeout сохраняются факт
   --output-root "$POISE_EXAMPLE/generic-checks"
 "$POISE_PYTHON" -B apps/poise/tests/test_generic_regressions.py \
   --output-root "$POISE_EXAMPLE/regression-checks"
-"$POISE_PYTHON" -B apps/poise/tests/test_shell.py --suite behavior
+"$POISE_PYTHON" -B apps/poise/tests/test_shell.py --suite behavior \
+  --output-root "$POISE_EXAMPLE/shell-checks"
 ```
 
 Тестовые [command/MCP/navigation peers](../tests/fixtures/generic/peer.py),
@@ -308,7 +310,7 @@ stdout/stderr. При настоящем timeout сохраняются факт
 Контекст отдельного владельца проверяется публичным Execution CLI в собственном
 тестовом состоянии. Эти fixtures доказывают договор и фактическую передачу данных.
 Для рабочей установки выберите свои команды и отдельно проверьте их реальные ответы.
-Shell-проверка охватывает прежнюю Session-оболочку.
+Shell-проверка охватывает действующий самостоятельный вход Session.
 
 ## Владельцы реализации
 
@@ -316,5 +318,5 @@ Shell-проверка охватывает прежнюю Session-оболоч�
 навигации. `application` объединяет их в контекст, возможности, навыки и навигацию.
 `infrastructure` читает явные файлы, запускает команды/MCP и сохраняет полный вывод.
 `generic.py` связывает владельцев и формирует публичный ответ. Общий JSON-декодер
-используется также прежней Session-оболочкой. Управление задачами, Session-состоянием,
+используется также действующим входом Session. Управление задачами, Session-состоянием,
 hooks, reader и асинхронными заданиями остаётся у соответствующих владельцев.

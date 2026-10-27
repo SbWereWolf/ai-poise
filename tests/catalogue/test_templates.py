@@ -34,12 +34,19 @@ def test_historical_nodes_remain_present_in_the_expanded_reference_graph():
     source=json.loads((ROOT/'docs/architecture-design/data/stage-library-map.json').read_text())['nodes']
     expected={(n['goal_type'],n['stage']) for n in source}
     actual={(g,s['id']) for g in GOALS for s in documents(g)[0]['stages']}
-    retired = {("test_development", "remediation"), ("test_development", "remediation_inspection")}
-    retired.add(("verification", "self_inspection"))
-    assert retired <= expected
-    assert ("verification", "self_inspection") not in actual, "verification: retired self_inspection remains active"
-    assert not (retired & actual), "test_development: retired remediation nodes remain active"
-    assert expected - retired <= actual
+    from tests.catalogue.test_paired_stages import accepted_workflow
+    accepted = {
+        (goal, stage["id"])
+        for goal in GOALS for stage in accepted_workflow(goal)["stages"]
+    }
+    retired = expected - accepted
+    assert len(expected) == 102
+    assert len(expected & accepted) == 83
+    assert len(retired) == 19
+    assert len(accepted - expected) == 60
+    assert len(accepted) == 143
+    assert not (retired & actual)
+    assert actual == accepted
 
 
 def test_every_feedback_target_is_declared_for_user_rework():

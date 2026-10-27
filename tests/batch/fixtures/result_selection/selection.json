@@ -1,0 +1,32 @@
+{
+  "operation": "verify",
+  "input": {
+    "selection": {
+      "schema": "stage-result-selection-1",
+      "request_id": "selection-example-1",
+      "expected": {
+        "task": "T1",
+        "stage": "implementation",
+        "iteration": 1,
+        "version": 0
+      },
+      "sections": {
+        "report": "Проверяемый результат: данные сохранены точно."
+      },
+      "metadata": {
+        "commit_message": "Preserve selected proof bytes"
+      },
+      "files": [
+        {
+          "scope": "task",
+          "path": "proofs/input.bin",
+          "source": {
+            "root": "task",
+            "path": "inputs/input.bin"
+          }
+        }
+      ]
+    }
+  },
+  "messages": []
+}

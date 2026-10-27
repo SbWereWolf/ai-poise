@@ -1,0 +1,28 @@
+{
+  "sections": [],
+  "routes": [
+    {
+      "id": "review",
+      "requirements": [
+        "Результат сохраняет выбранные секции и байты."
+      ],
+      "points": [
+        {
+          "id": "choice",
+          "kind": "record",
+          "fields": {
+            "decision": [
+              "keep",
+              "reject"
+            ],
+            "reason": []
+          },
+          "write_stages": [
+            "implementation"
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": []
+}

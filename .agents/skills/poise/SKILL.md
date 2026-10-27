@@ -248,6 +248,28 @@ agent-use incident, follow [instruction
 clarity](../../../docs/governance/development-rules.md#ошибки-применения-и-точность-инструкций);
 detailed corrections belong in canonical docs, with a short skill link.
 
+## Instruction development scope
+
+Treat changes to AI-agent rules, skills and operating instructions as instruction
+development. Declare that responsibility when planning the affected stage. Its
+`allowed_paths` must include at least:
+
+- `.agents/**`
+- `AGENTS.md`
+- `**/AGENTS.md`
+- The canonical instructions for every affected area; this repository uses `docs/**`.
+
+Check the actual selected project paths and the effective Task StageContract.
+Scope permits relevant edits; it does not require unrelated changes. Refine the
+plan and criteria of an unstarted stage through their existing owners. Planning
+refinement alone does not require restarting the Task; when the effective scope
+already covers every planned write, continue within it. Correct a confirmed
+frozen-scope gap through the public Task contract owner before writing. Preserve
+ownership and independent review gates.
+
+Keep the procedure here and a short obligation in AI-agent rules linking to this
+exact section. Follow the canonical Russian [instruction-development rule](../../../docs/governance/development-rules.md#неизменность-путей-rework-и-граф-этапов).
+
 ## Harness refusal and manual continuation
 
 For historical workflows missing `purpose` or `criteria_authority`, follow
@@ -468,6 +490,17 @@ hand-edit intermediate result files or the database. Read [Batch work →
 Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work →
 File
 creation](../../../docs/workflows/batch-work.md#создание-файлов).
+
+Choose either documented `verify` input form: the complete `result`/`artifacts`
+form or [selected result submission](../../../docs/workflows/batch-work.md#выбранная-сдача-результата).
+For selection, explicitly choose substantive sections, files and metadata decisions
+using fresh Task/stage/iteration/version coordinates. The native owner fills the
+actual template and computes file digests; it does not choose claims or verdicts.
+Each supplied metadata field replaces that whole template field. Use the complete
+form when choosing text/template sources or an external absolute file with digest.
+Preserve the original admitted request identity and exact packet for a retry;
+read the complete saved response and follow its actual continuation. Verification
+does not perform advance, role handoff, acceptance or integration on your behalf.
 
 Batch independent reads that are known before the call into one public `show` packet with
 multiple `queries`. Give each query a stable unique `id` and correlate the returned items by

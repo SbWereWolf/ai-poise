@@ -262,6 +262,9 @@ Keep this English projection and its Russian source consistent in the same chang
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts
   implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation
   with behaviour, configuration or workflow changes.
+- When changing AI-agent rules, skills or operating instructions, follow
+  [Instruction development scope](.agents/skills/poise/SKILL.md#instruction-development-scope)
+  before declaring the affected stage ready or editing files.
 - Keep the existing path resolution of AI poise-owned hooks, tools, runtime code and configuration. Pass a checkout or
   working directory as an explicit filesystem path/cwd only to the operation that needs it; see [path resolution and
   working copies](docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии).

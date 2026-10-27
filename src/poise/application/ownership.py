@@ -326,12 +326,23 @@ class OwnershipCommands:
         return OwnershipChange(before, after, tuple(sorted(recovered)))
 
     @staticmethod
-    def _release_replay(raw, actor, intent):
+    def _matching_release_result(raw, actor, intent):
         import json
         receipt = json.loads(raw)
         if receipt['actor'] != actor or receipt['request'] != intent:
             raise PoiseError('Ordinary release caller or request conflict')
-        return {**receipt['result'], 'replayed': True}
+        return receipt['result']
+
+    @classmethod
+    def _release_replay(cls, raw, actor, intent):
+        return {**cls._matching_release_result(raw, actor, intent), 'replayed': True}
+
+    def original_release_receipt(self, actor, request):
+        from ..modules.ownership.domain import parse_ordinary_release
+        intent = parse_ordinary_release(request)
+        with self.uow() as uow:
+            raw = uow.ownership.ordinary_release_receipt_raw(intent['request_id'])
+        return None if raw is None else self._matching_release_result(raw, actor, intent)
 
     def release(self, actor, request):
         from dataclasses import asdict, replace
@@ -350,7 +361,7 @@ class OwnershipCommands:
         if target.task_owner != actor or before.task_id != task_id:
             raise PoiseError('Release requires the named Task owned by the current caller')
         if inputs.state(task_id).version != intent['expected_version']:
-            raise PoiseError('Release version conflict; refresh the current Task version')
+            raise VersionConflict('Release version conflict; refresh the current Task version')
         required = inputs.worktree_required(task_id)
         if required and target.worktree_owner not in (None, actor):
             raise PoiseError('Release rejected inconsistent foreign dependent worktree ownership')
@@ -429,6 +440,9 @@ class BoundOwnership:
 
     def release(self, request):
         return self.commands.release(self.actor, request)
+
+    def original_release_receipt(self, request):
+        return self.commands.original_release_receipt(self.actor, request)
 
     def release_task(self, task_id):
         return self.commands.release_task(self.actor, task_id)

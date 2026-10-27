@@ -15,6 +15,7 @@ from ..actions.ports import ActionRepository
 from ..foundation.errors import VersionConflict
 from ..result_integration.ports import IntegrationScopeRepository
 from ..worktree_preparation.ports import PreparationRepository
+from .handoff_ports import HandoffRepository
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,7 @@ class TaskReadSet:
     verification_ids: tuple[str, ...] = ()
     history_ids: tuple[str, ...] = ()
     cycle_releases: tuple[tuple[str, str], ...] = ()
+    handoff_requests: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,7 @@ class TaskSourcesChanged(VersionConflict):
 
 
 class TaskInputs(Protocol):
+    def handoff(self, request_id: str) -> object | None: ...
     def exists(self, task_id: str) -> bool: ...
     def artifact_records(self, task_id: str) -> list[dict]: ...
     def sprint_eligibility(self, task_id: str) -> tuple[dict | None, dict]: ...
@@ -236,6 +239,7 @@ class ArtifactLinkRepository(Protocol):
 
 
 class TaskUnitOfWork(Protocol):
+    handoffs: HandoffRepository
     def capture(self, read_set: TaskReadSet) -> TaskInputs: ...
     def require_inputs(self, inputs: TaskInputs) -> None: ...
     def prepare_change(self, inputs: TaskInputs, change: Change) -> object: ...

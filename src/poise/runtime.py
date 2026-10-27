@@ -159,6 +159,15 @@ class Poise:
         from .infrastructure.work import WorkResources
         self.interactions=InteractionStore(self.store.database,self.cfg['project'],self.cfg['batch'])
         self.work_resources=WorkResources(self)
+        from .application.stage_verification import StageResultVerification
+        from .application.stage_result_handoff import StageResultHandoffCommands
+        from .infrastructure.stage_result_handoff import RuntimeHandoffEffects
+        self.stage_verification = StageResultVerification(self)
+        self.stage_handoff = StageResultHandoffCommands(
+            self.store.unit_of_work,
+            RuntimeHandoffEffects(self, self.stage_verification),
+            self.session,
+        )
         from .application.acceptance_retention import AcceptanceRetention
         from .infrastructure.acceptance_retention import RuntimeAcceptanceRetention
         self.retention = AcceptanceRetention(RuntimeAcceptanceRetention(self))

@@ -30,7 +30,17 @@ class TaskOverviewPort(Protocol):
     def verification_registry(self,task_id:str)->dict: ...
 
 
+class StageVerificationPort(Protocol):
+    def verify(self, args: dict) -> dict: ...
+
+
+class StageHandoffPort(Protocol):
+    def apply(self, args: dict) -> dict: ...
+
+
 class WorkRuntime(Protocol):
+    stage_verification: StageVerificationPort
+    stage_handoff: StageHandoffPort
     ownership: Any
     accounting: Any
     telemetry: Any

@@ -50,6 +50,7 @@ class WorkTools:
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='reuse':out=h.reuse(**args)
             elif op=='verify':out=self._verify(args)
+            elif op=='handoff':out=h.stage_handoff.apply(args)
             elif op=='routing':out=h.refresh_development_route(args['facts'])
             elif op=='restore_context':out=h.restore_context(**args)
             elif op=='show':out=self._show(args['queries'])
@@ -89,7 +90,7 @@ class WorkTools:
         if 'selection' in args:
             from .result_selection import SelectedResultSubmission
             return SelectedResultSubmission(self).submit(args)
-        return self._verify_explicit(args)
+        return self.runtime.stage_verification.verify(args)
 
     def _verify_explicit(self,args, *, packet_digest=None, selection_guard=None):
         h=self.runtime;data=h.current_task()

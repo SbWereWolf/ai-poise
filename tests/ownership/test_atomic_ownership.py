@@ -195,13 +195,10 @@ def test_v12_ownership_upgrade_releases_stale_terminal_worktree_bindings(tmp_pat
         assert db.execute("SELECT COUNT(*) FROM sessions WHERE task_id='TERMINAL'").fetchone()[0] == 0
 
 
-def test_four_combinations_and_task_type_dependency(project):
-    packs = sorted((ROOT / "config/workflows").glob("*.json"))
-    packs += sorted((ROOT / "config/projects/ai-poise/config/workflows").glob("*.json"))
-    packs += sorted((ROOT / "config/catalogue/workflows").glob("*.json"))
-    packs += sorted((ROOT / "config/catalogue/workflow-templates").glob("*.json"))
-    packs += sorted((ROOT / "config/templates").glob("*.json"))
-    assert packs
+@pytest.mark.parametrize("directory", ["workflows", "workflow-templates"])
+def test_current_published_catalogue_has_explicit_worktree_policy(directory):
+    packs = sorted((ROOT / "config/catalogue" / directory).glob("*.json"))
+    assert len(packs) == 13
     for path in packs:
         workflow = json.loads(path.read_text(encoding="utf-8"))
         assert type(workflow["worktree_required"]) is bool, path
@@ -215,6 +212,20 @@ def test_four_combinations_and_task_type_dependency(project):
     with pytest.raises(BatchValidationError, match="worktree_required"):
         validate_workflow(candidate)
 
+
+@pytest.mark.parametrize("goal_type", ["development", "documentation"])
+@pytest.mark.parametrize("family", ["workflow", "template"])
+def test_historical_packs_with_incomplete_stage_contract_are_rejected(goal_type, family):
+    path = (ROOT / "config/workflows" / f"{goal_type}.json" if family == "workflow"
+            else ROOT / "config/templates" / f"{goal_type}-v1.json")
+    workflow = json.loads(path.read_text(encoding="utf-8"))
+    assert all("purpose" not in stage and "criteria_authority" not in stage
+               for stage in workflow["stages"])
+    with pytest.raises(BatchValidationError, match="criteria_authority.*purpose"):
+        validate_workflow(workflow)
+
+
+def test_four_combinations_and_task_type_dependency(project):
     _configure_workflow(project, False)
     _, task_only = _bootstrap(project, "task-only", "TASK-ONLY")
     assert task_only["worktree"] is None

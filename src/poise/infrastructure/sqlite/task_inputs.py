@@ -79,6 +79,12 @@ class SqliteTaskInputs:
     eligibility: dict
     materials: dict
     cycles: dict
+    handoffs: dict
+
+    def handoff(self, request_id):
+        from ...modules.tasks.handoff import StageHandoffState
+        raw = self.handoffs[request_id]
+        return None if raw is None else StageHandoffState.restore(json.loads(raw))
 
     def selected_result_author(self, task_id):
         return self.reviews[task_id].selected_actor
@@ -250,6 +256,7 @@ class SqliteTaskInputs:
 
 
 def capture_inputs(db, read_set):
+    from .stage_result_handoff import SqliteHandoffRepository
     from .task_allocation import capture_allocations
     from .task_verification import capture_verification
     from .task_history import capture_history
@@ -315,7 +322,8 @@ def capture_inputs(db, read_set):
         {task_id: capture_verification(db, task_id) for task_id in read_set.verification_ids},
         {task_id: capture_history(db, task_id) for task_id in read_set.history_ids}, eligibility,
         {task_id: tuple(SqliteArtifactRepository(db).records(task_id)) for task_id in read_set.material_ids},
-        {pair: SqliteAccountingCycles.capture_release(db, *pair) for pair in read_set.cycle_releases})
+        {pair: SqliteAccountingCycles.capture_release(db, *pair) for pair in read_set.cycle_releases},
+        {request: SqliteHandoffRepository(db).capture(request) for request in read_set.handoff_requests})
 
 
 def require_inputs(db, inputs):

@@ -557,7 +557,7 @@ def test_review_guard_rejects_legacy_same_actor_progression_without_mutation(pro
         db.execute("UPDATE sessions SET task_id=NULL WHERE id='reviewer'")
         db.execute("UPDATE sessions SET task_id='T1' WHERE id='executor'")
     before = state_snapshot(executor.runtime, ("executor", "reviewer"))
-    with pytest.raises(PoiseError, match="distinct native reviewer session"):
+    with pytest.raises(PoiseError, match="Current result history does not prove its actual owner"):
         advance(executor)
     assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
 

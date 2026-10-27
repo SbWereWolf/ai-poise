@@ -1,0 +1,16 @@
+{
+  "result_report": "A different stage result is a different intent.",
+  "artifacts": [
+    {
+      "scope": "task",
+      "path": "another-result.txt",
+      "source": {
+        "kind": "text",
+        "text": "Changed artifact.\n"
+      }
+    }
+  ],
+  "reason": "A different explicit release reason.",
+  "target_stage": "review",
+  "task_id": "ANOTHER"
+}

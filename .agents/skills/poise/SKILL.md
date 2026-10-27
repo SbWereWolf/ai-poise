@@ -783,23 +783,36 @@ boundary](../../../docs/architecture/storage-lifecycle.md#резервное-к�
 ## Handoff and transfer
 
 User Task start authorizes routine reviewer work as well as execution; no separate command is needed
-for each review. At
-every executor/reviewer boundary, the sender preserves the result or findings and required evidence,
-uses one ordinary public
-`release` packet, verifies that ownership was released, and stops modifying the Task. The receiver
-claims/resumes it
-through public bootstrap before mutation. A chat message is not release; report a failed handoff as
-failed. Read [Local
-handoff → Role
+for each review. For a ready stage result use public
+[`handoff`](../../../docs/workflows/batch-work.md#передача-результата-одной-командой)
+with the complete current result template, original artifact intents, explicit Task ID,
+stable handoff request ID and reason. Omit target_stage for maximum progression, or
+provide the exact intended stage. The composition verifies, advances through existing
+gates and performs ordinary release; it neither does stage work nor messages the receiver.
+Read the full verification/progression/release outcomes. Preserve the returned active
+progression identity for the receiver's exact advance; it is distinct from the handoff ID.
+For incomplete materials, save them truthfully through their owners and use separate
+ordinary release without fabricating a completed result or GREEN. The receiver acquires
+the same Task through public bootstrap before mutation. Read [Local handoff → Role
 transfer](../../../docs/workflows/local-handoff.md#передача-между-исполнителем-и-ревьюером).
+
+Confirm actual release before messaging and stop Task changes after release. A blocked
+response or release:null does not establish retained ownership: release may have committed
+before its acknowledgement was lost, and the receiver may already own the Task. Establish
+the real outcome through ownership/original receipt and retry the exact original handoff;
+its recovery preserves the receiver's claim. Do not blindly issue a new release or reacquire.
+A known refusal before the release effect leaves ownership unchanged. An unknown check
+outcome still requires its existing recovery owner; an exact retry is not permission to
+rerun an unknown external command. A chat message is not release, independent review,
+Task acceptance or publication. No local archive, bundle or transport is created.
 
 When the Task's counterpart executor/reviewer is known, apply [Direct role
 handoff](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим)
 in both directions:
 
-1. Save the result, evidence and findings, complete your required checks, and confirm that ordinary public
-   `release` actually
-   released the Task.
+1. Submit the ready result, evidence and findings through handoff, or preserve incomplete
+   materials and use ordinary release. Confirm the actual ownership-release outcome;
+   resolve a lost acknowledgement through the original request before assuming a claim.
 2. Stop Task/worktree changes, then use the available direct-message tool to notify that known
    counterpart. Include
    project/Task ID, stage and receiving role, result/findings and ownership-release receipt links, next action

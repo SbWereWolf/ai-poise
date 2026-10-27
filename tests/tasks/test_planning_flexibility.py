@@ -382,7 +382,7 @@ def test_user_assigned_reviewer_can_restart_its_task(project, monkeypatch, state
     assert out['draft']['goal'] == project['task']['goal']
     revised = edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Revised acceptance']}, 'granted-dod')
     before = c.runtime.task_queries.record('FLEX')
-    with pytest.raises(PoiseError, match='revision policy'):
+    with pytest.raises(PoiseError, match='reviewer authorization'):
         edit(c, 'FLEX', revised['revision'], {'methods': []}, 'ungranted-methods')
     assert c.runtime.task_queries.record('FLEX') == before
 

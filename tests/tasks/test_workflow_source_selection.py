@@ -62,13 +62,14 @@ def bootstrap(client, task):
 
 
 def saved_task(project, task_id):
-    """Independent conservation oracle over this test's disposable database."""
+    """Observe every persisted Task value needed to prove unchanged state."""
     root = project['config_path'].parent
     state = root / project['cfg']['paths']['state']
     database = state / project['cfg']['paths']['database']
     with closing(sqlite3.connect(database)) as db:
         return db.execute(
-            'SELECT id,status,claimed_by,metadata FROM tasks WHERE id=?', (task_id,),
+            'SELECT id,status,claimed_by,metadata,version,stage_index,iteration,'
+            'current_submission_id FROM tasks WHERE id=?', (task_id,),
         ).fetchone()
 
 

@@ -35,8 +35,9 @@ def write(path, value):
 
 def trace(marker, boundary, **values):
     root = os.environ.get("POISE_RUN_OUTPUT_DIR")
-    if root:
-        path = Path(root) / (os.environ["ARCH_FIX_GROUP"] + ".subject.jsonl")
+    group = os.environ.get("ARCH_FIX_GROUP")
+    if root and group is not None:
+        path = Path(root) / (group + ".subject.jsonl")
         with path.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps({"marker": marker, "boundary": boundary, **values},
                                     ensure_ascii=False) + "\n")

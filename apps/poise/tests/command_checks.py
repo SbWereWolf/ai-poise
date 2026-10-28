@@ -7,7 +7,7 @@ import sqlite3
 import time
 
 from command_support import (Commands, DiagnosticError, MissingCommand, await_file,
-                             FIX, envelope, exact, lines, load, problem)
+                             FIX, envelope, exact, lines, load, problem, retained_snapshot)
 
 
 CASES = []
@@ -43,14 +43,17 @@ def dispatch_oracle(app,request):
 
 
 def replay(app,request,terminal):
-    before=[Path(terminal['result'][name]['path']).read_bytes() for name in ('stdout','stderr')]
+    before=retained_snapshot(terminal)
+    exact(retained_snapshot(terminal),before)
     _,repeated=app.call('command.request',request)
     expected=deepcopy(terminal)
     expected['result'].update(operation='request',replayed=True)
     exact(repeated,expected)
+    exact(retained_snapshot(repeated),before)
+    exact(retained_snapshot(terminal),before)
     _,read=app.call('command.completion',{'command_id':request['command_id']})
     exact(read,terminal)
-    exact([Path(read['result'][name]['path']).read_bytes() for name in ('stdout','stderr')],before)
+    exact(retained_snapshot(read),before)
     exact(app.count(request['command_id']),1)
 
 
@@ -70,6 +73,7 @@ def delivery():
                 missing=True
             else:
                 missing=False
+                app.started(code,response,request)
                 app.complete(request)
                 dispatch_oracle(app,request)
     except Exception as error:
@@ -283,6 +287,7 @@ def parser_boundaries():
             operation='command.request'
             config=app.session.config
             id=vector['id']
+            retained=None
             if id=='B01': config.pop('commands')
             elif id=='B02': value.pop('command_id')
             elif id=='B03': value['extra']=True
@@ -297,7 +302,8 @@ def parser_boundaries():
             elif id=='B12':
                 app.session.generated('new-missing-caller.json')
             elif id=='B13':
-                value,_=finished(app,'exit7-1')
+                value,original=finished(app,'exit7-1')
+                retained=(deepcopy(value),original)
                 value['argv'].append('changed')
             elif id=='B14': operation,value='command.completion',{'command_id':'absent-1'}
             elif id=='B15': operation='command.update'
@@ -319,6 +325,7 @@ def parser_boundaries():
                 _,_,raw=app.peer_facts(value)
                 expected=load()['peer_result'];expected['id']=lines(app.jobs['typed-1']/'received.jsonl')[2]['id']
                 app.terminal(complete,value,raw,b'',business=False,mcp=expected)
+                retained=(deepcopy(value),deepcopy(complete))
                 value['mcp']['arguments']['flag']=1
             else: raise DiagnosticError('Unimplemented accepted boundary '+id)
             before=app.session_rows()
@@ -330,6 +337,8 @@ def parser_boundaries():
             exact(app.session_rows(),before)
             exact({str(p):p.read_bytes() for p in app.output.rglob('*') if p.is_file()},outputs)
             exact({name:app.count(name) for name in app.jobs},counts)
+            if retained is not None:
+                replay(app,*retained)
             if id not in ('B13','B24'):
                 exact(app.store.exists(),False)
 
@@ -485,6 +494,7 @@ def lifecycle():
         changed=deepcopy(value);changed['mcp']['arguments']['flag']=1
         app.error('command.request',changed,'command_reuse_conflict',{'command_id':'typed-1'},'use:new-command')
         exact(app.count('typed-1'),1)
+        replay(app,value,response)
     with Commands() as app:
         accepted='Ж'*64
         finished(app,accepted)

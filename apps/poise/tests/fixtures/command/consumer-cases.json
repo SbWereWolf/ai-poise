@@ -1,0 +1,170 @@
+{
+  "first_response_negatives": [
+    {
+      "id": "null-result",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": null,
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "foreign-command-id",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "operation": "request",
+          "command_id": "foreign",
+          "transport": "command",
+          "state": "ADMITTED",
+          "termination": null,
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": null,
+          "stderr": null,
+          "full_result_ref": null,
+          "error": null,
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "wrong-operation",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "operation": "completion",
+          "command_id": "control",
+          "transport": "command",
+          "state": "ADMITTED",
+          "termination": null,
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": null,
+          "stderr": null,
+          "full_result_ref": null,
+          "error": null,
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "wrong-replay-type",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "operation": "request",
+          "command_id": "control",
+          "transport": "command",
+          "state": "ADMITTED",
+          "termination": null,
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": null,
+          "stderr": null,
+          "full_result_ref": null,
+          "error": null,
+          "replayed": 1
+        },
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "active-with-termination",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "operation": "request",
+          "command_id": "control",
+          "transport": "command",
+          "state": "ADMITTED",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": null,
+          "stderr": null,
+          "full_result_ref": null,
+          "error": null,
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "wrong-transport",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "operation": "request",
+          "command_id": "control",
+          "transport": "mcp_stdio",
+          "state": "ADMITTED",
+          "termination": null,
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": null,
+          "stderr": null,
+          "full_result_ref": null,
+          "error": null,
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "active-with-body",
+      "exit": 0,
+      "response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "operation": "request",
+          "command_id": "control",
+          "transport": "command",
+          "state": "ADMITTED",
+          "termination": null,
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": {
+            "body": "unexpected"
+          },
+          "stderr": null,
+          "full_result_ref": null,
+          "error": null,
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      }
+    }
+  ]
+}

@@ -53,6 +53,38 @@ def envelope(result=None, error=None, status='ok'):
     return expected
 
 
+def retained_snapshot(response):
+    """Read full bytes NOW; metadata consistency supplements independent scenario oracles."""
+    metadata=response['result']
+    exact(set(metadata),set(load()['metadata']))
+    full_ref=metadata['full_result_ref']
+    exact(set(full_ref),{'path','bytes'})
+    assert type(full_ref['path']) is str and Path(full_ref['path']).is_absolute()
+    assert type(full_ref['bytes']) is int and full_ref['bytes']>=0
+    raw=Path(full_ref['path']).read_bytes()
+    exact(len(raw),full_ref['bytes'])
+    full=json.loads(raw)
+    exact(set(full),set(load()['full_result']))
+    exact(full['schema'],'poise-command-result/v1')
+    for name in load()['full_result']:
+        if name not in ('schema','mcp_response'):
+            exact(full[name],metadata[name])
+    assert full['mcp_response'] is None or type(full['mcp_response']) is dict
+    streams={}
+    for name in ('stdout','stderr'):
+        source=metadata[name]
+        exact(set(source),{'source_id','path','bytes','complete'})
+        assert type(source['source_id']) is str and source['source_id']
+        assert type(source['path']) is str and Path(source['path']).is_absolute()
+        assert type(source['bytes']) is int and source['bytes']>=0
+        assert type(source['complete']) is bool
+        streams[name]=Path(source['path']).read_bytes()
+        exact(len(streams[name]),source['bytes'])
+    return {'full_ref':deepcopy(full_ref),'full_bytes':raw,'full':full,
+            'sources':{name:deepcopy(metadata[name]) for name in ('stdout','stderr')},
+            'streams':streams}
+
+
 class Commands:
     def __enter__(self):
         self.session = Installation().__enter__()
@@ -74,7 +106,7 @@ class Commands:
             self.store.parent.mkdir()
             self.session.config['commands'] = load()['commands']
             self.session.extra_environment['PARENT_ONLY'] = 'must-not-enter-child'
-            self.jobs, self.children, self.calls = {}, [], []
+            self.jobs, self.children, self.calls, self.admissions = {}, [], [], {}
             self.record = {'session_id':self.identity, 'calls':self.calls, 'jobs':{}, 'cleanup':[]}
             OBSERVATIONS.append(self.record)
             self.initial_session = self.session_rows()
@@ -198,8 +230,55 @@ class Commands:
 
     def start(self,request, **kwargs):
         code,response=self.call('command.request',request,**kwargs)
+        return self.started(code,response,request)
+
+    def started(self,code,response,request):
+        """Check first framing/types now; retain final bytes for the independent scenario oracle."""
         if code==2 and response==load()['missing']:
             raise MissingCommand('Standalone command.request dispatch is missing')
+        exact(set(response),set(load()['envelope']))
+        exact(response['schema'],'stride-poise/v1');exact(response['evidence'],[])
+        metadata=response['result']
+        assert type(metadata) is dict, ('First admission result must be metadata',response)
+        exact(set(metadata),set(load()['metadata']))
+        exact(metadata['schema'],'poise-command/v1')
+        exact(metadata['operation'],'request');exact(metadata['replayed'],False)
+        exact(metadata['command_id'],request['command_id'])
+        exact(metadata['transport'],request['transport'])
+        assert type(metadata['deadline_exceeded']) is bool
+        assert metadata['business_error'] is None or type(metadata['business_error']) is bool
+        assert metadata['state'] in ('ADMITTED','RUNNING','TERMINAL','UNKNOWN')
+        if metadata['state'] in ('ADMITTED','RUNNING'):
+            expected=load()['metadata']
+            expected.update(operation='request',command_id=request['command_id'],
+                            transport=request['transport'],state=metadata['state'],termination=None)
+            exact(code,0);exact(response,envelope(expected))
+            snapshot=None
+        else:
+            termination=metadata['termination']
+            if termination is not None:
+                assert type(termination) is dict
+                if termination.get('kind')=='exit':
+                    exact(set(termination),{'kind','exit_code'})
+                    assert type(termination['exit_code']) is int and 0<=termination['exit_code']<=255
+                elif termination.get('kind')=='signal':
+                    exact(set(termination),{'kind','signal'})
+                    assert type(termination['signal']) is int and termination['signal']>0
+                else: exact(termination,{'kind':'not_started'})
+            error=metadata['error']
+            if error is not None:
+                assert type(error) is dict
+                exact(set(error),{'code','details','action'})
+                assert type(error['code']) is str and type(error['action']) is str
+                assert type(error['details']) is dict
+            failed=error is not None or metadata['state']=='UNKNOWN'
+            exact(code,1 if failed else 0)
+            exact(response,envelope(metadata,error,'unavailable' if failed else 'ok'))
+            snapshot=retained_snapshot(response)
+        if not hasattr(self,'admissions'):
+            self.admissions={}
+        self.admissions[request['command_id']]={'response':deepcopy(response),'snapshot':snapshot,
+            'independent_scenario_checked':False}
         return response
 
     def complete(self,request, stdout=b'OUT\n', stderr=b'ERR\n', **facts):
@@ -255,6 +334,20 @@ class Commands:
                     error=error,mcp_response=mcp,**source_values)
         exact(json.loads(full_bytes),full)
         exact(response,envelope(expected,error,'unavailable' if error or state=='UNKNOWN' else 'ok'))
+        admission=self.admissions.get(request['command_id'])
+        if admission is not None:
+            first=admission['response']
+            if first['result']['state'] in ('TERMINAL','UNKNOWN'):
+                first_expected=deepcopy(expected)
+                first_expected.update(operation='request',replayed=False)
+                exact(first,envelope(first_expected,error,'unavailable' if error or state=='UNKNOWN' else 'ok'))
+                # Compare the bytes observed at FIRST response with independent literals,
+                # not merely the later receipt generated by the same producer.
+                snapshot=admission['snapshot']
+                exact(snapshot['full'],full)
+                exact(snapshot['full_bytes'],full_bytes)
+                exact(snapshot['streams'],{'stdout':stdout,'stderr':stderr})
+            admission['independent_scenario_checked']=True
         exact(self.count(request['command_id']),0 if not_started else 1)
         exact(self.session_rows(),self.initial_session)
         self.record.setdefault('full_results',[]).append({'metadata':response,'full':full,

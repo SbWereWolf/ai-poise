@@ -14,6 +14,7 @@ from command_support import (Commands, DiagnosticError, MissingCommand, OBSERVAT
 from generic_checks import APP, LOG
 from session_support import CALLS
 from state_sql import SQL_LOG
+from command_consumer_checks import sensitivity
 
 
 CONTROLS=[]
@@ -26,6 +27,7 @@ def prerequisites():
         try: exact(actual,expected)
         except AssertionError: pass
         else: raise DiagnosticError('Comparator ignored exact JSON scalar types')
+    CONTROLS.extend(sensitivity())
     # Qualify actual OS execution, audit/environment and separately captured binary streams.
     with tempfile.TemporaryDirectory(prefix='command-control-') as name:
         directory=Path(name)

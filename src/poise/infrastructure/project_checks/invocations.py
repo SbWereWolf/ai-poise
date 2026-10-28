@@ -49,12 +49,15 @@ class FileCheckInvocationStore:
         require(isinstance(value, dict) and value.get('schema') == 'poise-check-invocation-1'
                 and value.get('id') == identity and value.get('project') == self.ledger.project,
                 '_invocation', 'Не подтверждены сохранённые метаданные вызова.')
-        for key in ('caller_key', 'checkout', 'state', 'request', 'transport', 'references', 'termination'):
+        for key in ('caller_key', 'checkout', 'state', 'request', 'transport', 'references', 'termination', 'outcome'):
             require(key in value, '_invocation', 'Неполные метаданные вызова.')
         require(value['state'] in ('prepared', 'running', 'terminal', 'not_active'),
                 '_invocation', 'Неизвестное состояние вызова.')
         require(isinstance(value['references'], dict) and isinstance(value['termination'], dict),
                 '_invocation', 'Непригодные факты результата.')
+        require(value['outcome'] is None if value['state'] != 'terminal' else
+                isinstance(value['outcome'], str) and bool(value['outcome']),
+                '_invocation', 'Не подтверждён фактический конечный исход вызова.')
         return value
 
     def allocate(self, caller, request, transport, *, source=None):
@@ -64,7 +67,7 @@ class FileCheckInvocationStore:
                  'request': deepcopy(request), 'transport': transport,
                  'checks_policy_path': str(self.configuration.policy_path),
                  'policy_sha256': self.configuration.policy_sha256,
-                 'source': deepcopy(source), 'state': 'prepared', 'run_ids': [],
+                 'source': deepcopy(source), 'state': 'prepared', 'outcome': None, 'run_ids': [],
                  'references': {'response_path': None, 'record_paths': [], 'stdout_paths': [], 'stderr_paths': []},
                  'termination': {'graceful_requested': False, 'force_requested': False,
                                  'process_group_stopped': None, 'child_reaped': None, 'capture_complete': None}}

@@ -137,8 +137,9 @@ class BuiltinHandlers:
             try:
                 text = service_delivery(event, owner, options['policy_path'], self.service.settings)
                 if text is None:
+                    native = parse_native_event(event, self.definition)
                     result = owner.execute({'schema': 'poise-tool-result-request-1', 'operation': 'hook',
-                        'request_id': event['tool_use_id'], 'event': event,
+                        'request_id': event['tool_use_id'], 'event': {**event, 'turn_id': native['turn_id']},
                         'streams': {'stdout': None, 'stderr': None},
                         'capture': {'state': 'unknown', 'reason': 'native source not yet classified'},
                         'exit_code': None}, 'agent')

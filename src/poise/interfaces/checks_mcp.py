@@ -13,7 +13,7 @@ from ..infrastructure.project_binding import read_project_checkout
 from ..modules.project_checks.contracts import CheckFailure
 from ..modules.project_checks.mcp import (CheckTransportPolicy, arguments, check_request,
                                          run_envelope, tool_definitions)
-from .project_checks import prepare_request, execute_prepared
+from .project_checks import prepare_request, execute_prepared, finalize_invocation
 
 
 def load_policy(path):
@@ -52,8 +52,7 @@ class ChecksGateway:
                 if started is not None:
                     started(owner, identity)
             _, result = execute_prepared(prepared, self.clock)
-            if identity is not None:
-                owner.finish(identity, result)
+            result = finalize_invocation(prepared, owner, identity, result)
             return run_envelope(result, identity)
         except (CheckFailure, PoiseError, OSError, ValueError) as exc:
             if isinstance(exc, CheckFailure):

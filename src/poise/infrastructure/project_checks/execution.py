@@ -4,7 +4,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from ...modules.project_checks.contracts import CheckFailure, UnstartedCheck
+from ...modules.foundation.errors import PoiseError
+from ...modules.project_checks.contracts import CheckFailure, ObservedCheckFailure, UnstartedCheck
 from ...execution import RegisteredLaunchFailure
 from ...modules.project_checks.parsers import parse_lines
 from ...modules.project_checks.profiles import resolved_selection
@@ -147,10 +148,7 @@ class CheckExecution:
                                  'Исправьте создание обязательных материалов и выполните новую проверку.')
         if error is not None and status == 'passed':
             status = 'unconfirmed'
-        if control is not None:
-            control.observed({**raw, 'termination': {
-                **raw['termination'], 'capture_complete': termination['capture_complete']}})
-        return {'schema': 'poise-named-check-run-1', 'run_id': addresses['id'],
+        record = {'schema': 'poise-named-check-run-1', 'run_id': addresses['id'],
                 'project': configuration.bound.config['project'], 'checkout': str(configuration.bound.checkout),
                 'selection': resolved_selection(profile), 'profile_sha256': configuration.profiles_sha256,
                 'argv': list(invocation['argv']), 'cwd': invocation['cwd'], 'runtime': invocation['runtime'],
@@ -161,3 +159,10 @@ class CheckExecution:
                 'stdout': references['stdout'], 'stderr': references['stderr'],
                 'record_path': addresses['record_path'], 'verified_success': status == 'passed' and error is None,
                 'error': None if error is None else error.as_dict()}
+        if control is not None:
+            try:
+                control.observed({**raw, 'termination': {
+                    **raw['termination'], 'capture_complete': termination['capture_complete']}})
+            except (OSError, PoiseError, CheckFailure) as exc:
+                raise ObservedCheckFailure(record, exc) from exc
+        return record

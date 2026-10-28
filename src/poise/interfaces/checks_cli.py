@@ -9,7 +9,7 @@ from ..infrastructure.project_binding import read_project_checkout
 from ..infrastructure.result_views import saved_result_view
 from ..modules.project_checks.outcomes import exit_code
 from .checks_mcp import load_policy
-from .project_checks import prepare_request, execute_prepared, execute_cli
+from .project_checks import prepare_request, execute_prepared, execute_cli, finalize_invocation
 
 
 def execute(config, checkout, policy, transport_policy, identity, mode, stream, output, error_output, clock):
@@ -29,8 +29,7 @@ def execute(config, checkout, policy, transport_policy, identity, mode, stream, 
         else:
             identity = None
         _, result = execute_prepared(prepared, clock)
-        if identity is not None:
-            owner.finish(identity, result)
+        result = finalize_invocation(prepared, owner, identity, result)
         output.write(json.dumps(result, ensure_ascii=False) + '\n' if result['response_path'] is None else
                      saved_result_view(result['response_path'], mode, bound.config['limits']['output_chars']))
         return exit_code(result['status'])

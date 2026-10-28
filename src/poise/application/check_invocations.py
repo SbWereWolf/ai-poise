@@ -41,6 +41,7 @@ class CheckInvocations:
     def finish(self, identity, result):
         def change(value):
             value['state'] = 'terminal'
+            value['outcome'] = result['status']
             value['references']['response_path'] = result['response_path']
             # A known cancelled-before-spawn execution has no child or capture to clean.
             if not value['run_ids'] or (result['status'] == 'cancelled' and not result['items']):
@@ -82,7 +83,7 @@ class CheckInvocations:
         if value['state'] != 'terminal':
             return None
         facts = value['termination']
-        status = ('cancelled' if facts['graceful_requested'] or self.store.cancellation_requested(identity) else 'complete')
+        status = 'cancelled' if value['outcome'] == 'cancelled' else 'complete'
         if not all(facts[k] is True for k in ('process_group_stopped', 'child_reaped', 'capture_complete')):
             status = 'incomplete'
         return self.cancel_result(status, value)

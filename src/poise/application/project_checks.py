@@ -1,7 +1,7 @@
 """Coordinate admitted project checks through their existing and specific owners."""
 from copy import deepcopy
 
-from ..modules.project_checks.contracts import CheckFailure, UnstartedCheck
+from ..modules.project_checks.contracts import CheckFailure, ObservedCheckFailure, UnstartedCheck
 from ..modules.project_checks.outcomes import aggregate, cache_metadata, item_status, not_executed, omitted_step
 from ..modules.project_checks.profiles import resolved_selection
 from ..modules.project_checks.timing import eligible
@@ -271,6 +271,9 @@ class ProjectChecks:
             try:
                 self._check_cancellation()
                 record = self.execute_step(step, metadata)
+            except ObservedCheckFailure as exc:
+                record = exc.record
+                self.failure = exc
             except CheckFailure as exc:
                 if not steps:
                     raise
@@ -285,14 +288,15 @@ class ProjectChecks:
             self.ledger.save_run(record)
             steps.append({'ordinal': i + 1, 'package_id': step['package_id'], 'driver': step['driver'],
                           'selection': deepcopy(step['selection']), 'record': record})
-            stopped = record['status'] != 'passed'
+            stopped = record['status'] != 'passed' or self.failure is not None
         if eligible_cache and not stopped:
             final_key, _ = self.inputs.key(profile, plan['options']['scope_paths'], plan['package'])
             if final_key != key:
                 metadata['reason'] = 'declared_inputs_changed_during_run'
             else:
                 metadata.update(stored=True, reason='fresh_stored' if plan['options']['fresh'] else 'miss_stored')
-        result = self.build_execution(plan, steps, omitted, metadata)
+        result = self.build_execution(plan, steps, omitted, metadata,
+                                      status=None if self.failure is None else self.partial_status(self.failure))
         if metadata['stored']:
             try:
                 self.cache.store(key, result)

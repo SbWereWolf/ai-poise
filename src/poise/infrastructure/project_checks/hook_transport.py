@@ -67,7 +67,7 @@ def tool_event(service, binding, delivery_path, packet, options, resources):
         return response
     policy = CheckTransportPolicy.parse(strict_json(resources[options['policy_path']]))
     native_bound = read_project_checkout(service.settings.project_config, event['cwd'])
-    input_value = deepcopy(event['tool_input'])
+    input_value = deepcopy(previous['updatedInput'] if is_pre and 'updatedInput' in previous else event['tool_input'])
     transport, selected, request, cli = None, None, None, None
     if tool == options['tool_selectors']['run']:
         selected = arguments(input_value)

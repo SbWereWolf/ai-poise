@@ -66,6 +66,30 @@ def execute_prepared(prepared, clock):
     return code, values[0]
 
 
+def finalize_invocation(prepared, owner, identity, result):
+    """Keep known process/results when their coordination receipt cannot be saved."""
+    if identity is None:
+        return result
+    try:
+        owner.finish(identity, result)
+    except (CheckFailure, PoiseError, OSError, ValueError) as exc:
+        failure = CheckFailure('invocation_save_failed', 'run.invocation', str(exc),
+                               'Прочитайте сохранённый результат и потоки; восстановите запись состояния вызова без повторения команды.',
+                               status='unconfirmed')
+        unconfirmed = {**result, 'status': 'unconfirmed',
+                       'error': result['error'] or failure.as_dict(references(prepared.service, result['response_path'])),
+                       'warnings': [*result['warnings'], failure.reason]}
+        if result['response_path'] is not None:
+            try:
+                SavedResponse(result['response_path'], prepared.bound.config['batch']['file_mode']).save(
+                    unconfirmed, canonical=True)
+            except OSError as save_error:
+                unconfirmed['response_path'] = None
+                unconfirmed['warnings'].append('result_save_failed: ' + str(save_error))
+        return unconfirmed
+    return result
+
+
 def execute(config_path, checkout, policy_path, stream, output, error_output, clock, *,
             prepared=None, result_sink=None):
     service, bound, operation, saver = None, None, None, None

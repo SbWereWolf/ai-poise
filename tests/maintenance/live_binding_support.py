@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 import tarfile
 from dataclasses import replace
+from string import Template
 
-from poise.common import configured_root, descendant, load_config
+from poise.common import configured_root, configured_storage_path, descendant, load_config
 from poise.composition import project_tools
 from poise.infrastructure.sqlite.worktree_preparation import SqlitePreparationRepository
 from poise.infrastructure.task_paths import task_root
@@ -35,7 +36,8 @@ def owner_context(baseline, parent_project):
     with store.database.read_transaction() as connection:
         attempt = SqlitePreparationRepository(connection).latest(baseline['task'])
     assert attempt is not None and attempt.phase == 'completed'
-    return {'config': config, 'listing': listing, 'record': record,
+    return {'config': config, 'manifest': manifest, 'state': state,
+        'listing': listing, 'record': record,
         'attempt': attempt, 'task_root': task_root(state, config['paths'],
             baseline['task'], record['sprint_id']), 'worktree': Path(record['worktree'])}
 
@@ -54,8 +56,10 @@ def native_refresh_observation(context, declared):
     assert report['worktree'] == str(context['worktree'])
     assert report['attempt_id'] == actual['attempt_id'] != declared['previous_attempt_id']
     assert report['status'] == actual['status'] == 'ready'
-    configuration = Path(context['config']['worktree_preparation']['configuration'])
+    configuration = context['manifest'].parent / context['config']['worktree_preparation']['configuration']
     assert report['configuration']['sha256'] == sha(configuration)
+    assert report['configuration']['path'] == str(configuration)
+    preparation_dependencies_are_permanent(context, configuration)
     assert Path(declared['previous_receipt_path']).read_bytes() == Path(
         declared['previous_receipt_snapshot']).read_bytes()
     return report
@@ -66,6 +70,63 @@ def assert_permanent(paths, context):
         path = Path(value).absolute()
         assert not path.is_relative_to(context['task_root']), path
         assert not path.is_relative_to(context['worktree']), path
+
+
+def preparation_dependencies_are_permanent(context, configuration):
+    from poise.infrastructure.worktree_preparation import PreparationConfiguration
+
+    assert_permanent([configuration], context)
+    parsed = PreparationConfiguration.from_bytes(Path(configuration).read_bytes(),
+        Path(configuration), context['attempt'].coordinates)
+    raw = parsed.command.raw
+    # Use the standard renderer and only the operator-owned dependencies that
+    # the existing preparation contract actually references. Task coordinates,
+    # copied command destinations and ignored options remain legitimate inputs.
+    sources = [part for argv in raw['commands'].values() for part in argv]
+    sources += [item['source'] for item in raw['inputs']]
+    persistent = [Template(value).safe_substitute(raw['parameters']) for value in sources]
+    assert_permanent([value for value in persistent if Path(value).is_absolute()], context)
+
+
+def store_paths(manifest_path, config):
+    state = configured_root(Path(manifest_path).parent, config['paths']['state'])
+    return {
+        'task_database': descendant(state, config['paths']['database']),
+        'task_lock': descendant(state, config['paths']['lock']),
+        'requirements_database': configured_storage_path(state, config['paths']['requirements_database']),
+        'requirements_lock': configured_storage_path(state, config['paths']['requirements_lock']),
+        'accounting_database': descendant(state, config['accounting']['storage']['database']),
+        'accounting_lock': descendant(state, config['accounting']['storage']['lock']),
+    }
+
+
+def existing_runtime_stores(app, values, manifest_path, config):
+    expected_state = configured_root(Path(manifest_path).parent, config['paths']['state'])
+    assert Path(values['state_root']) == expected_state, 'Selected profile uses a different state root'
+    expected = store_paths(manifest_path, config)
+    documents = json.loads(Path(app).read_text())
+    infra = json.loads((Path(app).parent / documents['operations']['infra']).read_text())
+    observed = {}
+    for identifier in ('poise-task-database', 'poise-requirements-database', 'poise-telemetry-database'):
+        resource = next(row for row in infra['requirements'] if row['id'] == identifier)
+        commands = [*resource['commands'], *resource['checks']['presence']['commands']]
+        selections = []
+        for command in commands:
+            argv = [Template(part).substitute(values) for part in command['argv']]
+            selected = Path(argv[argv.index('--config') + 1])
+            assert Path(argv[argv.index('--state-root') + 1]) == expected_state
+            _, candidate, _ = load_config(selected)
+            assert candidate['project'] == config['project']
+            assert store_paths(selected, candidate) == expected, 'Selected profile uses different working stores'
+            selections.append(str(selected))
+        observed[identifier] = selections
+    missing = [str(expected[name]) for name in
+               ('task_database', 'requirements_database', 'accounting_database')
+               if not expected[name].is_file()]
+    assert not missing, {'missing_actual_working_databases': missing}
+    return {'state_root': str(expected_state),
+        'stores': {name: str(path) for name, path in expected.items()},
+        'configured_resource_manifests': observed}
 
 
 def working_binding(runtime, application, selected, baseline, context, evidence):
@@ -153,6 +214,8 @@ def working_binding(runtime, application, selected, baseline, context, evidence)
     assert_permanent(paths, context)
     values = json.loads(parameters.read_text())
     assert values['instance' if application == 'erp' else 'repository'] == str(base)
+    runtime_stores = (existing_runtime_stores(app, values, Path(registration['config_path']), manifest)
+                      if application == 'poise-op' else None)
     operation_files = [app.parent / value for value in json.loads(app.read_text())['operations'].values()]
     assert_permanent(operation_files, context)
     source, stdout = capture([runtime['git'], '-C', str(base), 'rev-parse', 'HEAD'],
@@ -160,6 +223,7 @@ def working_binding(runtime, application, selected, baseline, context, evidence)
     assert source['actual_exit_code'] == 0
     report = {'application': application, 'repository': str(base), 'entry': entry,
         'source_commit': stdout.decode().strip(), 'sdk': sdk,
+        'runtime_stores': runtime_stores,
         'configuration_sha256': {str(path): sha(path)
             for path in [app, parameters, *operation_files, *map(Path, entry[1:2])]
             if path.is_file()}, 'accepted_archives': archives}

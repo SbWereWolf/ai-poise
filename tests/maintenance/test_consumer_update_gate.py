@@ -68,8 +68,29 @@ def consumer_case(tmp_path, sdk):
             file = tmp_path / name / 'runtime.env'
             file.write_text('ERP_ENVIRONMENT_PYTHON_BIN=' + sdk['sdk_python'] + '\n')
             runtime = {'path': str(file), 'python_key': 'ERP_ENVIRONMENT_PYTHON_BIN'}
+        diagnostic_root = tmp_path / name / 'compatibility'
+        for operation in ('infra', 'deps'):
+            write(diagnostic_root / (operation + '.json'), {'requirements': []})
+        declaration = write(diagnostic_root / 'declaration.json', {'project': name,
+            'marker': str(diagnostic_root / 'observed.txt'), 'exit_code': 0})
+        action = {'id': 'consumer-route', 'commands': [{
+            'argv': [sdk['sdk_python'], '-I', '-B',
+                str(FIXTURES / 'compatibility-control.py'), str(declaration)],
+            'cwd': str(diagnostic_root), 'env': {},
+            'interpreter': {'name': 'exit', 'options': {'accept': [0]}}}]}
+        write(diagnostic_root / 'check.json', {'requirements': [action]})
+        app = write(diagnostic_root / 'app.json', {'operations': {
+            'infra': 'infra.json', 'deps': 'deps.json', 'check': 'check.json'},
+            'interpreters': {'exit': {'module': 'poise_environment.result_interpreters',
+                                     'attribute': 'exit_result'}}})
+        parameters = write(diagnostic_root / 'parameters.json', {})
+        compatibility = {'argv': [sdk['sdk_entry'], 'check', '--config', str(app),
+            '--parameters', str(parameters), '--base-dir', str(diagnostic_root)],
+            'cwd': str(diagnostic_root), 'env': {'PATH': sdk['path'], 'LANG': 'C.UTF-8',
+                'PYTHONPATH': os.pathsep.join([str(ROOT / 'src'), str(ROOT)])},
+            'expected_exit_code': 0, 'expected_status': 'succeeded'}
         value['consumers'].append({'project': name, 'preparation_config': str(preparation),
-                                  'runtime': runtime})
+                                  'runtime': runtime, 'compatibility': compatibility})
     return dict(root=tmp_path, sdk=sdk, inventory=inventory,
         inventory_path=inventory_path, config=value,
         config_path=tmp_path / 'consumer-configuration.json')
@@ -97,6 +118,8 @@ def invoke(case):
         '--parameters', str(root / 'parameters.json'), '--base-dir', str(root)],
         cwd=root, env=env, capture_output=True)
     packet = json.loads(result.stdout)
+    (root / 'gate.stdout').write_bytes(result.stdout)
+    (root / 'gate.stderr').write_bytes(result.stderr)
     assert len(packet['checks']) == 1, packet
     command = packet['checks'][0]['result']['commands'][0]
     diagnostic = json.loads(base64.b64decode(command['stdout']['data']))
@@ -108,13 +131,16 @@ def test_all_five_consumers_are_observed_with_selected_entry_and_sdk(consumer_ca
     assert result.returncode == 0 and packet['status'] == 'succeeded', (result.stderr, packet)
     assert diagnostic['status'] == 'ready' and diagnostic['errors'] == []
     expected = json.loads((FIXTURES / 'expected-consumers.json').read_text())
-    keys = ['project', 'entry_version', 'sdk_version', 'ready']
+    keys = ['project', 'entry_version', 'sdk_version', 'compatibility_status', 'ready']
     actual = [{key: row[key] for key in keys} for row in diagnostic['consumers']]
     assert sorted(actual, key=lambda row: row['project']) == expected
+    for consumer in consumer_case['config']['consumers']:
+        marker = Path(consumer['compatibility']['cwd']) / 'observed.txt'
+        assert marker.read_text() == consumer['project'] + '\n'
 
 
 @pytest.mark.parametrize('defect', ['old-entry', 'wrong-sdk', 'missing-binding',
-    'new-registration', 'invalid-inventory', 'unclassified-fixture'])
+    'new-registration', 'invalid-inventory', 'unclassified-fixture', 'broken-compatibility'])
 def test_an_incomplete_update_never_passes_the_configured_gate(consumer_case, defect):
     case = consumer_case
     if defect == 'old-entry':
@@ -133,11 +159,38 @@ def test_an_incomplete_update_never_passes_the_configured_gate(consumer_case, de
     elif defect == 'invalid-inventory':
         case['inventory']['status'] = 'listed_with_errors'
         case['inventory']['errors'] = [{'project': 'workspace-recover', 'reason': 'invalid workflow'}]
-    else:
+    elif defect == 'unclassified-fixture':
         case['config']['excluded_projects'] = []
+    else:
+        diagnostic = Path(case['config']['consumers'][0]['compatibility']['cwd'])
+        declaration = json.loads((diagnostic / 'declaration.json').read_text())
+        declaration['exit_code'] = 7
+        write(diagnostic / 'declaration.json', declaration)
     result, packet, diagnostic = invoke(case)
     assert result.returncode != 0 and packet['status'] == 'failed', packet
     assert diagnostic['status'] == 'error' and diagnostic['errors'], diagnostic
+
+
+@pytest.mark.parametrize('compatible', [True, False])
+def test_real_sdk_compatibility_controls_have_the_observed_result_contract(consumer_case, compatible):
+    case = consumer_case
+    for consumer in case['config']['consumers']:
+        invocation = consumer['compatibility']
+        root = Path(invocation['cwd'])
+        declaration = json.loads((root / 'declaration.json').read_text())
+        declaration['exit_code'] = 0 if compatible else 7
+        write(root / 'declaration.json', declaration)
+        result = subprocess.run(invocation['argv'], cwd=root,
+            env=invocation['env'], capture_output=True)
+        (root / 'control.stdout').write_bytes(result.stdout)
+        (root / 'control.stderr').write_bytes(result.stderr)
+        packet = json.loads(result.stdout)
+        assert result.returncode == (0 if compatible else 1)
+        assert packet['status'] == ('succeeded' if compatible else 'failed')
+        outcome = packet['checks'][0]['result']
+        assert outcome['status'] == ('succeeded' if compatible else 'failed')
+        assert outcome['commands'][0]['interpretation']['success'] is compatible
+        assert (root / 'observed.txt').read_text() == consumer['project'] + '\n'
 
 
 def test_gate_preserves_all_consumer_and_fixture_inputs(consumer_case):
@@ -147,6 +200,8 @@ def test_gate_preserves_all_consumer_and_fixture_inputs(consumer_case):
     inputs = [case['inventory_path'], case['config_path']]
     inputs.extend(Path(row['preparation_config']) for row in case['config']['consumers'])
     inputs.extend(Path(row['runtime']['path']) for row in case['config']['consumers'] if row['runtime'])
+    for row in case['config']['consumers']:
+        inputs.extend(Path(row['compatibility']['cwd']).glob('*.json'))
     before = {path: path.read_bytes() for path in inputs}
     result, packet, diagnostic = invoke(case)
     assert result.returncode == 0 and diagnostic['status'] == 'ready', packet

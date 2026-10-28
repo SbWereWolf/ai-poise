@@ -13,18 +13,27 @@ import pytest
 from batch.helpers import request
 from conftest import git
 from live_application_support import (
-    application_runtime, capture, clone_source, configured_private_project, profile_inputs,
-    receipt, sdk_operation, verify_launch, write,
+    application_runtime, capture, clone_source, configured_private_project, consumer_operation, profile_inputs,
+    receipt, requirements_paths, sdk_operation, verify_launch, write,
+)
+from live_binding_support import (
+    assert_permanent, native_refresh_observation, owner_context, working_binding,
 )
 
 
 @pytest.fixture(scope='module')
 def operational():
     value = json.loads(Path(os.environ['AIP_LIVE_DEPLOYMENT_OPERATIONAL']).read_text())
+    # Native artifact_inputs supplies the independently reviewed baseline.
+    # Operational inputs cannot replace the registry/Task used as the oracle.
+    baseline = json.loads(Path(os.environ['AIP_LIVE_DEPLOYMENT_BASELINE']).read_text())
+    context = owner_context(baseline, 'poise-op')
     assert value['schema'] == 'live-deployment-operational-inputs-1'
+    assert value['task_id'] == baseline['task']
+    assert Path(value['task_root']) == context['task_root']
     root = Path(value['fixture_root'])
     assert root.is_dir() and root.is_relative_to(Path(value['task_root']))
-    return value
+    return {**value, 'accepted_baseline': baseline, 'owner': context}
 
 
 @pytest.fixture
@@ -59,7 +68,8 @@ def test_public_owner_prepares_a_real_isolated_application(project, operational,
     assert values[identity_key] == str(root)
     runtime = application_runtime(operational, application, root)
     checked = sdk_operation(runtime, 'check', app, parameters, root, tmp_path, 'ready-check')
-    assert checked['resources'] and all(row['presence']['success'] for row in checked['resources'])
+    assert checked['resources'] and all(row['presence']['status'] == 'succeeded'
+                                       for row in checked['resources'])
     assert all(row['availability']['status'] != 'failed' for row in checked['resources'])
     expected = (['environment', 'base', 'applications'] if application == 'erp'
                 else ['target-repository', 'poise-task-database', 'poise-python-dependencies'])
@@ -77,11 +87,11 @@ def test_public_owner_prepares_a_real_isolated_application(project, operational,
                 root=tmp_path, label='occupied-port-check')
             packet = json.loads(stdout)
             assert failed['actual_exit_code'] != 0 and packet['status'] == 'failed'
-            assert any(row['id'] == 'ports' and not row['result']['success']
+            assert any(row['id'] == 'ports' and row['result']['status'] == 'failed'
                        for row in packet['checks']), packet
     else:
         manifest = json.loads((app.parent / 'selected-project/project.json').read_text())
-        database = Path(manifest['paths']['requirements_database'])
+        database, database_lock = requirements_paths(manifest)
         assert database.is_file() and database.is_relative_to(tmp_path)
         held = database.with_name(database.name + '.test-held')
         database.rename(held)
@@ -91,7 +101,7 @@ def test_public_owner_prepares_a_real_isolated_application(project, operational,
             packet = json.loads(stdout)
             assert failed['actual_exit_code'] != 0 and packet['status'] == 'failed'
             assert any(row['id'] == 'poise-requirements-database'
-                and not row['presence']['success'] for row in packet['resources']), packet
+                and row['presence']['status'] == 'failed' for row in packet['resources']), packet
             assert not database.exists(), 'Read-only check must not replace missing user data'
         finally:
             if not database.exists():
@@ -112,7 +122,7 @@ def test_public_owner_prepares_a_real_isolated_application(project, operational,
         from poise.infrastructure.requirements_registry import RequirementsStore
 
         paths, limits = manifest['paths'], manifest['limits']
-        store = RequirementsStore(database, Path(paths['requirements_lock']),
+        store = RequirementsStore(database, database_lock,
             limits['lock_seconds'], limits['lock_poll_seconds'])
         preserved_requirement = ('DEPLOYMENT-DATA-SENTINEL', 'system', 'current',
                                  'Existing application data survives preparation.')
@@ -142,6 +152,11 @@ def test_public_owner_prepares_a_real_isolated_application(project, operational,
                 (preserved_requirement[0],),
             ).fetchone()
         assert row == preserved_requirement
+    if application == 'erp':
+        expected = json.loads((Path(__file__).parent /
+            'fixtures/live_deployment/erp-process-ids.json').read_text())
+        assert selected['launch_observation']['process_ids'] == expected
+        assert len(selected['launch_observation']['endpoints']) == 4
     verify_launch(operational, application, app, parameters, root,
         tmp_path, selected['launch_observation'])
     proof = {'application': application, 'source_commit': commit, 'worktree': str(root),
@@ -161,26 +176,30 @@ def test_live_configuration_really_prepares_checks_and_launches(operational, tmp
     selected = operational['live_applications'][application]
     config, parameters, root = (Path(selected[key]) for key in ('config', 'parameters', 'base'))
     runtime = application_runtime(operational, application, root)
+    binding = working_binding(runtime, application, selected,
+        operational['accepted_baseline'], operational['owner'], tmp_path)
+    if application == 'erp':
+        expected = json.loads((Path(__file__).parent /
+            'fixtures/live_deployment/erp-process-ids.json').read_text())
+        assert selected['launch_observation']['process_ids'] == expected
+        assert len(selected['launch_observation']['endpoints']) == 4
     stages = ['infra', 'deps'] + (['adjust'] if application == 'erp' else []) + ['check']
     for operation in stages:
-        sdk_operation(runtime, operation, config, parameters, root,
-                      tmp_path, 'live-' + operation)
+        consumer_operation(runtime, application, operation, config, parameters, root,
+                      tmp_path, 'live-' + operation, binding['entry'])
     verify_launch(operational, application, config, parameters, root,
-        tmp_path, selected['launch_observation'])
+        tmp_path, selected['launch_observation'], binding['entry'])
 
 
 def test_real_host_native_refresh_and_all_consumer_update_are_confirmed(operational, tmp_path):
     declared = operational['native_refresh']
-    path = Path(declared['receipt_path'])
-    data = json.loads(path.read_text())
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == declared['receipt_sha256']
-    assert data['task_id'] == operational['task_id'] and data['project_id'] == 'poise-op'
-    assert data['attempt_id'] != declared['previous_attempt_id'] and data['status'] == 'ready'
-    assert Path(declared['previous_receipt_path']).read_bytes() == Path(
-        declared['previous_receipt_snapshot']).read_bytes()
+    data = native_refresh_observation(operational['owner'], declared)
     profile_inputs(data)
     configured = Path(operational['consumer_check_config'])
     parameters = Path(operational['consumer_check_parameters'])
+    assert_permanent([configured, parameters, operational['sdk_entry'],
+                      operational['sdk_python'], operational['operator_root']], operational['owner'])
     result = sdk_operation(operational, 'check', configured, parameters,
         Path(operational['operator_root']), tmp_path, 'all-live-consumers')
-    assert result['checks'] and all(row['result']['success'] for row in result['checks'])
+    assert result['checks'] and all(row['result']['status'] == 'succeeded'
+                                   for row in result['checks'])

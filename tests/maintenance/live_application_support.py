@@ -16,6 +16,12 @@ def write(path, value):
     return path
 
 
+def requirements_paths(manifest):
+    state = Path(manifest['paths']['state'])
+    return tuple(state / manifest['paths'][name]
+                 for name in ('requirements_database', 'requirements_lock'))
+
+
 def capture(argv, *, cwd, env, root, label, timeout=360):
     result = run_command([str(part) for part in argv], Path(cwd), env, timeout,
         root / (label + '.stdout'), root / (label + '.stderr'))
@@ -27,12 +33,16 @@ def capture(argv, *, cwd, env, root, label, timeout=360):
 def sdk_operation(runtime, operation, config, parameters, base, root, label):
     env = {'PATH': runtime['path'], 'HOME': '/home/sbwerewolf', 'LANG': 'C.UTF-8',
         'PYTHONPATH': runtime['module_path']}
-    result, stdout = capture([runtime['sdk_entry'], operation, '--config', config,
-        '--parameters', parameters, '--base-dir', base], cwd=base, env=env,
+    argv = [runtime['sdk_entry'], operation, '--config', config,
+            '--parameters', parameters, '--base-dir', base]
+    if operation != 'check':
+        argv += ['--requirements', 'all']
+    result, stdout = capture(argv, cwd=base, env=env,
         root=root, label=label)
     assert result['actual_exit_code'] == 0, result
     packet = json.loads(stdout)
     assert packet['status'] == 'succeeded', packet
+    assert packet['operation'] == operation, packet
     return packet
 
 
@@ -143,46 +153,83 @@ def application_runtime(runtime, application, root):
     return selected
 
 
-def verify_launch(runtime, application, app, parameters, base, evidence, selected):
-    """Test-owned foreground window; preserve the normal user's console profile.
+def consumer_command(runtime, application, operation, app, parameters, base, entry=None):
+    if entry is not None:
+        suffix = (['--config', str(app), '--parameters', str(parameters),
+                   '--base-dir', str(base)] if application == 'erp' else [])
+        return [*entry, operation, *suffix]
+    if application == 'erp':
+        return ['/bin/bash', str(base / 'start-app'), operation, '--config', str(app),
+                '--parameters', str(parameters), '--base-dir', str(base)]
+    return [runtime['service_python'], '-I', '-B', str(base / 'bootstrap'), operation,
+            '--config', str(Path(app).parent / 'bootstrap.json'), '--base-dir', str(base)]
 
-    The existing SDK runs the real application-owned foreground command. Standard
-    timeout bounds this *verification* window, and the common runner owns/reaps
-    its process group. Readiness requires an independent HTTP response before
-    the declared stop; timeout alone never proves application readiness.
-    """
+
+def consumer_operation(runtime, application, operation, app, parameters, base, evidence, label, entry=None):
     runtime = application_runtime(runtime, application, base)
+    result, stdout = capture(consumer_command(runtime, application, operation,
+        app, parameters, base, entry), cwd=base,
+        env={'PATH': runtime['path'], 'HOME': '/home/sbwerewolf', 'LANG': 'C.UTF-8',
+             'PYTHONPATH': runtime['module_path']}, root=evidence, label=label)
+    assert result['actual_exit_code'] == 0, result
+    packet = json.loads(stdout)
     if application == 'poise-op':
-        packet = sdk_operation(runtime, 'run', app, parameters, base, evidence, 'application-run')
+        assert packet['status'] == 'ready' and packet['exit_code'] == 0, packet
+        # Existing Bootstrap plugin preserves the actual SDK JSON in its
+        # initial observation; its owner exposes the packet without clipping.
+        observation = packet['observations'][0]
+        packet = json.loads(observation['stdout'])
+    assert packet['status'] == 'succeeded', packet
+    assert packet['operation'] == operation, packet
+    return packet
+
+
+def verify_launch(runtime, application, app, parameters, base, evidence, selected, entry=None):
+    """Exercise the unchanged run action through the actual consumer entry."""
+    runtime = application_runtime(runtime, application, base)
+    before = {Path(app): Path(app).read_bytes(), Path(parameters): Path(parameters).read_bytes()}
+    document = json.loads(before[Path(app)])
+    run_path = Path(app).parent / document['operations']['run']
+    before[run_path] = run_path.read_bytes()
+    if application == 'poise-op':
+        packet = consumer_operation(runtime, application, 'run', app, parameters,
+                                    base, evidence, 'application-run', entry)
         command = packet['requirements'][0]['result']['commands'][0]
         import base64
         inventory = json.loads(base64.b64decode(command['stdout']['data']))
         assert inventory['projects'] and inventory['errors'] == []
+        assert {path: path.read_bytes() for path in before} == before
         return
-    document = json.loads(Path(app).read_text())
-    document['operations'] = {key: str(Path(app).parent / value)
-        for key, value in document['operations'].items()}
-    document['operations']['run'] = 'foreground-run.json'
-    document['interpreters']['exit'] = {
-        'module': 'poise_environment.result_interpreters', 'attribute': 'exit_result'}
-    run = Path(__file__).parent / 'fixtures/live_deployment/erp-window-run.json'
-    write(evidence / 'foreground-run.json', json.loads(run.read_text()))
-    window_app = write(evidence / 'foreground-app.json', document)
-    values = json.loads(Path(parameters).read_text())
-    values.update(verification_timeout=runtime['timeout_executable'],
-                  verification_seconds=str(selected['window_seconds']))
-    window_parameters = write(evidence / 'foreground-parameters.json', values)
-    argv = [runtime['sdk_entry'], 'run', '--config', str(window_app),
-        '--parameters', str(window_parameters), '--base-dir', str(base)]
-    env = {'PATH': runtime['path'], 'HOME': '/home/sbwerewolf', 'LANG': 'C.UTF-8',
-        'PYTHONPATH': runtime['module_path']}
+    seconds = selected['window_seconds']
+    assert 0 < seconds <= 30
+    private = evidence / 'private-console'
+    private.mkdir()
+    for name in ('tmp', 'run'):
+        (private / name).mkdir(mode=0o700)
+    environment = {'PATH': runtime['path'], 'HOME': '/home/sbwerewolf', 'LANG': 'C.UTF-8',
+        'PYTHONPATH': runtime['module_path'], 'XDG_RUNTIME_DIR': str(private / 'run'),
+        'DBUS_SESSION_BUS_ADDRESS': 'unix:path=' + str(private / 'run/no-host-bus')}
+    inputs = write(evidence / 'launch-window-inputs.json', {
+        'argv': consumer_command(runtime, application, 'run', app, parameters, base, entry),
+        'parameters': str(parameters), 'base': str(base), 'evidence': str(evidence),
+        'environment': environment, 'private_display': True,
+        'command_timeout': selected['command_timeout'], 'window_seconds': seconds})
+    # Standard private PID namespace owns every detached console. Xvfb and its
+    # socket/auth files live in that namespace's private /tmp, never WSLg.
+    argv = [selected['bwrap'], '--unshare-pid', '--die-with-parent', '--ro-bind', '/', '/',
+        '--bind', str(private / 'tmp'), '/tmp',
+        '--bind', str(base), str(base), '--bind', str(evidence), str(evidence),
+        '--proc', '/proc', '--dev-bind', '/dev', '/dev',
+        selected['xvfb_run'], '-a', '-s', '-screen 0 1700x700x24 -nolisten tcp',
+        runtime['service_python'], '-B', str(Path(__file__).with_name('live_launch_window.py')),
+        str(inputs)]
     runner, outcome, errors = RegisteredCheckRunner(), {}, []
 
     def observe():
         try:
-            outcome.update(runner.run('owned-application-window', argv, base, env,
-                selected['window_seconds'] + 15, evidence / 'application-run.stdout',
-                evidence / 'application-run.stderr'))
+            outcome.update(runner.run('owned-application-window', argv, base, environment,
+                seconds + selected['command_timeout'] + 15,
+                evidence / 'application-window.stdout', evidence / 'application-window.stderr'))
         except BaseException as error:
             errors.append(error)
 
@@ -193,19 +240,21 @@ def verify_launch(runtime, application, app, parameters, base, evidence, selecte
         observed, stdout = capture(probe['argv'], cwd=base, env=probe['env'],
             root=evidence, label='application-readiness', timeout=probe['timeout_seconds'])
         assert observed['actual_exit_code'] == 0, stdout
-        with urllib.request.urlopen(selected['health_url'], timeout=10) as response:
-            body = response.read()
-            assert response.status == 200 and body
-            (evidence / 'http-body.bin').write_bytes(body)
-        write(evidence / 'http-observation.json', {'status': 200,
-            'url': selected['health_url'], 'body_sha256': hashlib.sha256(body).hexdigest()})
+        for endpoint in selected['endpoints']:
+            with urllib.request.urlopen(endpoint, timeout=10) as response:
+                body = response.read()
+                assert response.status == 200 and body
+                name = 'http-' + hashlib.sha256(endpoint.encode()).hexdigest()[:12]
+                (evidence / (name + '.bin')).write_bytes(body)
+                write(evidence / (name + '.json'), {'status': 200, 'url': endpoint,
+                    'body_sha256': hashlib.sha256(body).hexdigest()})
     finally:
-        worker.join(selected['window_seconds'] + 20)
+        worker.join(50)
         if worker.is_alive():
             runner.cancel('owned-application-window')
             worker.join(5)
         assert not worker.is_alive(), 'Owned application observer must finish'
-        write(evidence / 'application-run.json', outcome)
+        write(evidence / 'application-window.json', outcome)
         if errors:
             write(evidence / 'application-observer-errors.json',
                   {'errors': [repr(error) for error in errors]})
@@ -213,9 +262,10 @@ def verify_launch(runtime, application, app, parameters, base, evidence, selecte
     assert outcome['actual_exit_code'] == 0 and outcome['capture_complete']
     assert not outcome['timed_out'] and outcome['termination']['child_reaped']
     assert outcome['termination']['process_group_stopped']
-    packet = json.loads((evidence / 'application-run.stdout').read_bytes())
+    actual = json.loads((evidence / 'declared-run.json').read_text())
+    assert actual['actual_exit_code'] == 0 and actual['capture_complete'] and not actual['timed_out']
+    packet = json.loads((evidence / 'declared-run.stdout').read_bytes())
     assert packet['status'] == 'succeeded'
-    command = packet['requirements'][0]['result']['commands'][0]
-    assert command['exit_code'] == 124
-    assert 'run-process' in command['invocation']['argv']
-    assert command['invocation']['cwd'] == str(base)
+    assert [row['id'] for row in packet['requirements']] == selected['process_ids']
+    assert all(row['result']['status'] == 'succeeded' for row in packet['requirements'])
+    assert {path: path.read_bytes() for path in before} == before

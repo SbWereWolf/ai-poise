@@ -30,6 +30,11 @@ def exact(actual, expected, path=''):
         assert actual == expected, (path, actual, expected)
 
 
+def receipt_id(value):
+    assert isinstance(value, str) and value.strip() and '\0' not in value, ('invalid receipt ID', value)
+    return value
+
+
 def pointer(value, path):
     for part in path.strip('/').split('/'):
         part = part.replace('~1', '/').replace('~0', '~')
@@ -84,17 +89,22 @@ class Reader:
             'events': self.session.execute(
                 'SELECT seq,binding_id,event_id,event,data FROM poise_hook_events ORDER BY seq')}
 
-    def resolve(self, value, field=''):
+    def resolve(self, value, field='', location=()):
         if isinstance(value, str):
-            if value.startswith('${') and value.endswith('}'):
+            id_role = (not location and field == 'receipt_id'
+                       or len(location) == 3 and location[:2] == ('input', 'acknowledged')
+                       or len(location) == 4 and location[:2] == ('result', 'items')
+                          and location[-1] == 'receipt_id'
+                       or location == ('error', 'details', 'receipt_id'))
+            if id_role and value.startswith('${') and value.endswith('}'):
                 return self.ids[value[2:-1]]
             if field in ('path', 'cwd', 'expected_path') and (value == '$ROOT' or value.startswith('$ROOT/')):
                 return str(self.root) + value[5:]
             return value
         if isinstance(value, list):
-            return [self.resolve(item, field) for item in value]
+            return [self.resolve(item, field, location + (index,)) for index, item in enumerate(value)]
         if isinstance(value, dict):
-            return {key: self.resolve(item, key) for key, item in value.items()}
+            return {key: self.resolve(item, key, location + (key,)) for key, item in value.items()}
         return value
 
     def document(self, spec):
@@ -143,7 +153,7 @@ class Reader:
         code, response = self.call(request)
         for name, location in spec.get('capture', {}).items():
             value = pointer(response, location)
-            assert isinstance(value, str) and value, (name, value)
+            receipt_id(value)
             if name in self.ids:
                 exact(value, self.ids[name])
             else:
@@ -188,7 +198,7 @@ class Reader:
                 exact(self.rows(), untouched)
             self.receipts.clear()
         for token, acknowledged in effects.get('receipt_acknowledged', {}).items():
-            identity = self.resolve(token)
+            identity = self.resolve(token, 'receipt_id')
             original = deepcopy(self.receipts[identity])
             target = deepcopy(original)
             target['status'] = 'unchanged' if acknowledged else 'read'

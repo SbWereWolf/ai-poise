@@ -292,5 +292,91 @@
     "generation": null,
     "items": [],
     "text_bytes": null
+  },
+  "consumer_diagnostics": {
+    "binding_input": {
+      "result": {
+        "items": [
+          {
+            "receipt_id": "${r1}",
+            "text": "${r1}"
+          }
+        ]
+      },
+      "input": {
+        "acknowledged": [
+          "${r1}"
+        ],
+        "reads": [
+          {
+            "reason": "${r1}"
+          }
+        ]
+      },
+      "error": {
+        "details": {
+          "receipt_id": "${r1}"
+        }
+      },
+      "text": "${missing}",
+      "reason": "${missing}",
+      "other": {
+        "receipt_id": "${r1}",
+        "acknowledged": [
+          "${r1}"
+        ]
+      },
+      "path": "$ROOT/sample.txt"
+    },
+    "binding_expected": {
+      "result": {
+        "items": [
+          {
+            "receipt_id": "received-ID",
+            "text": "${r1}"
+          }
+        ]
+      },
+      "input": {
+        "acknowledged": [
+          "received-ID"
+        ],
+        "reads": [
+          {
+            "reason": "${r1}"
+          }
+        ]
+      },
+      "error": {
+        "details": {
+          "receipt_id": "received-ID"
+        }
+      },
+      "text": "${missing}",
+      "reason": "${missing}",
+      "other": {
+        "receipt_id": "${r1}",
+        "acknowledged": [
+          "${r1}"
+        ]
+      },
+      "path": "/reader-diagnostic/sample.txt"
+    },
+    "valid_receipt_ids": [
+      "plain",
+      " ID with spaces ",
+      "не UUID"
+    ],
+    "invalid_receipt_ids": [
+      "",
+      " ",
+      "\t\n",
+      "\u0000",
+      "a\u0000b",
+      null,
+      0,
+      true
+    ],
+    "stderr": "diagnostic unexpected stderr\n"
   }
 }

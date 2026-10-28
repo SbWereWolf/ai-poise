@@ -6,6 +6,8 @@ import shlex
 import subprocess
 import sys
 
+import pytest
+
 from .hooks_support import hooks, native, native_peer
 
 
@@ -152,3 +154,143 @@ def test_later_pre_stop_is_not_fabricated_as_a_started_check(case):
     assert result['termination']['graceful_requested'] is False
     assert result['termination']['force_requested'] is False
     assert not case.rows()
+
+
+@pytest.mark.parametrize('axis', ['caller', 'project', 'checkout', 'selection', 'options'])
+def test_prepared_reference_rejects_other_valid_run_binding(case, monkeypatch, axis):
+    """The real consumer must check a good Pre reference, not just its shape.
+
+    Every changed binding has a healthy untracked control. The prepared original
+    remains executable after refusal; two real held scopes must stay untouched.
+    """
+    from .support import Arrangement, literal
+    from tests.named_checks.support import beta_project, git, write_json
+
+    case.child(marker='other-valid', name='other-valid')
+    case.child(marker='protected-live', mode='hold', name='protected-live')
+    case.child(marker='foreign-live', mode='hold', name='foreign-live')
+    for name in ['protected-live', 'foreign-live']:
+        case.scene.profile(name, execution_timeout_seconds=60)
+    case.scene.save()
+    selected = None
+    beta = None
+    if axis == 'project':
+        configured, beta_root = beta_project(case.scene.project, case.root)
+        beta_parent = beta_root / 'admission-arrangement'
+        beta_parent.mkdir()
+        beta = Arrangement(configured, beta_parent, monkeypatch)
+        case.cleanup_callbacks.append(beta.close)
+        beta.child(marker='other-valid', name='other-valid')
+        selected = {'config': str(beta.scene.config), 'checkout': str(beta.scene.checkout),
+                    'policy': str(beta.scene.policy_path)}
+        code, proof, _ = beta.scene.invoke(beta.scene.request(fresh=True))
+        assert (code, proof['status']) == (0, 'passed'), 'VALID_PROJECT_PRECONDITION'
+        write_json(case.root / 'valid-project-precondition.json', proof)
+    elif axis == 'checkout':
+        other = case.root / 'registered-copy'
+        git(case.scene.checkout, 'worktree', 'add', '-b', 'codex/f13-admission-copy', str(other))
+        case.cleanup_callbacks.append(lambda: git(case.scene.checkout, 'worktree', 'remove', str(other)))
+        selected = {'config': str(case.scene.config), 'checkout': str(other),
+                    'policy': str(case.scene.policy_path)}
+        code, proof, _ = case.scene.invoke(case.scene.request(fresh=True), checkout=other)
+        assert (code, proof['status']) == (0, 'passed'), 'VALID_REGISTERED_COPY_PRECONDITION'
+        assert proof['items'][0]['steps'][0]['record']['cwd'] == str(other)
+        write_json(case.root / 'valid-copy-precondition.json', proof)
+
+    chain = hooks(case)
+    original = case.arguments()
+    prepared, _ = native(case, chain, 'PreToolUse', 'mcp__repo_checks__run', original,
+                         key='prepared-original')
+    good = prepared['hookSpecificOutput']['updatedInput']
+    assert good['_invocation'], 'ADMISSION_PRE_PRODUCER_NOT_REACHED'
+    assert {k: v for k, v in good.items() if k != '_invocation'} == original
+    owner = native_peer(case, chain)
+    foreign = case.peer('admission-foreign', environment=case.environment)
+    foreign.initialize()
+
+    # Both independent scopes really execute before the mismatched reference.
+    live_pre, _ = native(case, chain, 'PreToolUse', 'mcp__repo_checks__run',
+                         case.arguments(name='protected-live'), key='protected-live')
+    live_args = live_pre['hookSpecificOutput']['updatedInput']
+    owner.call('protected-live', 'run', live_args)
+    own_child = case.started('protected-live')
+    foreign.call('foreign-live', 'run', case.arguments(name='foreign-live'))
+    foreign_child = case.started('foreign-live')
+    assert own_child['pid'] != foreign_child['pid']
+
+    consumer = foreign if axis == 'caller' else owner
+    bad = deepcopy(good)
+    if axis in ('project', 'checkout'):
+        bad['binding'] = selected
+    elif axis == 'selection':
+        bad['selection'] = case.scene.selection('other-valid')
+    elif axis == 'options':
+        bad['options']['fresh'] = False
+
+    # Same valid consumer/binding/options, without the foreign Pre reference:
+    # proving this control must not depend on invalid config/caller rejection.
+    healthy = deepcopy(bad)
+    healthy.pop('_invocation')
+    consumer.call('valid-consumer-control', 'run', healthy)
+    control_envelope, control = consumer.outcome('valid-consumer-control')
+    assert control_envelope['isError'] is False and control['result']['status'] == 'passed'
+    control_case = beta if axis == 'project' else case
+    control_record = control_case.record(control)
+    expected_checkout = selected['checkout'] if selected is not None else str(case.scene.checkout)
+    assert control_record['cwd'] == expected_checkout
+    assert control_case.rows('other-valid' if axis == 'selection' else 'subject')
+
+    _, foreign_preview = case.cancel_outcome(foreign, 'foreign-scope-preview', preview=True)
+    assert foreign_preview['status'] == 'planned'
+    identities = [good['_invocation'], live_args['_invocation'], foreign_preview['target']['invocation_id']]
+    metadata_root = case.scene.state / case.policy['invocation']['directory']
+    paths = [metadata_root / identity / case.policy['invocation']['record_file'] for identity in identities]
+    before = {str(path): path.read_bytes() for path in paths}
+    assert all(json.loads(raw) for raw in before.values()), 'ADMISSION_HEALTHY_BINDINGS_NOT_REACHED'
+    case_before = {name: deepcopy(case.rows(name)) for name in
+                   ['subject', 'other-valid', 'protected-live', 'foreign-live']}
+    beta_before = None if beta is None else deepcopy(beta.rows())
+
+    consumer.call('mismatched-reference', 'run', bad)
+    envelope, refused = consumer.outcome('mismatched-reference')
+    expected = literal('admission-refusal.json')
+    assert envelope['isError'] is expected['isError']
+    assert refused['result']['status'] == expected['status']
+    assert refused['result']['error']['code'] == expected['code'], 'MISMATCH_ADMISSION_NOT_REACHED'
+    assert refused['result']['error']['field'] == expected['field'], 'MISMATCH_ADMISSION_NOT_REACHED'
+    assert refused['result']['error']['cause'] and refused['result']['error']['recovery']
+    assert refused['result']['items'] == []
+    delivered = [json.loads(line) for line in consumer.input_path.read_text().splitlines()]
+    attacked = [row for row in delivered if row.get('id') == 'mismatched-reference']
+    assert len(attacked) == 1 and attacked[0]['params']['arguments'] == bad
+    assert bad['_invocation'] == good['_invocation']
+    assert {str(path): path.read_bytes() for path in paths} == before
+    assert {name: case.rows(name) for name in case_before} == case_before
+    if beta is not None:
+        assert beta.rows() == beta_before
+    write_json(case.root / ('admission-' + axis + '.json'), {
+        'axis': axis, 'consumer_pid': consumer.process.pid,
+        'owner_pid': owner.process.pid, 'foreign_pid': foreign.process.pid,
+        'prepared': good, 'delivered': attacked[0], 'refusal': refused,
+        'metadata_before': {name: raw.decode() for name, raw in before.items()},
+        'metadata_after': {str(path): path.read_text() for path in paths},
+        'child_events': {name: case.rows(name) for name in case_before}})
+    for peer, request in [(owner, 'owned-scope-ping'), (foreign, 'foreign-scope-ping')]:
+        peer.request(request, 'ping', {})
+        assert peer.response(request)['result'] == {}
+
+    # Reuse the actual unchanged prepared reference: a blanket refusal cannot pass.
+    owner.call('matching-original', 'run', good)
+    matched_envelope, matched = owner.outcome('matching-original')
+    assert matched_envelope['isError'] is False and matched['result']['status'] == 'passed'
+    assert matched['invocation']['id'] == good['_invocation']
+    assert len([row for row in case.rows() if row['event'] == 'STARTED']) == (
+        len([row for row in case_before['subject'] if row['event'] == 'STARTED']) + 1)
+    native(case, chain, 'PostToolUse', 'mcp__repo_checks__run', good,
+           key='prepared-original', response=matched_envelope)
+    case.release('protected-live'); case.release('foreign-live')
+    own_envelope, own_result = owner.outcome('protected-live')
+    _, foreign_result = foreign.outcome('foreign-live')
+    assert own_result['result']['status'] == foreign_result['result']['status'] == 'passed'
+    native(case, chain, 'PostToolUse', 'mcp__repo_checks__run', live_args,
+           key='protected-live', response=own_envelope)

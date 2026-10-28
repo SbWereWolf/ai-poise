@@ -259,6 +259,9 @@ def beta_project(project, tmp_path):
     created = project_tools(setup).apply(packet)
     base['config_path'] = Path(created['config_path'])
     base['root'] = base['config_path'].parent
+    # Setup publishes its own runtime-resources owner.  Consumers need those
+    # actual values, not the original draft inherited from the first project.
+    base['cfg'] = json.loads(base['config_path'].read_text())
     return base, beta_root
 
 

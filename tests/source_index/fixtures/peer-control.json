@@ -1,0 +1,10 @@
+{
+  "events": "",
+  "update_exit": 0,
+  "query_exit": 0,
+  "after_update": "healthy",
+  "barrier": null,
+  "barrier_checkout": null,
+  "large": false,
+  "query_by_checkout": {}
+}

@@ -44,6 +44,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `tool-result` | Обязательные абсолютный `--policy PATH` и `--audience agent\|machine`; JSON stdin. Для session route `--config PATH`/`--checkout PATH` необязательны парой; non-session project-bound route требует оба абсолютных пути. | Общий вывод/сохранённые expanded/full последнего run и прямые capture/read операции без обязательной Task. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
+| `source-index` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin; необязательный `--handler`. | [Поиск и обновление индекса выбранной копии](../configuration/source-index.md#запросы-и-первоначальный-индекс), Git callback и optional sync handler без обязательной Task. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
 | `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
 | `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |

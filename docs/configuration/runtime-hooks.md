@@ -293,6 +293,10 @@ SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не �
 `context_template`, `tool_intake` или `general_context` сами по себе новую цепочку
 не подключают. Рабочие значения и файлы остаются вне source Git.
 
+Необязательный command/sync handler может добавлять состояние индекса выбранной копии;
+его [настройка и связь с Git callback](source-index.md#git-callback-и-цепочка-hooks)
+описаны отдельно. Он использует существующую цепочку и сохраняет её порядок.
+
 ### Определение и порядок конфигураций
 
 У definition обязательны `schema`, `id`, `agent_id`, `message_source`, `events`,

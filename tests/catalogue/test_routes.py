@@ -108,7 +108,9 @@ def _assert_real_integration(directory, scenario, monkeypatch):
         if packet["operation"] == "verify" and isinstance(payload, dict):
             work = payload.get("stage_work", {})
             plan = work.get("plan")
-            if work.get("phase") == "prepare" and isinstance(plan, dict) and plan.get("kind") == "git_merge":
+            if (work.get("phase") == "prepare"
+                    and payload.get("evidence_work", {}).get("phase") == "prepare"
+                    and isinstance(plan, dict) and plan.get("kind") == "git_merge"):
                 if not anchors:
                     anchors["target"] = git(application, "rev-parse", "refs/heads/main")
                     anchors["remote"] = git(remote, "rev-parse", "refs/heads/main")
@@ -154,3 +156,8 @@ def _assert_real_integration(directory, scenario, monkeypatch):
         assert max(report["iteration"] for report in result["reports"]) >= 2
         assert len(preparations) >= 2
         assert any(head != anchors["target"] for _, head in preparations[1:])
+
+    subject, separator, body = intent["commit_message"].partition("\n\n")
+    assert separator == "\n\n", "Integration purpose requires a subject, blank line and body"
+    assert subject.strip() and "\n" not in subject and len(subject) <= 50
+    assert body.strip() and all(len(line) <= 70 for line in body.splitlines())

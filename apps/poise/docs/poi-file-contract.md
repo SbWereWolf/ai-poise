@@ -2,22 +2,22 @@
 
 ## Статус и основание
 
-Это договор будущей реализации самостоятельного reader, а не описание уже
-работающих операций. Текущий вход Poise предоставляет Session и hooks;
-`reader.context`, `reader.read`, `reader.next`, `reader.reset` предстоит реализовать
-и проверить на границах производителя и потребителя.
+Актуально: 2026-10-28.
 
-Основание — принятое [сравнение ERP и SourceReader](poi-reader-comparison.md).
-Повторно используется ответственность существующего SourceReader: ограниченное
-чтение, явное подтверждение получения, поколения контекста и запись метаданных
-пакета после успешного чтения. ERP cache показанного текста не заменяет ACK.
-Байтовые диапазоны и продолжение являются расширениями выбранной основы.
+Самостоятельный Poise исполняет `reader.context`, `reader.read`, `reader.next`
+и `reader.reset` через `bin/poise`. Договор проверяется на действительных
+производителе и потребителе в отдельной копии приложения с собственной Session
+и SQLite, без установленного Stride.
 
-Существующий [SourceReader](../../../docs/workflows/source-reader.md) сохраняет
-свой отдельный интерфейс `context/read/reset` и `source-read-result-1`. Новый
-договор явно версионирован. Его `count` задаёт максимальную порцию с завершением
-на EOF; это отличается от прежнего точного включительного конца диапазона,
-выход которого за EOF отклонялся. Новый пакет не является псевдонимом старого.
+Основа — ответственность выбранного [SourceReader](poi-reader-comparison.md):
+ограниченное чтение, явный ACK, поколения контекста и сохранение метаданных
+успешного пакета. В самостоятельном reader реализованы также байтовые порции
+и продолжение. ERP cache показанного текста сохраняет свою отдельную семантику.
+
+Прежний [SourceReader](../../../docs/workflows/source-reader.md) имеет отдельные
+`context/read/reset` и `source-read-result-1`. Здесь используется `reader/2`:
+`count` задаёт максимальную порцию с сокращением на EOF. Это самостоятельный
+версионированный интерфейс; его действующая конфигурация приведена ниже.
 
 ## Владелец и поддержанное использование
 
@@ -40,9 +40,9 @@ reader не входят. Метаданные Task остаются у влад
 различить изменённые байты. Хэш, подпись или проверка подмены для этого договора
 не требуются.
 
-## Конфигурация и будущая команда
+## Конфигурация и команда
 
-Будущий необязательный раздел собственной конфигурации `reader` содержит известные
+Необязательный раздел собственной конфигурации `reader` содержит известные
 обязательные `schema` и `limits`. В `limits` обязательны все шесть значений ниже;
 каждое — положительное целое, boolean целым не считается.
 
@@ -66,8 +66,8 @@ reader не входят. Метаданные Task остаются у влад
 
 `future_note` и `future_units` — корректные примеры неизвестных опций. Reader
 игнорирует их смысл и сохраняет исходные значения. Неизвестные опции на обоих
-уровнях не удаляются и не исключаются из редакторских ревизий. Известные поля и
-их значения проверяются. Операции reader не переписывают конфигурацию.
+уровнях остаются в исходном JSON. Известные поля и их значения проверяются.
+Операции reader сохраняют файл конфигурации без перезаписи.
 Пакеты API, курсоры и квитанции при этом сохраняют точную схему.
 
 | Параметр | Значение |
@@ -84,17 +84,23 @@ reader не входят. Метаданные Task остаются у влад
 приложения. Дополнительный файл состояния или общая длительная блокировка не нужны.
 При отсутствии раздела только операция reader сообщает `reader_not_configured`.
 
-После реализации reader его пакеты будут передаваться через собственный вход
-из корня checkout, с выбранным CPython 3.13 и полной собственной конфигурацией:
+Полный [пример reader-конфигурации](../config/reader.example.json) задаёт также
+обязательные параметры Session. Настройте шесть пределов явно. Источник загружается
+в память в пределах `max_file_bytes`; выбирайте этот предел с учётом доступной
+памяти. `max_output_bytes` считает только фактически возвращённый UTF-8 текст,
+а не JSON-оболочку. Размеры порций ограничивают запрос, даже если файл короче.
+
+Из корня checkout с выбранным CPython 3.13:
 
 ```sh
-"${poise_python:?Укажите выбранный Python 3.13}" -B apps/poise/bin/poise \
+"${POISE_PYTHON:?Укажите абсолютный путь CPython 3.13}" -I -S -B apps/poise/bin/poise \
   --config /absolute/path/poise.json < /absolute/path/request.json
 ```
 
-Это будущая команда reader. Рабочий пример конфигурации и текущие команды Session
-сохраняют действующий договор; наличие этого документа не добавляет операций
-в установленный вход.
+Пути `session_store` и generated `caller.binding_file` относятся к каталогу
+конфигурации. Рабочий каталог чтения передаётся отдельно в `input.cwd`.
+Известные настройки reader проверяются при выбранной операции reader;
+Session и hooks используют свои действующие настройки.
 
 ## Оболочка и типы
 
@@ -280,7 +286,8 @@ Reader проверяет пакет, читает все источники и 
 ## Отказы операции
 
 Обязательные детали каждого отказа заданы таблицей. Указатель `field` — JSON
-Pointer в запросе. Проверка входа предшествует изменению reader-метаданных.
+Pointer в запросе: внутри одного имени `~` записывается как `~0`, `/` — как `~1`.
+Проверка входа предшествует изменению reader-метаданных.
 Неподдержанная внешняя схема и отсутствие Session остаются у существующего
 владельца внешнего входа и Session.
 
@@ -310,7 +317,7 @@ Pointer в запросе. Проверка входа предшествует 
 
 ## Последовательность правильного использования
 
-Для будущего reader подготовьте собственное состояние и Session по действующему
+Для reader подготовьте собственное состояние и Session по действующему
 руководству, задайте известные лимиты и выберите нужный документ.
 
 1. Получите `reader.context` или выполните явный `reader.reset` и используйте
@@ -325,7 +332,7 @@ Pointer в запросе. Проверка входа предшествует 
    материалы с новым поколением. Для намеренного повторного получения текста
    используйте `reread: true` и содержательную причину.
 
-Пример правильного будущего запроса после получения поколения 1:
+Пример правильного запроса после получения поколения 1:
 
 ```json
 {
@@ -347,26 +354,147 @@ Pointer в запросе. Проверка входа предшествует 
 }
 ```
 
+## Полный пример отдельной установки
+
+В Bash из корня checkout задайте `POISE_PYTHON` абсолютным путём CPython 3.13.
+Последовательность копирует только приложение Poise, создаёт собственные конфиги,
+состояние и generated caller. Оба конфига находятся рядом; `database` состояния
+выбирает тот же относительный путь, что `session_store` reader.
+
+```bash
+# reader-quickstart
+set -e
+POISE_READER_ROOT="$(mktemp -d)"
+cp -R apps/poise "$POISE_READER_ROOT/poise"
+POISE_APP="$POISE_READER_ROOT/poise"
+mkdir -p "$POISE_READER_ROOT/config"
+cp "$POISE_APP/config/reader.example.json" "$POISE_READER_ROOT/config/poise.json"
+cp "$POISE_APP/config/state.example.json" "$POISE_READER_ROOT/config/state.json"
+"$POISE_PYTHON" - "$POISE_READER_ROOT" <<'PYSETUP'
+import json
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+reader = json.loads((root / 'config/poise.json').read_text())
+state_path = root / 'config/state.json'
+state = json.loads(state_path.read_text())
+state['database'] = reader['session_store']
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n')
+(root / 'sample.txt').write_text('A\nЖ🙂\nZ', encoding='utf-8')
+PYSETUP
+printf '%s\n' '{"schema":"poise-state/v1","operation":"prepare","input":{}}' |
+  "$POISE_PYTHON" -I -S -B "$POISE_APP/bin/poise-state" \
+    --config "$POISE_READER_ROOT/config/state.json"
+"$POISE_PYTHON" - "$POISE_APP" "$POISE_READER_ROOT" <<'PYCLIENT'
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+app, root = map(Path, sys.argv[1:])
+environment = os.environ.copy()
+for name in ('CODEX_SESSION_ID', 'CODEX_THREAD_ID'):
+    environment.pop(name, None)
+calls = []
+
+def call(operation, value):
+    packet = {'schema': 'stride-poise/v1', 'operation': operation, 'input': value}
+    payload = json.dumps(packet, ensure_ascii=False) + '\n'
+    child = subprocess.run([sys.executable, '-I', '-S', '-B', str(app / 'bin/poise'),
+        '--config', str(root / 'config/poise.json')],
+        input=payload.encode('utf-8'), capture_output=True, env=environment, check=False)
+    calls.append({'request': json.loads(payload), 'stdin': payload, 'exit': child.returncode,
+        'stdout': child.stdout.decode('utf-8'), 'stderr': child.stderr.decode('utf-8')})
+    (root / 'example-calls.json').write_text(json.dumps(calls, ensure_ascii=False, indent=2) + '\n')
+    child.check_returncode()
+    print(child.stdout.decode('utf-8'), end='')
+    return json.loads(child.stdout)['result']
+
+call('session.ensure', {})
+context = call('reader.context', {})
+generation = context['generation']
+line = {'path': 'sample.txt', 'range': {'unit': 'lines', 'start': 1, 'count': 1},
+        'reread': False, 'reason': ''}
+first = call('reader.read', {'cwd': str(root), 'generation': generation,
+    'acknowledged': [], 'reads': [line]})
+first_id = first['items'][0]['receipt_id']
+byte = {'path': 'sample.txt', 'range': {'unit': 'bytes', 'start': 2, 'count': 5},
+        'reread': False, 'reason': ''}
+portion = call('reader.read', {'cwd': str(root), 'generation': generation,
+    'acknowledged': [first_id], 'reads': [byte]})
+while True:
+    item = portion['items'][0]
+    last_id = item['receipt_id']
+    if item['eof']:
+        break
+    portion = call('reader.next', {'generation': generation, 'acknowledged': [last_id],
+        'reads': [{'cursor': item['next'], 'count': 4, 'reread': False, 'reason': ''}]})
+call('reader.read', {'cwd': str(root), 'generation': generation,
+    'acknowledged': [first_id, last_id], 'reads': [line]})
+line['reread'], line['reason'] = True, 'Повторное чтение выбранной строки'
+call('reader.read', {'cwd': str(root), 'generation': generation,
+    'acknowledged': [], 'reads': [line]})
+reset = {'reason': 'manual', 'event_id': 'reader-example-context-1'}
+call('reader.reset', reset)
+context = call('reader.reset', reset)
+line['reread'], line['reason'] = False, ''
+call('reader.read', {'cwd': str(root), 'generation': context['generation'],
+    'acknowledged': [], 'reads': [line]})
+PYCLIENT
+printf 'Reader example: %s\n' "$POISE_READER_ROOT"
+```
+
+Очистка native-переменных относится только к отдельным дочерним процессам
+generated-примера. Native identity текущей оболочки и её launcher сохраняются.
+Собственный binding повторно выбирает ту же Session во всех вызовах.
+
+Все вызовы завершаются exit `0`, `status="ok"`, с пустым stderr. Подготовка даёт
+версию `1`; `session.ensure` создаёт Session с `role: null`. Начальный reader-контекст
+имеет поколение `1`. Строка возвращает `A\n`, фактический `count: 1` и `text_bytes: 2`.
+Байтовая порция возвращает `Ж` (2 байта), последующие — `🙂` (4 байта) и `\nZ`
+(2 байта, `eof: true`, `next: null`). Подтверждённая первая строка возвращает
+`status: "unchanged"`, `text_bytes: 0`; намеренный повтор — `status: "reread"`
+и исходный текст. Два вызова одного reset возвращают поколение `2`; свежий диапазон
+в нём снова возвращает строку с `status: "read"`.
+
+Полные запросы и ответы сохранены в `example-calls.json` указанного каталога.
+Для последующей работы используйте ту же конфигурацию, базу и caller binding;
+выбирайте диапазоны действительных источников, получайте текущее поколение и
+передавайте полученные квитанции после приёма текста. После обычного изменения
+источника выберите свежий диапазон; после восстановления контекста выполните явный
+reset и используйте возвращённое поколение.
+
 ## Независимые примеры и проверка реализации
 
-[Буквальные примеры](../tests/fixtures/reader-contract/vectors.json) содержат
-контролируемые исходные тексты, метаданные версии, запросы и ожидаемые ответы,
-код завершения и эффекты. Это договор проверок будущей реализации, а не
-исполняемый reader или свидетельство уже пройденного runtime-теста.
+[Буквальные примеры](../tests/fixtures/reader-contract/vectors.json) задают независимые
+исходные тексты, версии, запросы, ответы и эффекты. Их исходная метка проектных
+примеров относится к этим данным, а не к доступности поставленного reader. Примеры
+сами по себе не являются журналом исполнения. Действительный производитель и
+потребитель проверяются текущими тестами.
 
-`$ROOT` обозначает выбранную тестовую директорию. `${r1}` и другие объявленные
-имена обозначают только непрозрачные IDs: `capture` указывает JSON Pointer
-первого полученного ID. После однократного связывания тот же ID подставляется
-в следующие запросы и ожидаемые ответы. Подстановка применяется только к полям
-пути и ID, не к текстам, числам, единицам, версии, EOF или ошибкам. Остальные
-ожидания буквальные и не выводятся из алгоритма производителя.
+`$ROOT` обозначает выбранную тестовую директорию. Объявленные `${r1}` связываются
+один раз только в полях ID квитанций и ACK. Пути нормализуются отдельно; тексты,
+причины, числа, версии, EOF и ошибки сравниваются буквально. Успешный `next` получает
+действительный ранее проверенный курсор. Эффекты проверяются через публичные
+повторы и снимки собственного состояния, без требования приватной JSON-структуры.
 
-Каждый случай начинается с явно заданного собственного контекста и подготовленных
-файлов. `effects` описывает наблюдаемые факты reader; это не требование приватного
-формата хранилища. Для изменения версии тестовый владелец меняет один и тот же
-файл по шагу `replace_document`, сохраняя заявленные текст и время изменения.
+Из корня checkout с выбранным Python задайте `POISE_READER_CHECK_OUTPUT`
+абсолютным путём собственного каталога отчётов:
 
-При реализации проверяются реальный производитель и реальный потребитель,
-правильные строки и байты, ACK, EOF, смена версии и восстановление контекста.
-Документ и JSON проходят проверку чтением и существующим владельцем ссылок;
-такая проверка не заменяет проверку работающего нового reader.
+```bash
+"$POISE_PYTHON" -B apps/poise/tests/test_reader.py --suite delivery \
+  --output-root "$POISE_READER_CHECK_OUTPUT/delivery"
+"$POISE_PYTHON" -B apps/poise/tests/test_reader.py --suite behavior \
+  --output-root "$POISE_READER_CHECK_OUTPUT/behavior"
+```
+
+Оба вызова имеют exit `0` на текущей реализации. `delivery` проверяет доступность
+операции после реальной подготовки Session и различает её от ошибок тестового окружения. `behavior`
+исполняет четыре группы: договор порций, собственные Session и квитанции,
+конфигурация и источники, атомарность отказа пакета. В каждом каталоге
+`reader-details.json` сохраняет полные наблюдения.
+
+Проверка ссылок и чтение описания подтверждают согласованность документации.
+Отдельные реальные запуски подтверждают работу команд и результатов.

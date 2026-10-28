@@ -12,10 +12,14 @@
 [действующий договор hooks](hooks-poi.md), включая собственное состояние,
 идентичность события, повтор, advisory наблюдения и полный результат.
 
+Самостоятельные `reader.context/reset/read/next` через `bin/poise` имеют
+[действующий договор reader/2](poi-file-contract.md): собственные Session, конфигурация,
+порции, продолжения, ACK и метаданные версии.
+
 Ниже сохранён исторический целевой проект T016. Его более широкий договор включает
-ещё отдельные области инструментов, асинхронных команд, закрытия Session и расширенного
-reader. Эти описания сами по себе не подтверждают поставку исполняемых операций.
-Для реализованных Session, роли, статуса и hooks текущие операторские договоры выше
+ещё отдельные области инструментов, асинхронных команд и закрытия Session.
+Эти описания сами по себе не подтверждают поставку исполняемых операций.
+Для реализованных Session, роли, статуса, hooks и reader текущие операторские договоры выше
 заменяют соответствующие ранние предложения этого проекта, включая отличающиеся
 поля, условия допуска и проверки. Существующие нумерованные разделы сохранены
 как проектный материал для оставшихся областей.
@@ -372,8 +376,9 @@ A file read binding delegates the existing bounded reader rather than copying it
 explicit cwd/range/generation, acknowledgement of actual receipts, all-input
 validation before receipt mutation, and no false suppression of unacknowledged
 text. Current `source-read-result-1` remains a provider result.
-Будущий версионированный [договор reader/2](poi-file-contract.md) определяет
-строки, байты, продолжение и ACK; его наличие не означает поставку операций.
+Действующий [reader/2](poi-file-contract.md) исполняет строки, байты, продолжение
+и ACK через собственный `bin/poise`. Описанный здесь широкий gateway остаётся
+проектным материалом; его подключение имеет отдельную область разработки.
 A Poise Session does not imply
 model memory or authorization over every filesystem root.
 
@@ -572,9 +577,10 @@ projection. Preserve current SessionEstablisher collision/reuse invariants and t
 bounded reader/output owners. Do not transplant the shared Task DB or interpret a
 stage's current role as Poise's immutable Session role.
 
-Richer byte/next reader semantics remain T063–T065; filesystem policy T066–T067;
-asynchronous provider request/cancel/result work T068–T070; generic accounting
-T071. The T009 accounting SQLite-lock finding remains a known downstream issue,
+Действующие байтовые порции и продолжение описаны в
+[руководстве reader/2](poi-file-contract.md). Остальные проектные области:
+файловая политика T066–T067, асинхронные запросы/отмена/результаты провайдера
+T068–T070, общий учёт T071. The T009 accounting SQLite-lock finding remains a known downstream issue,
 not fixed by this design. These owners must preserve the minimum direct-use and
 immutable-role boundary specified here, and version any richer public contract.
 
@@ -588,8 +594,11 @@ immutable-role boundary specified here, and version any richer public contract.
 
 Both DoD clauses are co-delivered: exact input/output/version/error semantics and
 independent success/rejection fixtures appear in this document; no second authority,
-broker or hidden fan-out is introduced. This design-only Task changes only the
-allowed public contract document, not an executable or live configuration.
+broker or hidden fan-out is introduced.
+
+Этот исходный проект был документацией. Поставленные операции описаны текущими
+операторскими договорами в начале страницы; оставшиеся проектные области
+сохраняют собственные условия разработки.
 
 Related accepted public owners: [Sequencing](../../sequencing/docs/contract-seq.md),
 [Execution](../../execution/docs/contract-exe.md),

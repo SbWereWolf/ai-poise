@@ -46,7 +46,7 @@ def tmp_path(operational):
 @pytest.mark.parametrize('application', ['erp', 'poise-op'])
 def test_public_owner_prepares_a_real_isolated_application(project, operational, tmp_path, application):
     selected = operational['applications'][application]
-    repository = tmp_path / 'application/source'
+    repository = tmp_path / 'deployment/source'
     repository.parent.mkdir()
     commit = clone_source(operational, selected['source_repository'], repository, tmp_path)
     tools, task, config = configured_private_project(project, application,

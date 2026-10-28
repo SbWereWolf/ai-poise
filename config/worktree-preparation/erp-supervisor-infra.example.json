@@ -1,0 +1,285 @@
+{
+  "requirements": [
+    {
+      "id": "configured-application-preparation",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "${publisher}",
+            "publish",
+            "--spec",
+            "${application_spec}",
+            "--source",
+            "${application_source}",
+            "--output",
+            "${profile_root}",
+            "--parameters",
+            "${supervisor_parameters}"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "${publisher}",
+            "publish",
+            "--spec",
+            "${consumer_spec}",
+            "--source",
+            "${operator_source}",
+            "--output",
+            "${consumer_root}",
+            "--parameters",
+            "${supervisor_parameters}"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/mkdir",
+            "-p",
+            "${repository}/platform-infrastructure/config/dev",
+            "${repository}/platform-infrastructure/tests/playwright",
+            "${repository}/.runtime/start-app/consoles"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/cp",
+            "--no-clobber",
+            "${profile_root}/documents/local-settings.json",
+            "${repository}/platform-infrastructure/config/dev/local-development.settings.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/cp",
+            "--no-clobber",
+            "${profile_root}/documents/host-runtime-settings.json",
+            "${repository}/platform-infrastructure/config/dev/local-dev-host-runtime.settings.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/cp",
+            "--no-clobber",
+            "${profile_root}/documents/cjm-settings.json",
+            "${repository}/platform-infrastructure/tests/playwright/cjm.local-development.settings.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/cp",
+            "--no-clobber",
+            "${consumer_root}/environment.env",
+            "${repository}/platform-infrastructure/config/dev/local-development.env"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "infra",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}",
+            "--requirements",
+            "all"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${repository}/platform-infrastructure/tools",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "deps",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}",
+            "--requirements",
+            "all"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${repository}/platform-infrastructure/tools",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "adjust",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}",
+            "--requirements",
+            "all"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${repository}/platform-infrastructure/tools",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "check",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${repository}/platform-infrastructure/tools",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,355 @@
+{
+  "preserve_paths": [],
+  "asset_directories": [],
+  "text_documents": [],
+  "documents": [
+    {
+      "source": "platform-infrastructure/config/dev/start-app/app.example.json",
+      "destination": "app.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/infra.example.json",
+      "destination": "infra.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/deps.example.json",
+      "destination": "deps.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/adjust.example.json",
+      "destination": "adjust.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/check.example.json",
+      "destination": "check.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/run.example.json",
+      "destination": "run.json",
+      "edits": [
+        {
+          "path": [
+            "requirements",
+            0,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            0,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            1,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            1,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            2,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            2,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            3,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            3,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            4,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            4,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            5,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            5,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            6,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            6,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            7,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            7,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        }
+      ]
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/processes.example.json",
+      "destination": "processes.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/parameters.example.json",
+      "destination": "parameters.json",
+      "edits": [
+        {
+          "path": [
+            "instance"
+          ],
+          "value": "${repository}"
+        },
+        {
+          "path": [
+            "entry"
+          ],
+          "value": "${repository}/platform-infrastructure/tools/local-dev.mjs"
+        },
+        {
+          "path": [
+            "generator"
+          ],
+          "value": "${repository}/platform-infrastructure/tools/configure-application-environments.sh"
+        },
+        {
+          "path": [
+            "settings"
+          ],
+          "value": "${repository}/platform-infrastructure/config/dev/local-development.settings.json"
+        },
+        {
+          "path": [
+            "source"
+          ],
+          "value": "${repository}/platform-infrastructure/config/dev/local-development.env"
+        },
+        {
+          "path": [
+            "write_mode"
+          ],
+          "value": "create-only"
+        },
+        {
+          "path": [
+            "node"
+          ],
+          "value": "${node}"
+        },
+        {
+          "path": [
+            "bash"
+          ],
+          "value": "/bin/bash"
+        },
+        {
+          "path": [
+            "path"
+          ],
+          "value": "${path}"
+        },
+        {
+          "path": [
+            "composer_home"
+          ],
+          "value": "${composer_home}"
+        },
+        {
+          "path": [
+            "python"
+          ],
+          "value": "${sdk_python}"
+        },
+        {
+          "path": [
+            "console_tool"
+          ],
+          "value": "${console_tool}"
+        },
+        {
+          "path": [
+            "terminal"
+          ],
+          "value": "${terminal}"
+        },
+        {
+          "path": [
+            "console_log_directory"
+          ],
+          "value": "${repository}/.runtime/start-app/consoles"
+        },
+        {
+          "path": [
+            "display"
+          ],
+          "value": "${display}"
+        },
+        {
+          "path": [
+            "xauthority"
+          ],
+          "value": "${xauthority}"
+        }
+      ]
+    },
+    {
+      "source": "${source_root}/config/projects/erp/local-settings.example.json",
+      "destination": "documents/local-settings.json",
+      "edits": []
+    },
+    {
+      "source": "${source_root}/config/projects/erp/host-runtime-settings.example.json",
+      "destination": "documents/host-runtime-settings.json",
+      "edits": [
+        {
+          "path": [
+            "phpExecutable"
+          ],
+          "value": "${php_executable}"
+        },
+        {
+          "path": [
+            "composerExecutable"
+          ],
+          "value": "${composer_executable}"
+        },
+        {
+          "path": [
+            "npmEntryPoint"
+          ],
+          "value": "${npm_entry_point}"
+        }
+      ]
+    },
+    {
+      "source": "${source_root}/config/projects/erp/cjm-settings.example.json",
+      "destination": "documents/cjm-settings.json",
+      "edits": []
+    }
+  ]
+}

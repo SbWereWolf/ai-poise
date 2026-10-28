@@ -1,0 +1,34 @@
+{
+  "preserve_paths": [
+    "."
+  ],
+  "asset_directories": [],
+  "text_documents": [],
+  "documents": [
+    {
+      "source": "bootstrap.json",
+      "destination": "bootstrap.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "python"
+          ],
+          "value": "${sdk_python}"
+        }
+      ]
+    },
+    {
+      "source": "parameters.json",
+      "destination": "parameters.json",
+      "edits": [
+        {
+          "path": [
+            "wheelhouse"
+          ],
+          "value": "${wheelhouse}"
+        }
+      ]
+    }
+  ]
+}

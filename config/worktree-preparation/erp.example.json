@@ -2,8 +2,8 @@
   "parameters": {
     "source_root": "/srv/poise/app",
     "python": "/srv/poise/app/tools/.venv/bin/python",
-    "start_app": "/srv/environment-maintenance/start-app",
-    "operator": "/srv/poise/app/operator/profile/start-app-worktrees"
+    "start_app": "/srv/environment-maintenance/dist/installed/2.0.0/bin/start-app",
+    "operator": "/srv/poise/operator/start-app-worktrees"
   },
   "catalog_dir": "${task_root}/environment-maintenance/profile",
   "inputs": [
@@ -37,43 +37,49 @@
     "check": [
       "${start_app}",
       "check",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${catalog_dir}/values.json"
+      "--config",
+      "${catalog_dir}/app.json",
+      "--parameters",
+      "${catalog_dir}/parameters.json",
+      "--base-dir",
+      "${worktree}"
     ],
     "repair": [
       "${start_app}",
-      "run",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${catalog_dir}/values.json"
+      "infra",
+      "--config",
+      "${catalog_dir}/app.json",
+      "--parameters",
+      "${catalog_dir}/parameters.json",
+      "--base-dir",
+      "${worktree}",
+      "--requirements",
+      "all"
     ],
     "verify": [
       "${start_app}",
       "check",
-      "--catalog-dir",
-      "${catalog_dir}",
-      "--values",
-      "${catalog_dir}/values.json"
+      "--config",
+      "${catalog_dir}/app.json",
+      "--parameters",
+      "${catalog_dir}/parameters.json",
+      "--base-dir",
+      "${worktree}"
     ]
   },
   "handler": {
     "callable": "apps.bootstrap.erp_result:handle",
     "options": {
-      "schema": "environment-maintenance/result/v2",
+      "schema": null,
       "status_exit_codes": {
-        "ready": 0,
-        "action_required": 2,
-        "unavailable": 3,
-        "failed": 4
+        "succeeded": 0,
+        "failed": 1
       },
       "success_statuses": [
-        "ready"
+        "succeeded"
       ],
       "repairable_statuses": [
-        "action_required"
+        "failed"
       ],
       "repair_operations": [],
       "repair_command": "repair",

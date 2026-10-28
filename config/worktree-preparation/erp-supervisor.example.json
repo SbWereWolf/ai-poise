@@ -1,0 +1,13 @@
+{
+  "operations": {
+    "infra": "erp-supervisor-infra.json",
+    "deps": "empty.json",
+    "check": "empty.json"
+  },
+  "interpreters": {
+    "exit": {
+      "module": "poise_environment.result_interpreters",
+      "attribute": "exit_result"
+    }
+  }
+}

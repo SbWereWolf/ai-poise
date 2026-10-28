@@ -1,0 +1,163 @@
+{
+  "requirements": [
+    {
+      "id": "configured-application-preparation",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.profile",
+            "--source",
+            "${source_root}",
+            "--profile-spec",
+            "${profile_spec}",
+            "--output",
+            "${profile_root}",
+            "--state",
+            "${state_root}",
+            "--repository",
+            "${repository}",
+            "--project",
+            "${project_id}",
+            "--base-ref",
+            "${base_ref}",
+            "--author-name",
+            "${author_name}",
+            "--author-email",
+            "${author_email}",
+            "--module-path",
+            "${module_path}"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "${publisher}",
+            "publish",
+            "--spec",
+            "${patch_spec}",
+            "--source",
+            "${profile_root}",
+            "--output",
+            "${profile_root}",
+            "--parameters",
+            "${supervisor_parameters}"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "infra",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}",
+            "--requirements",
+            "all"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${runtime_module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "deps",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}",
+            "--requirements",
+            "all"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${runtime_module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${start_app}",
+            "check",
+            "--config",
+            "${profile_root}/app.json",
+            "--parameters",
+            "${profile_root}/parameters.json",
+            "--base-dir",
+            "${repository}"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${runtime_module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

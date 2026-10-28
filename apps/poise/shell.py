@@ -8,9 +8,11 @@ from application.sessions import SessionOperations
 from application.hooks import HookEvents
 from application.interception import HookInterception
 from application.capabilities import CapabilityChecks
+from application.reader import ReaderOperations
 from application.state import StateOperations
 from domain.generic import Problem, exact_fields, invalid
 from domain.session_config import parse_settings
+from domain.reader_config import parse_settings as reader_settings
 from domain.state import StateSettings, invalid_config
 from infrastructure.callers import CallerResolver
 from infrastructure.json_io import loads
@@ -21,6 +23,8 @@ from infrastructure.hook_configuration import load_hook_configuration
 from infrastructure.commands import CommandObserver, LocalProbeExecutor
 from infrastructure.files import FileSurface, OutputStore
 from infrastructure.mcp import StdioProbe
+from infrastructure.reader import ReaderRepository
+from infrastructure.reader_files import ReaderFiles
 
 
 SCHEMA = 'stride-poise/v1'
@@ -63,7 +67,8 @@ def main(argv=None):
             value = packet['schema'] if isinstance(packet['schema'], str) else None
             raise Problem('unsupported_schema', {'schema': value}, 'select:schema')
         operation = packet['operation']
-        if operation not in ('session.ensure', 'session.assign_role', 'session.status', 'hook.event', 'hook.intercept'):
+        if operation not in ('session.ensure', 'session.assign_role', 'session.status', 'hook.event', 'hook.intercept',
+                             'reader.context', 'reader.reset', 'reader.read', 'reader.next'):
             invalid('/operation')
         if operation in ('session.ensure', 'session.status'):
             exact_fields(packet['input'], set(), '/input')
@@ -72,7 +77,12 @@ def main(argv=None):
         store = StateStore(state_settings, path)
         operations = SessionOperations(StateOperations(store, 1),
             CallerResolver(settings, path, os.environ), SessionRepository(store), settings.roles)
-        if operation.startswith('hook.'):
+        if operation.startswith('reader.'):
+            limits = reader_settings(raw_config)
+            reader = ReaderOperations(operations, ReaderRepository(store, operations.repository),
+                                      ReaderFiles(), limits)
+            result = getattr(reader, operation.split('.')[1])(packet['input'])
+        elif operation.startswith('hook.'):
             hooks = load_hook_configuration(raw_config, path, settings, operation)
             if operation == 'hook.event':
                 result = HookEvents(settings, hooks.definition, operations,

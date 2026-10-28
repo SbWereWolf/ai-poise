@@ -20,7 +20,7 @@ def test_optional_handler_preserves_chain(project, tmp_path, mode):
     try:
         result = chain.invoke()
         packets = chain.assert_order(['before', 'after'])
-        incoming = packets[1]['response']
+        incoming = next(packet for packet in packets if packet['configuration']['handler_id'] == 'after')['response']
         assert incoming['systemMessage'] == 'seed|before'
         assert result['systemMessage'] == 'seed|before|after'
         # The real dispatcher rejects a mismatching invocation_id before "after".

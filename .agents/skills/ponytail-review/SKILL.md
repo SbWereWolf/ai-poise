@@ -5,7 +5,7 @@ description: Review a diff specifically for unnecessary complexity, speculative 
 
 # Review for unnecessary complexity
 
-Use for a requested simplification or over-engineering review. Follow the
+Use within review/self-review or for a requested simplification pass. Follow the
 [review boundary](../../../docs/workflows/evidence-based-review.md#осмотр-избыточной-сложности).
 This complements correctness review and does not authorize changing code.
 

@@ -1,18 +1,24 @@
 ---
 name: review
 description: Independently review a specific result revision against confirmed obligations and store reproducible findings through Poise.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Independent review
 
 Use this skill only as the reviewer on the existing route. [Evidence-based review](../../../docs/workflows/evidence-based-review.md#что-считать-находкой) owns finding criteria; this skill applies them without adding a lifecycle.
 
-## Inputs
+## Complexity pass
 
-For an explicitly requested over-engineering pass, use
-[ponytail-review](../ponytail-review/SKILL.md) for that narrow question.
-It does not replace this correctness/contract inspection or authorize code edits.
+In this existing review stage, read and apply
+[ponytail-review](../ponytail-review/SKILL.md) to the actual diff or proposed design.
+Keep it additive to requirements, correctness, security and evidence checks;
+ending the complexity pass does not end the full review. Do not remove required
+safeguards or tests, invent findings, or create another phase or artifact.
+For a subject without code or proposed complexity, state that limitation briefly.
+
+## Inputs
 
 Acquire the Task through the [Poise workflow](../poise/SKILL.md). Batch-read the requirements/DoD, result revision, exact diff boundary, current evidence, relevant content/trace, applicable rules and required skills. Resolve project routing, commands, browser policy, versions, runtime parameters and file maps from Poise-owned configuration. Target-worktree configuration/docs may establish facts but do not store Poise settings.
 

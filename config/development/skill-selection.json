@@ -383,7 +383,7 @@
   "excluded": [
     {
       "id": "ponytail-review",
-      "reason": "Select for an actual simplification/over-engineering request; ordinary correctness review does not automatically need this pass."
+      "reason": "Loaded by the applicable review/self-review skill or an explicit simplification request, rather than as an unconditional work-start baseline."
     },
     {
       "id": "safe-commit",

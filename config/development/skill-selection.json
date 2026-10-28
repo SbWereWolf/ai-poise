@@ -382,6 +382,10 @@
   ],
   "excluded": [
     {
+      "id": "system-tests",
+      "reason": "Select for an explicit system/acceptance journey in the configured target project, not ordinary Python unit or documentation work."
+    },
+    {
       "id": "preflight",
       "reason": "Use when actual environment/instruction preparation is needed; registration and unchanged session state do not require an additional baseline procedure."
     },

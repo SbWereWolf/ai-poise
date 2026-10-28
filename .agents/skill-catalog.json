@@ -34,6 +34,7 @@
     {"id": "security-and-privacy", "path": ".agents/skills/security-and-privacy/SKILL.md", "purpose": "Review trust boundaries, sensitive data and exposure.", "class": "common", "level": null, "responsibility": null},
     {"id": "safe-commit", "path": ".agents/skills/safe-commit/SKILL.md", "purpose": "Preserve unrelated changes during authorized direct commits and Task commit recovery.", "class": "common", "level": null, "responsibility": null},
     {"id": "self-review", "path": ".agents/skills/self-review/SKILL.md", "purpose": "Inspect an executor result before independent review.", "class": "meta", "level": null, "responsibility": null},
+    {"id": "system-tests", "path": ".agents/skills/system-tests/SKILL.md", "purpose": "Verify assigned external system journeys with independent setup and runtime evidence.", "class": "working", "level": 1, "responsibility": "system-tests"},
     {"id": "sprint-design", "path": ".agents/skills/sprint-design/SKILL.md", "purpose": "Plan connected Sprint dependencies without premature implementation design.", "class": "meta", "level": null, "responsibility": null},
     {"id": "task-design", "path": ".agents/skills/task-design/SKILL.md", "purpose": "Formulate bounded Task drafts from known facts and initial criteria.", "class": "meta", "level": null, "responsibility": null},
     {"id": "sql", "path": ".agents/skills/sql/SKILL.md", "purpose": "Design explicit SQL operations and transaction boundaries.", "class": "working", "level": 1, "responsibility": "database"},

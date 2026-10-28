@@ -67,8 +67,8 @@ class OutputStore:
         self.mode, self.names = config['file_mode'], config['files']
         self.references = []
 
-    def capture_paths(self):
-        directory = self.root / uuid4().hex
+    def capture_paths(self, identity=None):
+        directory = self.root / (uuid4().hex if identity is None else identity)
         directory.mkdir(parents=True)
         return {kind: directory / name for kind, name in self.names.items()}
 

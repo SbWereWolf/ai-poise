@@ -27,6 +27,10 @@ from infrastructure.mcp import StdioProbe
 from infrastructure.reader import ReaderRepository
 from infrastructure.reader_files import ReaderFiles
 from infrastructure.filesystem import LocalFilesystem
+from application.commands import CommandOperations
+from infrastructure.command_files import CommandFiles, configured_settings as command_settings
+from infrastructure.command_store import CommandStore
+from infrastructure.command_execution import WorkerLauncher
 
 
 SCHEMA = 'stride-poise/v1'
@@ -71,11 +75,14 @@ def main(argv=None):
         operation = packet['operation']
         if operation not in ('session.ensure', 'session.assign_role', 'session.status', 'hook.event', 'hook.intercept',
                              'reader.context', 'reader.reset', 'reader.read', 'reader.next',
-                             'paths.evaluate', 'files.write'):
+                             'paths.evaluate', 'files.write',
+                             'command.request', 'command.completion', 'command.delete'):
             invalid('/operation')
         if operation in ('session.ensure', 'session.status'):
             exact_fields(packet['input'], set(), '/input')
         target_files, policy = LocalFilesystem(), None
+        commands_config = (command_settings(raw_config,path,settings.session_store)
+                           if operation.startswith('command.') else None)
         if operation in ('paths.evaluate', 'files.write') or (
                 operation in ('reader.read', 'reader.next') and 'paths' in raw_config):
             policy = configured_policy(raw_config, target_files)
@@ -90,7 +97,12 @@ def main(argv=None):
             store = StateStore(state_settings, path)
             operations = SessionOperations(StateOperations(store, 1),
                 CallerResolver(settings, path, os.environ), SessionRepository(store), settings.roles)
-            if operation.startswith('reader.'):
+            if commands_config is not None:
+                commands = CommandOperations(operations,commands_config,
+                    CommandStore(commands_config.store,commands_config.limits['sqlite_timeout_seconds']),
+                    WorkerLauncher(),CommandFiles)
+                result = getattr(commands,operation.split('.')[1])(packet['input'])
+            elif operation.startswith('reader.'):
                 limits = reader_settings(raw_config)
                 reader = ReaderOperations(operations, ReaderRepository(store, operations.repository),
                                           ReaderFiles(), limits, policy=policy)

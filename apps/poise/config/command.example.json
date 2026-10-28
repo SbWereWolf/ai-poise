@@ -1,0 +1,41 @@
+{
+  "schema": "stride-poise-config/v1",
+  "installation_id": "command-example",
+  "session_store": "state/poise.sqlite",
+  "caller": {
+    "mode": "generated",
+    "binding_file": "state/caller.json"
+  },
+  "roles": [
+    "author",
+    "reviewer"
+  ],
+  "limits": {
+    "packet_bytes": 65536,
+    "sqlite_timeout_seconds": 1
+  },
+  "commands": {
+    "schema": "poise-command-config/v1",
+    "request_store": "command-state/commands.sqlite",
+    "output_root": "command-output",
+    "file_mode": 384,
+    "files": {
+      "stdout": "stdout.bin",
+      "stderr": "stderr.bin",
+      "result": "result.json"
+    },
+    "limits": {
+      "id_bytes": 128,
+      "sqlite_timeout_seconds": 1,
+      "poll_ms": 10,
+      "capture_chunk_bytes": 4096,
+      "terminate_grace_ms": 100,
+      "completion_budget_ms": 5000,
+      "delivery_margin_ms": 100,
+      "transport_budget_ms": 6000,
+      "transport_margin_ms": 100,
+      "mcp_max_message_bytes": 1048576,
+      "mcp_max_messages": 16
+    }
+  }
+}

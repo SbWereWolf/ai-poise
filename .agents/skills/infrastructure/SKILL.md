@@ -13,6 +13,11 @@ explicit project root; separate stores; versioned template selection; owner-mana
 publication and verified consumers. Full options and examples belong to the linked
 operator documentation, not this skill.
 
+Use configured environment-maintenance for all environment and worktree deployments.
+Follow the [instance/action setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
+and [coordinated consumer update](../../../docs/operator/maintenance-profile-v2.md#согласованное-обновление-потребителей).
+Keep native Task readiness, individual resource observations and application launch evidence distinct.
+
 ## Inputs
 
 The current Poise Task/stage/scope and session-selected worktree, changed operational scenario, exact target environment and authorization, actual runtime/build identity, owners/runbooks and explicit success/failure/recovery requirements. Resolve paths, commands, versions, runtime and file maps through the selected Poise-owned configuration using the target's versioned documentation as read-only facts. Never add an AI poise configuration to the target repository. Use [poise-workflow](../poise/SKILL.md).

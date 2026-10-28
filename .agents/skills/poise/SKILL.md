@@ -84,6 +84,13 @@ Do not invent resolution proposals or native stage completion before actual fixe
 
 ### Environment maintenance
 
+Use the [SDK2 instance/action setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
+and [Task-worktree configuration](../../../docs/operator/start-app-worktree-setup.md#подключение-установленного-инструмента).
+Deploy through the configured standalone tool; update every actual registered consumer through
+[the mandatory gate](../../../docs/operator/maintenance-profile-v2.md#согласованное-обновление-потребителей).
+For preserved legacy ERP settings use the [owner migration](../../../docs/operator/maintenance-profile-v2.md#сохранённые-настройки-erp)
+and obtain a fresh native preparation receipt afterward.
+
 Use the [own-instance
 setup](../../../docs/operator/maintenance-profile-v2.md#развёртывание-из-примера)
 for the complete operation profile, working settings, preparation/check/run example.
@@ -99,11 +106,21 @@ own the details. Keep the service Python and installed SDK Python distinct.
 | `bootstrap deps` | Execute the configured dependency chain. | `"$poise_python" -I -B "$poise_source/bootstrap" deps --config "$profile/bootstrap.json" --base-dir "$repository"` |
 | `bootstrap check` | Check declared presence, availability and additional resource conditions. | `"$poise_python" -I -B "$poise_source/bootstrap" check --config "$profile/bootstrap.json" --base-dir "$repository"` |
 | `bootstrap run` | Execute only the configured launch chain. | `"$poise_python" -I -B "$poise_source/bootstrap" run --config "$profile/bootstrap.json" --base-dir "$repository"` |
-| `poise_environment.profile` with ERP spec | Publish the separately configured ERP profile. | `PYTHONPATH="$poise_root/src" "$poise_python" -P -s -B -m poise_environment.profile --source "$poise_root" --profile-spec "$poise_root/config/projects/erp/profile.example.json" --output "$erp_profile" --state "$erp_state" --repository "$erp_repository" --project "$project_id" --base-ref "$base_ref" --author-name "$author_name" --author-email "$author_email" --module-path "$poise_root/src"` |
-| `bootstrap` with ERP/catalog profile | Use that selected consumer's own compatible command and context. | `"$poise_python" -I -B "$poise_root/bootstrap" check --config "$catalog_bootstrap_config" --catalog-dir "$catalog_profile"` |
+| `worktree_profile.py publish` | Publish declared SDK2 ERP documents from the selected target checkout. | `"$poise_python" -B "$publisher" publish --spec "$application_spec" --source "$repository" --output "$profile" --parameters "$supervisor_parameters"` |
+| `bootstrap` with retained catalog profile | Use the separate historical consumer's compatible command and context. | `"$poise_python" -I -B "$poise_root/bootstrap" check --config "$catalog_bootstrap_config" --catalog-dir "$catalog_profile"` |
 | `poise infra` | Delegate to the separately selected requirements CLI. | `"${poise[@]}" infra --catalog "$requirements_catalog" --repairs "$repairs_file" --dry-run` |
 | `poise deps` | Delegate dependency maintenance through that retained interface. | `"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" --dry-run` |
 | `poise check` | Delegate observation through that retained interface. | `"${poise[@]}" check --catalog "$requirements_catalog" --values "$values_file"` |
+
+SDK2 operation examples (the full argument/parameter contract belongs to the linked instruction):
+
+| Command | Purpose | Correct example |
+|---|---|---|
+| `start-app infra` | Execute configured infrastructure commands. | `"$start_app" infra --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
+| `start-app deps` | Execute configured dependency chains. | `"$start_app" deps --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
+| `start-app adjust` | Execute declared coordination after its prerequisites. | `"$start_app" adjust --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
+| `start-app check` | Observe resources and additional checks. | `"$start_app" check --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository"` |
+| `start-app run` | Execute only the declared launch chain. | `"$start_app" run --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
 
 Populate ignored working files before executing; source examples stay versioned.
 The selected plugin owns complete result interpretation and one invocation-local

@@ -233,6 +233,37 @@ operation-профиля](maintenance-profile-v2.md#развёртывание-�
 [контракт Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды) имеют своих владельцев.
 `poise_environment.profile` публикует файлы, отдельный SDK выполняет действия.
 
+### Установленный start-app2.0
+
+[Настройка рабочих деревьев](start-app-worktree-setup.md#подключение-установленного-инструмента)
+выбирает standalone SDK2. Полный [профиль ERP](maintenance-profile-v2.md#профиль-erp)
+и [обновление всех потребителей](maintenance-profile-v2.md#согласованное-обновление-потребителей)
+имеют собственные явные конфиги. Каждая операция исполняет одну выбранную цепочку:
+
+```bash
+"$start_app" infra --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
+"$start_app" deps --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
+"$start_app" adjust --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
+"$start_app" check --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository"
+"$start_app" run --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
+```
+
+| Аргумент | Назначение |
+|---|---|
+| `infra`, `deps`, `adjust`, `check`, `run` | Явная операция выбранного app-конфига. |
+| `--config PATH` | App JSON с путями операций и выбранными интерпретаторами. |
+| `--parameters PATH` | JSON значений стандартных placeholders команд. |
+| `--base-dir PATH` | Явный корень обслуживаемого экземпляра. |
+| `--requirements all` | Обязательный выбор для `infra`/`deps`/`adjust`/`run`; все требования операции либо JSON-массив ID. `check` наблюдает весь ресурсный набор без этого аргумента. |
+| `--version` | Версия установленной поставки; применяется при её приёмке/обновлении. |
+| `-h`, `--help` | Справка выбранного entry/операции. |
+
+Схема команд/ресурсов описана [у владельца профиля](maintenance-profile-v2.md#каталог-и-параметры).
+`run` выполняет только запуск. Рабочий env и SDK могут быть выбраны consumer wrapper
+ERP; runtime selector и параметры профиля должны соответствовать одной поставке.
+Следующий делегированный CLI является отдельным сохранённым requirements/v1
+контрактом, выбранное2.0 подключение его не использует.
+
 ### Действующий делегированный CLI
 
 `poise infra/deps/check` — отдельное делегирование выбранному внешнему

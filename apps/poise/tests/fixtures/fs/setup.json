@@ -1,0 +1,335 @@
+{
+  "schema": "poise-fs-test-setup/v1",
+  "directories": [
+    "project/reference",
+    "project/private",
+    "archive",
+    "outside",
+    "project2"
+  ],
+  "documents": [
+    {
+      "path": "$ROOT/project/a.txt",
+      "text": "alpha\nbeta\n",
+      "modified_ns": 1000000000
+    },
+    {
+      "path": "$ROOT/project/reference/ref.txt",
+      "text": "ref\n",
+      "modified_ns": 1000000000
+    },
+    {
+      "path": "$ROOT/project/private/p.txt",
+      "text": "p\nq\n",
+      "modified_ns": 1000000000
+    },
+    {
+      "path": "$ROOT/archive/ref.txt",
+      "text": "archive\n",
+      "modified_ns": 1000000000
+    },
+    {
+      "path": "$ROOT/outside/a.txt",
+      "text": "outside\n",
+      "modified_ns": 1000000000
+    },
+    {
+      "path": "$ROOT/project2/a.txt",
+      "text": "sibling\n",
+      "modified_ns": 1000000000
+    },
+    {
+      "path": "$ROOT/base.txt",
+      "text": "base fixture\n",
+      "modified_ns": 1000000000
+    }
+  ],
+  "aliases": [
+    {
+      "path": "project/archive-link",
+      "destination": "archive/ref.txt"
+    },
+    {
+      "path": "project/outside-link",
+      "destination": "outside/a.txt"
+    },
+    {
+      "path": "project/reference-link",
+      "destination": "project/reference/ref.txt"
+    }
+  ],
+  "watched_absent": [
+    "project/new.txt",
+    "outside/new.txt",
+    "out.txt",
+    "project/missing.txt",
+    "project/no-parent/new.txt"
+  ],
+  "policy": {
+    "schema": "poise-fs-policy/v1",
+    "roots": [
+      {
+        "id": "project",
+        "path": "$ROOT/project",
+        "read": true,
+        "write": true
+      },
+      {
+        "id": "reference",
+        "path": "$ROOT/project/reference",
+        "read": true,
+        "write": false
+      },
+      {
+        "id": "private",
+        "path": "$ROOT/project/private",
+        "read": false,
+        "write": false
+      },
+      {
+        "id": "archive",
+        "path": "$ROOT/archive",
+        "read": true,
+        "write": false
+      }
+    ]
+  },
+  "reader_context": {
+    "request": {
+      "schema": "stride-poise/v1",
+      "operation": "reader.context",
+      "input": {}
+    },
+    "expected_exit": 0,
+    "expected_response": {
+      "schema": "stride-poise/v1",
+      "status": "ok",
+      "result": {
+        "schema": "poise-reader/2",
+        "generation": 1,
+        "reason": "startup",
+        "event_id": null
+      },
+      "error": null,
+      "evidence": []
+    },
+    "opens": []
+  },
+  "observer_control": {
+    "request": {
+      "schema": "stride-poise/v1",
+      "operation": "reader.read",
+      "input": {
+        "cwd": "$ROOT/project",
+        "generation": 1,
+        "acknowledged": [],
+        "reads": [
+          {
+            "path": "a.txt",
+            "range": {
+              "unit": "lines",
+              "start": 1,
+              "count": 1
+            },
+            "reread": false,
+            "reason": ""
+          }
+        ]
+      }
+    },
+    "expected_exit": 0,
+    "expected_response": {
+      "schema": "stride-poise/v1",
+      "status": "ok",
+      "result": {
+        "schema": "poise-reader/2",
+        "generation": 1,
+        "items": [
+          {
+            "path": "$ROOT/project/a.txt",
+            "version": {
+              "size_bytes": 11,
+              "modified_ns": 1000000000
+            },
+            "range": {
+              "unit": "lines",
+              "start": 1,
+              "count": 1
+            },
+            "status": "read",
+            "receipt_id": "${r1}",
+            "eof": false,
+            "next": {
+              "path": "$ROOT/project/a.txt",
+              "unit": "lines",
+              "next": 2,
+              "version": {
+                "size_bytes": 11,
+                "modified_ns": 1000000000
+              },
+              "generation": 1
+            },
+            "text": "alpha\n"
+          }
+        ],
+        "text_bytes": 6
+      },
+      "error": null,
+      "evidence": []
+    },
+    "capture": {
+      "r1": "/result/items/0/receipt_id"
+    },
+    "opens": [
+      "$ROOT/project/a.txt"
+    ]
+  },
+  "missing_operation": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_request",
+      "details": {
+        "path": "/operation"
+      },
+      "action": "correct:request"
+    },
+    "evidence": []
+  },
+  "binding_diagnostic": {
+    "input": {
+      "input": {
+        "acknowledged": [
+          "${r1}"
+        ]
+      },
+      "result": {
+        "items": [
+          {
+            "path": "$ROOT/a",
+            "receipt_id": "${r1}",
+            "text": "${r1} $ROOT/a"
+          }
+        ]
+      },
+      "id": "${r1}",
+      "text": "$ROOT/a"
+    },
+    "expected": {
+      "input": {
+        "acknowledged": [
+          "received-id"
+        ]
+      },
+      "result": {
+        "items": [
+          {
+            "path": "/fixture-consumer/a",
+            "receipt_id": "received-id",
+            "text": "${r1} $ROOT/a"
+          }
+        ]
+      },
+      "id": "${r1}",
+      "text": "$ROOT/a"
+    }
+  },
+  "delivery": [
+    {
+      "request": {
+        "schema": "stride-poise/v1",
+        "operation": "paths.evaluate",
+        "input": {
+          "schema": "poise-fs-request/v1",
+          "base": "$ROOT/project",
+          "effects": [
+            {
+              "operation": "read",
+              "path": "a.txt"
+            }
+          ]
+        }
+      },
+      "expected_exit": 0,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-fs-result/v1",
+          "status": "evaluated",
+          "decision": "allow",
+          "effects": [
+            {
+              "index": 0,
+              "operation": "read",
+              "path": "$ROOT/project/a.txt",
+              "roots": [
+                "project"
+              ],
+              "decision": "allow"
+            }
+          ],
+          "error": null
+        },
+        "error": null,
+        "evidence": []
+      },
+      "opens": []
+    },
+    {
+      "request": {
+        "schema": "stride-poise/v1",
+        "operation": "files.write",
+        "input": {
+          "schema": "poise-write-request/v1",
+          "base": "$ROOT/project",
+          "writes": [
+            {
+              "path": "new.txt",
+              "text": "Ж\n"
+            }
+          ]
+        }
+      },
+      "expected_exit": 0,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-write-result/v1",
+          "status": "written",
+          "policy": {
+            "schema": "poise-fs-result/v1",
+            "status": "evaluated",
+            "decision": "allow",
+            "effects": [
+              {
+                "index": 0,
+                "operation": "write",
+                "path": "$ROOT/project/new.txt",
+                "roots": [
+                  "project"
+                ],
+                "decision": "allow"
+              }
+            ],
+            "error": null
+          },
+          "items": [
+            {
+              "index": 0,
+              "path": "$ROOT/project/new.txt",
+              "bytes_written": 3
+            }
+          ]
+        },
+        "error": null,
+        "evidence": []
+      },
+      "files": {
+        "$ROOT/project/new.txt": "Ж\n"
+      }
+    }
+  ]
+}

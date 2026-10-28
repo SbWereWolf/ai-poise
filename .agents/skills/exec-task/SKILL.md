@@ -1,7 +1,8 @@
 ---
 name: exec-task
 description: Execute the authorized current Poise Task with bounded context, exact stage evidence, and durable executor/reviewer handoff.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Execute the current Task
@@ -11,6 +12,15 @@ discipline. This
 skill does not own lifecycle, schema, routing, evidence, history or acceptance.
 
 ## Inputs
+
+Before the first operation under a selected contract apply the
+[first-action check](../../../docs/workflows/task-execution-contract.md#проверка-перед-первым-действием):
+reuse existing authority, verify the actual operation schema, prerequisites,
+owned impact and delivery before retirement. Record relevant facts in the current
+plan/result, not a new approval/report. Await each dependent owner operation's
+confirmed outcome before starting the next; inspect saved outcomes after interruption.
+Use [preflight](../preflight/SKILL.md) when environment/instruction preparation
+is actually needed, without repeating unchanged preparation.
 
 Get the exact installation launcher, packets and current Task/stage through
 [poise-workflow](../poise/SKILL.md). Use

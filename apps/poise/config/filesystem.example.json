@@ -1,0 +1,45 @@
+{
+  "schema": "stride-poise-config/v1",
+  "installation_id": "filesystem-example",
+  "session_store": "state/sessions.sqlite",
+  "caller": {
+    "mode": "generated",
+    "binding_file": "state/caller.json"
+  },
+  "roles": [
+    "author",
+    "reviewer"
+  ],
+  "limits": {
+    "packet_bytes": 65536,
+    "sqlite_timeout_seconds": 0
+  },
+  "reader": {
+    "schema": "poise-reader/2",
+    "limits": {
+      "max_items": 4,
+      "max_lines": 8,
+      "max_range_bytes": 16,
+      "max_file_bytes": 64,
+      "max_output_bytes": 16,
+      "max_receipts": 8
+    }
+  },
+  "paths": {
+    "schema": "poise-fs-policy/v1",
+    "roots": [
+      {
+        "id": "workspace",
+        "path": "/srv/poise/workspace",
+        "read": true,
+        "write": true
+      },
+      {
+        "id": "reference",
+        "path": "/srv/poise/workspace/reference",
+        "read": true,
+        "write": false
+      }
+    ]
+  }
+}

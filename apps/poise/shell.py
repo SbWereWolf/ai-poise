@@ -1,4 +1,4 @@
-"""Standalone Session entry: explicit configuration, bounded packet and response."""
+"""Standalone Poise entry: explicit configuration, bounded packet and response."""
 import json
 import os
 from pathlib import Path
@@ -9,6 +9,7 @@ from application.hooks import HookEvents
 from application.interception import HookInterception
 from application.capabilities import CapabilityChecks
 from application.reader import ReaderOperations
+from application.filesystem import configured_policy, raise_rejected, write_files
 from application.state import StateOperations
 from domain.generic import Problem, exact_fields, invalid
 from domain.session_config import parse_settings
@@ -25,6 +26,7 @@ from infrastructure.files import FileSurface, OutputStore
 from infrastructure.mcp import StdioProbe
 from infrastructure.reader import ReaderRepository
 from infrastructure.reader_files import ReaderFiles
+from infrastructure.filesystem import LocalFilesystem
 
 
 SCHEMA = 'stride-poise/v1'
@@ -68,44 +70,55 @@ def main(argv=None):
             raise Problem('unsupported_schema', {'schema': value}, 'select:schema')
         operation = packet['operation']
         if operation not in ('session.ensure', 'session.assign_role', 'session.status', 'hook.event', 'hook.intercept',
-                             'reader.context', 'reader.reset', 'reader.read', 'reader.next'):
+                             'reader.context', 'reader.reset', 'reader.read', 'reader.next',
+                             'paths.evaluate', 'files.write'):
             invalid('/operation')
         if operation in ('session.ensure', 'session.status'):
             exact_fields(packet['input'], set(), '/input')
-        state_settings = StateSettings(settings.session_store, 1, settings.packet_bytes,
-                                       settings.sqlite_timeout_seconds)
-        store = StateStore(state_settings, path)
-        operations = SessionOperations(StateOperations(store, 1),
-            CallerResolver(settings, path, os.environ), SessionRepository(store), settings.roles)
-        if operation.startswith('reader.'):
-            limits = reader_settings(raw_config)
-            reader = ReaderOperations(operations, ReaderRepository(store, operations.repository),
-                                      ReaderFiles(), limits)
-            result = getattr(reader, operation.split('.')[1])(packet['input'])
-        elif operation.startswith('hook.'):
-            hooks = load_hook_configuration(raw_config, path, settings, operation)
-            if operation == 'hook.event':
-                result = HookEvents(settings, hooks.definition, operations,
-                    HookRegistry(store, operations.repository), FileSurface(settings.packet_bytes)).handle(packet['input'])
-            else:
-                # Construction allocates no files; capture begins only after complete admission.
-                generic = hooks.generic
-                commands, capabilities, limits = None, None, None
-                files = FileSurface(settings.packet_bytes)
-                if generic is not None:
-                    output = OutputStore(generic)
-                    limits = generic['limits']
-                    files = FileSurface(limits['input_bytes'])
-                    commands = CommandObserver(output)
-                    capabilities = CapabilityChecks(LocalProbeExecutor(commands, StdioProbe, output), files, limits)
-                result = HookInterception(hooks.definition, operations, commands, capabilities,
-                                         files, limits, hooks.probes).handle(packet['input'])
-        elif operation == 'session.ensure':
-            result = operations.ensure()
-        elif operation == 'session.assign_role':
-            result = operations.assign_role(packet['input'])
+        target_files, policy = LocalFilesystem(), None
+        if operation in ('paths.evaluate', 'files.write') or (
+                operation in ('reader.read', 'reader.next') and 'paths' in raw_config):
+            policy = configured_policy(raw_config, target_files)
+        if operation == 'paths.evaluate':
+            result = policy.evaluate(packet['input'])
+            raise_rejected(result)
+        elif operation == 'files.write':
+            result = write_files(packet['input'], policy, target_files)
         else:
-            result = operations.status()
+            state_settings = StateSettings(settings.session_store, 1, settings.packet_bytes,
+                                           settings.sqlite_timeout_seconds)
+            store = StateStore(state_settings, path)
+            operations = SessionOperations(StateOperations(store, 1),
+                CallerResolver(settings, path, os.environ), SessionRepository(store), settings.roles)
+            if operation.startswith('reader.'):
+                limits = reader_settings(raw_config)
+                reader = ReaderOperations(operations, ReaderRepository(store, operations.repository),
+                                          ReaderFiles(), limits, policy=policy)
+                result = getattr(reader, operation.split('.')[1])(packet['input'])
+            elif operation.startswith('hook.'):
+                hooks = load_hook_configuration(raw_config, path, settings, operation)
+                if operation == 'hook.event':
+                    result = HookEvents(settings, hooks.definition, operations,
+                        HookRegistry(store, operations.repository), FileSurface(settings.packet_bytes)).handle(packet['input'])
+                else:
+                    # Construction allocates no files; capture begins only after complete admission.
+                    generic = hooks.generic
+                    commands, capabilities, limits = None, None, None
+                    files = FileSurface(settings.packet_bytes)
+                    if generic is not None:
+                        output = OutputStore(generic)
+                        limits = generic['limits']
+                        files = FileSurface(limits['input_bytes'])
+                        commands = CommandObserver(output)
+                        capabilities = CapabilityChecks(LocalProbeExecutor(commands, StdioProbe, output), files, limits)
+                    result = HookInterception(hooks.definition, operations, commands, capabilities,
+                                             files, limits, hooks.probes).handle(packet['input'])
+            elif operation == 'session.ensure':
+                result = operations.ensure()
+            elif operation == 'session.assign_role':
+                result = operations.assign_role(packet['input'])
+            else:
+                result = operations.status()
         response = {'schema': SCHEMA, 'status': 'ok', 'result': result, 'error': None, 'evidence': [] if output is None else output.references}
         exit_code = 0
     except Problem as problem:

@@ -1,5 +1,6 @@
 """Coordinate existing Session, bounded sources and one atomic reader update."""
 import uuid
+from pathlib import Path
 
 from application.sessions import missing_session
 from domain.generic import Problem
@@ -7,10 +8,11 @@ from domain.reader import ReaderState, parse_context, parse_reset, parse_read, p
 
 
 class ReaderOperations:
-    def __init__(self, sessions, repository, files, limits, receipt_factory=None):
+    def __init__(self, sessions, repository, files, limits, receipt_factory=None, *, policy=None):
         self.sessions, self.repository = sessions, repository
         self.files, self.limits = files, limits
         self.receipt_factory = receipt_factory or (lambda: uuid.uuid4().hex)
+        self.policy = policy
 
     def _session(self):
         caller = self.sessions.caller(create=False)
@@ -61,21 +63,29 @@ class ReaderOperations:
         state.check_acknowledged(request['acknowledged'])
         return state
 
+    def _policy_paths(self, request, following):
+        base = str(Path(request['reads'][0]['cursor']['path']).parent) if following else request['cwd']
+        effects = [{'operation': 'read', 'path': item['cursor']['path'] if following else item['path']}
+                   for item in request['reads']]
+        _, paths = self.policy.check({'schema': 'poise-fs-request/v1', 'base': base, 'effects': effects})
+        return paths
+
     def _batch(self, request, *, following):
         caller, session = self._session()
         self._state(self.repository.observe(session.id), request, following)
-        cwd = None if following else self.files.cwd(request['cwd'])
+        prepared = self._policy_paths(request, following) if self.policy is not None else None
+        cwd = None if following or prepared is not None else self.files.cwd(request['cwd'])
         portions = []
         # External filesystem I/O precedes the short SQLite write transaction.
         for index, item in enumerate(request['reads']):
             field = '/input/reads/' + str(index)
             if following:
                 cursor = item['cursor']
-                path = self.files.path(cursor['path'])
+                path = prepared[index] if prepared is not None else self.files.path(cursor['path'])
                 unit, start, count = cursor['unit'], cursor['next'], item['count']
                 version, start_field = cursor['version'], field + '/cursor/next'
             else:
-                path = self.files.path(item['path'], cwd)
+                path = prepared[index] if prepared is not None else self.files.path(item['path'], cwd)
                 selection = item['range']
                 unit, start, count = selection['unit'], selection['start'], selection['count']
                 version, start_field = None, field + '/range/start'

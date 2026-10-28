@@ -2,6 +2,7 @@
 
 from contextlib import closing
 import sqlite3
+import shutil
 
 import pytest
 
@@ -41,12 +42,21 @@ def clear_target(subject):
 @pytest.mark.parametrize("source_after_capture", ["missing", "changed"])
 def test_full_export_is_committed_wal_snapshot_with_original_history(subject, source_after_capture):
     source = legacy(subject)
-    captured = state(source)
     clear_target(subject)
     before = state(subject.database)
     original_ids = set(applied(subject.database))
     with closing(sqlite3.connect(source)) as writer:
         assert writer.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        writer.execute("PRAGMA wal_autocheckpoint=0")
+        writer.execute("UPDATE requirements SET text=? WHERE id=?", ("Committed WAL value", "S1"))
+        writer.commit()
+        captured = state(source)
+        main_only = subject.project["root"] / "main-file-only.sqlite"
+        shutil.copyfile(source, main_only)
+        # A main-file copy is independently shown to omit the committed WAL frame.
+        assert state(main_only) != captured
+        assert ["S1", "system", "current", "Committed WAL value"] in captured["tables"]["requirements"]
+        assert ["S1", "system", "current", "System one."] in state(main_only)["tables"]["requirements"]
         writer.execute("UPDATE requirements SET text=? WHERE id=?", ("Uncommitted", "S1"))
 
         response = owned(subject, request(subject, source, "full", []))
@@ -77,6 +87,8 @@ def test_full_export_is_committed_wal_snapshot_with_original_history(subject, so
 
 def test_selected_export_closes_dependencies_but_retains_target_history(subject):
     source = legacy(subject)
+    with closing(sqlite3.connect(source)) as connection:
+        connection.executescript((FIXTURES / "selected_closure.sql").read_text(encoding="utf-8"))
     with closing(sqlite3.connect(subject.database)) as connection:
         connection.executescript((FIXTURES / "missing_dependencies.sql").read_text(encoding="utf-8"))
     before = state(subject.database)

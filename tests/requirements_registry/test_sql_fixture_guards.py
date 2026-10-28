@@ -20,9 +20,29 @@ def test_literal_fault_fixture_reaches_later_error_and_has_exact_inverse(tmp_pat
             (FIXTURES.parent / "sql_fixture_registration.json").read_text(encoding="utf-8"))
         connection.executemany("INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?)",
                                registered["requirements"])
+        connection.executemany("INSERT INTO requirement_links(system_id,application_id) VALUES(?,?)",
+                               registered["links"])
+        connection.execute("UPDATE requirements_meta SET revision=?", (registered["revision"],))
+        receipt = registered["receipt"]
+        connection.execute("INSERT INTO requirement_requests(request_id,digest,response) VALUES(?,?,?)",
+                           (receipt["request_id"], receipt["digest"], receipt["response"]))
         connection.commit()
         connection.executescript((FIXTURES / "seed.sql").read_text(encoding="utf-8"))
         baseline, baseline_schema = state(database), schema(database)
+        expected = literal("completion_states.json")
+        assert baseline == expected["entry"]
+        if kind == "ddl" and direction == "forward":
+            completion = literal("completion.json")
+            connection.executescript(completion["schema"]["forward"])
+            for body, label in zip(completion["data"], ("after_insert", "after_update", "final")):
+                connection.executescript(body["forward"])
+                assert state(database) == expected[label]
+            for body, label in zip(reversed(completion["data"]), ("after_update", "after_insert", "entry")):
+                connection.executescript(body["reverse"])
+                assert state(database) == expected[label]
+            connection.executescript(completion["schema"]["reverse"])
+            assert state(database) == baseline
+            assert schema(database) == baseline_schema
         connection.executescript(fixture["forward"])
         connection.executescript(fixture["reverse"])
         assert state(database) == baseline

@@ -1,9 +1,0 @@
-[
-  {"table":"requirements","row":{"id":"R2","level":"system","status":"current","text":"Created requirement."},"filter":{"id":{"eq":"R2"}},"changes":{"text":"Changed requirement."}},
-  {"table":"domain_areas","row":{"id":"D2","business_name":"Domain two","definition":"Created domain."},"filter":{"id":{"eq":"D2"}},"changes":{"definition":"Changed domain."}},
-  {"table":"domain_entities","row":{"id":"E2","domain_id":"D1","business_name":"Entity two","code_name":"entity_two","definition":"Created entity."},"filter":{"id":{"eq":"E2"}},"changes":{"definition":"Changed entity."}},
-  {"table":"domain_actions","row":{"id":"X2","domain_id":"D1","business_name":"Action two","code_name":"action_two","definition":"Created action."},"filter":{"id":{"eq":"X2"}},"changes":{"definition":"Changed action."}},
-  {"table":"requirement_links","a":{"endpoint":"system","filter":{"id":{"eq":"S1"}}},"b":{"endpoint":"application","filter":{"id":{"eq":"A1"}}}},
-  {"table":"requirement_entities","a":{"endpoint":"requirement","filter":{"id":{"eq":"S1"}}},"b":{"endpoint":"entity","filter":{"id":{"eq":"E1"}}}},
-  {"table":"requirement_actions","a":{"endpoint":"requirement","filter":{"id":{"eq":"S1"}}},"b":{"endpoint":"action","filter":{"id":{"eq":"X1"}}}}
-]

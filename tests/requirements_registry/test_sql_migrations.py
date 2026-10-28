@@ -1,6 +1,7 @@
 """Literal SQL migration contracts through real Requirements/Task boundaries."""
 
 from contextlib import closing
+from copy import deepcopy
 import sqlite3
 
 import pytest
@@ -59,62 +60,38 @@ def test_owned_mutation_publishes_pair_and_preserves_interior_nul(subject):
     assert any(name.endswith(f"/{identity}.sql") for identity in new_ids for name in emitted)
 
 
-@pytest.mark.parametrize("family", literal("families.json"), ids=lambda item: item["table"])
-def test_each_table_has_real_forward_inverse_and_reapply(subject, family):
-    before = state(subject.database)
-    original_applied = set(applied(subject.database))
-    if "a" in family:
-        operations = [{"id": "create", "kind": "link", "table": family["table"],
-                       "a": family["a"], "b": family["b"]}]
-    else:
-        operations = [{"id": "create", "kind": "create", "table": family["table"],
-                       "row": family["row"]}]
-    if "changes" in family:
-        operations.append({"id": "update", "kind": "update", "table": family["table"],
-                           "filter": family["filter"], "changes": family["changes"]})
-    request = {"operation": "command", "input": {
-        "request_id": "family-change", "expected_revision": 1, "operations": operations,
-    }}
+@pytest.mark.parametrize("table", literal("family_contracts.json"), ids=str)
+def test_each_table_has_real_forward_inverse_and_reapply(subject, table):
+    contracts = literal("family_contracts.json")[table]
+    rows = literal("family_rows.json")[table]
+    for action, case in contracts.items():
+        before = state(subject.database)
+        before_schema = schema(subject.database)
+        before_ids = set(applied(subject.database))
+        before_files = files(subject)
+        expected = deepcopy(before)
+        expected["tables"][table] = rows[action]
+        expected["revision"] = case["response"]["revision"]
+        expected["receipts"] = sorted([*before["receipts"], case["receipt"]])
 
-    response = owned(subject, request)
+        assert owned(subject, case["packet"]) == case["response"]
 
-    assert response == {
-        "status": "applied", "revision": 2, "replayed": False,
-        "results": ([{"id": "create", "affected_rows": 1}, {"id": "update", "affected_rows": 1}]
-                    if "changes" in family else [{"id": "create", "affected_rows": 1}]),
-    }
-    changed = state(subject.database)
-    assert changed != before
-    assert len(changed["tables"][family["table"]]) == len(before["tables"][family["table"]]) + 1
-    identities = sorted(set(applied(subject.database)) - original_applied)
-    assert len(files(subject)) == 2
-    assert len(identities) == 1
-
-    reverse = owned(subject, migration_request(subject, "rollback", identities))
-    assert reverse == {"status": "rolled_back", "migration_ids": identities}
-    assert state(subject.database) == before
-    assert not (set(identities) & set(applied(subject.database)))
-    forward = owned(subject, migration_request(subject, "apply", identities))
-    assert forward == {"status": "applied", "migration_ids": identities}
-    assert state(subject.database) == changed
-
-    removal = ({"id": "delete", "kind": "unlink", "table": family["table"],
-                "a": family["a"], "b": family["b"]} if "a" in family else
-               {"id": "delete", "kind": "delete", "table": family["table"], "filter": family["filter"]})
-    delete = {"operation": "command", "input": {
-        "request_id": "family-delete", "expected_revision": 2,
-        "operations": [removal],
-    }}
-    assert owned(subject, delete) == {
-        "status": "applied", "revision": 3, "replayed": False,
-        "results": [{"id": "delete", "affected_rows": 1}],
-    }
-    assert state(subject.database)["tables"] == before["tables"]
-    delete_ids = sorted(set(applied(subject.database)) - original_applied - set(identities))
-    assert len(delete_ids) == 1
-    assert len(files(subject)) == 4
-    owned(subject, migration_request(subject, "rollback", delete_ids))
-    assert state(subject.database) == changed
+        assert state(subject.database) == expected
+        assert schema(subject.database) == before_schema
+        identities = sorted(set(applied(subject.database)) - before_ids)
+        assert len(identities) == 1
+        assert len(files(subject)) == len(before_files) + 2
+        assert owned(subject, migration_request(subject, "rollback", identities)) == {
+            "status": "rolled_back", "migration_ids": identities,
+        }
+        assert state(subject.database) == before
+        assert schema(subject.database) == before_schema
+        assert set(applied(subject.database)) == before_ids
+        assert owned(subject, migration_request(subject, "apply", identities)) == {
+            "status": "applied", "migration_ids": identities,
+        }
+        assert state(subject.database) == expected
+        assert schema(subject.database) == before_schema
 
 
 def test_successful_request_replay_reuses_pair_and_receipt(subject):

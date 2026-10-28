@@ -27,7 +27,7 @@
             "solution_plan",
             "decisions",
             "assumptions",
-            "documentation_plan"
+            "documentation_scope"
           ],
           "after": []
         },
@@ -197,13 +197,6 @@
           "after": []
         },
         {
-          "id": "test_implementation_inspection",
-          "source_id": "PAIRED-20261003-test_implementation_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "sensitivity_verification",
           "source_id": "GS-TST-05",
           "handler": "check",
@@ -216,29 +209,12 @@
           "handler": "inspect",
           "before": [],
           "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-TST-07",
-          "handler": "revise",
-          "before": [
-            "test_registry"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-TST-08",
-          "handler": "inspect",
-          "before": [],
-          "after": []
         }
       ],
       "method_schedule": {
         "baseline": "BASELINE",
         "test_implementation": "TEST_GREEN",
-        "sensitivity_verification": "SENSITIVITY",
-        "remediation": "TEST_GREEN"
+        "sensitivity_verification": "SENSITIVITY"
       }
     },
     {
@@ -247,7 +223,6 @@
       "stages": [
         {
           "id": "planning",
-          "source_id": "GS-VER-01",
           "handler": "produce",
           "before": [
             "verification_criteria",
@@ -255,32 +230,40 @@
             "verification_methods",
             "environment"
           ],
-          "after": []
+          "after": [],
+          "source_id": "GS-VER-01"
+        },
+        {
+          "id": "planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": [],
+          "source_id": "ERP-SR-REVIEW-VERIFICATION-CANDIDATE-EXECUTION-001-planning_inspection"
         },
         {
           "id": "execution",
-          "source_id": "GS-VER-02",
           "handler": "check",
           "before": [],
-          "after": []
+          "after": [],
+          "source_id": "GS-VER-02"
         },
         {
           "id": "analysis",
-          "source_id": "GS-VER-03",
           "handler": "produce",
           "before": [
             "verdict",
             "result",
             "product_findings"
           ],
-          "after": []
+          "after": [],
+          "source_id": "GS-VER-03"
         },
         {
-          "id": "self_inspection",
-          "source_id": "GS-VER-04",
+          "id": "execution_inspection",
           "handler": "inspect",
           "before": [],
-          "after": []
+          "after": [],
+          "source_id": "ERP-SR-REVIEW-VERIFICATION-CANDIDATE-EXECUTION-001-execution_inspection"
         }
       ],
       "method_schedule": {
@@ -302,6 +285,13 @@
           "after": []
         },
         {
+          "id": "planning_inspection",
+          "source_id": "ERP:SR-REVIEW-REVIEW-CANDIDATE-EXECUTION-001:planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "inspection",
           "source_id": "GS-REV-02",
           "handler": "inspect",
@@ -313,8 +303,8 @@
           "after": []
         },
         {
-          "id": "self_inspection",
-          "source_id": "GS-REV-03",
+          "id": "execution_inspection",
+          "source_id": "ERP:SR-REVIEW-REVIEW-CANDIDATE-EXECUTION-001:execution_inspection",
           "handler": "inspect",
           "before": [
             "decisions"
@@ -336,7 +326,8 @@
             "baseline",
             "assumptions",
             "decision_criteria",
-            "verification_plan"
+            "verification_scope",
+            "alternatives_plan"
           ],
           "after": []
         },
@@ -369,7 +360,9 @@
           "handler": "produce",
           "before": [
             "selected_approach",
-            "decisions"
+            "decisions",
+            "design_plan",
+            "verification_plan"
           ],
           "after": []
         },
@@ -392,57 +385,17 @@
           "after": []
         },
         {
-          "id": "detailed_design_inspection",
-          "source_id": "PAIRED-20261003-detailed_design_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "design_verification",
           "source_id": "GS-DES-05",
           "handler": "check",
           "before": [],
           "after": [
-            "verdict"
+            "design_verification.verdict"
           ]
         },
         {
           "id": "design_inspection",
           "source_id": "GS-DES-06",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "remediation_planning",
-          "source_id": "PAIRED-20261003-remediation_planning",
-          "handler": "produce",
-          "before": [
-            "remediation_plan"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_planning_inspection",
-          "source_id": "PAIRED-20261003-remediation_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-DES-07",
-          "handler": "revise",
-          "before": [
-            "design",
-            "interfaces_contracts"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-DES-08",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -462,8 +415,16 @@
           "handler": "produce",
           "before": [
             "source_plan",
-            "method"
+            "collection_method",
+            "collection_plan"
           ],
+          "after": []
+        },
+        {
+          "id": "framing_inspection",
+          "source_id": "ERP:SR-REVIEW-ANALYSIS-CANDIDATE-EXECUTION-001:framing_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -472,10 +433,34 @@
           "handler": "observe",
           "before": [],
           "after": [
-            "sources",
-            "facts",
-            "assumptions"
+            "evidence_collection.sources",
+            "evidence_collection.facts",
+            "evidence_collection.assumptions"
           ]
+        },
+        {
+          "id": "evidence_collection_inspection",
+          "source_id": "ERP:SR-REVIEW-ANALYSIS-CANDIDATE-EXECUTION-001:evidence_collection_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "analysis_planning",
+          "source_id": "ERP:SR-REVIEW-ANALYSIS-CANDIDATE-EXECUTION-001:analysis_planning",
+          "handler": "produce",
+          "before": [
+            "analysis_plan",
+            "analysis_method"
+          ],
+          "after": []
+        },
+        {
+          "id": "analysis_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-ANALYSIS-CANDIDATE-EXECUTION-001:analysis_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
         },
         {
           "id": "reasoning",
@@ -495,13 +480,16 @@
           "before": [
             "alternative_explanations",
             "counterevidence",
-            "limitations"
+            "limitations",
+            "analysis",
+            "conclusions",
+            "recommendations"
           ],
           "after": []
         },
         {
-          "id": "self_inspection",
-          "source_id": "GS-ANA-05",
+          "id": "analysis_inspection",
+          "source_id": "ERP:SR-REVIEW-ANALYSIS-CANDIDATE-EXECUTION-001:analysis_inspection",
           "handler": "inspect",
           "before": [
             "result"
@@ -524,14 +512,31 @@
           "before": [
             "environment",
             "workload",
-            "verification_plan"
+            "verification_plan",
+            "baseline_plan"
           ],
+          "after": []
+        },
+        {
+          "id": "framing_inspection",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:framing_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
           "id": "baseline_measurement",
           "source_id": "GS-PRO-02",
           "handler": "observe",
+          "before": [
+            "baseline_evidence"
+          ],
+          "after": []
+        },
+        {
+          "id": "baseline_inspection",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:baseline_inspection",
+          "handler": "inspect",
           "before": [],
           "after": []
         },
@@ -546,9 +551,42 @@
           "after": []
         },
         {
+          "id": "experiment_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:experiment_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "measurement",
           "source_id": "GS-PRO-04",
           "handler": "observe",
+          "before": [
+            "measurement_evidence"
+          ],
+          "after": []
+        },
+        {
+          "id": "measurement_inspection",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:measurement_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "analysis_planning",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:analysis_planning",
+          "handler": "produce",
+          "before": [
+            "analysis_plan",
+            "confirmation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "analysis_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:analysis_planning_inspection",
+          "handler": "inspect",
           "before": [],
           "after": []
         },
@@ -561,7 +599,6 @@
             "alternative_explanations",
             "recommendations",
             "limitations",
-            "confirmation_plan",
             "product_findings"
           ],
           "after": []
@@ -572,12 +609,25 @@
           "handler": "check",
           "before": [],
           "after": [
-            "confirmation"
+            "confirmation.confirmation"
           ]
         },
         {
-          "id": "self_inspection",
-          "source_id": "GS-PRO-07",
+          "id": "synthesis",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:synthesis",
+          "handler": "produce",
+          "before": [
+            "analysis",
+            "alternative_explanations",
+            "recommendations",
+            "limitations",
+            "product_findings"
+          ],
+          "after": []
+        },
+        {
+          "id": "profiling_inspection",
+          "source_id": "ERP:SR-REVIEW-PROFILING-CANDIDATE-EXECUTION-001:profiling_inspection",
           "handler": "inspect",
           "before": [
             "result"
@@ -600,11 +650,19 @@
           "source_id": "GS-DIA-01",
           "handler": "produce",
           "before": [
-            "verification_plan"
+            "verification_plan",
+            "reproduction_plan"
           ],
           "after": [
-            "facts"
+            "framing.facts"
           ]
+        },
+        {
+          "id": "framing_inspection",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
         },
         {
           "id": "reproduction",
@@ -612,8 +670,15 @@
           "handler": "observe",
           "before": [],
           "after": [
-            "reproduction"
+            "reproduction.reproduction"
           ]
+        },
+        {
+          "id": "reproduction_inspection",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:reproduction_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
         },
         {
           "id": "hypothesis_planning",
@@ -626,13 +691,44 @@
           "after": []
         },
         {
+          "id": "hypothesis_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:hypothesis_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "experiments",
           "source_id": "GS-DIA-04",
           "handler": "observe",
           "before": [],
           "after": [
-            "facts"
+            "experiments.facts"
           ]
+        },
+        {
+          "id": "experiments_inspection",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:experiments_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "analysis_planning",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:analysis_planning",
+          "handler": "produce",
+          "before": [
+            "analysis_plan",
+            "confirmation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "analysis_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:analysis_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
         },
         {
           "id": "root_cause_analysis",
@@ -640,8 +736,7 @@
           "handler": "produce",
           "before": [
             "root_cause",
-            "recommendations",
-            "confirmation_plan"
+            "recommendations"
           ],
           "after": []
         },
@@ -651,12 +746,22 @@
           "handler": "check",
           "before": [],
           "after": [
-            "confirmation"
+            "confirmation.confirmation"
           ]
         },
         {
-          "id": "self_inspection",
-          "source_id": "GS-DIA-07",
+          "id": "synthesis",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:synthesis",
+          "handler": "produce",
+          "before": [
+            "root_cause",
+            "recommendations"
+          ],
+          "after": []
+        },
+        {
+          "id": "diagnostics_inspection",
+          "source_id": "ERP:SR-REVIEW-ENVIRONMENT-DIAGNOSTICS-CANDIDATE-EXECUTION-001:diagnostics_inspection",
           "handler": "inspect",
           "before": [
             "result"
@@ -681,7 +786,8 @@
           "before": [
             "scope",
             "constraints",
-            "verification_plan"
+            "baseline_verification_plan",
+            "baseline_plan"
           ],
           "after": []
         },
@@ -696,7 +802,9 @@
           "id": "baseline",
           "source_id": "GS-ENV-02",
           "handler": "observe",
-          "before": [],
+          "before": [
+            "baseline_evidence"
+          ],
           "after": []
         },
         {
@@ -732,19 +840,12 @@
           "after": []
         },
         {
-          "id": "application_inspection",
-          "source_id": "PAIRED-20261003-application_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "verification",
           "source_id": "GS-ENV-05",
           "handler": "check",
           "before": [],
           "after": [
-            "verdict"
+            "verification.verdict"
           ]
         },
         {
@@ -755,46 +856,11 @@
             "result"
           ],
           "after": []
-        },
-        {
-          "id": "correction_planning",
-          "source_id": "PAIRED-20261003-correction_planning",
-          "handler": "produce",
-          "before": [
-            "correction_plan"
-          ],
-          "after": []
-        },
-        {
-          "id": "correction_planning_inspection",
-          "source_id": "PAIRED-20261003-correction_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "correction",
-          "source_id": "GS-ENV-07",
-          "handler": "apply_plan",
-          "before": [
-            "change_plan"
-          ],
-          "after": []
-        },
-        {
-          "id": "correction_inspection",
-          "source_id": "GS-ENV-08",
-          "handler": "inspect",
-          "before": [
-            "result"
-          ],
-          "after": []
         }
       ],
       "method_schedule": {
         "baseline": "BASELINE",
-        "verification": "ENV_CHECK",
-        "correction_inspection": "ENV_CHECK"
+        "verification": "ENV_CHECK"
       }
     },
     {
@@ -808,8 +874,9 @@
           "before": [
             "source_inventory",
             "content_requirements",
-            "verification_plan",
-            "publication_target"
+            "publication_target",
+            "verification_scope",
+            "outline_plan"
           ],
           "after": []
         },
@@ -837,6 +904,23 @@
           "after": []
         },
         {
+          "id": "drafting_planning",
+          "source_id": "ERP:SR-REVIEW-DOCUMENTATION-CANDIDATE-EXECUTION-001:drafting_planning",
+          "handler": "produce",
+          "before": [
+            "drafting_plan",
+            "verification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "drafting_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-DOCUMENTATION-CANDIDATE-EXECUTION-001:drafting_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "drafting",
           "source_id": "GS-DOC-03",
           "handler": "produce",
@@ -847,19 +931,12 @@
           "after": []
         },
         {
-          "id": "drafting_inspection",
-          "source_id": "PAIRED-20261003-drafting_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "validation",
           "source_id": "GS-DOC-04",
           "handler": "check",
           "before": [],
           "after": [
-            "verdict"
+            "validation.verdict"
           ]
         },
         {
@@ -870,45 +947,10 @@
             "result"
           ],
           "after": []
-        },
-        {
-          "id": "remediation_planning",
-          "source_id": "PAIRED-20261003-remediation_planning",
-          "handler": "produce",
-          "before": [
-            "remediation_plan"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_planning_inspection",
-          "source_id": "PAIRED-20261003-remediation_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-DOC-06",
-          "handler": "revise",
-          "before": [
-            "content"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-DOC-07",
-          "handler": "inspect",
-          "before": [
-            "result"
-          ],
-          "after": []
         }
       ],
       "method_schedule": {
-        "validation": "DOC_CHECK",
-        "remediation": "DOC_CHECK"
+        "validation": "DOC_CHECK"
       }
     },
     {
@@ -922,7 +964,8 @@
           "before": [
             "constraints",
             "assumptions",
-            "deliverables"
+            "deliverables",
+            "classification_plan"
           ],
           "after": []
         },
@@ -950,19 +993,28 @@
           "after": []
         },
         {
+          "id": "specification_planning",
+          "source_id": "ERP:SR-REVIEW-TASK-PLANNING-CANDIDATE-EXECUTION-003:specification_planning",
+          "handler": "produce",
+          "before": [
+            "specification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "specification_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-TASK-PLANNING-CANDIDATE-EXECUTION-003:specification_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "requirements",
           "source_id": "GS-TPL-03",
           "handler": "produce",
           "before": [
             "planned_task"
           ],
-          "after": []
-        },
-        {
-          "id": "requirements_inspection",
-          "source_id": "PAIRED-20261003-requirements_inspection",
-          "handler": "inspect",
-          "before": [],
           "after": []
         },
         {
@@ -976,13 +1028,6 @@
           "after": []
         },
         {
-          "id": "acceptance_design_inspection",
-          "source_id": "PAIRED-20261003-acceptance_design_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "work_planning",
           "source_id": "GS-TPL-05",
           "handler": "produce",
@@ -990,13 +1035,6 @@
             "work_plan",
             "planned_task"
           ],
-          "after": []
-        },
-        {
-          "id": "work_planning_inspection",
-          "source_id": "PAIRED-20261003-work_planning_inspection",
-          "handler": "inspect",
-          "before": [],
           "after": []
         },
         {
@@ -1017,33 +1055,17 @@
           "after": []
         },
         {
-          "id": "remediation_planning",
-          "source_id": "PAIRED-20261003-remediation_planning",
+          "id": "publication_planning",
+          "source_id": "ERP:SR-REVIEW-TASK-PLANNING-CANDIDATE-EXECUTION-003:publication_planning",
           "handler": "produce",
           "before": [
-            "remediation_plan"
+            "publication_plan"
           ],
           "after": []
         },
         {
-          "id": "remediation_planning_inspection",
-          "source_id": "PAIRED-20261003-remediation_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-TPL-08",
-          "handler": "revise",
-          "before": [
-            "planned_task"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-TPL-09",
+          "id": "publication_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-TASK-PLANNING-CANDIDATE-EXECUTION-003:publication_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -1053,6 +1075,24 @@
           "source_id": "GS-TPL-10",
           "handler": "publish",
           "before": [],
+          "after": []
+        },
+        {
+          "id": "publication_result",
+          "source_id": "ERP:SR-REVIEW-TASK-PLANNING-CANDIDATE-EXECUTION-003:publication_result",
+          "handler": "produce",
+          "before": [
+            "publication_result"
+          ],
+          "after": []
+        },
+        {
+          "id": "publication_inspection",
+          "source_id": "ERP:SR-REVIEW-TASK-PLANNING-CANDIDATE-EXECUTION-003:publication_inspection",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
           "after": []
         }
       ],
@@ -1068,7 +1108,8 @@
           "handler": "produce",
           "before": [
             "constraints",
-            "assumptions"
+            "assumptions",
+            "composition_plan"
           ],
           "after": []
         },
@@ -1089,13 +1130,6 @@
           "after": []
         },
         {
-          "id": "decomposition_inspection",
-          "source_id": "PAIRED-20261003-decomposition_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "task_classification",
           "source_id": "GS-SPL-03",
           "handler": "produce",
@@ -1105,8 +1139,24 @@
           "after": []
         },
         {
-          "id": "task_classification_inspection",
-          "source_id": "PAIRED-20261003-task_classification_inspection",
+          "id": "decomposition_inspection",
+          "source_id": "PAIRED-20261003-decomposition_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "specification_planning",
+          "source_id": "ERP:SR-REVIEW-SPRINT-PLANNING-CANDIDATE-EXECUTION-001:specification_planning",
+          "handler": "produce",
+          "before": [
+            "specification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "specification_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-SPRINT-PLANNING-CANDIDATE-EXECUTION-001:specification_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -1122,26 +1172,13 @@
           "after": []
         },
         {
-          "id": "task_contracts_inspection",
-          "source_id": "PAIRED-20261003-task_contracts_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
           "id": "dependency_design",
           "source_id": "GS-SPL-05",
           "handler": "produce",
           "before": [
-            "dependency_plan"
+            "dependency_plan",
+            "planned_sprint"
           ],
-          "after": []
-        },
-        {
-          "id": "dependency_design_inspection",
-          "source_id": "PAIRED-20261003-dependency_design_inspection",
-          "handler": "inspect",
-          "before": [],
           "after": []
         },
         {
@@ -1152,15 +1189,9 @@
             "execution_plan",
             "shared_context_plan",
             "shared_artifacts_plan",
-            "risks"
+            "risks",
+            "planned_sprint"
           ],
-          "after": []
-        },
-        {
-          "id": "execution_planning_inspection",
-          "source_id": "PAIRED-20261003-execution_planning_inspection",
-          "handler": "inspect",
-          "before": [],
           "after": []
         },
         {
@@ -1180,35 +1211,17 @@
           "after": []
         },
         {
-          "id": "remediation_planning",
-          "source_id": "PAIRED-20261003-remediation_planning",
+          "id": "publication_planning",
+          "source_id": "ERP:SR-REVIEW-SPRINT-PLANNING-CANDIDATE-EXECUTION-001:publication_planning",
           "handler": "produce",
           "before": [
-            "remediation_plan"
+            "publication_plan"
           ],
           "after": []
         },
         {
-          "id": "remediation_planning_inspection",
-          "source_id": "PAIRED-20261003-remediation_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-SPL-09",
-          "handler": "revise",
-          "before": [
-            "planned_sprint",
-            "task_contracts",
-            "dependency_plan"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-SPL-10",
+          "id": "publication_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-SPRINT-PLANNING-CANDIDATE-EXECUTION-001:publication_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -1218,6 +1231,24 @@
           "source_id": "GS-SPL-11",
           "handler": "publish",
           "before": [],
+          "after": []
+        },
+        {
+          "id": "publication_result",
+          "source_id": "ERP:SR-REVIEW-SPRINT-PLANNING-CANDIDATE-EXECUTION-001:publication_result",
+          "handler": "produce",
+          "before": [
+            "publication_result"
+          ],
+          "after": []
+        },
+        {
+          "id": "publication_inspection",
+          "source_id": "ERP:SR-REVIEW-SPRINT-PLANNING-CANDIDATE-EXECUTION-001:publication_inspection",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
           "after": []
         }
       ],
@@ -1234,7 +1265,9 @@
           "source_id": "GS-INT-01",
           "handler": "produce",
           "before": [
-            "constraints"
+            "constraints",
+            "task_phases",
+            "integration_context"
           ],
           "after": []
         },
@@ -1268,15 +1301,8 @@
           "handler": "apply_plan",
           "before": [],
           "after": [
-            "conflict_resolutions"
+            "integration.conflict_resolutions"
           ]
-        },
-        {
-          "id": "integration_inspection",
-          "source_id": "PAIRED-20261003-integration_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
         },
         {
           "id": "verification",
@@ -1284,7 +1310,7 @@
           "handler": "check",
           "before": [],
           "after": [
-            "verdict"
+            "verification.verdict"
           ]
         },
         {
@@ -1295,33 +1321,18 @@
           "after": []
         },
         {
-          "id": "remediation_planning",
-          "source_id": "PAIRED-20261003-remediation_planning",
+          "id": "publication_planning",
+          "source_id": "ERP:SR-REVIEW-INTEGRATION-CANDIDATE-EXECUTION-001:publication_planning",
           "handler": "produce",
           "before": [
-            "remediation_plan"
+            "publication_plan",
+            "delivery_obligation"
           ],
           "after": []
         },
         {
-          "id": "remediation_planning_inspection",
-          "source_id": "PAIRED-20261003-remediation_planning_inspection",
-          "handler": "inspect",
-          "before": [],
-          "after": []
-        },
-        {
-          "id": "remediation",
-          "source_id": "GS-INT-06",
-          "handler": "revise",
-          "before": [
-            "conflict_resolutions"
-          ],
-          "after": []
-        },
-        {
-          "id": "remediation_inspection",
-          "source_id": "GS-INT-07",
+          "id": "publication_planning_inspection",
+          "source_id": "ERP:SR-REVIEW-INTEGRATION-CANDIDATE-EXECUTION-001:publication_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -1332,66 +1343,33 @@
           "handler": "publish",
           "before": [],
           "after": []
+        },
+        {
+          "id": "publication_result",
+          "source_id": "ERP:SR-REVIEW-INTEGRATION-CANDIDATE-EXECUTION-001:publication_result",
+          "handler": "produce",
+          "before": [
+            "publication_result"
+          ],
+          "after": []
+        },
+        {
+          "id": "publication_inspection",
+          "source_id": "ERP:SR-REVIEW-INTEGRATION-CANDIDATE-EXECUTION-001:publication_inspection",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
         }
       ],
       "method_schedule": {
         "integration": "COMBINED",
-        "verification": "COMBINED",
-        "remediation": "COMBINED"
+        "verification": "COMBINED"
       }
     }
   ],
   "feedback_edges": [
-    {
-      "id": "FB-ANA-01",
-      "goal_type": "analysis",
-      "from_stage": "self_inspection",
-      "to_stage": "evidence_collection",
-      "from_handler": "inspect",
-      "to_handler": "observe",
-      "reason": "Недостаёт источника, наблюдения или релевантной выборки.",
-      "source_line": 9
-    },
-    {
-      "id": "FB-ANA-02",
-      "goal_type": "analysis",
-      "from_stage": "self_inspection",
-      "to_stage": "reasoning",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Нужные факты уже есть, но заключение шире основания либо логически ошибочно.",
-      "source_line": 10
-    },
-    {
-      "id": "FB-ANA-03",
-      "goal_type": "analysis",
-      "from_stage": "self_inspection",
-      "to_stage": "challenge",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Не рассмотрено конкретное альтернативное объяснение или counterevidence.",
-      "source_line": 11
-    },
-    {
-      "id": "FB-DES-01",
-      "goal_type": "design",
-      "from_stage": "design_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Обнаружено противоречие, неописанный failure mode или неоднозначный contract.",
-      "source_line": 12
-    },
-    {
-      "id": "FB-DES-02",
-      "goal_type": "design",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправлена схема, но не все зависимые описания/примеры; требуется новая попытка.",
-      "source_line": 13
-    },
     {
       "id": "FB-DEV-01",
       "goal_type": "development",
@@ -1413,254 +1391,553 @@
       "source_line": 16
     },
     {
-      "id": "FB-DIA-01",
-      "goal_type": "environment_diagnostics",
-      "from_stage": "self_inspection",
-      "to_stage": "reproduction",
-      "from_handler": "inspect",
-      "to_handler": "observe",
-      "reason": "Неверно воспроизведён исходный симптом.",
-      "source_line": 18
-    },
-    {
-      "id": "FB-DIA-02",
-      "goal_type": "environment_diagnostics",
-      "from_stage": "self_inspection",
-      "to_stage": "hypothesis_planning",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Не проверена существенная альтернативная причина.",
-      "source_line": 19
-    },
-    {
-      "id": "FB-DIA-03",
-      "goal_type": "environment_diagnostics",
-      "from_stage": "self_inspection",
-      "to_stage": "experiments",
-      "from_handler": "inspect",
-      "to_handler": "observe",
-      "reason": "План различения есть, фактического наблюдения недостаточно.",
-      "source_line": 20
-    },
-    {
-      "id": "FB-DIA-04",
-      "goal_type": "environment_diagnostics",
-      "from_stage": "self_inspection",
-      "to_stage": "root_cause_analysis",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Факты есть, причинный вывод или рекомендация неверны.",
-      "source_line": 21
-    },
-    {
-      "id": "FB-DIA-05",
-      "goal_type": "environment_diagnostics",
-      "from_stage": "self_inspection",
-      "to_stage": "confirmation",
-      "from_handler": "inspect",
-      "to_handler": "check",
-      "reason": "Не подтверждено устранение именно исходного симптома контролируемым опытом.",
-      "source_line": 22
-    },
-    {
-      "id": "FB-DOC-01",
-      "goal_type": "documentation",
-      "from_stage": "inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Найдена неточность, пропущенная предпосылка или непонятная инструкция.",
-      "source_line": 23
-    },
-    {
-      "id": "FB-DOC-02",
-      "goal_type": "documentation",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Предыдущее исправление оставило неоднозначность/сломало зависимый пример.",
-      "source_line": 24
-    },
-    {
-      "id": "FB-ENV-01",
-      "goal_type": "environment_remediation",
-      "from_stage": "inspection",
-      "to_stage": "correction",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Не достигнута часть состояния или найден побочный эффект.",
-      "source_line": 25
-    },
-    {
-      "id": "FB-ENV-02",
-      "goal_type": "environment_remediation",
-      "from_stage": "correction_inspection",
-      "to_stage": "correction",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Предыдущее исправление неполно; состояние надо скорректировать ещё раз.",
-      "source_line": 26
-    },
-    {
-      "id": "FB-INT-01",
-      "goal_type": "integration",
-      "from_stage": "inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Проверка смысла объединения обнаружила потерю source behavior.",
-      "source_line": 27
-    },
-    {
-      "id": "FB-INT-02",
-      "goal_type": "integration",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправлено не всё либо возник вторичный integration-specific дефект.",
-      "source_line": 28
-    },
-    {
-      "id": "FB-PRO-01",
-      "goal_type": "profiling",
-      "from_stage": "self_inspection",
-      "to_stage": "experiment_planning",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Неверно спроектированы контролируемые переменные или необходим другой эксперимент.",
-      "source_line": 29
-    },
-    {
-      "id": "FB-PRO-02",
-      "goal_type": "profiling",
-      "from_stage": "self_inspection",
-      "to_stage": "measurement",
-      "from_handler": "inspect",
-      "to_handler": "observe",
-      "reason": "Отсутствует пригодная серия на требуемом target/workload.",
-      "source_line": 30
-    },
-    {
-      "id": "FB-PRO-03",
-      "goal_type": "profiling",
-      "from_stage": "self_inspection",
-      "to_stage": "analysis",
-      "from_handler": "inspect",
-      "to_handler": "produce",
-      "reason": "Измерения пригодны, но неверно интерпретированы.",
-      "source_line": 31
-    },
-    {
-      "id": "FB-PRO-04",
-      "goal_type": "profiling",
-      "from_stage": "self_inspection",
-      "to_stage": "confirmation",
-      "from_handler": "inspect",
-      "to_handler": "check",
-      "reason": "Основному выводу не хватает предусмотренного контрольного подтверждения.",
-      "source_line": 32
-    },
-    {
-      "id": "FB-REV-01",
-      "goal_type": "review",
-      "from_stage": "self_inspection",
-      "to_stage": "inspection",
-      "from_handler": "inspect",
-      "to_handler": "inspect",
-      "reason": "Неверный, дублирующий или недоказанный finding либо неполный scope coverage.",
-      "source_line": 33
-    },
-    {
-      "id": "FB-SPL-01",
-      "goal_type": "sprint_planning",
-      "from_stage": "sprint_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Пробел scope, лишняя задача или неверная семантическая зависимость.",
-      "source_line": 34
-    },
-    {
-      "id": "FB-SPL-02",
-      "goal_type": "sprint_planning",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправленный план содержит оставшийся dangling reference или неполный дочерний contract.",
-      "source_line": 35
-    },
-    {
-      "id": "FB-TPL-01",
-      "goal_type": "task_planning",
-      "from_stage": "task_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Неполный или противоречивый contract создаваемой задачи.",
-      "source_line": 36
-    },
-    {
-      "id": "FB-TPL-02",
-      "goal_type": "task_planning",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправление contract оставило неверную ссылку/обязательное поле.",
-      "source_line": 37
-    },
-    {
       "id": "FB-TST-01",
       "goal_type": "test_development",
       "from_stage": "test_inspection",
-      "to_stage": "remediation",
+      "to_stage": "test_implementation",
       "from_handler": "inspect",
-      "to_handler": "revise",
+      "to_handler": "produce",
       "reason": "Дефект качества теста или фикстуры подтверждён осмотром.",
       "source_line": 38
     },
     {
-      "id": "FB-TST-02",
-      "goal_type": "test_development",
-      "from_stage": "remediation_inspection",
-      "to_stage": "remediation",
-      "from_handler": "inspect",
-      "to_handler": "revise",
-      "reason": "Исправленный тест всё ещё зависит от порядка/среды или неправильно проверяет требование.",
-      "source_line": 39
-    },
-    {
       "id": "FB-VER-01",
       "goal_type": "verification",
-      "from_stage": "self_inspection",
+      "from_stage": "planning_inspection",
       "to_stage": "planning",
       "from_handler": "inspect",
       "to_handler": "produce",
-      "reason": "Программа не покрывает критерий или метод не способен его проверить.",
-      "source_line": 40
+      "reason": "Проверяющий отклонил программу проверки; исполнитель исправляет её на этапе проектирования.",
+      "source_line": 296,
+      "source_path": "config/catalogue/workflow-templates/verification.json"
     },
     {
       "id": "FB-VER-02",
       "goal_type": "verification",
-      "from_stage": "self_inspection",
+      "from_stage": "execution_inspection",
       "to_stage": "execution",
       "from_handler": "inspect",
       "to_handler": "check",
-      "reason": "Нужное фактическое наблюдение отсутствует либо получено неверно.",
-      "source_line": 41
+      "reason": "Проверяющий отклонил доказательство результата; исполнитель повторяет наблюдения и анализ по согласованной программе.",
+      "source_line": 380,
+      "source_path": "config/catalogue/workflow-templates/verification.json"
     },
     {
-      "id": "FB-VER-03",
-      "goal_type": "verification",
-      "from_stage": "self_inspection",
+      "id": "FB-REV-ERP-01",
+      "goal_type": "review",
+      "from_stage": "planning_inspection",
+      "to_stage": "planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 169,
+      "source_path": "config/catalogue/workflow-templates/review.json"
+    },
+    {
+      "id": "FB-REV-ERP-02",
+      "goal_type": "review",
+      "from_stage": "execution_inspection",
+      "to_stage": "inspection",
+      "from_handler": "inspect",
+      "to_handler": "inspect",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 224,
+      "source_path": "config/catalogue/workflow-templates/review.json"
+    },
+    {
+      "id": "FB-DES-ERP-01",
+      "goal_type": "design",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 466,
+      "source_path": "config/catalogue/workflow-templates/design.json"
+    },
+    {
+      "id": "FB-DES-ERP-02",
+      "goal_type": "design",
+      "from_stage": "alternatives_inspection",
+      "to_stage": "alternatives",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 525,
+      "source_path": "config/catalogue/workflow-templates/design.json"
+    },
+    {
+      "id": "FB-DES-ERP-03",
+      "goal_type": "design",
+      "from_stage": "decision_inspection",
+      "to_stage": "decision",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 590,
+      "source_path": "config/catalogue/workflow-templates/design.json"
+    },
+    {
+      "id": "FB-DES-ERP-04",
+      "goal_type": "design",
+      "from_stage": "design_inspection",
+      "to_stage": "detailed_design",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 685,
+      "source_path": "config/catalogue/workflow-templates/design.json"
+    },
+    {
+      "id": "FB-ANA-ERP-01",
+      "goal_type": "analysis",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 645,
+      "source_path": "config/catalogue/workflow-templates/analysis.json"
+    },
+    {
+      "id": "FB-ANA-ERP-02",
+      "goal_type": "analysis",
+      "from_stage": "evidence_collection_inspection",
+      "to_stage": "evidence_collection",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 700,
+      "source_path": "config/catalogue/workflow-templates/analysis.json"
+    },
+    {
+      "id": "FB-ANA-ERP-03",
+      "goal_type": "analysis",
+      "from_stage": "analysis_planning_inspection",
+      "to_stage": "analysis_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 761,
+      "source_path": "config/catalogue/workflow-templates/analysis.json"
+    },
+    {
+      "id": "FB-ANA-ERP-04",
+      "goal_type": "analysis",
+      "from_stage": "analysis_inspection",
+      "to_stage": "reasoning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 864,
+      "source_path": "config/catalogue/workflow-templates/analysis.json"
+    },
+    {
+      "id": "FB-PRO-ERP-01",
+      "goal_type": "profiling",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 851,
+      "source_path": "config/catalogue/workflow-templates/profiling.json"
+    },
+    {
+      "id": "FB-PRO-ERP-02",
+      "goal_type": "profiling",
+      "from_stage": "baseline_inspection",
+      "to_stage": "baseline_measurement",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 908,
+      "source_path": "config/catalogue/workflow-templates/profiling.json"
+    },
+    {
+      "id": "FB-PRO-ERP-03",
+      "goal_type": "profiling",
+      "from_stage": "experiment_planning_inspection",
+      "to_stage": "experiment_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 967,
+      "source_path": "config/catalogue/workflow-templates/profiling.json"
+    },
+    {
+      "id": "FB-PRO-ERP-04",
+      "goal_type": "profiling",
+      "from_stage": "measurement_inspection",
+      "to_stage": "measurement",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1024,
+      "source_path": "config/catalogue/workflow-templates/profiling.json"
+    },
+    {
+      "id": "FB-PRO-ERP-05",
+      "goal_type": "profiling",
+      "from_stage": "analysis_planning_inspection",
+      "to_stage": "analysis_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1086,
+      "source_path": "config/catalogue/workflow-templates/profiling.json"
+    },
+    {
+      "id": "FB-PRO-ERP-06",
+      "goal_type": "profiling",
+      "from_stage": "profiling_inspection",
       "to_stage": "analysis",
       "from_handler": "inspect",
       "to_handler": "produce",
-      "reason": "Наблюдения достаточны, но вывод или finding оформлены неверно.",
-      "source_line": 42
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1220,
+      "source_path": "config/catalogue/workflow-templates/profiling.json"
+    },
+    {
+      "id": "FB-DIA-ERP-01",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 890,
+      "source_path": "config/catalogue/workflow-templates/environment_diagnostics.json"
+    },
+    {
+      "id": "FB-DIA-ERP-02",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "reproduction_inspection",
+      "to_stage": "reproduction",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 945,
+      "source_path": "config/catalogue/workflow-templates/environment_diagnostics.json"
+    },
+    {
+      "id": "FB-DIA-ERP-03",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "hypothesis_planning_inspection",
+      "to_stage": "hypothesis_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1004,
+      "source_path": "config/catalogue/workflow-templates/environment_diagnostics.json"
+    },
+    {
+      "id": "FB-DIA-ERP-04",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "experiments_inspection",
+      "to_stage": "experiments",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1059,
+      "source_path": "config/catalogue/workflow-templates/environment_diagnostics.json"
+    },
+    {
+      "id": "FB-DIA-ERP-05",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "analysis_planning_inspection",
+      "to_stage": "analysis_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1121,
+      "source_path": "config/catalogue/workflow-templates/environment_diagnostics.json"
+    },
+    {
+      "id": "FB-DIA-ERP-06",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "diagnostics_inspection",
+      "to_stage": "root_cause_analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1243,
+      "source_path": "config/catalogue/workflow-templates/environment_diagnostics.json"
+    },
+    {
+      "id": "FB-ENV-ERP-01",
+      "goal_type": "environment_remediation",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 533,
+      "source_path": "config/catalogue/workflow-templates/environment_remediation.json"
+    },
+    {
+      "id": "FB-ENV-ERP-02",
+      "goal_type": "environment_remediation",
+      "from_stage": "baseline_inspection",
+      "to_stage": "baseline",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 590,
+      "source_path": "config/catalogue/workflow-templates/environment_remediation.json"
+    },
+    {
+      "id": "FB-ENV-ERP-03",
+      "goal_type": "environment_remediation",
+      "from_stage": "change_planning_inspection",
+      "to_stage": "change_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 653,
+      "source_path": "config/catalogue/workflow-templates/environment_remediation.json"
+    },
+    {
+      "id": "FB-ENV-ERP-04",
+      "goal_type": "environment_remediation",
+      "from_stage": "inspection",
+      "to_stage": "application",
+      "from_handler": "inspect",
+      "to_handler": "apply_plan",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 742,
+      "source_path": "config/catalogue/workflow-templates/environment_remediation.json"
+    },
+    {
+      "id": "FB-DOC-ERP-01",
+      "goal_type": "documentation",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 609,
+      "source_path": "config/catalogue/workflow-templates/documentation.json"
+    },
+    {
+      "id": "FB-DOC-ERP-02",
+      "goal_type": "documentation",
+      "from_stage": "outline_inspection",
+      "to_stage": "outline",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 668,
+      "source_path": "config/catalogue/workflow-templates/documentation.json"
+    },
+    {
+      "id": "FB-DOC-ERP-03",
+      "goal_type": "documentation",
+      "from_stage": "drafting_planning_inspection",
+      "to_stage": "drafting_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 729,
+      "source_path": "config/catalogue/workflow-templates/documentation.json"
+    },
+    {
+      "id": "FB-DOC-ERP-04",
+      "goal_type": "documentation",
+      "from_stage": "inspection",
+      "to_stage": "drafting",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 821,
+      "source_path": "config/catalogue/workflow-templates/documentation.json"
+    },
+    {
+      "id": "FB-TPL-ERP-01",
+      "goal_type": "task_planning",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 730,
+      "source_path": "config/catalogue/workflow-templates/task_planning.json"
+    },
+    {
+      "id": "FB-TPL-ERP-02",
+      "goal_type": "task_planning",
+      "from_stage": "classification_inspection",
+      "to_stage": "classification",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 789,
+      "source_path": "config/catalogue/workflow-templates/task_planning.json"
+    },
+    {
+      "id": "FB-TPL-ERP-03",
+      "goal_type": "task_planning",
+      "from_stage": "specification_planning_inspection",
+      "to_stage": "specification_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 851,
+      "source_path": "config/catalogue/workflow-templates/task_planning.json"
+    },
+    {
+      "id": "FB-TPL-ERP-04",
+      "goal_type": "task_planning",
+      "from_stage": "task_inspection",
+      "to_stage": "requirements",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1006,
+      "source_path": "config/catalogue/workflow-templates/task_planning.json"
+    },
+    {
+      "id": "FB-TPL-ERP-05",
+      "goal_type": "task_planning",
+      "from_stage": "publication_planning_inspection",
+      "to_stage": "publication_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1065,
+      "source_path": "config/catalogue/workflow-templates/task_planning.json"
+    },
+    {
+      "id": "FB-TPL-ERP-06",
+      "goal_type": "task_planning",
+      "from_stage": "publication_inspection",
+      "to_stage": "publication_result",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1145,
+      "source_path": "config/catalogue/workflow-templates/task_planning.json"
+    },
+    {
+      "id": "FB-SPL-ERP-01",
+      "goal_type": "sprint_planning",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 862,
+      "source_path": "config/catalogue/workflow-templates/sprint_planning.json"
+    },
+    {
+      "id": "FB-SPL-ERP-02",
+      "goal_type": "sprint_planning",
+      "from_stage": "decomposition_inspection",
+      "to_stage": "decomposition",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 951,
+      "source_path": "config/catalogue/workflow-templates/sprint_planning.json"
+    },
+    {
+      "id": "FB-SPL-ERP-03",
+      "goal_type": "sprint_planning",
+      "from_stage": "specification_planning_inspection",
+      "to_stage": "specification_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1012,
+      "source_path": "config/catalogue/workflow-templates/sprint_planning.json"
+    },
+    {
+      "id": "FB-SPL-ERP-04",
+      "goal_type": "sprint_planning",
+      "from_stage": "sprint_inspection",
+      "to_stage": "task_contracts",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1174,
+      "source_path": "config/catalogue/workflow-templates/sprint_planning.json"
+    },
+    {
+      "id": "FB-SPL-ERP-05",
+      "goal_type": "sprint_planning",
+      "from_stage": "publication_planning_inspection",
+      "to_stage": "publication_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1233,
+      "source_path": "config/catalogue/workflow-templates/sprint_planning.json"
+    },
+    {
+      "id": "FB-SPL-ERP-06",
+      "goal_type": "sprint_planning",
+      "from_stage": "publication_inspection",
+      "to_stage": "publication_result",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 1313,
+      "source_path": "config/catalogue/workflow-templates/sprint_planning.json"
+    },
+    {
+      "id": "FB-INT-ERP-01",
+      "goal_type": "integration",
+      "from_stage": "framing_inspection",
+      "to_stage": "framing",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 585,
+      "source_path": "config/catalogue/workflow-templates/integration.json"
+    },
+    {
+      "id": "FB-INT-ERP-02",
+      "goal_type": "integration",
+      "from_stage": "integration_planning_inspection",
+      "to_stage": "integration_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 646,
+      "source_path": "config/catalogue/workflow-templates/integration.json"
+    },
+    {
+      "id": "FB-INT-ERP-03",
+      "goal_type": "integration",
+      "from_stage": "inspection",
+      "to_stage": "integration",
+      "from_handler": "inspect",
+      "to_handler": "apply_plan",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 737,
+      "source_path": "config/catalogue/workflow-templates/integration.json"
+    },
+    {
+      "id": "FB-INT-ERP-04",
+      "goal_type": "integration",
+      "from_stage": "publication_planning_inspection",
+      "to_stage": "publication_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 798,
+      "source_path": "config/catalogue/workflow-templates/integration.json"
+    },
+    {
+      "id": "FB-INT-ERP-05",
+      "goal_type": "integration",
+      "from_stage": "publication_inspection",
+      "to_stage": "publication_result",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Отклонённый результат возвращается по явному changes_requested и разрешённому rework target принятого определения ERP.",
+      "source_line": 878,
+      "source_path": "config/catalogue/workflow-templates/integration.json"
     }
   ],
   "methods": {
@@ -1668,8 +1945,7 @@
     "test_development": {
       "baseline": "BASELINE",
       "test_implementation": "TEST_GREEN",
-      "sensitivity_verification": "SENSITIVITY",
-      "remediation": "TEST_GREEN"
+      "sensitivity_verification": "SENSITIVITY"
     },
     "verification": {
       "execution": "VERIFY"
@@ -1693,12 +1969,10 @@
     },
     "environment_remediation": {
       "baseline": "BASELINE",
-      "verification": "ENV_CHECK",
-      "correction_inspection": "ENV_CHECK"
+      "verification": "ENV_CHECK"
     },
     "documentation": {
-      "validation": "DOC_CHECK",
-      "remediation": "DOC_CHECK"
+      "validation": "DOC_CHECK"
     },
     "task_planning": {},
     "sprint_planning": {
@@ -1706,9 +1980,8 @@
     },
     "integration": {
       "integration": "COMBINED",
-      "verification": "COMBINED",
-      "remediation": "COMBINED"
+      "verification": "COMBINED"
     }
   },
-  "note": "Executable reference profiles use the existing runtime model. Real project methods and reviewer decisions are explicit inputs."
+  "note": "Reference metadata projects accepted graphs. Sample method schedules belong to example Tasks, not starter policy. Actual methods, criteria and reviewer decisions remain explicit inputs."
 }

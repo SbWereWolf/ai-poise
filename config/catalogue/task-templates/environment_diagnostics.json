@@ -40,18 +40,25 @@
     },
     "checks": {
       "framing": [],
+      "framing_inspection": [],
       "reproduction": [
         "REPRODUCE"
       ],
+      "reproduction_inspection": [],
       "hypothesis_planning": [],
+      "hypothesis_planning_inspection": [],
       "experiments": [
         "EXPERIMENT"
       ],
+      "experiments_inspection": [],
+      "analysis_planning": [],
+      "analysis_planning_inspection": [],
       "root_cause_analysis": [],
       "confirmation": [
         "CONFIRM"
       ],
-      "self_inspection": []
+      "synthesis": [],
+      "diagnostics_inspection": []
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

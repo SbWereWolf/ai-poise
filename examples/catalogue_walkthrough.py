@@ -197,9 +197,7 @@ def _initial_checks(workflow, methods):
     by_stage={
         'baseline':['BASELINE'],
         'test_implementation':['TEST_RED'],
-        'test_remediation':['TEST_RED'],
         'implementation':['TEST_GREEN'],
-        'implementation_remediation':['TEST_GREEN'],
         'documentation':['DOC_CHECK'],
     }
     for stage,method_ids in by_stage.items():

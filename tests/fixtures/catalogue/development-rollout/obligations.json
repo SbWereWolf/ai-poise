@@ -1,0 +1,158 @@
+{
+  "entry": "baseline",
+  "pairs": [
+    [
+      "baseline",
+      "baseline_inspection"
+    ],
+    [
+      "solution_planning",
+      "solution_planning_inspection"
+    ],
+    [
+      "verification_planning",
+      "verification_planning_inspection"
+    ],
+    [
+      "test_implementation",
+      "test_inspection"
+    ],
+    [
+      "implementation_design",
+      "implementation_design_inspection"
+    ],
+    [
+      "implementation",
+      "implementation_inspection"
+    ],
+    [
+      "documentation_planning",
+      "documentation_planning_inspection"
+    ],
+    [
+      "documentation",
+      "documentation_inspection"
+    ]
+  ],
+  "authority": {
+    "baseline": {
+      "propose": [],
+      "decide": []
+    },
+    "baseline_inspection": {
+      "propose": [],
+      "decide": []
+    },
+    "solution_planning": {
+      "propose": [],
+      "decide": []
+    },
+    "solution_planning_inspection": {
+      "propose": [],
+      "decide": []
+    },
+    "verification_planning": {
+      "propose": [
+        "test_implementation"
+      ],
+      "decide": []
+    },
+    "verification_planning_inspection": {
+      "propose": [],
+      "decide": [
+        "test_implementation"
+      ]
+    },
+    "test_implementation": {
+      "propose": [],
+      "decide": []
+    },
+    "test_inspection": {
+      "propose": [],
+      "decide": []
+    },
+    "implementation_design": {
+      "propose": [
+        "implementation"
+      ],
+      "decide": []
+    },
+    "implementation_design_inspection": {
+      "propose": [],
+      "decide": [
+        "implementation"
+      ]
+    },
+    "implementation": {
+      "propose": [],
+      "decide": []
+    },
+    "implementation_inspection": {
+      "propose": [],
+      "decide": []
+    },
+    "documentation_planning": {
+      "propose": [
+        "documentation"
+      ],
+      "decide": []
+    },
+    "documentation_planning_inspection": {
+      "propose": [],
+      "decide": [
+        "documentation"
+      ]
+    },
+    "documentation": {
+      "propose": [],
+      "decide": []
+    },
+    "documentation_inspection": {
+      "propose": [],
+      "decide": []
+    }
+  },
+  "execution_scopes": {
+    "test_implementation": [
+      "tests/**",
+      "fixtures/**"
+    ],
+    "implementation": [
+      "src/**"
+    ],
+    "documentation": [
+      "docs/**"
+    ]
+  },
+  "early_required_sections": [
+    "report",
+    "solution_plan",
+    "decisions",
+    "assumptions",
+    "documentation_scope"
+  ],
+  "reference_early_before": [
+    "solution_plan",
+    "decisions",
+    "assumptions",
+    "documentation_scope"
+  ],
+  "documentation_plan_pre_stages": [
+    "documentation"
+  ],
+  "project_goal_types": [
+    "analysis",
+    "design",
+    "development",
+    "documentation",
+    "environment_diagnostics",
+    "environment_remediation",
+    "integration",
+    "profiling",
+    "review",
+    "sprint_planning",
+    "task_planning",
+    "test_development",
+    "verification"
+  ]
+}

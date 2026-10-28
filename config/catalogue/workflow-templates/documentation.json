@@ -162,30 +162,6 @@
         ]
       },
       {
-        "id": "remediation-input-verification_plan",
-        "kind": "section",
-        "stages": [
-          "remediation"
-        ],
-        "phase": "pre",
-        "section": "verification_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "remediation_inspection-input-content",
-        "kind": "section",
-        "stages": [
-          "remediation_inspection"
-        ],
-        "phase": "pre",
-        "section": "content",
-        "states": [
-          "populated"
-        ]
-      },
-      {
         "id": "framing_inspection-input-source_inventory",
         "kind": "section",
         "stages": [
@@ -210,13 +186,13 @@
         ]
       },
       {
-        "id": "framing_inspection-input-verification_plan",
+        "id": "framing_inspection-input-verification_scope",
         "kind": "section",
         "stages": [
           "framing_inspection"
         ],
         "phase": "pre",
-        "section": "verification_plan",
+        "section": "verification_scope",
         "states": [
           "populated"
         ]
@@ -246,22 +222,322 @@
         ]
       },
       {
-        "id": "drafting_inspection-input-content",
+        "id": "framing_inspection-input-outline_plan",
         "kind": "section",
         "stages": [
-          "drafting_inspection"
+          "framing_inspection"
         ],
         "phase": "pre",
-        "section": "content",
+        "section": "outline_plan",
         "states": [
           "populated"
         ]
       },
       {
-        "id": "drafting_inspection-input-examples_commands",
+        "id": "outline-input-outline_plan",
         "kind": "section",
         "stages": [
-          "drafting_inspection"
+          "outline"
+        ],
+        "phase": "pre",
+        "section": "outline_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-outline_plan",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "outline_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-outline",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-verification_scope",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "verification_scope",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-outline",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-outline",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-validation.verdict",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "validation.verdict",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-examples_commands",
+        "kind": "section",
+        "stages": [
+          "inspection"
         ],
         "phase": "pre",
         "section": "examples_commands",
@@ -270,58 +546,62 @@
         ]
       },
       {
-        "id": "remediation_planning_inspection-input-remediation_plan",
+        "id": "inspection-input-publication_target",
         "kind": "section",
         "stages": [
-          "remediation_planning_inspection"
+          "inspection"
         ],
         "phase": "pre",
-        "section": "remediation_plan",
+        "section": "publication_target",
         "states": [
           "populated"
         ]
       }
     ]
   },
+  "benefit": {
+    "git_categories": [
+      "documentation"
+    ],
+    "sections": []
+  },
   "stages": [
     {
       "id": "framing",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and source_inventory, content_requirements, verification_plan, publication_target. Output: source_inventory, content_requirements, verification_plan, publication_target and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Определить аудиторию и источники истины. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "instruction": "Before subject work agree coarse Task phases with the independent reviewer. Identify audience/language/ownership, actual sources, content requirements and delivery target. Design only the imminent outline artifact: goal, required result, acceptance criteria, mapping/navigation, completeness and preservation. Keep later verification scope coarse; do not predesign detailed drafting or write document/product/test files.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "source_inventory": "source-of-truth refs с revision/digest, coverage content claims, конфликтующие/устаревшие источники.",
-        "content_requirements": "id, требуемая информация/пример/инструкция, source и DoD refs, required section.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
-        "publication_target": "codebase/path или task artifact, формат и правила delivery; явная push/transport policy."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "source_inventory": "Identify actual sources of truth by revision/digest, coverage of factual claims and conflicting/stale sources. Preserve document ownership and source generation; resolve conflicts explicitly from their actual owner.",
+        "content_requirements": "For each requirement identify required information/example/instruction, actual source and DoD references, audience/language/ownership constraints and target section. Account for every required item.",
+        "publication_target": "State actual codebase/path or Task artifact destination, format, visibility and delivery/transport policy, including push restrictions and actual authority. Local drafting/validation is not external publication or user consent. Reuse actual authorization; do not invent approval loops.",
+        "verification_scope": "State coarse coverage and evidence classes for documentation accuracy, requirements, examples/commands, links and source identity. Do not design detailed future invocations before the accepted outline.",
+        "outline_plan": "State current outline goal, required structure/mapping, acceptance criteria, audience, language and ownership, actual source/content-requirement inputs, navigation/ordering and completeness checks. Do not write final document files."
       },
       "required_sections": [
         "report",
         "source_inventory",
         "content_requirements",
-        "verification_plan",
-        "publication_target"
+        "verification_scope",
+        "publication_target",
+        "outline_plan"
       ],
       "artifact_requirements": [],
       "transitions": {
         "complete": "framing_inspection"
       },
       "rework_targets": [
-        "framing",
-        "outline",
-        "drafting",
-        "validation",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "framing"
       ],
       "purpose": "design",
       "criteria_authority": {
-        "propose": [],
+        "propose": [
+          "outline"
+        ],
         "decide": []
       }
     },
@@ -329,12 +609,12 @@
       "id": "framing_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "instruction": "Independently review the imminent outline design and actual source/content/delivery context for executability, completeness and unambiguity. Check goal/result/acceptance, audience/language/ownership, source identity/conflicts and coverage; keep future verification scope coarse. Decide criteria only for outline artifact execution. Reject design to framing.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
       "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
       },
       "required_sections": [
         "report"
@@ -350,20 +630,22 @@
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
-        "decide": []
+        "decide": [
+          "outline"
+        ]
       }
     },
     {
       "id": "outline",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and outline. Output: outline and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Спроектировать структуру по content requirements. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "instruction": "Produce only the current outline Task artifact under accepted outline_plan. Map every content requirement/source to ordered sections, purposes and navigation, with the actual audience/language and ownership constraints. Preserve sources and unrelated files. Do not draft final documents or detailed future implementation plans before outline acceptance.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "outline": "section IDs, purpose, content_requirement refs, последовательность."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "outline": "Publish section IDs, purposes, reader/navigation order and content-requirement/source mapping as the current Task outline artifact. Account for every required item and actual conflicting-source disposition."
       },
       "required_sections": [
         "report",
@@ -374,15 +656,9 @@
         "complete": "outline_inspection"
       },
       "rework_targets": [
-        "outline",
-        "framing",
-        "drafting",
-        "validation",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "outline"
       ],
-      "purpose": "design",
+      "purpose": "execution",
       "criteria_authority": {
         "propose": [],
         "decide": []
@@ -392,19 +668,19 @@
       "id": "outline_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "instruction": "Independently verify the actual outline artifact against accepted outline_plan, source inventory, content requirements, audience/language/ownership and navigation/completeness criteria. Reject outline execution to outline; accept the real outline before detailed drafting planning.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
       "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
       },
       "required_sections": [
         "report"
       ],
       "artifact_requirements": [],
       "transitions": {
-        "clear": "drafting",
+        "clear": "drafting_planning",
         "changes_requested": "outline"
       },
       "rework_targets": [
@@ -417,19 +693,82 @@
       }
     },
     {
+      "id": "drafting_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Only after independent acceptance of the actual outline, design imminent drafting and verification: goal, result requirements, acceptance criteria, exact owned docs paths, current source/outline identities, audience/language/ownership, factual content, requirement mapping, safe actual example/command checks, links and delivery policy. Do not write document files or invent future commands/hashes or new environments.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "drafting_plan": "State current drafting goal, result requirements, acceptance criteria, accepted outline/source identities, exact owned docs paths, audience/language, content/command/link scope, requirement mapping, preservation and safe verification methods.",
+        "verification_plan": "Bind current drafting requirements/DoD to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, before/after predicates, phase applicability, reuse/retry/limits and real source/document identity. Existing methods/inputs and safe authorized mutation bounds must be explicit. Runtime adds actual BoundExecution digests; never fabricate future commands/hashes or introduce unauthorized environments."
+      },
+      "required_sections": [
+        "report",
+        "drafting_plan",
+        "verification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "drafting_planning_inspection"
+      },
+      "rework_targets": [
+        "drafting_planning"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "drafting"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "drafting_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review current drafting/verification plans against accepted actual outline and sources for executability, completeness and unambiguity. Check all content requirements, audience/language/ownership, exact docs scope, factual/source identity, real safe methods/inputs, example outcomes, links and preservation. Decide only drafting execution criteria. Reject design to drafting_planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "drafting",
+        "changes_requested": "drafting_planning"
+      },
+      "rework_targets": [
+        "drafting_planning"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "drafting"
+        ]
+      }
+    },
+    {
       "id": "drafting",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and content, examples_commands. Output: content, examples_commands and evidence for this exact stage. Forbidden: product code and test changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Написать documentation deliverable. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "instruction": "Write only the independently accepted document deliverable within docs/** using accepted outline, current sources and drafting/verification plans. Follow the target repository audience/language/ownership rules and preserve unrelated prose, product code and tests. Publish actual content references/digests and requirement mapping without unnecessary full Git-document duplication in Task DB. Record real example/command locators and proof. Do not infer external publication, push or user consent from local drafting.",
       "read_only": false,
       "allowed_paths": [
         "docs/**"
       ],
       "normalization": "strip",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "content": "final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB.",
-        "examples_commands": "document locator, exact executable method, sandbox/mutation bounds, expected outcome, evidence refs."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "content": "Publish actual final document references/digests or required standalone Markdown content, with requirement-to-section mapping. Do not unnecessarily duplicate a complete Git document into Task DB. Bind the delivered current document and factual sources to actual revisions.",
+        "examples_commands": "For each example identify actual document locator, exact executable method and inputs, safe authorized mutation/environment bounds, expected outcome and actual verification receipts. A plausible command string or lint success alone is not proof of accuracy."
       },
       "required_sections": [
         "report",
@@ -438,46 +777,12 @@
       ],
       "artifact_requirements": [],
       "transitions": {
-        "complete": "drafting_inspection"
-      },
-      "rework_targets": [
-        "drafting",
-        "framing",
-        "outline",
-        "validation",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "drafting_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": "validation",
-        "changes_requested": "drafting"
+        "complete": "validation"
       },
       "rework_targets": [
         "drafting"
       ],
-      "purpose": "observation",
+      "purpose": "execution",
       "criteria_authority": {
         "propose": [],
         "decide": []
@@ -487,12 +792,12 @@
       "id": "validation",
       "handler": "check",
       "role": "executor",
-      "instruction": "Inputs: accepted stage evidence and exact registered commands/authorization. Execute only the declared mechanical operation; no role switch for its internal substeps. Output: terminal receipts or a truthful failure. Forbidden: treating elapsed time, a stale check or a publication receipt as Task completion. Проверить примеры/ссылки и источники. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "instruction": "Execute accepted exact checks against current document/source identity and all content requirements: factual accuracy, substantive completeness, actual safe authorized examples/commands and expected outcomes, links/navigation, audience/language and preservation. Publish actual validation.verdict and complete current receipts; a placeholder, stale success or lint alone is not proof. Satisfied proceeds to independent review; failure/inconclusive returns to drafting without reopening accepted design. Do not edit product/state or use unauthorized environments.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
       },
       "required_sections": [
         "report"
@@ -504,13 +809,7 @@
         "inconclusive": "drafting"
       },
       "rework_targets": [
-        "validation",
-        "framing",
-        "outline",
-        "drafting",
-        "inspection",
-        "remediation",
-        "remediation_inspection"
+        "validation"
       ],
       "purpose": "observation",
       "criteria_authority": {
@@ -522,13 +821,13 @@
       "id": "inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Read-only вычитать по audience и completeness. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "instruction": "Independently inspect the current final document/diff against accepted drafting/verification plans, outline, source identities and every content requirement. Require actual complete current-document/source-matched validation.verdict and evidence of substantive coverage, factual claims, safe examples/commands, links, audience/language/ownership, development rules and general result requirements; lint alone cannot pass. Reject execution to drafting within this same phase, never to accepted design. Record actual delivery/publication status and actual authority; do not edit documents or fabricate push, publication or user consent.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "result": "Record actual final substantive document result, fulfilled/unfulfilled DoD/verdicts, source/current-document identities, coverage/example/link evidence, deliverables and actual delivery/publication status, limitations, incidents and outstanding obligations. Do not fabricate push, publication, user consent or waivers."
       },
       "required_sections": [
         "report",
@@ -537,146 +836,10 @@
       "artifact_requirements": [],
       "transitions": {
         "clear": null,
-        "changes_requested": "remediation_planning"
+        "changes_requested": "drafting"
       },
       "rework_targets": [
-        "inspection",
-        "remediation",
-        "framing",
-        "outline",
-        "drafting",
-        "validation",
-        "remediation_inspection"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "remediation_planning",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and remediation_plan. Output: remediation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Plan corrections against the original findings, unchanged goal and affected contracts. Distinguish current-stage corrections from a defect requiring an authorized Task restart.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result and its evidence.",
-        "remediation_plan": "Plan corrections against the original findings, unchanged goal and affected contracts. Distinguish current-stage corrections from a defect requiring an authorized Task restart."
-      },
-      "required_sections": [
-        "report",
-        "remediation_plan"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "remediation_planning_inspection"
-      },
-      "rework_targets": [
-        "remediation_planning"
-      ],
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "remediation_planning_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": "remediation",
-        "changes_requested": "remediation_planning"
-      },
-      "rework_targets": [
-        "remediation_planning"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "remediation",
-      "handler": "revise",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and content. Output: content and evidence for this exact stage. Forbidden: changes outside the current stage scope or accepted design. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Исправить документацию по findings. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
-      "read_only": false,
-      "allowed_paths": [
-        "docs/**"
-      ],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "content": "final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB."
-      },
-      "required_sections": [
-        "report",
-        "content"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "remediation_inspection"
-      },
-      "rework_targets": [
-        "remediation",
-        "framing",
-        "outline",
-        "drafting",
-        "validation",
-        "inspection",
-        "remediation_inspection"
-      ],
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "remediation_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Повторно вычитать corrections. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
-      },
-      "required_sections": [
-        "report",
-        "result"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": null,
-        "changes_requested": "remediation_planning"
-      },
-      "rework_targets": [
-        "remediation_inspection",
-        "remediation",
-        "framing",
-        "outline",
-        "drafting",
-        "validation",
-        "inspection"
+        "drafting"
       ],
       "purpose": "observation",
       "criteria_authority": {
@@ -684,11 +847,5 @@
         "decide": []
       }
     }
-  ],
-  "benefit": {
-    "git_categories": [
-      "documentation"
-    ],
-    "sections": []
-  }
+  ]
 }

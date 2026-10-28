@@ -1,0 +1,1175 @@
+{
+  "goal_type": "task_planning",
+  "worktree_required": true,
+  "route": {
+    "entry": "framing"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "classification-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "classification"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification-input-constraints",
+        "kind": "section",
+        "stages": [
+          "classification"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "requirements-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "requirements"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "acceptance_design-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "acceptance_design"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "work_planning-input-acceptance_design",
+        "kind": "section",
+        "stages": [
+          "work_planning"
+        ],
+        "phase": "pre",
+        "section": "acceptance_design",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "work_planning-input-constraints",
+        "kind": "section",
+        "stages": [
+          "work_planning"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning-input-work_plan",
+        "kind": "section",
+        "stages": [
+          "verification_planning"
+        ],
+        "phase": "pre",
+        "section": "work_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning-input-acceptance_design",
+        "kind": "section",
+        "stages": [
+          "verification_planning"
+        ],
+        "phase": "pre",
+        "section": "acceptance_design",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-acceptance_design",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "acceptance_design",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification_inspection-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "classification_inspection"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-classification_plan",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "classification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification-input-classification_plan",
+        "kind": "section",
+        "stages": [
+          "classification"
+        ],
+        "phase": "pre",
+        "section": "classification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification_inspection-input-classification_plan",
+        "kind": "section",
+        "stages": [
+          "classification_inspection"
+        ],
+        "phase": "pre",
+        "section": "classification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "classification_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification_inspection-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "classification_inspection"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-constraints",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "requirements-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "requirements"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "requirements-input-constraints",
+        "kind": "section",
+        "stages": [
+          "requirements"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "requirements-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "requirements"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "requirements-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "requirements"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "acceptance_design-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "acceptance_design"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "acceptance_design-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "acceptance_design"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "work_planning-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "work_planning"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "work_planning-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "work_planning"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "verification_planning"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "verification_planning"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-work_plan",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "work_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "publication_planning"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "publication_planning"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "publication_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication_result"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "publication_result"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-publication_result",
+        "kind": "section",
+        "stages": [
+          "publication_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_result",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "planned_task"
+    ]
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Before subject work agree coarse phases of this planning Task with the independent reviewer. Preserve actual constraints, assumptions and deliverables, then design only imminent goal classification: goal, result requirements, acceptance criteria, supported catalogue/source identity and boundaries. Do not draft future implementation, tests/classes or detailed whole-sprint plans.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "constraints": "For each constraint state ID, predicate, source, scope and verification method; substantiate none. Preserve actual object/action authority, native ownership and project boundaries.",
+        "assumptions": "For each assumption state ID, statement, justification, effect if false and actual evidence/status. Explicitly justify none and distinguish unknowns from accepted facts.",
+        "deliverables": "Identify each deliverable, type, owner/path, actual expected content/native schema, acceptance method and requirement references. Distinguish a reviewed draft from a published native Task.",
+        "classification_plan": "State imminent classification goal, result requirements, acceptance criteria, actual goals/deliverables/constraints/assumptions and supported catalogue sources. Require one primary supported goal type and separate genuinely independent secondary goals without designing their execution."
+      },
+      "required_sections": [
+        "report",
+        "constraints",
+        "assumptions",
+        "deliverables",
+        "classification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "framing_inspection"
+      },
+      "rework_targets": [
+        "framing"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "classification"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "framing_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review imminent classification design and actual constraints/assumptions/deliverables for executability, completeness and unambiguity. Check goal/result/acceptance, supported catalogue, boundaries and current evidence. Decide only classification execution criteria. Reject design to framing.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "classification",
+        "changes_requested": "framing"
+      },
+      "rework_targets": [
+        "framing"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "classification"
+        ]
+      }
+    },
+    {
+      "id": "classification",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Execute accepted classification_plan and produce the actual classification artifact: one supported primary goal type/deliverable with evidence, scope and independently justified secondary candidates. Preserve actual constraints/assumptions; do not create native objects or design later Task stages.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "goal_classification": "Produce one primary supported goal_type and main deliverable with actual canonical grounds; identify genuinely independent secondary candidates and boundaries. Never invent unsupported goal types or aliases."
+      },
+      "required_sections": [
+        "report",
+        "goal_classification"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "classification_inspection"
+      },
+      "rework_targets": [
+        "classification"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "classification_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify actual goal classification against accepted classification_plan, canonical supported goal types, deliverables/constraints and evidence. Reject classification execution to classification; accept actual classification before specification planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "specification_planning",
+        "changes_requested": "classification"
+      },
+      "rework_targets": [
+        "classification"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "specification_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Only after actual classification acceptance, design the imminent coherent native Task-specification artifact: goal, required result, acceptance criteria, schema/requirements/DoD/deliverable coverage, actual constraints, explicit unknowns, coarse subject phases and high-level proof strategy. The four producer steps build one unaccepted draft; detailed future subject-stage methods, tests/classes/commands and hashes remain deferred.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "specification_plan": "State current native Task-draft production goal, required result, acceptance criteria, accepted classification/source identities, target goal schema, requirements/DoD/deliverable traceability, constraints/unknowns, coarse ordered phases, high-level proof strategy and actual creation validation. Design this current artifact phase; defer future subject-stage details."
+      },
+      "required_sections": [
+        "report",
+        "specification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "specification_planning_inspection"
+      },
+      "rework_targets": [
+        "specification_planning"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "requirements",
+          "acceptance_design",
+          "work_planning",
+          "verification_planning"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "specification_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review current native specification_plan against accepted actual classification for executability, completeness and unambiguity. Check target schema, requirements/DoD/deliverable mapping, constraints/unknowns, coarse future phases, deferred detailed methods and actual validation. Decide only current draft-production execution criteria for requirements, acceptance_design, work_planning and verification_planning. Reject design to specification_planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "requirements",
+        "changes_requested": "specification_planning"
+      },
+      "rework_targets": [
+        "specification_planning"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "requirements",
+          "acceptance_design",
+          "work_planning",
+          "verification_planning"
+        ]
+      }
+    },
+    {
+      "id": "requirements",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Under accepted specification_plan produce the initial bounded native planned_task intent list using the target goal schema, actual supported classification, result-oriented goal, initial DoR/DoD, known requirements, constraints, assumptions, deliverables and explicit unknowns. Preserve origin owner, stable request IDs, actual configured ID allocation and standalone membership. Do not fabricate creation validation, consent or future implementation. This draft remains unaccepted through the next three producer steps.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+      "planned_task": "Retain the complete bounded nonempty native intent list and actual target goal_type Task schema, initial DoR/DoD, known requirements, constraints, explicit unknowns, traceability, creation-validation receipt and origin planning owner. Preserve the actual chosen native creation form: automatic allocation uses exact {request_id,task}, retains its stable request_id and payload digest, omits task.id and uses the actual configured allocation policy; explicit-ID creation uses the ordinary Task contract containing its genuinely chosen top-level id, without the automatic wrapper. Never silently convert modes or rename fixed-ID work to bypass conflict. Preserve native standalone membership and actual payload identities. Empty initial checks are valid; never invent future tests/classes/commands/hashes or requirements_agreement/user acceptance. Preserve previous fields while assembling the SAME unaccepted draft; after acceptance its payload is immutable. Reference actual canonical publication receipts only after publication occurs."
+      },
+      "required_sections": [
+        "report",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "acceptance_design"
+      },
+      "rework_targets": [
+        "requirements"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "acceptance_design",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Extend the same unaccepted planned_task under accepted specification_plan with independently observable requirement-to-DoD/deliverable/evidence mapping, applicability and permitted late design. Preserve all existing native payload fields, constraints and unknowns. Do not write future tests or invent user acceptance.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "acceptance_design": "Map future target requirements to independently observable DoD, deliverables and evidence obligations, applicability, constraints, unknowns and permitted late design. Do not implement tests or future product code.",
+      "planned_task": "Retain the complete bounded nonempty native intent list and actual target goal_type Task schema, initial DoR/DoD, known requirements, constraints, explicit unknowns, traceability, creation-validation receipt and origin planning owner. Preserve the actual chosen native creation form: automatic allocation uses exact {request_id,task}, retains its stable request_id and payload digest, omits task.id and uses the actual configured allocation policy; explicit-ID creation uses the ordinary Task contract containing its genuinely chosen top-level id, without the automatic wrapper. Never silently convert modes or rename fixed-ID work to bypass conflict. Preserve native standalone membership and actual payload identities. Empty initial checks are valid; never invent future tests/classes/commands/hashes or requirements_agreement/user acceptance. Preserve previous fields while assembling the SAME unaccepted draft; after acceptance its payload is immutable. Reference actual canonical publication receipts only after publication occurs."
+      },
+      "required_sections": [
+        "report",
+        "acceptance_design",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "work_planning"
+      },
+      "rework_targets": [
+        "acceptance_design"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "work_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Extend the same unaccepted native draft with only coarse ordered future subject phases/dependencies, each required result/input and scope/risk. Record real reviewer agreement when it exists; do not invent it. Design each future phase immediately before execution, not an entire sprint in advance. Preserve accepted classification and draft fields; do not execute the future Task.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "work_plan": "Specify only the future subject Task's coarse ordered phases/dependencies, result and necessary input of each, boundaries/risks and independent reviewer agreement provenance. Detailed design belongs immediately before that subject phase; do not predesign all stages or copy mechanical lifecycle steps.",
+      "planned_task": "Retain the complete bounded nonempty native intent list and actual target goal_type Task schema, initial DoR/DoD, known requirements, constraints, explicit unknowns, traceability, creation-validation receipt and origin planning owner. Preserve the actual chosen native creation form: automatic allocation uses exact {request_id,task}, retains its stable request_id and payload digest, omits task.id and uses the actual configured allocation policy; explicit-ID creation uses the ordinary Task contract containing its genuinely chosen top-level id, without the automatic wrapper. Never silently convert modes or rename fixed-ID work to bypass conflict. Preserve native standalone membership and actual payload identities. Empty initial checks are valid; never invent future tests/classes/commands/hashes or requirements_agreement/user acceptance. Preserve previous fields while assembling the SAME unaccepted draft; after acceptance its payload is immutable. Reference actual canonical publication receipts only after publication occurs."
+      },
+      "required_sections": [
+        "report",
+        "work_plan",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "verification_planning"
+      },
+      "rework_targets": [
+        "work_planning"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "verification_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Complete the same unaccepted native draft with high-level goal/requirement proof strategy, existing evidence and explicit unknowns. Keep valid empty initial checks; defer concrete methods, test names/classes/commands, stage details and hashes to the executing Task. Obtain actual target-schema creation validation and record its genuine receipt, not invented readiness or human requirements_agreement. Preserve the complete native intent list and actual allocation/membership rules.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "verification_plan": "Record high-level means of proving the future goal, requirement/DoD coverage, existing evidence and explicit unknowns. Do not demand future test names, classes, commands or hashes. Concrete checks and detailed methods are designed/registered just in time during the executing Task; valid empty initial checks are not failure.",
+      "planned_task": "Retain the complete bounded nonempty native intent list and actual target goal_type Task schema, initial DoR/DoD, known requirements, constraints, explicit unknowns, traceability, creation-validation receipt and origin planning owner. Preserve the actual chosen native creation form: automatic allocation uses exact {request_id,task}, retains its stable request_id and payload digest, omits task.id and uses the actual configured allocation policy; explicit-ID creation uses the ordinary Task contract containing its genuinely chosen top-level id, without the automatic wrapper. Never silently convert modes or rename fixed-ID work to bypass conflict. Preserve native standalone membership and actual payload identities. Empty initial checks are valid; never invent future tests/classes/commands/hashes or requirements_agreement/user acceptance. Preserve previous fields while assembling the SAME unaccepted draft; after acceptance its payload is immutable. Reference actual canonical publication receipts only after publication occurs."
+      },
+      "required_sections": [
+        "report",
+        "verification_plan",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "task_inspection"
+      },
+      "rework_targets": [
+        "verification_planning"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "task_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify the complete current SAME unaccepted planned_task against accepted specification_plan/classification and native target schema: goal, requirements, independent DoD, deliverables, traceability, actual constraints/unknowns, coarse future phases, high-level proof strategy, valid empty checks, allocation/membership and genuine creation-validation receipt. Require bounded native intents and stable identities. Never fabricate consent or detailed future implementation. Reject draft execution to requirements within this phase, never accepted design; freeze accepted payload before publication planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication_planning",
+        "changes_requested": "requirements"
+      },
+      "rework_targets": [
+        "requirements"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "After independent acceptance of the actual complete draft, design only imminent native publication: goal, required result, acceptance criteria, actual project/owner and explicit user authority, immutable reviewed planned_task intent IDs/digests, exact stage_work protocol, receipt/readback checks and state-aware retry/recovery. Do not rewrite the accepted draft, manufacture authorization or demand renewed consent when actual authorization already covers the action.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "publication_plan": "State imminent publication goal, required result, acceptance criteria, actual project/native owner, reviewed immutable planned_task intent/payload identities, actual explicit user authority and exact stage_work protocol. Design post-publication executor collection of actual canonical receipts, child readback and chosen intent-mode identities; distinguish legitimate later child progress from publication defects. Define stable native identities/digests, complete same-intent replay only while native publication is active, explicit incomplete/mismatched-state refusal and only actually supported authorized owner recovery. No replacement drafts, mode/ID conversion or fresh IDs to bypass conflicts; no automatic return to creation after publication completion."
+      },
+      "required_sections": [
+        "report",
+        "publication_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "publication_planning_inspection"
+      },
+      "rework_targets": [
+        "publication_planning"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "publication_result"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review imminent publication_plan against the accepted immutable native draft for executability, completeness and unambiguity. Check exact stage_work kind=tasks section=planned_task, actual existing user authority/project/owner, stable native intent forms/digests, actual post-publication result collection/readback acceptance and explicit incomplete/mismatched-state refusal with only supported authorized owner recovery. Decide criteria only for publication_result execution; do not target native publication purpose other. Reject design to publication_planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication",
+        "changes_requested": "publication_planning"
+      },
+      "rework_targets": [
+        "publication_planning"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "publication_result"
+        ]
+      }
+    },
+    {
+      "id": "publication",
+      "handler": "publish",
+      "role": "executor",
+      "instruction": "Publish only the retained independently reviewed planned_task through exact stage_work with kind=tasks, section=planned_task, and actual explicit user authorization. Do not submit a replacement draft or make planned_task writable in this node. Preserve the bounded nonempty native intent list and actual chosen form: automatic allocation uses exact {request_id,task}, retains its stable request_id/digest, omits task.id and uses the actual configured policy; explicit-ID creation uses the ordinary Task contract with its genuinely chosen top-level id, without the automatic wrapper. Do not silently convert modes, rename fixed-ID work or change frozen payload/identities to evade conflict. Preserve standalone membership. Existing genuine authorization persists; never invent consent or requirements_agreement. Inspect actual publication state/receipts before retry. Native complete same-intent replay is supported; incomplete transactions explicitly refuse silent repetition. Use actual receipts/readback and the native owner to recover incomplete/mismatched states; never blindly duplicate Tasks. Record real outcomes, never infer child Task ready/start from publication action readiness.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {},
+      "required_sections": [],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "publication_result"
+      },
+      "rework_targets": [],
+      "purpose": "other",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_result",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "After the actual mechanical publication completes, execute accepted publication_plan result collection. Publish actual canonical publication receipts and child readback with project/owner, immutable source-payload/intent-mode identities and actual object states. Distinguish legitimate later child progress from a publication defect; never overwrite existing work to force a snapshot match. Use only actually admitted authorized native-owner recovery and record its real outcome; otherwise report unresolved refusal without final success. Do not invoke stage_work publication outside the active publish node, recreate or republish children, replace accepted planned_task/IDs, silently convert intent modes, invent recovery APIs, edit raw databases or fabricate consent/requirements_agreement/child readiness. Incomplete transactions while publication is active remain under existing native refusal and owner recovery. There is no automatic return to creation after publication completion.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the current execution goal, required result, acceptance criteria, exact canonical receipt/readback identities, actual result, limitations and preservation.",
+        "publication_result": "Record actual canonical publication receipt references, project/owner, frozen source-payload and native intent-mode identities, allocated or explicit child IDs/membership, readback and actual current child states. Separate genuine later progress from creation defects; record only actual supported authorized owner-recovery actions/outcomes or an unresolved refusal. No recreated objects, changed accepted payload/IDs, guessed APIs, invented success or inferred ready/start/human agreement."
+      },
+      "required_sections": [
+        "report",
+        "publication_result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "publication_inspection"
+      },
+      "rework_targets": [
+        "publication_result"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify the actual executor publication_result against accepted publication_plan, canonical native receipts and readback, project/owner, reviewed immutable planned_task payload and native intent-mode identities/digests. Verify actual child objects/membership/schema/states and no duplicates, distinguishing legitimate later child progress from publication defects. Action readiness is not child Task ready/start or human consent. Check development rules and general result requirements. Incomplete/mismatched result evidence is not success; reject SAME result execution to publication_result for actual supported authorized owner reconciliation or truthful refusal, never back to creation. Do not invoke stage_work publication here, recreate children, edit objects, change accepted payload/IDs, invent a recovery API or infer requirements_agreement.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, required result, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Reviewers record independent substantiated findings and decisions.",
+        "result": "Record actual substantive planning/publication result, fulfilled/unfulfilled DoD, immutable payload/intent identities, canonical native receipts and readback, actual child Task state, limitations, incidents and remaining delivery obligations. Publication action readiness is not child Task ready/start; never infer human consent or requirements_agreement."
+      },
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "publication_result"
+      },
+      "rework_targets": [
+        "publication_result"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    }
+  ]
+}

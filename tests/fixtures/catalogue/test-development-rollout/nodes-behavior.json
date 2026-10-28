@@ -1,0 +1,11 @@
+[
+  "tests/catalogue/test_test_development_root_rollout.py::test_roots_match_accepted_test_development_contract[workflow-templates]",
+  "tests/catalogue/test_test_development_root_rollout.py::test_roots_match_accepted_test_development_contract[workflows]",
+  "tests/catalogue/test_test_development_root_rollout.py::test_reference_matches_accepted_test_development_contract",
+  "tests/catalogue/test_test_development_root_rollout.py::test_project_creation_uses_accepted_test_development[linux-reference]",
+  "tests/catalogue/test_test_development_root_rollout.py::test_project_creation_uses_accepted_test_development[wsl-poise]",
+  "tests/catalogue/test_paired_stages.py::test_paired_instructions_explain_boundaries_and_inspection[test_development]",
+  "tests/catalogue/test_paired_stages.py::test_every_executor_result_has_an_independent_immediate_inspection[test_development]",
+  "tests/catalogue/test_templates.py::test_historical_nodes_remain_present_in_the_expanded_reference_graph",
+  "tests/catalogue/test_routes.py::test_every_declared_feedback_edge_has_a_walkthrough"
+]

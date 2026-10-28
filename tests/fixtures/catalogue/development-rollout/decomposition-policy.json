@@ -1,0 +1,15 @@
+{
+  "skills": [
+    {
+      "id": "workflow",
+      "class": "meta",
+      "responsibility": null
+    }
+  ],
+  "areas": [
+    {
+      "path": "src/**",
+      "responsibility": "application"
+    }
+  ]
+}

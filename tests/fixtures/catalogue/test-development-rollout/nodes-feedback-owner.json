@@ -1,0 +1,3 @@
+[
+  "tests/catalogue/test_templates.py::test_every_feedback_target_is_declared_for_user_rework"
+]

@@ -20,18 +20,6 @@
         ]
       },
       {
-        "id": "baseline-input-verification_plan",
-        "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
-        "stages": [
-          "baseline"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
         "id": "change_planning-input-constraints",
         "kind": "section",
         "phase": "pre",
@@ -80,12 +68,408 @@
         ]
       },
       {
-        "id": "correction-input-rollback_plan",
+        "id": "application-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "application"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "application-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "application"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "application-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "application"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "application-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "application"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline-input-baseline_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_plan",
+        "stages": [
+          "baseline"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline-input-baseline_verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_verification_plan",
+        "stages": [
+          "baseline"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "baseline"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "baseline"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-baseline_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_plan",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-baseline_verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_verification_plan",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "change_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "change_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "change_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning_inspection-input-change_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "change_plan",
+        "stages": [
+          "change_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning_inspection-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "change_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning_inspection-input-rollback_plan",
         "kind": "section",
         "phase": "pre",
         "section": "rollback_plan",
         "stages": [
-          "correction"
+          "change_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning_inspection-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "change_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "change_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-baseline_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-baseline_verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_verification_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-change_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "change_plan",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-rollback_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "rollback_plan",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "scope",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-verification.verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification.verdict",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-change_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "change_plan",
+        "stages": [
+          "verification"
         ],
         "states": [
           "populated"
@@ -105,7 +489,6 @@
     ]
   },
   "goal_type": "environment_remediation",
-  "worktree_required": true,
   "route": {
     "entry": "framing"
   },
@@ -113,85 +496,81 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "framing",
-      "instruction": "Определить разрешённый target и desired state. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before subject work agree coarse Task phases with the independent reviewer. Define scope/constraints and design only imminent read-only baseline capture: goal, result requirements, acceptance criteria, exact authorized target/current identity, readiness, methods, completeness, limits and preservation. Do not prescribe detailed changes before actual baseline acceptance or mutate state during design.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
         "scope",
         "constraints",
-        "verification_plan"
+        "baseline_verification_plan",
+        "baseline_plan"
       ],
       "rework_targets": [
-        "framing",
-        "baseline",
-        "change_planning",
-        "application",
-        "verification",
-        "inspection",
-        "correction",
-        "correction_inspection"
+        "framing"
       ],
+      "role": "executor",
       "sections": {
-        "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
-        "report": "Record the substantive result for this stage.",
-        "scope": "included codebases/subjects; excluded subjects; разрешённые deliverable paths/внешние targets; ограничения полномочий.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
+        "baseline_plan": "State imminent baseline goal, required result, acceptance criteria, exact target/runtime/source/config/data identity and read-only readiness/state/capture methods, completeness, resource limits and preservation.",
+        "baseline_verification_plan": "For imminent baseline only, bind requirement/DoD references to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, before/after predicates, phase applicability, reuse/retry/limits. Runtime supplies actual BoundExecution digests; never invent future commands/hashes.",
+        "constraints": "For each constraint state ID, predicate, source, scope and verification method. Explicitly justify none. Preserve existing data and actual configured runtime identities.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "scope": "Identify included/excluded subjects, actual authorized targets and desired state, permitted deliverable paths, object/action authority and limits. Generic Task selection or path access never authorizes an irreversible/destructive effect."
       },
       "transitions": {
-        "complete": "baseline"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "framing_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "observe",
-      "role": "executor",
       "id": "baseline",
-      "instruction": "Снять исходное состояние до изменения. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only accepted baseline capture through exact declared read-only methods. Publish actual baseline_evidence with current target/runtime/source/config/data identities, stage/check receipts, readiness and completeness. Preserve databases/rows and originals; do not apply changes or fabricate missing observations.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
-        "report"
+        "report",
+        "baseline_evidence"
       ],
       "rework_targets": [
-        "baseline",
-        "framing",
-        "change_planning",
-        "application",
-        "verification",
-        "inspection",
-        "correction",
-        "correction_inspection"
+        "baseline"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "baseline_evidence": "Publish actual baseline stage/check receipts, target/runtime/source/config/data identities, observed prechange state/readiness, limits and completeness. Missing required observation is not a complete baseline; preserve existing rows and originals.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
       },
       "transitions": {
-        "complete": "change_planning"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "baseline_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "application"
+        ]
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "change_planning",
-      "instruction": "Определить actions, verification и безопасное прерывание. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Only after actual baseline acceptance, design imminent application and proof: goal, required desired-state/no-regression result, acceptance criteria, exact authorized actions and prerequisites, state-aware replay, limits, safe interruption, required backup capture/restore checks and rollback triggers. Distinguish failed desired-state predicates from incomplete capture. Define actual mutable rollback ownership and refusal of unsafe/unknown-state replay. Do not apply changes or infer destructive authority from Task selection.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
@@ -200,28 +579,17 @@
         "verification_plan"
       ],
       "rework_targets": [
-        "change_planning",
-        "framing",
-        "baseline",
-        "application",
-        "verification",
-        "inspection",
-        "correction",
-        "correction_inspection"
+        "change_planning"
       ],
+      "role": "executor",
       "sections": {
-        "change_plan": "desired-state obligations, exact ordered actions, prerequisites, privileges, observable receipts, replay/rollback policy, risks.",
-        "report": "Record the substantive result for this stage.",
-        "rollback_plan": "reversible steps exact undo+verification, irreversible effects явно и основание пользовательской санкции, interruption policy.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
+        "change_plan": "State current change goal, required desired-state/no-regression result, acceptance criteria, exact ordered authorized actions, accepted baseline identity, prerequisites, privileges, observable receipts and bounds. Every attempt must recheck actual current/prechange identity and replay preconditions; never blindly reapply. Specify safe interruption, partial effects, rollback triggers and unsafe/unknown-state refusal.",
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "rollback_plan": "Specify actual reversible steps, exact undo and restoration probes, prechange/backup identities and capture/restore verification, rollback triggers and interruption handling. Identify irreversible/destructive effects and their actual object/action user authority. Restoration alone is not proof of the recovery goal. Keep temporary backups only while active recovery/rollback needs them; after acceptance remove exact owned copies through their owner, never unrelated originals or a permanent working archive.",
+        "verification_plan": "For the imminent change bind desired-state/no-regression obligations to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, current target/runtime/source/config/data identity, predicates, retries and bounds. Distinguish a failed predicate from incomplete capture. Require latest complete satisfied proof and actual verification.verdict for the current identity; actual BoundExecution/receipts come from execution."
       },
       "transitions": {
-        "complete": "application"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "change_planning_inspection"
       }
     },
     {
@@ -230,185 +598,175 @@
         "scripts/**"
       ],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "apply_plan",
-      "role": "executor",
       "id": "application",
-      "instruction": "Применить подготовленные механические действия. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only accepted exact actions within config/** and scripts/** and the actual object/action authority. At every attempt first verify actual current/prechange identity, readiness and replay preconditions; re-entry is never blind reapplication. Capture receipts/partial effects. Execute agreed rollback through this authorized mutable owner under its actual triggers and verify actual restoration. Refuse unsafe/unknown-state replay instead of guessing. Preserve original data; generic paths never authorize destructive effects. An invalid accepted plan requires the actual owner/lifecycle, not automatic redesign. Keep required temporary backups while active recovery/rollback needs them; remove only exact owned copies after acceptance removes that need, through their owner. Restoration of old baseline is not achievement of the recovery goal.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": false,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "application",
-        "framing",
-        "baseline",
-        "change_planning",
-        "verification",
-        "inspection",
-        "correction",
-        "correction_inspection"
+        "application"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
       },
       "transitions": {
         "complete": "verification"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "check",
-      "role": "executor",
       "id": "verification",
-      "instruction": "Подтвердить desired state и отсутствие побочных нарушений. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Run only accepted exact read-only desired-state/no-regression checks for current target/runtime/source/config/data identity. Publish actual declared verification.verdict and complete current receipts; a placeholder, stale success or successful rollback is not recovery proof. Distinguish failed predicates from incomplete capture. Only satisfied proceeds to independent inspection; not_satisfied/inconclusive return to application with its state/replay guards and accepted rollback policy. Do not mutate state or invent waivers.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "verification",
-        "framing",
-        "baseline",
-        "change_planning",
-        "application",
-        "inspection",
-        "correction",
-        "correction_inspection"
+        "verification"
       ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "inconclusive": "inspection",
-        "not_satisfied": "inspection",
-        "satisfied": "inspection"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "allowed_paths": [],
-      "artifact_requirements": [],
-      "handler": "inspect",
-      "role": "reviewer",
-      "id": "inspection",
-      "instruction": "Read-only осмотреть достигнутое состояние. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
-      "normalization": "strip",
-      "read_only": true,
-      "required_sections": [
-        "report",
-        "result"
-      ],
-      "rework_targets": [
-        "inspection",
-        "correction",
-        "framing",
-        "baseline",
-        "change_planning",
-        "application",
-        "verification",
-        "correction_inspection"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
-      },
-      "transitions": {
-        "changes_requested": "correction",
-        "clear": null
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "allowed_paths": [
-        "config/**",
-        "scripts/**"
-      ],
-      "artifact_requirements": [],
-      "handler": "apply_plan",
       "role": "executor",
-      "id": "correction",
-      "instruction": "Исправить замечания по среде с новым exact action plan. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
-      "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report",
-        "change_plan"
-      ],
-      "rework_targets": [
-        "correction",
-        "framing",
-        "baseline",
-        "change_planning",
-        "application",
-        "verification",
-        "inspection",
-        "correction_inspection"
-      ],
       "sections": {
-        "change_plan": "desired-state obligations, exact ordered actions, prerequisites, privileges, observable receipts, replay/rollback policy, risks.",
-        "report": "Record the substantive result for this stage."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
       },
       "transitions": {
-        "complete": "correction_inspection"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "inconclusive": "application",
+        "not_satisfied": "application",
+        "satisfied": "inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "inspect",
-      "role": "reviewer",
-      "id": "correction_inspection",
-      "instruction": "Проверить corrections read-only. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "id": "inspection",
+      "instruction": "Independently verify actual current recovered state, full diff/action receipts, accepted change/rollback/verification plans, constraints and preservation, development rules and general result requirements. Require latest complete satisfied desired-state/no-regression proof and actual verification.verdict for current identity. Successful rollback alone cannot pass recovery. Check actual backup/restore provenance and owned temporary-copy disposition without deleting unrelated originals. Reject execution to application in this same phase, never automatically to accepted design. Do not edit product/state or fabricate user acceptance/waivers.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report",
         "result"
       ],
       "rework_targets": [
-        "correction_inspection",
-        "correction",
-        "framing",
-        "baseline",
-        "change_planning",
-        "application",
-        "verification",
-        "inspection"
+        "application"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "result": "Record actual final substantive recovery result, current target identity, complete desired-state/no-regression proof, fulfilled/unfulfilled DoD/verdicts, deliverables, rollback/restore and backup disposition, incidents, limitations and remaining delivery obligations. Do not equate restored old baseline with achieved recovery or fabricate acceptance/waivers."
       },
       "transitions": {
-        "changes_requested": "correction",
+        "changes_requested": "application",
         "clear": null
-      },
-      "purpose": "observation",
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "baseline_inspection",
+      "instruction": "Independently verify actual baseline_evidence and exact receipts against accepted baseline design, target identity/readiness, coverage, constraints and preservation. Incomplete capture cannot pass. Reject execution to baseline; accept actual baseline before change planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "baseline"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "baseline",
+        "clear": "change_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "application"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "change_planning_inspection",
+      "instruction": "Independently review current change/rollback/verification plans against accepted actual baseline for executability, completeness and unambiguity. Check desired-state/no-regression criteria, exact authorized actions, current-identity/replay guards, partial effects, actual backup/restoration proof, interruption/rollback triggers, resource limits and eventual temporary-copy cleanup. Decide only application execution criteria. Reject design to change_planning; do not modify accepted baseline.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "change_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "change_planning",
+        "clear": "application"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "framing_inspection",
+      "instruction": "Independently review imminent baseline design for executability, completeness and unambiguity: scope, actual target/object/action authority, constraints, goals/results/acceptance, exact read-only methods, capture, limits and preservation. Reject design to framing.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "framing"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact actual identities, methods/evidence receipts, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "transitions": {
+        "changes_requested": "framing",
+        "clear": "baseline"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

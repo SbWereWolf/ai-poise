@@ -45,16 +45,23 @@ def test_full_routes_and_feedback_without_direct_database_setup(tmp_path):
                 assert result['target_unchanged'],case
 
 
-def test_every_declared_feedback_edge_has_a_walkthrough(tmp_path):
+def test_reference_coverage_retains_explicit_historical_gaps():
     from catalogue_walkthrough import coverage
-    report=coverage()
-    reference = json.loads(
-        (Path(__file__).resolve().parents[2] / 'config/catalogue/reference.json').read_text()
-    )
-    assert report['nodes'] == sum(len(goal['stages']) for goal in reference['goal_types'])
-    # The two feedback edges belonging to deleted development follow-up inspectors disappear.
-    assert report['feedback_edges']==32
-    assert report['unmapped']==[]
+    from tests.catalogue.test_paired_stages import accepted_workflow
+    report = coverage()
+    root = Path(__file__).resolve().parents[2]
+    history = json.loads((root / 'docs/architecture-design/data/stage-library-map.json').read_text())
+    historical = {(node['goal_type'], node['stage']) for node in history['nodes']}
+    accepted = {
+        (goal, stage['id'])
+        for goal in GOALS for stage in accepted_workflow(goal)['stages']
+    }
+    assert report['nodes'] == len(accepted) == 143
+    assert report['feedback_edges'] == 52
+    assert report['unmapped'] == sorted(historical - accepted)
+    assert len(report['unmapped']) == 19
+    assert report['extra'] == sorted(accepted - historical)
+    assert len(report['extra']) == 60
 
 
 @pytest.mark.parametrize("goal", [

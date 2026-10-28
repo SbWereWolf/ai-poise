@@ -1,9 +1,19 @@
 ---
 name: poise-development
-description: Change AI poise itself using its DDD, TDD, declarative-tool and project-local configuration rules.
+description: Change AI poise itself using its DDD, TDD, declarative-tool and project-local
+  configuration rules.
 ---
 
 # AI poise development
+
+
+For independent library consumers, use their installed package and explicit locked
+release/development revision, not an adjacent checkout silently added to imports.
+Confirm the actual tested revision before claiming validation. Follow
+[library consumers and versions](../../../docs/configuration/stride-launcher.md#библиотечные-потребители-и-версии):
+source integration, publication and each consumer update are separate outcomes;
+never replace the contents of a published version. This does not require an
+intermediate release or updating all independent consumers in the current Task.
 
 Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current workflow' explicit `worktree_required` policy; without a required worktree, use the configured repository checkout. See [Task worktree placement](../../../docs/governance/development-rules.md#размещение-task-worktree).
 
@@ -37,13 +47,13 @@ Use native identity when available and an explicit persistent `POISE_CALLER_BIND
 callers and agents must not substitute an arbitrary session value. Identity origin is provenance,
 not authorization, and read-only establishment must not create a business subject.
 
-A collaboration subagent is not an independent reviewer merely because its visible
-name or role differs. When the configured producer and inspecting roles differ, require a distinct
-effective session established by the common SessionEstablisher; never manufacture a session ID or caller binding. In Codex,
-use a separate task/session, ordinary public release and bootstrap of the same Task, then
-replay the exact progression request. Inspect `review_identity` provenance:
-distinct effective actors do not prove live-host delivery or review quality.
-See [reviewer identity](../../../docs/workflows/local-handoff.md#независимая-идентичность-проверяющего).
+The user assigns agents to workflow roles. One agent may perform executor and reviewer
+stages when the user assigns both roles; otherwise it performs only its assigned role.
+Different stage roles do not require different effective actors, models or sessions.
+Keep planning, plan inspection, execution and result inspection as separate work.
+Preserve actual author/reviewer provenance, native caller identity and ownership;
+never manufacture another session or binding to change roles.
+Follow the [canonical role-assignment rule](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
 
 ## Development method
 

@@ -19,6 +19,14 @@ rule](../../../docs/workflows/paired-task-stages.md#цель-и-требован
 
 ## Inputs
 
+After stating the problem and goal, perform the bounded
+[professional formulation check](../../../docs/workflows/task-execution-contract.md#профессиональная-проверка-постановки)
+before finalizing the draft: consider domain expertise, primary materials,
+applicable methods/tools and independent proof. Refine result/proof separately
+from material/method/work conditions. Use available facts, mark unknowns and
+preserve scope; do not create another approval gate, report, prototype or future
+implementation plan. Refine these observations when authorized execution begins.
+
 The authorized result, existing code and interfaces, environment facts, known
 requirements, constraints and uncertainties, and the explicitly selected project's
 workflow, routing and supported public Task schema.

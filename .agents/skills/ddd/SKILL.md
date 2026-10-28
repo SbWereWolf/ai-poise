@@ -1,12 +1,20 @@
 ---
 name: ddd
 description: Place behavior at its real domain owner using reuse/extract/separate decisions and forward/reverse data-flow analysis.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Domain-driven ownership
 
 ## Inputs
+
+For a newly designed managed object, define creation, reading and deletion,
+and settle update support explicitly under the
+[object-operation contract](../../../docs/architecture/boundaries.md#операции-управляемого-объекта).
+Reuse the accepted decision for the same object/scope; ask only about a genuinely
+unresolved design decision. This does not authorize deleting existing data,
+adding generic CRUD to an immutable contract, or changing established owners.
 
 The observable behavior and requirement, business capability/bounded context, current Task/stage/scope, changed paths and the selected Poise project's routing/architecture profile. Read referenced target-repository architecture documents from the session-selected worktree as source facts. The profile stays inside Poise; do not duplicate it in mutable runtime state or store an AI poise configuration in the target repository. Use [poise-workflow](../poise/SKILL.md) for current Task/content/evidence operations.
 

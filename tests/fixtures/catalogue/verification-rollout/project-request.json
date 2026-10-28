@@ -1,0 +1,10 @@
+{
+  "schema": "project-setup-1",
+  "request_id": "verification-root-derived-${FAMILY}",
+  "destination": "projects/verification-${FAMILY}/config",
+  "template": {
+    "id": "${FAMILY}"
+  },
+  "edits": [],
+  "probe_repository": true
+}

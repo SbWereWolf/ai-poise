@@ -1,0 +1,482 @@
+{
+  "benefit": {
+    "git_categories": [
+      "tests",
+      "fixtures"
+    ],
+    "sections": []
+  },
+  "goal_type": "test_development",
+  "worktree_required": true,
+  "route": {
+    "entry": "baseline"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "test_planning-input-coverage_matrix",
+        "kind": "section",
+        "stages": [
+          "test_planning"
+        ],
+        "phase": "pre",
+        "section": "coverage_matrix",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_implementation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_implementation-input-fixture_plan",
+        "kind": "section",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "section": "fixture_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sensitivity_verification-input-sensitivity_plan",
+        "kind": "section",
+        "stages": [
+          "sensitivity_verification"
+        ],
+        "phase": "pre",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sensitivity_verification-input-test_registry",
+        "kind": "section",
+        "stages": [
+          "sensitivity_verification"
+        ],
+        "phase": "pre",
+        "section": "test_registry",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sensitivity_verification-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "sensitivity_verification"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-coverage_matrix",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "coverage_matrix",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-test_registry",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "test_registry",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-sensitivity_plan",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_planning_inspection-input-coverage_matrix",
+        "kind": "section",
+        "stages": [
+          "coverage_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "coverage_matrix",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "test_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_planning_inspection-input-fixture_plan",
+        "kind": "section",
+        "stages": [
+          "test_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "fixture_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_planning_inspection-input-sensitivity_plan",
+        "kind": "section",
+        "stages": [
+          "test_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_implementation-input-sensitivity_plan",
+        "kind": "section",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-fixture_plan",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "fixture_plan",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "baseline",
+      "handler": "observe",
+      "role": "executor",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "baseline_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Before subject work, the executor defines the coarse stage list needed for the Task goal and the independent reviewer agrees it. Do not detail the whole Task or Sprint. Require an accepted baseline design stating its goal, result requirements and acceptance criteria before observing or changing the environment. Observe the current behavior and code, reproduce the reported issue, and record evidence or justified non-applicability. Do not change product code, tests or target documentation; preserve existing data and configuration. Establish the actual requirements, existing test coverage and fixture/environment constraints for this test-only Task.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "baseline"
+      ]
+    },
+    {
+      "id": "baseline_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "coverage_planning",
+        "changes_requested": "baseline"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Independently verify baseline observations against the accepted baseline design, source identity, evidence and preservation criteria. Confirm the coarse Task phase list. Return rejected observations to baseline; do not change product code, tests or documentation.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "baseline"
+      ]
+    },
+    {
+      "id": "coverage_planning",
+      "handler": "produce",
+      "role": "executor",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report",
+        "coverage_matrix"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "coverage_planning_inspection"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "From the accepted baseline, map each requirement to valid existing proof or a remaining gap and a proposed scenario purpose. State the coverage phase goal, required result and acceptance criteria. Keep this scope coarse; do not prescribe future test code, names, commands or detailed sensitivity mechanics.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict.",
+        "coverage_matrix": "Map every requirement to valid existing proof or an uncovered scenario purpose; justify each exclusion. Do not require future test names or exact commands in this coarse scope."
+      },
+      "rework_targets": [
+        "coverage_planning"
+      ]
+    },
+    {
+      "id": "coverage_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "test_planning",
+        "changes_requested": "coverage_planning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Independently check the coverage matrix for complete requirement accounting, valid existing evidence, justified exclusions and clear missing coverage. Check executability and unambiguity without approving detailed future execution criteria. Return rejected coverage design to coverage_planning.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "coverage_planning"
+      ]
+    },
+    {
+      "id": "test_planning",
+      "handler": "produce",
+      "role": "executor",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report",
+        "verification_plan",
+        "fixture_plan",
+        "sensitivity_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "test_planning_inspection"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "test_implementation"
+        ],
+        "decide": []
+      },
+      "instruction": "Design only the imminent test-package execution phase: write the tests and fixtures, then prove their sensitivity. State one phase goal, result requirements and acceptance criteria, with scenario-level independent oracles, environment and fixture setup, positive and negative controls, exact expected observable failures and restoration. Plan both contiguous mechanical steps before execution; do not implement tests or product code. Exact runnable method registration follows actual source creation, not invented future test names.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict.",
+        "verification_plan": "State the one upcoming execution phase goal, result requirements, acceptance criteria, requirement scenarios, independent expected outcomes and existing environment. Register exact methods when actual sources exist.",
+        "fixture_plan": "State required or justified not_applicable disposition. For required fixtures identify literal inputs, purpose, consumers, invariants, independent setup, ownership, preservation, cleanup and validation.",
+        "sensitivity_plan": "For each applicable requirement identify an approved negative control, independent exact expected detectable failure, source binding, actual method registration, evidence capture and restoration. Explain any claimed non-applicability for independent review; never infer satisfaction from an arbitrary nonzero exit."
+      },
+      "rework_targets": [
+        "test_planning"
+      ]
+    },
+    {
+      "id": "test_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "test_implementation",
+        "changes_requested": "test_planning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "test_implementation"
+        ]
+      },
+      "instruction": "Independently review the complete imminent test-package design for executability, coverage, unambiguous independent oracles, literal fixtures, environment preservation and meaningful sensitivity proof. Decide only test_implementation criteria for the whole coherent phase; sensitivity_verification is its mechanical observation step. Return rejected design to test_planning before tests are written.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "test_planning"
+      ]
+    },
+    {
+      "id": "test_implementation",
+      "handler": "produce",
+      "role": "executor",
+      "read_only": false,
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "normalization": "strip",
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "sensitivity_verification"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Implement and self-review the accepted test-package design and register its actual runnable methods, inputs, coverage and expected observations. Write only tests and fixtures. Run the tests and prepare the approved sensitivity check; record truthful environment failures separately from missing behavior or passing coverage. The test package is not yet independently accepted or frozen. Do not change the accepted design, implement production behavior or silently weaken an oracle.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict.",
+        "test_registry": "Record actual test IDs and sources, codebase, working directory, mode, argv, environment and input selectors, exact expected and observed collection/assertion/outcome, stage applicability and requirement references. Bind evidence to the actual created sources; do not fabricate future hashes or passing proof."
+      },
+      "rework_targets": [
+        "test_implementation"
+      ]
+    },
+    {
+      "id": "sensitivity_verification",
+      "handler": "check",
+      "role": "executor",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "test_inspection",
+        "not_satisfied": "test_implementation",
+        "inconclusive": "test_implementation"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Run the approved sensitivity plan against the exact current test revision using the registered methods and test-owned controls. Capture actual expected and observed behavior, interpretable complete evidence and exact restoration of any approved temporary stimuli. Do not change product code or claim a failed capture is satisfied. A negative control is satisfied only when its accepted oracle detects the intended wrong behavior. A not_satisfied or inconclusive observation returns to test_implementation within this same unaccepted execution phase; no accepted design is reopened.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "sensitivity_verification",
+        "test_implementation"
+      ]
+    },
+    {
+      "id": "test_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "test_implementation"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Independently inspect the exact final test package, coverage matrix, fixtures, registered methods and complete sensitivity evidence against the accepted phase design, acceptance criteria, development rules and general result requirements. Clear only a latest satisfied sensitivity result tied to this exact test revision; reject failed, inconclusive, incomplete or stale proof. Return rejected execution to test_implementation without reopening the accepted design. Only this final acceptance freezes the test revision; a subsequently discovered accepted-test error requires an agreed Task restart.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "test_inspection",
+        "test_implementation"
+      ]
+    }
+  ]
+}

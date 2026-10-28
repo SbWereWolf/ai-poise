@@ -964,7 +964,7 @@ class Poise:
         sql = RequirementsSqlMigrations(self.requirements_store.database, self.requirements_store.lock,
             limits['lock_seconds'], limits['lock_poll_seconds'], limits['sqlite_read_seconds'],
             directories[0], directories[1], initial.resolve())
-        sql.validate_directory(initial.resolve())
+        sql.validate_directory(initial.resolve(), role='initial')
         return sql
 
     def require_requirements_scope(self, task, sql, identities, *, writing=True):

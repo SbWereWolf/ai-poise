@@ -202,7 +202,7 @@ class RequirementsSqlMigrations:
                 application = {}
                 for table in sorted(names - set(COLUMNS) - LIBRARY_TABLES
                                     - {"requirements_meta", "requirement_requests"}):
-                    if table.startswith("sqlite_"):
+                    if table.startswith("sqlite_") and table != "sqlite_sequence":
                         continue
                     cursor = snapshot.execute(f"SELECT * FROM {identifier(table)}")
                     rows = []
@@ -212,6 +212,9 @@ class RequirementsSqlMigrations:
                                      for value in row])
                     application[table] = {"columns": [item[0] for item in cursor.description],
                                           "rows": sorted(rows, key=encoded)}
+                # An absent and an empty internal table both mean no counters.
+                # Persistent counter rows affect future IDs and must be restored.
+                application.setdefault('sqlite_sequence', {'columns': ['name', 'seq'], 'rows': []})
                 records = ({} if "_yoyo_migration" not in names else {
                     row[1]: list(row) for row in snapshot.execute(
                         "SELECT migration_hash,migration_id,applied_at_utc FROM _yoyo_migration ORDER BY migration_id")})
@@ -252,7 +255,7 @@ class RequirementsSqlMigrations:
         return result
 
     @staticmethod
-    def _validate_statements(directives, statements, name):
+    def _validate_statements(directives, statements, name, role):
         if directives.get("transactional", "true").lower() != "true":
             raise PoiseError(
                 f"SQL {name} задаёт неподдерживаемый режим transactional; "
@@ -270,14 +273,21 @@ class RequirementsSqlMigrations:
                         f"SQL {name} содержит верхнеуровневую команду {token.normalized}; "
                         "удалите управление транзакцией из тела миграции и повторите штатную операцию"
                     )
+                family = statement.get_type()
+                if ((role == 'data' and family not in {'INSERT', 'UPDATE', 'DELETE', 'REPLACE', 'SELECT'})
+                        or (role == 'schema' and family in {'INSERT', 'UPDATE', 'DELETE', 'REPLACE', 'MERGE'})):
+                    raise PoiseError(
+                        f'SQL {name} содержит команду, несовместимую с ролью {role}; '
+                        'разделите DDL и DML на соответствующие полные SQL-пары до публикации'
+                    )
 
     @classmethod
-    def validate_text(cls, body, name):
+    def validate_text(cls, body, name, *, role):
         directives, _, sql = parse_metadata_from_sql_comments(body)
-        cls._validate_statements(directives, sqlparse.split(sql), name)
+        cls._validate_statements(directives, sqlparse.split(sql), name, role)
 
     @classmethod
-    def validate_pair(cls, path):
+    def validate_pair(cls, path, *, role):
         """Admit literal bodies; yoyo alone owns their transactions and execution."""
         path = Path(path)
         reverse = path.with_name(path.stem + ".rollback.sql")
@@ -286,12 +296,12 @@ class RequirementsSqlMigrations:
                 raise PoiseError(f"Неполная SQL-пара: {candidate}; восстановите оба обычных SQL-файла")
             try:
                 directives, _, statements = read_sql_migration(str(candidate))
-                cls._validate_statements(directives, statements, candidate.name)
+                cls._validate_statements(directives, statements, candidate.name, role)
             except (OSError, UnicodeError, sqlparse.exceptions.SQLParseError) as exc:
                 raise PoiseError(f"SQL {candidate.name} нельзя прочитать: {exc}; исправьте исходную SQL-пару") from exc
 
     @classmethod
-    def validate_directory(cls, directory):
+    def validate_directory(cls, directory, *, role):
         directory = Path(directory)
         if not directory.is_dir():
             raise PoiseError(f"Каталог SQL отсутствует: {directory}; исправьте явную конфигурацию миграций")
@@ -301,13 +311,14 @@ class RequirementsSqlMigrations:
                 if not forward.is_file():
                     raise PoiseError(f"Обратный SQL без прямого: {path}; восстановите полную SQL-пару")
             else:
-                cls.validate_pair(path)
+                cls.validate_pair(path, role=role)
 
     def catalog_migrations(self):
         self.sources()
-        for directory in (self.initial_directory, self.schema_directory, self.data_directory):
+        for role, directory in (('initial', self.initial_directory), ('schema', self.schema_directory),
+                                ('data', self.data_directory)):
             if directory.is_dir():
-                self.validate_directory(directory)
+                self.validate_directory(directory, role=role)
         try:
             catalog = read_migrations(*[str(path) for path in (
                 self.initial_directory, self.schema_directory, self.data_directory
@@ -316,11 +327,14 @@ class RequirementsSqlMigrations:
             raise PoiseError(f"Migration source/dependency conflict: {exc}; correct the SQL source set") from exc
         if catalog.post_apply:
             raise PoiseError('Допустимы только обычные SQL-пары; удалите post-apply hooks из выбранных источников')
+        actual_ids = {migration.id for migration in catalog}
         for migration in catalog:
             path = Path(migration.path)
             if not path.with_name(path.stem + ".rollback.sql").is_file():
                 raise PoiseError(f"Migration inverse is missing: {path}; publish the complete pair before applying")
             migration.load()
+            if not {item.id for item in migration.depends} <= actual_ids:
+                raise PoiseError(f'Migration {migration.id} references a source absent from the actual catalog; restore its SQL prerequisite')
             if migration.use_transactions is not True:
                 raise PoiseError(f"Миграция {migration.id} не транзакционна; исправьте SQL и используйте штатную транзакцию yoyo")
         return catalog
@@ -436,20 +450,28 @@ class RequirementsSqlMigrations:
                 protected.update(dependencies & owned)
             if migration.id in entry and dependencies & owned:
                 raise PoiseError('An applied foreign migration depends on this Task; do not reverse its prerequisites')
-        blocks, run = [], []
-        for migration in ordered:
-            if self.role(migration) == 'schema':
-                if run:
-                    blocks.append(run)
-                    run = []
-                blocks.append([migration])
-            else:
-                run.append(migration)
-                if migration.id in protected:
-                    blocks.append(run)
-                    run = []
-        if run:
-            blocks.append(run)
+        while True:
+            blocks, run = [], []
+            for migration in ordered:
+                if self.role(migration) == 'schema':
+                    if run:
+                        blocks.append(run)
+                        run = []
+                    blocks.append([migration])
+                else:
+                    run.append(migration)
+                    if migration.id in protected:
+                        blocks.append(run)
+                        run = []
+            if run:
+                blocks.append(run)
+            # Singleton bytes are retained, including every original dependency.
+            # New cuts can create further singletons, so retain their targets too.
+            required = {dependency.id for block in blocks if len(block) == 1
+                        for dependency in block[0].depends if dependency.id in owned}
+            if required <= protected:
+                break
+            protected.update(required)
         identities = []
         for block in blocks:
             identity = block[-1].id
@@ -480,11 +502,21 @@ class RequirementsSqlMigrations:
                 forward = [header + join_sql(bodies)]
             sql_forward = ''.join(forward)
             sql_reverse = join_sql(reverse) if len(block) > 1 else reverse[0]
-            self.validate_text(sql_forward, identity + '.sql')
-            self.validate_text(sql_reverse, identity + '.rollback.sql')
+            self.validate_text(sql_forward, identity + '.sql', role=self.role(block[0]))
+            self.validate_text(sql_reverse, identity + '.rollback.sql', role=self.role(block[0]))
             result.append({'id': identity, 'role': self.role(block[0]),
                            'members': [item.id for item in block],
                            'sql_forward': sql_forward, 'sql_reverse': sql_reverse})
+        # Check actual delivered IDs, not yoyo's process-global cached objects.
+        available = (by_id.keys() - owned) | set(identities)
+        candidates = {group['id']: group['sql_forward'] for group in result}
+        for migration in catalog:
+            if migration.id not in owned:
+                candidates[migration.id] = Path(migration.path).read_bytes().decode('utf-8')
+        for identity, body in candidates.items():
+            directives, _, _ = parse_metadata_from_sql_comments(body)
+            if not set(directives.get('depends', '').split()) <= available:
+                raise PoiseError(f'Final migration {identity} has a missing SQL prerequisite; preserve the referenced source before completion')
         return result
 
     def historical_plan(self, snapshot):
@@ -498,7 +530,7 @@ class RequirementsSqlMigrations:
         if version == 2:
             return None
         resource = Path(__file__).with_name('requirements_sql') / 'historical/0003_requirements_schema_1_to_2.sql'
-        self.validate_pair(resource)
+        self.validate_pair(resource, role='schema')
         return {'forward': resource.read_bytes().decode('utf-8'),
                 'reverse': resource.with_name(resource.stem + '.rollback.sql').read_bytes().decode('utf-8')}
 
@@ -538,8 +570,8 @@ class RequirementsSqlMigrations:
                 path.unlink()
 
     def publish_pair(self, identity, forward, reverse, *, role):
-        self.validate_text(forward, identity + ".sql")
-        self.validate_text(reverse, identity + ".rollback.sql")
+        self.validate_text(forward, identity + ".sql", role=role)
+        self.validate_text(reverse, identity + ".rollback.sql", role=role)
         directory = self.schema_directory if role == "schema" else self.data_directory
         directory.mkdir(parents=True, exist_ok=True)
         paths = (directory / f"{identity}.sql", directory / f"{identity}.rollback.sql")
@@ -772,7 +804,7 @@ class RequirementsSqlMigrations:
             result[table] = sorted(existing.values())
         return result
 
-    def export_legacy(self, request, dependencies, existing):
+    def export_legacy(self, request, existing):
         fields = {'request_id', 'source', 'target', 'mode', 'requirement_ids', 'output_directory'}
         if not isinstance(request, dict) or set(request) != fields:
             raise PoiseError('Legacy export requires its exact explicit request fields')
@@ -791,9 +823,9 @@ class RequirementsSqlMigrations:
                 or request['mode'] == 'selected' and not identities):
             raise PoiseError('Legacy export mode and explicit distinct requirement IDs are invalid')
         with closing(self.capture(request['source'])) as source, closing(self.capture(request['target'])) as target:
-            return self._export_captured(request, dependencies, existing, source, target)
+            return self._export_captured(request, existing, source, target)
 
-    def _export_captured(self, request, dependencies, existing, source, target):
+    def _export_captured(self, request, existing, source, target):
         identities = request['requirement_ids']
         self._validate_capture(source)
         self._validate_capture(target)
@@ -840,7 +872,9 @@ class RequirementsSqlMigrations:
                     raise PoiseError('Captured export literal result does not match the declared target state')
         except sqlite3.Error as exc:
             raise PoiseError(f'Captured export conflicts with target constraints: {exc}; resolve the conflict before export') from exc
-        return {'id': identity, 'forward': self._header(dependencies) + '\n'.join(forward) + '\n',
+        # The captured comparison schema/state is the prerequisite. Working-store
+        # history is not a portable dependency of this standalone data artifact.
+        return {'id': identity, 'forward': self._header([]) + '\n'.join(forward) + '\n',
                 'reverse': '\n'.join(reverse) + '\n', 'export_request': deepcopy(request),
                 'source_state': source.state_hash,
                 'target_guard': {'before': target.state_hash, 'after': digest(desired)}}

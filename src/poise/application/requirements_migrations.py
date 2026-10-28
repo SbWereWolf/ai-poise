@@ -224,10 +224,7 @@ class TaskRequirementsMigrations:
     def export_legacy(self, body):
         identity = self.sql.export_identity(body.get('request_id'))
         self.runtime.require_requirements_scope(self.task, self.sql, [('data', identity)])
-        snapshot = self.sql.capture()
-        snapshot.close()
-        dependencies = [migration.id for migration in self.sql.migrations() if migration.id in snapshot.applied]
-        plan = self.sql.export_legacy(body, dependencies, self.context['originals'].get(identity))
+        plan = self.sql.export_legacy(body, self.context['originals'].get(identity))
         if plan.get('unchanged'):
             return {'status': 'unchanged', 'migration_ids': []}
         if not plan.get('reuse'):

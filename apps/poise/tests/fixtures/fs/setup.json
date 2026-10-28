@@ -197,44 +197,6 @@
     },
     "evidence": []
   },
-  "binding_diagnostic": {
-    "input": {
-      "input": {
-        "acknowledged": [
-          "${r1}"
-        ]
-      },
-      "result": {
-        "items": [
-          {
-            "path": "$ROOT/a",
-            "receipt_id": "${r1}",
-            "text": "${r1} $ROOT/a"
-          }
-        ]
-      },
-      "id": "${r1}",
-      "text": "$ROOT/a"
-    },
-    "expected": {
-      "input": {
-        "acknowledged": [
-          "received-id"
-        ]
-      },
-      "result": {
-        "items": [
-          {
-            "path": "/fixture-consumer/a",
-            "receipt_id": "received-id",
-            "text": "${r1} $ROOT/a"
-          }
-        ]
-      },
-      "id": "${r1}",
-      "text": "$ROOT/a"
-    }
-  },
   "delivery": [
     {
       "request": {
@@ -331,5 +293,249 @@
         "$ROOT/project/new.txt": "Ж\n"
       }
     }
-  ]
+  ],
+  "opaque_config_control": {
+    "operator_note": {
+      "path": "$ROOT/literal",
+      "base": "$ROOT/literal",
+      "cwd": "$ROOT/literal",
+      "expected_path": "$ROOT/literal"
+    },
+    "text": "${r1} $ROOT/literal"
+  },
+  "binding_diagnostics": [
+    {
+      "id": "opaque-config-all-path-like-keys",
+      "scope": "opaque",
+      "input": {
+        "operator_note": {
+          "path": "$ROOT/literal",
+          "base": "$ROOT/literal",
+          "cwd": "$ROOT/literal",
+          "expected_path": "$ROOT/literal"
+        },
+        "text": "${r1} $ROOT/literal"
+      },
+      "expected": {
+        "operator_note": {
+          "path": "$ROOT/literal",
+          "base": "$ROOT/literal",
+          "cwd": "$ROOT/literal",
+          "expected_path": "$ROOT/literal"
+        },
+        "text": "${r1} $ROOT/literal"
+      }
+    },
+    {
+      "id": "declared-policy-root-only",
+      "scope": "policy",
+      "input": {
+        "schema": "poise-fs-policy/v1",
+        "roots": [
+          {
+            "id": "$ROOT/id",
+            "path": "$ROOT/project",
+            "read": true,
+            "write": true,
+            "operator_note": {
+              "path": "$ROOT/literal"
+            }
+          }
+        ],
+        "operator_note": {
+          "path": "$ROOT/literal",
+          "base": "$ROOT/literal",
+          "cwd": "$ROOT/literal"
+        }
+      },
+      "expected": {
+        "schema": "poise-fs-policy/v1",
+        "roots": [
+          {
+            "id": "$ROOT/id",
+            "path": "/fixture-consumer/project",
+            "read": true,
+            "write": true,
+            "operator_note": {
+              "path": "$ROOT/literal"
+            }
+          }
+        ],
+        "operator_note": {
+          "path": "$ROOT/literal",
+          "base": "$ROOT/literal",
+          "cwd": "$ROOT/literal"
+        }
+      }
+    },
+    {
+      "id": "declared-reader-request-only",
+      "scope": "request",
+      "input": {
+        "schema": "stride-poise/v1",
+        "operation": "reader.read",
+        "input": {
+          "cwd": "$ROOT/project",
+          "acknowledged": [
+            "${r1}"
+          ],
+          "reads": [
+            {
+              "path": "$ROOT/project/a.txt",
+              "reason": "${r1} $ROOT/literal"
+            }
+          ],
+          "operator_note": {
+            "path": "$ROOT/literal",
+            "base": "$ROOT/literal",
+            "cwd": "$ROOT/literal"
+          }
+        }
+      },
+      "expected": {
+        "schema": "stride-poise/v1",
+        "operation": "reader.read",
+        "input": {
+          "cwd": "/fixture-consumer/project",
+          "acknowledged": [
+            "received-id"
+          ],
+          "reads": [
+            {
+              "path": "/fixture-consumer/project/a.txt",
+              "reason": "${r1} $ROOT/literal"
+            }
+          ],
+          "operator_note": {
+            "path": "$ROOT/literal",
+            "base": "$ROOT/literal",
+            "cwd": "$ROOT/literal"
+          }
+        }
+      }
+    },
+    {
+      "id": "declared-reader-response-only",
+      "scope": "response",
+      "input": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-reader/2",
+          "items": [
+            {
+              "path": "$ROOT/a",
+              "receipt_id": "${r1}",
+              "next": {
+                "path": "$ROOT/a"
+              },
+              "text": "${r1} $ROOT/a",
+              "operator_note": {
+                "path": "$ROOT/literal"
+              }
+            }
+          ]
+        },
+        "error": null,
+        "evidence": []
+      },
+      "expected": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-reader/2",
+          "items": [
+            {
+              "path": "/fixture-consumer/a",
+              "receipt_id": "received-id",
+              "next": {
+                "path": "/fixture-consumer/a"
+              },
+              "text": "${r1} $ROOT/a",
+              "operator_note": {
+                "path": "$ROOT/literal"
+              }
+            }
+          ]
+        },
+        "error": null,
+        "evidence": []
+      }
+    },
+    {
+      "id": "declared-write-not-opaque-text",
+      "scope": "request",
+      "input": {
+        "schema": "stride-poise/v1",
+        "operation": "files.write",
+        "input": {
+          "schema": "poise-write-request/v1",
+          "base": "$ROOT/project",
+          "writes": [
+            {
+              "path": "$ROOT/project/a.txt",
+              "text": {
+                "path": "$ROOT/literal"
+              }
+            }
+          ]
+        }
+      },
+      "expected": {
+        "schema": "stride-poise/v1",
+        "operation": "files.write",
+        "input": {
+          "schema": "poise-write-request/v1",
+          "base": "/fixture-consumer/project",
+          "writes": [
+            {
+              "path": "/fixture-consumer/project/a.txt",
+              "text": {
+                "path": "$ROOT/literal"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "reader_probe_reply": {
+    "schema": "stride-poise/v1",
+    "status": "ok",
+    "result": {
+      "schema": "poise-reader/2",
+      "generation": null,
+      "items": [],
+      "text_bytes": null
+    },
+    "error": null,
+    "evidence": []
+  },
+  "contradictory_state_controls": [
+    {
+      "id": "generation-expectation-must-fail",
+      "effects": {
+        "reader_generation": 999
+      },
+      "failure_label": "effects/reader_generation"
+    },
+    {
+      "id": "ack-expectation-must-fail",
+      "effects": {
+        "receipt_acknowledged": {
+          "${r1}": true
+        }
+      },
+      "failure_label": "effects/receipt_acknowledged"
+    },
+    {
+      "id": "empty-receipts-expectation-must-fail",
+      "effects": {
+        "receipts_created": [],
+        "acknowledgements_changed": []
+      },
+      "failure_label": "effects/no_new_receipts_or_acknowledgements"
+    }
+  ],
+  "state_effect_steps": 6
 }

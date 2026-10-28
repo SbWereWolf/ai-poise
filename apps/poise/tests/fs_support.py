@@ -29,7 +29,7 @@ def load(name):
 class Files:
     def __init__(self, *, reader=False):
         self.reader_mode = reader
-        self.ids, self.cursors, self.calls = {}, [], []
+        self.ids, self.cursors, self.calls, self.receipts = {}, [], [], {}
 
     def __enter__(self):
         if self.reader_mode:
@@ -57,7 +57,7 @@ class Files:
                 self.targets.add(str(alias))
             for name in setup['watched_absent']:
                 self.targets.add(str(self.root / name))
-            self.session.config['paths'] = self.bind(setup['policy'])
+            self.session.config['paths'] = self.bind(setup['policy'], scope='policy')
         except Exception:
             self.__exit__(*__import__('sys').exc_info())
             raise
@@ -75,26 +75,67 @@ class Files:
             else:
                 self.session.__exit__(*args)
 
-    def bind(self, value, location=()):
-        if isinstance(value, dict):
-            return {key: self.bind(item, location + (key,)) for key, item in value.items()}
-        if isinstance(value, list):
-            return [self.bind(item, location + (index,)) for index, item in enumerate(value)]
-        if isinstance(value, str):
-            field = location[-1] if location else ''
-            if field in ('path', 'base', 'cwd', 'expected_path'):
-                if value == '$ROOT' or value.startswith('$ROOT/'):
-                    return str(self.root) + value[5:]
-            identity_slot = (len(location) == 4 and location[:2] == ('result', 'items')
-                             and field == 'receipt_id'
-                             or len(location) == 3 and location[:2] == ('input', 'acknowledged')
-                             or location == ('result', 'session', 'id'))
-            if identity_slot and value.startswith('${') and value.endswith('}'):
-                return self.ids[value[2:-1]]
-        return value
+    def bind(self, value, *, scope='opaque'):
+        """Bind declared protocol slots; every other value is opaque."""
+        paths, identities = [], []
+        if scope == 'policy':
+            paths = [('roots', '*', 'path')]
+        elif scope in ('request', 'response') and isinstance(value, dict):
+            operation = value.get('operation')
+            if scope == 'request' and value.get('schema') == 'stride-poise/v1':
+                paths = {
+                    'paths.evaluate': [('input', 'base'), ('input', 'effects', '*', 'path')],
+                    'files.write': [('input', 'base'), ('input', 'writes', '*', 'path')],
+                    'reader.read': [('input', 'cwd'), ('input', 'reads', '*', 'path')],
+                    'reader.next': [('input', 'reads', '*', 'cursor', 'path')],
+                }.get(operation, []) if isinstance(operation, str) else []
+                if operation in ('reader.read', 'reader.next'):
+                    identities = [('input', 'acknowledged', '*')]
+            elif scope == 'response' and value.get('schema') == 'stride-poise/v1' and 'result' in value:
+                result = value['result']
+                result_schema = result.get('schema') if isinstance(result, dict) else None
+                result_schema = result_schema if isinstance(result_schema, str) else None
+                paths = {
+                    'poise-fs-result/v1': [('result', 'effects', '*', 'path')],
+                    'poise-write-result/v1': [('result', 'policy', 'effects', '*', 'path'),
+                                               ('result', 'items', '*', 'path')],
+                    'poise-reader/2': [('result', 'items', '*', 'path'),
+                                      ('result', 'items', '*', 'next', 'path')],
+                }.get(result_schema, [])
+                if result_schema == 'poise-reader/2':
+                    identities = [('result', 'items', '*', 'receipt_id')]
+                elif isinstance(result, dict) and 'session' in result:
+                    identities = [('result', 'session', 'id')]
+                error = value.get('error')
+                if isinstance(error, dict) and error.get('code') in (
+                        'file_write_failed', 'reader_source_unavailable',
+                        'reader_version_changed', 'reader_file_changed'):
+                    paths = [*paths, ('error', 'details', 'path')]
+
+        def matches(location, candidates):
+            return any(len(location) == len(pattern) and all(
+                type(part) is int if expected == '*' else part == expected
+                for part, expected in zip(location, pattern, strict=True)) for pattern in candidates)
+
+        def visit(item, location=()):
+            if isinstance(item, dict):
+                return {key: visit(child, location + (key,)) for key, child in item.items()}
+            if isinstance(item, list):
+                return [visit(child, location + (index,)) for index, child in enumerate(item)]
+            if isinstance(item, str):
+                if matches(location, paths):
+                    return self.bound_path(item)
+                if matches(location, identities) and item.startswith('${') and item.endswith('}'):
+                    return self.ids[item[2:-1]]
+            return item
+
+        return visit(value)
+
+    def bound_path(self, value):
+        return str(self.root) + value[5:] if value == '$ROOT' or value.startswith('$ROOT/') else value
 
     def path(self, value):
-        return Path(self.bind(value, ('path',)))
+        return Path(self.bound_path(value))
 
     def document(self, spec):
         path = self.path(spec['path'])
@@ -117,7 +158,7 @@ class Files:
 
     def call(self, packet, *, observed=True, file_limit=False, cwd=None, raw=None):
         config = self.session.write_config()
-        request = self.bind(deepcopy(packet))
+        request = self.bind(deepcopy(packet), scope='request')
         value = request.get('input')
         reads = value.get('reads') if isinstance(value, dict) else None
         for item in reads if isinstance(reads, list) else []:
@@ -181,7 +222,7 @@ class Files:
 
     def step(self, spec):
         if 'policy' in spec:
-            self.session.config['paths'] = self.bind(spec['policy'])
+            self.session.config['paths'] = self.bind(spec['policy'], scope='policy')
         if spec.get('paths_absent'):
             self.session.config.pop('paths', None)
         for value in spec.get('watch', []):
@@ -195,7 +236,7 @@ class Files:
             if name in self.ids:
                 exact(received, self.ids[name])
             self.ids[name] = received
-        expected = self.bind(spec['expected_response'])
+        expected = self.bind(spec['expected_response'], scope='response')
         exact(code, spec['expected_exit'])
         exact(response, expected)
         for actual, literal in zip(response.get('result', {}).get('items', [])
@@ -204,6 +245,8 @@ class Files:
                                     if expected.get('result') else [], strict=True):
             if isinstance(actual.get('next'), dict):
                 self.cursors.append((deepcopy(literal['next']), deepcopy(actual['next'])))
+            if actual.get('receipt_id') is not None and 'text' in literal:
+                self.receipts[literal['receipt_id']] = deepcopy(literal)
         if 'opens' in spec:
             exact(record['target_opens'], [str(self.path(name)) for name in spec['opens']])
         if spec.get('unchanged'):
@@ -216,4 +259,42 @@ class Files:
                 exact(path.exists(), False)
             else:
                 exact(path.read_bytes(), expected_text.encode('utf-8'))
+        self.effects(spec.get('effects', {}), expected, record)
         return response, record
+
+    def effects(self, effects, expected, record):
+        record['declared_effects'] = deepcopy(effects)
+        allowed = {'reader_generation', 'receipt_acknowledged',
+                   'receipts_created', 'acknowledgements_changed'}
+        if effects.keys() - allowed:
+            raise DiagnosticError('Unsupported test-owned state expectation')
+        if self.reader_mode:
+            for key in ('sessions', 'bindings', 'roles', 'hooks', 'events', 'cursors'):
+                exact(record['after']['rows'][key], record['before']['rows'][key],
+                      'effects/other_rows/' + key)
+        if 'receipts_created' in effects or 'acknowledgements_changed' in effects:
+            if effects.get('receipts_created') != [] or effects.get('acknowledgements_changed') != []:
+                raise DiagnosticError('State fixture must declare the supported empty-effect pair')
+            exact(record['after']['rows'], record['before']['rows'],
+                  'effects/no_new_receipts_or_acknowledgements')
+        if 'reader_generation' in effects:
+            code, context, _ = self.call({'schema': 'stride-poise/v1',
+                                         'operation': 'reader.context', 'input': {}})
+            exact(code, 0, 'effects/context_exit')
+            exact(context['result']['generation'], effects['reader_generation'],
+                  'effects/reader_generation')
+        for token, acknowledged in effects.get('receipt_acknowledged', {}).items():
+            identity = self.ids[token[2:-1]] if token.startswith('${') and token.endswith('}') else token
+            original = deepcopy(self.receipts[identity])
+            target = deepcopy(original)
+            target['status'] = 'unchanged' if acknowledged else 'read'
+            if acknowledged:
+                del target['text']
+            generation = expected['result']['generation']
+            probe = self.reader.receipt_probe(original, generation, [])
+            code, response, _ = self.call(probe)
+            frame = deepcopy(load('setup.json')['reader_probe_reply'])
+            frame['result'].update(generation=generation, items=[target],
+                                   text_bytes=0 if acknowledged else len(original['text'].encode('utf-8')))
+            exact(code, 0, 'effects/receipt_acknowledged_exit')
+            exact(response, frame, 'effects/receipt_acknowledged')

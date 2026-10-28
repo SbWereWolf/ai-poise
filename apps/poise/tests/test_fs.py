@@ -37,10 +37,13 @@ def prerequisites():
             raise DiagnosticError('Independent comparator ignored scalar types')
     consumer = Files.__new__(Files)
     consumer.root, consumer.ids = Path('/fixture-consumer'), {'r1': 'received-id'}
-    values = load('setup.json')['binding_diagnostic']
-    exact(consumer.bind(values['input']), values['expected'])
+    values = load('setup.json')['binding_diagnostics']
+    for control in values:
+        exact(consumer.bind(control['input'], scope=control['scope']), control['expected'],
+              'binding/' + control['id'])
     try:
-        consumer.bind(['${missing}'], ('input', 'acknowledged'))
+        consumer.bind({'schema': 'stride-poise/v1', 'operation': 'reader.read',
+                       'input': {'acknowledged': ['${missing}']}}, scope='request')
     except KeyError:
         pass
     else:
@@ -63,6 +66,7 @@ def prerequisites():
                                 'target_opens': record['target_opens']})
     except Exception as error:
         raise DiagnosticError('Actual copied-reader/observer qualification failed') from error
+    state_and_config_controls()
     consumer_diagnostics()
     return {'python': PY, 'version': sys.version, 'groups_defined': [name for name, _ in GROUPS],
             'literal_cases': {name: len(value) for name, value in load('cases.json')['groups'].items()}}
@@ -83,7 +87,7 @@ def delivery():
                     missing.append(spec['request']['operation'])
                     continue
                 exact(code, spec['expected_exit'])
-                exact(response, app.bind(spec['expected_response']))
+                exact(response, app.bind(spec['expected_response'], scope='response'))
                 if spec['request']['operation'] == 'paths.evaluate':
                     exact(record['after'], record['before'])
                     exact(record['target_opens'], [])
@@ -95,6 +99,53 @@ def delivery():
     if missing:
         raise MissingPolicy('Missing standalone operations after valid copied-app/config preparation: '
                             + ', '.join(missing))
+
+
+def state_and_config_controls():
+    setup = load('setup.json')
+    cases = load('cases.json')['groups']
+    json_case = next(case for case in cases['writer'] if case['id'] == 'later-invalid-text')
+    with Files() as app:
+        app.step(json_case['steps'][0])
+        DIAGNOSTICS.append({'id': 'actual-strict-json-surrogate-boundary', 'status': 'passed'})
+    with Files(reader=True) as app:
+        options = deepcopy(setup['opaque_config_control'])
+        app.session.config.update(options)
+        exact({key: app.session.config[key] for key in options}, options)
+        _, record = app.step(setup['reader_context'])
+        written = json.loads(bytes.fromhex(record['config_hex']))
+        exact({key: written[key] for key in options}, options)
+        DIAGNOSTICS.append({'id': 'actual-opaque-config-byte-retention', 'status': 'passed'})
+    for control in setup['contradictory_state_controls']:
+        with Files(reader=True) as app:
+            app.step(setup['reader_context'])
+            spec = deepcopy(setup['observer_control'])
+            spec['effects'] = control['effects']
+            try:
+                app.step(spec)
+            except AssertionError as error:
+                if control['failure_label'] not in str(error):
+                    raise DiagnosticError('State control failed before its intended assertion') from error
+                DIAGNOSTICS.append({'id': control['id'], 'status': 'rejected_wrong_expectation',
+                                    'reason': str(error)})
+            else:
+                raise DiagnosticError('Contradictory state expectation was silently ignored')
+    # Positive controls exercise all six existing nonempty effect declarations.
+    effect_steps = 0
+    for case in cases['reader']:
+        if not any(step.get('effects') for step in case['steps']):
+            continue
+        with Files(reader=True) as app:
+            app.session.config['paths'] = app.bind(case['policy'], scope='policy')
+            for document in case.get('documents', []):
+                app.document(document)
+            app.step(setup['reader_context'])
+            for spec in case['steps']:
+                app.step(spec)
+                effect_steps += bool(spec.get('effects'))
+    exact(effect_steps, setup['state_effect_steps'])
+    DIAGNOSTICS.append({'id': 'actual-positive-reader-state-oracles', 'status': 'passed',
+                        'effect_steps': effect_steps})
 
 
 def consumer_diagnostics():

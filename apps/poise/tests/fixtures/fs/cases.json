@@ -6536,7 +6536,7 @@
         ]
       },
       {
-        "id": "text-type",
+        "id": "later-nonstring-text",
         "steps": [
           {
             "request": {
@@ -6546,6 +6546,10 @@
                 "schema": "poise-write-request/v1",
                 "base": "$ROOT/project",
                 "writes": [
+                  {
+                    "path": "a.txt",
+                    "text": "changed"
+                  },
                   {
                     "path": "new.txt",
                     "text": 17
@@ -6561,7 +6565,7 @@
               "error": {
                 "code": "invalid_request",
                 "details": {
-                  "path": "/input/writes/0/text"
+                  "path": "/input/writes/1/text"
                 },
                 "action": "correct:request"
               },
@@ -7019,11 +7023,9 @@
               "status": "rejected",
               "result": null,
               "error": {
-                "code": "invalid_request",
-                "details": {
-                  "path": "/input/writes/1/text"
-                },
-                "action": "correct:request"
+                "code": "invalid_json",
+                "details": {},
+                "action": "provide:json"
               },
               "evidence": []
             },
@@ -8119,13 +8121,21 @@
         },
         "config_options": {
           "operator_note": {
-            "text": "${r1} $ROOT/a",
-            "unknown": [
-              17,
-              null,
-              true
-            ]
-          }
+            "path": "$ROOT/literal",
+            "base": "$ROOT/literal",
+            "cwd": "$ROOT/literal",
+            "expected_path": "$ROOT/literal"
+          },
+          "text": "${r1} $ROOT/literal"
+        },
+        "expected_config_options": {
+          "operator_note": {
+            "path": "$ROOT/literal",
+            "base": "$ROOT/literal",
+            "cwd": "$ROOT/literal",
+            "expected_path": "$ROOT/literal"
+          },
+          "text": "${r1} $ROOT/literal"
         }
       },
       {

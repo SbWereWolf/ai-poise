@@ -1,9 +1,19 @@
 ---
 name: poise-development
-description: Change AI poise itself using its DDD, TDD, declarative-tool and project-local configuration rules.
+description: Change AI poise itself using its DDD, TDD, declarative-tool and project-local
+  configuration rules.
 ---
 
 # AI poise development
+
+
+For independent library consumers, use their installed package and explicit locked
+release/development revision, not an adjacent checkout silently added to imports.
+Confirm the actual tested revision before claiming validation. Follow
+[library consumers and versions](../../../docs/configuration/stride-launcher.md#библиотечные-потребители-и-версии):
+source integration, publication and each consumer update are separate outcomes;
+never replace the contents of a published version. This does not require an
+intermediate release or updating all independent consumers in the current Task.
 
 Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current workflow' explicit `worktree_required` policy; without a required worktree, use the configured repository checkout. See [Task worktree placement](../../../docs/governance/development-rules.md#размещение-task-worktree).
 

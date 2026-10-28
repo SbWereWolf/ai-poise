@@ -1,0 +1,68 @@
+{
+  "healthy": {
+    "tool": "Bash",
+    "response": {
+      "output": "RESULT: 2 records\nDETAIL: healthy\n",
+      "exit_code": 0,
+      "original_token_count": 255
+    },
+    "state": "complete",
+    "reason": null
+  },
+  "warning": {
+    "tool": "Bash",
+    "response": {
+      "output": "Warning: truncated output (original token count: 255)\nRESULT: 2 records\n",
+      "exit_code": 0,
+      "original_token_count": 255
+    },
+    "state": "partial",
+    "reason": "native_output_truncated"
+  },
+  "infix": {
+    "tool": "Bash",
+    "response": {
+      "output": "F08_BEGIN\nabc…243 tokens truncated…xyz\nF08_END\n",
+      "exit_code": 0,
+      "machine_extra": [
+        0,
+        false,
+        null,
+        "Ж🙂"
+      ]
+    },
+    "state": "partial",
+    "reason": "native_output_truncated"
+  },
+  "ambiguous": {
+    "tool": "Bash",
+    "response": {
+      "output": "RESULT: tokens truncated\nDETAIL: literal phrase without formatter\n",
+      "exit_code": 7
+    },
+    "state": "unknown",
+    "reason": "native_output_ambiguous"
+  },
+  "other-literal": {
+    "tool": "mcp__fixture__query",
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "tokens truncated"
+        }
+      ],
+      "structuredContent": {
+        "count": 2,
+        "names": [
+          "A",
+          "B"
+        ],
+        "unselected": "tokens truncated"
+      },
+      "isError": false
+    },
+    "state": "complete",
+    "reason": null
+  }
+}

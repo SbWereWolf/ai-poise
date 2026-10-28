@@ -1,0 +1,12 @@
+[
+  {
+    "start": 1,
+    "end": 4,
+    "text": "{\n  \"chunk_id\": \"native-a\",\n  \"exit_code\": 0,\n  \"original_token_count\": 22,\n"
+  },
+  {
+    "start": 5,
+    "end": 14,
+    "text": "  \"output\": \"RESULT: 2 records\\nDETAIL: checked A and B\\nFULL_ONLY_F08\\n\",\n  \"unknown\": {\n    \"value\": [\n      0,\n      false,\n      null,\n      \"Ж🙂\"\n    ]\n  }\n}\n"
+  }
+]

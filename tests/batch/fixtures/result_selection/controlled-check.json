@@ -1,0 +1,39 @@
+{
+  "id": "CONTROLLED",
+  "argv": [
+    "PYTHON",
+    "-B",
+    "-c",
+    "import os;from pathlib import Path;p=Path(os.environ[\"RUNS\"]);p.write_text(p.read_text()+\"run\\n\" if p.exists() else \"run\\n\");ok=Path(os.environ[\"ALLOW\"]).exists();print(\"selection-check-ok\" if ok else \"selection-check-failed\");raise SystemExit(0 if ok else 1)"
+  ],
+  "cwd": ".",
+  "environment": {
+    "RUNS": "REPLACE",
+    "ALLOW": "REPLACE"
+  },
+  "source_under_test": {
+    "kind": "repository",
+    "bindings": [
+      {
+        "kind": "cwd",
+        "path": "."
+      }
+    ]
+  },
+  "verification_plan": {
+    "responsibility": "Observe actual check execution and exact retry.",
+    "change_surface": [
+      "src/**"
+    ],
+    "red_stages": [],
+    "green_stages": [
+      "implementation"
+    ],
+    "red_failure": null
+  },
+  "expected_exit_code": 0,
+  "stdout_contains": [
+    "selection-check-ok"
+  ],
+  "stderr_contains": []
+}

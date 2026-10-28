@@ -1,0 +1,56 @@
+{
+  "asserted_case": {
+    "field": "checks.compile",
+    "tokens": [
+      "список",
+      "ID"
+    ]
+  },
+  "cases": [
+    {
+      "id": "correct",
+      "accepted": true,
+      "message": "checks.compile: требуется список ID; methods: [] допустим; пустые списки допустимы; методы определяются на этапе планирования проверок"
+    },
+    {
+      "id": "original-opposite-guidance",
+      "accepted": false,
+      "message": "checks.compile: требуется список ID; methods: [] запрещено; пустые списки запрещены; планирование конкретных методов обязательно до подготовки задачи"
+    },
+    {
+      "id": "forbidden-methods-only",
+      "accepted": false,
+      "message": "checks.compile: требуется список ID; methods: [] запрещено; пустые списки допустимы; методы определяются на этапе планирования проверок"
+    },
+    {
+      "id": "forbidden-empty-lists-only",
+      "accepted": false,
+      "message": "checks.compile: требуется список ID; methods: [] допустим; пустые списки запрещены; методы определяются на этапе планирования проверок"
+    },
+    {
+      "id": "premature-methods-only",
+      "accepted": false,
+      "message": "checks.compile: требуется список ID; methods: [] допустим; пустые списки допустимы; планирование конкретных методов обязательно до подготовки задачи"
+    },
+    {
+      "id": "stage-prefix-underscore",
+      "accepted": false,
+      "message": "checks.compile_extra: требуется список ID; methods: [] допустим; пустые списки допустимы; методы определяются на этапе планирования проверок"
+    },
+    {
+      "id": "stage-prefix-dot",
+      "accepted": false,
+      "message": "checks.compile.extra: требуется список ID; methods: [] допустим; пустые списки допустимы; методы определяются на этапе планирования проверок"
+    },
+    {
+      "id": "other-stage",
+      "accepted": false,
+      "message": "checks.inspect: требуется список ID; methods: [] допустим; пустые списки допустимы; методы определяются на этапе планирования проверок"
+    },
+    {
+      "id": "alternative-correct-guidance",
+      "accepted": true,
+      "message": "checks.compile: ожидается список строковых ID. methods: [] разрешены. Пустые списки проверок разрешены. Конкретные методы определяются на этапе планирования проверок."
+    }
+  ]
+}

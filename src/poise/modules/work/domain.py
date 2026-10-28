@@ -11,6 +11,7 @@ STAGE_CONTRACT_OPERATIONS = frozenset({
     'revise_stage_contract',
 })
 BUSINESS_INCOMPLETE_STATUSES = frozenset({
+    'handoff_blocked',
     'duplicate_start_blocked',
     'action_blocked',
     'delivery_blocked',
@@ -48,7 +49,7 @@ def is_observation(request):
 def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'restore_context':{'reason','event_id','facts','cwd','reads'},'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},
-            'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
+            'verify':{'result','artifacts'},'handoff':None,'show':{'queries'},'accept':set(),
             'reuse':{'task_id','source_task_id','request_id','expected_version'},
             'release':{'task_id','request_id','expected_version','reason'},
             'recover_empty_rework':{'task_id','reason'},
@@ -80,6 +81,23 @@ def parse_request(value, config):
     if op == 'recover_ownership' and isinstance(value['input'], dict) and 'mode' in value['input']:
         from ..ownership.domain import CRASH_RECOVERY_FIELDS
         shapes[op] = set(CRASH_RECOVERY_FIELDS)
+    selected = op == 'verify' and isinstance(value['input'], dict) and 'selection' in value['input']
+    selection_intent = None
+    if selected:
+        from .selection import SelectedResultIntent, SelectionRefusal
+        if set(value['input']) != {'selection'}:
+            raise SelectionRefusal('selection_contract_invalid', 'verify selection cannot be combined with other input fields')
+        selection_intent = SelectedResultIntent.parse(value['input']['selection'])
+        shapes[op] = {'selection'}
+
+    def collection_error(detail):
+        if selection_intent is None:
+            return DomainError(detail)
+        error = SelectionRefusal('selection_contract_invalid',
+                                 f'{detail}; max_items={config["max_items"]}')
+        error.selection = {'schema': selection_intent.value['schema'],
+                           'request_id': selection_intent.value['request_id']}
+        return error
     if op == 'advance' and isinstance(value['input'], dict):
         shapes[op] = {'request_id', 'task_id'} | ({'target_stage'} if 'target_stage' in value['input'] else set())
         for field in shapes[op]:
@@ -89,10 +107,13 @@ def parse_request(value, config):
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
         shapes[op] = shapes[op] | {'force_duplicate_start'}
-    if op not in ('task','sprint','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
+    if op == 'handoff':
+        from ..tasks.handoff import validate_handoff_input
+        validate_handoff_input(value['input'])
+    elif op not in ('task','sprint','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
-        raise DomainError('messages requires a bounded list')
+        raise collection_error('messages requires a bounded list')
     if op=='routing':
         facts=value['input']['facts']
         if (not isinstance(facts,list) or any(not isinstance(x,str) or not x.strip() or '\0' in x for x in facts)
@@ -101,7 +122,7 @@ def parse_request(value, config):
     if op=='bootstrap':
         if value['input']['task'] is not None and not isinstance(value['input']['task'],dict):
             raise DomainError('task must be an object or explicit null; files are not input')
-    if op=='verify':
+    if op=='verify' and not selected:
         if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):
             raise DomainError('result must be an object or explicit null')
         if not isinstance(value['input']['artifacts'],list):
@@ -180,11 +201,16 @@ def parse_request(value, config):
         optional = ({'goal_type', 'patch'} & set(value['input'])) if action == 'create' else set()
         exact(value['input'], task_shapes[action] | optional, f'task {action} input')
     # Bound all object collections, not just top-level operations.
-    def check(node):
+    def check(node, location='packet'):
         if isinstance(node,(list,dict)):
             if len(node)>config['max_items']:
-                raise DomainError('Packet collection exceeds configured max_items')
-            for child in (node.values() if isinstance(node,dict) else node):check(child)
+                detail = 'Packet collection exceeds configured max_items'
+                if selected:
+                    detail += f' at {location} ({len(node)} items)'
+                raise collection_error(detail)
+            children = node.items() if isinstance(node,dict) else enumerate(node)
+            for name, child in children:
+                check(child, f'{location}.{name}')
     check(value)
     return deepcopy(value)
 

@@ -9,7 +9,7 @@ from .test_runner_paths import result
 
 def test_test_remediation_reuses_handlers_with_red_contract(project):
     root=Path(__file__).resolve().parents[2]
-    proc=json.loads((root/'config/workflows/development.json').read_text())
+    proc=json.loads((root/'fixtures/workflow-source-retirement/historical-remediation.json').read_text())
     for stage in proc['stages']:
         stage['role'] = 'executor'  # Explicit single-actor remediation scenario.
     write_json(project['root']/'config/workflows/development.json',proc)
@@ -18,7 +18,9 @@ def test_test_remediation_reuses_handlers_with_red_contract(project):
     task=project['task']
     task['stage_contracts'] = [
         {'stage_id': s['id'], 'allowed_paths': list(s['allowed_paths']),
-         'entry_requirements': [], 'exit_requirements': []} for s in proc['stages']]
+         'entry_requirements': [], 'exit_requirements': [],
+         'criteria': {'requirements': [], 'definition_of_ready': [],
+                      'definition_of_done': []}} for s in proc['stages']]
     task['decomposition'] = {'kind': 'ordinary', 'integration': None,
         'phases': [{'stage': s['id'], 'skills': ['workflow'], 'areas': []}
                    for s in proc['stages']]}

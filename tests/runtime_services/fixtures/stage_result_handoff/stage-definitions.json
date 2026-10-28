@@ -1,0 +1,116 @@
+{
+  "author": {
+    "id": "author",
+    "handler": "produce",
+    "role": "executor",
+    "purpose": "execution",
+    "criteria_authority": {
+      "propose": [],
+      "decide": []
+    },
+    "instruction": "Exercise only the declared fixture stage.",
+    "read_only": false,
+    "allowed_paths": [
+      "src/**",
+      "tests/**"
+    ],
+    "normalization": "strip",
+    "sections": {
+      "report": "Provide the fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "rework_targets": [
+      "author"
+    ],
+    "transitions": {
+      "complete": "review"
+    }
+  },
+  "next_work": {
+    "id": "next_work",
+    "handler": "produce",
+    "role": "executor",
+    "purpose": "execution",
+    "criteria_authority": {
+      "propose": [],
+      "decide": []
+    },
+    "instruction": "Exercise only the declared fixture stage.",
+    "read_only": false,
+    "allowed_paths": [
+      "src/**"
+    ],
+    "normalization": "strip",
+    "sections": {
+      "report": "Provide the fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "rework_targets": [
+      "author"
+    ],
+    "transitions": {
+      "complete": "review"
+    }
+  },
+  "review": {
+    "id": "review",
+    "handler": "inspect",
+    "role": "reviewer",
+    "purpose": "observation",
+    "criteria_authority": {
+      "propose": [],
+      "decide": []
+    },
+    "instruction": "Exercise only the declared fixture stage.",
+    "read_only": true,
+    "allowed_paths": [],
+    "normalization": "strip",
+    "sections": {
+      "report": "Provide the fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "rework_targets": [
+      "author"
+    ],
+    "transitions": {
+      "clear": null,
+      "changes_requested": "author"
+    }
+  },
+  "publish": {
+    "id": "publish",
+    "handler": "publish",
+    "role": "executor",
+    "purpose": "other",
+    "criteria_authority": {
+      "propose": [],
+      "decide": []
+    },
+    "instruction": "Exercise only the declared fixture stage.",
+    "read_only": true,
+    "allowed_paths": [],
+    "normalization": "strip",
+    "sections": {
+      "report": "Provide the fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "rework_targets": [
+      "author"
+    ],
+    "transitions": {
+      "complete": null
+    }
+  }
+}

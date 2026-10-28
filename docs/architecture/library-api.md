@@ -199,6 +199,26 @@ ActionRepository/UoW. `RuntimePlanActions.apply/publish` — внешняя ме
 register/merge/receipt/refresh для модели не требуется. Точные примеры пакетов и продолжения:
 [Actions](../workflows/actions.md).
 
+## Общий вывод инструмента
+
+- `ToolResultPolicy.parse`/`ToolResultRequest.parse` — текущие policy и strict request;
+  известные selection/projection поля проверяются, неизвестные raw options сохраняются.
+- `select_parser(event, policy)` — pure unique highest full-command profile selection;
+  `native_snapshot(event, policy, selected=...)` использует тот же выбор.
+- `prepare_views(record, sources, policy, selected_parser=...)` — две формы из полного
+  source с явным selected profile либо direct capture mapping; Poise fields условны
+  выбранными templates/projection, без выдуманного next_work.
+- `ToolResults.execute`/`prepared` — общий application flow над прежним `ResultStore`;
+  selected profile оперативный, не поле публичного record. `saved_service` читает
+  expanded bytes/full path последнего run без нового prepare/capture.
+- `native_result` — infrastructure source decoder, `FileToolResultStore` — scoped
+  publication/integrity/session files. `service_delivery` сверяет действительный
+  service call/ответ с исходной policy/caller/run до обычного capture.
+
+[Операторский договор](../configuration/tool-results.md#подготовка-и-вызов) описывает
+точные формы/пределы. Внутренние `OutputParser`/`ResultViews` ниже обслуживают check
+receipts и не добавляют альтернативный механизм доставки F08.
+
 ## DDD-07: runtime/output/handoff
 
 Обновлено: **2026-09-07T00:07:53+05:00**.
@@ -215,6 +235,15 @@ register/merge/receipt/refresh для модели не требуется. То
 - `OutputParser.render(primary|materialize)` — один парсер над неизменным receipt.
 - `ResultViews.capture/finish` — запуск subprocess worker и финализационный barrier.
 - `OwnershipCommands.release` — собственный версионный claim, accounting cycle и receipt одной UoW.
+- `StageResultHandoffCommands` — композиция существующих verification, progression и
+  ownership owners; полный подтверждённый исход каждого шага сохраняется для exact retry.
+- `StageResultVerification` — общий preparation/execute owner для `verify` и `handoff`;
+  отдельный путь подготовки результата не дублируется.
+- `StageHandoffState` — Task-owned identity, подтверждённые результаты и завершение;
+  `HandoffEffects` задаёт границу к существующим владельцам, `RuntimeHandoffEffects`
+  связывает их с реальными source/packet/receipt proofs.
+- `SqliteHandoffRepository` — append-only snapshots в существующем Task journal с CAS;
+  конфликт версии не переписывает сохранённый исход.
 - Task bootstrap — захват того же сохранённого состояния и существующего worktree.
 - `EvidenceCommands.list_for` — адресный список receipts текущей задачи через UoW.
 - `Sprint.overview(states,resumable)` — состояния и явно разрешённые освобождённые участники;
@@ -228,7 +257,9 @@ register/merge/receipt/refresh для модели не требуется. То
 
 Scoped export/import и прежние `TransferCommands`/`RuntimeTransfers` удалены.
 Продолжение работы использует существующие `OwnershipCommands.release` и Task bootstrap
-в одной рабочей области; public Work grammar отклоняет `handoff` и `transfer`.
+в одной рабочей области. Public Work принимает
+[`handoff`](../workflows/batch-work.md#передача-результата-одной-командой) как композицию
+verify/advance/release; `transfer` остаётся вне grammar.
 `release` закрывает accounting cycle и снимает собственные claims в одной UoW,
 сохраняет исходный receipt для точного replay и не создаёт commit либо копии материалов.
 
@@ -261,7 +292,8 @@ probes и наблюдения часов. `refresh(session_id, workspace, probe
 сводку. `FileCapabilitySummary` реализует bounded JSON I/O через существующие владельцы.
 `HookService.read_summary/refresh_summary` проверяют прежнюю native ownership, а
 `HookRegistry.session_workspace` читает наблюдённый workspace независимо от файла сводки.
-Контракт и команды — [сводка готовности](../configuration/runtime-hooks.md#сводка-готовности-сессии).
+Контракт и команды — [сводка
+готовности](../configuration/runtime-hooks.md#сводка-готовности-сессии).
 
 
 ## Accounting API — DDD-08
@@ -496,8 +528,10 @@ raise SystemExit(code)
 свой Clock. `ContentReader` связывает выборку, сессию, реестр и бюджет через ports; schema2,
 файловая система, HookService и представление остаются инфраструктурными владельцами.
 Полный output и error stream сохраняются без внутреннего clipping; late sink failure даёт
-правдивый отказ. [JSON/text контракт](../configuration/project-file-reading.md#полный-json-и-text-framing)
-и [recovery](../workflows/file-intake-lifecycle.md#завершение-и-восстановление) принадлежат каноническим
+правдивый отказ. [JSON/text
+контракт](../configuration/project-file-reading.md#полный-json-и-text-framing)
+и [recovery](../workflows/file-intake-lifecycle.md#завершение-и-восстановление) принадлежат
+каноническим
 страницам. Старый специализированный SourceReader/ack API сохраняется.
 
 
@@ -509,7 +543,8 @@ output, error_output, clock)` сохраняет семь аргументов �
 позиции. С command-enabled profile передайте бинарный JSON `{"operation":"coverage"}`
 через тот же execute: full result содержит context, items=[], metadata details, error/response_path.
 CLI использует прежние явные аргументы `content-read --config --checkout --policy --format`.
-Оба порта сохраняют полные streams; [контракт coverage](../configuration/project-file-reading.md#сводка-покрытия)
+Оба порта сохраняют полные streams; [контракт
+coverage](../configuration/project-file-reading.md#сводка-покрытия)
 определяет counts, omissions, ошибки и лимиты. Пример execute выше применим без смены imports.
 
 Native SDK остаётся `poise.infrastructure.hook_transport.HookService(settings_path)`: публичные

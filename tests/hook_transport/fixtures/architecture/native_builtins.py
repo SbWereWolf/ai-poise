@@ -44,6 +44,11 @@ def exercise(request):
             assert cp.returncode == 0
             event["tool_response"] = {"stdout": cp.stdout.decode(), "stderr": cp.stderr.decode(),
                                       "exit_code": cp.returncode}
+            if request.get("post_wire") == "native-exec-json":
+                # This scenario selects the merged native wire explicitly.
+                # Its source is the actual process, not a fixture result.
+                assert cp.stderr == b""
+                event["tool_response"] = {"output": cp.stdout.decode(), "exit_code": cp.returncode}
         response = service.event(installed["definition_path"], event)
         if kind == "PreToolUse":
             assert response["hookSpecificOutput"]["permissionDecision"] == "allow", response

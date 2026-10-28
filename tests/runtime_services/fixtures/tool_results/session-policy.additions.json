@@ -1,0 +1,60 @@
+{
+  "session": {
+    "root": "@RESULTS@/sessions",
+    "runs": "runs",
+    "last": "last-tool.json",
+    "expanded": "expanded.txt",
+    "full": "full.json"
+  },
+  "parsers": {
+    "Bash": {
+      "parser": "bash",
+      "format": "native-exec-json",
+      "summary_prefix": "RESULT: ",
+      "detail_prefix": "DETAIL: ",
+      "summary_missing": "exit-only",
+      "brief_template": "Bash: exit {exit_code}; {summary}",
+      "expanded_template": "{brief}\n{details}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject",
+      "brief_without_summary": "Bash: exit {exit_code}"
+    },
+    "mcp__fixture__query": {
+      "parser": "mcp",
+      "format": "records-json",
+      "brief_template": "MCP: {count} records",
+      "expanded_template": "{brief}\nNames: {names}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject"
+    },
+    "Poise": {
+      "parser": "poise",
+      "format": "work-json",
+      "brief_template": "Poise: {status}",
+      "expanded_template": "{brief}\nNext: {next_work}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject"
+    }
+  }
+}

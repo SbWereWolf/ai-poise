@@ -1,0 +1,408 @@
+"""Integration subject: exact continuation across committed real-owner effects."""
+from copy import deepcopy
+import json
+from pathlib import Path
+
+import pytest
+
+from batch.helpers import request, result
+from conftest import WorkPoise, git
+from poise.application.work import WorkTools
+from poise.common import PoiseError
+from poise.modules.foundation.errors import VersionConflict
+from poise.modules.tasks.ports import TaskReadSet
+from runtime_services.stage_result_handoff_helpers import (
+    blocked, blocked_details, business, complete, configure, count, fixture, handoff, interrupt_after,
+    receiver, source_state, start,
+)
+
+
+def test_existing_unknown_receipt_control_preserves_the_real_pending_attempt(project, monkeypatch):
+    tools, _, packet, counter = start(project)
+    original = tools.runtime.evidence_commands.record_receipt
+
+    def unavailable(*_args, **_kwargs):
+        raise PoiseError("fixture terminal receipt persistence unavailable")
+
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", unavailable)
+    verification = request("verify", {"result": packet["input"]["result"], "artifacts": []})
+    with pytest.raises(PoiseError, match="fixture terminal receipt"):
+        tools.invoke(deepcopy(verification))
+    pending = deepcopy(source_state(tools)["pending"])
+    assert pending["kind"] == "check_attempt" and pending["runs"][0]["started"] is True
+    assert count(counter) == "x"
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", original)
+    with pytest.raises(PoiseError, match="Unknown check outcome"):
+        tools.invoke(deepcopy(verification))
+    assert source_state(tools)["pending"] == pending
+    assert count(counter) == "x"
+
+
+@pytest.mark.parametrize("owner", ["verification", "progression", "release"])
+def test_exact_continuation_does_not_repeat_a_committed_owner_effect(project, monkeypatch, owner):
+    tools, _, packet, counter = start(project, mode="same_role" if owner == "progression" else "roles")
+    if owner == "verification":
+        calls = interrupt_after(monkeypatch, tools.runtime, "verify", "after committed verify")
+    elif owner == "progression":
+        calls = interrupt_after(monkeypatch, tools.runtime, "advance", "after committed advance")
+    else:
+        calls = interrupt_after(monkeypatch, tools.runtime.ownership.commands, "release", "after committed release")
+    first = handoff(tools, packet)
+    assert business(first)["status"] in ("handoff_completed", "handoff_blocked")
+    if business(first)["status"] == "handoff_blocked":
+        blocked(first, owner)
+        blocked_details(first, "after_" + owner, identities=[packet["input"]["request_id"]])
+    assert count(counter) == "x"
+    resumed = handoff(tools, packet)
+    complete(resumed, replayed=business(first)["status"] == "handoff_completed")
+    assert calls  # The real owner was reached before injected response loss.
+    assert count(counter) == "x"
+    assert source_state(tools)["counts"][0] == 1
+    assert source_state(tools)["stage"] == ("next_work" if owner == "progression" else "author")
+    before = source_state(tools)
+    complete(handoff(tools, packet), replayed=True)
+    assert source_state(tools) == before
+
+
+def test_release_failure_has_a_real_partial_outcome_and_retries_without_new_verification(project, monkeypatch):
+    tools, _, packet, counter = start(project, mode="same_role")
+    original = tools.runtime.ownership.commands.release
+    attempts = []
+
+    def refuse_once(*args, **kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise PoiseError("fixture release temporarily refused")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(tools.runtime.ownership.commands, "release", refuse_once)
+    first = blocked(handoff(tools, packet), "release")
+    blocked_details(first, "release", identities=[packet["input"]["request_id"]])
+    assert first["verification"]["status"] == "verified"
+    assert first["progression"]["stage"] == "next_work"
+    assert first["release"] is None
+    assert source_state(tools)["claimed_by"] == "handoff-author"
+    assert count(counter) == "x"
+    complete(handoff(tools, packet))
+    assert count(counter) == "x" and source_state(tools)["counts"][0] == 1
+
+
+def test_response_loss_after_release_preserves_a_receiver_who_acquired_before_retry(project, monkeypatch):
+    tools, _, packet, counter = start(project)
+    calls = interrupt_after(monkeypatch, tools.runtime.ownership.commands, "release", "lost release acknowledgement")
+    first = handoff(tools, packet)
+    assert business(first)["status"] in ("handoff_completed", "handoff_blocked")
+    if business(first)["status"] == "handoff_blocked":
+        blocked(first, "release")
+        blocked_details(first, "release_acknowledgement", identities=[packet["input"]["request_id"]])
+    incoming, _ = receiver(project)
+    before = source_state(incoming)
+    ownership = incoming.runtime.ownership.snapshot("handoff-reviewer")
+    recovered = handoff(tools, packet)
+    complete(recovered, replayed=business(first)["status"] == "handoff_completed")
+    assert source_state(incoming) == before
+    assert incoming.runtime.ownership.snapshot("handoff-reviewer") == ownership
+    assert calls and count(counter) == "x"
+
+
+def test_missing_terminal_check_receipt_keeps_unknown_outcome_without_reexecution(project, monkeypatch):
+    tools, _, packet, counter = start(project)
+    original = tools.runtime.evidence_commands.record_receipt
+    seen = []
+
+    def lose_receipt(*args, **kwargs):
+        seen.append(1)
+        if len(seen) == 1:
+            raise PoiseError("fixture terminal receipt persistence unavailable")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", lose_receipt)
+    first = blocked(handoff(tools, packet), "verification")
+    assert first["progression"] is None and first["release"] is None
+    pending = deepcopy(source_state(tools)["pending"])
+    assert pending["kind"] == "check_attempt"
+    assert pending["runs"][0]["started"] is True and count(counter) == "x"
+    identities = [pending["attempt_id"], pending["runs"][0]["run_id"]]
+    blocked_details(first, "receipt_unavailable", identities=identities)
+    second = blocked(handoff(tools, packet), "verification")
+    blocked_details(second, "unknown", identities=identities)
+    assert source_state(tools)["pending"] == pending
+    assert source_state(tools)["claimed_by"] == "handoff-author"
+    assert count(counter) == "x"
+
+
+def test_source_drift_during_incomplete_handoff_never_advances_or_discards_the_change(project, monkeypatch):
+    tools, context, packet, counter = start(project)
+    original = tools.runtime.advance
+    attempts = []
+
+    def temporarily_blocked(*args, **kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise PoiseError("fixture progression temporarily unavailable")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(tools.runtime, "advance", temporarily_blocked)
+    first = blocked(handoff(tools, packet), "progression")
+    blocked_details(first, "progression", identities=[packet["input"]["request_id"]])
+    assert first["verification"]["status"] == "verified"
+    path = Path(context["worktree"]) / "src/double.py"
+    path.write_text("def double(n):\n    return n * 3\n", encoding="utf-8")
+    second = blocked(handoff(tools, packet), "progression")
+    blocked_details(second, "source_drift", identities=["T1"])
+    assert second["release"] is None
+    state = source_state(tools)
+    assert (state["stage"], state["status"], state["claimed_by"]) == (
+        "author", "verified", "handoff-author",
+    )
+    assert path.read_text(encoding="utf-8") == "def double(n):\n    return n * 3\n"
+    assert count(counter) == "x"
+
+
+@pytest.mark.parametrize("checkpoint", ["unknown_gate", "restored_receipt"])
+def test_dirty_source_native_commit_preserves_unknown_gate_and_exact_receipt_recovery(project, monkeypatch, checkpoint):
+    tools, context, packet, counter = start(project)
+    worktree = Path(context["worktree"])
+    source = worktree / "src/double.py"
+    source.write_text("def double(n):\n    return n * 2\n", encoding="utf-8")
+    git(worktree, "add", "src/double.py")
+    before_head = git(worktree, "rev-parse", "HEAD")
+    admitted_tree = git(worktree, "write-tree")
+    assert admitted_tree != git(worktree, "rev-parse", "HEAD^{tree}")
+    original = tools.runtime.evidence_commands.record_receipt
+    captured = []
+
+    def lose_original_receipt(*args, **kwargs):
+        captured.append((deepcopy(args), deepcopy(kwargs)))
+        raise PoiseError("fixture terminal receipt persistence unavailable")
+
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", lose_original_receipt)
+    first = blocked(handoff(tools, packet), "verification")
+    pending = deepcopy(source_state(tools)["pending"])
+    assert pending["kind"] == "check_attempt" and pending["runs"][0]["started"] is True
+    assert first["verification"] is None and first["progression"] is None and first["release"] is None
+    blocked_details(first, "receipt_unavailable", identities=[pending["attempt_id"], pending["runs"][0]["run_id"]])
+    committed_head = git(worktree, "rev-parse", "HEAD")
+    assert committed_head != before_head
+    assert git(worktree, "rev-parse", "HEAD^{tree}") == admitted_tree
+    assert git(worktree, "show", "HEAD:src/double.py") == "def double(n):\n    return n * 2"
+    assert tools.runtime.current_task()["publication"] is None
+    assert captured and count(counter) == "x"
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", original)
+    second = blocked(handoff(tools, packet), "verification")
+    assert source_state(tools)["pending"] == pending and count(counter) == "x"
+    assert source_state(tools)["claimed_by"] == "handoff-author"
+    assert second["progression"] is None and second["release"] is None
+    if checkpoint == "unknown_gate":
+        assert "Unknown check outcome" in second["blocked"]["reason"]
+        blocked_details(second, "unknown", identities=[pending["attempt_id"], pending["runs"][0]["run_id"]])
+        return
+    # Restore the exact captured real command receipt through its owner, not a synthetic PASS.
+    for args, kwargs in captured:
+        original(*args, **kwargs)
+    completed = complete(handoff(tools, packet), replayed=False)
+    assert completed["verification"]["verification_commit"] == committed_head
+    assert completed["verification"]["verified_tree"] == admitted_tree
+    state = source_state(tools)
+    assert state["pending"] is None and state["claimed_by"] is None
+    assert state["status"] == "verified" and state["stage"] == "author"
+    assert state["counts"][0] == 1 and count(counter) == "x"
+    assert git(worktree, "rev-parse", "HEAD") == committed_head
+    complete(handoff(tools, packet), replayed=True)
+    assert source_state(tools) == state and count(counter) == "x"
+
+
+def test_foreign_same_tree_commit_is_not_an_internal_verification_commit(project, monkeypatch):
+    tools, context, packet, counter = start(project)
+    worktree = Path(context["worktree"])
+    (worktree / "src/double.py").write_text("def double(n):\n    return n * 2\n", encoding="utf-8")
+    git(worktree, "add", "src/double.py")
+    admitted_tree = git(worktree, "write-tree")
+    assert admitted_tree != git(worktree, "rev-parse", "HEAD^{tree}")
+    original = tools.runtime.evidence_commands.record_receipt
+    captured = []
+
+    def lose_original_receipt(*args, **kwargs):
+        captured.append((deepcopy(args), deepcopy(kwargs)))
+        raise PoiseError("fixture terminal receipt persistence unavailable")
+
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", lose_original_receipt)
+    blocked(handoff(tools, packet), "verification")
+    pending = deepcopy(source_state(tools)["pending"])
+    own_commit = git(worktree, "rev-parse", "HEAD")
+    committed_tree = git(worktree, "rev-parse", "HEAD^{tree}")
+    assert committed_tree == admitted_tree
+    monkeypatch.setattr(tools.runtime.evidence_commands, "record_receipt", original)
+    assert captured
+    for args, kwargs in captured:
+        original(*args, **kwargs)
+    git(worktree, "commit", "--allow-empty", "-m", "Foreign same-tree commit")
+    foreign_commit = git(worktree, "rev-parse", "HEAD")
+    assert foreign_commit != own_commit and git(worktree, "rev-parse", "HEAD^{tree}") == committed_tree
+    result = blocked(handoff(tools, packet), "verification")
+    assert "source" in result["blocked"]["reason"].casefold()
+    assert "changed" in result["blocked"]["reason"].casefold()
+    assert result["verification"] is None and result["progression"] is None and result["release"] is None
+    state = source_state(tools)
+    assert state["pending"] == pending and state["claimed_by"] == "handoff-author"
+    assert state["stage"] == "author" and state["status"] == "active"
+    assert git(worktree, "rev-parse", "HEAD") == foreign_commit and count(counter) == "x"
+
+
+@pytest.mark.parametrize("checkpoint", ["direct_handoff", "already_verified", "dirty_handoff", "different_packet"])
+def test_content_gate_restoration_resumes_exact_handoff_and_preserves_original_outcome(project, checkpoint):
+    counter = configure(project)
+    data = fixture("content-recovery.json")
+    project["task"]["content_contract"]["requirements"] = [data["requirement"]]
+    project["task"]["stage_contracts"][0]["exit_requirements"] = ["current-result-artifact"]
+    tools = WorkTools(WorkPoise(project["config_path"], "handoff-author"))
+    context = tools.invoke(request("bootstrap", {
+        "task": deepcopy(project["task"]), "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    packet = fixture("handoff-packet.json")
+    packet["input"]["result"] = result(context, "Same result before and after restoring its required artifact.")
+    original_packet = deepcopy(packet)
+    worktree = Path(context["worktree"])
+    admitted_head = git(worktree, "rev-parse", "HEAD")
+    if checkpoint == "dirty_handoff":
+        (worktree / "src/double.py").write_text("def double(n):\n    return n * 2\n", encoding="utf-8")
+        git(worktree, "add", "src/double.py")
+    admitted_tree = git(worktree, "write-tree")
+    if checkpoint == "dirty_handoff":
+        assert admitted_tree != git(worktree, "rev-parse", "HEAD^{tree}")
+    first = blocked(handoff(tools, packet), "verification")
+    original_failure = deepcopy(first["verification"])
+    assert original_failure["status"] == "content_requirements_failed"
+    assert original_failure["content_gate"] == data["expected_blocked_gate"]
+    assert first["progression"] is None and first["release"] is None
+    assert "current-result-artifact" in first["blocked"]["reason"]
+    assert "устраните указанный native gate" in first["blocked"]["continuation"]
+    assert "handoff-fixture-1" in first["blocked"]["continuation"]
+    assert len(original_failure["checks"]) == 1
+    receipt = original_failure["checks"][0]
+    assert receipt["method"] == "CHECK-ONCE" and receipt["passed"] is True
+    assert receipt["actual_exit_code"] == 0 and Path(receipt["stdout"]).read_text() == "CHECK_ONCE\n"
+    initial = source_state(tools)
+    assert (initial["status"], initial["stage"], initial["claimed_by"], initial["pending"]) == (
+        "active", "author", "handoff-author", None,
+    )
+    assert initial["tree"] == admitted_tree and receipt["commit"] == initial["head"]
+    if checkpoint == "dirty_handoff":
+        assert initial["head"] != admitted_head
+        assert tools.runtime.current_task()["publication"] is None
+    closed = blocked(handoff(tools, packet), "verification")
+    assert closed["verification"]["content_gate"] == data["expected_blocked_gate"]
+    assert closed["verification"]["checks"] == original_failure["checks"]
+    assert count(counter) == "x" and source_state(tools)["claimed_by"] == "handoff-author"
+    restored = tools.invoke(request("artifacts", {"items": [data["artifact"]]}))
+    assert restored["status"] == "artifacts_created" and len(restored["artifact_paths"]) == 1
+    assert Path(restored["artifact_paths"][0]).read_text() == "Required original stage evidence.\n"
+    if checkpoint in ("already_verified", "different_packet"):
+        intents = deepcopy(packet["input"]["artifacts"]) if checkpoint == "already_verified" else []
+        verified = tools.invoke(request("verify", {"result": packet["input"]["result"], "artifacts": intents}))
+        assert verified["status"] == "verified" and verified["checks"] == original_failure["checks"]
+        assert source_state(tools)["status"] == "verified" and count(counter) == "x"
+        inputs = tools.runtime.store.unit_of_work().capture(TaskReadSet(
+            (), handoff_requests=(packet["input"]["request_id"],),
+        ))
+        saved = inputs.handoff(packet["input"]["request_id"])
+        actual_packet_digest = tools.runtime.work_resources.packet(tools.runtime.current_task())
+        if checkpoint == "different_packet":
+            assert actual_packet_digest != saved.packet_digest
+            with pytest.raises(PoiseError, match="Handoff verification work packet conflict"):
+                tools.runtime.stage_handoff.effects.recovered_verification(saved)
+            before_conflict = source_state(tools)
+            rejected = blocked(handoff(tools, packet), "verification")
+            if "Handoff verification work packet conflict" not in rejected["blocked"]["reason"]:
+                pytest.fail("Mismatched artifact intents must preserve the native work-packet conflict", pytrace=False)
+            assert rejected["verification"] == original_failure
+            assert rejected["progression"] is None and rejected["release"] is None
+            assert source_state(tools) == before_conflict and count(counter) == "x"
+            assert first["verification"] == original_failure and packet == original_packet
+            return
+        assert actual_packet_digest == saved.packet_digest
+        recovered = tools.runtime.stage_handoff.effects.recovered_verification(saved)
+        assert recovered["status"] == "verified" and recovered["checks"] == original_failure["checks"]
+    continued = handoff(tools, packet)
+    assert business(continued)["status"] == "handoff_completed", (
+        "Restored original content gate must resume the same handoff; actual verification="
+        + business(continued)["verification"]["status"]
+    )
+    completed = complete(continued, replayed=False)
+    assert completed["verification"]["checks"] == original_failure["checks"]
+    state = source_state(tools)
+    assert (state["status"], state["stage"], state["claimed_by"], state["pending"]) == (
+        "verified", "author", None, None,
+    )
+    assert state["head"] == initial["head"] and state["tree"] == initial["tree"]
+    assert completed["verification"]["verification_commit"] == initial["head"]
+    assert completed["verification"]["verified_tree"] == initial["tree"]
+    with tools.runtime.store.transaction() as database:
+        history = [json.loads(row["data"]) for row in database.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event=? ORDER BY seq",
+            ("T1", "stage_handoff.state"),
+        )]
+    assert any(item["verification"] == original_failure for item in history)
+    assert history[-1]["verification"] == completed["verification"] and history[-1]["completed"] is True
+    assert first["verification"] == original_failure and packet == original_packet and count(counter) == "x"
+    receiving, _ = receiver(project)
+    receiver_before = source_state(receiving)
+    assert receiver_before["claimed_by"] == "handoff-reviewer"
+    replayed = complete(handoff(tools, packet), replayed=True)
+    assert replayed["verification"] == completed["verification"]
+    assert replayed["progression"] == completed["progression"] and replayed["release"] == completed["release"]
+    assert source_state(receiving) == receiver_before and count(counter) == "x"
+
+
+def test_native_journal_cas_conflict_advises_exact_retry_without_source_drift(project, monkeypatch):
+    tools, _, packet, counter = start(project)
+    commands = tools.runtime.stage_handoff
+    original_save = commands._save
+    schedule = {}
+
+    def stale_confirmation(state, inputs=None):
+        if not schedule and state.verification is not None and state.progression_started is None:
+            schedule["started"] = True
+            saved = original_save(state, inputs)
+            newer = original_save(saved.changed(
+                progression_started=commands.effects.progression_context(saved),
+            ))
+            schedule["saved_revision"] = saved.revision
+            schedule["newer_revision"] = newer.revision
+            try:
+                return original_save(saved)
+            except VersionConflict as error:
+                schedule["actual_error"] = error
+                raise
+        return original_save(state, inputs)
+
+    monkeypatch.setattr(commands, "_save", stale_confirmation)
+    before = source_state(tools)
+    first = blocked(handoff(tools, packet), "verification")
+    assert isinstance(schedule["actual_error"], VersionConflict)
+    assert schedule["newer_revision"] == schedule["saved_revision"] + 1
+    assert first["blocked"]["reason"] == "Stage handoff revision changed; retry its exact public request"
+    assert first["verification"]["status"] == "verified"
+    assert first["progression"] is None and first["release"] is None
+    after_conflict = source_state(tools)
+    assert (after_conflict["head"], after_conflict["tree"]) == (before["head"], before["tree"])
+    assert (after_conflict["status"], after_conflict["stage"], after_conflict["claimed_by"]) == (
+        "verified", "author", "handoff-author",
+    )
+    assert after_conflict["pending"] is None and count(counter) == "x"
+    completed = complete(handoff(tools, packet), replayed=False)
+    assert completed["verification"] == first["verification"]
+    after_retry = source_state(tools)
+    assert after_retry["claimed_by"] is None and after_retry["pending"] is None
+    assert after_retry["head"] == before["head"] and after_retry["tree"] == before["tree"]
+    assert after_retry["counts"][0] == 1 and count(counter) == "x"
+    receiving, _ = receiver(project)
+    receiver_before = source_state(receiving)
+    assert receiver_before["claimed_by"] == "handoff-reviewer"
+    replayed = complete(handoff(tools, packet), replayed=True)
+    assert replayed["verification"] == completed["verification"]
+    assert replayed["progression"] == completed["progression"] and replayed["release"] == completed["release"]
+    assert source_state(receiving) == receiver_before and count(counter) == "x"
+    assert first["blocked"]["continuation"] == (
+        "Повторите точный handoff request_id=handoff-fixture-1 task_id=T1."
+    ), "Native journal CAS conflict must keep the exact original handoff retry"

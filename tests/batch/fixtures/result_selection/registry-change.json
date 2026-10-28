@@ -1,0 +1,14 @@
+{
+  "request_id": "selected-registry-edit-1",
+  "expected_revision": 0,
+  "operations": [
+    {
+      "kind": "remove",
+      "method_id": "CLEANUP_FULL_GREEN"
+    }
+  ],
+  "executable_obligations": [
+    "requirements[0]",
+    "definition_of_done[0]"
+  ]
+}

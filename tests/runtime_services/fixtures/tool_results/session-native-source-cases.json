@@ -1,0 +1,16 @@
+{
+  "healthy": {
+    "chunk_id": "20e32b",
+    "wall_time_seconds": 1.5345e-05,
+    "exit_code": 0,
+    "original_token_count": 255,
+    "output": "F08_BEGIN\nabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\nF08_END\n"
+  },
+  "partial": {
+    "chunk_id": "ef9697",
+    "wall_time_seconds": 1.3853e-05,
+    "exit_code": 0,
+    "original_token_count": 255,
+    "output": "Warning: truncated output (original token count: 255)\nTotal output lines: 3\n\nF08_BEGIN\nabcdefghijabcd…243 tokens truncated…fghijabcdefghij\nF08_END\n"
+  }
+}

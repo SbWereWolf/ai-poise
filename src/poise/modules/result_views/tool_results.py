@@ -1,7 +1,9 @@
 """Complete tool-result contracts and pure model-facing selections."""
 from copy import deepcopy
 from dataclasses import dataclass
+import json
 import re
+from string import Formatter
 
 from ..foundation.errors import DomainError
 from ..foundation.validation import configuration_fields
@@ -49,11 +51,14 @@ def tool_identity(tool):
     if not text(tool['name']): reject()
 
 
-def saved_result(value, address, scope):
+def saved_result(value, address, scope, *, prepared=False):
     """Validate the complete stored wire shape before exposing source pointers."""
     try:
-        exact(value, {'schema', 'status', 'response_path', 'tool', 'response', 'capture',
-                      'exit_code', 'streams', '_scope', '_fingerprint', '_response_source'})
+        fields = {'schema', 'status', 'response_path', 'tool', 'response', 'capture',
+                  'exit_code', 'streams', '_scope', '_fingerprint', '_response_source'}
+        if prepared:
+            fields |= {'run_id', 'full_path', 'expanded_path', 'last_path', '_prepared', '_published'}
+        exact(value, fields)
         if (value['schema'] != 'poise-tool-result-1' or value['status'] != 'stored'
                 or value['response_path'] != address or value['_scope'] != scope): reject()
         if not isinstance(value['_fingerprint'], str) or not re.fullmatch('[0-9a-f]{64}', value['_fingerprint']): reject()
@@ -66,6 +71,14 @@ def saved_result(value, address, scope):
                     or not integer(item['bytes'], 0) or not integer(item['lines'], 0)
                     or type(item['binary']) is not bool or not isinstance(item['sha256'], str)
                     or not re.fullmatch('[0-9a-f]{64}', item['sha256'])): reject()
+        if prepared:
+            from uuid import UUID
+            if str(UUID(value['run_id'])) != value['run_id']: reject()
+            exact(value['_prepared'], {'brief', 'expanded'})
+            if any(not isinstance(v, str) for v in value['_prepared'].values()): reject()
+            if type(value['_published']) is not bool: reject()
+            if any(not text(value[k]) or not value[k].startswith('/')
+                   for k in ('full_path', 'expanded_path', 'last_path')): reject()
         return value
     except (DomainError, KeyError, TypeError, ValueError) as exc:
         raise ToolResultFailure('source_invalid', 'source', 'restore:source') from exc
@@ -135,7 +148,77 @@ class ToolResultPolicy:
             if p['hook']['mode'] not in ('audit', 'enforce'): raise ValueError('Invalid hook mode')
             for k in ('max_response_bytes', 'max_response_lines'):
                 if not integer(p['hook'][k], 1): raise ValueError(k)
-            return cls(deepcopy(p))
+            if 'session' in raw or 'parsers' in raw:
+                session = config(raw['session'], 'root runs last expanded full')
+                if not text(session['root']) or not session['root'].startswith('/'):
+                    raise ValueError('Explicit session root required')
+                names = [session[k] for k in ('runs', 'last', 'expanded', 'full')]
+                if any(not text(n) or '/' in n or n in ('.', '..') for n in names) or len(set(names)) != 4:
+                    raise ValueError('Distinct session names required')
+                if not isinstance(raw['parsers'], dict) or not raw['parsers']:
+                    raise ValueError('Explicit tool parsers required')
+                for name, parser in raw['parsers'].items():
+                    if not text(name) or not isinstance(parser, dict): raise ValueError('Invalid parser')
+                    for field in ('parser', 'format', 'brief_template', 'expanded_template', 'overflow'):
+                        if not text(parser[field]): raise ValueError(field)
+                    if parser['overflow'] != 'reject': raise ValueError('Unsupported overflow')
+                    if parser['format'] == 'native-text':
+                        if parser['parser'] != 'bash': raise ValueError('Invalid text parser')
+                        template_fields(parser['brief_template'], {'summary'})
+                        template_fields(parser['brief_without_summary'], set())
+                        template_fields(parser['expanded_template'], {'brief', 'details'})
+                    if parser['format'] == 'saved-work-text' and parser['parser'] != 'poise':
+                        raise ValueError('Invalid saved work parser')
+                    for view in ('brief', 'expanded'):
+                        limits = config(parser[view], 'chars bytes')
+                        if any(not integer(n, 1) for n in limits.values()): raise ValueError(view)
+                    if parser['format'] == 'mcp-content-json':
+                        if (parser['parser'] != 'mcp' or not integer(parser['content_index'], 0)
+                                or not integer(parser['expected_version'], 0)):
+                            raise ValueError('Invalid MCP content profile')
+                        for field in ('version_path', 'items_path', 'name_path'):
+                            path = parser[field]
+                            if not isinstance(path, list) or not path or any(not text(k) for k in path):
+                                raise ValueError('Invalid MCP object path')
+                        for field, allowed in (
+                                ('brief_template', {'count'}),
+                                ('expanded_template', {'brief', 'names'}),
+                                ('error_brief_template', {'error'}),
+                                ('error_expanded_template', {'brief', 'error'})):
+                            if not text(parser[field]):
+                                raise ValueError('Invalid MCP template')
+                            template_fields(parser[field], allowed)
+                    if 'expanded_fields' in parser or 'expanded_separator' in parser:
+                        fields = parser['expanded_fields']
+                        if not isinstance(fields, list) or not isinstance(parser['expanded_separator'], str):
+                            raise ValueError('Invalid expanded projection')
+                        for field in fields:
+                            item = config(field, 'path required format template')
+                            if (not isinstance(item['path'], list) or not item['path']
+                                    or any(not text(k) for k in item['path'])
+                                    or type(item['required']) is not bool
+                                    or item['format'] not in ('json', 'count')
+                                    or not isinstance(item['template'], str)):
+                                raise ValueError('Invalid expanded field')
+                            template_fields(item['template'], {'value'})
+                p.update(session=deepcopy(session), parsers=deepcopy(raw['parsers']))
+            if 'selection' in raw:
+                rules = raw['selection']
+                if not isinstance(rules, list) or not rules:
+                    raise ValueError('Explicit parser selection required')
+                ids = set()
+                for rule in rules:
+                    item = config(rule, 'id tool_name profile priority command_pattern')
+                    if (not text(item['id']) or item['id'] in ids or not text(item['tool_name'])
+                            or not text(item['profile']) or item['profile'] not in raw['parsers']
+                            or not integer(item['priority'], 0)):
+                        raise ValueError('Invalid parser selection')
+                    ids.add(item['id'])
+                    if item['command_pattern'] is not None:
+                        if not isinstance(item['command_pattern'], str):
+                            raise ValueError('Invalid command pattern')
+                        re.compile(item['command_pattern'])
+            return cls(deepcopy(raw))
         except (DomainError, KeyError, TypeError, ValueError, re.error) as exc:
             raise ToolResultFailure('invalid_policy', 'policy', 'correct:policy') from exc
 
@@ -152,12 +235,16 @@ class ToolResultRequest:
         fields = {
             'capture': {'request_id', 'tool', 'response', 'streams', 'capture', 'exit_code'},
             'hook': {'request_id', 'event', 'streams', 'capture', 'exit_code'},
+            'expanded': set(), 'full': set(),
             'view': {'response_path', 'view'}, 'summary': {'response_path', 'channel'},
             'lines': {'response_path', 'channel', 'from_line', 'to_line'},
             'bytes': {'response_path', 'channel', 'start', 'end'},
             'search': {'response_path', 'channel', 'pattern', 'context', 'max_matches'}}
         if not text(operation) or operation not in fields: reject()
         exact(value, base | fields[operation])
+        if operation in ('expanded', 'full'):
+            if 'session' not in policy: reject('invalid_policy', 'session', 'correct:policy')
+            return cls(deepcopy(value))
         if operation in ('capture', 'hook'):
             if not text(value['request_id']): reject()
             exact(value['streams'], {'stdout', 'stderr'})
@@ -168,9 +255,12 @@ class ToolResultRequest:
             else:
                 event = value['event']
                 required = {'session_id', 'turn_id', 'tool_use_id', 'hook_event_name', 'tool_name',
-                            'tool_input', 'tool_response', 'cwd'}
+                            'tool_input', 'cwd'}
                 if not isinstance(event, dict) or not required.issubset(event): reject()
-                if event['hook_event_name'] != 'PostToolUse' or event['tool_name'] != 'Bash':
+                if 'tool_response' not in event:
+                    reject('source_missing', 'tool_response', 'provide:source')
+                if event['hook_event_name'] != 'PostToolUse' or (event['tool_name'] != 'Bash'
+                        and 'session' not in policy):
                     reject('unmapped_input', 'event', 'configure:input')
                 if event['tool_use_id'] != value['request_id']: reject()
         else:
@@ -189,6 +279,211 @@ class ToolResultRequest:
                 try: re.compile(value['pattern'])
                 except re.error: reject('invalid_pattern', 'pattern', 'correct:pattern')
         return cls(deepcopy(value))
+
+
+def select_parser(event, policy):
+    """Choose one declared native profile without decoding or authorizing input."""
+    name = event['tool_name']
+    if 'selection' not in policy:
+        if name not in policy['parsers']:
+            reject('unmapped_input', 'tool_name', 'configure:input')
+        return name, policy['parsers'][name]
+    rules = [r for r in policy['selection'] if r['tool_name'] == name]
+    command = event.get('tool_input', {}).get('command') if isinstance(event.get('tool_input'), dict) else None
+    if any(r['command_pattern'] is not None for r in rules) and not isinstance(command, str):
+        reject('unmapped_input', 'tool_input.command', 'configure:input')
+    matches = [r for r in rules if r['command_pattern'] is None
+               or re.fullmatch(r['command_pattern'], command) is not None]
+    if not matches:
+        reject('unmapped_input', 'tool_name', 'configure:input')
+    priority = max(r['priority'] for r in matches)
+    winners = [r for r in matches if r['priority'] == priority]
+    if len(winners) != 1:
+        reject('ambiguous_parser', 'selection', 'configure:input')
+    profile = winners[0]['profile']
+    return profile, policy['parsers'][profile]
+
+
+def native_snapshot(event, policy, *, selected=None):
+    """Classify the declared whole wire value without reading or running a source."""
+    name = event['tool_name']
+    _, parser = select_parser(event, policy) if selected is None else selected
+    response = deepcopy(event['tool_response'])
+    capture = {'state': 'complete', 'reason': None}
+    exit_code = None
+    output = None
+    if parser['format'] in ('native-text', 'saved-work-text'):
+        if not isinstance(response, str):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+        output = response
+    elif parser['format'] in ('native-exec-json', 'saved-work-json'):
+        if not isinstance(response, dict) or not isinstance(response.get('output'), str):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+        if 'session_id' in response and type(response.get('exit_code')) is not int:
+            return {'pending': True, 'capture': {'state': 'unknown', 'reason': 'native_process_pending'}}
+        if type(response.get('exit_code')) is not int:
+            reject('unmapped_input', 'exit_code', 'configure:input')
+        exit_code = response['exit_code']
+        output = response['output']
+    elif parser['format'] in ('records-json', 'mcp-content-json'):
+        if not isinstance(response, dict) or not isinstance(response.get('content'), list):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+    elif parser['format'] == 'work-json':
+        if not isinstance(response, dict) or not isinstance(response.get('status'), str):
+            reject('unmapped_input', 'tool_response', 'configure:input')
+    else:
+        reject('unmapped_input', 'format', 'configure:input')
+    if output is not None:
+        if (re.match(r'Warning: truncated output \(original token count: \d+\)', output)
+                or re.search(r'…\d+ tokens truncated…', output)):
+            capture = {'state': 'partial', 'reason': 'native_output_truncated'}
+        elif 'tokens truncated' in output or output.startswith('Warning: truncated output'):
+            capture = {'state': 'unknown', 'reason': 'native_output_ambiguous'}
+    return {'pending': False, 'tool': {'name': name,
+            'kind': 'mcp' if parser['parser'] == 'mcp' else 'bash' if name == 'Bash' else 'generic'},
+            'response': response, 'capture': capture, 'exit_code': exit_code}
+
+
+def template_fields(template, allowed=None):
+    """Admit plain named slots only, without attribute/index traversal or coercion."""
+    fields = set()
+    for _, field, spec, conversion in Formatter().parse(template):
+        if field is None:
+            continue
+        if (not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', field) or spec or conversion
+                or (allowed is not None and field not in allowed)):
+            raise ValueError('Invalid template field')
+        fields.add(field)
+    return fields
+
+
+def work_template(template, raw, *, brief=None):
+    values = {}
+    for field in template_fields(template):
+        value = brief if field == 'brief' else raw[field]
+        if not isinstance(value, str):
+            raise ValueError('Invalid work field')
+        values[field] = value
+    return template.format(**values)
+
+
+def work_projection(raw, parser):
+    lines = []
+    for field in parser['expanded_fields']:
+        value, found = raw, True
+        for key in field['path']:
+            if not isinstance(value, dict):
+                raise ValueError('Invalid work projection path')
+            if key not in value:
+                found = False
+                break
+            value = value[key]
+        if not found:
+            if field['required']:
+                raise ValueError('Missing required work field')
+            continue
+        if field['format'] == 'count':
+            if not isinstance(value, list):
+                raise ValueError('Invalid work collection')
+            rendered = str(len(value))
+        else:
+            rendered = utf8_json_text(value)
+        template_fields(field['template'], {'value'})
+        lines.append(field['template'].format(value=rendered))
+    return lines
+
+
+def mcp_object_path(value, path):
+    for key in path:
+        if not isinstance(value, dict):
+            raise ValueError('Invalid MCP object path')
+        value = value[key]
+    return value
+
+
+def mcp_json_constant(value):
+    raise ValueError('Invalid MCP JSON constant')
+
+
+def mcp_content_views(raw, parser):
+    if not isinstance(raw, dict) or type(raw['isError']) is not bool:
+        raise ValueError('Invalid MCP envelope')
+    content = raw['content']
+    if not isinstance(content, list) or parser['content_index'] >= len(content):
+        raise ValueError('Missing selected MCP content')
+    selected = content[parser['content_index']]
+    if (not isinstance(selected, dict) or selected['type'] != 'text'
+            or not isinstance(selected['text'], str)):
+        raise ValueError('Invalid MCP text content')
+    if raw['isError']:
+        brief = parser['error_brief_template'].format(error=selected['text'])
+        expanded = parser['error_expanded_template'].format(brief=brief, error=selected['text'])
+    else:
+        body = json.loads(selected['text'], parse_constant=mcp_json_constant)
+        version = mcp_object_path(body, parser['version_path'])
+        if type(version) is not int or version != parser['expected_version']:
+            raise ValueError('Invalid MCP version')
+        items = mcp_object_path(body, parser['items_path'])
+        if not isinstance(items, list):
+            raise ValueError('Invalid MCP items')
+        names = [mcp_object_path(item, parser['name_path']) for item in items]
+        if any(not isinstance(name, str) for name in names):
+            raise ValueError('Invalid MCP name')
+        brief = parser['brief_template'].format(count=len(items))
+        expanded = parser['expanded_template'].format(brief=brief, names=','.join(names))
+    return brief, expanded
+
+
+def prepare_views(record, sources, policy, *, selected_parser=None):
+    """Select both forms once from the complete source at its canonical owner."""
+    parser = (policy.get('parsers', {}).get(record['tool']['name'])
+              if selected_parser is None else selected_parser)
+    if parser is None or parser.get('parser') not in ('bash', 'mcp', 'poise'):
+        reject('unmapped_input', 'parser', 'configure:input')
+    try:
+        raw = record['response']
+        kind = parser['parser']
+        if kind == 'bash':
+            actual = []
+            for channel in ('stdout', 'stderr'):
+                if sources[channel] is not None:
+                    actual.extend(''.join(sources[channel].lines()).splitlines())
+            lines = actual if actual else (
+                raw if parser['format'] == 'native-text' else raw['output']).splitlines()
+            summaries = [line[len(parser['summary_prefix']):] for line in lines
+                         if line.startswith(parser['summary_prefix'])]
+            details = '\n'.join(line for line in lines if line.startswith(parser['detail_prefix']))
+            if summaries:
+                brief = parser['brief_template'].format(exit_code=record['exit_code'], summary=summaries[0])
+            elif parser['summary_missing'] == 'exit-only':
+                brief = parser['brief_without_summary'].format(exit_code=record['exit_code'])
+            else:
+                raise ValueError('Missing summary')
+            expanded = parser['expanded_template'].format(brief=brief, details=details)
+        elif kind == 'mcp':
+            if parser['format'] == 'mcp-content-json':
+                brief, expanded = mcp_content_views(raw, parser)
+            else:
+                content = raw['structuredContent']
+                if type(content['count']) is not int or not isinstance(content['names'], list):
+                    raise ValueError('Invalid records')
+                if any(not isinstance(n, str) for n in content['names']): raise ValueError('Invalid names')
+                brief = parser['brief_template'].format(count=content['count'])
+                expanded = parser['expanded_template'].format(brief=brief, names=','.join(content['names']))
+        else:
+            if not isinstance(raw['status'], str):
+                raise ValueError('Invalid work result')
+            brief = work_template(parser['brief_template'], raw)
+            expanded = work_template(parser['expanded_template'], raw, brief=brief)
+            if 'expanded_fields' in parser:
+                expanded = parser['expanded_separator'].join([expanded, *work_projection(raw, parser)])
+    except (KeyError, TypeError, ValueError, AttributeError, UnicodeError) as exc:
+        raise ToolResultFailure('parser_failed', 'source', 'inspect:source') from exc
+    pair = {'brief': brief, 'expanded': expanded}
+    for name, value in pair.items():
+        if len(value) > parser[name]['chars'] or len(value.encode()) > parser[name]['bytes']:
+            reject('budget_too_small', name, 'increase:budget')
+    return pair
 
 
 def navigation(record, mode=None):

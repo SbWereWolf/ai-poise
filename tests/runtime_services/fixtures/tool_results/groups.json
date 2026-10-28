@@ -40,5 +40,97 @@
     "tests/runtime_services/test_tool_results_reader.py::test_reader_selects_actual_structured_or_stderr_source[search-response]",
     "tests/runtime_services/test_tool_results_reader.py::test_unicode_excerpt_contains_exact_bounded_source_fragment",
     "tests/runtime_services/test_tool_results_installed.py::test_installed_tool_result_consumer"
+  ],
+  "f08-parsers": [
+    "tests/runtime_services/test_tool_results_parsers.py::test_full_source_prepares_two_independent_forms",
+    "tests/runtime_services/test_tool_results_parsers.py::test_application_uses_actual_pair_once",
+    "tests/runtime_services/test_tool_results_parsers.py::test_exact_prepared_form_budget",
+    "tests/runtime_services/test_tool_results_parsers.py::test_unicode_budget_uses_actual_units",
+    "tests/runtime_services/test_tool_results_parsers.py::test_exact_special_source_and_unicode",
+    "tests/runtime_services/test_tool_results_parsers.py::test_parser_producer_refuses_meaningfully",
+    "tests/runtime_services/test_tool_results_parsers.py::test_capture_consumer_keeps_failure_and_source"
+  ],
+  "f08-session": [
+    "tests/runtime_services/test_tool_results_session.py"
+  ],
+  "f08-source": [
+    "tests/runtime_services/test_tool_results_source_contract.py::test_terminal_native_source_is_classified_before_capture",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_clipped_native_envelope_stays_original_and_partial",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_latest_partial_cannot_return_older_complete_full_path",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_native_missing_pending_and_unknown_are_not_complete",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_token_count_is_not_the_completeness_oracle",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_input_limit_refusal_keeps_original_data"
+  ],
+  "f08-hook": [
+    "tests/hook_transport/test_tool_results_delivery.py::test_isolated_post_tool_use_delivers_prepared_brief_and_full_source",
+    "tests/hook_transport/test_tool_results_delivery.py::test_output_joins_existing_sync_async_chain",
+    "tests/hook_transport/test_tool_results_delivery.py::test_ordinary_poise_saved_response_enters_same_hook_path",
+    "tests/hook_transport/test_tool_results_delivery.py::test_actual_service_result_crosses_hook_without_capture",
+    "tests/hook_transport/test_tool_results_delivery.py::test_output_keeps_real_bash_intake_coverage"
+  ],
+  "f08-existing": [
+    "tests/runtime_services/test_tool_results_capture.py::test_bash_full_capture_and_machine_consumer[short-success]",
+    "tests/runtime_services/test_tool_results_capture.py::test_bash_full_capture_and_machine_consumer[large-failure]",
+    "tests/runtime_services/test_tool_results_capture.py::test_mcp_full_envelope_and_machine_consumer[small]",
+    "tests/runtime_services/test_tool_results_capture.py::test_mcp_full_envelope_and_machine_consumer[large]",
+    "tests/runtime_services/test_tool_results_capture.py::test_complete_partial_unknown_are_not_inferred",
+    "tests/runtime_services/test_tool_results_capture.py::test_mcp_and_bash_machine_outputs_ignore_agent_budget",
+    "tests/runtime_services/test_tool_results_capture.py::test_taskless_placement_and_identity_replay",
+    "tests/runtime_services/test_tool_results_boundaries.py"
+  ],
+  "f08-dispatch-preservation": [
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result",
+    "tests/hook_transport/test_architecture_dispatch.py::test_completed_invocation_replay_does_not_execute",
+    "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+    "tests/hook_transport/test_architecture_async.py::test_async_result_cannot_change_native_response"
+  ],
+  "f08-code-regressions": [
+    "tests/hook_transport/test_tool_results_delivery.py::test_output_rejection_crosses_real_hook_boundary",
+    "tests/runtime_services/test_tool_results_parsers.py::test_separate_channel_lines_prepare_literal_pair",
+    "tests/runtime_services/test_tool_results_parsers.py::test_separate_channel_public_consumer_keeps_literal_pair",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_native_loss_marker_producer_uses_declared_profile",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_native_loss_marker_public_full_consumer"
+  ],
+  "f08-poise-profiles": [
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_explicit_profile_selector",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_actual_poise_source_forms",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_one_policy_mixed_native_outputs",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_selection_policy_keeps_actual_service_delivery",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_known_selection_configuration_refuses"
+  ],
+  "f08-actual-mcp-content": [
+    "tests/runtime_services/test_tool_results_mcp_content.py"
+  ],
+  "f08-native-wire-red": [
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_classifier_keeps_exact_value_and_unknown_process_facts",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_public_capture_and_services_keep_original_physical_text",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_loss_cannot_return_older_complete_full",
+    "tests/runtime_services/test_tool_results_native_text.py::test_real_process_text_capture_does_not_invent_its_unavailable_native_exit",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_large_full_file_has_readable_original_line_ranges",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_wrong_value_type_is_rejected_at_response_boundary",
+    "tests/runtime_services/test_tool_results_native_text.py::test_native_text_policy_rejects_templates_that_require_unavailable_exit",
+    "tests/runtime_services/test_tool_results_native_text.py::test_saved_work_text_source_failures_are_precise_and_do_not_invent_exit",
+    "tests/hook_transport/test_native_text_delivery.py::test_actual_shaped_text_reaches_real_dispatcher_and_delivers_prepared_brief",
+    "tests/hook_transport/test_native_text_delivery.py::test_actual_text_service_response_crosses_hook_without_new_capture",
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_poise_text_envelope_and_same_json_as_bash_have_distinct_sources",
+    "tests/hook_transport/test_native_text_delivery.py::test_partial_full_refusal_crosses_hook_without_recapture"
+  ],
+  "f08-native-wire-controls": [
+    "tests/runtime_services/test_tool_results_native_text.py::test_legacy_object_wire_remains_strict_about_text",
+    "tests/hook_transport/test_native_text_delivery.py::test_mcp_object_control_survives_explicit_text_bash_profile",
+    "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_snapshot",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_native_missing_pending_and_unknown_are_not_complete",
+    "tests/runtime_services/test_tool_results_source_contract.py::test_terminal_native_source_is_classified_before_capture",
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_bash_rejection_json_remains_an_ordinary_result"
+  ],
+  "f08-service-refusal-red": [
+    "tests/hook_transport/test_native_text_delivery.py::test_partial_full_refusal_crosses_hook_without_recapture"
+  ],
+  "f08-service-refusal-controls": [
+    "tests/hook_transport/test_native_text_delivery.py::test_ordinary_bash_rejection_json_remains_an_ordinary_result",
+    "tests/hook_transport/test_native_text_delivery.py::test_actual_text_service_response_crosses_hook_without_new_capture",
+    "tests/runtime_services/test_tool_results_poise_profiles.py::test_selection_policy_keeps_actual_service_delivery"
   ]
 }

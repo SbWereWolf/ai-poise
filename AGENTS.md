@@ -2,7 +2,19 @@ In Russian for humans, in English for AI
 
 ## Shared Task execution rules
 
-Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение). Registration requires the stated goal only; existing requirements and criteria are optional source material. Develop requirements and achievable DoD when beginning authorized work, after successful local prerequisites. Preserve the registered goal; agree revisions to other conditions as facts evolve. Design only the imminent stage immediately before execution, independently review its design and execution, and do not restart a Task for ordinary refinement of an unstarted stage. Follow [just-in-time stage design](docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом). A Sprint may start with one ready root while other members remain newborn. The executor writes plans, results and fixes; the reviewer approves plans and accepts results. These rules apply independently of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers from hypothetical implementation choices.
+Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение).
+Registration requires the stated goal only; existing requirements and criteria are optional source
+material. Develop requirements and achievable DoD when beginning authorized work, after successful
+local prerequisites. Preserve the registered goal; agree revisions to other conditions as facts
+evolve. Design only the imminent stage immediately before execution, independently review its design
+and execution, and do not restart a Task for ordinary refinement of an unstarted stage. Follow
+[just-in-time stage
+design](docs/workflows/task-execution-contract.md#проектирование-непосредственно-перед-этапом). A
+Sprint may start with one ready root while other members remain newborn. The executor writes plans,
+results and fixes; the reviewer approves plans and accepts results. These rules apply independently
+of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator
+documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers
+from hypothetical implementation choices.
 
 Do not give the final answer until every result has been verified
 -Eliminate: filler, hype, soft asks, conversational transitions, call-to-action appendixes.
@@ -21,9 +33,12 @@ USE [i-have-adhd](./.agents/skills/i-have-adhd/SKILL.md)
 
 # Working on AI poise
 
-A direct user instruction may temporarily override a project process rule. Request an exception only when correct
-completion is otherwise impossible; explain the rule, the blocked problem, the risks, the scope and when the exception
-expires. Platform safety constraints and storage integrity are not project rules that this mechanism can disable.
+A direct user instruction may temporarily override a project process rule. Request an exception only
+when correct
+completion is otherwise impossible; explain the rule, the blocked problem, the risks, the scope and
+when the exception
+expires. Platform safety constraints and storage integrity are not project rules that this mechanism
+can disable.
 
 ## Purpose and outcomes
 
@@ -31,28 +46,52 @@ Stride names the task-management system; Poise names the agent harness. Keep the
 versioned project-operation entry named `stride.sh`. Independent consumers use the
 shared package through their package manager with an explicitly selected version;
 each consumer updates separately. Keep working launcher settings outside source
-commits and configure tool/data roots independently. Follow the [canonical naming and distribution rule](docs/governance/development-rules.md#имена-системы-и-общая-библиотека-запуска)
+commits and configure tool/data roots independently. Follow the [canonical naming and distribution
+rule](docs/governance/development-rules.md#имена-системы-и-общая-библиотека-запуска)
 and [launcher contract](docs/configuration/stride-launcher.md#имена-и-владельцы).
 
-AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
+AI poise is a harness that helps agents work declaratively without needing to understand or manually
+service the implementation details of the tooling. Reduce the model tokens spent administering
+tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's
+work so that its effort goes into sound engineering decisions, useful code and clear documentation.
+Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical
+work and implementation knowledge while preserving the agent's substantive engineering choices. A
+template, router or recommendation is assistance, not a hidden policy that forces a valid task to
+fit the starter shape.
 
-Initial formulation records the goal, draft DoR/DoD and a feasible overall path from available facts; bounded source inspection is allowed, prototype implementation is not. The registration API may accept only the stated goal and existing material. When beginning execution, preserve that goal and establish the current agreed requirements, achievable definition of done and how completion will be demonstrated. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; future unstarted-stage criteria have their own proposal/decision owner. That storage limitation does not require routine Task restarts or premature future-stage work; use the existing recovery contract for an inadequate tool route.
-Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
-target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
-and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
-shape is not a blocker; structural validation does not prove that known required writes and verification obligations
-were inventoried. Design exact future test methods and provenance at their owning stage after their sources are known.
+Initial formulation records the goal, draft DoR/DoD and a feasible overall path from available
+facts; bounded source inspection is allowed, prototype implementation is not. The registration API
+may accept only the stated goal and existing material. When beginning execution, preserve that goal
+and establish the current agreed requirements, achievable definition of done and how completion will
+be demonstrated. For Task planning, treat a selected template as materialized starter data: the
+planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved
+contract in `ready`; future unstarted-stage criteria have their own proposal/decision owner. That
+storage limitation does not require routine Task restarts or premature future-stage work; use the
+existing recovery contract for an inadequate tool route.
+Before the first product write, choose the Task or explicitly authorized direct-correction delivery
+route, the local
+target and the review/check owner. Follow the [canonical
+decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
+and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready).
+A template's starter
+shape is not a blocker; structural validation does not prove that known required writes and
+verification obligations
+were inventoried. Design exact future test methods and provenance at their owning stage after their
+sources are known.
 
 Separate Sprint graph planning, bounded Task formulation and detailed execution
 design. Do not implement a prototype merely to approve a Task formulation or demand
-future test names at creation. Preserve the registered Task goal throughout its lifetime, including after restart,
+future test names at creation. Preserve the registered Task goal throughout its lifetime, including
+after restart,
 even when the API permits goal edits. Agree the necessary stage sequence before
 Task execution; design only the imminent stage immediately before doing it. Follow the
 [canonical goal rule](docs/governance/development-rules.md#task-goal-preservation).
 Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
-[paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
-and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
+[paired-stage
+contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
+and its explicit [runtime
+limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
 
 Development goals state application capabilities. Requirements align with the goal
 and define observable product behaviour across the declared supported scenarios
@@ -63,9 +102,12 @@ in their own content, and implementation choices in execution planning. Apply th
 when creating and independently reviewing a Task.
 
 Requirements describe the requested behavior through its conditions, action and observable result.
-Do not describe what behavior must not be or list excluded actions in requirements; put separately agreed prohibitions
-in Task constraints. Keep requirements within the authorized capability and use stable concepts rather than product
-names or concrete status identifiers. Follow the [positive formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
+Do not describe what behavior must not be or list excluded actions in requirements; put separately
+agreed prohibitions
+in Task constraints. Keep requirements within the authorized capability and use stable concepts
+rather than product
+names or concrete status identifiers. Follow the [positive formulation
+rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
 At System, Application and Task levels, express requirements through business/domain
 entities and observable behavior, outcomes, environment conditions, meaningful values
 and data. Keep implementation names and details in separate decisions, recommendations
@@ -73,11 +115,15 @@ or explicitly agreed constraints; preserve the executor's implementation freedom
 Make recorded decisions understandable without executing a checker; verify their
 description only by reading code, documentation and tests without treating that reading as
 behavioral test evidence. Apply the [task-design skill](.agents/skills/task-design/SKILL.md),
-which links to the canonical [domain-language rule](docs/workflows/paired-task-stages.md#предметный-язык-требований-и-свобода-реализации).
+which links to the canonical [domain-language
+rule](docs/workflows/paired-task-stages.md#предметный-язык-требований-и-свобода-реализации).
 
-Do not introduce symbolic-link checks by default. Such checks require an explicit user decision. Without a direct
-request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
-Follow [explicit agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
+Do not introduce symbolic-link checks by default. Such checks require an explicit user decision.
+Without a direct
+request, an agent may propose the option, but may investigate, design, implement or test it only
+after user agreement.
+Follow [explicit
+agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
 
 Present historical receipts of terminal Tasks using the exact Russian retirement message
 defined by the linked canonical terminal-history contract only after the existing delivery
@@ -95,33 +141,64 @@ remain with their existing owner. Follow [terminal
 history](docs/workflows/terminal-materials.md#чтение-и-повторное-использование-после-удаления)
 and [full output](docs/workflows/runner.md#полный-вывод-и-preview).
 
-Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
-the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
+Select the process of an existing Task from its current public context. For a new
+Task, use the explicitly selected project and starter; distinguish the top-level
+newborn workflow from active execution context. Follow the canonical
+[source selection](docs/workflows/task-planning.md#выбор-источника-процесса).
+Use separate test-owned workflow templates for harness source-selection and
+historical-feedback scenarios; inspect a product template as a subject against
+independent expectations. Follow
+[test templates](docs/governance/development-rules.md#отдельные-тестовые-шаблоны).
+
+Use test-driven development for executable behaviour changes: design the checks and write the tests
+before implementing
+the behaviour. Review the tests, implement the change, run the checks, and inspect the code and
+subsequent fixes. Do not
 present self-review as independent review.
 
 Turn every accepted agreement into product documentation. Maintain the [known-bugs
-register](docs/operations/known-bugs.md#ведение-реестра): remove a resolved active entry in the same verified fix; keep
-history in Git/evidence, and never call an accepted risk fixed. This does not require creating a Task for an explicitly
-authorized small direct correction. Only agents receive summarized tool output. Any tool response consumed by code
-of another tool preserves complete stdout, stderr and structured fields regardless of display limits. Agent
-presentation uses one common owner and configured parser; do not add internal per-tool clipping. Treat preview only
-as display: use full output for machine parsing and decisions via existing saved files or read-only tools; never
-rerun a mutation just to obtain its output. Follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
-decisions enforceable development rules and keep responsibility boundaries documented. Do not leave authoritative
+register](docs/operations/known-bugs.md#ведение-реестра): remove a resolved active entry in the same
+verified fix; keep
+history in Git/evidence, and never call an accepted risk fixed. This does not require creating a
+Task for an explicitly
+authorized small direct correction. Only agents receive summarized tool output. Any tool response
+consumed by code
+of another tool preserves complete stdout, stderr and structured fields regardless of display
+limits. Agent
+presentation uses one common owner and configured parser; do not add internal per-tool clipping.
+Treat preview only
+as display: use full output for machine parsing and decisions via existing saved files or read-only
+tools; never
+rerun a mutation just to obtain its output. Follow [full
+output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
+decisions enforceable development rules and keep responsibility boundaries documented. Do not leave
+authoritative
 decisions only in conversation history.
-Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
+Record every accepted global decision in its canonical documentation and a concise applicable rule
+linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
-Persist every harness refusal and bypass in the [common permanent working journal](docs/operations/harness-incident-journal.md#постоянное-хранилище)
-as it occurs, outside Git and disposable Task/runtime roots. Verify retained bytes before terminal handling or cleanup;
-keep only active known-bug summaries and common instructions versioned. Deliver accepted common logging-rule changes
-immediately under the [explicit direct-master scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила), not at the subject Task's end.
-Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the same business
-result without duplicate effects. Refusals identify a concrete obstacle and an executable remedy/continuation;
-unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal investigation.
-Follow [atomicity, idempotency and actionable refusals](docs/governance/development-rules.md#атомарность-идемпотентность-и-понятный-отказ).
-Reconcile a stale completion status with an actually completed, independently reviewed, accepted and integrated
-result through its public owner or an authorized audited manual correction. Preserve historical stages and native
+Persist every harness refusal and bypass in the [common permanent working
+journal](docs/operations/harness-incident-journal.md#постоянное-хранилище)
+as it occurs, outside Git and disposable Task/runtime roots. Verify retained bytes before terminal
+handling or cleanup;
+keep only active known-bug summaries and common instructions versioned. Deliver accepted common
+logging-rule changes
+immediately under the [explicit direct-master
+scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила), not at the
+subject Task's end.
+Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the
+same business
+result without duplicate effects. Refusals identify a concrete obstacle and an executable
+remedy/continuation;
+unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal
+investigation.
+Follow [atomicity, idempotency and actionable
+refusals](docs/governance/development-rules.md#атомарность-идемпотентность-и-понятный-отказ).
+Reconcile a stale completion status with an actually completed, independently reviewed, accepted and
+integrated
+result through its public owner or an authorized audited manual correction. Preserve historical
+stages and native
 receipts; distinguish manual reconciliation from native lifecycle completion. Follow
 [harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 When Poise blocks authorized work, use [harness-recovery](.agents/skills/harness-recovery/SKILL.md).
@@ -130,14 +207,21 @@ working route. Recurring problems require one repair draft; they do not automati
 Correct defective configuration, reject failed fixes, and preserve authority and storage integrity.
 
 For changed documentation or rule targets, follow [local links and exact
-headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to
+headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including
+inbound links to
 changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.
 
 
-Follow [supported use and sufficient design](docs/workflows/task-execution-contract.md#поддерживаемое-использование-и-достаточность-решения): implement the agreed behavior under documented proper use; do not invent hostile-administrator or universal misuse obligations, or automatic application self-repair. Preserve actual data and authority obligations. Documentation teaches correct procedures and uses correct examples.
+Follow [supported use and sufficient
+design](docs/workflows/task-execution-contract.md#поддерживаемое-использование-и-достаточность-решения):
+implement the agreed behavior under documented proper use; do not invent hostile-administrator or
+universal misuse obligations, or automatic application self-repair. Preserve actual data and
+authority obligations. Documentation teaches correct procedures and uses correct examples.
 
-Deliver the working path rather than delaying it for speculative combinations of conditions. Handle the ordinary routes
-and failures implied by the rules; resolve uncertain edge cases using actual usage and measurements. State current
+Deliver the working path rather than delaying it for speculative combinations of conditions. Handle
+the ordinary routes
+and failures implied by the rules; resolve uncertain edge cases using actual usage and measurements.
+State current
 limits honestly.
 
 ## Start and finish work
@@ -148,15 +232,21 @@ and does not prove Task readiness. A subject-runtime warning does not invalidate
 the delivered entry; ordinary work still validates its full contract. Follow
 [session entry delivery](docs/configuration/runtime-hooks.md#доставка-launcher-при-старте).
 
-Work from this AI poise repository and explicitly select the configured project. Target codebases have their own
-applicable `AGENTS.md` files; read those before working on them. Use the [AI poise skill](.agents/skills/poise/SKILL.md)
-for task work and the [development skill](.agents/skills/poise-development/SKILL.md) when changing AI poise itself. The
+Work from this AI poise repository and explicitly select the configured project. Target codebases
+have their own
+applicable `AGENTS.md` files; read those before working on them. Use the [AI poise
+skill](.agents/skills/poise/SKILL.md)
+for task work and the [development skill](.agents/skills/poise-development/SKILL.md) when changing
+AI poise itself. The
 [source rules](src/AGENTS.md) govern its implementation.
 
-Use the Task process' explicit worktree policy. When a dedicated Git worktree is required, place it with the
-repository/codebase being changed rather than under AI poise mutable state; when it is not required, work in that
+Use the Task process' explicit worktree policy. When a dedicated Git worktree is required, place it
+with the
+repository/codebase being changed rather than under AI poise mutable state; when it is not required,
+work in that
 project's configured repository checkout. See [worktree
-placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
+placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed
+files; the agent does
 not register them manually.
 
 The user assigns roles to agents. An agent may perform both executor and reviewer
@@ -165,45 +255,78 @@ Different roles do not require different agent/session identities. Tool access d
 not grant an additional role. Preserve native caller identity, ownership and truthful
 provenance. Follow the [canonical role-assignment rule](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
 
-One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and agree the exact restart and Task-contract correction with the independent reviewer instead of bypassing the harness. The agents decide and execute a restart through the public Task action without seeking another user decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the exact Task fields in `authorization.revision_fields`; the executor must not impersonate the reviewer. Project/harness rule changes still require separate user authority. Stop for a real blocker, a decision about global rules, or separately controlled acceptance/publication/integration. Before changing tasks, finish, release ownership through the ordinary public API, or safely discard the current work. A read-only query about another task does not switch ownership.
+One session works on one task. Stage ownership follows the canonical [executor/reviewer
+policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started
+Task authorizes its executor and reviewer to continue their respective stages, including checks and
+remediation, without a new command at each stage or review; honor explicit stage-only or other user
+limits. Verify each stage and use the [direct role
+handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role
+boundaries. If an executor concludes that the frozen requirements/rules make success impossible or
+the available workaround is not adequate to the Task, preserve evidence and agree the exact restart
+and Task-contract correction with the independent reviewer instead of bypassing the harness. The
+agents decide and execute a restart through the public Task action without seeking another user
+decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the
+exact Task fields in `authorization.revision_fields`; the executor must not impersonate the
+reviewer. Project/harness rule changes still require separate user authority. Stop for a real
+blocker, a decision about global rules, or separately controlled acceptance/publication/integration.
+Before changing tasks, finish, release ownership through the ordinary public API, or safely discard
+the current work. A read-only query about another task does not switch ownership.
 
-Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
+Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new
+project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
 Before project setup, correcting `git.base_ref`, or integrating a result, read
-[target branch selection](docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
-Inspect the configured primary checkout and its symbolic branch read-only. Treat a detached checkout,
-uncertain binding, or mismatch with `git.base_ref` as a stop condition until the authorized configuration
+[target branch
+selection](docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
+Inspect the configured primary checkout and its symbolic branch read-only. Treat a detached
+checkout,
+uncertain binding, or mismatch with `git.base_ref` as a stop condition until the authorized
+configuration
 owner resolves it. Do not switch the primary checkout to satisfy a manifest value.
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts.
 Direct working-file/database changes are limited to the authorized, audited exception in
-[harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход). Native coding tools remain appropriate for source code, tests and target
-documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not
-grant ongoing authorization. Report implemented and tested capabilities separately from planned ones.
+[harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход). Native coding
+tools remain appropriate for source code, tests and target
+documentation. Use the current user-authorized scope and applicable canonical documentation;
+historical plans do not
+grant ongoing authorization. Report implemented and tested capabilities separately from planned
+ones.
 
-When an authorized external publication makes a goal-config editor head stale, use the public `goal-config-status-1` and
+When an authorized external publication makes a goal-config editor head stale, use the public
+`goal-config-status-1` and
 exact `goal-config-reconcile-1` protocol documented in [goal
-configuration](docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией). Do not create a
+configuration](docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией).
+Do not create a
 fresh editor database to bypass the managed head.
 
-Count observed user messages without inventing missing messages or token usage. Preserve their source and coverage.
-Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
+Count observed user messages without inventing missing messages or token usage. Preserve their
+source and coverage.
+Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not
+automatically AI
 poise defects.
 
 **Applicability: when working in the cloud.**
 Require a portable checkpoint before terminal handling or risky transitions,
-restoration verification, Gmail archive/text delivery, and full attachment readback. Agree the permanent archive
-separately before retiring Task-root; local temporary checkpoints inside it are removed with other working material. Local development requires
-none of those actions for Task completion, integration, or Sprint continuation. Create local checkpoints or
-archives, verify their restoration, or send them only when the user explicitly requests those actions separately.
-Saving commits and check evidence does not require an archive. On resume, inspect already attached files before
+restoration verification, Gmail archive/text delivery, and full attachment readback. Agree the
+permanent archive
+separately before retiring Task-root; local temporary checkpoints inside it are removed with other
+working material. Local development requires
+none of those actions for Task completion, integration, or Sprint continuation. Create local
+checkpoints or
+archives, verify their restoration, or send them only when the user explicitly requests those
+actions separately.
+Saving commits and check evidence does not require an archive. On resume, inspect already attached
+files before
 asking for another upload. Follow [checkpoint and
-recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
+recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a
+saved commit, a
 passed check, a delivery receipt, and Task completion.
 
 ## Stage skills and missing expertise
 
-The [two-set stage-skill contract](docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+The [two-set stage-skill
+contract](docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
 is a draft for later tooling: copy meta and subject skill defaults from the selected
 stage template into a new Task, then let its planner remove/add skills for each stage.
 Executor and reviewer use the assigned current-stage skills; suggestions must not
@@ -233,7 +356,8 @@ git commit -m 'Commit messages explain user-visible outcomes' \
 
 This is Git, not an installed validator or permission to bypass Task lifecycle.
 Use the same message format through Poise's existing `commit_message` when its
-workflow owns the commit. See [message policy](docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070)
+workflow owns the commit. See [message
+policy](docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070)
 and [execution limits](docs/workflows/commit-messages.md#запуск-и-границы-полномочий).
 
 ## Shared agent policy
@@ -250,273 +374,491 @@ four combinations. Acquire the complete set atomically through its owner; never 
 an uncertain live claim. Automatic acquisition is distinct from explicit user-authorized
 [after-crash revocation](docs/workflows/crash-ownership-recovery.md): restore into isolated paths,
 confirm stopped writers, use the existing recover_ownership template and preserve
-Task history, WIP and pending outcomes. Never fabricate SessionEnd or reuse a revoked caller. The process snapshot determines a dependent worktree, which
+Task history, WIP and pending outcomes. Never fabricate SessionEnd or reuse a revoked caller. The
+process snapshot determines a dependent worktree, which
 is released with its Task; preserve an independent worktree and all WIP, cwd and launch
 roots. Claim replacement is not completion, cleanup or integration authority. Follow
 the canonical [ownership rule](docs/governance/development-rules.md#владение-task-и-worktree).
-At a role boundary the sender saves results, confirms public release, then directly messages the known counterpart;
-the recipient acquires before mutation. Existing user Task authorization covers ordinary review and remediation.
+At a role boundary the sender saves results, confirms public release, then directly messages the
+known counterpart;
+the recipient acquires before mutation. Existing user Task authorization covers ordinary review and
+remediation.
 
 The canonical policy is [Development
 rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2).
 Keep this English projection and its Russian source consistent in the same change.
 
-- Answer humans and write human-facing documentation in Russian. Write agent-facing files and instructions (`AGENTS.md`,
-  `.agents/**`, `.codex/**`, technical instructions in managed artifacts) in English. Write human-facing AI poise Task
-  goals, requirements and acceptance criteria in Russian, including within managed artifacts. Preserve native identifiers
+- Answer humans and write human-facing documentation in Russian. Write agent-facing files and
+  instructions (`AGENTS.md`,
+  `.agents/**`, `.codex/**`, technical instructions in managed artifacts) in English. Write
+  human-facing AI poise Task
+  goals, requirements and acceptance criteria in Russian, including within managed artifacts.
+  Preserve native identifiers
   and syntax.
-- Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts
-  implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation
+- Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations
+  and scripts
+  implement that contract; historical plans and reports are not independent policy. Co-deliver
+  affected documentation
   with behaviour, configuration or workflow changes.
-- Keep the existing path resolution of AI poise-owned hooks, tools, runtime code and configuration. Pass a checkout or
-  working directory as an explicit filesystem path/cwd only to the operation that needs it; see [path resolution and
-  working copies](docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии).
-- Keep Requirements at exactly three semantic levels: System → Application → Task. Bottom-up Task discovery may create proposed System/Application requirements. Future/projected chains may use explicit typed empty placeholders at missing levels once the owner supports them; placeholders are gaps, not satisfaction and not a fourth level. Virtual grouping is orthogonal. Never invent ancestry when the mapping is unclear; ask for the missing decision.
-- Reuse evidence and artifacts through their owners. Repository evidence is valid only for the exact commit hash it proves (plus its compatible requirement/method provenance); a changed commit hash requires fresh evidence. Do not manually copy receipts to manufacture reuse.
-- Read applicable nested agent rules before working on their surface. Use specific rules within root constraints,
-  subject to higher-priority platform and user instructions. Load only skills and reference sections needed for the
+- When changing AI-agent rules, skills or operating instructions, follow
+  [Instruction development scope](.agents/skills/poise/SKILL.md#instruction-development-scope)
+  before declaring the affected stage ready or editing files.
+- Keep the existing path resolution of AI poise-owned hooks, tools, runtime code and configuration.
+  Pass a checkout or
+  working directory as an explicit filesystem path/cwd only to the operation that needs it; see
+  [path resolution and
+  working
+  copies](docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии).
+- Keep Requirements at exactly three semantic levels: System → Application → Task. Bottom-up Task
+  discovery may create proposed System/Application requirements. Future/projected chains may use
+  explicit typed empty placeholders at missing levels once the owner supports them; placeholders are
+  gaps, not satisfaction and not a fourth level. Virtual grouping is orthogonal. Never invent
+  ancestry when the mapping is unclear; ask for the missing decision.
+- Reuse evidence and artifacts through their owners. Repository evidence is valid only for the exact
+  commit hash it proves (plus its compatible requirement/method provenance); a changed commit hash
+  requires fresh evidence. Do not manually copy receipts to manufacture reuse.
+- Read applicable nested agent rules before working on their surface. Use specific rules within root
+  constraints,
+  subject to higher-priority platform and user instructions. Load only skills and reference sections
+  needed for the
   active phase.
-- Continue authorized work to its stated outcome, without expanding scope. Do not delegate to sub-agents without
-  explicit user authorization in the current request. Ask only for a genuinely blocking decision; use existing
+- Continue authorized work to its stated outcome, without expanding scope. Do not delegate to
+  sub-agents without
+  explicit user authorization in the current request. Ask only for a genuinely blocking decision;
+  use existing
   authorization for routine work.
-- In paired executor/reviewer work, communicate only when handing the Task between participants. The executor
-  performs stage work, makes working decisions and applies corrections; the reviewer checks handed-over designs
-  and results. Include decisions and questions in the saved stage result and handoff, rather than sending separate
-  approval requests during execution. Follow [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
-- For a user-started Task, known executor/reviewer counterparts continue autonomously within AI poise gates and user
-  limits. In both directions, save results, confirm public Task release, then send the counterpart a direct handoff
-  message; the recipient acquires before working. No per-review user command is required. Follow [direct role
-  handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим); messaging never replaces
+- In paired executor/reviewer work, communicate only when handing the Task between participants. The
+  executor
+  performs stage work, makes working decisions and applies corrections; the reviewer checks
+  handed-over designs
+  and results. Include decisions and questions in the saved stage result and handoff, rather than
+  sending separate
+  approval requests during execution. Follow [direct role
+  handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+- For a user-started Task, known executor/reviewer counterparts continue autonomously within AI
+  poise gates and user
+  limits. In both directions, save results, confirm public Task release, then send the counterpart a
+  direct handoff
+  message; the recipient acquires before working. No per-review user command is required. Follow
+  [direct role
+  handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим);
+  messaging never replaces
   ownership or independent review.
-- Use public `advance` with one stable request identity; omit the target for maximum progression or name a stage to stop on entry.
-  For ordinary new work, replay it after each verified current-role stage or lawful correction. It stops for real work, entry gates,
-  role boundaries and separately controlled publish acceptance; after ordinary public release, the receiving session acquires the
-  Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
+- Use public `advance` with one stable request identity; omit the target for maximum progression or
+  name a stage to stop on entry.
+  For ordinary new work, replay it after each verified current-role stage or lawful correction. It
+  stops for real work, entry gates,
+  role boundaries and separately controlled publish acceptance; after ordinary public release, the
+  receiving session acquires the
+  Task and replays the exact target. It never performs stage work, messaging, user acceptance,
+  publication or
   integration.
   Continue the current verified result through its proved ownership history: a lawful release/acquire can continue the next role
   with the same actor when the user assigned both roles; another actor is not mandatory. Keep the same
   progression intent and existing source/claim/unknown/review gates; follow
-  [verified-result continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
-- Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New
-  messages add to the working plan unless they explicitly change an assignment; preserve pending work and blockers
-  across checkpoints and compaction. Reading or acknowledging a message does not complete its assignment.
-- After saving results, confirming Task release and notifying the counterpart, immediately continue the next
-  already-received actionable assignment or authorized stage/Task chain in the same turn. An idle reviewer starts on a
-  received handoff; otherwise finish the review already started before taking the next Task. Incoming handoffs do not
-  interrupt that review or claim a second Task. End the turn only when no authorized actionable work remains; first
-  account for every pending assignment and its blocker. Finish your own already-started operations. Do not poll
-  counterpart status, read its conversation for progress or schedule background monitoring; checking your own pending
+  [verified-result
+  continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
+- Keep received assignments as outstanding obligations until completed, cancelled or explicitly
+  transferred. New
+  messages add to the working plan unless they explicitly change an assignment; preserve pending
+  work and blockers
+  across checkpoints and compaction. Reading or acknowledging a message does not complete its
+  assignment.
+- After saving results, confirming Task release and notifying the counterpart, immediately continue
+  the next
+  already-received actionable assignment or authorized stage/Task chain in the same turn. An idle
+  reviewer starts on a
+  received handoff; otherwise finish the review already started before taking the next Task.
+  Incoming handoffs do not
+  interrupt that review or claim a second Task. End the turn only when no authorized actionable work
+  remains; first
+  account for every pending assignment and its blocker. Finish your own already-started operations.
+  Do not poll
+  counterpart status, read its conversation for progress or schedule background monitoring; checking
+  your own pending
   assignments is required. See [direct role
   handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
-- Inspect Git state before the first write. Preserve unrelated changes. If a modified or untracked path's ownership is
-  unclear, obtain an explicit user decision before altering it. Never reset, restore, stage or commit unrelated files.
-- Do not create a new top-level repository directory without explicit user authorization naming its path and purpose.
-  Keep temporary runtime files and managed task/sprint evidence in the configured AI poise locations, under the
-  explicitly configured state root. For this ai-poise installation, the user authorized `projects/ai-poise/` inside the
+- Inspect Git state before the first write. Preserve unrelated changes. If a modified or untracked
+  path's ownership is
+  unclear, obtain an explicit user decision before altering it. Never reset, restore, stage or
+  commit unrelated files.
+- Do not create a new top-level repository directory without explicit user authorization naming its
+  path and purpose.
+  Keep temporary runtime files and managed task/sprint evidence in the configured AI poise
+  locations, under the
+  explicitly configured state root. For this ai-poise installation, the user authorized
+  `projects/ai-poise/` inside the
   repository; it is ignored by Git.
-- File extensions must match content and purpose. Environment templates end in `.env` and contain `example`, such as
-  `app.example.env`. Format parallel lists vertically for stable diffs. Invoke repository `.sh` entry points explicitly
+- File extensions must match content and purpose. Environment templates end in `.env` and contain
+  `example`, such as
+  `app.example.env`. Format parallel lists vertically for stable diffs. Invoke repository `.sh`
+  entry points explicitly
   through Bash.
-- Never stage or commit working, deployment-specific configuration files, even if Git already tracks them. Keep only
-  sanitized examples/templates and documentation of every option under version control. Exclude the working paths from
-  Git while preserving their local files; a tracked working config is a defect to correct, not permission to commit its
+- Never stage or commit working, deployment-specific configuration files, even if Git already tracks
+  them. Keep only
+  sanitized examples/templates and documentation of every option under version control. Exclude the
+  working paths from
+  Git while preserving their local files; a tracked working config is a defect to correct, not
+  permission to commit its
   next change. This restriction also applies to commits made as part of Task integration.
-- Product-affecting values come from explicit configuration contracts. Internal constants are allowed only when they
-  cannot affect product behaviour or output. Do not add hidden defaults, fallbacks, legacy aliases, dual reads/writes or
-  compatibility adapters unless explicitly required. Accepted replacements remove the superseded path within scope;
+- Product-affecting values come from explicit configuration contracts. Internal constants are
+  allowed only when they
+  cannot affect product behaviour or output. Do not add hidden defaults, fallbacks, legacy aliases,
+  dual reads/writes or
+  compatibility adapters unless explicitly required. Accepted replacements remove the superseded
+  path within scope;
   missing required inputs fail explicitly.
   Ignore unknown configuration options without deleting their raw values or excluding
   them from editor revisions. Keep required known options and API/Task/receipt schemas
   strict. Task status or ownership is not a configuration-edit veto; retain resource
   locks and optimistic publication checks. See
-  [configuration options](docs/configuration/project-setup.md#удаление-устаревшего-параметра-transfer).
-- Read skill classes and responsibility boundaries from project-specific routing. Every process phase declares its
-  skills and areas before Task readiness. Ordinary Tasks cannot combine peer narrow responsibilities; integration Tasks
-  require explicit integration fields. Across all phases, every area routed to a policy-owned narrow responsibility must
-  match a declared narrow-skill responsibility; other routes do not become narrow because of phase placement. Phase
-  splitting does not bypass the boundary, and declaration order does not change the decision or diagnostic.
+  [configuration
+  options](docs/configuration/project-setup.md#удаление-устаревшего-параметра-transfer).
+- Read skill classes and responsibility boundaries from project-specific routing. Every process
+  phase declares its
+  skills and areas before Task readiness. Ordinary Tasks cannot combine peer narrow
+  responsibilities; integration Tasks
+  require explicit integration fields. Across all phases, every area routed to a policy-owned narrow
+  responsibility must
+  match a declared narrow-skill responsibility; other routes do not become narrow because of phase
+  placement. Phase
+  splitting does not bypass the boundary, and declaration order does not change the decision or
+  diagnostic.
   Decomposition validation does not prove factual completeness.
-- Report an unattainable DoD or a failed next-stage DoR as `broken`, not completion. Recover by repairing only the
-  defective stage contract or by using the public Task `restart` action to return the same unfinished, unintegrated Task
-  to newborn while preserving its identity, history, Sprint membership, worktree and WIP. Resolve pending external
-  uncertainty first. Do not use or restore Sprint `replace_task` as a correction path; preserve historical relations as
+- Report an unattainable DoD or a failed next-stage DoR as `broken`, not completion. Recover by
+  repairing only the
+  defective stage contract or by using the public Task `restart` action to return the same
+  unfinished, unintegrated Task
+  to newborn while preserving its identity, history, Sprint membership, worktree and WIP. Resolve
+  pending external
+  uncertainty first. Do not use or restore Sprint `replace_task` as a correction path; preserve
+  historical relations as
   opaque revision/audit provenance, not a typed runtime projection.
-- Measure accounting duration and ordering only from comparable monotonic observations supplied through the required
-  `Clock` boundary. Use UTC only for audit and calendar projection. Production composition roots explicitly provide
-  `SystemClock`; tests provide a deterministic `FakeClock`. Never clamp wall-clock regressions, invent elapsed time
+- Measure accounting duration and ordering only from comparable monotonic observations supplied
+  through the required
+  `Clock` boundary. Use UTC only for audit and calendar projection. Production composition roots
+  explicitly provide
+  `SystemClock`; tests provide a deterministic `FakeClock`. Never clamp wall-clock regressions,
+  invent elapsed time
   across comparison domains, or add a hidden clock fallback.
-- Search for existing behaviour and its domain owner before implementation. Reuse the owning API or extract one shared
-  implementation; keep consumers focused on composition and transport. Separate implementations require distinct
+- Search for existing behaviour and its domain owner before implementation. Reuse the owning API or
+  extract one shared
+  implementation; keep consumers focused on composition and transport. Separate implementations
+  require distinct
   semantics or ownership.
-- For code-semantic work, distinguish JetBrains MCP `configured`, model-visible `listed`, worktree `project_bound`, and
-  separately `operation_proved` states. When a listed IDE capability applies to the current worktree, use it for
-  semantic navigation, call relationships, inspections, semantic rename, or IDE-owned formatting within the stage scope;
-  do not route build/run, debugger, generic file/terminal, VCS, lifecycle, managed configuration, or database work
-  through IDE MCP. Record the reason before an unavailable or inapplicable IDE operation falls back to ast-index; use
-  ast-index directly for repository-wide graph, batch, and structural search. Follow the exact [selection
+- For code-semantic work, distinguish JetBrains MCP `configured`, model-visible `listed`, worktree
+  `project_bound`, and
+  separately `operation_proved` states. When a listed IDE capability applies to the current
+  worktree, use it for
+  semantic navigation, call relationships, inspections, semantic rename, or IDE-owned formatting
+  within the stage scope;
+  do not route build/run, debugger, generic file/terminal, VCS, lifecycle, managed configuration, or
+  database work
+  through IDE MCP. Record the reason before an unavailable or inapplicable IDE operation falls back
+  to ast-index; use
+  ast-index directly for repository-wide graph, batch, and structural search. Follow the exact
+  [selection
   rule](docs/governance/jetbrains-mcp-policy.md#правило-выбора-инструмента),
   [boundaries](docs/governance/jetbrains-mcp-policy.md#границы-и-исключения),
   [fallback](docs/governance/jetbrains-mcp-policy.md#fallback-на-ast-index), and [evidence
-  contract](docs/governance/jetbrains-mcp-policy.md#проверка-и-evidence). For AI-poise development, apply the [existing
-  F1 tool owners](docs/governance/jetbrains-mcp-policy.md#применение-поставленных-инструментов-f1); a concrete inspected
+  contract](docs/governance/jetbrains-mcp-policy.md#проверка-и-evidence). For AI-poise development,
+  apply the [existing
+  F1 tool owners](docs/governance/jetbrains-mcp-policy.md#применение-поставленных-инструментов-f1);
+  a concrete inspected
   folder does not change how the running Poise resolves tools or hooks.
-- Inter-task dependencies exist only inside one Sprint. Keep a Task with no incoming or outgoing inter-task edge
-  standalone. A Sprint must not depend on a standalone Task or another Sprint, including informal waits for their
-  delivery. Include every required undelivered prerequisite in the local Sprint. Waiting on one branch must not stop
-  other work whose own local prerequisites and stage gates permit progress. Follow [Sprint closure](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
-  Every Sprint must contain one connected dependency chain covering its complete local prerequisite graph,
-  not independent tasks or disconnected chains; never fabricate edges. When splitting a long Sprint, duplicate required
-  Tasks or prerequisite chains locally with new IDs and explicit instructions to check whether their requirements are
-  already implemented before doing any implementation. Do not search semantically similar Tasks or manually maintain
-  reciprocal duplicate lists. The implemented duplicate behavior has two independent axes: duplicate versus ordinary
-  Task, then parent versus child for every duplicate. A root with children is itself a parent duplicate; both roles call
-  one shared library method: resolve the original parent, list all its children, then batch-read the parent and all
-  children's current stages, processes, statuses and session owners in a consistent DB read. Only parent resolution
-  depends on role; context and stage admission reuse this method, not per-task queries or duplicated traversal. Compute
-  d as the shortest directed transition count from the current stage to positive termination (equivalently traverse
-  reversed edges from positive terminals). Use current position after rework, not stage index, stage-name equality or
-  maximum past progress. Success has d=0; cancellation is not success. Include the current Task in d_min over its
-  noncancelled family. For ordinary repeated implementation, block stage start whenever d(current)>d_min, even by one; equality is necessary but not
-  sufficient: reject by default if two or more nearest Tasks have sessions, counting the requesting session
-  prospectively before claiming an unowned current Task. After agents agree one executor, only an explicit per-request
-  force_duplicate_start=true may clear this tied-session refusal. The flag is an optional boolean on bootstrap and
-  advance; it never overrides lagging distance, invalid data, foreign ownership or stage prerequisites. Return only
-  every other family member at d_min with Task/Sprint IDs, stage, distance, status, iteration and owning session ID.
-  Never combine leaders with tied-but-lagging peers or return intermediate distances. Equal minimum distances may occur
-  at different stages. Multiple sessions at that minimum require agreement and the explicit flag even at initial stages.
-  Unowned equal Tasks alone do not create a collision. Reread family state on every request, including a flagged retry;
-  never persist or automatically add the flag. Check at acquisition, resume and every actual stage start; refreshed
-  context is not a substitute for the gate. This specifies enforced refusals for lagging distance and unconfirmed
-  tied-session starts; it does not stop or seize foreign work. Missing or invalid distances must not create permission.
-  Identical twins satisfy the same acceptance conditions with one successful result, attributed to its source;
-  needed changes may be included in the consumer branch. The current work/reuse API still requires main-base
-  integration and separate accept; these are runtime limitations, not extra normative conditions. Preserve truthful
-  history and ownership while using the public operation. Use the implemented work/reuse operation with
-  explicit task_id, source_task_id, request_id and the original expected_version to verify an accepted, integrated
-  family result locally. It returns reuse_verified, not completed; a separately authorized accept rechecks provenance
-  and local receipts before completing the Task. Exact replay preserves the original packet; terminal replay returns
-  accepted history without reacquiring or recreating a cleaned worktree. Ordinary release/bootstrap preserves the same working area
-  and rechecks saved provenance on reuse continuation. Reuse now automatically delivers accepted permanent Task/Sprint artifacts
-  through the existing publisher with local owner identities, no overwrites, digest checks and local registry links.
-  Missing required files or conflicts reject reuse; optional empty sets are allowed by their actual contracts. Do not
-  copy foreign runtime-session files or receipts. Use work/task action duplicate with an explicit parent_id and destination draft sprint_id;
+- Inter-task dependencies exist only inside one Sprint. Keep a Task with no incoming or outgoing
+  inter-task edge
+  standalone. A Sprint must not depend on a standalone Task or another Sprint, including informal
+  waits for their
+  delivery. Include every required undelivered prerequisite in the local Sprint. Waiting on one
+  branch must not stop
+  other work whose own local prerequisites and stage gates permit progress. Follow [Sprint
+  closure](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
+  Every Sprint must contain one connected dependency chain covering its complete local prerequisite
+  graph,
+  not independent tasks or disconnected chains; never fabricate edges. When splitting a long Sprint,
+  duplicate required
+  Tasks or prerequisite chains locally with new IDs and explicit instructions to check whether their
+  requirements are
+  already implemented before doing any implementation. Do not search semantically similar Tasks or
+  manually maintain
+  reciprocal duplicate lists. The implemented duplicate behavior has two independent axes: duplicate
+  versus ordinary
+  Task, then parent versus child for every duplicate. A root with children is itself a parent
+  duplicate; both roles call
+  one shared library method: resolve the original parent, list all its children, then batch-read the
+  parent and all
+  children's current stages, processes, statuses and session owners in a consistent DB read. Only
+  parent resolution
+  depends on role; context and stage admission reuse this method, not per-task queries or duplicated
+  traversal. Compute
+  d as the shortest directed transition count from the current stage to positive termination
+  (equivalently traverse
+  reversed edges from positive terminals). Use current position after rework, not stage index,
+  stage-name equality or
+  maximum past progress. Success has d=0; cancellation is not success. Include the current Task in
+  d_min over its
+  noncancelled family. For ordinary repeated implementation, block stage start whenever
+  d(current)>d_min, even by one; equality is necessary but not
+  sufficient: reject by default if two or more nearest Tasks have sessions, counting the requesting
+  session
+  prospectively before claiming an unowned current Task. After agents agree one executor, only an
+  explicit per-request
+  force_duplicate_start=true may clear this tied-session refusal. The flag is an optional boolean on
+  bootstrap and
+  advance; it never overrides lagging distance, invalid data, foreign ownership or stage
+  prerequisites. Return only
+  every other family member at d_min with Task/Sprint IDs, stage, distance, status, iteration and
+  owning session ID.
+  Never combine leaders with tied-but-lagging peers or return intermediate distances. Equal minimum
+  distances may occur
+  at different stages. Multiple sessions at that minimum require agreement and the explicit flag
+  even at initial stages.
+  Unowned equal Tasks alone do not create a collision. Reread family state on every request,
+  including a flagged retry;
+  never persist or automatically add the flag. Check at acquisition, resume and every actual stage
+  start; refreshed
+  context is not a substitute for the gate. This specifies enforced refusals for lagging distance
+  and unconfirmed
+  tied-session starts; it does not stop or seize foreign work. Missing or invalid distances must not
+  create permission.
+  Identical twins satisfy the same acceptance conditions with one successful result, attributed to
+  its source;
+  needed changes may be included in the consumer branch. The current work/reuse API still requires
+  main-base
+  integration and separate accept; these are runtime limitations, not extra normative conditions.
+  Preserve truthful
+  history and ownership while using the public operation. Use the implemented work/reuse operation
+  with
+  explicit task_id, source_task_id, request_id and the original expected_version to verify an
+  accepted, integrated
+  family result locally. It returns reuse_verified, not completed; a separately authorized accept
+  rechecks provenance
+  and local receipts before completing the Task. Exact replay preserves the original packet;
+  terminal replay returns
+  accepted history without reacquiring or recreating a cleaned worktree. Ordinary release/bootstrap
+  preserves the same working area
+  and rechecks saved provenance on reuse continuation. Reuse now automatically delivers accepted
+  permanent Task/Sprint artifacts
+  through the existing publisher with local owner identities, no overwrites, digest checks and local
+  registry links.
+  Missing required files or conflicts reject reuse; optional empty sets are allowed by their actual
+  contracts. Do not
+  copy foreign runtime-session files or receipts. Use work/task action duplicate with an explicit
+  parent_id and destination draft sprint_id;
   no manual family searches or SQLite edits. See [dependency closure and local
-  duplicates](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли). Use `adopt_tasks` atomically only
-  for Tasks with `status=available, claimed_by=null, worktree=null, pending=null, last_report=null, and attempts=0`. Use
-  `extract_tasks` only for the same eligible published member with no incoming or outgoing dependency. Identity,
-  immutable history, goal, contract, and readiness are preserved. Success changes membership, graph, revision, and the
-  request receipt together; rejection changes none of them, and a retry after rejection is not a replay. Draft
-  `remove_tasks` remains the pre-publication correction route, and cancelling a draft atomically detaches both newborn
+  duplicates](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли). Use
+  `adopt_tasks` atomically only
+  for Tasks with `status=available, claimed_by=null, worktree=null, pending=null, last_report=null,
+  and attempts=0`. Use
+  `extract_tasks` only for the same eligible published member with no incoming or outgoing
+  dependency. Identity,
+  immutable history, goal, contract, and readiness are preserved. Success changes membership, graph,
+  revision, and the
+  request receipt together; rejection changes none of them, and a retry after rejection is not a
+  replay. Draft
+  `remove_tasks` remains the pre-publication correction route, and cancelling a draft atomically
+  detaches both newborn
   and adopted Tasks.
-- Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks
-  and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task
-  method. After the final relevant change, inspect the complete change. Documentation-only work requires content, link
-  and executable-claim validation, not an invented RED phase. Do not present self-review as independent review or
+- Never run the full test suite during task work, including at a delivery boundary. Run only narrow
+  task-specific checks
+  and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test
+  discovery as a task
+  method. After the final relevant change, inspect the complete change. Documentation-only work
+  requires content, link
+  and executable-claim validation, not an invented RED phase. Do not present self-review as
+  independent review or
   stale/missing/failed evidence as a pass.
-- Change the current verification registry with one guarded batch only at a stage that owns `test_registry`. The sole
-  narrow exception is replacement of a current `observe` stage's own subject method under the immutable scope and audit
-  contract in [stale observation replacement](docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения). Creation
+- Change the current verification registry with one guarded batch only at a stage that owns
+  `test_registry`. The sole
+  narrow exception is replacement of a current `observe` stage's own subject method under the
+  immutable scope and audit
+  contract in [stale observation
+  replacement](docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения). Creation
   for a process schema that owns `test_registry`, and every registry mutation, explicitly provide
-  `executable_obligations`; never infer the classification. A process without that schema field must omit it, and Task
-  creation initializes the public registry projection with an explicit empty list. Preserve historical definitions and
-  receipts. Test-inspection exit requires a non-empty current GREEN executable set whose collective coverage includes
-  every declared executable obligation, but does not require obsolete methods or an unfiltered repository-wide suite.
-- Pass the complete initial checks object explicitly when creating a development Task; `{}` is a valid complete
-  schedule. Design and register later RED/GREEN methods, schedules and future-output provenance at
-  `verification_planning`, after their real sources are known.
-- Verification methods do not declare execution timeouts. Once a verification or declared action command starts, wait
+  `executable_obligations`; never infer the classification. A process without that schema field must
+  omit it, and Task
+  creation initializes the public registry projection with an explicit empty list. Preserve
+  historical definitions and
+  receipts. Test-inspection exit requires a non-empty current GREEN executable set whose collective
+  coverage includes
+  every declared executable obligation, but does not require obsolete methods or an unfiltered
+  repository-wide suite.
+- Pass every workflow stage key in the initial checks object explicitly when preparing a development
+  Task; `methods: []` and empty stage lists are valid. Design concrete methods at
+  `verification_planning`; register definitions, schedules and provenance at the stage that owns
+  `test_registry`, after their sources exist. Follow the
+  [registry contract](docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
+- Verification methods do not declare execution timeouts. Once a verification or declared action
+  command starts, wait
   for its terminal result; do not convert elapsed time into an unknown execution outcome.
-- When execution is stale at `pending=checks`, replay only the exact submitted `verify` packet. Recovery is allowed
-  solely for a complete, provenance-matching set of terminal receipts and must not rerun checks; incomplete, mismatched,
+- When execution is stale at `pending=checks`, replay only the exact submitted `verify` packet.
+  Recovery is allowed
+  solely for a complete, provenance-matching set of terminal receipts and must not rerun checks;
+  incomplete, mismatched,
   duplicated, unknown, or output-corrupt receipts remain protectively rejected without mutation.
-- Use supported repository tools and configured checks. Diagnose failures and timeouts from evidence; do not bypass a
-  failing check or increase a timeout to conceal a hang. Preserve failed diagnostics. Do not invent unavailable usage
+- Use supported repository tools and configured checks. Diagnose failures and timeouts from
+  evidence; do not bypass a
+  failing check or increase a timeout to conceal a hang. Preserve failed diagnostics. Do not invent
+  unavailable usage
   measurements or tool capabilities.
-- User-facing errors explain the failure, verified cause or remaining uncertainty, and an actionable recovery within the
+- User-facing errors explain the failure, verified cause or remaining uncertainty, and an actionable
+  recovery within the
   user's authority. Do not expose secrets or invent certainty.
-- Destructive migrations require explicit authorization naming the objects and action. Never execute `git push`: the
-  prohibition is absolute for every agent, AI poise tool, publication handler, and configurable command runner, and user
-  publication authority does not waive it. Reject `push_required=true` before any Git command; `push_required=false`
-  never contacts a remote. Integrate completed Task results only through the public local `integrate` lifecycle using `git
-  merge --ff-only`. Explicitly authorized work begun without a Task follows the separate, independently reviewed
-  [manual local route](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка), without
-  retroactive Task stages or receipts. Commits required by the documented workflow of an explicitly assigned task are
-  authorized without another confirmation, including the necessary baseline and result commits. Include only the task-owned or explicitly
-  approved files; unrelated commits still require explicit authorization. Follow AI poise's public lifecycle tools when
+- Destructive migrations require explicit authorization naming the objects and action. Never execute
+  `git push`: the
+  prohibition is absolute for every agent, AI poise tool, publication handler, and configurable
+  command runner, and user
+  publication authority does not waive it. Reject `push_required=true` before any Git command;
+  `push_required=false`
+  never contacts a remote. Integrate completed Task results only through the public local
+  `integrate` lifecycle using `git
+  merge --ff-only`. Explicitly authorized work begun without a Task follows the separate,
+  independently reviewed
+  [manual local
+  route](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка), without
+  retroactive Task stages or receipts. Commits required by the documented workflow of an explicitly
+  assigned task are
+  authorized without another confirmation, including the necessary baseline and result commits.
+  Include only the task-owned or explicitly
+  approved files; unrelated commits still require explicit authorization. Follow AI poise's public
+  lifecycle tools when
   available.
-- Under a standing user instruction, integrate ready Tasks immediately after independent acceptance and required gates, without asking again per Task. Preserve its scope until changed or revoked. Check the integration candidate before fast-forward, then confirm target identity; rerun tests only for a changed candidate or invalid proof. Follow [immediate integration](docs/governance/development-rules.md#интеграция-завершённого-результата).
-- Finish accepted work only through the public result-integration lifecycle running from the current AI poise
-  installation source. Keep the accepted commit immutable; advance the existing task branch in its existing task
-  worktree while updating from the current configured target branch, merging, resolving conflicts, and rerunning every
-  produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The terminal
-  content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards. Never create a
-  separate integration branch or worktree. Every content-producing merge, rebase, cherry-pick, conflict resolution,
-  and integration commit must run in the Task-owned child worktree; the primary checkout is never a preparation or
+- Under a standing user instruction, integrate ready Tasks immediately after independent acceptance
+  and required gates, without asking again per Task. Preserve its scope until changed or revoked.
+  Check the integration candidate before fast-forward, then confirm target identity; rerun tests
+  only for a changed candidate or invalid proof. Follow [immediate
+  integration](docs/governance/development-rules.md#интеграция-завершённого-результата).
+- Finish accepted work only through the public result-integration lifecycle running from the current
+  AI poise
+  installation source. Keep the accepted commit immutable; advance the existing task branch in its
+  existing task
+  worktree while updating from the current configured target branch, merging, resolving conflicts,
+  and rerunning every
+  produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The
+  terminal
+  content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards.
+  Never create a
+  separate integration branch or worktree. Every content-producing merge, rebase, cherry-pick,
+  conflict resolution,
+  and integration commit must run in the Task-owned child worktree; the primary checkout is never a
+  preparation or
   working copy. Under the shared target lock, recheck the configured target immediately before
-  publication; repeat update, resolution, and checks on drift, then publish only with `git merge --ff-only
-  <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
-  blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
+  publication; repeat update, resolution, and checks on drift, then publish only with `git merge
+  --ff-only
+  <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If
+  fast-forward is
+  blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and
+  operation state are
   unchanged.
-- Before a terminal transition, decide and perform the required result integration/delivery or refuse it through
-  cancellation. Cancellation itself authorizes refusal and Task-owned cleanup; do not demand a separate no_result
+- Before a terminal transition, decide and perform the required result integration/delivery or
+  refuse it through
+  cancellation. Cancellation itself authorizes refusal and Task-owned cleanup; do not demand a
+  separate no_result
   decision. The owning runtime removes the complete Task folder,
-  including raw evidence, temporary artifacts and checkpoints, without a hidden archive. Preserve minimal DB history,
+  including raw evidence, temporary artifacts and checkpoints, without a hidden archive. Preserve
+  minimal DB history,
   delivered results, shared Sprint material, foreign resources and operator backups. Follow
-  [terminal material delivery](docs/workflows/terminal-materials.md#договор-и-граница-хранения). Deliberate replacement
-  with an ordinary directory at the configured Task path is allowed; saved device/inode is audit only. Preserve actual
+  [terminal material delivery](docs/workflows/terminal-materials.md#договор-и-граница-хранения).
+  Deliberate replacement
+  with an ordinary directory at the configured Task path is allowed; saved device/inode is audit
+  only. Preserve actual
   owner/path/type/link boundaries; do not add root-substitution hardening. Follow the
   [operator contract](docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).
-- A decision to transition a Task to a status authorizes every action defined by that transition's contract,
+- A decision to transition a Task to a status authorizes every action defined by that transition's
+  contract,
   including its cleanup and commit disposition; do not request separate approval for those actions.
-  Decide the result before any terminal transition: integrate it or refuse integration. Integration includes a
-  commit into the selected working branch (not necessarily master) and/or delivery of materials to the customer's
-  destination. Cancellation means refusal and authorizes removal of all Task-owned working materials, worktree and
-  temporary branch, including undelivered changes and unique commits, without another decision or hidden archive.
+  Decide the result before any terminal transition: integrate it or refuse integration. Integration
+  includes a
+  commit into the selected working branch (not necessarily master) and/or delivery of materials to
+  the customer's
+  destination. Cancellation means refusal and authorizes removal of all Task-owned working
+  materials, worktree and
+  temporary branch, including undelivered changes and unique commits, without another decision or
+  hidden archive.
   Preserve already delivered results, accounting history and foreign resources.
-  Existing runtime demands for another approval are an implementation gap, not continuing policy. Follow
-  [status transition authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
-- Every stage must explicitly declare whether it requires a worktree. On stage entry or Task acquisition, use the
-  current stage's contract: create an absent required worktree from available saved state and continue; an absent
-  worktree must not block or trigger creation for a stage that does not require one. Runtime code consumes only
-  the explicit stage flag; it must not infer it from stage names, purpose, position or material type.
-  The current Task-wide worktree_required does not implement this contract; do not invent unsupported API fields.
+  Existing runtime demands for another approval are an implementation gap, not continuing policy.
+  Follow
+  [status transition
+  authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
+- Every stage must explicitly declare whether it requires a worktree. On stage entry or Task
+  acquisition, use the
+  current stage's contract: create an absent required worktree from available saved state and
+  continue; an absent
+  worktree must not block or trigger creation for a stage that does not require one. Runtime code
+  consumes only
+  the explicit stage flag; it must not infer it from stage names, purpose, position or material
+  type.
+  The current Task-wide worktree_required does not implement this contract; do not invent
+  unsupported API fields.
   Lost changes require neither a separate record nor recovery before continuing.
   Preserve Task identity, available history/results and foreign work; obtain current verification
-  for the new state. Follow [continuation authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
-- Set worktree flags during stage design. Initial goal/requirement formulation needs no worktree. For versioned
-  changes, plan it for implementation, verification, acceptance and integration preparation; after confirmed
-  fast-forward remove it, and assign later changes to a new Task. Tasks on materials outside version control
+  for the new state. Follow [continuation
+  authority](docs/governance/development-rules.md#полномочие-на-переход-в-статус).
+- Set worktree flags during stage design. Initial goal/requirement formulation needs no worktree.
+  For versioned
+  changes, plan it for implementation, verification, acceptance and integration preparation; after
+  confirmed
+  fast-forward remove it, and assign later changes to a new Task. Tasks on materials outside version
+  control
   require no worktree at any stage. These are planning principles, not runtime heuristics. Follow
   [stage worktree design](docs/workflows/task-planning.md#потребность-этапа-в-рабочем-дереве).
-- Use public delivery/agree and delivery/settle rather than manually deleting managed Task material. Terminal status,
-  verified checks, delivery completion, resource cleanup and integration are distinct observations. Cancellation
-  itself records refusal; a missing earlier delivery agreement must not demand another user decision. Report actual
+- Use public delivery/agree and delivery/settle rather than manually deleting managed Task material.
+  Terminal status,
+  verified checks, delivery completion, resource cleanup and integration are distinct observations.
+  Cancellation
+  itself records refusal; a missing earlier delivery agreement must not demand another user
+  decision. Report actual
   technical blockers and continue the authorized transition through its owners.
-- Never use the main checkout or foreign WIP for preparation or conflict resolution, and never `stash`, `reset`,
-  `restore`, `checkout`, `clean`, stage, commit, or delete their state. The sole publication effect is the serialized
-  `git merge --ff-only`; a dirty or unfinished checkout may block it without being modified. After confirmed
-  publication, the responsible agent cleans only the task worktree, task branch, and registered temporary backups.
-  Temporary backups belong only in a task/integration-scoped directory under the configured runtime root, and success
-  requires that directory to be empty. Never delete pre-existing, foreign, durable operator, deliverable, or
-  unfinished-recovery backups. Persist enough phase state for crash recovery and idempotent replay without rewriting the
+- Never use the main checkout or foreign WIP for preparation or conflict resolution, and never
+  `stash`, `reset`,
+  `restore`, `checkout`, `clean`, stage, commit, or delete their state. The sole publication effect
+  is the serialized
+  `git merge --ff-only`; a dirty or unfinished checkout may block it without being modified. After
+  confirmed
+  publication, the responsible agent cleans only the task worktree, task branch, and registered
+  temporary backups.
+  Temporary backups belong only in a task/integration-scoped directory under the configured runtime
+  root, and success
+  requires that directory to be empty. Never delete pre-existing, foreign, durable operator,
+  deliverable, or
+  unfinished-recovery backups. Persist enough phase state for crash recovery and idempotent replay
+  without rewriting the
   accepted commit.
-- Report the result, requirement coverage, checks actually performed, failures or unavailable checks, and remaining
-  uncertainty. A verified stage is not user acceptance; it authorizes continuation only when the existing assignment
+- Report the result, requirement coverage, checks actually performed, failures or unavailable
+  checks, and remaining
+  uncertainty. A verified stage is not user acceptance; it authorizes continuation only when the
+  existing assignment
   covers the next executor-owned stage.
-- In independent review, follow the canonical [evidence-based checklist](docs/workflows/evidence-based-review.md): tie
-  every finding to a confirmed obligation, producer stage, later gate and reproducible check; classify AI poise
-  runtime/task-contract, executor, reviewer, protective-rejection and unresolved causes from evidence. Batch independent
-  managed reads through existing `show.queries`; do not add another reader or claim unmeasured savings.
+- In independent review, follow the canonical [evidence-based
+  checklist](docs/workflows/evidence-based-review.md): tie
+  every finding to a confirmed obligation, producer stage, later gate and reproducible check;
+  classify AI poise
+  runtime/task-contract, executor, reviewer, protective-rejection and unresolved causes from
+  evidence. Batch independent
+  managed reads through existing `show.queries`; do not add another reader or claim unmeasured
+  savings.
 
 ## Task path, rework, and stage graph invariants
 
-The canonical rule is [path immutability, rework, and stage graphs](docs/governance/development-rules.md#неизменность-путей-rework-и-граф-этапов). Apply it when planning a Task, revising its frozen contract, entering rework, and reviewing a result.
+The canonical rule is [path immutability, rework, and stage
+graphs](docs/governance/development-rules.md#неизменность-путей-rework-и-граф-этапов). Apply it when
+planning a Task, revising its frozen contract, entering rework, and reviewing a result.
 
-- **TASK-PATH-01.** Task creation must not declare a path immutable when a later normal or rework stage must modify or create it; every planned write path belongs in that stage's `allowed_paths` before `ready`.
-- **TASK-PATH-02.** A later stage or rework plan must not require a write to a path frozen by the resolved Task contract; authorized planning or `restart` must remove the contradiction before stage admission.
-- **TASK-PATH-03.** Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.
-- **TASK-PATH-04.** Before registering or reworking an acceptance artifact, apply its [canonical lifecycle](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
-- **TASK-PATH-05.** An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.
+- **TASK-PATH-01.** Task creation must not declare a path immutable when a later normal or rework
+  stage must modify or create it; every planned write path belongs in that stage's `allowed_paths`
+  before `ready`.
+- **TASK-PATH-02.** A later stage or rework plan must not require a write to a path frozen by the
+  resolved Task contract; authorized planning or `restart` must remove the contradiction before
+  stage admission.
+- **TASK-PATH-03.** Rework does not lift immutability: it uses the target stage's exact
+  `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result
+  persistence.
+- **TASK-PATH-04.** Before registering or reworking an acceptance artifact, apply its [canonical
+  lifecycle](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
+- **TASK-PATH-05.** An invalid stage graph is rejected when a transition or rework target is
+  missing, a stage is unreachable from the entry, or a reachable stage has no path to positive
+  termination; a cycle is valid only when it retains such an exit.
 
 Contradiction validation treats `method_inputs.future_outputs` and active post
 `stage_output` obligations as planned writes. A source-less or `preexisting` artifact
@@ -531,41 +873,67 @@ Follow [Start and
 finish](docs/governance/development-rules.md#%D0%BD%D0%B0%D1%87%D0%B0%D0%BB%D0%BE-%D0%B8-%D0%B7%D0%B0%D0%B2%D0%B5%D1%80%D1%88%D0%B5%D0%BD%D0%B8%D0%B5-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%8B)
 and the [batch API](docs/workflows/batch-work.md#verify).
 
-Before substantive project work, explicitly select the working project configuration and session identity, then invoke
-`bootstrap` through AI poise's public work API. Only prerequisite inspection needed to locate/configure that entry point
-precedes it. Consume the returned task/stage, capabilities and result template; do not invent task IDs, state or a
+Before substantive project work, explicitly select the working project configuration and session
+identity, then invoke
+`bootstrap` through AI poise's public work API. Only prerequisite inspection needed to
+locate/configure that entry point
+precedes it. Consume the returned task/stage, capabilities and result template; do not invent task
+IDs, state or a
 worktree. Resume through the same API.
 
-Before reporting successful completion, invoke `verify` through the same API with the current stage result and
-artifacts, inspect its terminal status and required evidence, and complete any required continuation within the
-authorized stage. A zero exit code, pending continuation or mere receipt is not proof of success. Continue to the next
-executor-owned stage when the existing executor assignment covers it; do not enter reviewer work or separately
+Before reporting successful completion, invoke `verify` through the same API with the current stage
+result and
+artifacts, inspect its terminal status and required evidence, and complete any required continuation
+within the
+authorized stage. A zero exit code, pending continuation or mere receipt is not proof of success.
+Continue to the next
+executor-owned stage when the existing executor assignment covers it; do not enter reviewer work or
+separately
 controlled acceptance/publication/integration without the applicable authorization.
 
 Repository snapshot Git-index ownership and recovery follow the canonical [batch-work
-contract](docs/workflows/batch-work.md#изоляция-временного-git-index). Never delete `snapshot.index.lock` manually or
+contract](docs/workflows/batch-work.md#изоляция-временного-git-index). Never delete
+`snapshot.index.lock` manually or
 remove another invocation's snapshot directory.
 
-A current exact terminal failed-check batch authorizes rework to any configured target, including a `revise` stage with
-no open finding; that no-finding revise submits no reviewer resolutions. Neither this path nor ordinary rework may
-bypass pending resolution inspection: continue to the exact inspection stage named by Poise, inspect every pending
-resolution, and only then request rework. Use documented legacy recovery solely for already-stranded tasks. See
-[explicit failed-check rework](docs/workflows/batch-work.md#явный-rework-после-checks_failed) and [rework with pending
-resolutions](docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Tasks 0124 and 0063 RD-013).
-A persisted active inspection blocked by its current registry exit gate may use explicit user rework to a configured
-target that owns `test_registry`. Task revalidates the gate inside the command UoW; preserve candidate findings,
-history, immutable evidence and WIP. Do not manufacture a failed check batch or bypass pending external outcomes or
-unresolved reviewer resolutions. This narrow path does not authorize rework for unrelated active states. See
-[blocked-registry inspection recovery](docs/workflows/batch-work.md#rework-при-заблокированном-реестре-inspection).
+A current exact terminal failed-check batch authorizes rework to any configured target, including a
+`revise` stage with
+no open finding; that no-finding revise submits no reviewer resolutions. Neither this path nor
+ordinary rework may
+bypass pending resolution inspection: continue to the exact inspection stage named by Poise, inspect
+every pending
+resolution, and only then request rework. Use documented legacy recovery solely for already-stranded
+tasks. See
+[explicit failed-check rework](docs/workflows/batch-work.md#явный-rework-после-checks_failed) and
+[rework with pending
+resolutions](docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Tasks 0124 and
+0063 RD-013).
+A persisted active inspection blocked by its current registry exit gate may use explicit user rework
+to a configured
+target that owns `test_registry`. Task revalidates the gate inside the command UoW; preserve
+candidate findings,
+history, immutable evidence and WIP. Do not manufacture a failed check batch or bypass pending
+external outcomes or
+unresolved reviewer resolutions. This narrow path does not authorize rework for unrelated active
+states. See
+[blocked-registry inspection
+recovery](docs/workflows/batch-work.md#rework-при-заблокированном-реестре-inspection).
 
 
-For taskless read-only work, use `bootstrap` with explicit null task/decision/feedback/rework_stage and `verify` with
-`result=null`, `artifacts=[]`. Confirm that the returned context is actually taskless; a session may already own work.
-An addressed `completed` or `cancelled` Task returns a `terminal inspection snapshot` containing its preserved context,
-content, evidence, and history; inspection must not bind, resume, or claim that Task. Use that snapshot directly, then
-use taskless bootstrap before null-result verify. Cancellation is an emergency terminal outcome and does not require
-evidence. `read_only_verified` finalizes runtime with no substantive checks and must not be represented as validation of
-the answer. Independently validate factual claims. Persistent task results require a formal task and the managed
+For taskless read-only work, use `bootstrap` with explicit null task/decision/feedback/rework_stage
+and `verify` with
+`result=null`, `artifacts=[]`. Confirm that the returned context is actually taskless; a session may
+already own work.
+An addressed `completed` or `cancelled` Task returns a `terminal inspection snapshot` containing its
+preserved context,
+content, evidence, and history; inspection must not bind, resume, or claim that Task. Use that
+snapshot directly, then
+use taskless bootstrap before null-result verify. Cancellation is an emergency terminal outcome and
+does not require
+evidence. `read_only_verified` finalizes runtime with no substantive checks and must not be
+represented as validation of
+the answer. Independently validate factual claims. Persistent task results require a formal task and
+the managed
 artifact API.
 
 If configuration, runtime or a required operation is unavailable, report the exact
@@ -582,44 +950,70 @@ Repository instructions do not by themselves install an automatic enforcement ho
 
 ## Executable entry point for this installation
 
-`bootstrap` and `verify` are JSON operations of AI poise's existing `work` CLI, not standalone skills, shell commands or
-MCP tools. This installation uses only the `codex-hook-main` message source with `mode=runtime_event`. Invoke the
-session-scoped `work.sh` supplied by the native hook explicitly through Bash, with the work packet on stdin and
-`messages=[]`. The launcher selects `/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json` and the
-native session binding; use the same launcher across calls. Never report or replay user messages manually, generate a
+`bootstrap` and `verify` are JSON operations of AI poise's existing `work` CLI, not standalone
+skills, shell commands or
+MCP tools. This installation uses only the `codex-hook-main` message source with
+`mode=runtime_event`. Invoke the
+session-scoped `work.sh` supplied by the native hook explicitly through Bash, with the work packet
+on stdin and
+`messages=[]`. The launcher selects
+`/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json` and the
+native session binding; use the same launcher across calls. Never report or replay user messages
+manually, generate a
 substitute session, or silently switch to another message source.
 
-If the native hook has not supplied a launcher, complete hook discovery/trust and diagnose its execution before task
-work. Direct `/home/sbwerewolf/workdata/ai-poise/.venv/bin/poise work` with explicit `POISE_CONFIG` is available for
+If the native hook has not supplied a launcher, complete hook discovery/trust and diagnose its
+execution before task
+work. Direct `/home/sbwerewolf/workdata/ai-poise/.venv/bin/poise work` with explicit `POISE_CONFIG`
+is available for
 installation diagnostics; when no native Codex identity exists, also provide an absolute persistent
-`POISE_CALLER_BINDING` whose parent already exists. The agent must not substitute its own session value for the native
-or persisted caller identity. Diagnostic packets keep `messages=[]`; direct identity establishment does not prove native
-event delivery. The installation contract and recovery steps are in the local project documentation below.
+`POISE_CALLER_BINDING` whose parent already exists. The agent must not substitute its own session
+value for the native
+or persisted caller identity. Diagnostic packets keep `messages=[]`; direct identity establishment
+does not prove native
+event delivery. The installation contract and recovery steps are in the local project documentation
+below.
 
 Read [Local ai-poise
 commands](docs/configuration/project-setup.md#%D0%BB%D0%BE%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82-ai-poise)
-for complete runnable bootstrap/verify packets. Existing workflow instructions are discovered from the [AI poise
-workflow](.agents/skills/poise/SKILL.md) project skill. Do not search for nonexistent skills named `bootstrap` or
+for complete runnable bootstrap/verify packets. Existing workflow instructions are discovered from
+the [AI poise
+workflow](.agents/skills/poise/SKILL.md) project skill. Do not search for nonexistent skills named
+`bootstrap` or
 `verify`.
 
-This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`,
-`standalone/`, `sprint/`, and `database/`. Standalone Task artifacts belong in `standalone/<task-id>/`; Sprint-member
-Task artifacts belong in `sprint/<sprint-id>/task/<task-id>/`. The live Task DB is `database/tasks.sqlite`, its lock is
-`database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for
-the old root-level database paths or the removed `task/` artifact root. This is the user's explicit local placement
+This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`:
+`.runtime/`,
+`standalone/`, `sprint/`, and `database/`. Standalone Task artifacts belong in
+`standalone/<task-id>/`; Sprint-member
+Task artifacts belong in `sprint/<sprint-id>/task/<task-id>/`. The live Task DB is
+`database/tasks.sqlite`, its lock is
+`database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility
+files or symlinks for
+the old root-level database paths or the removed `task/` artifact root. This is the user's explicit
+local placement
 decision, superseding the external-state default for this project. Local configuration is under
-`config/projects/ai-poise/`, separate from mutable data and excluded from Git; tracked examples live in that directory
+`config/projects/ai-poise/`, separate from mutable data and excluded from Git; tracked examples live
+in that directory
 and `config/examples/`.
 
-Discover and operate Task DB backups through the public `poise backup` CLI. Start with `poise backup help`; use `poise
-backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config
-PROJECT_JSON BACKUP_NAME` rather than copying or replacing the database manually. Run create and restore only while no
-agent or process is writing the Task DB. The complete operator contract is [Task DB backups](docs/task-db-backups.md).
+Discover and operate Task DB backups through the public `poise backup` CLI. Start with `poise backup
+help`; use `poise
+backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup
+restore --config
+PROJECT_JSON BACKUP_NAME` rather than copying or replacing the database manually. Run create and
+restore only while no
+agent or process is writing the Task DB. The complete operator contract is [Task DB
+backups](docs/task-db-backups.md).
 
-The initial manifest has `push_required=false`, base ref `master`, and repository readiness `not_checked` because no
-initial commit existed at setup. Taskless bootstrap/verify do not establish Git/worktree readiness. Before
-repository-changing task work, verify that the configured base resolves to a commit and contains the required sources. A
-baseline commit needed to execute the assigned task is authorized by the task workflow; include only the approved
+The initial manifest has `push_required=false`, base ref `master`, and repository readiness
+`not_checked` because no
+initial commit existed at setup. Taskless bootstrap/verify do not establish Git/worktree readiness.
+Before
+repository-changing task work, verify that the configured base resolves to a commit and contains the
+required sources. A
+baseline commit needed to execute the assigned task is authorized by the task workflow; include only
+the approved
 project files and preserve unrelated changes.
 Every new or explicitly changed verification method must declare an exact
 `verification_plan` with `responsibility`, `change_surface`, `red_stages`,
@@ -632,13 +1026,17 @@ failures invalidate it. Do not infer recursive test dependencies. Stored
 pre-plan snapshots remain readable, but this is not a fallback for new methods.
 
 For bounded source/document reads, use [explicit ranges and context
-generations](docs/workflows/source-reader.md#явные-диапазоны-и-поколения-контекста). Do not suppress reads on
+generations](docs/workflows/source-reader.md#явные-диапазоны-и-поколения-контекста). Do not suppress
+reads on
 unacknowledged delivery or carry read-memory assumptions across compaction/resume.
 
-If the configured native [mechanical work context](docs/workflows/context-recovery.md#общая-механическая-сводка)
-card is delivered after compaction/resume, treat it as scoped metadata, including taskless work. Follow its current read/refresh actions; instruction roots and reading checkouts
+If the configured native [mechanical work
+context](docs/workflows/context-recovery.md#общая-механическая-сводка)
+card is delivered after compaction/resume, treat it as scoped metadata, including taskless work.
+Follow its current read/refresh actions; instruction roots and reading checkouts
 have their own owners. The specialized [Task/route context
-recovery](docs/workflows/context-recovery.md#возобновление-после-compaction-и-resume) remains explicit.
+recovery](docs/workflows/context-recovery.md#возобновление-после-compaction-и-resume) remains
+explicit.
 General reading and specialized SourceReader acknowledgements are distinct; old receipts never prove
 remembered text. Obtain actual required text through its current reader owner.
 
@@ -653,8 +1051,10 @@ missing durations or equate delivery time with observation time. Follow
 provenance](docs/operations/source-api-metrics.md#сохранение-фактов-источника-без-вычисления-длительностей).
 
 For explicit hook/runtime effect diagnosis use
-[observable hook effects](docs/operations/hook-effect-diagnostics.md#диагностика-фактических-эффектов-hooks).
-Installation, native event observation, owner effect, host trust and Task completion are different claims.
+[observable hook
+effects](docs/operations/hook-effect-diagnostics.md#диагностика-фактических-эффектов-hooks).
+Installation, native event observation, owner effect, host trust and Task completion are different
+claims.
 Do not start a standing observer or infer successful effects from hook registration alone.
 
 ## Cloud-agent recovery
@@ -698,9 +1098,11 @@ See [the recovery contract](docs/workflows/sprints.md#локальная-дор�
 ## Incident correction and installation selection
 
 Before changing an existing Task after an incident, read
-[incident enrichment](docs/workflows/task-planning.md#дополнение-существующей-задачи-историей-инцидента).
+[incident
+enrichment](docs/workflows/task-planning.md#дополнение-существующей-задачи-историей-инцидента).
 Before recording Tasks or relocating installation state, read
-[operator selection and state relocation](docs/configuration/wsl-local-delivery.md#выбор-операторской-установки-и-перенос-состояния).
+[operator selection and state
+relocation](docs/configuration/wsl-local-delivery.md#выбор-операторской-установки-и-перенос-состояния).
 Use the selected operator installation; do not cancel a Task to repair its contract
 or delete a hook registry to compensate for an unsupported relocation.
 
@@ -710,14 +1112,16 @@ destination effects by provenance while preserving newer and complementary work.
 Verify readers, writers and late effects before reopening; apply updates after
 switching and retire old storage only after separate acceptance. Preserve native
 ownership/DEAD gates and terminal members of continuing Sprints. Follow
-[availability and latest-write preservation](docs/configuration/wsl-local-delivery.md#работа-во-время-подготовки-переноса).
+[availability and latest-write
+preservation](docs/configuration/wsl-local-delivery.md#работа-во-время-подготовки-переноса).
 Use public owners or an explicitly authorized audited manual route; rehearsal
 does not prove native lifecycle completion.
 
 
 ## Harness failure and manual bypass
 
-Follow [harness failure and manual bypass](docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+Follow [harness failure and manual
+bypass](docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
 whenever Poise prevents normal progress. Classify evidence as agent/task-planner
 misuse, defective configuration, code defect, or damaged manually edited working
 data; distinguish unresolved causes. Assess one-off, possible recurring, or permanent
@@ -747,7 +1151,8 @@ Commit owned WIP in the Task worktree. Replay preserves its current commit/tree 
 check reached stages there without historical checkout or reuse of an old PASS as fresh proof.
 Keep current proof-contract compatibility and mandatory file integrity; exact completed request
 replay returns its saved result. Unknown external outcomes never authorize another execution.
-New work retains independent review. Follow the [canonical replay contract](docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+New work retains independent review. Follow the [canonical replay
+contract](docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
 
 ## Compact Task recovery
 
@@ -759,16 +1164,19 @@ distribution and explicitly authorized backups retain their own contracts.
 See [same-area continuation](docs/workflows/local-handoff.md#пакет).
 
 For native entry project selection, preserve the invoking binding and select the
-exact project explicitly. Follow the [selection contract](docs/configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher)
+exact project explicitly. Follow the [selection
+contract](docs/configuration/runtime-hooks.md#явный-выбор-проекта-через-session-launcher)
 and [workflow skill](.agents/skills/poise/SKILL.md).
 
 Installation-wide setup locks must not serialize runtime work, project creation,
 configuration publication or state relocation. Keep short SQLite transactions and
 resource-owned write boundaries; operators perform configuration and relocation
-sequentially. See [relocation admission and order](docs/configuration/project-setup.md#допуск-и-порядок-переноса).
+sequentially. See [relocation admission and
+order](docs/configuration/project-setup.md#допуск-и-порядок-переноса).
 
 Pure operational observations use existing-store read owners and admit a snapshot before
 one body execution with an explicit read wait independent of writer admission.
 Caller/message admission retains its write owner; detached failures
-must terminate within the worker. Follow the [development skill](.agents/skills/poise-development/SKILL.md#development-method),
+must terminate within the worker. Follow the [development
+skill](.agents/skills/poise-development/SKILL.md#development-method),
 which links to the observation instruction and canonical operator contract.

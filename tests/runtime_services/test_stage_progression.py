@@ -562,6 +562,20 @@ def test_one_agent_role_change_keeps_verified_worktree_and_report(project):
     assert after["last_report"] == before["last_report"]
 
 
+def test_forged_claim_does_not_prove_verified_result_ownership(project):
+    executor = _released_review_boundary(project)
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    bootstrap(reviewer, {"id": "T1"})
+    with reviewer.runtime.store.transaction() as db:
+        db.execute("UPDATE tasks SET claimed_by='executor' WHERE id='T1'")
+        db.execute("UPDATE sessions SET task_id=NULL WHERE id='reviewer'")
+        db.execute("UPDATE sessions SET task_id='T1' WHERE id='executor'")
+    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
+    with pytest.raises(PoiseError, match="Current result history does not prove its actual owner"):
+        advance(executor)
+    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
+
+
 def test_same_actor_role_change_preserves_ordinary_entry_checks(project, monkeypatch):
     executor = _released_review_boundary(project)
     calls = []

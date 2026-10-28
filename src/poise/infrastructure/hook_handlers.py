@@ -88,6 +88,12 @@ class BuiltinHandlers:
             from .document_intake.command_configuration import load_command_profile
             reader(options['policy_path'])
             load_command_profile(settings, policy_path=options['policy_path'], snapshots=resources)
+        elif name == 'tool-result':
+            from ..modules.result_views.tool_results import ToolResultPolicy
+            policy = ToolResultPolicy.parse(snapshot(options['policy_path'])).data
+            if 'session' not in policy:
+                raise PoiseError('tool-result hook requires explicit session and parser policies')
+            snapshot(policy['placement']['policy'])
         elif name == 'capability-summary':
             settings.require_summary(options['summary'])
             if len(options['probes']) > settings.raw['max_probes']:
@@ -109,9 +115,39 @@ class BuiltinHandlers:
             response = append_context(response, event['hook_event_name'], '\n'.join(lines))
         elif name == 'command-intake':
             from .document_intake.command_transport import tool_event
-            output = tool_event(self.service, self.binding['definition_path'], event,
+            output = (tool_event(self.service, self.binding['definition_path'], event,
                                 policy_path=options['policy_path'], snapshots=resources)
+                      if event.get('tool_name') == 'Bash' else {})
             response.update(output)
+        elif name == 'tool-result':
+            from ..composition import tool_result_tools
+            from ..modules.result_views.tool_results import ToolResultPolicy, ToolResultFailure, encoded
+            from .tool_results import service_delivery
+            policy = ToolResultPolicy.parse(strict_json(resources[options['policy_path']])).data
+            caller = CallerIdentity.harness('native', self.binding['external_session'])
+            owner = tool_result_tools(None, policy, {}, caller=caller, resources=resources)
+            try:
+                text = service_delivery(event, owner, options['policy_path'], self.service.settings)
+                if text is None:
+                    result = owner.execute({'schema': 'poise-tool-result-request-1', 'operation': 'hook',
+                        'request_id': event['tool_use_id'], 'event': event,
+                        'streams': {'stdout': None, 'stderr': None},
+                        'capture': {'state': 'unknown', 'reason': 'native source not yet classified'},
+                        'exit_code': None}, 'agent')
+                    if result['status'] == 'pending':
+                        return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
+                                'response': response, 'control': {'action': 'continue', 'reason': None}}, execution
+                    text = result['preview']
+            except ToolResultFailure as error:
+                native = event.get('tool_response')
+                code = native.get('exit_code') if isinstance(native, dict) else None
+                code = code if type(code) is int else None
+                response = append_context(response, event['hook_event_name'], encoded(error.result(code)))
+                response['continue'] = False
+                return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
+                        'response': response, 'control': {'action': 'stop', 'reason': str(error)}}, execution
+            response = append_context(response, event['hook_event_name'], text)
+            response['continue'] = False
         elif name == 'lifecycle-consumer':
             from .hook_lifecycle import consumer_options, prepare, deliver
             consumer = consumer_options(options['consumer'])

@@ -93,10 +93,20 @@ def prepare_profile(stage, source, output, args, inputs):
     outputs = render_data(spec["outputs"], values)
     if outputs["catalog"] != "catalog.json":
         raise ValueError("The selected consumer reads catalog.json")
+    write = prepare_project_profile(stage, source, output, args, spec,
+                                    settings, template_path, blueprint, values)
+    write(outputs["catalog"], catalog)
+    write(outputs["recommendations"], advice)
+    return catalog
+
+
+def prepare_project_profile(stage, source, output, args, spec, settings,
+                            template_path, blueprint, values):
+    """Project publication only; resource effects stay with maintenance owners."""
+    outputs = render_data(spec["outputs"], values)
     edits = render_data(spec["project_edits"], values)
     projected_documents = prepare_documents(spec, source, values)
-    ProjectBlueprint.parse(blueprint).build(edits,
-                                            settings["max_edits"])
+    ProjectBlueprint.parse(blueprint).build(edits, settings["max_edits"])
     stage.mkdir(mode=settings["directory_mode"])
 
     def write(relative, document):
@@ -135,10 +145,8 @@ def prepare_profile(stage, source, output, args, inputs):
         write(outputs["registry"],
               {"schema": "configured-project-registry-1",
                "projects": {}})
-    write(outputs["catalog"], catalog)
     write(outputs["edits"], edits)
-    write(outputs["recommendations"], advice)
-    return catalog
+    return write
 
 
 def publish_profile(stage, output, previous):
@@ -159,12 +167,21 @@ def generate(args):
         args.output).absolute()
     if not output.parent.is_dir():
         raise ValueError("Profile parent directory must exist")
-    inputs = load_inputs(args, source)
+    selected = Path(args.profile_spec) if args.profile_spec else source / "config/maintenance/profile.example.json"
+    specification = read_json(selected)
+    schema = specification["schema"]
+    if schema == "poise-start-app-profile-1":
+        from .start_app_profile import prepare_profile as prepare_operations
+        prepare = lambda stage: prepare_operations(stage, source, output, args, specification)
+    elif schema == "poise-maintenance-profile-1":
+        inputs = load_inputs(args, source)
+        prepare = lambda stage: prepare_profile(stage, source, output, args, inputs)
+    else:
+        raise ValueError("Unsupported profile specification")
     with tempfile.TemporaryDirectory(prefix=".profile-",
                                      dir=output.parent) as raw:
         working = Path(raw)
-        catalog = prepare_profile(working / "profile", source, output,
-                                  args, inputs)
+        catalog = prepare(working / "profile")
         replaced = publish_profile(working / "profile", output,
                                    working / "previous")
     return {"status": "replaced" if replaced else "created",

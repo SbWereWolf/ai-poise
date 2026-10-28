@@ -53,7 +53,7 @@ def validate_native_events(events, *, working_configuration=False):
     if 'SessionStart' not in seen:raise PoiseError('SessionStart binding hook is required')
     if seen & TOOL_EVENTS and not TOOL_EVENTS <= seen:
         raise PoiseError('Install PreToolUse and PostToolUse together')
-    if any(e['event'] in TOOL_EVENTS and e['matcher'] != 'Bash' for e in events):
+    if not working_configuration and any(e['event'] in TOOL_EVENTS and e['matcher'] != 'Bash' for e in events):
         raise PoiseError('Command intake requires the explicit Bash matcher')
 
 

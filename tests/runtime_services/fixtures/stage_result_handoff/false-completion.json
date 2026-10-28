@@ -1,0 +1,26 @@
+{
+  "status": "handoff_completed",
+  "task": "T1",
+  "request_id": "handoff-fixture-1",
+  "phase": "complete",
+  "verification": {
+    "status": "verified"
+  },
+  "progression": {
+    "status": "role_handoff_required",
+    "next_stage": "review",
+    "progression": {
+      "request_id": "false-progression"
+    }
+  },
+  "release": {
+    "status": "ownership_released",
+    "after": {
+      "task_id": null,
+      "worktree_task_id": null
+    }
+  },
+  "blocked": null,
+  "replayed": false,
+  "interaction": {}
+}

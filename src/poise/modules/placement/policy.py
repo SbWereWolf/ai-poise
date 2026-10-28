@@ -68,6 +68,22 @@ class PlacementPolicy:
         winners = [v for v in matches if v['priority'] == priority]
         return (winners[0], None) if len(winners) == 1 else (None, 'ambiguous_rules')
 
+    def admit_harness_path(self, address, intent):
+        """An explicitly granted harness root needs no project reservation."""
+        from pathlib import PurePosixPath
+        rule, error = self.selected(intent)
+        if error:
+            raise PlacementInputError(error, 'placement', 'configure:policy')
+        root = self.roots[rule['root']]
+        if root['owner'] != 'harness' or root['versioning'] != 'ignored':
+            raise PlacementInputError('owner_unavailable', 'placement', 'provide:owner')
+        path, base = PurePosixPath(address), PurePosixPath(root['path'])
+        if not path.is_absolute() or '..' in path.parts or not path.is_relative_to(base):
+            raise PlacementInputError('path_not_allowed', 'placement', 'choose:placement')
+        relative_path = path.relative_to(base).as_posix()
+        if not any(matches_component_path(relative_path, pattern) for pattern in rule['paths']):
+            raise PlacementInputError('path_not_allowed', 'placement', 'choose:placement')
+
     def candidates(self, items, project, owners):
         rows, diagnostics = [], []
         for item in items:

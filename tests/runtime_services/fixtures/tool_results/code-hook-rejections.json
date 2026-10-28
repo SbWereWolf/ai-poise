@@ -1,0 +1,43 @@
+{
+  "healthy": {
+    "error": null
+  },
+  "parser": {
+    "error": {
+      "status": "rejected",
+      "error": {
+        "code": "parser_failed",
+        "field": "source",
+        "action": "inspect:source"
+      },
+      "exit_code": null
+    }
+  },
+  "budget": {
+    "names": [
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "B"
+    ],
+    "expanded_chars": 32,
+    "error": {
+      "status": "rejected",
+      "error": {
+        "code": "budget_too_small",
+        "field": "expanded",
+        "action": "increase:budget"
+      },
+      "exit_code": null
+    }
+  },
+  "source": {
+    "error": {
+      "status": "rejected",
+      "error": {
+        "code": "source_missing",
+        "field": "tool_response",
+        "action": "provide:source"
+      },
+      "exit_code": null
+    }
+  }
+}

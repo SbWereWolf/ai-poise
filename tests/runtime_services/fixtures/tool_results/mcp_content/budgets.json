@@ -1,0 +1,168 @@
+{
+  "brief-chars": {
+    "profile": {
+      "parser": "mcp",
+      "format": "mcp-content-json",
+      "content_index": 0,
+      "version_path": [
+        "schemaVersion"
+      ],
+      "expected_version": 2,
+      "items_path": [
+        "projects"
+      ],
+      "name_path": [
+        "label"
+      ],
+      "brief_template": "{count}",
+      "expanded_template": "{brief}\nProjects: {names}",
+      "error_brief_template": "MCP: error",
+      "error_expanded_template": "{brief}\n{error}",
+      "overflow": "reject",
+      "brief": {
+        "chars": 1,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 2048
+      }
+    },
+    "healthy": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"schemaVersion\":2,\"projects\":[{\"projectId\":\"project-a\",\"label\":\"Alpha\",\"path\":\"/example/alpha\",\"hostId\":\"fixture\",\"isGitRepository\":true},{\"projectId\":\"project-b\",\"label\":\"Бета\",\"path\":\"/example/beta\",\"hostId\":\"fixture\",\"isGitRepository\":false}],\"unselected\":{\"zero\":0,\"flag\":false,\"nullable\":null,\"marker\":\"FULL_ONLY_F08\"}}"
+        },
+        {
+          "type": "image",
+          "data": "opaque-unused-content",
+          "mimeType": "image/example"
+        }
+      ],
+      "isError": false,
+      "transport_extra": {
+        "marker": "FULL_ONLY_F08",
+        "keep": [
+          0,
+          false,
+          null
+        ]
+      }
+    },
+    "healthy_expected": {
+      "brief": "2",
+      "expanded": "2\nProjects: Alpha,Бета"
+    },
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"schemaVersion\":2,\"projects\":[{\"label\":\"P01\"},{\"label\":\"P02\"},{\"label\":\"P03\"},{\"label\":\"P04\"},{\"label\":\"P05\"},{\"label\":\"P06\"},{\"label\":\"P07\"},{\"label\":\"P08\"},{\"label\":\"P09\"},{\"label\":\"P10\"},{\"label\":\"P11\"},{\"label\":\"P12\"}]}"
+        },
+        {
+          "type": "image",
+          "data": "opaque-unused-content",
+          "mimeType": "image/example"
+        }
+      ],
+      "isError": false,
+      "transport_extra": {
+        "marker": "FULL_ONLY_F08",
+        "keep": [
+          0,
+          false,
+          null
+        ]
+      }
+    },
+    "error": {
+      "code": "budget_too_small",
+      "field": "brief",
+      "action": "increase:budget"
+    }
+  },
+  "expanded-utf8": {
+    "profile": {
+      "parser": "mcp",
+      "format": "mcp-content-json",
+      "content_index": 0,
+      "version_path": [
+        "schemaVersion"
+      ],
+      "expected_version": 2,
+      "items_path": [
+        "projects"
+      ],
+      "name_path": [
+        "label"
+      ],
+      "brief_template": "{count}",
+      "expanded_template": "{names}",
+      "error_brief_template": "MCP: error",
+      "error_expanded_template": "{brief}\n{error}",
+      "overflow": "reject",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 100,
+        "bytes": 12
+      }
+    },
+    "healthy": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"schemaVersion\":2,\"projects\":[],\"unselected\":\"FULL_ONLY_F08\"}"
+        },
+        {
+          "type": "image",
+          "data": "opaque-unused-content",
+          "mimeType": "image/example"
+        }
+      ],
+      "isError": false,
+      "transport_extra": {
+        "marker": "FULL_ONLY_F08",
+        "keep": [
+          0,
+          false,
+          null
+        ]
+      }
+    },
+    "healthy_expected": {
+      "brief": "0",
+      "expanded": ""
+    },
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"schemaVersion\":2,\"projects\":[{\"label\":\"ЖЖЖЖЖЖЖ\"}]}"
+        },
+        {
+          "type": "image",
+          "data": "opaque-unused-content",
+          "mimeType": "image/example"
+        }
+      ],
+      "isError": false,
+      "transport_extra": {
+        "marker": "FULL_ONLY_F08",
+        "keep": [
+          0,
+          false,
+          null
+        ]
+      }
+    },
+    "error": {
+      "code": "budget_too_small",
+      "field": "expanded",
+      "action": "increase:budget"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "healthy": {
+    "raw": "RESULT: 2 records\nDETAIL: checked A and B\nFULL_ONLY_NATIVE_WIRE_Ж🙂\n",
+    "brief": "Bash: 2 records; exit unavailable",
+    "expanded": "Bash: 2 records; exit unavailable\nDETAIL: checked A and B"
+  },
+  "empty": {
+    "raw": "",
+    "brief": "Bash: output received; exit unavailable",
+    "expanded": "Bash: output received; exit unavailable\n"
+  },
+  "json-looking": {
+    "raw": "{\"output\":\"pretend\",\"exit_code\":0,\"status\":\"verified\"}\n",
+    "brief": "Bash: output received; exit unavailable",
+    "expanded": "Bash: output received; exit unavailable\n"
+  },
+  "unicode-nul": {
+    "raw": "RESULT: Ж🙂\nDETAIL: строка\n\u0000END\n",
+    "brief": "Bash: Ж🙂; exit unavailable",
+    "expanded": "Bash: Ж🙂; exit unavailable\nDETAIL: строка"
+  },
+  "partial": {
+    "raw": "Warning: truncated output (original token count: 999)\nRESULT: fragment\n",
+    "state": "partial",
+    "reason": "native_output_truncated"
+  },
+  "unknown": {
+    "raw": "RESULT: fragment\ntokens truncated is ambiguous here\n",
+    "state": "unknown",
+    "reason": "native_output_ambiguous"
+  }
+}

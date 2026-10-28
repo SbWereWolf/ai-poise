@@ -1,0 +1,86 @@
+{
+  "parameters": {
+    "python": "filled-by-test",
+    "script": "filled-by-test",
+    "spec": "filled-by-test"
+  },
+  "commands": {
+    "infra": [
+      "${python}",
+      "-I",
+      "-B",
+      "${script}",
+      "infra",
+      "${spec}",
+      "${base_dir}"
+    ],
+    "deps": [
+      "${python}",
+      "-I",
+      "-B",
+      "${script}",
+      "deps",
+      "${spec}",
+      "${base_dir}"
+    ],
+    "check": [
+      "${python}",
+      "-I",
+      "-B",
+      "${script}",
+      "check",
+      "${spec}",
+      "${base_dir}"
+    ],
+    "run": [
+      "${python}",
+      "-I",
+      "-B",
+      "${script}",
+      "run",
+      "${spec}",
+      "${base_dir}"
+    ],
+    "repair": [
+      "${python}",
+      "-I",
+      "-B",
+      "${script}",
+      "repair",
+      "${spec}",
+      "${base_dir}"
+    ],
+    "verify": [
+      "${python}",
+      "-I",
+      "-B",
+      "${script}",
+      "verify",
+      "${spec}",
+      "${base_dir}"
+    ]
+  },
+  "handler": {
+    "callable": "apps.bootstrap.environment_result:handle",
+    "options": {
+      "schema": null,
+      "status_exit_codes": {
+        "succeeded": 0,
+        "failed": 1
+      },
+      "success_statuses": [
+        "succeeded"
+      ],
+      "repairable_statuses": [
+        "failed"
+      ],
+      "repair_operations": [
+        "infra",
+        "deps"
+      ],
+      "repair_command": "repair",
+      "verification_command": "verify",
+      "failure_exit_code": 4
+    }
+  }
+}

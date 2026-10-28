@@ -32,6 +32,14 @@ class CallerIdentity:
     native_session: str | None
 
     @classmethod
+    def harness(cls, kind, value):
+        if kind == 'native': value = _session(value, 'native session')
+        elif kind != 'generated': raise DomainError('Unsupported harness caller kind')
+        data = ['poise-harness-session-1', kind, _required(value, 'caller identity')]
+        key = hashlib.sha256(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+        return cls(key, value if kind == 'native' else None)
+
+    @classmethod
     def native(cls, project, native_session):
         native_session = _session(native_session, 'native session')
         return cls(_key(project, 'native', native_session), native_session)

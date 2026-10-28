@@ -1,0 +1,11 @@
+[
+  "status",
+  "task",
+  "request_id",
+  "phase",
+  "verification",
+  "progression",
+  "release",
+  "blocked",
+  "replayed"
+]

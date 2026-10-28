@@ -59,6 +59,15 @@ method_schedule и methods справочника относятся к конк
 
 ## Состав и использование
 
+Текущий development поставляется в `config/catalogue/workflow-templates/development.json`
+и `config/catalogue/workflows/development.json`; обе формы содержат 16 этапов.
+Прежний восьмиэтапный `config/workflows/development.json` удалён из исходной поставки.
+Для конкретной Task применяется
+[выбор источника процесса](../workflows/task-planning.md#выбор-источника-процесса):
+сохранённая Task продолжает свой процесс, новая использует явно выбранный проект
+и исходную форму. Удаление reference не публикует изменения в рабочие проекты
+и не мигрирует уже сохранённые Task.
+
 Текущий формат требует явные `purpose` и `criteria_authority` каждого этапа;
 см. [критерии этапов](../workflows/stage-criteria.md) и
 [полный пример](../workflows/stage-criteria-workflow.example.json).

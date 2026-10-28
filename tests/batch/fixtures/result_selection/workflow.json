@@ -1,0 +1,79 @@
+{
+  "goal_type": "development",
+  "worktree_required": true,
+  "route": {
+    "entry": "implementation"
+  },
+  "stages": [
+    {
+      "id": "implementation",
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Save or independently inspect the explicitly chosen result.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "role": "executor",
+      "transitions": {
+        "complete": "audit"
+      },
+      "rework_targets": [
+        "implementation"
+      ]
+    },
+    {
+      "id": "audit",
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "instruction": "Save or independently inspect the explicitly chosen result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "role": "reviewer",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "implementation"
+      },
+      "rework_targets": [
+        "audit",
+        "implementation"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  }
+}

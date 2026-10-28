@@ -1,0 +1,25 @@
+{
+  "commit_message": "Keep the explicit review decision",
+  "content_additions": {
+    "sections": [
+      {
+        "id": "supplement",
+        "template": "Optional supplement.",
+        "normalization": "strip",
+        "write_stages": [
+          "implementation"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": []
+  },
+  "trace": {
+    "review": {
+      "choice": {
+        "decision": "keep",
+        "reason": "Явное решение агента."
+      }
+    }
+  }
+}

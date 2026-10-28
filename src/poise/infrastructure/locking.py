@@ -8,6 +8,18 @@ from ..modules.foundation.errors import LockUnavailable, PoiseError
 
 
 @contextmanager
+def blocking_file_lock(path: Path):
+    """A short general filesystem transaction, without a guessed wait budget."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('a+b') as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
 def exclusive_lock(path: Path, wait: float, poll: float, *, existing=False):
     for value in (wait, poll):
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:

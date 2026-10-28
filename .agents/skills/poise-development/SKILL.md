@@ -55,7 +55,11 @@ For repository changes follow TDD: contract/check design → tests → honest RE
 
 For review, apply the incident-derived [evidence-based checklist](../../../docs/workflows/evidence-based-review.md#что-считать-находкой). Every actionable finding identifies the confirmed missing obligation, its producer stage, the later gate, an exact reproducible check and the evidenced cause class. Distinguish an AI poise runtime/task-contract defect, executor omission, reviewer omission, ordinary protective rejection and unresolved ownership. A historical repaired incident is regression provenance, not a current defect without new post-fix evidence. Batch independent Task/section/evidence/registry reads through the existing `show.queries`; never add another reader or claim unmeasured token savings.
 
-For a development Task, pass the complete initial checks schedule explicitly; `{}` is valid and must not trigger template defaults. Design and register the actual RED/GREEN methods, schedules and future-output provenance at `verification_planning`, once their source paths are known.
+For a development Task, pass each workflow stage key in the initial checks object
+explicitly; `methods: []` and empty stage lists are valid. Design concrete methods
+at `verification_planning`; register their definitions, schedules and provenance
+at the stage that owns `test_registry`, after their sources exist. Follow the
+[registry contract](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
 
 Keep executable-obligation field presence schema-driven: workflow schemas with a
 `test_registry` inspection route require the explicit field, while schemas without it reject

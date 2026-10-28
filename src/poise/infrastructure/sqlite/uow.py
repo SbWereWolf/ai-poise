@@ -9,6 +9,7 @@ from .artifacts import SqliteArtifactRepository
 from .task_delivery import SqliteTaskDeliveryRepository
 from .integration_scopes import SqliteIntegrationScopeRepository
 from .worktree_preparation import SqlitePreparationRepository
+from .stage_result_handoff import SqliteHandoffRepository
 
 
 class SqliteUnitOfWork:
@@ -236,6 +237,7 @@ class SqliteUnitOfWork:
         self.task_delivery = SqliteTaskDeliveryRepository(connection)
         self.integration_scopes = SqliteIntegrationScopeRepository(connection)
         self.preparation = SqlitePreparationRepository(connection)
+        self.handoffs = SqliteHandoffRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

@@ -1,0 +1,24 @@
+{
+  "bash_changes": {
+    "format": "native-text",
+    "brief_template": "Bash: {summary}; exit unavailable",
+    "brief_without_summary": "Bash: output received; exit unavailable",
+    "expanded_template": "{brief}\n{details}"
+  },
+  "selection": [
+    {
+      "id": "ordinary-work",
+      "tool_name": "Bash",
+      "profile": "Poise",
+      "priority": 20,
+      "command_pattern": "python -m poise work"
+    },
+    {
+      "id": "ordinary-bash",
+      "tool_name": "Bash",
+      "profile": "Bash",
+      "priority": 10,
+      "command_pattern": null
+    }
+  ]
+}

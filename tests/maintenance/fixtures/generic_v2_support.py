@@ -112,7 +112,7 @@ def bootstrap(consumer, catalog, operation="infra", *, extra=(),
                                            encoding="utf-8")
     # The real shipped sample is the selected configuration subject, not an oracle.
     config = json.loads(
-        (REPO / "config/bootstrap.example.json").read_text(
+        (REPO / "tests/maintenance/fixtures/catalog_bootstrap.example.json").read_text(
             encoding="utf-8"))
     values = root / "command-values.json"
     values.write_text("{}", encoding="utf-8")

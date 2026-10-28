@@ -50,6 +50,7 @@ class WorkTools:
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='reuse':out=h.reuse(**args)
             elif op=='verify':out=self._verify(args)
+            elif op=='handoff':out=h.stage_handoff.apply(args)
             elif op=='routing':out=h.refresh_development_route(args['facts'])
             elif op=='restore_context':out=h.restore_context(**args)
             elif op=='show':out=self._show(args['queries'])
@@ -86,8 +87,14 @@ class WorkTools:
         return {**out,'interaction':self.interactions.summary(None if ownership_recovery else h.report_task(out))}
 
     def _verify(self,args):
+        if 'selection' in args:
+            from .result_selection import SelectedResultSubmission
+            return SelectedResultSubmission(self).submit(args)
+        return self.runtime.stage_verification.verify(args)
+
+    def _verify_explicit(self,args, *, packet_digest=None, selection_guard=None):
         h=self.runtime;data=h.current_task()
-        packet_digest=h.packet_digest(args)
+        packet_digest=h.packet_digest(args) if packet_digest is None else packet_digest
         if data is None:
             if args['result'] is not None or args['artifacts']:
                 raise PoiseError('Taskless read-only verify takes explicit null result and no artifacts')
@@ -103,7 +110,8 @@ class WorkTools:
         if not isinstance(payload.get('artifact_paths'),list) or any(not isinstance(p,str) or not p for p in payload['artifact_paths']):
             raise PoiseError('artifact_paths must be an explicit list')
         factory=self.resources.factory()
-        prepared=factory.prepare(args['artifacts'])
+        prepared=(factory.prepare(args['artifacts']) if selection_guard is None else
+                  self.resources.prepare_selection(factory, args['artifacts'], selection_guard))
         # Paths can be known before file creation; Task checks only semantic input.
         payload['artifact_paths']=list(dict.fromkeys(payload['artifact_paths']+[str(x.path) for x in prepared]))
         gate = h.validate_stage_entry(data)
@@ -116,8 +124,11 @@ class WorkTools:
             return continuation
         # Validate submitted AND registered artifacts before producing any new file.
         h.validate_verification_artifacts(args['result']['artifact_paths'],data)
-        factory.materialize(prepared)
-        return h.verify(payload, packet_digest=packet_digest)
+        if selection_guard is None:
+            factory.materialize(prepared)
+            return h.verify(payload, packet_digest=packet_digest)
+        self.resources.materialize_selection(factory, prepared, selection_guard)
+        return h.verify(payload, packet_digest=packet_digest, selection_guard=selection_guard)
 
     def _show(self,queries):
         h=self.runtime;items=[]

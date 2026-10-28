@@ -1,0 +1,18 @@
+[
+  {
+    "scope": "task",
+    "path": "proofs/input.bin",
+    "source": {
+      "root": "task",
+      "path": "inputs/input.bin"
+    }
+  },
+  {
+    "scope": "task",
+    "path": "proofs/input.bin",
+    "source": {
+      "root": "task",
+      "path": "inputs/equal-bytes.bin"
+    }
+  }
+]

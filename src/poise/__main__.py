@@ -29,7 +29,7 @@ def parser():
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
     tool_result=sub.add_parser('tool-result',help='Save complete tool results and read bounded selected sources')
     for name in ('config', 'checkout', 'policy'):
-        tool_result.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+        tool_result.add_argument('--'+name,type=Path,required=name == 'policy',action=SingleArgument)
     tool_result.add_argument('--audience',choices=('agent','machine'),required=True,action=SingleArgument)
     checks=sub.add_parser('checks',help='Select and run configured named project checks')
     for name in ('config', 'checkout', 'policy'):

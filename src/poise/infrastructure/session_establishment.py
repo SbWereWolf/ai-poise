@@ -123,6 +123,17 @@ def direct_caller(project, environ, *, create_binding=True):
     raise PoiseError('No native caller identity; set POISE_CALLER_BINDING to an absolute persistent file')
 
 
+def harness_caller(environ):
+    """The same genuine caller inputs, without a fabricated project identity."""
+    native = native_session(environ)
+    binding = environ.get('POISE_CALLER_BINDING')
+    if native and binding:
+        raise PoiseError('POISE_CALLER_BINDING cannot be combined with native session identity; use the native session')
+    if binding: return CallerIdentity.harness('generated', _binding_id(binding, create=True))
+    if native: return CallerIdentity.harness('native', native)
+    raise PoiseError('No native caller identity; set POISE_CALLER_BINDING to an absolute persistent file')
+
+
 def _database(root, cfg, config_path, read_only):
     from .sqlite.database import Database
     from .project_resources import ProjectRuntimeFence

@@ -1,0 +1,22 @@
+{
+  "actual-wire-shape": {
+    "brief": "MCP: 2 projects",
+    "expanded": "MCP: 2 projects\nProjects: Alpha,Бета"
+  },
+  "alternate-declared-paths": {
+    "brief": "MCP: 2 projects",
+    "expanded": "MCP: 2 projects\nProjects: ,Бета"
+  },
+  "empty-items": {
+    "brief": "MCP: 0 projects",
+    "expanded": "MCP: 0 projects\nProjects: "
+  },
+  "actual-error-text": {
+    "brief": "MCP: error",
+    "expanded": "MCP: error\npermission denied"
+  },
+  "selected-second-block": {
+    "brief": "MCP: 2 projects",
+    "expanded": "MCP: 2 projects\nProjects: Alpha,Бета"
+  }
+}

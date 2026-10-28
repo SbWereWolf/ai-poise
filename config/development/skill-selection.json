@@ -382,6 +382,10 @@
   ],
   "excluded": [
     {
+      "id": "jetbrains-ide",
+      "reason": "Load for an actual supported IDE semantic or diagnostic operation using observed session capabilities, not for every documentation or Task operation."
+    },
+    {
       "id": "ponytail-review",
       "reason": "Loaded by the applicable review/self-review skill or an explicit simplification request, rather than as an unconditional work-start baseline."
     },

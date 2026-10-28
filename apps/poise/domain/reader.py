@@ -17,9 +17,9 @@ def reader_fields(value, fields, field):
     if not isinstance(value, dict):
         reader_invalid(field)
     for name in sorted(fields - value.keys()):
-        reader_invalid(field + '/' + name)
+        reader_invalid(field + '/' + name.replace('~', '~0').replace('/', '~1'))
     for name in sorted(value.keys() - fields):
-        reader_invalid(field + '/' + name)
+        reader_invalid(field + '/' + name.replace('~', '~0').replace('/', '~1'))
     return value
 
 

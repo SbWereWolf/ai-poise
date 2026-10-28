@@ -42,7 +42,14 @@ class ReaderFiles:
                 if expected_version is not None and version.view() != expected_version:
                     raise Problem('reader_version_changed', {'path': str(path),
                                   'expected': expected_version, 'observed': version.view()}, 'reader:read')
-                raw = source.read(limits.max_file_bytes + 1)
+                remaining, chunks = before.st_size + 1, []
+                while remaining:
+                    chunk = source.read(min(remaining, 65536))
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    remaining -= len(chunk)
+                raw = b''.join(chunks)
                 after = os.fstat(source.fileno())
                 if version != ReaderVersion(after.st_size, after.st_mtime_ns):
                     raise Problem('reader_file_changed', {'path': str(path)}, 'reader:read')

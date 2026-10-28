@@ -482,7 +482,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
                 trigger=False
         elif kind=='revise':p['stage_work']={'resolutions':proposals}
         elif kind=='apply_plan':
-            plan={'kind':'git_merge','base_commit':base,'sources':sources} if goal=='integration' else _environment_plan(home,2 if sid=='correction' else 1)
+            plan={'kind':'git_merge','base_commit':git(wt,'rev-parse','HEAD'),'sources':sources} if goal=='integration' else _environment_plan(home,2 if sid=='correction' else 1)
             p['stage_work']={'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':proposals}
         elif kind=='publish':
             p['stage_work']=({'kind':'tasks','section':'planned_task','authorization':'User: publish the reviewed child contracts.'} if goal=='task_planning' else
@@ -574,6 +574,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
             'expected_source_commit':final['commit'],
             'expected_target_commit':base,
             'authorization':'Fixture user authorizes local integration of this accepted result.',
+            'commit_message':'Integrate reviewed catalogue result\n\nPublish the accepted local merge result.',
             'resolutions':[],
         })
         assert integration['status']=='integrated',integration

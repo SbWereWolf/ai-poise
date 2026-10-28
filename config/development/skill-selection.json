@@ -382,6 +382,10 @@
   ],
   "excluded": [
     {
+      "id": "playwright",
+      "reason": "Load only for actual automated browser tests in a configured target application; browser-visible or documentation-only work is not a trigger."
+    },
+    {
       "id": "system-tests",
       "reason": "Select for an explicit system/acceptance journey in the configured target project, not ordinary Python unit or documentation work."
     },

@@ -21,7 +21,7 @@ uses targeted checks and maintained smoke; full release validation needs its
 own explicit assignment and [release gate](../release-gate/SKILL.md).
 
 For a browser journey choose engine, viewport and observation method from the
-accepted requirement and project configuration. Load a browser test skill only
+accepted requirement and project configuration. Load [playwright](../playwright/SKILL.md) only
 when an automated browser test is written, changed or run. Screenshots do not
 replace required assertions; automation does not silently replace specifically
 required human/browser observation.

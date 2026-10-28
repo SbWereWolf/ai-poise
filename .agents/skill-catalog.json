@@ -19,6 +19,7 @@
     {"id": "performance-and-observability", "path": ".agents/skills/performance-and-observability/SKILL.md", "purpose": "Measure application behavior before optimization.", "class": "common", "level": null, "responsibility": null},
     {"id": "php-modernization", "path": ".agents/skills/php-modernization/SKILL.md", "purpose": "Improve PHP code within declared runtime constraints.", "class": "working", "level": 1, "responsibility": "laravel-backend"},
     {"id": "phpunit", "path": ".agents/skills/phpunit/SKILL.md", "purpose": "Verify PHP behavior with independent exact assertions.", "class": "working", "level": 1, "responsibility": "backend-tests"},
+    {"id": "playwright", "path": ".agents/skills/playwright/SKILL.md", "purpose": "Implement and run configured automated browser scenarios with independent observable assertions.", "class": "working", "level": 1, "responsibility": "browser-tests"},
     {"id": "poise", "path": ".agents/skills/poise/SKILL.md", "purpose": "Coordinate project-selected task work and evidence.", "class": "meta", "level": null, "responsibility": null},
     {"id": "ponytail-review", "path": ".agents/skills/ponytail-review/SKILL.md", "purpose": "Review a requested simplification without replacing correctness or acceptance review.", "class": "meta", "level": null, "responsibility": null},
     {"id": "poise-development", "path": ".agents/skills/poise-development/SKILL.md", "purpose": "Apply Poise ownership boundaries and development rules.", "class": "common", "level": null, "responsibility": null},

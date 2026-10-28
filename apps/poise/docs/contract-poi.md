@@ -16,10 +16,15 @@
 [действующий договор reader/2](poi-file-contract.md): собственные Session, конфигурация,
 порции, продолжения, ACK и метаданные версии.
 
+Прямые `paths.evaluate`, `files.write` и подключение общей политики к reader
+имеют [действующий файловый договор](poi-fs-contract.md). Их конфигурация, точные
+ошибки, частичная запись и самостоятельный запуск определены там.
+
 Ниже сохранён исторический целевой проект T016. Его более широкий договор включает
 ещё отдельные области инструментов, асинхронных команд и закрытия Session.
 Эти описания сами по себе не подтверждают поставку исполняемых операций.
-Для реализованных Session, роли, статуса, hooks и reader текущие операторские договоры выше
+Для реализованных Session, роли, статуса, hooks, reader и файловых операций
+текущие операторские договоры выше
 заменяют соответствующие ранние предложения этого проекта, включая отличающиеся
 поля, условия допуска и проверки. Существующие нумерованные разделы сохранены
 как проектный материал для оставшихся областей.
@@ -455,7 +460,10 @@ possible after close and never require dispatch. New admission checks closed sta
 and permissions before recording a request. Serialize own mutations under own locks;
 never hold a distributed transaction with Sequencing/Execution or a tool provider.
 
-Check configured paths and output hashes before reads; secret values are redacted.
+Действующие файловые операции используют [общую политику](poi-fs-contract.md),
+а reader — обычные метаданные версии из [своего договора](poi-file-contract.md#версия-ack-и-эффекты).
+Проверка хэшей или подмены не является условием чтения этих операций.
+Секретные значения в диагностике принадлежат соответствующему владельцу вывода.
 Optional telemetry/duration/formatting cannot grant a role, change a request outcome
 or decide Task success. Preserve incomplete observation coverage and unobserved
 exit/duration as unknown; do not synthesize full logs after a crash.
@@ -578,8 +586,9 @@ bounded reader/output owners. Do not transplant the shared Task DB or interpret 
 stage's current role as Poise's immutable Session role.
 
 Действующие байтовые порции и продолжение описаны в
-[руководстве reader/2](poi-file-contract.md). Остальные проектные области:
-файловая политика T066–T067, асинхронные запросы/отмена/результаты провайдера
+[руководстве reader/2](poi-file-contract.md); реализованная файловая политика
+и запись — в [своём договоре](poi-fs-contract.md). Остальные проектные области:
+асинхронные запросы/отмена/результаты провайдера
 T068–T070, общий учёт T071. The T009 accounting SQLite-lock finding remains a known downstream issue,
 not fixed by this design. These owners must preserve the minimum direct-use and
 immutable-role boundary specified here, and version any richer public contract.

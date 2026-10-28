@@ -1,0 +1,90 @@
+{
+  "parameters": {
+    "source_root": "/srv/poise/app",
+    "python": "/srv/poise/app/tools/.venv/bin/python",
+    "start_app": "/srv/environment-maintenance/dist/installed/2.0.0/bin/start-app",
+    "operator": "/srv/poise/operator/start-app-worktrees"
+  },
+  "catalog_dir": "${task_root}/environment-maintenance/v2/profile",
+  "inputs": [
+    {
+      "source": "${operator}/prepare.sh",
+      "destination": "${task_root}/environment-maintenance/prepare.sh"
+    },
+    {
+      "source": "${operator}/environment-maintenance-repair-values.json",
+      "destination": "${task_root}/environment-maintenance/selected-values.json"
+    }
+  ],
+  "operations": [
+    "prepare",
+    "check"
+  ],
+  "commands": {
+    "prepare": [
+      "/bin/bash",
+      "${task_root}/environment-maintenance/prepare.sh",
+      "${source_root}",
+      "${python}",
+      "${start_app}",
+      "${project_id}",
+      "${worktree}",
+      "${task_root}",
+      "${catalog_dir}",
+      "${base}",
+      "${task_root}/environment-maintenance/selected-values.json"
+    ],
+    "check": [
+      "${start_app}",
+      "check",
+      "--config",
+      "${catalog_dir}/app.json",
+      "--parameters",
+      "${catalog_dir}/parameters.json",
+      "--base-dir",
+      "${worktree}"
+    ],
+    "repair": [
+      "${start_app}",
+      "infra",
+      "--config",
+      "${catalog_dir}/app.json",
+      "--parameters",
+      "${catalog_dir}/parameters.json",
+      "--base-dir",
+      "${worktree}",
+      "--requirements",
+      "all"
+    ],
+    "verify": [
+      "${start_app}",
+      "check",
+      "--config",
+      "${catalog_dir}/app.json",
+      "--parameters",
+      "${catalog_dir}/parameters.json",
+      "--base-dir",
+      "${worktree}"
+    ]
+  },
+  "handler": {
+    "callable": "apps.bootstrap.environment_result:handle",
+    "options": {
+      "schema": null,
+      "status_exit_codes": {
+        "succeeded": 0,
+        "failed": 1
+      },
+      "success_statuses": [
+        "succeeded"
+      ],
+      "repairable_statuses": [
+        "failed"
+      ],
+      "repair_operations": [],
+      "repair_command": "repair",
+      "verification_command": "verify",
+      "failure_exit_code": 4
+    }
+  }
+}

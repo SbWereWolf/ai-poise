@@ -186,13 +186,25 @@ def working_binding(runtime, application, selected, baseline, context, evidence)
             assert route[route.index('--base-dir') + 1] == str(base)
         assert len(bootstrap_files) == 1
         bootstrap_file = bootstrap_files.pop()
-        commands = CommandConfiguration.load(bootstrap_file).rendered_commands(
-            values={'base_dir': str(base)})
+        configuration = CommandConfiguration.load(bootstrap_file)
+        commands = configuration.rendered_commands(values={'base_dir': str(base)})
         assert all(row[row.index('--config') + 1] == str(app) and
                    row[row.index('--parameters') + 1] == str(parameters)
                    for row in commands.values())
-        python = commands['check'][0]
-        assert all(row[0] == python for row in commands.values())
+        def actual_sdk_python(row):
+            # The canonical producer uses explicit env/PYTHONPATH parameters;
+            # a configured direct Python command is also supported. Observe
+            # the rendered invocation, never the supplied healthy SDK fixture.
+            parameters = configuration.raw['parameters']
+            if row[0] == parameters.get('env_executable'):
+                assert row[1] == 'PYTHONPATH=' + parameters['runtime_module_path']
+                return row[2]
+            return row[0]
+
+        selected_python = {name: actual_sdk_python(row) for name, row in commands.items()}
+        python = selected_python['check']
+        assert all(value == python for value in selected_python.values()), \
+            'Bootstrap operations select different SDK interpreters'
         entry = ['/bin/bash', str(base / 'stride.sh'), '--poise-root', str(base),
                  '--project', application, str(selection)]
         paths += [selection, settings_path, bootstrap_file, base / 'bootstrap', base / 'stride.sh',

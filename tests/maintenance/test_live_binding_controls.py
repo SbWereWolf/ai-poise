@@ -149,8 +149,10 @@ def test_working_selection_is_independent_of_a_healthy_supplied_sdk(owned_contex
             working_binding(runtime, 'erp', selected, baseline, context, root)
 
 
-@pytest.mark.parametrize('selection', ['working', 'wrong-sdk', 'wrong-state', 'fresh-stores'])
-def test_poise_binding_uses_its_real_stride_and_bootstrap_selection(owned_context, consumer_case, selection):
+@pytest.mark.parametrize('command_form', ['direct', 'env'])
+@pytest.mark.parametrize('selection', ['working', 'wrong-sdk', 'mixed-sdk', 'wrong-state', 'fresh-stores'])
+def test_poise_binding_uses_its_real_stride_and_bootstrap_selection(
+        owned_context, consumer_case, selection, command_form):
     from poise.common import configured_root
     from poise.composition import project_tools
     from poise.infrastructure.projects import ProjectSettings
@@ -208,10 +210,22 @@ def test_poise_binding_uses_its_real_stride_and_bootstrap_selection(owned_contex
                           'checks': {'presence': {'commands': [action]}}})
     write(profile / 'infra.json', {'requirements': resources})
     python = sdk['sdk_python'] if selection != 'wrong-sdk' else sys.executable
-    commands = {name: [python, '-m', 'environment_maintenance', name, '--config', str(app),
+    bootstrap_parameters = {'python': python}
+    prefix = ['${python}', '-m', 'environment_maintenance']
+    if command_form == 'env':
+        # Match the actual canonical Bootstrap producer, independently of the
+        # observer under test: env establishes PYTHONPATH before selected Python.
+        bootstrap_parameters.update(env_executable='env', runtime_module_path='')
+        prefix = ['${env_executable}', 'PYTHONPATH=${runtime_module_path}',
+                  '${python}', '-P', '-s', '-B', '-m', 'environment_maintenance']
+    commands = {name: [*prefix, name, '--config', str(app),
         '--parameters', str(parameters), '--base-dir', str(repository)]
         for name in ('infra', 'deps', 'check', 'run')}
-    bootstrap_file = write(profile / 'bootstrap.json', {'parameters': {}, 'commands': commands,
+    if selection == 'mixed-sdk':
+        # A healthy declared/supplied SDK cannot mask a different actual SDK
+        # selected by another operation.
+        commands['run'][2 if command_form == 'env' else 0] = sys.executable
+    bootstrap_file = write(profile / 'bootstrap.json', {'parameters': bootstrap_parameters, 'commands': commands,
         'handler': {'callable': 'apps.bootstrap.environment_result:handle', 'options': {}}})
     tools = ProjectSettings(settings).root
     launcher = write(repository / '.runtime/stride-launcher.json', {

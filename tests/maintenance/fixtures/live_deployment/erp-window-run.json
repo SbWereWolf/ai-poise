@@ -1,0 +1,15 @@
+{
+  "requirements": [
+    {
+      "id": "planning-workspace-web",
+      "commands": [
+        {
+          "argv": ["${verification_timeout}", "--foreground", "--signal=TERM", "--kill-after=5s", "${verification_seconds}", "${node}", "${entry}", "run-process", "planning-workspace-web", "--repository-root", "${instance}"],
+          "cwd": "${instance}",
+          "env": {"PATH": "${path}"},
+          "interpreter": {"name": "exit", "options": {"accept": [124]}}
+        }
+      ]
+    }
+  ]
+}

@@ -201,7 +201,9 @@ def test_poise_binding_uses_its_real_stride_and_bootstrap_selection(owned_contex
 
 
 @pytest.mark.parametrize('dependency', ['configuration', 'source_root', 'python', 'start_app',
-                                      'operator', 'input-source', 'literal-command', 'unused-option'])
+                                      'operator', 'input-source', 'literal-command', 'unused-option',
+                                      'lexically-task-input', 'task-coordinate-source',
+                                      'worktree-coordinate-source'])
 def test_persistent_preparation_dependencies_are_distinct_from_task_coordinates(tmp_path, dependency):
     task, tree, operator = tmp_path / 'task', tmp_path / 'tree', tmp_path / 'operator'
     context = {'task_root': task, 'worktree': tree,
@@ -209,7 +211,8 @@ def test_persistent_preparation_dependencies_are_distinct_from_task_coordinates(
             'project_id': 'demo', 'task_id': 'T1', 'base': 'fixture-base', 'branch': 'tasks/T1'})}
     raw = json.loads((FIXTURES / 'modern-preparation-control.json').read_text())
     raw['parameters'] = {'source_root': str(operator / 'source'), 'python': sys.executable,
-        'start_app': str(operator / 'start-app'), 'operator': str(operator)}
+        'start_app': str(operator / 'start-app'), 'operator': str(operator),
+        'selected_values': str(operator / 'values.json')}
     configuration = operator / 'preparation.json'
     if dependency == 'configuration':
         configuration = task / 'preparation.json'
@@ -219,11 +222,17 @@ def test_persistent_preparation_dependencies_are_distinct_from_task_coordinates(
         raw['inputs'][0]['source'] = str(tree / 'source.sh')
     elif dependency == 'literal-command':
         raw['commands']['prepare'][0] = str(task / 'operator-command')
+    elif dependency == 'lexically-task-input':
+        raw['inputs'][1]['source'] = '../operator/../task/values.json'
+    elif dependency == 'task-coordinate-source':
+        raw['inputs'][1]['source'] = '${task_root}/values.json'
+    elif dependency == 'worktree-coordinate-source':
+        raw['inputs'][1]['source'] = '${worktree}/values.json'
     else:
         raw['parameters']['unused_future_parameter'] = str(task / 'unused')
         raw['ignored_future_option'] = str(tree / 'unused')
     write(configuration, raw)
-    if dependency == 'unused-option':
+    if dependency in ('unused-option', 'task-coordinate-source', 'worktree-coordinate-source'):
         preparation_dependencies_are_permanent(context, configuration)
     else:
         with pytest.raises(AssertionError):
@@ -256,3 +265,34 @@ def test_actual_ready_preparation_with_disposable_tool_is_rejected(owned_context
     failed = bootstrap(case, again=True, request_id='own-deleted-tool-proof')
     assert failed['preparation']['status'] == 'error'
     assert 'FileNotFoundError' in failed['preparation']['reason']
+
+
+@pytest.mark.parametrize('source_owner', ['stable', 'task'])
+def test_config_relative_input_uses_the_real_preparation_owner_base(owned_context, source_owner):
+    baseline, context, _, case = owned_context
+    before = context['attempt'].projection()
+    previous = Path(before['receipt_path'])
+    snapshot = case['project']['root'] / 'before-relative-source.json'
+    snapshot.write_bytes(previous.read_bytes())
+    source = ((case['configuration'].parent / 'own-stable-values.json')
+              if source_owner == 'stable' else context['task_root'] / 'own-relative-values.json')
+    source.write_bytes(case['selected'].read_bytes())
+    raw = json.loads(case['configuration'].read_text())
+    raw['inputs'][1]['source'] = os.path.relpath(source, case['configuration'].parent)
+    write(case['configuration'], raw)
+    prepared = bootstrap(case, again=True, request_id='relative-source-' + source_owner)
+    assert prepared['preparation']['status'] == 'ready'
+    context = owner_context(baseline, 'demo')
+    declared = {'receipt_path': prepared['preparation']['receipt_path'],
+        'receipt_sha256': prepared['preparation']['receipt_sha256'],
+        'previous_attempt_id': before['attempt_id'], 'previous_receipt_path': str(previous),
+        'previous_receipt_snapshot': str(snapshot)}
+    if source_owner == 'stable':
+        assert native_refresh_observation(context, declared)['status'] == 'ready'
+    else:
+        with pytest.raises(AssertionError):
+            native_refresh_observation(context, declared)
+        source.unlink()  # Only the input created by this control is removed.
+        failed = bootstrap(case, again=True, request_id='relative-source-after-removal')
+        assert failed['preparation']['status'] == 'error'
+        assert source.name in failed['preparation']['reason']

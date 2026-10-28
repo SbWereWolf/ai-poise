@@ -1,6 +1,7 @@
 """Observe existing registry, configuration and native preparation owners."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import tarfile
 from dataclasses import replace
@@ -67,7 +68,7 @@ def native_refresh_observation(context, declared):
 
 def assert_permanent(paths, context):
     for value in paths:
-        path = Path(value).absolute()
+        path = Path(os.path.abspath(value))
         assert not path.is_relative_to(context['task_root']), path
         assert not path.is_relative_to(context['worktree']), path
 
@@ -82,10 +83,18 @@ def preparation_dependencies_are_permanent(context, configuration):
     # Use the standard renderer and only the operator-owned dependencies that
     # the existing preparation contract actually references. Task coordinates,
     # copied command destinations and ignored options remain legitimate inputs.
-    sources = [part for argv in raw['commands'].values() for part in argv]
-    sources += [item['source'] for item in raw['inputs']]
-    persistent = [Template(value).safe_substitute(raw['parameters']) for value in sources]
+    commands = [part for argv in raw['commands'].values() for part in argv]
+    persistent = [Template(value).safe_substitute(raw['parameters']) for value in commands]
     assert_permanent([value for value in persistent if Path(value).is_absolute()], context)
+    selected = parsed.render()
+    task_coordinates = {'task_root', 'worktree', 'task_id', 'branch'}
+    for declared, rendered in zip(raw['inputs'], selected['inputs'], strict=True):
+        if task_coordinates.intersection(Template(declared['source']).get_identifiers()):
+            continue  # A new Task supplies its own runtime input, not this Task's persistent file.
+        source = Path(rendered['source'])
+        if not source.is_absolute():
+            source = Path(configuration).parent / source
+        assert_permanent([source], context)
 
 
 def store_paths(manifest_path, config):

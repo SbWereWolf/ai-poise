@@ -29,6 +29,16 @@ Five facts drive every rule below:
 
 ## Rules
 
+### Requests for user decisions
+
+When a genuinely missing decision blocks the authorized work, deliver the actual
+question through an available user-facing channel. State the action, scope and
+consequences; name the rule and reason for an exception. Internal status or a
+message to another agent is not a question delivered to the user. Do not claim
+permission was requested before delivery, infer consent from silence, or ask
+again when the same scoped authorization already exists. Follow the
+[first-action authority contract](../../../docs/workflows/task-execution-contract.md#проверка-перед-первым-действием).
+
 ### 1. Lead with the next action
 
 The first line is something the reader can do. Not context. Not a plan. The action.

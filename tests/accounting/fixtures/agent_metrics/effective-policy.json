@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "policy_version": "fixture-1",
+  "session_id": "00000000-0000-4000-8000-000000000161",
+  "phase": "implement",
+  "task_path": null,
+  "applications": [],
+  "profiles": ["fixture-code"],
+  "risk_triggers": [],
+  "observed_at": "2026-10-29T00:00:00Z",
+  "skills": ["fixture-alpha"],
+  "recommended_skills": [],
+  "reasons": {
+    "skills": {"fixture-alpha": ["path-rule:fixture-code"]},
+    "recommended_skills": {},
+    "references": {".agents/skills/fixture-alpha/references/ref.md": ["fixture-reference-trigger"]}
+  },
+  "triggered_references": [{"path": ".agents/skills/fixture-alpha/references/ref.md"}]
+}

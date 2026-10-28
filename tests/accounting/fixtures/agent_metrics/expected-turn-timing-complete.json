@@ -1,0 +1,4 @@
+{
+  "duration_ms": {"value": 2000, "unit": "milliseconds", "kind": "observed", "state": "known"},
+  "time_to_first_token_ms": {"value": 125, "unit": "milliseconds", "kind": "observed", "state": "known"}
+}

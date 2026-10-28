@@ -1,0 +1,9 @@
+{
+  "kind": "literal historical input snapshot; not current expected-output generation",
+  "source_commit": "74447df9594990367d10f15ea30225ccafd8ed11",
+  "source_path": "src/poise/infrastructure/sqlite/database.py",
+  "source_sha256": "bf64f99c4b5e5b74f728b4a455cbc6a08200607a9ead9346940bac0b69518621",
+  "schema_version": 13,
+  "data_origin": "independent hand-specified values in legacy-store-data.json; old identity hash used only for valid input arrangement",
+  "task_rows": 0
+}

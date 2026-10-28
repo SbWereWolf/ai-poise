@@ -1,0 +1,6 @@
+{
+  "rewrite": {"value": true, "unit": "boolean", "kind": "observed", "state": "known"},
+  "blocked": {"value": false, "unit": "boolean", "kind": "observed", "state": "known"},
+  "bypass_attempt": {"value": false, "unit": "boolean", "kind": "observed", "state": "known"},
+  "input_bytes": {"value": 18, "unit": "bytes", "kind": "observed", "state": "known"}
+}

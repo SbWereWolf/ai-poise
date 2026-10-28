@@ -1,0 +1,8 @@
+{
+  "operator_future_option": {
+    "id": "UNREGISTERED-F16",
+    "kind": "codex-native",
+    "max_records": 999999,
+    "semantic_override": "must-be-ignored"
+  }
+}

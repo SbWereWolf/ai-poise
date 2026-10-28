@@ -1,0 +1,5 @@
+{
+  "input_bytes": {"value": 24, "unit": "bytes", "kind": "observed", "state": "known"},
+  "output_bytes": {"value": 59, "unit": "bytes", "kind": "observed", "state": "known"},
+  "duration_ms": {"value": 250, "unit": "milliseconds", "kind": "observed", "state": "known"}
+}

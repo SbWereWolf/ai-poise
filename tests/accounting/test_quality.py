@@ -42,7 +42,9 @@ def quality_session(project, mode):
     task['decomposition']['phases'] = [
         {'stage': s['id'], 'skills': ['task-domain'], 'areas': []} for s in p['stages']]
     task['stage_contracts'] = [{'stage_id': s['id'], 'allowed_paths': list(s['allowed_paths']),
-        'entry_requirements': [], 'exit_requirements': []} for s in p['stages']]
+        'entry_requirements': [], 'exit_requirements': [],
+        'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []}}
+        for s in p['stages']]
     runtime = Poise(project['config_path'], 'Q', DeterministicClock())
     work = WorkTools(runtime)
     context = work.invoke(request('bootstrap', {

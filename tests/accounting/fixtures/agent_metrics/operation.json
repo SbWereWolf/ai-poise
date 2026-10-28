@@ -1,0 +1,8 @@
+{
+  "schema": "poise-agent-metrics-request-1",
+  "operation": null,
+  "scope": {
+    "kind": "project",
+    "id": null
+  }
+}

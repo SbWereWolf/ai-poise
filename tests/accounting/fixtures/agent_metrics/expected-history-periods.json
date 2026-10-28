@@ -1,0 +1,8 @@
+{
+  "periods": ["2026-10-29", "2026-10-26", "2026-10"],
+  "metrics": {
+    "tokens": {"value": 150, "unit": "tokens", "kind": "derived", "state": "known"},
+    "changed_lines": {"value": 3, "unit": "lines", "kind": "derived", "state": "known"},
+    "efficiency": {"value": 50, "unit": "tokens per changed line", "kind": "derived", "state": "known"}
+  }
+}

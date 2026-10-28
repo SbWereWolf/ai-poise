@@ -1,0 +1,5 @@
+[
+  {"call_id": "f16-alpha-read", "path": ".agents/skills/fixture-alpha/SKILL.md", "skill": "fixture-alpha", "kind": "core", "reader": "cat", "repeated": false},
+  {"call_id": "f16-ref-read-one", "path": ".agents/skills/fixture-alpha/references/ref.md", "skill": "fixture-alpha", "kind": "reference", "reader": "cat", "repeated": false},
+  {"call_id": "f16-ref-read-two", "path": ".agents/skills/fixture-alpha/references/ref.md", "skill": "fixture-alpha", "kind": "reference", "reader": "cat", "repeated": true}
+]

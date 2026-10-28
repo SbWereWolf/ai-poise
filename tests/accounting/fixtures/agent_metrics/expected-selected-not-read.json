@@ -1,0 +1,9 @@
+{
+  "sessions_selected": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "sessions_core_read": {"value": 0, "unit": "count", "kind": "derived", "state": "known"},
+  "selected_instances": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "selected_not_read_instances": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "reference_reads": {"value": 2, "unit": "count", "kind": "derived", "state": "known"},
+  "raw_read_bytes": {"value": 12, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "repeated_read_bytes": {"value": 6, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"}
+}

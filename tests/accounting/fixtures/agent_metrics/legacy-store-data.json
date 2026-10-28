@@ -1,0 +1,96 @@
+{
+  "cycle_id": "historic-envelope-f16",
+  "usage_id": "f10704ec2f517185dbd59b38e941d5efb9a686c5ca346bddf1aff46f51f31a82",
+  "session": "f16-historical-session",
+  "envelope": {
+    "operation": "show",
+    "session": "f16-historical-session",
+    "turn_id": "historic-turn",
+    "before_binding": {
+      "task": null,
+      "sprint": null,
+      "goal_type": null,
+      "stage": null,
+      "iteration": null
+    },
+    "after_binding": {
+      "task": null,
+      "sprint": null,
+      "goal_type": null,
+      "stage": null,
+      "iteration": null
+    },
+    "started": {
+      "audit_utc": "2026-10-28T10:00:00+00:00",
+      "monotonic_ns": 1000000000,
+      "comparison_domain": "historical-test-boot"
+    },
+    "finished": {
+      "audit_utc": "2026-10-28T10:00:01+00:00",
+      "monotonic_ns": 2000000000,
+      "comparison_domain": "historical-test-boot"
+    },
+    "result_status": "read_only",
+    "telemetry": {
+      "usage": [
+        {
+          "source": "codex",
+          "stream": "historic-stream",
+          "event_id": "resp-historic-f16",
+          "sequence": 1,
+          "mode": "delta",
+          "occurred_at": "2026-10-28T10:00:00+00:00",
+          "counters": {
+            "input_tokens": 100,
+            "output_tokens": 20,
+            "total_tokens": 120,
+            "cached_input_tokens": 10,
+            "reasoning_tokens": 5
+          }
+        }
+      ],
+      "intervals": [],
+      "cause": null,
+      "finding_targets": []
+    }
+  },
+  "usage_record": {
+    "sample": {
+      "source": "codex",
+      "stream": "historic-stream",
+      "event_id": "resp-historic-f16",
+      "sequence": 1,
+      "mode": "delta",
+      "occurred_at": "2026-10-28T10:00:00+00:00",
+      "counters": {
+        "input_tokens": 100,
+        "output_tokens": 20,
+        "total_tokens": 120,
+        "cached_input_tokens": 10,
+        "reasoning_tokens": 5
+      }
+    },
+    "contribution": {
+      "input_tokens": 100,
+      "output_tokens": 20,
+      "total_tokens": 120,
+      "cached_input_tokens": 10,
+      "reasoning_tokens": 5
+    },
+    "binding": {
+      "task": null,
+      "sprint": null,
+      "goal_type": null,
+      "stage": null,
+      "iteration": null
+    },
+    "cause": null,
+    "source_mode": "observed",
+    "session": "f16-historical-session",
+    "finding_ids": []
+  },
+  "expected_project_totals": [
+    120,
+    150
+  ]
+}

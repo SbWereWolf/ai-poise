@@ -1,0 +1,7 @@
+[
+  "task_path",
+  "finding_id",
+  "relation",
+  "findings_despite_selected_read",
+  "findings_associated_missing"
+]

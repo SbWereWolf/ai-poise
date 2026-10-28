@@ -1,0 +1,5 @@
+[
+  {"source": "modern-legacy-overlap", "totals": [150], "unknown_totals": 0, "excluded_prefix": false},
+  {"source": "legacy-reset", "totals": [10, 20, 150], "unknown_totals": 1, "excluded_prefix": false},
+  {"source": "fork-inherited", "totals": [20], "unknown_totals": 0, "excluded_prefix": true}
+]

@@ -1,0 +1,9 @@
+{"type":"session_meta","timestamp":"2026-10-29T00:00:00Z","payload":{"id":"00000000-0000-4000-8000-000000000161","session_id":"00000000-0000-4000-8000-000000000161","cwd":"@CHECKOUT@","timestamp":"2026-10-29T00:00:00Z"}}
+{"type":"event_msg","timestamp":"2026-10-29T00:00:00Z","payload":{"type":"task_started","turn_id":"turn-f16"}}
+{"type":"response_item","timestamp":"2026-10-29T00:00:00.100Z","payload":{"type":"custom_tool_call","id":"ctc_f16_exposure","status":"completed","call_id":"f16-exposure-call","name":"exec","input":"printf 'А\\n'","internal_chat_message_metadata_passthrough":{"turn_id":"turn-f16"}}}
+{"type":"response_item","timestamp":"2026-10-29T00:00:00.200Z","payload":{"type":"custom_tool_call_output","call_id":"f16-exposure-call","output":"А\n"}}
+{"type":"token_usage_record","timestamp":"2026-10-29T00:00:01Z","payload":{"thread_id":"00000000-0000-4000-8000-000000000161","turn_id":"turn-f16","response_id":"response-before-compaction-1","usage":{"input_tokens":120,"output_tokens":30,"total_tokens":150}}}
+{"type":"token_usage_record","timestamp":"2026-10-29T00:00:02Z","payload":{"thread_id":"00000000-0000-4000-8000-000000000161","turn_id":"turn-f16","response_id":"response-before-compaction-2","usage":{"input_tokens":15,"output_tokens":5,"total_tokens":20}}}
+{"type":"compacted","timestamp":"2026-10-29T00:00:03Z","payload":{"turn_id":"turn-f16","message":"PRIVATE_F16_COMPACTION"}}
+{"type":"token_usage_record","timestamp":"2026-10-29T00:00:04Z","payload":{"thread_id":"00000000-0000-4000-8000-000000000161","turn_id":"turn-f16","response_id":"response-after-compaction","usage":{"input_tokens":8,"output_tokens":2,"total_tokens":10}}}
+{"type":"event_msg","timestamp":"2026-10-29T00:00:05Z","payload":{"type":"task_complete","turn_id":"turn-f16"}}

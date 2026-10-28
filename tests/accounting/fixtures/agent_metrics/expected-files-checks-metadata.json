@@ -1,0 +1,11 @@
+{
+  "path": "src/example.py",
+  "category": "code",
+  "reader": "cat",
+  "call_id": "f16-read-call",
+  "command_id": "fixture-check-command",
+  "workload_class": "unit",
+  "check_id": "F16-CHECK",
+  "status": "passed",
+  "cache_hit": true
+}

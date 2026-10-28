@@ -1,0 +1,15 @@
+{
+  "scope": "F16 test-stage materialization of logical public record attribution; requires independent test review before product implementation",
+  "metric_row_context_field": "context",
+  "selection_summary_context": {"scope": "summary"},
+  "skill_context_key": "skill",
+  "tool_context_key": "call_id",
+  "metadata_availability_field": "field_availability",
+  "content_row_type_key": "row_type",
+  "history_period_contexts": [
+    {"period_kind": "daily", "period": "2026-10-29"},
+    {"period_kind": "weekly", "period": "2026-10-26"},
+    {"period_kind": "monthly", "period": "2026-10"}
+  ],
+  "meaning": "Summary and individual-skill measurements retain their own entity context. Equal names in different contexts are alternative views, not extra spend. This is an exported record contract, not a storage schema."
+}

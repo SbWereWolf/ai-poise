@@ -1,0 +1,38 @@
+{
+  "input_tokens": {
+    "value": 120,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  },
+  "cached_input_tokens": {
+    "value": 24,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  },
+  "cache_write_input_tokens": {
+    "value": 7,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  },
+  "output_tokens": {
+    "value": 30,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  },
+  "reasoning_output_tokens": {
+    "value": 9,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  },
+  "total_tokens": {
+    "value": 150,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  }
+}

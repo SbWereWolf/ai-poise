@@ -1,0 +1,20 @@
+{
+  "input_tokens": {
+    "value": null,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "conflict"
+  },
+  "output_tokens": {
+    "value": 30,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "known"
+  },
+  "total_tokens": {
+    "value": null,
+    "unit": "tokens",
+    "kind": "observed",
+    "state": "conflict"
+  }
+}

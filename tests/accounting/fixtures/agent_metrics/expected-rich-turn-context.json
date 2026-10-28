@@ -1,0 +1,6 @@
+{
+  "duration_ms": {"value": 2000, "unit": "milliseconds", "kind": "observed", "state": "known"},
+  "time_to_first_token_ms": {"value": 125, "unit": "milliseconds", "kind": "observed", "state": "known"},
+  "model_context_window": {"value": 4096, "unit": "tokens capacity", "kind": "observed", "state": "known"},
+  "compactions": {"value": 1, "unit": "count", "kind": "observed", "state": "known"}
+}

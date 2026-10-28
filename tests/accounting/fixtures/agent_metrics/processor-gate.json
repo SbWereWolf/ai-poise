@@ -1,0 +1,7 @@
+{
+  "directory": "@GATE@",
+  "module": "poise.infrastructure.telemetry",
+  "function": "__call__",
+  "class": "DetachedTelemetryProcessor",
+  "timeout_seconds": 20
+}

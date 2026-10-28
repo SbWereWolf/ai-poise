@@ -1,0 +1,12 @@
+{
+  "raw_output_bytes": {"value": 3, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "raw_output_tokens": {"value": 1, "unit": "estimated tokens (ceil(bytes/4))", "kind": "proxy", "state": "known"},
+  "exposure_span_calls": {"value": 2, "unit": "count", "kind": "derived", "state": "known"},
+  "gross_context_exposure": {"value": 2, "unit": "estimated tokens multiplied by subsequent calls", "kind": "proxy", "state": "known"},
+  "observations": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "compaction_bounded": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "excluded_inherited_rows": {"value": 0, "unit": "count", "kind": "derived", "state": "known"},
+  "exposure_span_seconds": {"value": 2.8, "unit": "seconds", "kind": "derived", "state": "known"},
+  "avg_exposure_span_seconds": {"value": 2.8, "unit": "seconds", "kind": "derived", "state": "known"},
+  "avg_exposure_span_calls": {"value": 2, "unit": "calls", "kind": "derived", "state": "known"}
+}

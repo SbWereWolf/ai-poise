@@ -1,0 +1,20 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000161",
+  "thread_id": "00000000-0000-4000-8000-000000000161",
+  "response_id": "response-f16-a",
+  "turn_id": "turn-f16",
+  "usage_status": "known",
+  "parser_version": "invocations-2.0",
+  "classification_version": "purpose-1",
+  "kind": "modern",
+  "later_bytes": 0,
+  "partial_tail": false,
+  "excluded_prefix_events": 0,
+  "undated_invocations": 0,
+  "unprocessed_sessions": [],
+  "processing_failures": [],
+  "errors": [],
+  "source_changed_since_capture": false,
+  "usage_records_missing": false,
+  "complete_for_registered_scope": true
+}

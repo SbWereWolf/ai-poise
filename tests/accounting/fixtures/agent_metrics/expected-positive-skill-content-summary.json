@@ -1,0 +1,11 @@
+{
+  "skills_in_repository": {"value": 2, "unit": "count", "kind": "observed", "state": "known"},
+  "skills_in_report": {"value": 2, "unit": "count", "kind": "observed", "state": "known"},
+  "skills_measured": {"value": 0, "unit": "count", "kind": "observed", "state": "known"},
+  "skills_insufficient_data": {"value": 2, "unit": "count", "kind": "observed", "state": "known"},
+  "references_returned": {"value": 2, "unit": "count", "kind": "observed", "state": "known"},
+  "priority_candidates": {"value": 0, "unit": "count", "kind": "observed", "state": "known"},
+  "unreachable_skill_local_files": {"value": 1, "unit": "count", "kind": "observed", "state": "known"},
+  "global_unreachable_agent_files": {"value": 2, "unit": "count", "kind": "observed", "state": "known"},
+  "normalized_exact_duplicate_groups": {"value": 1, "unit": "count", "kind": "observed", "state": "known"}
+}

@@ -1,0 +1,6 @@
+{
+  "id": "skill-policy",
+  "kind": "skill-policy",
+  "parser_version": "1",
+  "paths": ["@SOURCE@/effective-policy.json", "@CHECKOUT@/.agents/references/skill-routing.json"]
+}

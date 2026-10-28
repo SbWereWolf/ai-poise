@@ -1,0 +1,12 @@
+{
+  "schema": "poise-agent-metrics-result-1",
+  "status": "read_only",
+  "scope": {
+    "kind": "session",
+    "id": "00000000-0000-4000-8000-000000000161"
+  },
+  "period": {
+    "from": null,
+    "to": null
+  }
+}

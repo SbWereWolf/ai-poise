@@ -1,0 +1,44 @@
+[
+  {
+    "id": "extra-packet-field",
+    "change": {
+      "operator_note": "not-an-API-field"
+    }
+  },
+  {
+    "id": "unknown-scope",
+    "change": {
+      "scope": {
+        "kind": "imagined",
+        "id": "absent"
+      }
+    }
+  },
+  {
+    "id": "reverse-period",
+    "change": {
+      "period": {
+        "from": "2026-10-30T00:00:00Z",
+        "to": "2026-10-29T00:00:00Z"
+      }
+    }
+  },
+  {
+    "id": "naive-period",
+    "change": {
+      "period": {
+        "from": "2026-10-29T00:00:00",
+        "to": null
+      }
+    }
+  },
+  {
+    "id": "foreign-project",
+    "change": {
+      "scope": {
+        "kind": "project",
+        "id": "foreign-f16-project"
+      }
+    }
+  }
+]

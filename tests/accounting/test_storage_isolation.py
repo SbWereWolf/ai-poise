@@ -77,7 +77,7 @@ def test_real_optional_write_does_not_block_current_next_or_accounting_work(proj
             context.optional = False
 
     # Keep the actual Poise-created dispatcher, callback and SQL operations.
-    monkeypatch.setattr(dispatcher.processor, "workflow", observed_process)
+    monkeypatch.setattr(dispatcher.processor, "process", observed_process)
     optional_transaction = optional.transaction
 
     @contextmanager

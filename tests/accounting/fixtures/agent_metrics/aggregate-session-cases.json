@@ -1,0 +1,6 @@
+[
+  {"session": "00000000-0000-4000-8000-000000000161", "filename": "session.jsonl", "source": "complete"},
+  {"session": "00000000-0000-4000-8000-000000000163", "filename": "zero-session.jsonl", "source": "zero"},
+  {"session": "00000000-0000-4000-8000-000000000164", "filename": "missing-session.jsonl", "source": "missing"},
+  {"session": "00000000-0000-4000-8000-000000000165", "filename": "conflict-session.jsonl", "source": "conflict"}
+]

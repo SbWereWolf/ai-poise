@@ -1,0 +1,5 @@
+{
+  "input_tokens": {"value": 40, "unit": "tokens", "kind": "observed", "state": "known"},
+  "output_tokens": {"value": 10, "unit": "tokens", "kind": "observed", "state": "known"},
+  "total_tokens": {"value": 50, "unit": "tokens", "kind": "observed", "state": "known"}
+}

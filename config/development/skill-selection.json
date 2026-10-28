@@ -382,6 +382,10 @@
   ],
   "excluded": [
     {
+      "id": "safe-commit",
+      "reason": "Select explicitly for an authorized direct commit or commit recovery; ordinary Task finalization keeps its configured owner."
+    },
+    {
       "id": "laravel",
       "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
     },

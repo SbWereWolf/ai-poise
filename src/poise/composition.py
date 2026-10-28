@@ -57,6 +57,15 @@ def project_checks_tools(bound, policy_path, environment, clock):
     return service
 
 
+def check_invocation_tools(service, policy, environment, *, caller=None):
+    from .application.check_invocations import CheckInvocations
+    from .infrastructure.project_checks.invocations import InvocationCancellation
+    from .infrastructure.session_establishment import direct_caller
+    if caller is None:
+        caller = direct_caller(service.configuration.bound.config['project'], environment)
+    return CheckInvocations(service.ledger.invocation_store(policy), caller, InvocationCancellation)
+
+
 def intake_session_tools(configuration, caller, authority_factory, clock):
     """One composition for native admission and episode-owned reading resources."""
     from pathlib import Path

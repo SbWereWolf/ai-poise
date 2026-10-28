@@ -39,6 +39,11 @@ def parser():
     for name in ('config', 'checkout', 'policy'):
         checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     checks.add_argument('--view',choices=('brief','expanded','full'),required=True,action=SingleArgument)
+    checks.add_argument('--transport-policy',type=Path,action=SingleArgument)
+    checks.add_argument('--invocation',action=SingleArgument)
+    checks_mcp=sub.add_parser('checks-mcp',help='Serve configured checks through full stdio MCP')
+    for name in ('config','checkout','policy','transport-policy'):
+        checks_mcp.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     reader=sub.add_parser('content-read',help='Read selected project-file parts in the native context')
     for name in ('config','checkout','policy'):
         reader.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
@@ -126,7 +131,18 @@ def main():
     if args.command=='checks':
         from .interfaces.project_checks import execute_cli
         from .infrastructure.clock import SystemClock
+        if args.transport_policy is not None:
+            from .interfaces.checks_cli import execute
+            return execute(args.config,args.checkout,args.policy,args.transport_policy,args.invocation,
+                           args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
+        if args.invocation is not None:
+            parser().error('--invocation requires --transport-policy')
         return execute_cli(args.config,args.checkout,args.policy,args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
+    if args.command=='checks-mcp':
+        from .interfaces.checks_mcp import serve
+        from .infrastructure.clock import SystemClock
+        return serve(args.config,args.checkout,args.policy,args.transport_policy,
+                     sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
     if args.command=='result-view':
         from .interfaces.result_views import execute
         return execute(args.response,args.view,args.output_chars,sys.stdout,sys.stderr)

@@ -189,6 +189,8 @@ class RegisteredCheckRunner:
         capture_observer=None,
         stdin_file=None,
         launch_observer=None,
+        invocation_cancellation=None,
+        cancellation_policy=None,
     ) -> dict:
         if capture_observer is not None and not callable(capture_observer):
             raise ValueError('Capture observer must be callable or None')
@@ -210,6 +212,12 @@ class RegisteredCheckRunner:
         if not isinstance(argv, list) or not argv or any(not isinstance(x, str) for x in argv):
             raise ValueError('argv must be a non-empty list of strings')
         prohibit_git_push(argv)
+        if (invocation_cancellation is None) != (cancellation_policy is None):
+            raise ValueError('Invocation cancellation requires its explicit policy')
+        if invocation_cancellation is not None:
+            invocation_cancellation.before_step()
+            cleanup_seconds = cancellation_policy['cleanup_seconds']
+            poll_seconds = cancellation_policy['poll_seconds']
         start = time.monotonic()
         state = {'child': None, 'cancel_requested': False, 'last_progress': start}
         # Reserve before files or subprocesses: rejected duplicates have no effects.
@@ -228,6 +236,9 @@ class RegisteredCheckRunner:
         timed_out = False
         timeout_reason = None
         observer_error = None
+        grace_deadline = None
+        graceful_requested = False
+        force_requested = False
         cancellation_reason = None
         cancellation_observation = None
         try:
@@ -238,6 +249,8 @@ class RegisteredCheckRunner:
             with stdout_path.open('wb') as out, stderr_path.open('wb') as err:
                 try:
                     with self._lock:
+                        if invocation_cancellation is not None:
+                            invocation_cancellation.before_step()
                         if state['cancel_requested']:
                             raise PoiseError('Registered launch cancelled before spawn')
                         try:
@@ -269,15 +282,36 @@ class RegisteredCheckRunner:
                                 if isinstance(observed, dict):
                                     cancellation_observation = dict(observed)
                             now = time.monotonic()
+                            if (code is None and invocation_cancellation is not None
+                                    and not state['cancel_requested'] and invocation_cancellation.requested()):
+                                state['cancel_requested'] = True
+                                cancellation_reason = 'explicit_cancel'
+                                try:
+                                    os.killpg(child.pid, signal.SIGTERM)
+                                    graceful_requested = True
+                                except ProcessLookupError:
+                                    pass
+                                grace_deadline = now + cancellation_policy['grace_seconds']
                             if code is None and not state['cancel_requested']:
                                 if progress_gap_seconds is not None and now - state['last_progress'] >= progress_gap_seconds:
                                     timed_out, timeout_reason = True, 'progress_gap'
                                 elif timeout is not None and now - start >= timeout:
                                     timed_out, timeout_reason = True, 'hard_limit'
-                            if code is not None or state['cancel_requested'] or timed_out:
+                            force_due = (state['cancel_requested'] and
+                                         (grace_deadline is None or now >= grace_deadline))
+                            if code is not None or force_due or timed_out:
                                 # One budget for both pipes and direct-child reaping.
                                 cleanup_deadline = now + cleanup_seconds
-                                group_stopped = self._kill_group(child) is True
+                                if invocation_cancellation is None:
+                                    group_stopped = self._kill_group(child) is True
+                                else:
+                                    try:
+                                        os.killpg(child.pid, 0)
+                                    except ProcessLookupError:
+                                        group_stopped = True
+                                    else:
+                                        group_stopped = self._kill_group(child) is True
+                                        force_requested = True
                         if cleanup_deadline is not None:
                             if not selector.get_map():
                                 capture_complete = True
@@ -292,6 +326,8 @@ class RegisteredCheckRunner:
                                 waits.append(max(0, start + timeout - now))
                             if progress_gap_seconds is not None:
                                 waits.append(max(0, state['last_progress'] + progress_gap_seconds - now))
+                            if grace_deadline is not None:
+                                waits.append(max(0, grace_deadline - now))
                             wait = min(waits)
                         # Bounded chunks ensure a busy producer cannot starve deadlines.
                         for key, _ in selector.select(wait):
@@ -321,7 +357,10 @@ class RegisteredCheckRunner:
                         if child is not None:
                             if cleanup_deadline is None:
                                 cleanup_deadline = time.monotonic() + cleanup_seconds
-                            group_stopped = self._kill_group(child) is True
+                            if invocation_cancellation is None or not group_stopped:
+                                group_stopped = self._kill_group(child) is True
+                                if invocation_cancellation is not None:
+                                    force_requested = True
                             try:
                                 code = child.wait(timeout=max(0, cleanup_deadline - time.monotonic()))
                                 child_reaped = True
@@ -354,6 +393,8 @@ class RegisteredCheckRunner:
                 'cleanup_seconds': cleanup_seconds,
                 'cancelled': cancelled,
                 'cancellation_reason': cancellation_reason,
+                **({} if invocation_cancellation is None else {
+                    'graceful_requested': graceful_requested, 'force_requested': force_requested}),
                 **({} if cancellation_observation is None else
                    {'cancellation_observation': cancellation_observation}),
                 'duration_seconds': time.monotonic() - start,

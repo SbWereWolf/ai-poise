@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import sqlite3
 import uuid
+from dataclasses import dataclass
 
 from ..common import PoiseError
 from ..infrastructure.harness_config import load_harness_config
@@ -32,7 +33,41 @@ def references(service, response_path=None):
     return result
 
 
-def execute(config_path, checkout, policy_path, stream, output, error_output, clock):
+@dataclass
+class PreparedCheckRequest:
+    bound: object
+    request: object
+    service: object
+    admitted: list
+    value: dict
+
+
+def prepare_request(config_path, checkout, policy_path, value, clock, environment):
+    if not Path(config_path).is_absolute() or not Path(checkout).is_absolute():
+        raise CheckFailure('project_binding', 'binding', 'Требуются абсолютные config и checkout.',
+                           'Выберите manifest проекта и зарегистрированную рабочую копию.')
+    try:
+        bound = read_project_checkout(config_path, checkout)
+    except ProjectBindingFailure as exc:
+        raise CheckFailure(exc.code, 'binding', str(exc), 'Выберите доступный проект и его рабочую копию.') from exc
+    request = CheckRequest.parse(value, bound.config['batch']['max_items'])
+    service = project_checks_tools(bound, policy_path, environment, clock)
+    admitted = service.admit_batch(request)
+    return PreparedCheckRequest(bound, request, service, admitted, value)
+
+
+def execute_prepared(prepared, clock):
+    """Return the complete machine value, without parsing any display view."""
+    import io
+    values = []
+    code = execute(prepared.bound.config_path, prepared.bound.checkout,
+                   prepared.service.configuration.policy_path, io.BytesIO(), io.StringIO(),
+                   io.StringIO(), clock, prepared=prepared, result_sink=values.append)
+    return code, values[0]
+
+
+def execute(config_path, checkout, policy_path, stream, output, error_output, clock, *,
+            prepared=None, result_sink=None):
     service, bound, operation, saver = None, None, None, None
     result = {'schema': 'poise-project-checks-result-1', 'operation': None, 'status': 'invalid',
               'project': None, 'checkout': None, 'policy_sha256': None, 'items': [],
@@ -48,7 +83,8 @@ def execute(config_path, checkout, policy_path, stream, output, error_output, cl
             raise CheckFailure(exc.code, 'config' if exc.code == 'invalid_project' else 'checkout',
                                str(exc), 'Выберите действительный manifest и его зарегистрированный checkout.') from exc
         result.update(project=bound.config['project'], checkout=str(bound.checkout))
-        raw = stream.read(bound.config['batch']['max_input_bytes'] + 1)
+        raw = (canonical(prepared.value).encode() if prepared is not None else
+               stream.read(bound.config['batch']['max_input_bytes'] + 1))
         if len(raw) > bound.config['batch']['max_input_bytes']:
             raise CheckFailure('invalid_request', 'request', 'Превышен предел входа.', 'Уменьшите пакет до настроенного max_input_bytes.')
         try:
@@ -59,12 +95,14 @@ def execute(config_path, checkout, policy_path, stream, output, error_output, cl
             operation = value['operation']
             result['operation'] = operation if operation in ('list', 'describe', 'preview', 'run', 'result', 'calibrate', 'package_impact') else None
         request = CheckRequest.parse(value, bound.config['batch']['max_items'])
-        service = project_checks_tools(bound, policy_path, dict(os.environ), clock)
+        service = (project_checks_tools(bound, policy_path, dict(os.environ), clock)
+                   if prepared is None else prepared.service)
         configuration = service.configuration
         result['policy_sha256'] = configuration.policy_sha256
         address = configuration.state / configuration.policy['storage']['response_directory'] / uuid.uuid4().hex / bound.config['paths']['response']
         saver = SavedResponse(address, bound.config['batch']['file_mode'])
-        result['items'], result['status'] = service.execute(request)
+        result['items'], result['status'] = service.execute(
+            request, admitted=None if prepared is None else prepared.admitted)
         if service.failure is not None:
             result['error'] = service.failure.as_dict(references(service))
         result['warnings'] = service.warnings
@@ -95,6 +133,8 @@ def execute(config_path, checkout, policy_path, stream, output, error_output, cl
             body = canonical(result)
     else:
         body = canonical(result)
+    if result_sink is not None:
+        result_sink(result)
     try:
         output.write(body)
     except (OSError, ValueError) as exc:

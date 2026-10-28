@@ -69,13 +69,17 @@ class CheckExecution:
         mode = configuration.bound.config['batch']['file_mode']
         observer = ProgressObserver(profile['progress'], self.clock, addresses['progress'], mode)
         started = observation(self.clock.observe())
+        control = getattr(self, 'invocation', None)
+        coordination = {} if control is None else {
+            'invocation_cancellation': control, 'cancellation_policy': control.policy}
         try:
             raw = self.runner.run(addresses['id'], invocation['argv'], Path(invocation['cwd']), environment,
                                   timeout['effective_seconds'], addresses['stdout'], addresses['stderr'],
                                   progress_gap_seconds=stall if profile['progress']['mode'] == 'regex' and stall else None,
                                   poll_seconds=configuration.policy['timing']['poll_seconds'],
                                   cleanup_seconds=configuration.policy['timing']['cleanup_seconds'],
-                                  capture_observer=observer if profile['progress']['mode'] == 'regex' else None)
+                                  capture_observer=observer if profile['progress']['mode'] == 'regex' else None,
+                                  **coordination)
         except RegisteredLaunchFailure as exc:
             raise UnstartedCheck('prerequisites_unavailable', step['field'] + '.argv[0]', str(exc),
                                  'Укажите действительный исполняемый файл для выбранной среды.',
@@ -143,6 +147,9 @@ class CheckExecution:
                                  'Исправьте создание обязательных материалов и выполните новую проверку.')
         if error is not None and status == 'passed':
             status = 'unconfirmed'
+        if control is not None:
+            control.observed({**raw, 'termination': {
+                **raw['termination'], 'capture_complete': termination['capture_complete']}})
         return {'schema': 'poise-named-check-run-1', 'run_id': addresses['id'],
                 'project': configuration.bound.config['project'], 'checkout': str(configuration.bound.checkout),
                 'selection': resolved_selection(profile), 'profile_sha256': configuration.profiles_sha256,

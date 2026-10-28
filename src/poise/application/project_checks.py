@@ -19,6 +19,11 @@ class ProjectChecks:
         self.known_records = []
         self.establish_session = None
         self.failure = None
+        self.invocation = None
+
+    def _check_cancellation(self):
+        if self.invocation is not None:
+            self.invocation.before_step()
 
     def catalogue(self, kind, field):
         value = getattr(self.configuration, kind)
@@ -197,6 +202,7 @@ class ProjectChecks:
         return deepcopy(self.provenance)
 
     def run(self, plan):
+        self._check_cancellation()
         if plan.get('kind') == 'suite_selection':
             items, stopped = [], False
             for child in plan['items']:
@@ -263,6 +269,7 @@ class ProjectChecks:
                 omitted.append(omitted_step(i + 1, step_selection))
                 continue
             try:
+                self._check_cancellation()
                 record = self.execute_step(step, metadata)
             except CheckFailure as exc:
                 if not steps:
@@ -302,8 +309,11 @@ class ProjectChecks:
         return 'unconfirmed' if failure.status == 'invalid' else failure.status
 
     def execute_step(self, step, metadata):
+        self._check_cancellation()
         self.runtime.prerequisites(step['profile'], step['invocation'], step['environment'], step['field'])
         addresses = self.ledger.allocate(process=True)
+        if self.invocation is not None:
+            self.invocation.allocated(addresses)
         evidence_id = step['timeout']['evidence_run_id']
         if evidence_id is not None:
             self.ledger.reserve_diagnostic(evidence_id, addresses['id'])
@@ -329,8 +339,9 @@ class ProjectChecks:
         self.ledger.save_result(result)
         return result
 
-    def execute(self, request):
-        admitted = self.admit_batch(request)
+    def execute(self, request, *, admitted=None):
+        if admitted is None:
+            admitted = self.admit_batch(request)
         if self.establish_session is not None:
             self.establish_session()
         operation = request.operation

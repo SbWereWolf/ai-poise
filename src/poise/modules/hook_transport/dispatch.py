@@ -18,11 +18,24 @@ BUILTINS = {
     'task-context': {'SessionStart', 'UserPromptSubmit', 'Stop'},
     'task-runtime-cleanup': {'SessionEnd'},
     'tool-result': {'PostToolUse'},
+    'check-invocation': {'PreToolUse', 'PostToolUse'},
 }
 
 
 def validate_builtin_options(name, options):
-    if name in ('general-context', 'command-intake', 'tool-result'):
+    if name == 'check-invocation':
+        configuration_fields(options, {'policy_path', 'checks_policy_path', 'tool_selectors', 'cli_argv'}, name)
+        for field in ('policy_path', 'checks_policy_path'):
+            nonempty(options[field], name + '.' + field)
+            if not PurePath(options[field]).is_absolute():
+                raise PoiseError('Check capability policy requires an absolute path')
+        configuration_fields(options['tool_selectors'], {'run', 'cancel'}, name)
+        for selector in options['tool_selectors'].values():
+            nonempty(selector, 'check tool selector')
+        if (not isinstance(options['cli_argv'], list) or not options['cli_argv']
+                or any(not isinstance(v, str) or not v for v in options['cli_argv'])):
+            raise PoiseError('Explicit check CLI argv required')
+    elif name in ('general-context', 'command-intake', 'tool-result'):
         values = configuration_fields(options, {'policy_path'}, name)
         nonempty(values['policy_path'], name + '.policy_path')
         if not PurePath(values['policy_path']).is_absolute():

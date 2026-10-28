@@ -5,7 +5,7 @@
   "query_commands": ["search", "usages"],
   "paths": {
     "database": ".runtime/ast-index/index.db",
-    "lock": ".runtime/ast-index/index.lock",
+    "lock": ".runtime/ast-index/poise.lock",
     "runs": ".runtime/ast-index/runs"
   },
   "limits": {

@@ -163,7 +163,7 @@ class Scene:
         marker = self.parent / (label + '.lock-wait')
         selected = Path(checkout or self.checkout)
         observed = [sys.executable, '-B', str(FIXTURES / 'observed_cli.py'),
-                    str(marker), str(selected / '.runtime/ast-index/index.lock'),
+                    str(marker), str(selected / self.policy_data['paths']['lock']),
                     *self.argv(checkout)[4:]]
         process = subprocess.Popen(observed, stdin=subprocess.PIPE, stdout=out,
                                    stderr=err, text=True, cwd=self.parent,

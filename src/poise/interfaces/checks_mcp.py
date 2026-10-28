@@ -169,7 +169,7 @@ class RpcSession:
         elif method == 'tools/list':
             self.write(identity, result={'tools': tool_definitions(self.policy)})
         elif method == 'tools/call':
-            if not isinstance(params, dict) or params.get('name') not in self.policy['tools'].values():
+            if not isinstance(params, dict) or params.get('name') not in (self.policy['tools']['run'], self.policy['tools']['cancel']):
                 self.write(identity, code=-32602, message='Unknown tool')
                 return
             cancel = params['name'] == self.policy['tools']['cancel']

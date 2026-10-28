@@ -112,13 +112,15 @@ own the details. Keep the service Python and installed SDK Python distinct.
 | `poise deps` | Delegate dependency maintenance through that retained interface. | `"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" --dry-run` |
 | `poise check` | Delegate observation through that retained interface. | `"${poise[@]}" check --catalog "$requirements_catalog" --values "$values_file"` |
 
-SDK2 operation examples (the full argument/parameter contract belongs to the linked instruction):
+SDK2 operation examples (the full argument/parameter contract belongs to the linked instruction).
+The `adjust` example selects the ERP profile declaring that operation; the own Poise app
+declares only infra/deps/check/run:
 
 | Command | Purpose | Correct example |
 |---|---|---|
 | `start-app infra` | Execute configured infrastructure commands. | `"$start_app" infra --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
 | `start-app deps` | Execute configured dependency chains. | `"$start_app" deps --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
-| `start-app adjust` | Execute declared coordination after its prerequisites. | `"$start_app" adjust --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
+| `start-app adjust` | Execute declared coordination after its prerequisites. | `"$start_app" adjust --config "$erp_profile/app.json" --parameters "$erp_profile/parameters.json" --base-dir "$erp_repository" --requirements all` |
 | `start-app check` | Observe resources and additional checks. | `"$start_app" check --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository"` |
 | `start-app run` | Execute only the declared launch chain. | `"$start_app" run --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all` |
 

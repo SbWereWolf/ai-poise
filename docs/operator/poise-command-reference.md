@@ -238,12 +238,14 @@ operation-профиля](maintenance-profile-v2.md#развёртывание-�
 [Настройка рабочих деревьев](start-app-worktree-setup.md#подключение-установленного-инструмента)
 выбирает standalone SDK2. Полный [профиль ERP](maintenance-profile-v2.md#профиль-erp)
 и [обновление всех потребителей](maintenance-profile-v2.md#согласованное-обновление-потребителей)
-имеют собственные явные конфиги. Каждая операция исполняет одну выбранную цепочку:
+имеют собственные явные конфиги. Каждая операция исполняет одну выбранную цепочку. `adjust` ниже выбирает ERP
+`erp_profile`/`erp_repository`, где операция объявлена; собственный Poise app
+содержит `infra`, `deps`, `check`, `run`:
 
 ```bash
 "$start_app" infra --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
 "$start_app" deps --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
-"$start_app" adjust --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
+"$start_app" adjust --config "$erp_profile/app.json" --parameters "$erp_profile/parameters.json" --base-dir "$erp_repository" --requirements all
 "$start_app" check --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository"
 "$start_app" run --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
 ```

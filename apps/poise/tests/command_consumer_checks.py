@@ -21,12 +21,30 @@ def must_reject(id, operation, observations):
 def sensitivity():
     observations=[]
     request={'command_id':'control','transport':'command'}
-    for vector in load('consumer-cases.json')['first_response_negatives']:
+
+    def consumer_boundary():
         consumer=Commands.__new__(Commands)
+        consumer.selected_session='session-A'
+
+        def status(operation):
+            exact(operation,'session.status')
+            return 0,{},envelope({'session':{'id':consumer.selected_session}})
+
+        consumer.session=SimpleNamespace(config={'commands':load()['commands']},call=status)
+        consumer.count=lambda _id:1
+        consumer.initial_session={}
+        consumer.session_rows=lambda:{}
+        consumer.record={}
+        consumer.admissions={}
+        consumer.verified_results={}
+        return consumer
+
+    for vector in load('consumer-cases.json')['first_response_negatives']:
+        consumer=consumer_boundary()
         consumer.call=lambda *_args,**_kw:(vector['exit'],deepcopy(vector['response']))
         must_reject(vector['id'],lambda:consumer.start(request),observations)
     for state in ('ADMITTED','RUNNING'):
-        consumer=Commands.__new__(Commands)
+        consumer=consumer_boundary()
         body=load()['metadata']
         body.update(command_id='control',operation='request',state=state,termination=None)
         consumer.call=lambda *_args,**_kw:(0,envelope(deepcopy(body)))
@@ -48,14 +66,8 @@ def sensitivity():
         terminal=envelope(metadata)
 
         def boundary():
-            consumer=Commands.__new__(Commands)
+            consumer=consumer_boundary()
             consumer.output=root
-            consumer.session=SimpleNamespace(config={'commands':load()['commands']})
-            consumer.count=lambda _id:1
-            consumer.initial_session={}
-            consumer.session_rows=lambda:{}
-            consumer.record={}
-            consumer.admissions={}
             return consumer
 
         # A valid already-final first response must pass the complete independent oracle.
@@ -63,6 +75,7 @@ def sensitivity():
         first=deepcopy(terminal);first['result']['operation']='request'
         consumer.started(0,first,request)
         consumer.terminal(terminal,request,b'OUT\n',b'ERR\n')
+        valid_registry=deepcopy(consumer.verified_results)
         observations.append({'id':'valid-final-first-snapshot','status':'passed'})
         # Metadata AND receipt can agree on a wrong first outcome. The independent
         # later scenario must still reject those first bytes, even after file repair.
@@ -78,13 +91,18 @@ def sensitivity():
                     lambda:consumer.terminal(terminal,request,b'OUT\n',b'ERR\n'),observations)
 
         class ReplayBoundary:
-            def __init__(self, inject=None, whitespace=False):
+            def __init__(self, inject=None, whitespace=False, initial=None, verified=None):
                 self.inject,self.whitespace=inject,whitespace
                 self.calls=[]
+                self.template=deepcopy(terminal if initial is None else initial)
+                self.verified_results=deepcopy(valid_registry if verified is None else verified)
+
+            def scope_key(self,id):
+                return 'session-A',id
 
             def call(self,operation,_value):
                 self.calls.append(operation)
-                value=deepcopy(terminal)
+                value=deepcopy(self.template)
                 if operation=='command.request':
                     value['result'].update(operation='request',replayed=True)
                 if operation==self.inject:
@@ -107,4 +125,61 @@ def sensitivity():
         replay(good,request,terminal)
         exact(good.calls,['command.request','command.completion'])
         observations.append({'id':'valid-complete-replay','status':'passed'})
+
+        # Preserve an independently checked opaque MCP body BEFORE a conflicting
+        # input/refusal. A fresh read must not silently become a new expected body.
+        mcp=load()['peer_result'];mcp['id']='call-control'
+        mcp_full=deepcopy(full)
+        mcp_full.update(transport='mcp_stdio',business_error=False,mcp_response=mcp)
+        mcp_raw=(json.dumps(mcp_full,ensure_ascii=False)+'\n').encode()
+        receipt.write_bytes(mcp_raw)
+        mcp_meta=deepcopy(metadata)
+        mcp_meta.update(transport='mcp_stdio',business_error=False,
+                        full_result_ref={'path':str(receipt),'bytes':len(mcp_raw)})
+        mcp_terminal=envelope(mcp_meta)
+        mcp_request={'command_id':'control','transport':'mcp_stdio'}
+        consumer=boundary()
+        consumer.terminal(mcp_terminal,mcp_request,b'OUT\n',b'ERR\n',mcp=mcp,business=False)
+        frozen=deepcopy(consumer.verified_results)
+        corrupt=deepcopy(mcp_full)
+        corrupt['mcp_response']['result']['vendor']['code']=8
+        corrupt_raw=(json.dumps(corrupt,ensure_ascii=False)+'\n').encode()
+        exact(len(corrupt_raw),len(mcp_raw))
+        receipt.write_bytes(corrupt_raw)
+        double=ReplayBoundary(initial=mcp_terminal,verified=frozen)
+        must_reject('opaque-MCP-mutated-before-replay-entry',
+                    lambda:replay(double,mcp_request,mcp_terminal),observations)
+        exact(double.calls,[])
+        observations[-1].update(calls=double.calls,same_size=len(mcp_raw))
+        receipt.write_bytes(mcp_raw)
+        replay(ReplayBoundary(initial=mcp_terminal,verified=frozen),mcp_request,mcp_terminal)
+        observations.append({'id':'valid-retained-opaque-MCP','status':'passed'})
+
+        # Both first responses are legitimately TERMINAL for the same opaque ID.
+        # A's accepted first receipt must survive B's independent execution.
+        receipt.write_bytes(raw)
+        second=root/'generated-B';second.mkdir()
+        b_sources={}
+        for key,value in (('stdout',b'OUT\n'),('stderr',b'ERR\n')):
+            path=second/(key+'.bin');path.write_bytes(value);path.chmod(0o600)
+            b_sources[key]={'source_id':'B-'+key,'path':str(path),'bytes':4,'complete':True}
+        b_full=deepcopy(full);b_full.update(**b_sources)
+        b_raw=(json.dumps(b_full,ensure_ascii=False)+'\n').encode()
+        b_receipt=second/'result.json';b_receipt.write_bytes(b_raw);b_receipt.chmod(0o600)
+        b_meta=deepcopy(metadata);b_meta.update(**b_sources,
+            full_result_ref={'path':str(b_receipt),'bytes':len(b_raw)})
+        b_terminal=envelope(b_meta)
+        consumer=boundary()
+        consumer.started(0,first,request)
+        consumer.terminal(terminal,request,b'OUT\n',b'ERR\n')
+        consumer.selected_session='session-B'
+        b_first=deepcopy(b_terminal);b_first['result']['operation']='request'
+        consumer.started(0,b_first,request)
+        consumer.terminal(b_terminal,request,b'OUT\n',b'ERR\n')
+        consumer.selected_session='session-A'
+        consumer.terminal(terminal,request,b'OUT\n',b'ERR\n')
+        exact(sorted(consumer.admissions),[('session-A','control'),('session-B','control')])
+        assert all(item['independent_scenario_checked'] for item in consumer.admissions.values())
+        observations.append({'id':'two-Sessions-same-ID-both-first-TERMINAL-return-A',
+                             'status':'passed','scopes':list(consumer.admissions)})
     return observations

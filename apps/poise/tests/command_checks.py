@@ -42,8 +42,9 @@ def dispatch_oracle(app,request):
     exact(audit,[expected])
 
 
-def replay(app,request,terminal):
-    before=retained_snapshot(terminal)
+def replay(app,request,terminal, *, baseline=None):
+    before=deepcopy(app.verified_results[app.scope_key(request['command_id'])]
+                    if baseline is None else baseline)
     exact(retained_snapshot(terminal),before)
     _,repeated=app.call('command.request',request)
     expected=deepcopy(terminal)
@@ -491,10 +492,12 @@ def lifecycle():
         received,_,raw=app.peer_facts(value);expected=load()['peer_result'];expected['id']=received[2]['id']
         app.terminal(response,value,raw,b'',mcp=expected,business=False)
         replay(app,value,response)
+        baseline=deepcopy(app.verified_results[app.scope_key('typed-1')])
         changed=deepcopy(value);changed['mcp']['arguments']['flag']=1
         app.error('command.request',changed,'command_reuse_conflict',{'command_id':'typed-1'},'use:new-command')
+        exact(retained_snapshot(response),baseline)
         exact(app.count('typed-1'),1)
-        replay(app,value,response)
+        replay(app,value,response,baseline=baseline)
     with Commands() as app:
         accepted='Ж'*64
         finished(app,accepted)

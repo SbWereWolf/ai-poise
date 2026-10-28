@@ -107,6 +107,7 @@ class Commands:
             self.session.config['commands'] = load()['commands']
             self.session.extra_environment['PARENT_ONLY'] = 'must-not-enter-child'
             self.jobs, self.children, self.calls, self.admissions = {}, [], [], {}
+            self.verified_results={}
             self.record = {'session_id':self.identity, 'calls':self.calls, 'jobs':{}, 'cleanup':[]}
             OBSERVATIONS.append(self.record)
             self.initial_session = self.session_rows()
@@ -149,6 +150,13 @@ class Commands:
                 'SELECT id,origin,status,revision FROM poise_sessions ORDER BY id')],
                 'bindings':[list(row) for row in db.execute(
                 'SELECT identity_key,session_id,inventory FROM poise_bindings ORDER BY identity_key')]}
+
+    def scope_key(self,command_id):
+        """Use the currently selected actual Session, including after caller restoration."""
+        _,_,response=self.session.call('session.status')
+        identity=response['result']['session']['id']
+        assert type(identity) is str and identity
+        return identity,command_id
 
     def request(self, id, mode='plain', *, execution=2000, cleanup=1000):
         directory = self.root / ('job-' + str(len(self.jobs)))
@@ -277,7 +285,7 @@ class Commands:
             snapshot=retained_snapshot(response)
         if not hasattr(self,'admissions'):
             self.admissions={}
-        self.admissions[request['command_id']]={'response':deepcopy(response),'snapshot':snapshot,
+        self.admissions[self.scope_key(request['command_id'])]={'response':deepcopy(response),'snapshot':snapshot,
             'independent_scenario_checked':False}
         return response
 
@@ -334,7 +342,8 @@ class Commands:
                     error=error,mcp_response=mcp,**source_values)
         exact(json.loads(full_bytes),full)
         exact(response,envelope(expected,error,'unavailable' if error or state=='UNKNOWN' else 'ok'))
-        admission=self.admissions.get(request['command_id'])
+        scope=self.scope_key(request['command_id'])
+        admission=self.admissions.get(scope)
         if admission is not None:
             first=admission['response']
             if first['result']['state'] in ('TERMINAL','UNKNOWN'):
@@ -350,6 +359,13 @@ class Commands:
             admission['independent_scenario_checked']=True
         exact(self.count(request['command_id']),0 if not_started else 1)
         exact(self.session_rows(),self.initial_session)
+        if not hasattr(self,'verified_results'):
+            self.verified_results={}
+        # This baseline is built from the scenario's independent literals and the
+        # actual bytes ALREADY compared above. Never reseed it from a later read.
+        self.verified_results[scope]={'full_ref':deepcopy(expected['full_result_ref']),
+            'full_bytes':full_bytes,'full':deepcopy(full),
+            'sources':deepcopy(source_values),'streams':{'stdout':stdout,'stderr':stderr}}
         self.record.setdefault('full_results',[]).append({'metadata':response,'full':full,
             'full_hex':full_bytes.hex(),'stdout_hex':stdout.hex(),'stderr_hex':stderr.hex()})
         return expected

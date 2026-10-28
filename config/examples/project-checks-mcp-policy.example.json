@@ -1,0 +1,25 @@
+{
+  "schema": "poise-checks-mcp-policy-1",
+  "protocol_versions": [
+    "2025-11-25"
+  ],
+  "tools": {
+    "run": "run",
+    "cancel": "cancel"
+  },
+  "limits": {
+    "max_message_bytes": 1048576,
+    "max_workers": 4
+  },
+  "cancellation": {
+    "grace_seconds": 0.4,
+    "cleanup_seconds": 2,
+    "poll_seconds": 0.02
+  },
+  "invocation": {
+    "directory": "invocations",
+    "record_file": "invocation.json",
+    "lock_file": "invocation.lock",
+    "cancel_file": "cancel.json"
+  }
+}

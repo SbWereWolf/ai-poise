@@ -185,6 +185,7 @@ Poise по **полному объявленному command**, обычный B
 | `bash` / `native-exec-json` | Native object с `output` и terminal integer `exit_code`; `summary_prefix`, `detail_prefix`, `summary_missing`, `brief_without_summary` и шаблоны. Summary берётся по объявленному префиксу; `summary_missing="exit-only"` использует явный шаблон без summary. |
 | `mcp` / `records-json` | Именно объявленная форма с `content` и `structuredContent.count` (integer), `structuredContent.names` (список строк); шаблоны `{count}`/`{names}`. Это не универсальный decoder любого MCP payload. |
 | `mcp` / `mcp-content-json` | Целый MCP envelope с `content` и boolean `isError`; JSON или error text выбирается только по явному `content_index`. Полный [договор профиля](#профиль-mcp-content-json) задаёт paths/version/templates и сохраняет original. |
+| `mcp` / `mcp-checks-json` | Полный согласованный ответ настроенного инструмента проверок: один JSON text в `content`, тот же `structuredContent` и `isError`. [Контракт профиля](#профиль-mcp-проверок) различает run/preview и cancel. |
 | `poise` / `saved-work-text` | Строка native Bash с JSON envelope настоящего Poise, содержащим абсолютный `response_path` под явным `source_root`. Парсер читает весь сохранённый body; исходная строка остаётся у delivery/machine consumer. Код процесса из body не выводится. |
 | `poise` / `saved-work-json` | Native shell object `output`/`exit_code`; stdout содержит настоящий `response_path` полного SavedResponse под явным абсолютным `source_root`. Парсер получает весь body, original native envelope остаётся у delivery/machine consumer. |
 | `poise` / `work-json` | Уже предоставленный полный объект с действительным строковым `status`; отдельный декодируемый envelope не требуется. |
@@ -273,6 +274,86 @@ JSON-подобным текстом остаётся `native-text`. Стату�
 Прежние объектные форматы требуют объект и отвергают строку; текстовые требуют строку
 и отвергают объект. Ошибка выбранного формата не запускает другой decoder.
 Оба MCP-профиля остаются самостоятельными объектными контрактами.
+
+## Профиль MCP-проверок
+
+Для [настроенного инструмента проверок](named-project-checks.md#mcp-stdio-настройка-и-вызов)
+используется профиль `parser="mcp"`, `format="mcp-checks-json"` того же
+владельца tool-result. Он получает **полный** MCP tool response. В `content`
+должен быть ровно один text с JSON, совпадающим со `structuredContent`.
+Поддержаны `poise-mcp-check-result-1` с вложенным `poise-project-checks-result-1`
+и `poise-mcp-check-cancel-result-1`. Это контракт этих конкретных ответов,
+а не распознавание любого MCP JSON по сходным ключам.
+
+Добавьте профиль в `parsers` заполненной session policy. Ниже один **фрагмент
+значения профиля**, не полная policy:
+
+```json
+{
+  "parser": "mcp",
+  "format": "mcp-checks-json",
+  "brief_template": "Проверки: {status}",
+  "expanded_template": "{brief}\nЗапуски: {names}",
+  "error_brief_template": "Проверки: ошибка",
+  "error_expanded_template": "{brief}\n{error}",
+  "overflow": "reject",
+  "brief": {"chars": 128, "bytes": 256},
+  "expanded": {"chars": 4096, "bytes": 8192}
+}
+```
+
+| Поле | Разрешённые значения шаблона |
+|---|---|
+| `brief_template` | `{status}` фактического вложенного результата или cancel status. |
+| `expanded_template` | `{brief}` и `{names}` — выбранные ID проверок, включая вложенные наборы; для cancel — target invocation ID, если известен. |
+| `error_brief_template` | `{error}` либо фиксированная строка; error содержит фактический JSON ошибки, если он доступен. |
+| `error_expanded_template` | `{brief}` и `{error}`. |
+| `brief`, `expanded` | Явные положительные целые `chars` и `bytes`; пример не заменяет выбор бюджетов установки. |
+
+`isError:true` выбирает error templates. Неуспех самой выполненной проверки
+может передаваться при `isError:false`: тогда виден её настоящий status,
+а подробные причины остаются в полном результате и streams. Несогласованные
+payloads или неподдержанная схема дают `parser_failed`; превышение выбранного
+бюджета — `budget_too_small`. Другой parser автоматически не подставляется.
+
+При ключе профиля `checks` добавьте в существующую `selection` правила для
+**действительных** native имён своего MCP server. Пример для server `repo_checks`:
+
+```json
+[
+  {
+    "id": "checks-run",
+    "tool_name": "mcp__repo_checks__run",
+    "profile": "checks",
+    "priority": 10,
+    "command_pattern": null
+  },
+  {
+    "id": "checks-cancel",
+    "tool_name": "mcp__repo_checks__cancel",
+    "profile": "checks",
+    "priority": 10,
+    "command_pattern": null
+  }
+]
+```
+
+Существующие profiles/rules сохраняются; для этих же имён расширяются matcher
+обоих native descriptor по
+[договору подключения](runtime-hooks.md#подключение-инструмента-проверок).
+`tool-result` остаётся PostToolUse handler. Конфигурация session policy выбирает
+форматтер, но не создаёт server, не предоставляет разрешение исполнения и не
+меняет полноту ответа, потребляемого программой.
+
+Обе формы готовятся один раз из полного источника. Краткая выдаётся через hook,
+расширенная и полный source сохраняются в папке запуска с тем же UUID;
+сессионный last указывает на этот запуск. Применяются прежние команды
+[expanded/full последнего результата](#чтение-последнего-результата): expanded
+выдаёт сохранённый текст, full — путь для чтения диапазонами строк. Служебный
+ответ harness не захватывается как следующий tool result и не заменяет last.
+Полные MCP поля и stdout/stderr проверки читаются по сохранённым source refs;
+ограниченное представление не используется для машинного разбора и решения
+о фактическом завершении. Повторно запускать проверку ради вывода не требуется.
 
 ## Профиль MCP content JSON
 

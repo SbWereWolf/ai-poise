@@ -1,0 +1,35 @@
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "project-checks",
+  "handlers": [
+    {
+      "id": "checks",
+      "implementation": {
+        "kind": "builtin",
+        "name": "check-invocation"
+      },
+      "mode": "sync",
+      "options": {
+        "policy_path": "/absolute/operator/checks-transport.json",
+        "checks_policy_path": "/absolute/operator/checks-policy.json",
+        "tool_selectors": {
+          "run": "mcp__repo_checks__run",
+          "cancel": "mcp__repo_checks__cancel"
+        },
+        "cli_argv": [
+          "/absolute/installed/python",
+          "-I",
+          "-B",
+          "-m",
+          "poise",
+          "checks"
+        ]
+      },
+      "execution": {
+        "run_seconds": 20,
+        "cleanup_seconds": 5
+      },
+      "on_error": "stop"
+    }
+  ]
+}

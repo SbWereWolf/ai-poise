@@ -423,6 +423,7 @@ JSON](tool-results.md#профиль-mcp-content-json).
 | `capability-summary` | SessionStart | `probes` и `summary` с `file`, `header_template`, `item_template`. |
 | `general-context` | SessionStart, PreCompact, PostCompact, SessionEnd | Абсолютный `policy_path` к полной политике общей сводки; End сам не восстанавливает ресурс reader. |
 | `command-intake` | PreToolUse, PostToolUse | Абсолютный `policy_path` к полному reader profile, содержащему `command_intake.policy`. |
+| `check-invocation` | PreToolUse, PostToolUse | Абсолютные `policy_path` транспорта и `checks_policy_path`, точные `tool_selectors.run`/`cancel`, непустой `cli_argv`. [Подключение](#подключение-инструмента-проверок). |
 | `tool-result` | PostToolUse | Абсолютный `options.policy_path` к полной [session policy](tool-results.md#сессия-и-два-сохранённых-представления). |
 | `lifecycle-consumer` | SessionStart, SessionEnd | Полный `consumer` по [договору потребителя](#настроенный-потребитель-lifecycle). |
 | `task-context` | SessionStart, UserPromptSubmit, Stop | `context_template` с полями ровно `{launcher}`, `{state}`; `stop_template` с `{state}`; явный `gate_operations` из bootstrap/verify/artifacts. Нужен Task adapter. |
@@ -470,6 +471,92 @@ JSON](tool-results.md#профиль-mcp-content-json).
 Поля `summary.header_template` — ровно `ready`, `checked_at`, `workspace`, `snapshot_path`;
 поля `summary.item_template` — ровно `id`, `status`, `required`, `reason`, `remediation`.
 Таблицы ниже описывают содержимое этих options, а не неявное подключение через settings.
+
+### Подключение инструмента проверок
+
+`check-invocation` связывает настоящий native-вызов с
+[MCP/CLI проверками](named-project-checks.md#mcp-stdio-настройка-и-вызов).
+Он использует существующую упорядоченную цепочку handlers и тот же runner;
+Task adapter для этого builtin не нужен. Встроенный handler синхронный.
+Полный обезличенный
+[шаблон handler configuration](../../config/examples/project-checks-hook-handler.example.json)
+не является полной installation definition.
+
+Заполните рабочую копию шаблона вне Git:
+
+| Option | Назначение |
+|---|---|
+| `policy_path` | Абсолютный путь заполненной transport policy `poise-checks-mcp-policy-1`. |
+| `checks_policy_path` | Абсолютный путь обычной policy именованных проверок выбранного проекта. |
+| `tool_selectors.run`, `tool_selectors.cancel` | Точные native имена инструментов настроенного MCP-клиента; пример использует server `repo_checks` и имена `run`/`cancel`. |
+| `cli_argv` | Непустой список строк: действительный префикс CLI выбранной установленной поставки, например абсолютный Python и `-I -B -m poise checks`. |
+
+Неизвестные options, включая дополнительные ключи tool_selectors, сохраняются
+и не участвуют в выборе run/cancel. Известные обязательные значения проверяются.
+Рабочие пути и имена выбирает оператор; заполнение примера не устанавливает server.
+
+Добавьте путь handler configuration к существующим PreToolUse и PostToolUse routes
+один раз. В обоих descriptor matcher должны попадать Bash и точные MCP имена
+вашей установки. Ниже **фрагмент**: существующие lifecycle events, настройки,
+SessionStart и остальные routes сохраняются.
+
+```json
+{
+  "events": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash|mcp__repo_checks__run|mcp__repo_checks__cancel",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": 8192,
+      "status_message": "Проверить обращение к проверкам"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash|mcp__repo_checks__run|mcp__repo_checks__cancel",
+      "timeout_seconds": 30,
+      "async": false,
+      "context_limit": 8192,
+      "status_message": "Сопоставить фактический результат проверки"
+    }
+  ],
+  "routes": {
+    "PreToolUse": ["/absolute/operator/checks-handler.json"],
+    "PostToolUse": ["/absolute/operator/checks-handler.json"]
+  }
+}
+```
+
+Применяйте заполненную definition через существующий публичный owner установки
+с действительной revision; сгенерированные native settings вручную не заменяются.
+В PostToolUse route общий tool-result может идти после check-invocation:
+сначала сопоставляется invocation, затем готовится
+[представление MCP-проверок](tool-results.md#профиль-mcp-проверок).
+Все прочие handlers сохраняют объявленный порядок и свои контракты.
+
+Pre сохраняет обновления input от предыдущих handlers и добавляет `_invocation`
+только к подходящему MCP run. Связь проверяется по настоящему caller,
+проекту/зарегистрированной копии, policy и неизменённому запросу. Исполнение
+допускается по действительному итоговому receipt цепочки: конечный permission deny
+не разрешает запуск; control.stop сам по себе не является permission deny.
+Post относится к собственному tool-use/invocation и наблюдает фактический результат.
+Промежуточное yielded-сообщение не освобождает выполняющийся run, поздний Post
+не заменяет другой текущий запуск.
+
+Для явно включённого CLI пути у `checks` задаётся `--transport-policy`.
+Распознаваемая форма содержит настроенный `cli_argv`, пары
+`--config`, `--checkout`, `--policy`, `--view`, `--transport-policy`
+и одно конечное `< packet.json`. Pre добавляет `--invocation` подготовленной
+связи, сохраняя остальные параметры. Неизменённый запрос потребляется тем же
+владельцем; обычный CLI без transport policy остаётся самостоятельным путём.
+Известный прямой или обёрнутый запуск зарегистрированной проверки получает
+адресное указание MCP selector. Точное совпадение может быть отклонено этой
+политикой, слабое совпадение остаётся предупреждением; произвольный shell
+не объявляется зарегистрированной проверкой по одному сходному слову.
+
+Изолированные install/native/MCP проверки подтверждают конкретный сценарий
+поставки; они не устанавливают hooks или MCP-клиент в действующей сессии
+оператора. Её подключение проверяется отдельно владельцем этой установки.
 
 ### Контракты синхронной и асинхронной команды
 

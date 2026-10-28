@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import math
 
 from ..foundation.errors import PoiseError
-from ..foundation.validation import nonempty, validate_exact_keys
+from ..foundation.validation import configuration_fields, nonempty, validate_exact_keys
 
 
 class IndexFailure(PoiseError):
@@ -21,6 +21,13 @@ def require(condition, field, explanation):
 def exact(value, fields, label):
     try:
         validate_exact_keys(value, set(fields), label, PoiseError)
+    except PoiseError as exc:
+        raise IndexFailure('rejected', str(exc), f'Исправьте поля {label}.') from exc
+
+
+def configuration(value, fields, label):
+    try:
+        return configuration_fields(value, fields, label)
     except PoiseError as exc:
         raise IndexFailure('rejected', str(exc), f'Исправьте поля {label}.') from exc
 
@@ -63,7 +70,8 @@ class IndexPolicy:
 
     @classmethod
     def parse(cls, value):
-        exact(value, ('schema', 'enabled', 'command_argv', 'query_commands', 'paths', 'limits'), 'policy')
+        value = configuration(value, ('schema', 'enabled', 'command_argv', 'query_commands',
+                                      'paths', 'limits'), 'policy')
         require(value['schema'] == 'poise-source-index-policy-1', 'schema', 'неподдерживаемая policy')
         require(type(value['enabled']) is bool, 'enabled', 'требуется boolean')
         command = strings(value['command_argv'], 'command_argv', populated=True)
@@ -71,14 +79,14 @@ class IndexPolicy:
         require(len(set(queries)) == len(queries), 'query_commands', 'подкоманды должны быть уникальны')
         require(all(not item.startswith('-') and item not in ('update', 'rebuild') for item in queries),
                 'query_commands', 'укажите read-only подкоманды')
-        paths, limits = value['paths'], value['limits']
-        exact(paths, ('database', 'lock', 'runs'), 'paths')
+        paths = configuration(value['paths'], ('database', 'lock', 'runs'), 'paths')
         for key, path in paths.items():
             require(isinstance(path, str) and bool(path) and '\0' not in path and
                     not path.startswith('/') and '\\' not in path and
                     all(part not in ('', '.', '..') for part in path.split('/')),
                     key, 'containment: требуется относительный путь внутри рабочей копии')
-        exact(limits, ('lock_seconds', 'lock_poll_seconds', 'run_seconds', 'cleanup_seconds'), 'limits')
+        limits = configuration(value['limits'], ('lock_seconds', 'lock_poll_seconds',
+                                                'run_seconds', 'cleanup_seconds'), 'limits')
         for key, number in limits.items():
             require(type(number) in (float, int) and math.isfinite(number) and number > 0,
                     key, 'требуется явное положительное конечное число')

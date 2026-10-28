@@ -1,0 +1,156 @@
+{
+  "requirements": [
+    {
+      "id": "configured-erp-agent-worktree",
+      "commands": [
+        {
+          "argv": [
+            "${start_app}",
+            "infra",
+            "--config",
+            "${base_supervisor_config}",
+            "--parameters",
+            "${supervisor_parameters}",
+            "--base-dir",
+            "${repository}",
+            "--requirements",
+            "all"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/bash",
+            "-c",
+            "set -eu\n\"$$1\" --arg repository \"$$2\" --arg sessions \"$$3\" --arg archived \"$$4\" '.logs = [$$sessions, $$archived] | .path_roots = [$$repository]' \"$$5\" > \"$$6\"",
+            "erp-agent-history",
+            "${jq_executable}",
+            "${repository}",
+            "${session_logs}",
+            "${archived_session_logs}",
+            "${repository}/ai-assistant/analytics/session-history.example.json",
+            "${profile_root}/agent-session-history.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/cp",
+            "--update=none",
+            "--no-target-directory",
+            "${profile_root}/agent-session-history.json",
+            "${repository}/ai-assistant/analytics/session-history.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/usr/bin/test",
+            "-s",
+            "${repository}/planning-workspace/.env"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "/bin/bash",
+            "${repository}/ai-assistant/bootstrap/python-runtime.sh",
+            "-B",
+            "-c",
+            "import json,runpy,sys; from pathlib import Path; policy=json.loads(Path(sys.argv[2]).read_text(encoding='utf-8')); runpy.run_path(sys.argv[1])['validate_policy'](policy)",
+            "${repository}/ai-assistant/analytics/session_history.py",
+            "${repository}/ai-assistant/analytics/session-history.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${jq_executable}",
+            "--exit-status",
+            "(.logs | type == \"array\" and length > 0 and all(.[]; type == \"string\" and length > 0)) and (.format == \"markdown\" or .format == \"json\")",
+            "${repository}/ai-assistant/analytics/session-history.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

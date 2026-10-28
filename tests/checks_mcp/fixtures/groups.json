@@ -1,0 +1,95 @@
+{
+  "protocol": [
+    "tests/checks_mcp/test_protocol.py::test_real_discovery_and_typed_correlation",
+    "tests/checks_mcp/test_protocol.py::test_protocol_errors_reach_real_peer_without_child[before-init--32002]",
+    "tests/checks_mcp/test_protocol.py::test_protocol_errors_reach_real_peer_without_child[missing-initialized--32002]",
+    "tests/checks_mcp/test_protocol.py::test_protocol_errors_reach_real_peer_without_child[repeat-initialize--32600]",
+    "tests/checks_mcp/test_protocol.py::test_protocol_errors_reach_real_peer_without_child[unknown-method--32601]",
+    "tests/checks_mcp/test_protocol.py::test_protocol_errors_reach_real_peer_without_child[unknown-tool--32602]",
+    "tests/checks_mcp/test_protocol.py::test_unsupported_version_is_not_silently_claimed",
+    "tests/checks_mcp/test_protocol.py::test_malformed_arguments_are_not_started[preview-true]",
+    "tests/checks_mcp/test_protocol.py::test_malformed_arguments_are_not_started[verbose-1]",
+    "tests/checks_mcp/test_protocol.py::test_malformed_arguments_are_not_started[selection-None]",
+    "tests/checks_mcp/test_protocol.py::test_malformed_wire_is_a_protocol_error_not_a_check_result"
+  ],
+  "run": [
+    "tests/checks_mcp/test_run.py::test_actual_terminal_outcome_and_full_streams[success]",
+    "tests/checks_mcp/test_run.py::test_actual_terminal_outcome_and_full_streams[failure]",
+    "tests/checks_mcp/test_run.py::test_reader_accepts_ping_while_run_is_held",
+    "tests/checks_mcp/test_run.py::test_preview_has_no_active_or_diagnostic_effect",
+    "tests/checks_mcp/test_run.py::test_two_independent_intentions_execute_twice",
+    "tests/checks_mcp/test_run.py::test_empty_and_large_unclipped_machine_output[empty]",
+    "tests/checks_mcp/test_run.py::test_empty_and_large_unclipped_machine_output[large]"
+  ],
+  "options": [
+    "tests/checks_mcp/test_options.py::test_explicit_registered_copy_is_used",
+    "tests/checks_mcp/test_options.py::test_selected_workload_runtime_and_warnings",
+    "tests/checks_mcp/test_options.py::test_documentation_scope_reaches_real_child[working]",
+    "tests/checks_mcp/test_options.py::test_documentation_scope_reaches_real_child[committed]",
+    "tests/checks_mcp/test_options.py::test_bad_required_documentation_scope_has_no_process[None]",
+    "tests/checks_mcp/test_options.py::test_bad_required_documentation_scope_has_no_process[not-an-object]",
+    "tests/checks_mcp/test_options.py::test_package_steps_use_existing_dependency_order",
+    "tests/checks_mcp/test_options.py::test_cache_hit_and_explicit_fresh_keep_truth",
+    "tests/checks_mcp/test_options.py::test_actual_timeout_evidence_crosses_transport_and_is_consumed_once",
+    "tests/checks_mcp/test_options.py::test_unavailable_runtime_has_preview_and_truthful_run_continuation",
+    "tests/checks_mcp/test_options.py::test_invalid_selected_manifest_has_no_execution"
+  ],
+  "cancel": [
+    "tests/checks_mcp/test_cancel.py::test_cancel_preview_then_real_graceful_completion",
+    "tests/checks_mcp/test_cancel.py::test_ignored_term_forces_owned_group_and_preserves_full_capture",
+    "tests/checks_mcp/test_cancel.py::test_natural_completion_is_preserved_by_repeated_cancel",
+    "tests/checks_mcp/test_cancel.py::test_another_caller_cannot_cancel_live_target",
+    "tests/checks_mcp/test_cancel.py::test_independent_live_runs_are_not_globally_banned",
+    "tests/checks_mcp/test_cancel.py::test_composite_cancellation_never_starts_remaining_steps",
+    "tests/checks_mcp/test_cancel.py::test_cancel_at_real_pre_spawn_or_between_steps_boundary[before-spawn]",
+    "tests/checks_mcp/test_cancel.py::test_cancel_at_real_pre_spawn_or_between_steps_boundary[after-first]"
+  ],
+  "hooks": [
+    "tests/checks_mcp/test_hooks.py::test_native_pre_actual_run_and_matching_post_keep_order",
+    "tests/checks_mcp/test_hooks.py::test_native_preview_does_not_reserve_invocation",
+    "tests/checks_mcp/test_hooks.py::test_wrong_post_does_not_release_live_native_run",
+    "tests/checks_mcp/test_hooks.py::test_yielded_bash_keeps_actual_cli_owned_run",
+    "tests/checks_mcp/test_hooks.py::test_unrelated_bash_preserves_original_input_and_response",
+    "tests/checks_mcp/test_hooks.py::test_known_raw_and_wrapped_commands_have_addressed_mcp_recipe",
+    "tests/checks_mcp/test_hooks.py::test_weak_script_reference_is_only_a_warning",
+    "tests/checks_mcp/test_hooks.py::test_late_terminal_post_cannot_replace_new_live_invocation",
+    "tests/checks_mcp/test_hooks.py::test_later_pre_stop_is_not_fabricated_as_a_started_check"
+  ],
+  "output": [
+    "tests/checks_mcp/test_output.py::test_actual_callback_brief_expanded_full_share_one_real_result[passed-0]",
+    "tests/checks_mcp/test_output.py::test_actual_callback_brief_expanded_full_share_one_real_result[failed-7]"
+  ],
+  "recovery": [
+    "tests/checks_mcp/test_recovery.py::test_separate_cli_process_receives_cancel_from_mcp",
+    "tests/checks_mcp/test_recovery.py::test_broken_terminal_reply_preserves_readable_result_without_rerun",
+    "tests/checks_mcp/test_recovery.py::test_real_response_storage_failure_after_child_keeps_known_outcome",
+    "tests/checks_mcp/test_recovery.py::test_real_missing_capture_is_not_reported_as_verified_success",
+    "tests/checks_mcp/test_recovery.py::test_eof_cleans_up_owned_running_check_and_saves_truth",
+    "tests/checks_mcp/test_recovery.py::test_protocol_cancel_notification_reaches_exact_request",
+    "tests/checks_mcp/test_recovery.py::test_unknown_metadata_is_preserved_without_signal_or_fake_completion"
+  ],
+  "installed": [
+    "tests/checks_mcp/test_installed.py::test_real_noneditable_mcp_run_preview_cancel_and_native_entry"
+  ],
+  "preservation": [
+    "tests/named_checks/test_contracts.py::test_list_describe_preview",
+    "tests/named_checks/test_contracts.py::test_saved_result_readback_has_no_execution",
+    "tests/named_checks/test_contracts.py::test_python_port_and_cli_consumer_agree",
+    "tests/named_checks/test_contracts.py::test_taskless_native_and_generated_callers",
+    "tests/named_checks/test_contracts.py::test_policy_known_fields_and_unknown_raw_values",
+    "tests/named_checks/test_contracts.py::test_conditional_runtime_selection_and_preview",
+    "tests/named_checks/test_execution.py::test_exact_argv_cwd_and_single_process_owner",
+    "tests/named_checks/test_execution.py::test_complete_utf8_and_empty_streams",
+    "tests/named_checks/test_execution.py::test_terminal_timeout_and_cancel_stop_owned_group",
+    "tests/named_checks/test_execution.py::test_caller_output_failure_keeps_committed_result",
+    "tests/named_checks/test_history.py::test_one_use_diagnostic_override",
+    "tests/named_checks/test_history.py::test_cache_hit_explicit_fresh_and_release_conditions",
+    "tests/named_checks/test_packages.py::test_committed_documentation_scope_exact_identity",
+    "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+    "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+    "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
+    "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_forms",
+    "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_public_session"
+  ]
+}

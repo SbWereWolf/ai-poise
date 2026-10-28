@@ -2944,6 +2944,75 @@
           }
         }
       ]
+    },
+    {
+      "id": "same-last-event-with-different-reason",
+      "setup": {
+        "state_prepared": true,
+        "session_exists": true,
+        "reader_context": {
+          "schema": "poise-reader/2",
+          "generation": 2,
+          "reason": "resume",
+          "event_id": "event-1"
+        },
+        "receipts": [],
+        "documents": [
+          "sample"
+        ]
+      },
+      "steps": [
+        {
+          "request": {
+            "schema": "stride-poise/v1",
+            "operation": "reader.reset",
+            "input": {
+              "reason": "manual",
+              "event_id": "event-1"
+            }
+          },
+          "expected_exit": 2,
+          "expected_response": {
+            "schema": "stride-poise/v1",
+            "status": "rejected",
+            "result": null,
+            "error": {
+              "code": "reader_event_conflict",
+              "details": {
+                "event_id": "event-1"
+              },
+              "action": "reader:reset"
+            },
+            "evidence": []
+          },
+          "effects": {
+            "reader_metadata_unchanged": true
+          }
+        },
+        {
+          "request": {
+            "schema": "stride-poise/v1",
+            "operation": "reader.context",
+            "input": {}
+          },
+          "expected_exit": 0,
+          "expected_response": {
+            "schema": "stride-poise/v1",
+            "status": "ok",
+            "result": {
+              "schema": "poise-reader/2",
+              "generation": 2,
+              "reason": "resume",
+              "event_id": "event-1"
+            },
+            "error": null,
+            "evidence": []
+          },
+          "effects": {
+            "reader_metadata_unchanged": true
+          }
+        }
+      ]
     }
   ]
 }

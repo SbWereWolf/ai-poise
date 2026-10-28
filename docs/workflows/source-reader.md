@@ -75,3 +75,18 @@ JSON на stdin:
 current-generation cache facts и явный manual advance_context без acknowledgement-пакета.
 Его [native lifecycle](file-intake-lifecycle.md#допуск-и-владение) не заменяет описанную выше
 нативную связку специализированного восстановления контекста.
+
+
+## Условные инструкции по диагностике чтения
+
+При изменении допуска команды или бюджетов исследуют классификацию входа,
+реальное исполнение, полный capture и конечное представление по отдельности.
+При изменении реестра проверяют фактически доставленный диапазон, его версию,
+поколение и acknowledgement. Успех команды, размер ответа и существование receipt
+сами по себе не доказывают прочтения. После compaction неизменность файла
+не означает сохранённого текста в контексте.
+
+Агентские справочники [intake policy](../../.agents/skills/repo-tooling/references/document-intake-policy.md)
+и [intake registry](../../.agents/skills/repo-tooling/references/document-intake-registry.md)
+открывают только при соответствующей диагностике. Они проецируют существующих
+владельцев и не вводят новый runner, ledger или параллельные callbacks.

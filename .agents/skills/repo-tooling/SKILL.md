@@ -1,12 +1,19 @@
 ---
 name: repo-tooling
 description: Implement repository tools through existing owners with explicit inputs, bounded output, truthful failures and idempotent recovery.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Repository tooling
 
 ## Inputs
+
+For command classification, bounded document intake or its hook configuration,
+read [document-intake policy](references/document-intake-policy.md).
+For read coverage, acknowledgement, generation/compaction or registry lifecycle,
+read [document-intake registry](references/document-intake-registry.md).
+These references are conditional navigation, not a new router or session preload.
 
 The authorized tooling behavior, actual owner/API and protocol, current Task/stage/allowed paths,
 explicit filesystem path of the code under work, relevant target-project facts and selected Poise

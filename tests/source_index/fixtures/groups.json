@@ -61,5 +61,15 @@
     "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
     "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
     "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result"
+  ],
+  "policy-options": [
+    "tests/source_index/test_policy_options.py::test_unknown_configuration_option_preserves_query[policy]",
+    "tests/source_index/test_policy_options.py::test_unknown_configuration_option_preserves_query[paths]",
+    "tests/source_index/test_policy_options.py::test_unknown_configuration_option_preserves_query[limits]",
+    "tests/source_index/test_policy_options.py::test_known_configuration_and_request_remain_strict[paths-shape]",
+    "tests/source_index/test_policy_options.py::test_known_configuration_and_request_remain_strict[limits-shape]",
+    "tests/source_index/test_policy_options.py::test_known_configuration_and_request_remain_strict[request-extra]",
+    "tests/source_index/test_public_contract.py::test_invalid_policy_has_no_index_effect[missing-command]",
+    "tests/source_index/test_public_contract.py::test_invalid_policy_has_no_index_effect[nonpositive-lock]"
   ]
 }

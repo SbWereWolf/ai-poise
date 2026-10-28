@@ -99,6 +99,7 @@ def configured_private_project(project, name, repository, preparation):
             {'path': ['git', 'base_ref'], 'value': 'codex/deployment-source'},
             {'path': ['git', 'push_required'], 'value': False},
             {'path': ['automatic_checks'], 'value': []},
+            {'path': ['batch', 'max_artifact_bytes'], 'value': 16777216},
             {'path': ['paths', 'worktrees'], 'value': str(repository / '.runtime/worktrees')},
             {'path': ['worktree_preparation'], 'value': {'configuration': str(preparation)}},
         ], 'probe_repository': True,

@@ -10,6 +10,10 @@
     {
       "source": "erp-environment.example.env",
       "destination": "environment.env"
+    },
+    {
+      "source": "erp-bootstrap.example.env",
+      "destination": "bootstrap.env"
     }
   ]
 }

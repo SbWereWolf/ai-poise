@@ -24,7 +24,8 @@
     "php_executable": "/usr/bin/php",
     "composer_executable": "/usr/local/bin/composer",
     "npm_entry_point": "/usr/lib/node_modules/npm/bin/npm-cli.js",
-    "environment_source": "/srv/erp/platform-infrastructure/config/dev/local-development.env"
+    "environment_source": "/srv/erp/platform-infrastructure/config/dev/local-development.env",
+    "npm_executable": "/usr/bin/npm"
   },
   "derived_parameters": {
     "module_path": "${source_root}/src:${source_root}",

@@ -17,7 +17,8 @@ from live_application_support import (
     receipt, requirements_paths, sdk_operation, verify_launch, write,
 )
 from live_binding_support import (
-    assert_permanent, native_refresh_observation, owner_context, working_binding,
+    assert_permanent, native_refresh_observation, owner_context,
+    selected_instance_observation, working_binding,
 )
 
 
@@ -174,11 +175,13 @@ def test_public_owner_prepares_a_real_isolated_application(project, operational,
 @pytest.mark.parametrize('application', ['erp', 'poise-op'])
 def test_live_configuration_really_prepares_checks_and_launches(operational, tmp_path, application):
     selected = operational['live_applications'][application]
-    config, parameters, root = (Path(selected[key]) for key in ('config', 'parameters', 'base'))
+    config, parameters = (Path(selected[key]) for key in ('config', 'parameters'))
+    root = Path(selected['execution_base'] if application == 'erp' else selected['base'])
     runtime = application_runtime(operational, application, root)
     binding = working_binding(runtime, application, selected,
         operational['accepted_baseline'], operational['owner'], tmp_path)
     if application == 'erp':
+        selected_instance_observation(runtime, selected, operational['owner'], tmp_path, binding)
         expected = json.loads((Path(__file__).parent /
             'fixtures/live_deployment/erp-process-ids.json').read_text())
         assert selected['launch_observation']['process_ids'] == expected

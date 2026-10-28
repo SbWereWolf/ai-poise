@@ -3,9 +3,10 @@
     "source_root": "/srv/poise/app",
     "python": "/srv/poise/app/tools/.venv/bin/python",
     "start_app": "/srv/environment-maintenance/dist/installed/2.0.0/bin/start-app",
-    "operator": "/srv/poise/operator/start-app-worktrees"
+    "operator": "/srv/poise/operator/start-app-worktrees",
+    "env_executable": "/usr/bin/env"
   },
-  "catalog_dir": "${task_root}/environment-maintenance/profile",
+  "catalog_dir": "${task_root}/environment-maintenance/v2/profile",
   "inputs": [
     {
       "source": "${operator}/prepare.sh",
@@ -35,6 +36,8 @@
       "${task_root}/environment-maintenance/selected-values.json"
     ],
     "check": [
+      "${env_executable}",
+      "PYTHONPATH=${worktree}/platform-infrastructure/tools",
       "${start_app}",
       "check",
       "--config",
@@ -45,6 +48,8 @@
       "${worktree}"
     ],
     "repair": [
+      "${env_executable}",
+      "PYTHONPATH=${worktree}/platform-infrastructure/tools",
       "${start_app}",
       "infra",
       "--config",
@@ -57,6 +62,8 @@
       "all"
     ],
     "verify": [
+      "${env_executable}",
+      "PYTHONPATH=${worktree}/platform-infrastructure/tools",
       "${start_app}",
       "check",
       "--config",

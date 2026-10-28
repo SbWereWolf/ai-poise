@@ -5,6 +5,26 @@
       "commands": [
         {
           "argv": [
+            "/bin/mkdir",
+            "-p",
+            "${profile_root}/.."
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
             "${python}",
             "-B",
             "-m",

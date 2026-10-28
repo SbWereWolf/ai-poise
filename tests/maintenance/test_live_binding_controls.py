@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 from types import SimpleNamespace
 
@@ -70,7 +71,14 @@ def test_permanent_selection_cannot_depend_on_task_retirement(owned_context, loc
             assert_permanent([path], context)
 
 
-@pytest.mark.parametrize('selection', ['working', 'wrong-sdk', 'task-owned-config'])
+@pytest.mark.parametrize('selection', [
+    'working',
+    'wrong-sdk',
+    'task-owned-config',
+    'task-owned-parameters',
+    'task-owned-sdk',
+    'target-mismatch',
+])
 def test_working_selection_is_independent_of_a_healthy_supplied_sdk(owned_context, consumer_case, selection):
     baseline, context, _, case = owned_context
     repository = case['project']['app']
@@ -92,6 +100,10 @@ def test_working_selection_is_independent_of_a_healthy_supplied_sdk(owned_contex
     runtime = dict(sdk, module_path='', git='/usr/bin/git')
     (repository / 'start-app').write_text('#!/bin/bash\nexit 0\n')
     python = sdk['sdk_python'] if selection != 'wrong-sdk' else sys.executable
+    if selection == 'task-owned-sdk':
+        temporary_sdk = context['task_root'] / 'temporary-sdk'
+        shutil.copytree(Path(sdk['sdk_python']).parents[2], temporary_sdk)
+        python = str(temporary_sdk / '.venv/bin/python')
     working = repository / '.runtime/environment-consumer/runtime.env'
     working.parent.mkdir(parents=True, exist_ok=True)
     working.write_text('ERP_ENVIRONMENT_PYTHON_BIN=' + python + '\n')
@@ -101,12 +113,37 @@ def test_working_selection_is_independent_of_a_healthy_supplied_sdk(owned_contex
     app = write(config_root / 'app.json', {'operations': {
         name: name + '.json' for name in ('infra', 'deps', 'check', 'run')}})
     parameters = write(config_root / 'parameters.json', {'instance': str(repository)})
+    target = repository
     if selection == 'task-owned-config':
-        app = write(context['task_root'] / 'bad-live-app.json', json.loads(app.read_text()))
-    selected = {'base': str(repository), 'config': str(app), 'parameters': str(parameters)}
-    if selection == 'working':
+        supplied = context['task_root'] / 'invocation-profile'
+        for operation in ('infra', 'deps', 'check', 'run'):
+            write(supplied / (operation + '.json'), {'requirements': []})
+        app = write(supplied / 'app.json', json.loads(app.read_text()))
+    elif selection == 'task-owned-parameters':
+        target = context['worktree']
+        parameters = write(context['task_root'] / 'invocation-parameters.json',
+                           {'instance': str(target)})
+    elif selection == 'target-mismatch':
+        target = context['worktree']
+    selected = {'base': str(repository), 'config': str(app), 'parameters': str(parameters),
+                'execution_base': str(target)}
+    if selection in ('working', 'task-owned-config', 'task-owned-parameters'):
         observed = working_binding(runtime, 'erp', selected, baseline, context, root)
         assert observed['sdk']['python'] == sdk['sdk_python']
+        assert observed['repository'] == str(repository)
+        assert observed['execution_base'] == str(target)
+        assert observed['execution_source_commit'] == git(target, 'rev-parse', 'HEAD')
+    elif selection == 'target-mismatch':
+        with pytest.raises(AssertionError, match='Invocation instance differs from selected execution target'):
+            working_binding(runtime, 'erp', selected, baseline, context, root)
+    elif selection == 'task-owned-sdk':
+        with pytest.raises(AssertionError, match='Persistent dependency belongs to Task'):
+            working_binding(runtime, 'erp', selected, baseline, context, root)
+        # This is a real copied installation passing identity/source checks,
+        # not a fabricated result that fails before the persistence boundary.
+        actual = json.loads((root / 'working-sdk-identity.stdout').read_text())
+        assert actual['version'] == '2.0.0' and actual['python'] == python
+        assert Path(actual['module']).is_relative_to(temporary_sdk)
     else:
         with pytest.raises(AssertionError):
             working_binding(runtime, 'erp', selected, baseline, context, root)

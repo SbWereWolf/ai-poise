@@ -13,7 +13,7 @@ from poise.infrastructure.sqlite.worktree_preparation import SqlitePreparationRe
 from poise.infrastructure.task_paths import task_root
 from poise.storage import Store
 
-from live_application_support import capture, write
+from live_application_support import capture, profile_inputs, write
 
 
 def sha(path):
@@ -69,8 +69,10 @@ def native_refresh_observation(context, declared):
 def assert_permanent(paths, context):
     for value in paths:
         path = Path(os.path.abspath(value))
-        assert not path.is_relative_to(context['task_root']), path
-        assert not path.is_relative_to(context['worktree']), path
+        assert not path.is_relative_to(context['task_root']), (
+            'Persistent dependency belongs to Task: ' + str(path))
+        assert not path.is_relative_to(context['worktree']), (
+            'Persistent dependency belongs to worktree: ' + str(path))
 
 
 def preparation_dependencies_are_permanent(context, configuration):
@@ -150,7 +152,9 @@ def working_binding(runtime, application, selected, baseline, context, evidence)
     assert base == Path(accepted['repository']) == Path(selected['base'])
     app, parameters = Path(selected['config']), Path(selected['parameters'])
     environment = {'PATH': runtime['path'], 'HOME': '/home/sbwerewolf', 'LANG': 'C.UTF-8'}
-    paths = [base, app, parameters]
+    # ERP receives profile inputs explicitly on each invocation. Poise's saved
+    # Bootstrap selection references its profile after this Task is retired.
+    paths = [base] if application == 'erp' else [base, app, parameters]
     if application == 'erp':
         entry = ['/bin/bash', str(base / 'start-app')]
         selection = base / '.runtime/environment-consumer/runtime.env'
@@ -222,19 +226,74 @@ def working_binding(runtime, application, selected, baseline, context, evidence)
                 assert (installed_module / relative).read_bytes() == expected
     assert_permanent(paths, context)
     values = json.loads(parameters.read_text())
-    assert values['instance' if application == 'erp' else 'repository'] == str(base)
+    target = Path(selected['execution_base']) if application == 'erp' else base
+    assert values['instance' if application == 'erp' else 'repository'] == str(target), (
+        'Invocation instance differs from selected execution target')
     runtime_stores = (existing_runtime_stores(app, values, Path(registration['config_path']), manifest)
                       if application == 'poise-op' else None)
     operation_files = [app.parent / value for value in json.loads(app.read_text())['operations'].values()]
-    assert_permanent(operation_files, context)
+    if application == 'poise-op':
+        assert_permanent(operation_files, context)
     source, stdout = capture([runtime['git'], '-C', str(base), 'rev-parse', 'HEAD'],
         cwd=base, env=environment, root=evidence, label='working-source-identity', timeout=30)
     assert source['actual_exit_code'] == 0
+    target_source, target_stdout = capture(
+        [runtime['git'], '-C', str(target), 'rev-parse', 'HEAD'], cwd=target,
+        env=environment, root=evidence, label='execution-source-identity', timeout=30)
+    assert target_source['actual_exit_code'] == 0
     report = {'application': application, 'repository': str(base), 'entry': entry,
         'source_commit': stdout.decode().strip(), 'sdk': sdk,
+        'execution_base': str(target), 'execution_source_commit': target_stdout.decode().strip(),
         'runtime_stores': runtime_stores,
         'configuration_sha256': {str(path): sha(path)
             for path in [app, parameters, *operation_files, *map(Path, entry[1:2])]
             if path.is_file()}, 'accepted_archives': archives}
     write(evidence / 'working-binding.json', report)
+    return report
+
+
+def selected_instance_observation(runtime, selected, context, evidence, binding):
+    """Link this Task's ERP scenario to its real public-owner V04 deployment.
+
+    This attests the selected verification instance; it does not require every
+    valid ERP invocation to have been created by Poise.
+    """
+    proof_path = Path(selected['instance_proof'])
+    assert proof_path.is_relative_to(context['task_root'])
+    proof = json.loads(proof_path.read_text())
+    assert proof['application'] == 'erp'
+    setup = Path(proof['isolated_config']['runtime_resources']['project_setup'])
+    assert setup.is_relative_to(context['task_root'])
+    listing = project_tools(setup).list()
+    assert not listing['errors'], listing
+    registration = next(row for row in listing['projects'] if row['project'] == 'erp')
+    supplied = proof['second_preparation']
+    supplied_report = json.loads(Path(supplied['receipt_path']).read_text())
+    owner = owner_context({'task': supplied_report['task_id'], 'registered_projects': [
+        {'id': 'erp', 'config': registration['config_path']}]}, 'erp')
+    assert owner['task_root'].is_relative_to(context['task_root'])
+    actual = owner['attempt'].projection()
+    assert actual == supplied and actual['status'] == 'ready'
+    assert sha(actual['receipt_path']) == actual['receipt_sha256']
+    for key, value in owner['attempt'].coordinates.items():
+        assert supplied_report[key] == value
+    target = Path(selected['execution_base'])
+    assert owner['worktree'] == target == Path(proof['worktree'])
+    app, parameters = profile_inputs(supplied_report)
+    assert app == Path(selected['config']) and parameters == Path(selected['parameters'])
+    assert binding['execution_source_commit'] == proof['source_commit']
+    primary = next(row for row in context['listing']['projects'] if row['project'] == 'erp')
+    _, configuration, _ = load_config(Path(primary['config_path']))
+    preparation = Path(primary['config_path']).parent / configuration['worktree_preparation']['configuration']
+    assert sha(preparation) == supplied_report['configuration']['sha256']
+    result, stdout = capture([runtime['git'], '-C', str(target), 'remote', 'get-url', 'origin'],
+        cwd=target, env={'PATH': runtime['path'], 'LANG': 'C.UTF-8'},
+        root=evidence, label='selected-instance-origin', timeout=30)
+    assert result['actual_exit_code'] == 0 and stdout.decode().strip() == selected['base']
+    report = {'caller': selected['base'], 'execution_base': str(target),
+        'source_commit': proof['source_commit'], 'proof_path': str(proof_path),
+        'proof_sha256': sha(proof_path), 'native_preparation': actual,
+        'registration': registration['config_path'],
+        'input_sha256': {str(path): sha(path) for path in (app, parameters)}}
+    write(evidence / 'selected-instance.json', report)
     return report

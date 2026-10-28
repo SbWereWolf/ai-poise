@@ -5,7 +5,7 @@
     "start_app": "/srv/environment-maintenance/dist/installed/2.0.0/bin/start-app",
     "operator": "/srv/poise/operator/start-app-worktrees"
   },
-  "catalog_dir": "${task_root}/environment-maintenance/profile",
+  "catalog_dir": "${task_root}/environment-maintenance/v2/profile",
   "inputs": [
     {
       "source": "${operator}/prepare.sh",

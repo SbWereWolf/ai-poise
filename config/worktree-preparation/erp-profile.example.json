@@ -207,6 +207,230 @@
             "XAUTHORITY"
           ],
           "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            0,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-web.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-web.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-web",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            1,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/calculation-service-web.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/calculation-service-web.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "calculation-service-web",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            2,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/system-admin-web.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/system-admin-web.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "system-admin-web",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            3,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/document-ui-vite.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/document-ui-vite.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "document-ui-vite",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            4,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/calculation-service-worker.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/calculation-service-worker.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "calculation-service-worker",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            5,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-worker.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-worker.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-worker",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            6,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-events-worker.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-events-worker.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-events-worker",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            7,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-export-scheduler.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-export-scheduler.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-export-scheduler",
+            "--repository-root",
+            "$${instance}"
+          ]
         }
       ]
     },
@@ -253,7 +477,7 @@
           "path": [
             "write_mode"
           ],
-          "value": "create-only"
+          "value": "replace"
         },
         {
           "path": [

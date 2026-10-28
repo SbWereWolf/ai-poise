@@ -1,0 +1,325 @@
+{
+  "task": "PS-DEV-002-T069",
+  "status": "proposed_for_independent_TESTS_design_review_no_runtime",
+  "basis": "Independently clear source analysis d89b70c5: narrow direct request/completion, actual CLI/localstdioMCP, own Session/durable identity/one dispatch/full capture, T070 views separate. Exact wire defined now before test sources; no product prototype.",
+  "entry": {
+    "argv": [
+      "<explicit CPython3.13>",
+      "-I",
+      "-S",
+      "-B",
+      "<copied-app>/bin/poise",
+      "--config",
+      "<copied working Poise JSON>"
+    ],
+    "packet": "Existing exact stride-poise/v1 schema/operation/input and strict UTF8 JSON/EOF; common Session/config/packet limits and errors unchanged.",
+    "operations": [
+      "command.request",
+      "command.completion",
+      "command.delete"
+    ],
+    "selection": "Optional top-level commands selects this versioned config for these operations only. Other operations ignore commands, including malformed unused values. Missing selected commands is commands_not_configured/unavailable1/resultnull. Real prepared own Session required; Task/Stage/shared DB absent."
+  },
+  "configuration": {
+    "example_commands_section": {
+      "schema": "poise-command-config/v1",
+      "request_store": "command-state/commands.sqlite",
+      "output_root": "command-output",
+      "file_mode": 384,
+      "files": {
+        "stdout": "stdout.bin",
+        "stderr": "stderr.bin",
+        "result": "result.json"
+      },
+      "limits": {
+        "id_bytes": 128,
+        "sqlite_timeout_seconds": 1,
+        "poll_ms": 10,
+        "capture_chunk_bytes": 4096,
+        "terminate_grace_ms": 100,
+        "completion_budget_ms": 5000,
+        "delivery_margin_ms": 100,
+        "transport_budget_ms": 6000,
+        "transport_margin_ms": 100,
+        "mcp_max_message_bytes": 1048576,
+        "mcp_max_messages": 16
+      }
+    },
+    "known_fields": "Every shown known field required. Unknown options at any config object level are ignored and raw config bytes remain unchanged. No alias/default config, live config write or automatic repair. Schema exact; bool is not integer.",
+    "paths": "request_store/output_root resolve from config parent using ordinary path resolution. Parent of request_store and output_root are operator-prepared existing directories. request_store differs from own Session store. output_root contains only per-execution generated child directories; explicit unique configured file names are leaf names. file_mode integer0..0777.",
+    "limits": "id_bytes/poll_ms/capture_chunk_bytes/terminate_grace_ms/completion_budget_ms/delivery_margin_ms/transport_budget_ms/transport_margin_ms/mcp_max_message_bytes/mcp_max_messages are positive integers. sqlite_timeout_seconds finite number>=0, bool excluded. Grace is strictly less than request cleanup_budget_ms.",
+    "budget_relationships": [
+      "At command.request admission only: completion_budget_ms >= execution_budget_ms + cleanup_budget_ms + delivery_margin_ms.",
+      "For each selected operation: transport_budget_ms >= completion_budget_ms + transport_margin_ms."
+    ],
+    "budgets": "Selected host/CLI test wait must actually accommodate transport_budget_ms. Application does not enlarge values. Execution deadline begins at actual execution-owner start/spawn attempt and uses monotonic time; cleanup budget starts on natural exit/deadline/protocol completion and bounds its owned drain/reap. Completion waits separately on retained state; actual returned outcome, not a guessed fixed timeout signal, is recorded. Completion/delete have no new execution budget to admit. A separate completion caller may select a shorter positive wait budget against the same stores/Session; this changes only that read wait, not retained input/execution settings. Replaying command.request still compares its original selected execution settings.",
+    "initialization": "Command owner normally creates its new catalog on first valid admission in the prepared parent. This is creation of a new own managed store, not repair/migration of existing data. Existing incompatible/invalid catalog returns explicit unavailable error without overwrite. Readers/absent deletes do not create a store. Exact private schema/normal preparation mechanism belongs to CODEdesign; it is not a test oracle.",
+    "metadata_bound": "Execution replies have fixed metadata fields and at most two source references/full-result reference, bounded ID strings and native file paths. Arbitrary stdout/stderr/MCP response bodies are stored outside replies. T070 owns explicit minimal/range presentation budgets; no second internal clipper or premature minimal API is added here.",
+    "error_classification": "Existing SQLite user_version other than the supported version => command_store_incompatible with that integer; malformed non-SQLite bytes => version:null. SQLite busy/locked => command_store_busy. Other SQLite opening/writing I/O => command_store_io errno:null unless an actual OS errno is exposed. No inferred errno from a SQLite numeric result code. Ordinary absent catalog read/delete does not initialize it."
+  },
+  "requests": {
+    "command.request": {
+      "exact_fields": [
+        "schema",
+        "command_id",
+        "transport",
+        "argv",
+        "cwd",
+        "env",
+        "execution_budget_ms",
+        "cleanup_budget_ms",
+        "mcp"
+      ],
+      "schema": "poise-command-request/v1",
+      "command_id": "Nonempty opaque UTF8 string without NUL, <=id_bytes in UTF8, preserved exactly; not a filesystem path. Scoped to own saved Session.",
+      "transport": "command or mcp_stdio",
+      "argv": "Nonempty array of strings without NUL; argv[0] explicit absolute native executable path, subsequent empty strings valid. Exact list passed without shell interpolation.",
+      "cwd": "Explicit nonempty absolute native directory path text without NUL. Actual unavailable cwd/executable produces a recorded not_started OS outcome, not a fabricated exit.",
+      "env": "Full explicit string-to-string child environment, nonempty keys without NUL/=, values may be empty; no merge with caller environment.",
+      "execution_budget_ms": "Positive integer",
+      "cleanup_budget_ms": "Positive integer, >configured terminate_grace_ms",
+      "mcp": "command requires null. mcp_stdio requires exact {protocol_version,client_info,tool_name,arguments}; protocol_version/tool_name nonempty UTF8 strings without NUL; client_info exact {name,version} nonempty text, arguments JSON object."
+    },
+    "command.completion": {
+      "exact_fields": [
+        "command_id"
+      ],
+      "command_id": "Same meaningful opaque own-Session identity; returns current retained result, waiting within completion budget for TERMINAL/UNKNOWN. It never creates a new execution."
+    },
+    "command.delete": {
+      "exact_fields": [
+        "command_id"
+      ],
+      "command_id": "Explicit data retirement of own identity and its generated stdout/stderr/full-result files after readers/owned writer processes have finished. This is not cancellation or application self-repair."
+    }
+  },
+  "managed_object_operations": {
+    "owner": "Command execution capability, composed with existing own Session and output-file owner; no Task or generic CRUD service.",
+    "create": "First valid command.request atomically records exact input and selected execution settings, then dispatches once. Same identity/exact input returns existing retained snapshot with replayedtrue; different input returns command_reuse_conflict with no dispatch.",
+    "read": "command.completion reads/waits on the same own identity. Terminal and known UNKNOWN snapshots retain actual output/response; repeat reads do not relaunch or edit input.",
+    "update": "Caller editing of admitted input is unsupported, reusing the already accepted exact-input/replay decision. Observation updates belong only to actual execution owner. A new intended execution uses a fresh ID; no public command.update or generic update API.",
+    "delete": "Explicit command.delete removes only selected own record/generated files, no root/foreign Session or independent command data. Missing/repeated delete succeeds with the same absent result. Proper-use precondition: complete/read result and finish its consumers, or independently stop the owned writer before retirement; this operation does not infer/kill processes or add global waiting/locks. Ordinary delete I/O failure retains the record until remaining owned cleanup succeeds and exposes actual error; retry continues same requested absence. Owned capture cleanup order is configured stdout, then stderr, then full result, then generated empty directory, and finally the record; already absent own paths are tolerated. Stop on the first actual I/O error and retain the record for retry; no receipt rewrite that invents successfully removed bytes.",
+    "retention": "Execution identity/replay guarantee lasts while its record is retained. After disposal choose a fresh ID for a new intended execution; no hidden historical tombstone/archive service is introduced. This defines the new object lifecycle; no existing user data is deleted by designing or testing it.",
+    "equality": "Compare complete admitted JSON input and selected execution settings with JSON types: null/bool/number/string/array/object distinct, bool true differs from number1. Object member order is irrelevant, array order/text/opaque data significant; JSON numbers1 and1.0 represent the same numeric value. Completion-only wait/transport budgets are not execution identity settings. No hash/digest admission."
+  },
+  "metadata_response": {
+    "exact_fields": [
+      "schema",
+      "operation",
+      "command_id",
+      "transport",
+      "state",
+      "termination",
+      "deadline_exceeded",
+      "business_error",
+      "stdout",
+      "stderr",
+      "full_result_ref",
+      "error",
+      "replayed"
+    ],
+    "schema": "poise-command/v1",
+    "operation": "request or completion",
+    "state": [
+      "ADMITTED",
+      "RUNNING",
+      "TERMINAL",
+      "UNKNOWN"
+    ],
+    "termination": "null until genuinely observed, else exact {kind:exit,exit_code:integer0..255}, {kind:signal,signal:positive integer}, or {kind:not_started}.",
+    "deadline_exceeded": "Boolean true only when owner actually observes execution deadline before exit, including later exit0/exit7. Natural exit and timeout remain distinct.",
+    "business_error": "null for CLI/before MCP call outcome; actual result.isErrorbool (absent means protocol false) determines true/false, explicit JSON-RPC error means true. Nonboolean isError is an invalid protocol response. Complete actual response stays in full_result; no body/summary inline.",
+    "source": "stdout/stderr null before publication, else exact {source_id,path,bytes,complete}; opaque stable ID, absolute owner-generated path, integerbytes>=0, boolean complete. Full separate raw bytes including NUL/nonUTF8 preserved. A partial capture reports actual retained bytes and completefalse. T069does not add active-prefix range/minimal API.",
+    "full_result_ref": "null before full result publication, else exact {path,bytes}; existing absolute file and actual UTF8 JSON byte count. No hash/signature/source-integrity admission.",
+    "error": "null or exact {code,details,action} for known execution/protocol/capture uncertainty. Outer request/wait/storage errors have their existing envelope owner; child nonzero/observed timeout alone is an actual outcome, not a malformed packet.",
+    "replayed": "true only for a repeated identical request; false for new request and completion reads. First admission may return ADMITTED/RUNNING or already observed final state; complete whole permitted snapshots are compared, not partial fields.",
+    "transient_snapshots": "ADMITTED/RUNNING before final publication have termination:null, deadline_exceeded:false, business_error:null, stdout:null, stderr:null, full_result_ref:null,error:null. Execution-owner observations publish one complete final snapshot atomically; no intermediate partial-reference API. Thus an active completion wait expiry is compared as a whole RUNNING snapshot once child readiness is independently established."
+  },
+  "full_result": {
+    "schema": "poise-command-result/v1",
+    "exact_fields": [
+      "schema",
+      "command_id",
+      "transport",
+      "state",
+      "termination",
+      "deadline_exceeded",
+      "business_error",
+      "stdout",
+      "stderr",
+      "error",
+      "mcp_response"
+    ],
+    "fields": "Same execution facts/sources as metadata, without operation/replayed/self-reference. mcp_response is null or the COMPLETE actual tools/call JSON-RPC response, including all result/error/unknown fields, not a filtered DTO. Both raw sources also remain complete/partial truthful as observed. Input/env secrets are not copied into the public full receipt; exact admitted input/config remains at the execution owner.",
+    "publication": "Publish after actual capture/termination observation; retain exact own result. UNKNOWN can retain known child exit and complete raw sources while a requested MCP response/business effect is not established. No inference from PID absence/time alone, no automatic redispatch or configuration repair."
+  },
+  "mcp_boundary": {
+    "supported": "Local Linux stdio with exact configured argv/cwd/full env. initialize(selected protocol/client_info), notifications/initialized, tools/call(selected tool_name/arguments); tool inventory discovery is not required by this execution API. Existing capability probe retains its own list/read_only semantics.",
+    "correlation": "Validate JSON type as well as value of each response ID against the outstanding request; bool is not an integer RPC ID. A nonmatching ID is command_protocol_failed/invalid_response in the actual phase; it is never accepted as another result or silently consumed. Retain raw bytes, no second tools/call/dispatch.",
+    "capture": "Store every actual received protocol byte and full stderr. Match peer-emitted raw bytes independently; preserve full tools/call response in result file. Correctly completed call result.isErrortrue is business_errortrue with actual server exit0, not a fabricated process failure.",
+    "errors": "Valid JSON-RPC error retained completely and reported as mcp_response_error. EOF before requested tools/call response => UNKNOWN/command_observation_lost with actual termination/capture, no second call on repeat. Incompatible selected protocol => command_protocol_failed before tools/call. Proper-use configured protocol/message/budgets are explicit; no external host/network MCP availability claim.",
+    "full_response": "mcp_response is the exact complete tools/call response frame, including jsonrpc/id and every result/error/unknown field; RPC IDs are field-scoped dynamic correlation values. Initialize/list/notification frames also remain in complete raw stdout; new execution uses direct tools/call without requiring discovery.",
+    "primary_source": "https://modelcontextprotocol.io/specification/2024-11-05/basic/messages; requests have non-null string/integer IDs unique within this session, responses match ID and contain exactly one result/error, notifications have no id. Version2024-11-05 only, no optional-feature expansion.",
+    "notifications": "A syntactically valid JSON-RPC notification without id may precede either response; count and retain it, then continue to the matched response. Ignore its optional method-specific semantics; this does not implement subscriptions/logging/progress APIs. A notification cannot satisfy a pending request. Invalid response/result/isError shape is invalid_response.",
+    "message_bytes": "mcp_max_message_bytes counts raw UTF8 bytes of one incoming LF-delimited frame EXCLUDING its one LF delimiter. The positive bound is inclusive. Exceeding it or the count is command_protocol_failed/{phase:actual phase,reason:message_limit}. Output capture continues within cleanup to retain actual bytes, including offending input; rejected frame is not a matched mcp_response.",
+    "message_count": "mcp_max_messages counts all complete incoming nonempty frames in this execution from initialize onward, including notifications and error/invalid frames; inclusive. Outgoing initialize/initialized/tools.call frames are NOT counted. Empty LF frame is invalid_response, not a free message. No counter reset between initialize and tools.call.",
+    "packet_limits": "Existing shell packet_bytes bounds only caller input, never incoming peer frames or retained full MCP result. Fixed metadata excludes the full result; an admitted small request can produce a valid peer frame above packet_bytes within selected MCP limit."
+  },
+  "outer_mapping": {
+    "success": "ok/exit0/errornull/evidence[] and complete metadata for ADMITTED/RUNNING or normally observed terminal result, including child nonzero and observed deadline. This means successful delivery of the recorded outcome, not command/business success.",
+    "observed_execution_error": "unavailable/exit1/full metadata result/error copied from metadata.error for not_started/protocol/capture failure or UNKNOWN; no child exit fabricated. MCP ordinary result.isErrortrue remains deliveredok0 with business_errortrue and exact full response.",
+    "completion_expiry": "unavailable/exit1/current metadata snapshot, outer command_wait_expired/{command_id,budget_ms}/wait:command; no mutation/relaunch or guessed exit, result.error preserves actual execution error rather than becoming wait failure. Stable supported budgets are sized to actual selected execution+cleanup; later same identity read continues.",
+    "delete_success": {
+      "schema": "poise-command-delete/v1",
+      "command_id": "<requested own id>",
+      "state": "absent"
+    },
+    "validation_order": "Existing common config/strict outer JSON/packet/schema/operation first. Selected commands presence/known config/path/budget capacity then operation input shape/value, then actual own caller/prepared Session. New request requires open Session; existing reads/retirement may use its retained closed Session. Check stored exact identity/input before any new target effect. Config/shape/admission failure creates no command store/output/child.",
+    "existing_session_errors": "Retain existing actual Session errors and pointers. Missing own Session is existing session_not_found/unavailable1/resultnull/details{}/ensure:session. Closed new request is existing session_closed/rejected2/details{status:closed}/select:session; completion/delete may read the retained identity. Existing common errors are not redefined."
+  },
+  "outer_errors": [
+    {
+      "code": "commands_not_configured",
+      "status": "unavailable",
+      "exit": 1,
+      "result": null,
+      "details": {},
+      "action": "configure:commands"
+    },
+    {
+      "code": "invalid_config",
+      "status": "rejected",
+      "exit": 2,
+      "result": null,
+      "details": "exact {path:<known faulty /commands field or path>}",
+      "action": "correct:config"
+    },
+    {
+      "code": "invalid_request",
+      "status": "rejected",
+      "exit": 2,
+      "result": null,
+      "details": "exact {path:<missing/known faulty field, or containing object for extra key>}",
+      "action": "correct:request"
+    },
+    {
+      "code": "unsupported_schema",
+      "status": "rejected",
+      "exit": 2,
+      "result": null,
+      "details": "exact {schema:<unsupported string>} for request schema; nonstring is invalid_request /input/schema",
+      "action": "select:schema"
+    },
+    {
+      "code": "command_reuse_conflict",
+      "status": "rejected",
+      "exit": 2,
+      "result": null,
+      "details": "exact {command_id}",
+      "action": "use:new-command"
+    },
+    {
+      "code": "command_not_found",
+      "status": "unavailable",
+      "exit": 1,
+      "result": null,
+      "details": "exact {command_id}",
+      "action": "use:command"
+    },
+    {
+      "code": "command_budget_incompatible",
+      "status": "rejected",
+      "exit": 2,
+      "result": null,
+      "details": "exact {execution_budget_ms,cleanup_budget_ms,completion_budget_ms,delivery_margin_ms} when their inequality fails; grace>=cleanup is invalid_request /input/cleanup_budget_ms. transport inequality is invalid_config /commands/limits/transport_budget_ms",
+      "action": "configure:commands"
+    },
+    {
+      "code": "command_store_incompatible",
+      "status": "unavailable",
+      "exit": 1,
+      "result": null,
+      "details": "exact {version:integer|null}",
+      "action": "select:command-store"
+    },
+    {
+      "code": "command_store_busy",
+      "status": "unavailable",
+      "exit": 1,
+      "result": null,
+      "details": {},
+      "action": "retry:command"
+    },
+    {
+      "code": "command_store_io",
+      "status": "unavailable",
+      "exit": 1,
+      "result": null,
+      "details": "exact {errno:integer|null}",
+      "action": "configure:command-store"
+    },
+    {
+      "code": "command_wait_expired",
+      "status": "unavailable",
+      "exit": 1,
+      "result": "actual snapshot",
+      "details": "exact {command_id,budget_ms}",
+      "action": "wait:command"
+    },
+    {
+      "code": "command_delete_failed",
+      "status": "unavailable",
+      "exit": 1,
+      "result": null,
+      "details": "exact {command_id,path,errno:integer|null}",
+      "action": "inspect:command"
+    }
+  ],
+  "recorded_errors": [
+    {
+      "code": "command_start_failed",
+      "state": "TERMINAL",
+      "details": "exact {path:<actual OS error filename or requested executable>,errno:integer|null}",
+      "action": "configure:command",
+      "termination": {
+        "kind": "not_started"
+      }
+    },
+    {
+      "code": "command_protocol_failed",
+      "state": "TERMINAL",
+      "details": "exact {phase:initialize|tools_call,reason:<protocol_version|invalid_response|message_limit>}",
+      "action": "configure:command"
+    },
+    {
+      "code": "mcp_response_error",
+      "state": "TERMINAL",
+      "details": "exact {code:<actual JSON-RPC error code>}",
+      "action": "inspect:command"
+    },
+    {
+      "code": "command_observation_lost",
+      "state": "UNKNOWN",
+      "details": "exact {phase:mcp_response|dispatch|execution|publication}; capture failures have command_capture_failed only",
+      "action": "inspect:command"
+    },
+    {
+      "code": "command_capture_failed",
+      "state": "TERMINAL when child termination known, otherwise UNKNOWN",
+      "details": "exact {stream:stdout|stderr,errno:integer|null}",
+      "action": "inspect:command"
+    }
+  ],
+  "lifecycle_limits": "command.delete data retirement is used after result consumers and owned writer processes finish; it neither cancels nor waits on a live command. Proper use and operator procedures own that precondition; no process/race/tamper defense or global lock is invented. Ordinary file cleanup error leaves the record for explicit retry, reports actual path/errno and preserves truthful partial effects. No filesystem-wide rollback/selfrepair promise.",
+  "evolution": "T068prospective outer gateway/hash/lock/revision/timestamp fields are superseded by this scoped direct contract after independent approval; no shipped command runtime/consumer exists. Exact selected versions are explicit, no aliases/dual formats. This is not a change to native Poise receipt/history integrity or unrelated apps.",
+  "revision": 2,
+  "termination_and_cleanup": {
+    "execution_deadline": "Observe child exit first on a ready cycle. If it is not observed before the monotonic execution deadline, set deadline_exceeded true and immediately SIGTERM the owned process group. Start the one cleanup budget then. At terminate_grace_ms after TERM, SIGKILL that group if termination/pipe completion is still outstanding. Do not invent the resulting signal: reap and retain actual exit or signal.",
+    "natural_exit": "Natural direct-child exit starts the one cleanup budget for draining remaining inherited pipes; deadline_exceeded remains false. Drain EOF, no unbounded communicate/wait. A normal descendant can keep a pipe open beyond that budget; stop capture at the bound and publish its true partial bytes. No promise to supervise independent descendants forever.",
+    "mcp_finish": "After matched tools/call result or known protocol rejection, close the server input and start the one cleanup budget for natural server termination and capture. Do not immediately signal a finite peer that can exit on EOF. Execution timeout still applies until this finish point. A peer that does not finish inside cleanup yields unknown actual termination; do not fabricate exit0.",
+    "no_extension": "Cleanup starts once at the first qualifying execution deadline, observed direct-child exit or MCP protocol finish. Signals, errors and repeated completion reads never restart/extend it. Drain and reap share its bound.",
+    "capture_io": "On real stream file write/open error, retain that error errno and actual saved prefix; continue draining/discarding unsavable bytes within the same execution/cleanup bounds so a finite producer can finish normally. Failed source complete:false even if its pipe later reaches EOF; other source complete reflects its own EOF/save status. Error priority if both streams fail is stdout then stderr.",
+    "exhaustion": "At cleanup bound close remaining capture handles. Every source missing EOF or suffering save failure is complete:false. Any such stream has command_capture_failed with {stream:first stdout then stderr,errno:actual IO errno or null for drain exhaustion}; state TERMINAL if direct-child termination known, otherwise UNKNOWN; termination actual or null. If captures are complete but termination unobserved, state UNKNOWN/command_observation_lost phase:execution. command_observation_lost phase:capture is removed to avoid overlapping classifications.",
+    "precedence": "Capture failure/exhaustion takes error precedence over protocol/business error; full actual matched mcp_response and known business_error are still retained. With complete capture and known termination, known protocol failure is TERMINAL/command_protocol_failed; matched RPC error is TERMINAL/mcp_response_error; EOF before matched call response is UNKNOWN/command_observation_lost phase:mcp_response. Child nonzero or deadline alone is not error. Every error/UNKNOWN response maps unavailable1; valid observed child timeout/exit maps ok0."
+  }
+}

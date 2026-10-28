@@ -1,0 +1,187 @@
+{
+  "commands": {
+    "schema": "poise-command-config/v1",
+    "request_store": "command-state/commands.sqlite",
+    "output_root": "command-output",
+    "file_mode": 384,
+    "files": {
+      "stdout": "stdout.bin",
+      "stderr": "stderr.bin",
+      "result": "result.json"
+    },
+    "limits": {
+      "id_bytes": 128,
+      "sqlite_timeout_seconds": 1,
+      "poll_ms": 10,
+      "capture_chunk_bytes": 4096,
+      "terminate_grace_ms": 100,
+      "completion_budget_ms": 5000,
+      "delivery_margin_ms": 100,
+      "transport_budget_ms": 6000,
+      "transport_margin_ms": 100,
+      "mcp_max_message_bytes": 1048576,
+      "mcp_max_messages": 16
+    }
+  },
+  "request": {
+    "schema": "poise-command-request/v1",
+    "command_id": "delivery-1",
+    "transport": "command",
+    "argv": [],
+    "cwd": "",
+    "env": {
+      "LC_ALL": "C.UTF-8",
+      "CONTROL": "$ROOT/path/base/cwd"
+    },
+    "execution_budget_ms": 2000,
+    "cleanup_budget_ms": 1000,
+    "mcp": null
+  },
+  "envelope": {
+    "schema": "stride-poise/v1",
+    "status": "ok",
+    "result": null,
+    "error": null,
+    "evidence": []
+  },
+  "metadata": {
+    "schema": "poise-command/v1",
+    "operation": "completion",
+    "command_id": "",
+    "transport": "command",
+    "state": "TERMINAL",
+    "termination": {
+      "kind": "exit",
+      "exit_code": 0
+    },
+    "deadline_exceeded": false,
+    "business_error": null,
+    "stdout": null,
+    "stderr": null,
+    "full_result_ref": null,
+    "error": null,
+    "replayed": false
+  },
+  "full_result": {
+    "schema": "poise-command-result/v1",
+    "command_id": "",
+    "transport": "command",
+    "state": "TERMINAL",
+    "termination": {
+      "kind": "exit",
+      "exit_code": 0
+    },
+    "deadline_exceeded": false,
+    "business_error": null,
+    "stdout": null,
+    "stderr": null,
+    "error": null,
+    "mcp_response": null
+  },
+  "packet": {
+    "schema": "stride-poise/v1",
+    "operation": "command.request",
+    "input": {}
+  },
+  "missing": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_request",
+      "details": {
+        "path": "/operation"
+      },
+      "action": "correct:request"
+    },
+    "evidence": []
+  },
+  "peer_result": {
+    "jsonrpc": "2.0",
+    "id": "${RPC_CALL_ID}",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Ж🙂"
+        }
+      ],
+      "structuredContent": {
+        "value": 7
+      },
+      "isError": false,
+      "vendor": {
+        "code": 9,
+        "data": [
+          null,
+          true,
+          "opaque"
+        ]
+      }
+    }
+  },
+  "initialize_result": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {}
+    },
+    "serverInfo": {
+      "name": "independent-fixture",
+      "version": "1"
+    }
+  },
+  "notification": {
+    "jsonrpc": "2.0",
+    "method": "notifications/message",
+    "params": {
+      "level": "info",
+      "data": "fixture-ready"
+    }
+  },
+  "rpc_error": {
+    "jsonrpc": "2.0",
+    "id": "${RPC_CALL_ID}",
+    "error": {
+      "code": -32001,
+      "message": "fixture-business-error",
+      "data": {
+        "opaque": [
+          true,
+          1,
+          null,
+          "Ж🙂"
+        ]
+      }
+    }
+  },
+  "mcp_control_requests": [
+    {
+      "jsonrpc": "2.0",
+      "id": "init-control",
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2024-11-05",
+        "clientInfo": {
+          "name": "independent-client",
+          "version": "1"
+        },
+        "capabilities": {}
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notifications/initialized"
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": "call-control",
+      "method": "tools/call",
+      "params": {
+        "name": "echo",
+        "arguments": {
+          "flag": true
+        }
+      }
+    }
+  ]
+}

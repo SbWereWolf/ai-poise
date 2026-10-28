@@ -1,0 +1,233 @@
+[
+  {
+    "id": "C01",
+    "group": "execution",
+    "check": "Real CLI argv/cwd/full env and empty argument; finite marker/text output",
+    "independent_oracle": "Exact request passed without shell/env merge, actual child audit, complete metadata/full sources; own Session unchanged.",
+    "setup": "Direct standalone copied app + prepared own Session; command catalog initially absent; independent child writes own audit/marker."
+  },
+  {
+    "id": "C02",
+    "group": "execution",
+    "check": "Admitted process outlives CLI request, then separate completion",
+    "independent_oracle": "First whole snapshot ADMITTED/RUNNING allowed; request process has exited before gate release; real child ready then completion exact terminal, dispatch counter1.",
+    "setup": "Test-owned child gate, release only after real admission subprocess returns; no artificial product stub/clock."
+  },
+  {
+    "id": "C03",
+    "group": "execution",
+    "check": "Exact repeat after terminal and repeat completion",
+    "independent_oracle": "Same identity/source IDs/paths/result bytes/outcome, requestreplayedtrue, completionfalse, one actual child.",
+    "setup": "Actual independently checked C01terminal source; repeat exact public packets."
+  },
+  {
+    "id": "C04",
+    "group": "execution",
+    "check": "Two simultaneous equal requests",
+    "independent_oracle": "Two delivered snapshots bind same execution, one first/one repeat; one side-effect marker.",
+    "setup": "Own catalog warmup via public request/completion/delete first; two real CLI children start together; gated target."
+  },
+  {
+    "id": "C05",
+    "group": "execution",
+    "check": "Independent long and short commands",
+    "independent_oracle": "Short command completes while the first remains gated; separate captures and identity, long then completes.",
+    "setup": "Same own store/Session, finite explicit budgets; no execution-long/global lock or model-side polling."
+  },
+  {
+    "id": "C06",
+    "group": "outcomes",
+    "check": "Actual nonzero exit7 with stdout and stderr bytes",
+    "independent_oracle": "terminationexit7/deadlinefalse, outerok0, exact full binary including NUL/UTF8 sources and full result.",
+    "setup": "Real child fixture exits7 after writing controlled independent byte vectors."
+  },
+  {
+    "id": "C07",
+    "group": "outcomes",
+    "check": "Execution deadline and caught SIGTERM exit7",
+    "independent_oracle": "Observed deadline true plus actual exit7, complete actual READY output, one child.",
+    "setup": "POSIX child registers TERM handler and waits; execution1000ms/cleanup1000/grace100, configured completion/transport sufficient."
+  },
+  {
+    "id": "C08",
+    "group": "outcomes",
+    "check": "Execution deadline and SIGTERM ignored",
+    "independent_oracle": "Observed deadline true plus actual signal9 after configured grace; true capture and one child.",
+    "setup": "Ordinary POSIX ignored TERM fixture, no escaped-child/adversarial race matrix."
+  },
+  {
+    "id": "C09",
+    "group": "outcomes",
+    "check": "Missing explicit executable",
+    "independent_oracle": "Known not_started/errno2/configure:command with empty full sources, unavailable1/full retained metadata; repeat has no new dispatch.",
+    "setup": "Correct config/absolute cwd, one absent requested executable; actual OS boundary."
+  },
+  {
+    "id": "C10",
+    "group": "outcomes",
+    "check": "Large separate stdout/stderr",
+    "independent_oracle": "stdout is100000repeats of UTF8 Ж🙂\\n (700000bytes); stderr25000repeats of err\\n (100000bytes), all800000bytes retained. Metadata excludes bodies, complete references/full result remain exact.",
+    "setup": "Independent literal UTF8 seed Ж🙂\\n repeated100000:700000stdoutbytes; literal err\\n repeated25000:100000stderrbytes; total800000. Fixture sources, not production serialization, own expected bytes."
+  },
+  {
+    "id": "C11",
+    "group": "mcp",
+    "check": "Real selected stdio tool call",
+    "independent_oracle": "initialize/initialized/tools.call semantics, exact tool/arguments, valid correlation, actual full response and raw streams/exit0/businessfalse.",
+    "setup": "Independent local peer with its own received/emitted byte audit; no tool capability stub or network dependency."
+  },
+  {
+    "id": "C12",
+    "group": "mcp",
+    "check": "Actual MCP result.isErrortrue",
+    "independent_oracle": "Actual childexit0, outerok0/businesstrue, full error-bearing tool result/unknown fields preserved unchanged.",
+    "setup": "Peer returns fixed literal rich result object, not a mocked application adapter."
+  },
+  {
+    "id": "C13",
+    "group": "mcp",
+    "check": "Valid JSON-RPC error response",
+    "independent_oracle": "Actual exit/capture, mcp_response_error/actualcode, full literal error object retained.",
+    "setup": "Peer emits fixed actual error response to the requested call."
+  },
+  {
+    "id": "C14",
+    "group": "mcp",
+    "check": "EOF after one call effect before response",
+    "independent_oracle": "UNKNOWN/mcp_response loss, actual known exit0 and complete raw capture, one effect and no call/dispatch on repeat.",
+    "setup": "Peer logs invocation then closes without final RPC response and exits; honest business uncertainty."
+  },
+  {
+    "id": "C15",
+    "group": "mcp",
+    "check": "Selected protocol differs from actual peer",
+    "independent_oracle": "Known protocol failure and no tools.call; original raw initialize response retained.",
+    "setup": "Real peer uses a different explicit selected version; this is ordinary compatibility evidence."
+  },
+  {
+    "id": "C16",
+    "group": "lifecycle",
+    "check": "Same textual ID in two real own Sessions",
+    "independent_oracle": "Independent executions/results; completion and deletion affect only actual current Session.",
+    "setup": "Two genuine generated subject bindings against own prepared Session state; no forged native harness identity."
+  },
+  {
+    "id": "C17",
+    "group": "lifecycle",
+    "check": "Delete and repeat after readers/writers finish",
+    "independent_oracle": "Exact absent result twice; generated selected files/record removed; own completion notfound; foreign/unrelated fixture data and second Session preserved.",
+    "setup": "All owned processes completed; deletion uses actual public owner. No generic CRUD or active cancellation implied."
+  },
+  {
+    "id": "C18",
+    "group": "lifecycle",
+    "check": "Known config + unknown raw options and optional namespace",
+    "independent_oracle": "Raw config bytes unchanged; valid commands work with inert unknown data; existing session.status works with absent/malformed unused commands.",
+    "setup": "Copied working configs/test fixture literals only; no live operator config edits."
+  },
+  {
+    "id": "C19",
+    "group": "lifecycle",
+    "check": "Meaningful admission boundaries",
+    "independent_oracle": "Literal complete error envelopes; before/after state/capture/dispatch unchanged. Fresh invalid admission allocates no command store/output/child; an existing-conflict case preserves its already-retained record/files.",
+    "setup": "Each vector has exactly one defect, known common config/own Session otherwise valid; no universal invalid-input/hacker matrix."
+  },
+  {
+    "id": "C20",
+    "group": "lifecycle",
+    "check": "Opaque ID/input literals and updatesupport",
+    "independent_oracle": "Literal IDs/text/env data remain unchanged; unsupported command.update yields existing invalid_request /operation; new input under retained ID is reuseconflict.",
+    "setup": "Explicit field-scoped binding; values named path/base/cwd or containing root-token text are inert unless the exact fixture pointer is a declared coordinate."
+  },
+  {
+    "id": "C21",
+    "group": "outcomes",
+    "check": "Bounded cleanup with known exit and inherited stdout",
+    "setup": "Real child writes READY\\n, starts a finite descendant inheriting stdout only (stderr explicitly closed), then exits0. Descendant independently signals ready and holds stdout longer than cleanup500ms; execution2000ms, completion3000ms, grace100. Test owns/joins descendant after result; no escaped process or adversarial supervisor.",
+    "independent_oracle": "Completion within configured bound plus test scheduling tolerance; TERMINAL/exit0/deadlinefalse; stdout READY\\n bytes6 completefalse, stderr empty completetrue; error command_capture_failed streamstdout errnonull, outerunavailable1; full literal outcome and original bytes persist on repeat. Test never equates timeout duration with a guessed exit."
+  },
+  {
+    "id": "C22",
+    "group": "lifecycle",
+    "check": "Incompatible existing command catalog",
+    "setup": "Independent sqlite3 fixture creates the private command-store file with PRAGMA user_version=999, no app schema. Separate variant is literal non-SQLite bytes. No product parser/schema helper. Snapshot original bytes and foreign files.",
+    "independent_oracle": "Exact unavailable1 resultnull command_store_incompatible/version999 ornull/select:command-store; identical retained bytes, no output/catalog rewrite/child/Session mutation. This public format-version observation does not assert private tables."
+  },
+  {
+    "id": "C23",
+    "group": "lifecycle",
+    "check": "Busy store and ordinary opening I/O failure",
+    "setup": "Warm own store through public finite request/completion. Independent sqlite3 connection BEGIN IMMEDIATE holds it only for this one request with configured sqlite_timeout_seconds0; release in finally. Separate fresh fixture uses existing request_store parent chmod0500 under confirmed non-root uid1000; restore in finally.",
+    "independent_oracle": "Busy: unavailable1/resultnull command_store_busy/{}/retry:command, no new dispatch/record; after release same request can admit once. Read-only parent: command_store_io/{errno:null}/configure:command-store, no output/child; restoring permission allows same valid request once. No inferred SQLite errno, unbounded wait or product global lock."
+  },
+  {
+    "id": "C24",
+    "group": "outcomes",
+    "check": "Actual OS capture write failure",
+    "setup": "Warm finite own store first. Test-owned launcher sets real RLIMIT_FSIZE=1048576 and ignores SIGXFSZ before exec of copied bin/poise; detached execution inherits actual OS limit. Independent finite child emits exactly2097152stdoutbytes, no stderr, exit0; observer must drain discarded overflow. Control qualifies writable store/receipt smaller than limit. No monkeypatch/fake errno/product adapter stub.",
+    "independent_oracle": "Real EFBIG errno27; retained stdout exactly1048576fixturebytes completefalse, stderr0completetrue, known exit0/deadlinefalse, TERMINAL/capture_failed/unavailable1/full receipt belowlimit. Repeat reads same record/files/one execution. If OS or store control fails, ERROR not expected commandfailure. Restoring caller limit does not rewrite retained result."
+  },
+  {
+    "id": "C25",
+    "group": "lifecycle",
+    "check": "Feasible separate completion wait expiry",
+    "setup": "Admit gated child with execution2000/cleanup500/completion3000/transport4000/delivery100/grace100. Wait for independent READY gate. Read using another test config with SAME Session/store/output/execution settings but completion100/transport1000/margins100. Read has no new execution-budget inequality. Gate remains held until this read exits; release in finally before original execution budget.",
+    "independent_oracle": "Exact unavailable1 command_wait_expired/{command_id:wait-1,budget_ms:100}/wait:command plus whole RUNNING metadata with null termination/business/sources/fullref/error, deadlinefalse,replayedfalse. No stored outcome change/second dispatch. Gate release then completion with original wait returns actual exit0/fullbytes once; repeat same terminalread stable."
+  },
+  {
+    "id": "C26",
+    "group": "lifecycle",
+    "check": "Real delete failure and interrupted-cleanup retry",
+    "setup": "Complete/read finite command, finish writers/readers. First unlink only its stdout capture as explicit test setup for an interrupted prior cleanup. Set its generated directory chmod0500; invoke actual publicdelete under uid1000, then restore0700 in finally. No live writer, symlink or foreign-data manipulation.",
+    "independent_oracle": "Already absent stdout tolerated; actual stderr unlink raises EACCES13: unavailable1/resultnull command_delete_failed/{command_id:delete-retry-1,path:exact owned stderr path,errno:13}/inspect:command. Record, stderr/full result and all foreign files remain; no claimed absent outcome. After permission restoration same delete removes remainder/record; repeat exact absent result. Truthful partial state is checked before failure and after retry; no rollback/selfrepair claimed."
+  },
+  {
+    "id": "C27",
+    "group": "lifecycle",
+    "check": "Closed own Session lifecycle",
+    "setup": "Run/read a finite command through the copied standalone app while its generated own Session is open; finish all command writers and readers. Read that exact Session ID through existing public session.status and preserve its real generated caller binding/config. Reuse the source-supported retained-state fixture pattern apps/poise/tests/session_checks.py:275: open ONLY this test-owned isolated Session SQLite store, parameterized UPDATE poise_sessions SET status=? WHERE id=? with (closed,actual_session_id), assert rowcount1, commit/close before any next CLI call. This is independent arrangement of an existing persisted state, not product lifecycle execution or a managed Task DB correction. No session.close operation exists or is added. Public session.status and session.ensure must return the same closed Session, ensure.created:false. Then attempt a new command ID, read the retained completion and retire the original command.",
+    "independent_oracle": "The fixture changes only the selected existing Session status open->closed. Verify before/after explicit Session projections (id,origin,status,revision) and binding projections (identity_key,session_id,inventory); keep ID,origin,revision,binding and unrelated Session rows exact. No SELECT*, production model/factory or invented native identity. Whole public status/ensure responses use existing source-supported shapes, same binding/ID and statusclosed. New command rejected2/resultnull/session_closed/{status:closed}/select:session with no new dispatch/record/files; retained completion identical previously verified full facts/sources, then delete/repeat exact absent result. These operations preserve the arranged closed Session and caller binding. No reopening, implicit new Session or additional Session API. Existing command/catalog assertions remain through their public owners; direct fixture SQL touches no command/Task/Sprint records."
+  },
+  {
+    "id": "C28",
+    "group": "execution",
+    "check": "Cold parallel equal admission",
+    "setup": "Fresh prepared command-store parent/output root, store absent. Start two real CLI callers together on exact same gated command/Session, configured sqlite_timeout_seconds1; no public warmup or private schema preparation.",
+    "independent_oracle": "Both delivered metadata snapshots refer to one execution; exactly one replayedfalse and one replayedtrue; one real side effect and one set capture IDs/paths; completion stable. Initial schema setup and admission use only short coordination, not execution-long lock."
+  },
+  {
+    "id": "C29",
+    "group": "lifecycle",
+    "check": "Typed replay equality and UTF8 byte ID limit",
+    "setup": "Real MCP request typed-1 with arguments {flag:true}; exact replay, then change only flag to number1. Separate real CLI ID is64Ж (128UTF8bytes), and refused ID65Ж (130bytes), configuredlimit128.",
+    "independent_oracle": "Exact true replay same files/result/one tools.call; numeric1 rejected2/reuseconflict without new effect or changing retained bool. ID64Ж accepted/echoedexact, ID65Ж invalid_request /input/command_id without allocation. Full envelopes/literal inputs remain typed; not Python dict equality."
+  },
+  {
+    "id": "C30",
+    "group": "lifecycle",
+    "check": "Valid alternative file names and permission mode",
+    "setup": "Commands files {stdout:out.data,stderr:err.data,result:receipt.data}, file_mode416 (0640); isolated child outputs literal OUT\\n/ERR\\n. Set caller umask077 to qualify explicit configured creation mode.",
+    "independent_oracle": "Before binding generated paths, actual basenames exactly out.data/err.data/receipt.data, each stat.S_IMODE exactly0640, contents/full result exact, no default-named files, raw config bytes unchanged. No special inode/link/integrity defense."
+  },
+  {
+    "id": "C31",
+    "group": "mcp",
+    "check": "Response correlation and legitimate preceding notification",
+    "setup": "Peer variant emits tools.call response with fixed wrong string ID unmatched-1 after logging one actual call; exits on stdin EOF. Control emits literal notifications/message withoutid before exact matched response. Both raw bytes audited independently.",
+    "independent_oracle": "WrongID: known exit0/TERMINAL/command_protocol_failed {phase:tools_call,reason:invalid_response}, businessnull,mcp_responsenull, outerunavailable1, actual full raw bytes, one call even replay. Notificationcontrol: exit0/businessfalse/outerok0, complete exact matched response and notification rawbytes; outbound frames not mistaken for incoming notifications."
+  },
+  {
+    "id": "C32",
+    "group": "mcp",
+    "check": "Incoming byte and count boundaries",
+    "setup": "Use fixed independent notifications/message frame exactly1024UTF8bytes excluding LF, then1025variant; configuredmcp_max_message_bytes1024, other responses belowbound. For count use limit3: initialize response + one notification + callresponse succeeds; two notifications make callresponse frame4 exceed3. Peer writes finite planned bytes then exits on input EOF.",
+    "independent_oracle": "Inclusive byte/count boundaries succeed with full matched response. Each excess is TERMINAL/exit0/command_protocol_failed {phase:tools_call,reason:message_limit}, businessnull,mcp_responsenull/unavailable1; raw captures equal peer audit including excess frames. No second call on replay; no extra empty frames in these fixtures."
+  },
+  {
+    "id": "C33",
+    "group": "mcp",
+    "check": "Large rich MCP response and real nonzero peer exit",
+    "setup": "Small actual call packet under outer packet_bytes65536; literal independent rich response contains70000ASCIItextbytes plus UTF8/unknown nested fields, total between65536and1048576. Separate valid matched success peer finishes naturally with exit7 after stdinEOF.",
+    "independent_oracle": "Large full response/unknown fields/raw bytes all exact, no inline body/outerpacket truncation, exit0/businessfalse. Exit7control retains valid full result/businessfalse/terminationexit7/deadlinefalse/outerok0. Neither provider business error nor outer transport failure inferred from nonzero exit."
+  }
+]

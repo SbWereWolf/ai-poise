@@ -1,0 +1,1714 @@
+{
+  "request_cli": {
+    "schema": "stride-poise/v1",
+    "operation": "command.request",
+    "input": {
+      "schema": "poise-command-request/v1",
+      "command_id": "example-1",
+      "transport": "command",
+      "argv": [
+        "/explicit/python3.13",
+        "-I",
+        "-S",
+        "-B",
+        "/fixture/peer.py",
+        "finite"
+      ],
+      "cwd": "/fixture/work",
+      "env": {
+        "LC_ALL": "C.UTF-8",
+        "VISIBLE": "Ж"
+      },
+      "execution_budget_ms": 1000,
+      "cleanup_budget_ms": 1000,
+      "mcp": null
+    }
+  },
+  "completion": {
+    "schema": "stride-poise/v1",
+    "operation": "command.completion",
+    "input": {
+      "command_id": "example-1"
+    }
+  },
+  "delete": {
+    "schema": "stride-poise/v1",
+    "operation": "command.delete",
+    "input": {
+      "command_id": "example-1"
+    }
+  },
+  "admission_result": {
+    "schema": "poise-command/v1",
+    "operation": "request",
+    "command_id": "example-1",
+    "transport": "command",
+    "state": "ADMITTED",
+    "termination": null,
+    "deadline_exceeded": false,
+    "business_error": null,
+    "stdout": null,
+    "stderr": null,
+    "full_result_ref": null,
+    "error": null,
+    "replayed": false
+  },
+  "delete_response": {
+    "schema": "stride-poise/v1",
+    "status": "ok",
+    "result": {
+      "schema": "poise-command-delete/v1",
+      "command_id": "example-1",
+      "state": "absent"
+    },
+    "error": null,
+    "evidence": []
+  },
+  "missing_operation_RED": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_request",
+      "details": {
+        "path": "/operation"
+      },
+      "action": "correct:request"
+    },
+    "evidence": []
+  },
+  "request_mcp": {
+    "schema": "stride-poise/v1",
+    "operation": "command.request",
+    "input": {
+      "schema": "poise-command-request/v1",
+      "command_id": "mcp-example-1",
+      "transport": "mcp_stdio",
+      "argv": [
+        "/explicit/python3.13",
+        "-I",
+        "-S",
+        "-B",
+        "/fixture/mcp_peer.py"
+      ],
+      "cwd": "/fixture/work",
+      "env": {
+        "LC_ALL": "C.UTF-8"
+      },
+      "execution_budget_ms": 1000,
+      "cleanup_budget_ms": 1000,
+      "mcp": {
+        "protocol_version": "2024-11-05",
+        "client_info": {
+          "name": "independent-client",
+          "version": "1"
+        },
+        "tool_name": "echo",
+        "arguments": {
+          "message": "Ж🙂",
+          "opaque": {
+            "path": "$ROOT",
+            "cwd": "literal"
+          }
+        }
+      }
+    }
+  },
+  "nonzero_terminal_response": {
+    "schema": "stride-poise/v1",
+    "status": "ok",
+    "result": {
+      "schema": "poise-command/v1",
+      "operation": "completion",
+      "command_id": "exit7-1",
+      "transport": "command",
+      "state": "TERMINAL",
+      "termination": {
+        "kind": "exit",
+        "exit_code": 7
+      },
+      "deadline_exceeded": false,
+      "business_error": null,
+      "stdout": {
+        "source_id": "${STDOUT_ID}",
+        "path": "${STDOUT_PATH}",
+        "bytes": 4,
+        "complete": true
+      },
+      "stderr": {
+        "source_id": "${STDERR_ID}",
+        "path": "${STDERR_PATH}",
+        "bytes": 4,
+        "complete": true
+      },
+      "full_result_ref": {
+        "path": "${FULL_PATH}",
+        "bytes": "${FULL_BYTES}"
+      },
+      "error": null,
+      "replayed": false
+    },
+    "error": null,
+    "evidence": []
+  },
+  "nonzero_full_result": {
+    "schema": "poise-command-result/v1",
+    "command_id": "exit7-1",
+    "transport": "command",
+    "state": "TERMINAL",
+    "termination": {
+      "kind": "exit",
+      "exit_code": 7
+    },
+    "deadline_exceeded": false,
+    "business_error": null,
+    "stdout": {
+      "source_id": "${STDOUT_ID}",
+      "path": "${STDOUT_PATH}",
+      "bytes": 4,
+      "complete": true
+    },
+    "stderr": {
+      "source_id": "${STDERR_ID}",
+      "path": "${STDERR_PATH}",
+      "bytes": 4,
+      "complete": true
+    },
+    "error": null,
+    "mcp_response": null
+  },
+  "nonzero_expected_raw": {
+    "stdout_hex": "4f55540a",
+    "stderr_hex": "4552520a"
+  },
+  "rich_mcp_response": {
+    "jsonrpc": "2.0",
+    "id": "${RPC_CALL_ID}",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Ж🙂"
+        }
+      ],
+      "structuredContent": {
+        "value": 7
+      },
+      "isError": false,
+      "vendor": {
+        "code": 9,
+        "data": [
+          null,
+          true,
+          "opaque"
+        ]
+      }
+    }
+  },
+  "binding_scope": {
+    "syntax": "Values ${...} are test template coordinates, not actual on-wire values. Replace ONLY explicitly declared output/source/RPC positions after independent checks. Input $ROOT strings in data remain literal.",
+    "opaque_ids_paths": "Metadata Source.source_id/path and full_result_ref.path; identity/path type and selected output-owner placement checked first, same identities repeat across full result and replays.",
+    "full_bytes": "Expected integer from independent full-file stat after strict full JSON content comparison; not a subject-produced constant.",
+    "rpc": "RPC request IDs observed from actual peer receipt, validated type/distinct/correlation; bind only id slots, never input fields or returned provider data.",
+    "peer_source_bytes": "Only MCP stdout.bytes may bind ${PEER_STDOUT_BYTES}, measured from the independent peer emitted-byte audit AFTER exact full captured-byte comparison. RPC IDs vary in wire length; this count is never taken from subject metadata or used to skip raw/full JSON comparisons. stderr expected empty in these templates."
+  },
+  "admission_boundary_vectors": [
+    {
+      "id": "B01",
+      "arrangement": "Prepared own Session, commands absent, valid command packet",
+      "effects": "No command store/output/child",
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "commands_not_configured",
+          "details": {},
+          "action": "configure:commands"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B02",
+      "arrangement": "Valid known commands+own Session; remove input.command_id",
+      "effects": "No new command state/effect",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/command_id"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B03",
+      "arrangement": "Valid request plus one extra input key",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B04",
+      "arrangement": "input.schema is poise-command-request/v999",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "unsupported_schema",
+          "details": {
+            "schema": "poise-command-request/v999"
+          },
+          "action": "select:schema"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B05",
+      "arrangement": "input.schema is integer1",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/schema"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B06",
+      "arrangement": "input.execution_budget_ms is booleantrue",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/execution_budget_ms"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B07",
+      "arrangement": "command_id contains129ASCII a bytes with configured id_bytes128",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/command_id"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B08",
+      "arrangement": "command transport with nonnull mcp object",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/mcp"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B09",
+      "arrangement": "execution5000/cleanup1000/completion5000/delivery100, otherwise valid",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "command_budget_incompatible",
+          "details": {
+            "execution_budget_ms": 5000,
+            "cleanup_budget_ms": 1000,
+            "completion_budget_ms": 5000,
+            "delivery_margin_ms": 100
+          },
+          "action": "configure:commands"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B10",
+      "arrangement": "cleanup100 with configured grace100",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/cleanup_budget_ms"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B11",
+      "arrangement": "Valid request; configured transport5000/completion5000/margin100",
+      "effects": "Unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_config",
+          "details": {
+            "path": "/commands/limits/transport_budget_ms"
+          },
+          "action": "correct:config"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B12",
+      "arrangement": "Valid commands/request/own prepared state, no established caller Session",
+      "effects": "No implicit Session/command creation",
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "session_not_found",
+          "details": {},
+          "action": "ensure:session"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B13",
+      "arrangement": "Retained own command identity exit7-1; request changes one argument",
+      "effects": "Stored outcome/sources/actual dispatch count unchanged",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "command_reuse_conflict",
+          "details": {
+            "command_id": "exit7-1"
+          },
+          "action": "use:new-command"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B14",
+      "arrangement": "Completion own command id absent-1",
+      "effects": "No new store/record/child",
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "command_not_found",
+          "details": {
+            "command_id": "absent-1"
+          },
+          "action": "use:command"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B15",
+      "arrangement": "Operation command.update, otherwise valid outer packet",
+      "effects": "No effect",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/operation"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B16",
+      "arrangement": "Selected top-level commands:null, all common config and request valid",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_config",
+          "details": {
+            "path": "/commands"
+          },
+          "action": "correct:config"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B17",
+      "arrangement": "argv is a string instead of list",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/argv"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B18",
+      "arrangement": "argv list contains integer at index1",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/argv/1"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B19",
+      "arrangement": "env value ENV_KEY is integer1",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/env/ENV_KEY"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B20",
+      "arrangement": "env key BAD=KEY has string value",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/env/BAD=KEY"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B21",
+      "arrangement": "mcp_stdio with mcp.arguments:[] otherwise valid",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/mcp/arguments"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B22",
+      "arrangement": "mcp_stdio with extra mcp.client_info key",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/mcp/client_info"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B23",
+      "arrangement": "command_id is65Ж,130UTF8bytes",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "invalid_request",
+          "details": {
+            "path": "/input/command_id"
+          },
+          "action": "correct:request"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "id": "B24",
+      "arrangement": "Retained typed-1 MCP arguments.flag true changed only to number1",
+      "effects": "Retained state/files/dispatch unchanged; fresh invalid input allocates no command state/output/child",
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "command_reuse_conflict",
+          "details": {
+            "command_id": "typed-1"
+          },
+          "action": "use:new-command"
+        },
+        "evidence": []
+      }
+    }
+  ],
+  "typed_replay_pair": {
+    "first_arguments": {
+      "flag": true
+    },
+    "exact_repeat_arguments": {
+      "flag": true
+    },
+    "conflicting_arguments": {
+      "flag": 1
+    },
+    "command_id": "typed-1",
+    "expected_conflict": {
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "command_reuse_conflict",
+          "details": {
+            "command_id": "typed-1"
+          },
+          "action": "use:new-command"
+        },
+        "evidence": []
+      }
+    }
+  },
+  "UTF8_ID_pair": {
+    "accepted": "ЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖ",
+    "rejected": "ЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖ",
+    "accepted_bytes": 128,
+    "rejected_bytes": 130,
+    "configured_id_bytes": 128
+  },
+  "alternate_files": {
+    "stdout": "out.data",
+    "stderr": "err.data",
+    "result": "receipt.data",
+    "file_mode": 416,
+    "caller_umask": 63
+  },
+  "cleanup_outcomes": {
+    "caught_TERM": {
+      "expected_exit": 0,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "term-1",
+          "transport": "command",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 7
+          },
+          "deadline_exceeded": true,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": 6,
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": null,
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "term-1",
+        "transport": "command",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 7
+        },
+        "deadline_exceeded": true,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": 6,
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": null,
+        "mcp_response": null
+      }
+    },
+    "ignored_TERM": {
+      "expected_exit": 0,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "kill-1",
+          "transport": "command",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "signal",
+            "signal": 9
+          },
+          "deadline_exceeded": true,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": 6,
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": null,
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "kill-1",
+        "transport": "command",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "signal",
+          "signal": 9
+        },
+        "deadline_exceeded": true,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": 6,
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": null,
+        "mcp_response": null
+      }
+    },
+    "known_exit_open_stdout": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "drain-1",
+          "transport": "command",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": 6,
+            "complete": false
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": {
+            "code": "command_capture_failed",
+            "details": {
+              "stream": "stdout",
+              "errno": null
+            },
+            "action": "inspect:command"
+          },
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": {
+          "code": "command_capture_failed",
+          "details": {
+            "stream": "stdout",
+            "errno": null
+          },
+          "action": "inspect:command"
+        },
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "drain-1",
+        "transport": "command",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 0
+        },
+        "deadline_exceeded": false,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": 6,
+          "complete": false
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": {
+          "code": "command_capture_failed",
+          "details": {
+            "stream": "stdout",
+            "errno": null
+          },
+          "action": "inspect:command"
+        },
+        "mcp_response": null
+      }
+    },
+    "actual_capture_EFBIG": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "capture-1",
+          "transport": "command",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": 1048576,
+            "complete": false
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": {
+            "code": "command_capture_failed",
+            "details": {
+              "stream": "stdout",
+              "errno": 27
+            },
+            "action": "inspect:command"
+          },
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": {
+          "code": "command_capture_failed",
+          "details": {
+            "stream": "stdout",
+            "errno": 27
+          },
+          "action": "inspect:command"
+        },
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "capture-1",
+        "transport": "command",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 0
+        },
+        "deadline_exceeded": false,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": 1048576,
+          "complete": false
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": {
+          "code": "command_capture_failed",
+          "details": {
+            "stream": "stdout",
+            "errno": 27
+          },
+          "action": "inspect:command"
+        },
+        "mcp_response": null
+      }
+    },
+    "termination_and_capture_unobserved_at_bound": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "unknown-cleanup-1",
+          "transport": "command",
+          "state": "UNKNOWN",
+          "termination": null,
+          "deadline_exceeded": true,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": 6,
+            "complete": false
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": false
+          },
+          "error": {
+            "code": "command_capture_failed",
+            "details": {
+              "stream": "stdout",
+              "errno": null
+            },
+            "action": "inspect:command"
+          },
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": {
+          "code": "command_capture_failed",
+          "details": {
+            "stream": "stdout",
+            "errno": null
+          },
+          "action": "inspect:command"
+        },
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "unknown-cleanup-1",
+        "transport": "command",
+        "state": "UNKNOWN",
+        "termination": null,
+        "deadline_exceeded": true,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": 6,
+          "complete": false
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": false
+        },
+        "error": {
+          "code": "command_capture_failed",
+          "details": {
+            "stream": "stdout",
+            "errno": null
+          },
+          "action": "inspect:command"
+        },
+        "mcp_response": null
+      }
+    }
+  },
+  "cleanup_outcomes_limits": "The unknown-cleanup template defines the exact remaining bounded state; no test fabricates an uninterruptible Linux child or claims that branch executed. C21 independently qualifies actual finite known-exit/unfinished-drain cleanup. Actual TERM/KILL cases are C07/C08.",
+  "wait_expired": {
+    "expected_exit": 1,
+    "expected_response": {
+      "schema": "stride-poise/v1",
+      "status": "unavailable",
+      "result": {
+        "schema": "poise-command/v1",
+        "operation": "completion",
+        "command_id": "wait-1",
+        "transport": "command",
+        "state": "RUNNING",
+        "termination": null,
+        "deadline_exceeded": false,
+        "business_error": null,
+        "stdout": null,
+        "stderr": null,
+        "full_result_ref": null,
+        "error": null,
+        "replayed": false
+      },
+      "error": {
+        "code": "command_wait_expired",
+        "details": {
+          "command_id": "wait-1",
+          "budget_ms": 100
+        },
+        "action": "wait:command"
+      },
+      "evidence": []
+    }
+  },
+  "ordinary_storage_errors": {
+    "version999": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "command_store_incompatible",
+          "details": {
+            "version": 999
+          },
+          "action": "select:command-store"
+        },
+        "evidence": []
+      }
+    },
+    "invalid_bytes": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "command_store_incompatible",
+          "details": {
+            "version": null
+          },
+          "action": "select:command-store"
+        },
+        "evidence": []
+      }
+    },
+    "busy": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "command_store_busy",
+          "details": {},
+          "action": "retry:command"
+        },
+        "evidence": []
+      }
+    },
+    "create_io": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "command_store_io",
+          "details": {
+            "errno": null
+          },
+          "action": "configure:command-store"
+        },
+        "evidence": []
+      }
+    },
+    "delete_io": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": null,
+        "error": {
+          "code": "command_delete_failed",
+          "details": {
+            "command_id": "delete-retry-1",
+            "path": "${STDERR_PATH}",
+            "errno": 13
+          },
+          "action": "inspect:command"
+        },
+        "evidence": []
+      }
+    },
+    "closed_session": {
+      "expected_exit": 2,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "rejected",
+        "result": null,
+        "error": {
+          "code": "session_closed",
+          "details": {
+            "status": "closed"
+          },
+          "action": "select:session"
+        },
+        "evidence": []
+      }
+    }
+  },
+  "MCP_notification": {
+    "jsonrpc": "2.0",
+    "method": "notifications/message",
+    "params": {
+      "level": "info",
+      "data": "fixture-ready"
+    }
+  },
+  "MCP_boundary_definition": {
+    "frame_bytes_excluding_LF": 1024,
+    "one_byte_excess": 1025,
+    "incoming_count_inclusive": 3,
+    "overflow_frame_number": 4,
+    "counted_sequence": [
+      "initialize.response",
+      "notification",
+      "tools.call.response"
+    ],
+    "not_counted": [
+      "initialize.request",
+      "notifications/initialized",
+      "tools.call.request"
+    ],
+    "fixture_rule": "Independent serialized literal notification padded with ASCII data to exactly1024 or1025 UTF8bytes excluding LF. It contains no dynamic RPC ID. Assert exact fixture byte size before launch. RPC response bytes come from peer independent emission audit, all response data literal except declared id coordinate."
+  },
+  "MCP_large_response_definition": {
+    "text": "x repeated70000 times in fixture",
+    "unknown": {
+      "code": 9,
+      "data": [
+        null,
+        true,
+        "Ж🙂"
+      ]
+    },
+    "minimum_bytes_exclusive": 65536,
+    "maximum_bytes_inclusive": 1048576,
+    "expected_business_error": false,
+    "expected_exit": 0
+  },
+  "MCP_correlation_and_limit_outcomes": {
+    "wrong_id": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "mcp-wrong-id-1",
+          "transport": "mcp_stdio",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": "${PEER_STDOUT_BYTES}",
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": {
+            "code": "command_protocol_failed",
+            "details": {
+              "phase": "tools_call",
+              "reason": "invalid_response"
+            },
+            "action": "configure:command"
+          },
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": {
+          "code": "command_protocol_failed",
+          "details": {
+            "phase": "tools_call",
+            "reason": "invalid_response"
+          },
+          "action": "configure:command"
+        },
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "mcp-wrong-id-1",
+        "transport": "mcp_stdio",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 0
+        },
+        "deadline_exceeded": false,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": "${PEER_STDOUT_BYTES}",
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": {
+          "code": "command_protocol_failed",
+          "details": {
+            "phase": "tools_call",
+            "reason": "invalid_response"
+          },
+          "action": "configure:command"
+        },
+        "mcp_response": null
+      }
+    },
+    "frame_excess": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "mcp-bytes-excess-1",
+          "transport": "mcp_stdio",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": "${PEER_STDOUT_BYTES}",
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": {
+            "code": "command_protocol_failed",
+            "details": {
+              "phase": "tools_call",
+              "reason": "message_limit"
+            },
+            "action": "configure:command"
+          },
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": {
+          "code": "command_protocol_failed",
+          "details": {
+            "phase": "tools_call",
+            "reason": "message_limit"
+          },
+          "action": "configure:command"
+        },
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "mcp-bytes-excess-1",
+        "transport": "mcp_stdio",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 0
+        },
+        "deadline_exceeded": false,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": "${PEER_STDOUT_BYTES}",
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": {
+          "code": "command_protocol_failed",
+          "details": {
+            "phase": "tools_call",
+            "reason": "message_limit"
+          },
+          "action": "configure:command"
+        },
+        "mcp_response": null
+      }
+    },
+    "count_excess": {
+      "expected_exit": 1,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "unavailable",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "mcp-count-excess-1",
+          "transport": "mcp_stdio",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": null,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": "${PEER_STDOUT_BYTES}",
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": {
+            "code": "command_protocol_failed",
+            "details": {
+              "phase": "tools_call",
+              "reason": "message_limit"
+            },
+            "action": "configure:command"
+          },
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": {
+          "code": "command_protocol_failed",
+          "details": {
+            "phase": "tools_call",
+            "reason": "message_limit"
+          },
+          "action": "configure:command"
+        },
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "mcp-count-excess-1",
+        "transport": "mcp_stdio",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 0
+        },
+        "deadline_exceeded": false,
+        "business_error": null,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": "${PEER_STDOUT_BYTES}",
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": {
+          "code": "command_protocol_failed",
+          "details": {
+            "phase": "tools_call",
+            "reason": "message_limit"
+          },
+          "action": "configure:command"
+        },
+        "mcp_response": null
+      }
+    },
+    "notification_then_matched": {
+      "expected_exit": 0,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "mcp-notification-1",
+          "transport": "mcp_stdio",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 0
+          },
+          "deadline_exceeded": false,
+          "business_error": false,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": "${PEER_STDOUT_BYTES}",
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": null,
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "mcp-notification-1",
+        "transport": "mcp_stdio",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 0
+        },
+        "deadline_exceeded": false,
+        "business_error": false,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": "${PEER_STDOUT_BYTES}",
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": null,
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": "${RPC_CALL_ID}",
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Ж🙂"
+              }
+            ],
+            "structuredContent": {
+              "value": 7
+            },
+            "isError": false,
+            "vendor": {
+              "code": 9,
+              "data": [
+                null,
+                true,
+                "opaque"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "successful_call_peer_exit7": {
+      "expected_exit": 0,
+      "expected_response": {
+        "schema": "stride-poise/v1",
+        "status": "ok",
+        "result": {
+          "schema": "poise-command/v1",
+          "command_id": "mcp-exit7-1",
+          "transport": "mcp_stdio",
+          "state": "TERMINAL",
+          "termination": {
+            "kind": "exit",
+            "exit_code": 7
+          },
+          "deadline_exceeded": false,
+          "business_error": false,
+          "stdout": {
+            "source_id": "${STDOUT_ID}",
+            "path": "${STDOUT_PATH}",
+            "bytes": "${PEER_STDOUT_BYTES}",
+            "complete": true
+          },
+          "stderr": {
+            "source_id": "${STDERR_ID}",
+            "path": "${STDERR_PATH}",
+            "bytes": 0,
+            "complete": true
+          },
+          "error": null,
+          "operation": "completion",
+          "full_result_ref": {
+            "path": "${FULL_PATH}",
+            "bytes": "${FULL_BYTES}"
+          },
+          "replayed": false
+        },
+        "error": null,
+        "evidence": []
+      },
+      "expected_full_result": {
+        "schema": "poise-command-result/v1",
+        "command_id": "mcp-exit7-1",
+        "transport": "mcp_stdio",
+        "state": "TERMINAL",
+        "termination": {
+          "kind": "exit",
+          "exit_code": 7
+        },
+        "deadline_exceeded": false,
+        "business_error": false,
+        "stdout": {
+          "source_id": "${STDOUT_ID}",
+          "path": "${STDOUT_PATH}",
+          "bytes": "${PEER_STDOUT_BYTES}",
+          "complete": true
+        },
+        "stderr": {
+          "source_id": "${STDERR_ID}",
+          "path": "${STDERR_PATH}",
+          "bytes": 0,
+          "complete": true
+        },
+        "error": null,
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": "${RPC_CALL_ID}",
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Ж🙂"
+              }
+            ],
+            "structuredContent": {
+              "value": 7
+            },
+            "isError": false,
+            "vendor": {
+              "code": 9,
+              "data": [
+                null,
+                true,
+                "opaque"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

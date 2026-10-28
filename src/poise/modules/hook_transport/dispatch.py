@@ -29,8 +29,8 @@ def validate_builtin_options(name, options):
             nonempty(options[field], name + '.' + field)
             if not PurePath(options[field]).is_absolute():
                 raise PoiseError('Check capability policy requires an absolute path')
-        configuration_fields(options['tool_selectors'], {'run', 'cancel'}, name)
-        for selector in options['tool_selectors'].values():
+        selectors = configuration_fields(options['tool_selectors'], {'run', 'cancel'}, name)
+        for selector in selectors.values():
             nonempty(selector, 'check tool selector')
         if (not isinstance(options['cli_argv'], list) or not options['cli_argv']
                 or any(not isinstance(v, str) or not v for v in options['cli_argv'])):

@@ -1,0 +1,20 @@
+{
+  "ddl": {
+    "forward": "CREATE TABLE fault_probe(id INTEGER PRIMARY KEY, value TEXT NOT NULL);\n",
+    "reverse": "DROP TABLE fault_probe;\n",
+    "failed_forward": "CREATE TABLE fault_probe(id INTEGER PRIMARY KEY, value TEXT NOT NULL);\nCREATE UNIQUE INDEX fault_duplicate ON requirements(level);\n",
+    "failed_reverse": "DROP TABLE fault_probe;\nCREATE UNIQUE INDEX fault_duplicate ON requirements(level);\n"
+  },
+  "dml": {
+    "forward": "INSERT INTO domain_areas(id,business_name,definition) VALUES('F1','Fault one','Original');\n",
+    "reverse": "DELETE FROM domain_areas WHERE id='F1';\n",
+    "failed_forward": "INSERT INTO domain_areas(id,business_name,definition) VALUES('F1','Fault one','Original');\nINSERT INTO domain_areas(id,business_name,definition) VALUES('D1','Duplicate','Failure');\n",
+    "failed_reverse": "DELETE FROM domain_areas WHERE id='F1';\nINSERT INTO domain_areas(id,business_name,definition) VALUES('D1','Duplicate','Failure');\n"
+  },
+  "combined": {
+    "forward": "INSERT INTO domain_areas(id,business_name,definition) VALUES('F1','Fault one','Original');\nUPDATE domain_areas SET definition='Changed' WHERE id='F1';\n",
+    "reverse": "UPDATE domain_areas SET definition='Original' WHERE id='F1';\nDELETE FROM domain_areas WHERE id='F1';\n",
+    "failed_forward": "INSERT INTO domain_areas(id,business_name,definition) VALUES('F1','Fault one','Original');\nUPDATE domain_areas SET definition='Changed' WHERE id='F1';\nINSERT INTO domain_areas(id,business_name,definition) VALUES('D1','Duplicate','Failure');\n",
+    "failed_reverse": "UPDATE domain_areas SET definition='Original' WHERE id='F1';\nDELETE FROM domain_areas WHERE id='F1';\nINSERT INTO domain_areas(id,business_name,definition) VALUES('D1','Duplicate','Failure');\n"
+  }
+}

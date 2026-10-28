@@ -1,0 +1,243 @@
+{
+  "schema": "requirements-sql-test-contract-1",
+  "settings": {
+    "schema": "requirements-sql-1",
+    "schema_directory": "src/requirements-migrations/schema",
+    "data_directory": "src/requirements-migrations/data",
+    "initial_directory": "src/poise/infrastructure/requirements_sql"
+  },
+  "initial_ids": [
+    "0001_requirements_schema",
+    "0002_requirements_data"
+  ],
+  "query": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "domain",
+          "kind": "entities",
+          "table": "domain_areas",
+          "filter": {
+            "id": {
+              "eq": "D1"
+            }
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        }
+      ]
+    }
+  },
+  "query_response": {
+    "status": "read_only",
+    "revision": 1,
+    "results": [
+      {
+        "id": "domain",
+        "value": {
+          "rows": [
+            {
+              "id": "D1",
+              "business_name": "Domain one",
+              "definition": "Domain fixture."
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  },
+  "ordinary_create": {
+    "operation": "command",
+    "input": {
+      "request_id": "sql-create",
+      "expected_revision": 1,
+      "operations": [
+        {
+          "id": "create",
+          "kind": "create",
+          "table": "domain_areas",
+          "row": {
+            "id": "D2",
+            "business_name": "Domain two",
+            "definition": "A\u0000B"
+          }
+        }
+      ]
+    }
+  },
+  "ordinary_create_response": {
+    "status": "applied",
+    "revision": 2,
+    "replayed": false,
+    "results": [
+      {
+        "id": "create",
+        "affected_rows": 1
+      }
+    ]
+  },
+  "ordinary_update": {
+    "operation": "command",
+    "input": {
+      "request_id": "sql-update",
+      "expected_revision": 2,
+      "operations": [
+        {
+          "id": "update",
+          "kind": "update",
+          "table": "domain_areas",
+          "filter": {
+            "id": {
+              "eq": "D2"
+            }
+          },
+          "changes": {
+            "definition": "x'; DROP TABLE domain_areas; --\nΩ end"
+          }
+        }
+      ]
+    }
+  },
+  "ordinary_update_response": {
+    "status": "applied",
+    "revision": 3,
+    "replayed": false,
+    "results": [
+      {
+        "id": "update",
+        "affected_rows": 1
+      }
+    ]
+  },
+  "ordinary_delete": {
+    "operation": "command",
+    "input": {
+      "request_id": "sql-delete",
+      "expected_revision": 3,
+      "operations": [
+        {
+          "id": "delete",
+          "kind": "delete",
+          "table": "domain_areas",
+          "filter": {
+            "id": {
+              "eq": "D2"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "ordinary_delete_response": {
+    "status": "applied",
+    "revision": 4,
+    "replayed": false,
+    "results": [
+      {
+        "id": "delete",
+        "affected_rows": 1
+      }
+    ]
+  },
+  "no_op": {
+    "operation": "command",
+    "input": {
+      "request_id": "sql-no-op",
+      "expected_revision": 1,
+      "operations": [
+        {
+          "id": "delete",
+          "kind": "delete",
+          "table": "domain_areas",
+          "filter": {
+            "id": {
+              "eq": "absent"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "no_op_response": {
+    "status": "applied",
+    "revision": 2,
+    "replayed": false,
+    "results": [
+      {
+        "id": "delete",
+        "affected_rows": 0
+      }
+    ]
+  },
+  "state_contract": {
+    "canonical_json": {
+      "sort_keys": true,
+      "ensure_ascii": false,
+      "separators": [
+        ",",
+        ":"
+      ]
+    },
+    "fields": [
+      "schema_version",
+      "tables",
+      "revision",
+      "receipts"
+    ],
+    "table_order": [
+      "requirements",
+      "domain_areas",
+      "domain_entities",
+      "domain_actions",
+      "requirement_links",
+      "requirement_entities",
+      "requirement_actions"
+    ],
+    "receipt_columns": [
+      "request_id",
+      "digest",
+      "response"
+    ]
+  },
+  "work_boundary": {
+    "operation": "requirements",
+    "input_field": "request",
+    "evolution": "Additive work operation; nested Requirements packet stays operation/input. The ordinary work interaction metadata is separate from the exact Requirements business response."
+  },
+  "migration_actions": {
+    "status": {
+      "operation": "migrations",
+      "input": {
+        "action": "status"
+      }
+    },
+    "apply_fields": [
+      "action",
+      "migration_ids",
+      "expected_revision",
+      "expected_state"
+    ],
+    "rollback_fields": [
+      "action",
+      "migration_ids",
+      "expected_revision",
+      "expected_state"
+    ]
+  },
+  "export_fields": [
+    "request_id",
+    "source",
+    "target",
+    "mode",
+    "requirement_ids",
+    "output_directory"
+  ],
+  "export_modes": [
+    "full",
+    "selected"
+  ]
+}

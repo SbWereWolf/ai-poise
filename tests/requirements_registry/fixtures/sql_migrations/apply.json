@@ -1,0 +1,8 @@
+{
+  "operation":"apply",
+  "input":{
+    "request_id":"sql-apply",
+    "expected_revision":1,
+    "operations":[{"kind":"put_requirement","requirement":{"id":"R2","level":"system","status":"current","text":"Applied requirement."}}]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "schema": {"id":"0010_owned_schema","forward":"CREATE TABLE completion_probe(id INTEGER PRIMARY KEY,value TEXT NOT NULL);\n","reverse":"DROP TABLE completion_probe;\n"},
+  "data": [
+    {"id":"0011_insert","forward":"INSERT INTO completion_probe(id,value) VALUES(1,'Original');\n","reverse":"DELETE FROM completion_probe WHERE id=1;\n"},
+    {"id":"0012_update","forward":"UPDATE completion_probe SET value='Changed' WHERE id=1;\n","reverse":"UPDATE completion_probe SET value='Original' WHERE id=1;\n"},
+    {"id":"0013_delete","forward":"DELETE FROM completion_probe WHERE id=1;\n","reverse":"INSERT INTO completion_probe(id,value) VALUES(1,'Changed');\n"}
+  ],
+  "combined_forward":"INSERT INTO completion_probe(id,value) VALUES(1,'Original');\nUPDATE completion_probe SET value='Changed' WHERE id=1;\nDELETE FROM completion_probe WHERE id=1;\n",
+  "combined_reverse":"INSERT INTO completion_probe(id,value) VALUES(1,'Changed');\nUPDATE completion_probe SET value='Original' WHERE id=1;\nDELETE FROM completion_probe WHERE id=1;\n",
+  "expected_sql":[
+    "INSERT INTO completion_probe(id,value) VALUES(1,'Changed')",
+    "UPDATE completion_probe SET value='Original' WHERE id=1",
+    "DELETE FROM completion_probe WHERE id=1",
+    "DROP TABLE completion_probe",
+    "CREATE TABLE completion_probe(id INTEGER PRIMARY KEY,value TEXT NOT NULL)",
+    "INSERT INTO completion_probe(id,value) VALUES(1,'Original')",
+    "UPDATE completion_probe SET value='Changed' WHERE id=1",
+    "DELETE FROM completion_probe WHERE id=1",
+    "INSERT INTO completion_probe(id,value) VALUES(1,'Changed')",
+    "UPDATE completion_probe SET value='Original' WHERE id=1",
+    "DELETE FROM completion_probe WHERE id=1",
+    "DROP TABLE completion_probe",
+    "CREATE TABLE completion_probe(id INTEGER PRIMARY KEY,value TEXT NOT NULL)",
+    "INSERT INTO completion_probe(id,value) VALUES(1,'Original')",
+    "UPDATE completion_probe SET value='Changed' WHERE id=1",
+    "DELETE FROM completion_probe WHERE id=1"
+  ]
+}

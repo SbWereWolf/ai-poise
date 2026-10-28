@@ -574,7 +574,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
             'expected_source_commit':final['commit'],
             'expected_target_commit':base,
             'authorization':'Fixture user authorizes local integration of this accepted result.',
-            'commit_message':'Integrate reviewed catalogue result\n\nPublish the accepted local merge result.',
+            'commit_message':'Integrate reviewed catalogue result',
             'resolutions':[],
         })
         assert integration['status']=='integrated',integration

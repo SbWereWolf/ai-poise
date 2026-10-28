@@ -1,0 +1,296 @@
+{
+  "reader_config": {
+    "reader": {
+      "schema": "poise-reader/2",
+      "limits": {
+        "max_items": 4,
+        "max_lines": 8,
+        "max_range_bytes": 16,
+        "max_file_bytes": 64,
+        "max_output_bytes": 16,
+        "max_receipts": 8
+      }
+    }
+  },
+  "context": {
+    "schema": "poise-reader/2",
+    "generation": 1,
+    "reason": "startup",
+    "event_id": null
+  },
+  "context_response": {
+    "schema": "stride-poise/v1",
+    "status": "ok",
+    "result": {
+      "schema": "poise-reader/2",
+      "generation": 1,
+      "reason": "startup",
+      "event_id": null
+    },
+    "error": null,
+    "evidence": []
+  },
+  "missing_operation": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_request",
+      "details": {
+        "path": "/operation"
+      },
+      "action": "correct:request"
+    },
+    "evidence": []
+  },
+  "not_configured": {
+    "schema": "stride-poise/v1",
+    "status": "unavailable",
+    "result": null,
+    "error": {
+      "code": "reader_not_configured",
+      "details": {},
+      "action": "configure:reader"
+    },
+    "evidence": []
+  },
+  "invalid_config": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "invalid_config",
+      "details": {
+        "path": "/reader/limits/max_lines"
+      },
+      "action": "correct:config"
+    },
+    "evidence": []
+  },
+  "cold_read": {
+    "schema": "stride-poise/v1",
+    "operation": "reader.read",
+    "input": {
+      "cwd": "$ROOT",
+      "generation": 1,
+      "acknowledged": [],
+      "reads": [
+        {
+          "path": "$ROOT/sample.txt",
+          "range": {
+            "unit": "lines",
+            "start": 1,
+            "count": 1
+          },
+          "reread": false,
+          "reason": ""
+        }
+      ]
+    }
+  },
+  "sample_first": {
+    "request": {
+      "schema": "stride-poise/v1",
+      "operation": "reader.read",
+      "input": {
+        "cwd": "$ROOT",
+        "generation": 1,
+        "acknowledged": [],
+        "reads": [
+          {
+            "path": "$ROOT/sample.txt",
+            "range": {
+              "unit": "lines",
+              "start": 1,
+              "count": 1
+            },
+            "reread": false,
+            "reason": ""
+          }
+        ]
+      }
+    },
+    "expected_exit": 0,
+    "expected_response": {
+      "schema": "stride-poise/v1",
+      "status": "ok",
+      "result": {
+        "schema": "poise-reader/2",
+        "generation": 1,
+        "items": [
+          {
+            "path": "$ROOT/sample.txt",
+            "version": {
+              "size_bytes": 10,
+              "modified_ns": 1000000000
+            },
+            "range": {
+              "unit": "lines",
+              "start": 1,
+              "count": 1
+            },
+            "status": "read",
+            "receipt_id": "${r1}",
+            "eof": false,
+            "next": {
+              "path": "$ROOT/sample.txt",
+              "unit": "lines",
+              "next": 2,
+              "version": {
+                "size_bytes": 10,
+                "modified_ns": 1000000000
+              },
+              "generation": 1
+            },
+            "text": "A\n"
+          }
+        ],
+        "text_bytes": 2
+      },
+      "error": null,
+      "evidence": []
+    },
+    "effects": {},
+    "capture": {
+      "r1": "/result/items/0/receipt_id"
+    }
+  },
+  "sample_ack": {
+    "request": {
+      "schema": "stride-poise/v1",
+      "operation": "reader.read",
+      "input": {
+        "cwd": "$ROOT",
+        "generation": 1,
+        "acknowledged": [
+          "${r1}"
+        ],
+        "reads": [
+          {
+            "path": "$ROOT/sample.txt",
+            "range": {
+              "unit": "lines",
+              "start": 1,
+              "count": 1
+            },
+            "reread": false,
+            "reason": ""
+          }
+        ]
+      }
+    },
+    "expected_exit": 0,
+    "expected_response": {
+      "schema": "stride-poise/v1",
+      "status": "ok",
+      "result": {
+        "schema": "poise-reader/2",
+        "generation": 1,
+        "items": [
+          {
+            "path": "$ROOT/sample.txt",
+            "version": {
+              "size_bytes": 10,
+              "modified_ns": 1000000000
+            },
+            "range": {
+              "unit": "lines",
+              "start": 1,
+              "count": 1
+            },
+            "status": "unchanged",
+            "receipt_id": "${r1}",
+            "eof": false,
+            "next": {
+              "path": "$ROOT/sample.txt",
+              "unit": "lines",
+              "next": 2,
+              "version": {
+                "size_bytes": 10,
+                "modified_ns": 1000000000
+              },
+              "generation": 1
+            }
+          }
+        ],
+        "text_bytes": 0
+      },
+      "error": null,
+      "evidence": []
+    },
+    "effects": {},
+    "capture": {
+      "r1": "/result/items/0/receipt_id"
+    }
+  },
+  "reset": {
+    "request": {
+      "schema": "stride-poise/v1",
+      "operation": "reader.reset",
+      "input": {
+        "reason": "manual",
+        "event_id": "session-reset"
+      }
+    },
+    "expected_exit": 0,
+    "expected_response": {
+      "schema": "stride-poise/v1",
+      "status": "ok",
+      "result": {
+        "schema": "poise-reader/2",
+        "generation": 2,
+        "reason": "manual",
+        "event_id": "session-reset"
+      },
+      "error": null,
+      "evidence": []
+    },
+    "effects": {
+      "reader_generation": 2,
+      "receipts_cleared": true
+    }
+  },
+  "unknown_receipt": {
+    "schema": "stride-poise/v1",
+    "status": "rejected",
+    "result": null,
+    "error": {
+      "code": "reader_receipt_unknown",
+      "details": {
+        "receipt_id": null
+      },
+      "action": "reader:read"
+    },
+    "evidence": []
+  },
+  "ok_frame": {
+    "schema": "stride-poise/v1",
+    "status": "ok",
+    "result": null,
+    "error": null,
+    "evidence": []
+  },
+  "receipt_probe_request": {
+    "schema": "stride-poise/v1",
+    "operation": "reader.read",
+    "input": {
+      "cwd": null,
+      "generation": null,
+      "acknowledged": [],
+      "reads": [
+        {
+          "path": null,
+          "range": null,
+          "reread": false,
+          "reason": ""
+        }
+      ]
+    }
+  },
+  "portion_result": {
+    "schema": "poise-reader/2",
+    "generation": null,
+    "items": [],
+    "text_bytes": null
+  }
+}

@@ -96,5 +96,8 @@
     "tests/hook_transport/test_architecture_async.py::test_async_outlives_callback_and_keeps_capture",
     "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_forms",
     "tests/runtime_services/test_tool_results_mcp_content.py::test_mcp_content_public_session"
+  ],
+  "late-cancel": [
+    "tests/checks_mcp/test_cancel_terminal.py::test_late_cancel_preserves_completed_timeout"
   ]
 }

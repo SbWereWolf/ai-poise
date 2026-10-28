@@ -180,17 +180,12 @@ class Arrangement:
         self.stdout_file.write_text(self.body['stdout'])
         self.stderr_file.write_bytes(self.body['stderr'].encode())
         # These are current public owner controls, before any new feature RED.
-        code, preview, _ = self.scene.invoke(self.scene.request('preview'))
-        assert (code, preview['status']) == (0, 'planned'), preview
-        health_cache = self.scene.profile()['cache']
-        original_cache_enabled = health_cache['enabled']
-        health_cache['enabled'] = False
+        self.scene.profile('f13-health-precondition')
+        health_selection = self.scene.selection('f13-health-precondition')
         self.scene.save()
-        try:
-            healthy = self.scene.run(fresh=True)
-        finally:
-            health_cache['enabled'] = original_cache_enabled
-            self.scene.save()
+        code, preview, _ = self.scene.invoke(self.scene.request('preview', selection=health_selection))
+        assert (code, preview['status']) == (0, 'planned'), preview
+        healthy = self.scene.run(selection=health_selection, fresh=True)
         assert healthy['status'] == 'passed'
         self.health_marker_count = len(self.scene.markers())
         write_json(self.root / 'healthy-preconditions.json', {

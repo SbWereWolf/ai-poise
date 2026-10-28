@@ -77,6 +77,8 @@ class ProcessExecution:
                         elif not protocol.outgoing and key is not None:
                             selector.unregister(child.stdin)
                     end=execution_end if cleanup_end is None else cleanup_end
+                    if term_at is not None and not killed:
+                        end=min(end,term_at+limits['terminate_grace_ms']/1000)
                     wait=min(limits['poll_ms']/1000,max(0,end-now))
                     for key,_ in selector.select(wait):
                         if key.data=='stdin':

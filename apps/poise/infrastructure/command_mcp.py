@@ -77,17 +77,36 @@ class McpCall:
         if self.phase=='initialize':
             if result.get('protocolVersion')!=self.spec['protocol_version']:
                 self.fail('protocol_version');return
+            server=result.get('serverInfo')
+            if (not isinstance(result.get('capabilities'),dict) or not isinstance(server,dict)
+                    or not isinstance(server.get('name'),str) or not isinstance(server.get('version'),str)):
+                self.fail('invalid_response');return
             self.phase='tools_call'
             self.pending_id=2
             self.queue({'jsonrpc':'2.0','method':'notifications/initialized'})
             self.queue({'jsonrpc':'2.0','id':2,'method':'tools/call',
                         'params':{'name':self.spec['tool_name'],'arguments':self.spec['arguments']}})
         else:
-            if type(result.get('isError',False)) is not bool:
+            if (not isinstance(result.get('content'),list)
+                    or not all(self.content(item) for item in result['content'])
+                    or type(result.get('isError',False)) is not bool):
                 self.fail('invalid_response');return
             self.result,self.business=value,result.get('isError',False)
             self.pending_id=None
             self.finished=True
+
+    @staticmethod
+    def content(value):
+        if not isinstance(value,dict): return False
+        kind=value.get('type')
+        if kind=='text': return isinstance(value.get('text'),str)
+        if kind=='image':
+            return isinstance(value.get('data'),str) and isinstance(value.get('mimeType'),str)
+        if kind=='resource':
+            resource=value.get('resource')
+            return (isinstance(resource,dict) and isinstance(resource.get('uri'),str)
+                    and (isinstance(resource.get('text'),str) or isinstance(resource.get('blob'),str)))
+        return False
 
     def eof(self):
         if self.failed: return

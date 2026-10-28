@@ -48,24 +48,29 @@ class CommandOperations:
         session=self.session()
         budget=self.settings.limits['completion_budget_ms']
         end=time.monotonic()+budget/1000
+        attempted=False
+        busy=None
         while True:
+            remaining=max(0,end-time.monotonic())
+            if attempted and remaining<=0: break
+            attempted=True
             try:
-                record=self.store.read(session.id,id)
+                record=self.store.read(session.id,id,timeout=remaining)
             except Problem as exc:
-                remaining=end-time.monotonic()
-                if exc.error['code']!='command_store_busy' or remaining<=0:
-                    raise
-                time.sleep(min(remaining,self.settings.limits['poll_ms']/1000))
+                if exc.error['code']!='command_store_busy': raise
+                busy=exc
+                time.sleep(min(max(0,end-time.monotonic()),self.settings.limits['poll_ms']/1000))
                 continue
+            busy=None
             if record is None:
                 raise Problem('command_not_found',{'command_id':id},'use:command','unavailable')
             if record['metadata']['state'] in ('TERMINAL','UNKNOWN'):
                 return self.deliver(record,'completion')
             remaining=end-time.monotonic()
-            if remaining<=0:
-                meta=deepcopy(record['metadata']);meta.update(operation='completion',replayed=False)
-                raise Problem('command_wait_expired',{'command_id':id,'budget_ms':budget},'wait:command','unavailable',meta)
-            time.sleep(min(remaining,self.settings.limits['poll_ms']/1000))
+            time.sleep(min(max(0,remaining),self.settings.limits['poll_ms']/1000))
+        if busy is not None: raise busy
+        meta=deepcopy(record['metadata']);meta.update(operation='completion',replayed=False)
+        raise Problem('command_wait_expired',{'command_id':id,'budget_ms':budget},'wait:command','unavailable',meta)
 
     def delete(self,value):
         id=identity_input(value,self.settings)

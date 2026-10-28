@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import time
 from uuid import uuid4
 
 from domain.command import metadata, same_json
@@ -19,13 +20,18 @@ class CommandStore:
         self.path,self.timeout=Path(path),timeout
 
     @contextmanager
-    def connection(self,write=False):
+    def connection(self,write=False,*,timeout=None):
         try:
+            deadline=None if timeout is None else time.monotonic()+max(0,timeout)
             uri=str(self.path) if write else self.path.as_uri()+'?mode=ro'
-            with closing(sqlite3.connect(uri,timeout=self.timeout,isolation_level=None,uri=not write)) as db:
+            wait=self.timeout if timeout is None else min(self.timeout,max(0,timeout))
+            with closing(sqlite3.connect(uri,timeout=wait,isolation_level=None,uri=not write)) as db:
                 version=db.execute('PRAGMA user_version').fetchone()[0]
                 if version!=1:
                     raise Problem('command_store_incompatible',{'version':version},'select:command-store','unavailable')
+                if deadline is not None:
+                    milliseconds=int(min(self.timeout,max(0,deadline-time.monotonic()))*1000)
+                    db.execute('PRAGMA busy_timeout='+str(milliseconds))
                 if write: db.execute('BEGIN IMMEDIATE')
                 try:
                     yield db
@@ -82,9 +88,9 @@ class CommandStore:
         return {key:json.loads(value) if key in ('input','settings','metadata') else value
                 for key,value in zip(names,values)}
 
-    def read(self,session,id):
+    def read(self,session,id,*,timeout=None):
         if not self.path.exists(): return None
-        with self.connection() as db: return self.row(db,session,id)
+        with self.connection(timeout=timeout) as db: return self.row(db,session,id)
 
     def admit(self,session,value,settings):
         self.prepare_new()

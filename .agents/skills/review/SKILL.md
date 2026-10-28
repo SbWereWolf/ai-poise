@@ -10,6 +10,10 @@ Use this skill only as the reviewer on the existing route. [Evidence-based revie
 
 ## Inputs
 
+For an explicitly requested over-engineering pass, use
+[ponytail-review](../ponytail-review/SKILL.md) for that narrow question.
+It does not replace this correctness/contract inspection or authorize code edits.
+
 Acquire the Task through the [Poise workflow](../poise/SKILL.md). Batch-read the requirements/DoD, result revision, exact diff boundary, current evidence, relevant content/trace, applicable rules and required skills. Resolve project routing, commands, browser policy, versions, runtime parameters and file maps from Poise-owned configuration. Target-worktree configuration/docs may establish facts but do not store Poise settings.
 
 If the runtime does not supply required routing or stage inputs, name the missing capability explicitly. Do not silently load the whole catalogue, invent another session, or derive a command from an ERP example.

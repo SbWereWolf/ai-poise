@@ -382,6 +382,10 @@
   ],
   "excluded": [
     {
+      "id": "ponytail-review",
+      "reason": "Select for an actual simplification/over-engineering request; ordinary correctness review does not automatically need this pass."
+    },
+    {
       "id": "safe-commit",
       "reason": "Select explicitly for an authorized direct commit or commit recovery; ordinary Task finalization keeps its configured owner."
     },

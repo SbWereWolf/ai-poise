@@ -170,6 +170,7 @@ class Arrangement:
         self.external = []
         self.cleanup_callbacks = []
         self.environment = dict(self.scene.general.env)
+        self.environment['F07_FIXTURE_EVENTS'] = str(self.scene.events)
         self.policy_path = self.root / 'transport-policy.json'
         self.policy = literal('transport-policy.json')
         write_json(self.policy_path, self.policy)
@@ -181,7 +182,15 @@ class Arrangement:
         # These are current public owner controls, before any new feature RED.
         code, preview, _ = self.scene.invoke(self.scene.request('preview'))
         assert (code, preview['status']) == (0, 'planned'), preview
-        healthy = self.scene.run(fresh=True)
+        health_cache = self.scene.profile()['cache']
+        original_cache_enabled = health_cache['enabled']
+        health_cache['enabled'] = False
+        self.scene.save()
+        try:
+            healthy = self.scene.run(fresh=True)
+        finally:
+            health_cache['enabled'] = original_cache_enabled
+            self.scene.save()
         assert healthy['status'] == 'passed'
         self.health_marker_count = len(self.scene.markers())
         write_json(self.root / 'healthy-preconditions.json', {

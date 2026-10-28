@@ -23,11 +23,13 @@ def test_actual_callback_brief_expanded_full_share_one_real_result(case, status,
 
     chain = Chain(case.scene.project, case.root / 'output-chain', 'F13_COMMON_OUTPUT',
                   general=case.scene.general)
-    scene = scene_for_chain(chain, case.scene.project, case.root / 'output-scene')
+    output_parent = case.root / 'output-scene'
+    output_parent.mkdir()
+    scene = scene_for_chain(chain, case.scene.project, output_parent)
     tool = 'mcp__repo_checks__run'
     scene.policy['parsers'][tool] = literal('output-profile.json')
     scene.save_policy()
-    configure_chain(chain, scene, matcher='Bash|' + tool)
+    configure_chain(chain, scene, matcher='Bash|' + tool, include_end=True)
     case.cleanup_callbacks.append(chain.finish)
     delivered, _ = native(case, chain, 'PostToolUse', tool, case.arguments(), response=envelope)
     expected = literal('output-expectations.json')[status]

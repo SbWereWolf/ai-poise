@@ -70,7 +70,8 @@ def test_natural_completion_is_preserved_by_repeated_cancel(case):
 
 def test_another_caller_cannot_cancel_live_target(case):
     owner, identity = held(case)
-    binding = write_json(case.root / 'foreign-caller.json', {
+    binding = case.root / 'foreign-caller.json'
+    write_json(binding, {
         'schema': 'poise-caller-binding-1', 'caller_id': 'f13-foreign-independent-caller'})
     environment = {**case.environment, 'POISE_CALLER_BINDING': str(binding)}
     foreign = case.peer('foreign', environment=environment); foreign.initialize()

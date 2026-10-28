@@ -103,14 +103,14 @@ def test_cache_hit_and_explicit_fresh_keep_truth(case):
 
 def test_actual_timeout_evidence_crosses_transport_and_is_consumed_once(case):
     case.child(marker='timeout', mode='hold')
-    case.scene.profile(execution_timeout_seconds=0.3)
+    case.scene.profile(execution_timeout_seconds=1)
     case.scene.save()
     peer = case.peer(); peer.initialize()
     _, timed_out = case.full_run(peer, 'timeout')
     original = case.record(timed_out)
     assert original['status'] == 'timed_out'
     case.child(marker='diagnostic')
-    case.scene.profile(execution_timeout_seconds=0.3)
+    case.scene.profile(execution_timeout_seconds=1)
     case.scene.save()
     other = case.peer('diagnostic'); other.initialize()
     from .support import literal

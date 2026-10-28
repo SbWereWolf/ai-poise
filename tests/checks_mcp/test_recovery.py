@@ -63,7 +63,8 @@ def test_real_response_storage_failure_after_child_keeps_known_outcome(case):
     policy['storage']['response_directory'] = 'blocked-response-directory'
     sentinel = case.scene.state / 'blocked-response-directory'
     sentinel.write_bytes(b'INDEPENDENT_STORAGE_SENTINEL')
-    changed = write_json(case.root / 'blocked-policy.json', policy)
+    changed = case.root / 'blocked-policy.json'
+    write_json(changed, policy)
     binding = {'config': str(case.scene.config), 'checkout': str(case.scene.checkout), 'policy': str(changed)}
     envelope, body = case.full_run(peer, 'save-failed', case.arguments(binding=binding))
     assert len([row for row in case.rows() if row['event'] == 'STARTED']) == 2, 'SAVE_FAILURE_SUBJECT_NOT_REACHED'

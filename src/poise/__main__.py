@@ -21,6 +21,10 @@ class SingleArgument(argparse.Action):
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
+    source_index=sub.add_parser('source-index',help='Use the index of one explicitly selected checkout')
+    for name in ('config', 'checkout', 'policy'):
+        source_index.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    source_index.add_argument('--handler',action='store_true')
     result_view=sub.add_parser('result-view',help='Read a bounded view of an existing complete result')
     result_view.add_argument('--response',type=Path,required=True)
     result_view.add_argument('--view',choices=('brief','expanded','full'),required=True)
@@ -109,6 +113,9 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='source-index':
+        from .interfaces.source_index import execute
+        return execute(args.config,args.checkout,args.policy,args.handler,sys.stdin.buffer,sys.stdout)
     if args.command=='tool-result':
         from .interfaces.tool_results import execute
         return execute(args.config,args.checkout,args.policy,args.audience,sys.stdin.buffer,sys.stdout)

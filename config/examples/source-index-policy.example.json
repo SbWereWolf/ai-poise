@@ -1,0 +1,21 @@
+{
+  "schema": "poise-source-index-policy-1",
+  "enabled": true,
+  "command_argv": ["/absolute/path/to/ast-index"],
+  "query_commands": [
+    "search",
+    "usages",
+    "refs"
+  ],
+  "paths": {
+    "database": ".runtime/ast-index/index.db",
+    "lock": ".runtime/ast-index/index.lock",
+    "runs": ".runtime/ast-index/runs"
+  },
+  "limits": {
+    "lock_seconds": 10.0,
+    "lock_poll_seconds": 0.05,
+    "run_seconds": 60.0,
+    "cleanup_seconds": 2.0
+  }
+}

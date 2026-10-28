@@ -1,3 +1,13 @@
+def source_index_tools(bound, policy_path, environment):
+    """One selected-checkout owner uses the shared process and lock mechanics."""
+    from .application.source_index import SourceIndex
+    from .infrastructure.source_index import LocalSourceIndex
+    from .execution import RegisteredCheckRunner
+    runner = RegisteredCheckRunner(bound.config['limits']['output_chars'])
+    workspace = LocalSourceIndex.load(bound, policy_path, environment, runner)
+    return SourceIndex(workspace)
+
+
 def tool_result_tools(bound, policy, environment, *, caller=None, resources=None):
     """Taskless output uses the same explicit caller and placement owners."""
     from .application.tool_results import ToolResults

@@ -5,8 +5,14 @@ description: Diagnose Poise refusals that block authorized task work, record inc
 
 # Harness recovery
 
-Apply when Poise prevents authorized task work from continuing through its ordinary API.
+Apply when supported harness automation, including Poise, fails or has a demonstrated
+capability gap that prevents authorized work through its ordinary owner.
 A failing subject test needs subject remediation, not a harness workaround.
+
+Use working applicable compositions rather than rebuilding their sequence manually
+out of preference or unfamiliarity. Select the operation matching the actual intent;
+do not invent a combined form or submit fake stage work for a partial-material handoff.
+For a genuine gap, follow the [automation proposal contract](../../../docs/operations/harness-incident-journal.md#неподходящая-автоматизация).
 
 Canonical policy: [harness failure and manual
 recovery](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
@@ -31,6 +37,11 @@ the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#све
    unavailable, label native registration absent without postponing permanent storage.
 4. For repeated or repeatable problems, check existing drafts and create or augment one.
    A draft can request instruction/configuration/procedure repair; code is not automatic.
+   State the required result, observed limitation, existing owner/reusable operation and
+   observable acceptance scenario. A missing capability alone is not a proven code bug.
+   Link distinct occurrence dates/times to the existing description instead of duplicating
+   it or inventing event counts/token savings. Keep Poise's canonical recurrence criterion;
+   do not import an unsupported incident-note API or require a Task for each caller typo.
    If the API is unavailable, preserve a text draft and the unresolved registration duty.
 5. Verify the originally blocked action and affected adjacent scenarios. Distinguish
    recovered subject work, repaired configuration/code, unknown outcomes and native

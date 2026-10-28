@@ -48,6 +48,10 @@ def test_later_sql_error_rolls_back_whole_body(subject, monkeypatch, kind, direc
     before_ids = applied(subject.database)
     expected = deepcopy(before)
     expected["tables"]["domain_areas"] = [["D1", "Domain one", "Earlier successful file"]]
+    if direction == "reverse" and kind == "dml":
+        expected["tables"]["domain_areas"].append(["F1", "Fault one", "Original"])
+    if direction == "reverse" and kind == "combined":
+        expected["tables"]["domain_areas"].append(["F1", "Fault one", "Changed"])
     expected_ids = ((set(before_ids) | {preceding}) if direction == "forward"
                     else (set(before_ids) - {following}))
     published = files(subject)

@@ -263,38 +263,101 @@ def test_completion_failure_never_publishes_task_complete(subject, monkeypatch, 
         assert len(applied(subject.database)) == 1
 
 
-def test_unsupported_schema_data_interleaving_refuses_before_reversal(subject, monkeypatch):
-    identities = []
-    for body in literal("interleaving.json"):
-        identities.append(pair(subject, body["id"], body["forward"], body["reverse"], source=body["source"]))
+def assert_ordered_completion(subject, monkeypatch, bodies, groups, steps):
+    """Compare real committed calls with literal SQL, rows and ordered identities."""
+    entry = literal("completion_states.json")["entry"]
+    assert state(subject.database) == entry
+    entry_schema, entry_ids = schema(subject.database), applied(subject.database)
+    table_schema = sorted(entry_schema + [[
+        "table", "completion_probe", "completion_probe",
+        "CREATE TABLE completion_probe(id INTEGER PRIMARY KEY,value TEXT NOT NULL)",
+    ]])
+    indexed_schema = sorted(table_schema + [[
+        "index", "completion_value", "completion_probe",
+        "CREATE INDEX completion_value ON completion_probe(value)",
+    ]])
+    identities = [pair(subject, body["id"], body["forward"], body["reverse"],
+                       source=body["source"]) for body in bodies]
     owned(subject, migration_request(subject, "apply", identities))
-    before, before_ids, before_files = state(subject.database), applied(subject.database), files(subject)
-    destructive = []
-    original = sqlite3.connect
+    assert state(subject.database) == entry
+    assert schema(subject.database) == indexed_schema
+    original_files = files(subject)
+    boundaries = committed_boundaries(subject, monkeypatch)
 
-    class Observed(sqlite3.Connection):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.target = connected_to(self, subject.database)
-            self.set_trace_callback(self.observe)
+    assert finish(subject)["status"] == "completed"
+    assert task_status(subject) == "completed"
+    final_files = files(subject)
+    ddl_files = {name: value for name, value in original_files.items() if name.startswith("schema/")}
+    assert {name: value for name, value in final_files.items() if name.startswith("schema/")} == ddl_files
+    data_files = {name: value for name, value in final_files.items() if name.startswith("data/")}
+    assert len(data_files) == 2 * len(groups)
+    resolved = {}
+    final_data_ids = []
+    for group in groups:
+        matching = [Path(name).stem for name, value in data_files.items()
+                    if not name.endswith(".rollback.sql") and value == group["forward"].encode("utf-8")]
+        assert len(matching) == 1
+        identity = matching[0]
+        if group["id"] is None:
+            assert identity not in identities
+        else:
+            assert identity == group["id"]
+        assert data_files[f"data/{identity}.rollback.sql"] == group["reverse"].encode("utf-8")
+        final_data_ids.append(identity)
+        resolved[group["label"]] = identity
+    assert len(set(final_data_ids)) == len(groups)
+    assert set(data_files) == {
+        f"data/{identity}{suffix}" for identity in final_data_ids
+        for suffix in (".sql", ".rollback.sql")
+    }
+    assert len(boundaries) == len(steps)
+    active = set(identities)
+    for event, (direction, label, probe, indexed) in zip(boundaries, steps, strict=True):
+        identity = resolved.get(label, label)
+        assert (event["direction"], event["id"]) == (direction, identity)
+        if direction == "down":
+            active.remove(identity)
+        else:
+            active.add(identity)
+        assert event["state"] == entry
+        assert event["probe"] == probe
+        assert event["schema"] == (entry_schema if probe is None
+                                   else indexed_schema if indexed else table_schema)
+        assert event["applied"] == sorted(set(entry_ids) | active)
+    assert state(subject.database) == entry
+    assert schema(subject.database) == indexed_schema
+    assert applied(subject.database) == sorted(set(entry_ids) | active)
+    assert active == {body["id"] for body in bodies if body["source"] == "schema"} | set(final_data_ids)
+    with closing(sqlite3.connect(subject.database.as_uri() + "?mode=ro", uri=True)) as connection:
+        assert [list(row) for row in connection.execute(
+            "SELECT id,value FROM completion_probe ORDER BY id")] == steps[-1][2]
 
-        def observe(self, statement):
-            lower = statement.strip().lower()
-            if self.target and "completion_probe" in lower and lower.startswith(("insert ", "update ", "delete ", "drop ", "create ")):
-                destructive.append(statement)
 
-    def connect(*args, **kwargs):
-        kwargs["factory"] = Observed
-        return original(*args, **kwargs)
+def test_schema_data_interleaving_keeps_dependency_ids_and_executes_cycle(subject, monkeypatch):
+    assert_ordered_completion(subject, monkeypatch, literal("interleaving.json"), [{
+        "label": "$data", "id": "0011_data",
+        "forward": "-- depends: 0010_owned_schema\nINSERT INTO completion_probe(id,value) VALUES(1,'Original');\n",
+        "reverse": "DELETE FROM completion_probe WHERE id=1;\n",
+    }], [
+        ["down", "0012_dependent_schema", [[1, "Original"]], False],
+        ["down", "0011_data", [], False],
+        ["down", "0010_owned_schema", None, False],
+        ["up", "0010_owned_schema", [], False],
+        ["up", "$data", [[1, "Original"]], False],
+        ["up", "0012_dependent_schema", [[1, "Original"]], True],
+        ["down", "0012_dependent_schema", [[1, "Original"]], False],
+        ["down", "$data", [], False],
+        ["down", "0010_owned_schema", None, False],
+        ["up", "0010_owned_schema", [], False],
+        ["up", "$data", [[1, "Original"]], False],
+        ["up", "0012_dependent_schema", [[1, "Original"]], True],
+    ])
 
-    monkeypatch.setattr(sqlite3, "connect", connect)
-    with pytest.raises(PoiseError, match="(?i)depend|interleav|order|unsupported"):
-        finish(subject)
-    assert destructive == []
-    assert task_status(subject) != "completed"
-    assert state(subject.database) == before
-    assert applied(subject.database) == before_ids
-    assert files(subject) == before_files
+
+@pytest.mark.parametrize("case", literal("order_segments.json"),
+                         ids=["separated_runs", "referenced_interior"])
+def test_completion_splits_dml_at_ddl_and_referenced_identities(subject, monkeypatch, case):
+    assert_ordered_completion(subject, monkeypatch, case["bodies"], case["groups"], case["steps"])
 
 
 def test_completion_preserves_files_outside_actual_task_sources(subject):

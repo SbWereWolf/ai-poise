@@ -297,6 +297,12 @@ class Scene:
         self.general = GeneralScene(project, self.root, 'F13_NAMED_GENERAL')
         self.general.publish(request_id='named-check-general-profile')
         self.config = self.general.path
+        # Standalone native checks deliberately remove the executor's identity.
+        # Every isolated arrangement therefore supplies its own persistent
+        # caller, rather than accidentally borrowing the interactive launcher.
+        for key in ('CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'POISE_CALLER_BINDING'):
+            monkeypatch.delenv(key, raising=False)
+        monkeypatch.setenv('POISE_CALLER_BINDING', str(self.general.binding))
         self.events = self.root / 'events'
         self.events.mkdir()
         self.monkeypatch = monkeypatch

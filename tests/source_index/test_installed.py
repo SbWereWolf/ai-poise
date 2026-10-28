@@ -116,9 +116,10 @@ def test_noneditable_installed_cli_and_git_callback(project, tmp_path):
     try:
         result = chain.invoke()
         packets = chain.assert_order(['before', 'after'])
+        incoming = next(packet for packet in packets if packet['configuration']['handler_id'] == 'after')['response']
         assert result['systemMessage'] == 'seed|before|after'
-        assert packets[1]['response']['hookSpecificOutput']['hookEventName'] == 'SessionStart'
-        assert 'source-index' in packets[1]['response']['hookSpecificOutput']['additionalContext']
+        assert incoming['hookSpecificOutput']['hookEventName'] == 'SessionStart'
+        assert 'source-index' in incoming['hookSpecificOutput']['additionalContext']
     finally:
         chain.finish()
     scene.policy_data['enabled'] = False; scene.save()

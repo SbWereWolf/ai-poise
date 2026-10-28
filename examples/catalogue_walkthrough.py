@@ -355,6 +355,8 @@ def _run(directory,goal,scenario,feedback_edge=None):
     git(app,'remote','add','backup',str(remote))
     repo,commands=install(home)
     cfg=json.loads((home/'project.json').read_text());cfg['workflows']=deepcopy(repo.editor.raw['workflows']);cfg['automatic_checks']=[]
+    if goal=='integration':
+        cfg['git']['commit_pattern']='(?s).+'
     save(home/'project.json',cfg)
     _,_,workflows=load_config(home/'project.json');workflow=workflows[goal]
     base,sources=_seed(app,home,goal,scenario)
@@ -574,7 +576,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
             'expected_source_commit':final['commit'],
             'expected_target_commit':base,
             'authorization':'Fixture user authorizes local integration of this accepted result.',
-            'commit_message':'Integrate reviewed catalogue result',
+            'commit_message':'Integrate reviewed catalogue result\n\nPreserve both accepted components in the local target.',
             'resolutions':[],
         })
         assert integration['status']=='integrated',integration

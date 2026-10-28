@@ -95,7 +95,10 @@ def test_existing_hook_order_and_worktree_root_are_preserved(project, tmp_path, 
     scene = Scene(project, tmp_path); scene.require(); scene.ready()
     sibling = scene.sibling()
     code, _ = scene.invoke('rebuild', checkout=sibling); assert code == 0
-    directory = scene.hooks()
+    example_bytes = (SOURCE / 'config/examples/source-index-post-commit.example.sh').read_bytes()
+    example = scene.parent / 'source-index-post-commit.sh'
+    example.write_bytes(example_bytes)
+    directory = scene.hooks(example=example)
     monkeypatch.setenv('PYTHONPATH', str(SOURCE / 'src'))
     before = {path.name: path.read_bytes() for path in directory.iterdir()}
     configured = git(scene.checkout, 'config', '--get', 'core.hooksPath')
@@ -106,6 +109,7 @@ def test_existing_hook_order_and_worktree_root_are_preserved(project, tmp_path, 
         git(root / 'src', 'commit', '-m', 'Preserve the selected worktree identity')
         assert_callback(scene, root, git(root, 'rev-parse', 'HEAD'))
     assert {path.name: path.read_bytes() for path in directory.iterdir()} == before
+    assert example.read_bytes() == example_bytes
     assert git(scene.checkout, 'config', '--get', 'core.hooksPath') == configured
     assert (sibling / '.runtime/ast-index/index.db').is_file()
     assert scene.database.is_file()

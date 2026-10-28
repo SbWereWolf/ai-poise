@@ -1,0 +1,65 @@
+{
+  "external-control": [
+    "tests/source_index/test_actual.py::test_external_fixture_proves_expected_relationships"
+  ],
+  "contract": [
+    "tests/source_index/test_public_contract.py::test_explicit_registered_copy_uses_product_local_storage",
+    "tests/source_index/test_public_contract.py::test_missing_index_exit_zero_requires_explicit_rebuild",
+    "tests/source_index/test_public_contract.py::test_missing_tool_reports_selected_executable",
+    "tests/source_index/test_public_contract.py::test_invalid_policy_has_no_index_effect[missing-command]",
+    "tests/source_index/test_public_contract.py::test_invalid_policy_has_no_index_effect[nonpositive-lock]",
+    "tests/source_index/test_public_contract.py::test_invalid_policy_has_no_index_effect[database-outside-copy]",
+    "tests/source_index/test_public_contract.py::test_invalid_policy_has_no_index_effect[database-not-ignored]",
+    "tests/source_index/test_public_contract.py::test_foreign_checkout_is_rejected",
+    "tests/source_index/test_public_contract.py::test_disabled_policy_does_not_launch_tool"
+  ],
+  "query": [
+    "tests/source_index/test_query.py::test_saved_dirty_sources_are_updated_before_search",
+    "tests/source_index/test_query.py::test_update_failure_blocks_query[nonzero]",
+    "tests/source_index/test_query.py::test_update_failure_blocks_query[uninterpretable]",
+    "tests/source_index/test_query.py::test_update_failure_blocks_query[missing-after-update]",
+    "tests/source_index/test_query.py::test_query_failure_preserves_full_diagnostics",
+    "tests/source_index/test_query.py::test_complete_machine_output_is_read_beyond_preview"
+  ],
+  "actual": [
+    "tests/source_index/test_actual.py::test_real_index_wrapper_tracks_saved_and_committed_sources"
+  ],
+  "git": [
+    "tests/source_index/test_git_callbacks.py::test_successful_commit_delivers_real_refresh[ordinary]",
+    "tests/source_index/test_git_callbacks.py::test_successful_commit_delivers_real_refresh[merge]",
+    "tests/source_index/test_git_callbacks.py::test_successful_commit_delivers_real_refresh[verification]",
+    "tests/source_index/test_git_callbacks.py::test_successful_commit_delivers_real_refresh[checkpoint]",
+    "tests/source_index/test_git_callbacks.py::test_successful_commit_delivers_real_refresh[integration]",
+    "tests/source_index/test_git_callbacks.py::test_existing_hook_order_and_worktree_root_are_preserved",
+    "tests/source_index/test_git_callbacks.py::test_rejected_commit_does_not_refresh",
+    "tests/source_index/test_git_callbacks.py::test_refresh_failure_does_not_erase_successful_commit"
+  ],
+  "locking": [
+    "tests/source_index/test_concurrency.py::test_query_waits_for_other_process_update",
+    "tests/source_index/test_concurrency.py::test_busy_refusal_is_bounded_and_actionable",
+    "tests/source_index/test_concurrency.py::test_independent_worktree_query_is_not_blocked",
+    "tests/source_index/test_concurrency.py::test_observed_head_drift_is_inconclusive"
+  ],
+  "handler": [
+    "tests/source_index/test_handler.py::test_optional_handler_preserves_chain[enabled]",
+    "tests/source_index/test_handler.py::test_optional_handler_preserves_chain[disabled]"
+  ],
+  "installed": [
+    "tests/source_index/test_installed.py::test_noneditable_installed_cli_and_git_callback"
+  ],
+  "preservation": [
+    "tests/capabilities/test_navigation.py::test_ide_first_concrete_directory_and_content_assertion",
+    "tests/capabilities/test_navigation.py::test_ast_fallback_records_why_ide_did_not_prove_operation",
+    "tests/capabilities/test_navigation.py::test_structural_uses_ast_directly",
+    "tests/capabilities/test_navigation.py::test_ast_is_not_an_ide_inspection_substitute",
+    "tests/capabilities/test_navigation.py::test_edit_during_observation_is_inconclusive_not_fallback",
+    "tests/capabilities/test_navigation.py::test_real_readonly_peer_checks_identity_and_indexed_bytes[identity]",
+    "tests/capabilities/test_navigation.py::test_real_readonly_peer_checks_identity_and_indexed_bytes[digest]",
+    "tests/capabilities/test_navigation.py::test_real_readonly_peer_checks_identity_and_indexed_bytes[none]",
+    "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+    "tests/hook_transport/test_architecture_dispatch.py::test_full_raw_event_is_preserved",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_response_flows_to_next_handler",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_stop_prevents_later_calls",
+    "tests/hook_transport/test_architecture_dispatch.py::test_sync_error_stops_with_saved_result"
+  ]
+}

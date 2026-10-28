@@ -10,10 +10,14 @@ import math
 from pathlib import Path
 import sqlite3
 import subprocess
+from urllib.parse import quote
+
+import sqlparse
 
 from yoyo import read_migrations
 from yoyo.backends.core.sqlite3 import SQLiteBackend
 from yoyo.connections import parse_uri
+from yoyo.migrations import parse_metadata_from_sql_comments, read_sql_migration, topological_sort
 
 from ..modules.foundation.errors import PoiseError
 from ..modules.requirements_registry.crud import validate_command
@@ -48,6 +52,13 @@ def digest(value):
     return hashlib.sha256(encoded(value).encode("utf-8")).hexdigest()
 
 
+def join_sql(bodies):
+    """Keep literal bodies, adding only missing statement/file separators."""
+    return ''.join(body + ('' if body.endswith(('\n', '\r')) else '\n')
+                   + ('' if not body.strip() or body.rstrip().endswith(';') else ';\n')
+                   for body in bodies)
+
+
 def identifier(value):
     return '"' + value.replace('"', '""') + '"'
 
@@ -58,7 +69,7 @@ def literal(value):
     if type(value) is int and -MAX_REVISION - 1 <= value <= MAX_REVISION:
         return str(value)
     if type(value) is str:
-        if "\x00" in value:
+        if "\x00" in value or "\r" in value:
             return "CAST(X'" + value.encode("utf-8").hex() + "' AS TEXT)"
         return "'" + value.replace("'", "''") + "'"
     raise PoiseError("Unsupported captured SQL value; correct the source type before generating a migration")
@@ -97,17 +108,28 @@ class RequirementsSqlSnapshot:
     schema: list
     applied: list
     connection: sqlite3.Connection
+    application: dict
+    records: dict
 
     @property
     def state_hash(self):
         return digest(self.state)
 
+    @property
+    def private_hash(self):
+        return digest({"state": self.state, "schema": self.schema, "application": self.application})
+
     def proof(self):
-        return {"state": self.state, "schema": self.schema, "applied": self.applied}
+        return {"state": self.state, "schema": self.schema, "applied": self.applied,
+                "application": self.application, "records": self.records}
 
     def preview(self):
         connection = sqlite3.connect(":memory:", isolation_level=None)
-        self.connection.backup(connection)
+        try:
+            self.connection.backup(connection)
+        except Exception:
+            connection.close()
+            raise
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
@@ -177,7 +199,23 @@ class RequirementsSqlMigrations:
                 names = {row[0] for row in snapshot.execute("SELECT name FROM sqlite_schema WHERE type='table'")}
                 applied = ([] if "_yoyo_migration" not in names else [row[0] for row in snapshot.execute(
                     "SELECT migration_id FROM _yoyo_migration ORDER BY migration_id")])
-                return RequirementsSqlSnapshot(state, schema, applied, snapshot)
+                application = {}
+                for table in sorted(names - set(COLUMNS) - LIBRARY_TABLES
+                                    - {"requirements_meta", "requirement_requests"}):
+                    if table.startswith("sqlite_"):
+                        continue
+                    cursor = snapshot.execute(f"SELECT * FROM {identifier(table)}")
+                    rows = []
+                    for row in cursor:
+                        rows.append([[type(value).__name__,
+                                      value.hex() if isinstance(value, (bytes, float)) else value]
+                                     for value in row])
+                    application[table] = {"columns": [item[0] for item in cursor.description],
+                                          "rows": sorted(rows, key=encoded)}
+                records = ({} if "_yoyo_migration" not in names else {
+                    row[1]: list(row) for row in snapshot.execute(
+                        "SELECT migration_hash,migration_id,applied_at_utc FROM _yoyo_migration ORDER BY migration_id")})
+                return RequirementsSqlSnapshot(state, schema, applied, snapshot, application, records)
             except Exception:
                 snapshot.close()
                 raise
@@ -201,39 +239,122 @@ class RequirementsSqlMigrations:
 
     def sources(self):
         result = {}
-        for role, directory in (("schema", self.schema_directory), ("data", self.data_directory)):
+        for role, directory in (("initial", self.initial_directory),
+                                ("schema", self.schema_directory), ("data", self.data_directory)):
             if directory.exists() and not directory.is_dir():
                 raise PoiseError(f"Migration source is not a directory: {directory}; correct its configuration")
             for path in sorted(directory.iterdir()) if directory.is_dir() else []:
+                if role == "initial" and path.is_dir() and not path.is_symlink():
+                    continue
                 if path.is_symlink() or not path.is_file() or path.suffix != ".sql":
                     raise PoiseError(f"Only plain literal SQL migration files are supported: {path}")
                 result[f"{role}/{path.name}"] = hashlib.sha256(path.read_bytes()).hexdigest()
         return result
 
-    def migrations(self):
+    @staticmethod
+    def _validate_statements(directives, statements, name):
+        if directives.get("transactional", "true").lower() != "true":
+            raise PoiseError(
+                f"SQL {name} задаёт неподдерживаемый режим transactional; "
+                "удалите transactional:false и оставьте транзакцию штатному yoyo"
+            )
+        for sql in statements:
+            for statement in sqlparse.parse(sql):
+                position, token = statement.token_next(-1, skip_ws=True, skip_cm=True)
+                while token is not None and token.value == "\ufeff":
+                    position, token = statement.token_next(position, skip_ws=True, skip_cm=True)
+                if token is not None and token.normalized.upper() in {
+                    "BEGIN", "COMMIT", "END", "ROLLBACK", "SAVEPOINT", "RELEASE",
+                }:
+                    raise PoiseError(
+                        f"SQL {name} содержит верхнеуровневую команду {token.normalized}; "
+                        "удалите управление транзакцией из тела миграции и повторите штатную операцию"
+                    )
+
+    @classmethod
+    def validate_text(cls, body, name):
+        directives, _, sql = parse_metadata_from_sql_comments(body)
+        cls._validate_statements(directives, sqlparse.split(sql), name)
+
+    @classmethod
+    def validate_pair(cls, path):
+        """Admit literal bodies; yoyo alone owns their transactions and execution."""
+        path = Path(path)
+        reverse = path.with_name(path.stem + ".rollback.sql")
+        for candidate in (path, reverse):
+            if candidate.is_symlink() or not candidate.is_file():
+                raise PoiseError(f"Неполная SQL-пара: {candidate}; восстановите оба обычных SQL-файла")
+            try:
+                directives, _, statements = read_sql_migration(str(candidate))
+                cls._validate_statements(directives, statements, candidate.name)
+            except (OSError, UnicodeError, sqlparse.exceptions.SQLParseError) as exc:
+                raise PoiseError(f"SQL {candidate.name} нельзя прочитать: {exc}; исправьте исходную SQL-пару") from exc
+
+    @classmethod
+    def validate_directory(cls, directory):
+        directory = Path(directory)
+        if not directory.is_dir():
+            raise PoiseError(f"Каталог SQL отсутствует: {directory}; исправьте явную конфигурацию миграций")
+        for path in sorted(directory.glob("*.sql")):
+            if path.name.endswith(".rollback.sql"):
+                forward = path.with_name(path.name.removesuffix(".rollback.sql") + ".sql")
+                if not forward.is_file():
+                    raise PoiseError(f"Обратный SQL без прямого: {path}; восстановите полную SQL-пару")
+            else:
+                cls.validate_pair(path)
+
+    def catalog_migrations(self):
         self.sources()
+        for directory in (self.initial_directory, self.schema_directory, self.data_directory):
+            if directory.is_dir():
+                self.validate_directory(directory)
         try:
-            migrations = read_migrations(*[str(path) for path in (
-                self.schema_directory, self.data_directory
+            catalog = read_migrations(*[str(path) for path in (
+                self.initial_directory, self.schema_directory, self.data_directory
             ) if path.is_dir()])
         except Exception as exc:
             raise PoiseError(f"Migration source/dependency conflict: {exc}; correct the SQL source set") from exc
-        for migration in migrations:
+        if catalog.post_apply:
+            raise PoiseError('Допустимы только обычные SQL-пары; удалите post-apply hooks из выбранных источников')
+        for migration in catalog:
             path = Path(migration.path)
             if not path.with_name(path.stem + ".rollback.sql").is_file():
                 raise PoiseError(f"Migration inverse is missing: {path}; publish the complete pair before applying")
-        return migrations
+            migration.load()
+            if migration.use_transactions is not True:
+                raise PoiseError(f"Миграция {migration.id} не транзакционна; исправьте SQL и используйте штатную транзакцию yoyo")
+        return catalog
+
+    def migrations(self):
+        catalog = self.catalog_migrations()
+        return catalog.__class__([migration for migration in catalog
+            if Path(migration.path).parent.resolve() in {
+                self.schema_directory.resolve(), self.data_directory.resolve()}], catalog.post_apply)
 
     def status(self):
         snapshot = self.capture()
         snapshot.close()
+        if type(snapshot.state["revision"]) is not int or not 0 <= snapshot.state["revision"] <= MAX_REVISION:
+            raise PoiseError("Счётчик требований не является допустимым INTEGER; восстановите его перед записью")
         identities = [migration.id for migration in self.migrations()]
         return {"status": "read_only", "revision": snapshot.state["revision"],
                 "state": snapshot.state_hash, "applied": snapshot.applied,
                 "pending": sorted(set(identities) - set(snapshot.applied))}
 
-    def _backend(self):
+    @staticmethod
+    def _require_target(snapshot, guard, direction):
+        if guard is not None and (
+            snapshot.state_hash != guard[direction]
+            or (direction + "_private" in guard
+                and snapshot.private_hash != guard[direction + "_private"])
+        ):
+            raise PoiseError(
+                "Captured migration target changed; restore its captured state before applying SQL"
+            )
+
+    def _backend(self, *, guards, observations, admission=None):
         read_seconds = self.read_seconds
+        owner = self
 
         class RequirementsSQLiteBackend(SQLiteBackend):
             # Ordinary yoyo copies instantiate this class, retaining the profile.
@@ -243,7 +364,30 @@ class RequirementsSqlMigrations:
                 connection.execute(f"PRAGMA busy_timeout={math.ceil(read_seconds * 1000)}")
                 return connection
 
-        backend = RequirementsSQLiteBackend(parse_uri("sqlite:///" + str(self.database)), "_yoyo_migration")
+            def before_body(self, migration, direction):
+                snapshot = owner.capture()
+                snapshot.close()
+                owner._require_target(snapshot, guards.get(migration.id), direction)
+                if admission is not None:
+                    admission(migration.id, direction)
+                return {"state": snapshot.state_hash, "private": snapshot.private_hash}
+
+            def apply_one(self, migration, force=False, mark=True):
+                before = self.before_body(migration, "before")
+                result = super().apply_one(migration, force=force, mark=mark)
+                if observations is not None:
+                    after = owner.capture()
+                    after.close()
+                    observations.append({"id": migration.id, "before": before["state"],
+                        "before_private": before["private"], "after": after.state_hash,
+                        "after_private": after.private_hash})
+                return result
+
+            def rollback_one(self, migration, force=False):
+                self.before_body(migration, "after")
+                return super().rollback_one(migration, force=force)
+
+        backend = RequirementsSQLiteBackend(parse_uri("sqlite:///" + quote(str(self.database), safe="/")), "_yoyo_migration")
         try:
             # The same ordinary initialization performed by yoyo.get_backend.
             backend.init_database()
@@ -255,7 +399,147 @@ class RequirementsSqlMigrations:
             ) from exc
         return backend
 
+    def selected_migrations(self, identities):
+        migrations = self.migrations()
+        by_id = {migration.id: migration for migration in migrations}
+        if any(identity not in by_id for identity in identities):
+            raise PoiseError("A requested migration is outside the configured sources; inspect migration status")
+        return migrations.__class__([by_id[identity] for identity in identities], migrations.post_apply)
+
+    def ordered_ids(self, action, identities):
+        selected = self.selected_migrations(identities)
+        backend = self._backend(guards={}, observations=None)
+        try:
+            with backend.lock():
+                ordered = backend.to_apply(selected) if action == "apply" else backend.to_rollback(selected)
+                return [migration.id for migration in ordered]
+        finally:
+            backend.connection.close()
+
+    def completion_plan(self, context):
+        catalog = self.catalog_migrations()
+        by_id = {migration.id: migration for migration in catalog}
+        owned = set(context['containers'])
+        entry = set(context['entry']['applied'])
+        sequence = context['order']
+        if len(sequence) != len(owned) or set(sequence) != owned or not (owned | entry) <= by_id.keys():
+            raise PoiseError('Migration history/order is incomplete or foreign; restore the recorded Task sources before completion')
+        ordered = list(topological_sort([by_id[identity] for identity in sequence]))
+        if [migration.id for migration in ordered] != sequence:
+            raise PoiseError('Migration dependencies changed the recorded execution order; restore the original sources')
+        protected = set()
+        for migration in catalog:
+            dependencies = {item.id for item in migration.depends}
+            if migration.id in owned and not dependencies <= owned | entry:
+                raise PoiseError('An owned migration has unapplied foreign dependencies; apply a supported source history explicitly')
+            if migration.id not in owned or self.role(migration) == 'schema':
+                protected.update(dependencies & owned)
+            if migration.id in entry and dependencies & owned:
+                raise PoiseError('An applied foreign migration depends on this Task; do not reverse its prerequisites')
+        blocks, run = [], []
+        for migration in ordered:
+            if self.role(migration) == 'schema':
+                if run:
+                    blocks.append(run)
+                    run = []
+                blocks.append([migration])
+            else:
+                run.append(migration)
+                if migration.id in protected:
+                    blocks.append(run)
+                    run = []
+        if run:
+            blocks.append(run)
+        identities = []
+        for block in blocks:
+            identity = block[-1].id
+            if len(block) > 1 and identity not in protected:
+                identity = 'requirements_combined_' + digest([
+                    [item.id, context['containers'][item.id]['forward'],
+                     context['containers'][item.id]['reverse']] for item in block])
+                if identity in by_id:
+                    raise PoiseError('Combined migration identity conflicts with an existing source; preserve both histories')
+            identities.append(identity)
+        if len(set(identities)) != len(identities):
+            raise PoiseError('Combined migration identities conflict; preserve the original source set')
+        remap = {migration.id: identity for identity, block in zip(identities, blocks, strict=True)
+                 for migration in block}
+        result = []
+        for identity, block in zip(identities, blocks, strict=True):
+            forward = [Path(item.path).read_bytes().decode('utf-8') for item in block]
+            reverse = [Path(item.path).with_name(Path(item.path).stem + '.rollback.sql').read_bytes().decode('utf-8')
+                       for item in reversed(block)]
+            if len(block) > 1:
+                dependencies = {remap.get(item.id, item.id) for migration in block for item in migration.depends}
+                dependencies.discard(identity)
+                bodies = []
+                for body in forward:
+                    directives, _, sql = parse_metadata_from_sql_comments(body)
+                    bodies.append(sql if directives else body)
+                header = ('-- depends: ' + ' '.join(sorted(dependencies)) + '\n') if dependencies else ''
+                forward = [header + join_sql(bodies)]
+            sql_forward = ''.join(forward)
+            sql_reverse = join_sql(reverse) if len(block) > 1 else reverse[0]
+            self.validate_text(sql_forward, identity + '.sql')
+            self.validate_text(sql_reverse, identity + '.rollback.sql')
+            result.append({'id': identity, 'role': self.role(block[0]),
+                           'members': [item.id for item in block],
+                           'sql_forward': sql_forward, 'sql_reverse': sql_reverse})
+        return result
+
+    def historical_plan(self, snapshot):
+        version = snapshot.state['schema_version']
+        if version not in (1, 2):
+            raise PoiseError('Unsupported Requirements schema; restore a supported schema before migration')
+        try:
+            validate_schema(snapshot.connection, version)
+        except ValueError as exc:
+            raise PoiseError(f'Неподдерживаемая структура Requirements: {exc}; восстановите поддерживаемую схему') from exc
+        if version == 2:
+            return None
+        resource = Path(__file__).with_name('requirements_sql') / 'historical/0003_requirements_schema_1_to_2.sql'
+        self.validate_pair(resource)
+        return {'forward': resource.read_bytes().decode('utf-8'),
+                'reverse': resource.with_name(resource.stem + '.rollback.sql').read_bytes().decode('utf-8')}
+
+    def publish_completion(self, plan, containers):
+        delivered = {}
+        for group in plan:
+            identity, role = group['id'], group['role']
+            if len(group['members']) == 1:
+                delivered[identity] = deepcopy(containers[identity])
+                continue
+            directory = self.schema_directory if role == 'schema' else self.data_directory
+            if identity in containers:
+                for suffix, field in (('.sql', 'forward'), ('.rollback.sql', 'reverse')):
+                    path = directory / (identity + suffix)
+                    if hashlib.sha256(path.read_bytes()).hexdigest() != containers[identity][field]:
+                        raise PoiseError('Retained migration bytes changed; restore the original checkpoint before publication')
+                for suffix, body in (('.sql', group['sql_forward']), ('.rollback.sql', group['sql_reverse'])):
+                    atomic_write(directory / (identity + suffix), body.encode('utf-8'), mode=0o644)
+                descriptor = {'id': identity, 'role': role,
+                    'forward': hashlib.sha256(group['sql_forward'].encode('utf-8')).hexdigest(),
+                    'reverse': hashlib.sha256(group['sql_reverse'].encode('utf-8')).hexdigest()}
+            else:
+                descriptor = self.publish_pair(identity, group['sql_forward'], group['sql_reverse'], role=role)
+            descriptor['contributions'] = [deepcopy(item) for member in group['members']
+                                            for item in containers[member]['contributions']]
+            delivered[identity] = descriptor
+        return delivered
+
+    def remove_superseded(self, original, delivered):
+        for identity in original.keys() - delivered.keys():
+            if original[identity]['role'] != 'data':
+                raise PoiseError('Completion cannot remove a DDL pair')
+            for suffix, field in (('.sql', 'forward'), ('.rollback.sql', 'reverse')):
+                path = self.data_directory / (identity + suffix)
+                if hashlib.sha256(path.read_bytes()).hexdigest() != original[identity][field]:
+                    raise PoiseError('Superseded migration bytes changed; preserve the file and inspect the original checkpoint')
+                path.unlink()
+
     def publish_pair(self, identity, forward, reverse, *, role):
+        self.validate_text(forward, identity + ".sql")
+        self.validate_text(reverse, identity + ".rollback.sql")
         directory = self.schema_directory if role == "schema" else self.data_directory
         directory.mkdir(parents=True, exist_ok=True)
         paths = (directory / f"{identity}.sql", directory / f"{identity}.rollback.sql")
@@ -276,24 +560,36 @@ class RequirementsSqlMigrations:
                 "forward": hashlib.sha256(bodies[0]).hexdigest(),
                 "reverse": hashlib.sha256(bodies[1]).hexdigest()}
 
-    def execute_ids(self, action, identities, *, expected_revision, expected_state, guards):
+    @staticmethod
+    def validate_action(action, identities, expected_revision, expected_state):
         if action not in ("apply", "rollback"):
             raise PoiseError("Migration action must be apply or rollback")
         if (not isinstance(identities, list) or not identities
-                or any(type(value) is not str or not value for value in identities)
+                or any(type(value) is not str or not value or value in (".", "..")
+                       or "/" in value or "\\" in value or "\x00" in value for value in identities)
                 or len(set(identities)) != len(identities)):
             raise PoiseError("Migration IDs must be nonempty and unique")
         if (type(expected_revision) is not int or not 0 <= expected_revision <= MAX_REVISION
-                or type(expected_state) is not str or len(expected_state) != 64):
+                or type(expected_state) is not str or len(expected_state) != 64
+                or any(value not in "0123456789abcdef" for value in expected_state)):
             raise PoiseError("Migration action requires explicit revision and state guards")
-        migrations = self.migrations()
-        by_id = {migration.id: migration for migration in migrations}
-        selected = migrations.__class__(
-            [by_id[identity] for identity in identities if identity in by_id], migrations.post_apply,
-        )
-        if len(selected) != len(identities):
-            raise PoiseError("A requested migration is outside the configured sources; inspect migration status")
-        backend = self._backend()
+
+    def execute_ids(self, action, identities, *, expected_revision, expected_state, guards, observations=None, admission=None):
+        self.validate_action(action, identities, expected_revision, expected_state)
+        selected = self.selected_migrations(identities)
+        # Refuse a wrong first target before even initializing stock metadata.
+        # Actual selection/execution remains backend.to_apply/to_rollback below.
+        snapshot = self.capture()
+        snapshot.close()
+        hashes = {record[0] for record in snapshot.records.values()}
+        pending = list(topological_sort(migration for migration in selected
+            if (migration.hash in hashes) == (action == 'rollback')))
+        if action == 'rollback':
+            pending.reverse()
+        if pending:
+            self._require_target(snapshot, guards.get(pending[0].id),
+                                 'before' if action == 'apply' else 'after')
+        backend = self._backend(guards=guards, observations=observations, admission=admission)
         try:
             with backend.lock():
                 before = self.capture()
@@ -302,12 +598,6 @@ class RequirementsSqlMigrations:
                     raise PoiseError("Requirements revision/state changed; read fresh migration status before retrying")
                 ordered = (backend.to_apply(selected) if action == "apply" else backend.to_rollback(selected))
                 affected = [migration.id for migration in ordered]
-                for identity in affected:
-                    guard = guards.get(identity)
-                    if guard is not None:
-                        required = guard["before" if action == "apply" else "after"]
-                        if before.state_hash != required:
-                            raise PoiseError("Captured migration target changed; restore its captured state before applying SQL")
                 if action == "apply":
                     backend.apply_migrations(ordered)
                 else:
@@ -392,8 +682,9 @@ class RequirementsSqlMigrations:
                     tuple(requirement[column] for column in COLUMNS["requirements"]),
                 )
             for link in after["links"]:
-                preview.execute("INSERT OR IGNORE INTO requirement_links(system_id,application_id) VALUES(?,?)",
-                                (link["system"], link["application"]))
+                values = (link["system"], link["application"])
+                if list(values) not in before_tables["requirement_links"]:
+                    preview.execute("INSERT INTO requirement_links(system_id,application_id) VALUES(?,?)", values)
             after_tables = self.read_state(preview)["tables"]
             response = {"revision": snapshot.state["revision"] + 1, "replayed": False}
             return self._mutation(snapshot, preview, request, request_digest, response,

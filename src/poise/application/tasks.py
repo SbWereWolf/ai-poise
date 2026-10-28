@@ -957,6 +957,7 @@ class TaskCommands:
                 'registry': current_registry, 'previous_registry': previous_registry,
                 'registry_change': registry_change,
                 'executed_restart': executed_restart, 'restart_base': restart_base,
+                'restart_origin': deepcopy(newborn.restart_history[start]) if executed_restart else None,
                 'frozen_context_unchanged': frozen_context_unchanged,
                 'criteria_book': context['stage_criteria'],
                 'resolved_revision': resolved_revision, 'config_hash': effective_hash,
@@ -974,7 +975,7 @@ class TaskCommands:
             book = StageCriteriaBook.from_dict(candidate['criteria_book'])
             if candidate['executed_restart']:
                 book = book.revise_after_restart(task.route, task.stage_contracts,
-                    candidate['metadata']['restart_history'][-1], actor,
+                    candidate['restart_origin'], actor,
                     candidate['metadata']['contract'], candidate['creation'].requirements_context['snapshot'])
         else:
             if candidate['executed_restart']:

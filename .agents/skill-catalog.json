@@ -22,6 +22,7 @@
     {"id": "poise", "path": ".agents/skills/poise/SKILL.md", "purpose": "Coordinate project-selected task work and evidence.", "class": "meta", "level": null, "responsibility": null},
     {"id": "ponytail-review", "path": ".agents/skills/ponytail-review/SKILL.md", "purpose": "Review a requested simplification without replacing correctness or acceptance review.", "class": "meta", "level": null, "responsibility": null},
     {"id": "poise-development", "path": ".agents/skills/poise-development/SKILL.md", "purpose": "Apply Poise ownership boundaries and development rules.", "class": "common", "level": null, "responsibility": null},
+    {"id": "preflight", "path": ".agents/skills/preflight/SKILL.md", "purpose": "Prepare actual execution through saved capability and scoped instruction owners.", "class": "common", "level": null, "responsibility": null},
     {"id": "project-configuration", "path": ".agents/skills/project-configuration/SKILL.md", "purpose": "Change project configuration through its public owners and focused responsibility boundary.", "class": "working", "level": 1, "responsibility": "project-configuration"},
     {"id": "redis-queues", "path": ".agents/skills/redis-queues/SKILL.md", "purpose": "Implement queue processing and Redis ownership boundaries.", "class": "working", "level": 1, "responsibility": "queues"},
     {"id": "release-gate", "path": ".agents/skills/release-gate/SKILL.md", "purpose": "Evaluate an explicitly requested release readiness decision.", "class": "meta", "level": null, "responsibility": null},

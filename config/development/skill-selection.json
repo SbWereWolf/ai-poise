@@ -382,6 +382,10 @@
   ],
   "excluded": [
     {
+      "id": "preflight",
+      "reason": "Use when actual environment/instruction preparation is needed; registration and unchanged session state do not require an additional baseline procedure."
+    },
+    {
       "id": "jetbrains-ide",
       "reason": "Load for an actual supported IDE semantic or diagnostic operation using observed session capabilities, not for every documentation or Task operation."
     },

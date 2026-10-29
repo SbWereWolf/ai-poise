@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "revision": 1,
+  "requirements": [
+    {
+      "id": "DEMO-APP",
+      "level": "application",
+      "status": "current",
+      "text": "Учебное приложение правильно удваивает число."
+    },
+    {
+      "id": "DEMO-SYS",
+      "level": "system",
+      "status": "current",
+      "text": "Демонстрация сохраняет проверяемые результаты."
+    }
+  ],
+  "links": [
+    [
+      "DEMO-SYS",
+      "DEMO-APP"
+    ]
+  ],
+  "task_requirements": [
+    "double(n) возвращает n*2"
+  ]
+}

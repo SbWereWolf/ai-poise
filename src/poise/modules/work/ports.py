@@ -39,6 +39,7 @@ class StageHandoffPort(Protocol):
 
 
 class WorkRuntime(Protocol):
+    def requirements(self, request: dict) -> dict: ...
     stage_verification: StageVerificationPort
     stage_handoff: StageHandoffPort
     ownership: Any

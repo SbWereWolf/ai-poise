@@ -1,6 +1,6 @@
 # Библиотечный API — DDD-04B
 
-Обновлено: **2026-10-08**. Исходный срез **POISE-DDD-04B** и последующие API.
+Обновлено: **2026-10-30**. Исходный срез **POISE-DDD-04B** и последующие API.
 
 ## Именованные проверки проекта
 
@@ -160,15 +160,26 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
 
 # DDD-05: Sprint / Task publication
 
-Обновлено: **2026-09-06T22:58:21+05:00**.
+Обновлено: **2026-10-30**.
 
 - `SprintPolicy.parse`, `SprintPlan.create/apply`,
   `Sprint.draft/revise/publish/waive/update_dependencies/cancellation_scope/record_task_cancellation/cancel/overview`
   — чистый домен.
 - `SprintCommands.apply(packet)` — draft/publish/graph/cancellation, единый UnitOfWork.
-- `SprintCommands.read/select` — адресные проекции, snapshots и session scope.
-- `validate_creation(contract, workflow, automatic_checks)` и `build_task(metadata, actor)` — общая
-  проверка и сборка отдельной/планируемой Task, без I/O.
+- `SprintCommands.read/select` — адресные проекции, snapshots и session scope. Вид `current`
+  выбирает один полный снимок Sprint и его Task для проверки существующих newborn;
+  `plan` и `history` сохраняют компактные проекции. Объём внутреннего чтения `current`
+  включает контекст Task.
+- `validate_creation` принимает `contract`, `workflow`, `automatic_checks`,
+  `decomposition_policy`; `build_task(metadata, actor)` собирает отдельную/планируемую Task.
+  Проверка и сборка не выполняют I/O. Необязательные параметры `current_registry` и
+  `existing_contract` передаются только по имени; их значения по умолчанию — `None`.
+  Для повторной подготовки после исполнения владелец Task передаёт оба значения
+  из захваченного контекста. Первоначальное создание сохраняет строгую привязку входов.
+  Общий чистый расчёт использует актуальный кандидат и его журнал правок; данные
+  предварительной проверки не сохраняются как настоящие ready/publication receipts.
+  [Договор реестра и деклараций](../workflows/batch-work.md#реестр-после-перезапуска-task)
+  описывает допустимые изменения и восстановление.
 - `Task.planned`, `Task.start`, `TaskCommands.start` — незанятая задача и её начало через владельца.
 - `SqliteSprintRepository` — только свои таблицы, layers/receipts и составные FK. Публикация Task
   через TaskRepository.

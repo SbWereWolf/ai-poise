@@ -188,7 +188,10 @@ def requirements_storage(config_path):
     ), config
 
 
-def requirements_tools(config_path, *, read_only=False):
+def requirements_tools(config_path, *, read_only=True):
+    if read_only is not True:
+        from .modules.foundation.errors import PoiseError
+        raise PoiseError('Standalone requirements поддерживает только чтение; используйте work requirements для записи')
     from .application.requirements_registry import RequirementsCommands
     from .infrastructure.requirements_registry import RequirementsStore
     storage, config = requirements_storage(config_path)
@@ -198,12 +201,6 @@ def requirements_tools(config_path, *, read_only=False):
                                                  read_only=read_only,
                                                  read_wait=config['limits']['sqlite_read_seconds']),
                                 config['batch']['max_items']), config
-
-
-def migrate_requirements(config_path):
-    from .infrastructure.requirements_registry import RequirementsStore
-    storage, _ = requirements_storage(config_path)
-    return RequirementsStore.migrate(*storage)
 
 
 def goal_config_tools(settings_path):

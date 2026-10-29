@@ -1,0 +1,45 @@
+{
+  "late_method": {
+    "id": "LATE",
+    "argv": ["bash", "-c", "printf 'late-sprint-check\\n'"],
+    "cwd": ".",
+    "environment": {},
+    "source_under_test": {"kind": "repository", "bindings": [{"kind": "cwd", "path": "."}]},
+    "verification_plan": {
+      "responsibility": "Verify the actual Sprint member result through a genuinely late Bash method.",
+      "change_surface": ["src/**"],
+      "red_stages": [],
+      "green_stages": ["work"],
+      "red_failure": null
+    },
+    "expected_exit_code": 0,
+    "stdout_contains": ["late-sprint-check"],
+    "stderr_contains": []
+  },
+  "replacement_argv": ["bash", "-c", "printf 'revised-late-sprint-check\\n'"],
+  "ready_audit": {
+    "actor": "planner",
+    "new_revision": 2,
+    "previous_revision": 1,
+    "request_id": "publish-existing-late-sprint:A",
+    "stage": "work",
+    "iteration": 1,
+    "task": "A",
+    "methods": ["LATE"]
+  },
+  "claims_owned": {
+    "tasks": [["A", "restart-owner"], ["C", "independent-owner"]],
+    "worktrees": [["independent-owner", "C"], ["restart-owner", "A"]]
+  },
+  "claims_released": {
+    "tasks": [["C", "independent-owner"]],
+    "worktrees": [["independent-owner", "C"]]
+  },
+  "binding_error": "method_inputs binding mismatch",
+  "profile_error": "method CHECK: unsupported reference_profile",
+  "historical_refusals": {
+    "missing": "method_inputs binding mismatch: current historical declarations missing=['CHECK']; восстановите декларации через task/edit и повторите запрос",
+    "profile": "method CHECK: unsupported reference_profile {'parser': 'inline-no-path-arguments', 'runner': 'python', 'version': 999}; укажите поддержанный versioned profile"
+  },
+  "interruption": "Late Sprint member publication interrupted before commit"
+}

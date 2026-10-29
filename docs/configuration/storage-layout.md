@@ -45,7 +45,7 @@
 | Ресурс | Потребитель и назначение | Целевое размещение | Настройка и срок хранения |
 |---|---|---|---|
 | Task Store | Публичный `work`: задачи, спринты, история, сеансы | `D/tasks/tasks.sqlite` | `paths.state`, `paths.database`; постоянное, отдельно для проекта. |
-| Requirements Store | Публичный `requirements`, согласование и связи требований | `D/requirements/requirements.sqlite`; для ERP — `E/docs/foundations/requirements.sqlite` | `paths.requirements_database`; постоянное, выбор версионирования за пользователем. |
+| Requirements Store | Чтение `requirements`, запись через Task-owned `work.operation=requirements` и SQL-миграции | Явно выбранный `D/requirements/requirements.sqlite`; существующий ERP `E/docs/foundations/requirements.sqlite` — физически сохраняемый legacy-источник | `paths.requirements_database`; постоянное mutable-хранилище вне Git; в Git находятся SQL/rollback-пары. |
 | Телеметрия | Учёт наблюдённых событий, если включён | `D/telemetry/events.sqlite` | `accounting.storage.database`; необязательна, срок хранения задаёт её политика. |
 | Hook Registry | Обработчик `poise hook`, регистрации и операции хуков проекта | `D/codex-hook/sessions-runtime.sqlite` | `database` и `state` в настройках хуков; не отдельная БД каждого агента. |
 | Редактор этапов | Редактирование маршрута задачи, этапов и связей | `O/storage/workflow-stages/` | `database` в настройках редактора конфигурации целей; один экземпляр установки. |

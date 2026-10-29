@@ -1,15 +1,17 @@
 # Жизненный цикл хранилищ
 
-Актуализировано 20 октября 2026 года по реализации AI-poise. Это описание текущего контракта, не
+Актуализировано 29 октября 2026 года по реализации AI-poise. Это описание текущего контракта, не
 разрешение на перенос данных или новую миграцию. Датированные архитектурные эскизы и старые
 протоколы проверок остаются историей.
 
 ## Владельцы и версии
 
 Пакетный [Requirements CRUD](../workflows/requirements-registry.md#пакетный-crud)
-использует существующий RequirementsStore и его транзакцию/receipt, не отдельную
-БД или connection owner. Query читает единый snapshot; Command атомарно сохраняет
-предметные строки, revision и квитанцию. Task snapshots остаются у Task DB.
+читает через RequirementsStore, а пишет через буквальные SQL-пары активной Task
+и обычный yoyo. Query читает единый snapshot; предметные строки, revision и
+квитанция Command входят в одну транзакцию SQL-тела. Учёт yoyo может фиксироваться
+отдельно — действует [ручное восстановление](../workflows/requirements-registry.md#ошибка-записи-статуса-yoyo).
+Task snapshots остаются у Task DB.
 
 Номер `PRAGMA user_version` принадлежит конкретному SQLite-файлу. Строка конфигурации
 `ddd-accounting-12` — другой контракт; её нельзя менять на основании номера SQLite schema.
@@ -17,7 +19,7 @@
 | Хранилище и владелец | Текущая schema | Явное расположение | Создание и допустимое изменение версии |
 |---|---|---|---|
 | Task DB: Task/Sprint, execution, Evidence, Ownership и authoritative accounting через общую Unit of Work | 13 | `paths.database` и `paths.lock` внутри настроенного `paths.state` | Пустая schema 0 создаётся; известная 12 проходит только описанный ниже ownership upgrade. Остальные несовместимые версии отклоняются. |
-| Requirements DB: канонические System/Application требования, области, имена и связи | 2 | `paths.requirements_database` и `paths.requirements_lock`; относительные значения — от `paths.state`, абсолютные — точно | Пустая schema 0 создаётся в версии 2; schema 1 обновляется только явной операцией `migrate`. Обычное открытие несовместимой версии отклоняется. |
+| Requirements DB: канонические System/Application требования, области, имена и связи | 2 | `paths.requirements_database` и `paths.requirements_lock`; относительные значения — от `paths.state`, абсолютные — точно; mutable-файлы вне Git | Пустая БД создаётся отдельными начальными DDL/DML-парами обычного yoyo; открытие само схему не создаёт. Историческая schema 1 обновляется явным Task-owned `migrate` через SQL-пару; несовместимое открытие отклоняется. |
 | Optional telemetry: необязательные измерения, отдельно от authoritative Task accounting | Общая SQLite schema 13 при ленивой инициализации | `accounting.storage.database` и `accounting.storage.lock`, отдельно от Task и Requirements | Используется общий `Database`, но его создание отложено до работы worker. Необязательная телеметрия не должна блокировать основной результат. |
 | HookRegistry: установки, bindings, операции и hook events | 1 | `database` и `lock` настроек hook transport | Пустая schema 0 создаётся; несовместимая версия отклоняется. Эти записи не заменяют Task ownership. |
 | Goal/config editor: операции редактирования и heads конфигураций | 1 | `database` и `lock` настроек редактора относительно его root | Пустая schema 0 создаётся; несовместимая версия отклоняется. Состояние редактора не является вторым владельцем Task. |
@@ -29,7 +31,7 @@
 [GoalConfigRepository](../../src/poise/infrastructure/goal_config.py). Project-config сохраняет
 собственные pending/operation receipts в файлах; это не ещё одна каноническая Task DB.
 
-Обычные Task-пути и специализированный Requirements apply сначала получают короткий
+Обычные Task-пути сначала получают короткий
 согласованный снимок исходных строк. Полная доменная подготовка выполняется после
 закрытия этого снимка и project fence. Окончательная запись использует общий механизм:
 собственный flock хранилища → `BEGIN IMMEDIATE` → квитанция запроса, проверка актуальных
@@ -37,7 +39,7 @@
 Чтение-подготовка не повышается в пишущую транзакцию. Существующий пакетный Requirements
 Query/Command сохраняет [свой транзакционный контракт](../workflows/requirements-registry.md#конкурентная-запись).
 
-Повторяются только SQL-границы `BEGIN IMMEDIATE`/`COMMIT` при `SQLITE_BUSY`, не тело
+Для этих Task-операций повторяются только SQL-границы `BEGIN IMMEDIATE`/`COMMIT` при `SQLITE_BUSY`, не тело
 операции. `lock_seconds` — отдельный бюджет каждого ожидания flock, BEGIN и COMMIT,
 не общий timeout запроса. При исчерпании COMMIT-бюджета выполняется rollback.
 Семантический конфликт возвращается вызывающему коду для явного согласованного повтора.

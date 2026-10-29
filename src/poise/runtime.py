@@ -125,7 +125,7 @@ class Poise:
             limits['lock_seconds'],
             limits['lock_poll_seconds'],
             self.project_fence,
-            read_only=read_only,
+            read_only=True,
             read_wait=limits['sqlite_read_seconds'],
         )
         self.requirements_commands = RequirementsCommands(
@@ -932,6 +932,108 @@ class Poise:
             raise PoiseError('Нет текущей задачи; сначала bootstrap с явной задачей')
         return task
 
+    def _requirements_sql(self, task):
+        from .infrastructure.requirements_sql_migrations import RequirementsSqlMigrations
+        settings = self.cfg.get('requirements_migrations')
+        required = ('schema', 'schema_directory', 'data_directory', 'initial_directory')
+        if not isinstance(settings, dict) or any(
+            type(settings.get(key)) is not str or not settings[key] for key in required
+        ):
+            raise PoiseError('Requirements migration configuration requires schema and all explicit directories')
+        if settings['schema'] != 'requirements-sql-1':
+            raise PoiseError('Unsupported Requirements migration schema version; select requirements-sql-1')
+        if not task.get('worktree'):
+            raise PoiseError('Requirements migration writes require a managed Task worktree')
+        workspace = Path(task['worktree']).resolve()
+        directories = []
+        for key in ('schema_directory', 'data_directory'):
+            relative = Path(settings[key])
+            path = (workspace / relative).resolve()
+            if relative.is_absolute() or not path.is_relative_to(workspace) or path == workspace:
+                raise PoiseError('Requirements migration directory escapes the actual Task scope')
+            directories.append(path)
+        if directories[0].is_relative_to(directories[1]) or directories[1].is_relative_to(directories[0]):
+            raise PoiseError('Requirements schema/data directories must be distinct and must not overlap')
+        initial = Path(settings['initial_directory'])
+        if not initial.is_absolute():
+            initial = workspace / initial
+        initial = initial.resolve()
+        if any(initial.is_relative_to(path) or path.is_relative_to(initial) for path in directories):
+            raise PoiseError('Initial SQL and Task schema/data directories must be separate and non-overlapping')
+        limits = self.cfg['limits']
+        sql = RequirementsSqlMigrations(self.requirements_store.database, self.requirements_store.lock,
+            limits['lock_seconds'], limits['lock_poll_seconds'], limits['sqlite_read_seconds'],
+            directories[0], directories[1], initial.resolve())
+        sql.validate_directory(initial.resolve(), role='initial')
+        return sql
+
+    def require_requirements_scope(self, task, sql, identities, *, writing=True):
+        stage = self._stage(task)
+        if (task['claimed_by'] != self.session
+                or writing and (task['status'] != 'active' or stage['read_only'])):
+            raise PoiseError('Requirements writes require the active writable Task owner')
+        workspace = Path(task['worktree']).resolve()
+        if self._git(workspace, 'symbolic-ref', '--short', 'HEAD') != task['branch']:
+            raise PoiseError('Requirements Task worktree is on another branch; restore the Task branch')
+        allowed = task['contract']['stage_contracts'][task['stage_index']]['allowed_paths']
+        for role, identity in identities:
+            directory = sql.schema_directory if role == 'schema' else sql.data_directory
+            for suffix in ('.sql', '.rollback.sql'):
+                path = (directory / (identity + suffix)).relative_to(workspace).as_posix()
+                if not any(matches_allowed_path(path, pattern) for pattern in allowed):
+                    raise PoiseError('Requirements migration publication is outside the actual Task allowed scope')
+
+    def _requirements_task(self, expected):
+        task = self.current_task()
+        if task is None or task['claimed_by'] != self.session:
+            raise PoiseError('Requirements writes require an active bound Task owner')
+        if expected is not None and any(task[key] != expected[key] for key in ('id', 'stage_index', 'status')):
+            raise PoiseError('Task или её этап изменились; выполните work show kind=task и повторите операцию в текущем этапе')
+        return task
+
+    def _require_requirements_completion(self, data):
+        if data.get('requirements_migrations') is None:
+            return
+        from .application.requirements_migrations import TaskRequirementsMigrations
+        with self.project_fence.locked():
+            data = self._requirements_task(data)
+            sql = self._requirements_sql(data)
+            TaskRequirementsMigrations(self, data, sql).require_completion()
+
+    def _prepare_requirements_completion(self, data, payload):
+        if data.get('requirements_migrations') is None:
+            return
+        if self._stage(data)['read_only'] or data['pending'] is not None:
+            self._require_requirements_completion(data)
+            return
+        from .application.requirements_migrations import TaskRequirementsMigrations
+        with self.project_fence.locked():
+            data = self._requirements_task(data)
+            sql = self._requirements_sql(data)
+            with sql.locked():
+                owner = TaskRequirementsMigrations(self, data, sql)
+                plan = owner.plan_completion()
+                if plan is None:
+                    return
+                self.validate_stage_result(data['id'], payload)
+                scope = self.validate_stage_scope(data)
+                checkpoint = self._prepare_verification_commit(
+                    data, scope['tree'], scope['changed'], payload['commit_message'])
+                owner.prepare_completion(plan, checkpoint)
+
+    def requirements(self, request):
+        if not isinstance(request, dict) or set(request) != {'operation', 'input'} or not isinstance(request['input'], dict):
+            raise PoiseError('Requirements packet requires operation and input')
+        if request['operation'] == 'query':
+            if set(request['input']) != {'queries'}:
+                raise PoiseError('Requirements query input requires queries')
+            return {'status': 'read_only', **self.requirements_commands.query(request['input']['queries'])}
+        from .application.requirements_migrations import TaskRequirementsMigrations
+        with self.project_fence.locked():
+            task = self._requirements_task(None)
+            sql = self._requirements_sql(task)
+            return TaskRequirementsMigrations(self, task, sql).execute(request)
+
     def _stage(self, task: dict) -> dict:
         return task['workflow']['stages'][task['stage_index']]
 
@@ -1154,8 +1256,12 @@ class Poise:
             raise PoiseError(
                 f"Task {data['id']} worktree setup remains recoverable; repeat the same creation request: {exc}"
             ) from exc
+        updates = {'pending': None, 'entry_tree': tree}
+        if 'requirements_migrations' in self.cfg:
+            from .application.requirements_migrations import TaskRequirementsMigrations
+            updates['requirements_migrations'] = TaskRequirementsMigrations.capture_entry(self._requirements_sql(data))
         with self.store.unit_of_work() as uow:
-            uow.execution.patch(data['id'],{'pending':None,'entry_tree':tree})
+            uow.execution.patch(data['id'], updates)
 
     @duplicate_admission
     def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False, preparation_request_id: str | None = None) -> dict:
@@ -1325,6 +1431,7 @@ class Poise:
             entry_tree = self._current_tree(data)
             if decision == 'continue':
                 self._require_report_identity(data)
+                self._require_requirements_completion(data)
                 state = self.runner.accept(data['id'], self.session, True, entry_tree,force_duplicate_start=force_duplicate_start)
                 data = self.task_queries.record(data['id'])
                 if state.status == 'completed':
@@ -1372,6 +1479,7 @@ class Poise:
 
     def accept(self) -> dict:
         data = self._task()
+        self._require_requirements_completion(data)
         self.require_closed_drafts(data['id'])
         if data.get('duplicate_reuse') is not None:
             from .application.duplicate_reuse import DuplicateReuseCommands
@@ -1604,6 +1712,7 @@ class Poise:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
+            self._require_requirements_completion(data)
             self.retention.validate_bundle(data, data['last_report'])
             self._require_report_identity(data)
             if packet_digest is not None and self.work_resources.packet(data)!=packet_digest:
@@ -1624,6 +1733,9 @@ class Poise:
         gate = self.validate_stage_entry(data)
         if not gate['passed']:
             raise PoiseError('stage entry requirements are no longer satisfied')
+        scope_state = self.validate_stage_scope(data)
+        self._prepare_requirements_completion(data, payload)
+        data = self._task()
         scope_state = self.validate_stage_scope(data)
         tree = scope_state['tree']
         changed = scope_state['changed']

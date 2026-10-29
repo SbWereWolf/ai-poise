@@ -231,7 +231,8 @@ class TaskCommands:
         if candidate != saved['contract']:
             raise DomainError('Existing task contract is immutable; bootstrap is not an editor')
 
-    def prepare_creation(self, intent, workflow, automatic_checks, base_revision, decomposition_policy, *, current_registry=None):
+    def prepare_creation(self, intent, workflow, automatic_checks, base_revision, decomposition_policy, *,
+                         current_registry=None, existing_contract=None):
         return self._prepare_creation(
             intent,
             workflow,
@@ -240,6 +241,7 @@ class TaskCommands:
             decomposition_policy,
             self.requirements_gate.prepare_contract,
             current_registry=current_registry,
+            existing_contract=existing_contract,
         )
 
     def _prepare_restarted_creation(
@@ -258,11 +260,12 @@ class TaskCommands:
                 persisted_context["requirements_agreement"],
             ),
             current_registry=current_registry,
+            existing_contract=persisted_context["contract"],
         )
 
     def _prepare_creation(
         self, intent, workflow, automatic_checks, base_revision, decomposition_policy, prepare_requirements,
-        *, current_registry=None
+        *, current_registry=None, existing_contract=None
     ):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
@@ -271,10 +274,13 @@ class TaskCommands:
         intent, requirements_context = prepare_requirements(intent)
         candidate, _ = materialize_contract(intent, creation_alias(intent))
         try:
-            preflight = CreationPreflight.parse(candidate, workflow)
+            preflight = (CreationPreflight.parse(candidate, workflow) if existing_contract is None else
+                         CreationPreflight.parse_existing(candidate, workflow, current_registry=current_registry,
+                                                          existing_contract=existing_contract))
         except KeyError as exc:
             validate_creation(
-                candidate, workflow, automatic_checks, decomposition_policy, current_registry=current_registry
+                candidate, workflow, automatic_checks, decomposition_policy, current_registry=current_registry,
+                existing_contract=existing_contract
             )
             raise DomainError(
                 f"Task creation preflight requires field {exc.args[0]!r}"
@@ -285,7 +291,7 @@ class TaskCommands:
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
         validate_creation(candidate, workflow, automatic_checks, decomposition_policy,
-                          current_registry=current_registry)
+                          current_registry=current_registry, existing_contract=existing_contract)
         return PreparedCreation(
             source_intent,
             deepcopy(intent),
@@ -681,9 +687,12 @@ class TaskCommands:
         parsed = TaskStageContracts.parse(contracts, task.route, task.content_policy)
         from ..modules.tasks.creation_preflight import CreationPreflight
         context = inputs.restart_context(task_id)
-        CreationPreflight.parse(
+        if not isinstance(context['contract'], dict):
+            raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
+        CreationPreflight.parse_existing(
             {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
             context["workflow"],
+            current_registry=task.check_registry, existing_contract=context["contract"],
         )
         change = task.initialize_stage_contracts(parsed)
         prepared = facade.prepare_stage_contract_change(inputs, change, audit)
@@ -709,6 +718,8 @@ class TaskCommands:
         inputs = facade.capture(TaskReadSet((task_id,), actors=(actor,)))
         task = inputs.task(task_id)
         context = inputs.restart_context(task_id)
+        if not isinstance(context['contract'], dict):
+            raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
         if context['contract'].get('planning') is not None:
             raise DomainError('Frozen Task planning contract requires authorized restart')
         old = task._require_stage_contracts().stage(stage_id).to_dict()
@@ -745,9 +756,10 @@ class TaskCommands:
         ]
         parsed = TaskStageContracts.parse(candidate, task.route, task.content_policy)
         from ..modules.tasks.creation_preflight import CreationPreflight
-        CreationPreflight.parse(
+        CreationPreflight.parse_existing(
             {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
             context["workflow"],
+            current_registry=task.check_registry, existing_contract=context["contract"],
         )
         release = prepare_actor_release(facade, inputs, actor, task_id)
         replacement = parsed.stage(stage_id)
@@ -850,6 +862,9 @@ class TaskCommands:
         sprint_snapshot = None if newborn.sprint_id is None else inputs.sprint(newborn.sprint_id)
         execution_snapshot = inputs.execution(task_id) if inputs.execution(task_id) is not None else None
         executed_restart = any(item.get('from_status') != 'newborn' for item in newborn.restart_history)
+        existing_contract = context['contract'] if executed_restart else None
+        if executed_restart and not isinstance(existing_contract, dict):
+            raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
         effective_hash = context['config_hash'] if executed_restart else config_hash
         effective_checks = automatic_checks
         effective_decomposition = decomposition_policy
@@ -903,11 +918,13 @@ class TaskCommands:
                 base_revision,
                 effective_decomposition,
                 current_registry=current_registry,
+                existing_contract=existing_contract,
             )
         metadata = validate_creation(
             prepared.intent, newborn.workflow, effective_checks,
             effective_decomposition,
             current_registry=current_registry,
+            existing_contract=existing_contract,
         )
         metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
         if newborn.creation_request is not None:

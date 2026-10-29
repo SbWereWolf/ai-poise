@@ -134,5 +134,8 @@
   "delta-retained-git-and-source-sentinel": [
     "tests/accounting/test_agent_metrics_retained_analysis.py::test_paired_git_result_targets_survive_source_retirement",
     "tests/accounting/test_agent_metrics_retained_analysis.py::test_changed_parser_requires_explicit_source_reprocess"
+  ],
+  "delta-policy-reactivation-diagnostic": [
+    "tests/accounting/test_agent_metrics_retained_analysis.py::test_reactivated_purpose_policy_is_persisted_and_repeat_is_noop"
   ]
 }

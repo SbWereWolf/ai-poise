@@ -13,10 +13,13 @@ from tests.accounting.test_agent_metrics_updated_contracts import observed_stop
 from tests.accounting.test_agent_metrics_storage import arrange_historical_store
 
 
-def prepared_scene(project, tmp_path, source="complete", *, timezone=None):
+def prepared_scene(project, tmp_path, source="complete", *, timezone=None, purpose=None):
     scene = MetricsScene(project, tmp_path)
     if timezone is not None:
         scene.policy["accounting"]["timezone"] = timezone
+        scene.policy_path.write_text(json.dumps(scene.policy))
+    if purpose is not None:
+        scene.policy["analyses"]["purpose"] = replace_tokens(purpose, scene.tokens)
         scene.policy_path.write_text(json.dumps(scene.policy))
     scene.source(source)
     if source == "complete":
@@ -101,6 +104,68 @@ def test_saved_normalized_targets_reclassify_without_raw_source(project, tmp_pat
                 assert b'PRIVATE_F16_ASSISTANT' not in raw
                 assert b'"arguments"' not in raw
                 assert b'"input": "{' not in raw
+    finally:
+        scene.close()
+
+
+def test_reactivated_purpose_policy_is_persisted_and_repeat_is_noop(project, tmp_path):
+    scene = prepared_scene(project, tmp_path, purpose=literal("updated-purpose-policy.json"))
+    try:
+        policy_a = deepcopy(scene.policy["analyses"]["purpose"])
+        trace = source_trace(scene, "policy-reactivation-source-opens.jsonl")
+        readers = []
+
+        def read(family, kind):
+            request = literal("query.json")
+            request["scope"]["id"] = scene.session
+            request["view"].update(family=family, kind=kind)
+            actual = scene.cli(request, trace_sources=trace)
+            assert actual["reached"] == ["real-poise-module-entry"]
+            assert actual["exit_code"] == 0
+            readers.append(actual["pid"])
+            value = json.loads(actual["stdout"])
+            assert value["scope"] == {"kind": "session", "id": scene.session}
+            return value
+
+        def purpose_state(expected, label):
+            observed = read("aggregate-readouts", "derived")
+            assert_measurements(observed, literal(expected))
+            scene.record({"kind": "policy-reactivation-state", "label": label,
+                          "pid": readers[-1], "result": observed})
+
+        purpose_state("expected-policy-reactivation-main.json", "initial-A")
+        usage = read("usage-current", "facts")
+        assert_measurements(usage, literal("expected-usage-complete.json"))
+        scene.transcript_path.unlink()
+
+        scene.policy["analyses"]["purpose"]["exclude"] = ["**"]
+        scene.policy_path.write_text(json.dumps(scene.policy))
+        selected_b = admitted(scene, public_packet(scene, "reclassify"), trace=trace)
+        assert selected_b["status"] == "completed" and selected_b["changed"] == 1
+        purpose_state("expected-policy-reactivation-auxiliary.json", "selected-B")
+        assert read("usage-current", "facts")["metrics"] == usage["metrics"]
+
+        scene.policy["analyses"]["purpose"] = deepcopy(policy_a)
+        scene.policy_path.write_text(json.dumps(scene.policy))
+        selected_a = admitted(scene, public_packet(scene, "reclassify"), trace=trace)
+        assert selected_a["status"] == "completed" and selected_a["changed"] == 1
+        purpose_state("expected-policy-reactivation-main.json", "reactivated-A")
+        assert read("usage-current", "facts")["metrics"] == usage["metrics"]
+        stored = committed_observations(scene.metrics / "observed.sqlite")
+
+        repeated_a = admitted(scene, public_packet(scene, "reclassify"), trace=trace)
+        assert repeated_a["status"] == "completed" and repeated_a["changed"] == 0
+        assert committed_observations(scene.metrics / "observed.sqlite") == stored
+        purpose_state("expected-policy-reactivation-main.json", "repeated-A")
+
+        scene.policy["analyses"].pop("purpose")
+        scene.policy_path.write_text(json.dumps(scene.policy))
+        purpose_state("expected-policy-reactivation-main.json", "A-without-policy-or-source")
+        assert read("usage-current", "facts")["metrics"] == usage["metrics"]
+        assert committed_observations(scene.metrics / "observed.sqlite") == stored
+        assert len(readers) == len(set(readers)), "F16_POLICY_REACTIVATION_READER_NOT_FRESH"
+        assert not scene.transcript_path.exists()
+        assert not (scene.parent / "policy-reactivation-source-opens.jsonl").exists()
     finally:
         scene.close()
 

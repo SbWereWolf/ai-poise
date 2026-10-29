@@ -170,9 +170,11 @@ present self-review as independent review.
 Turn every accepted agreement into product documentation. Maintain the [known-bugs
 register](docs/operations/known-bugs.md#ведение-реестра): remove a resolved active entry in the same
 verified fix; keep
-history in Git/evidence, and never call an accepted risk fixed. This does not require creating a
-Task for an explicitly
-authorized small direct correction. Only agents receive summarized tool output. Any tool response
+history in Git/evidence, and never call an accepted risk fixed. Link every confirmed defect to an
+existing Task or a registered repair draft and its owner's known-bugs entry; a journal alone is
+insufficient. Repeated incidents reuse those records. Registration does not authorize repair,
+new business logic or expansion of a migration, including for a small correction.
+Only agents receive summarized tool output. Any tool response
 consumed by code
 of another tool preserves complete stdout, stderr and structured fields regardless of display
 limits. Agent

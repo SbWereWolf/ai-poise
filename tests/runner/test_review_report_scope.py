@@ -255,6 +255,7 @@ def plan_text(actor):
                          ids=["clean", "negative", "negative-report-rework"])
 def test_public_report_acceptance_preserves_subject_and_internal_history(project, negative, repair):
     records = fixture("records.json")
+    expected = fixture("expected-public-history.json")
     source = project["app"] / "src/double.py"
     source_bytes = source.read_bytes()
     source_head = git(project["app"], "rev-parse", "refs/heads/main")
@@ -270,11 +271,15 @@ def test_public_report_acceptance_preserves_subject_and_internal_history(project
     text = records["negative_report"] if negative else records["clean_report"]
     observed = submit(executor, context, inspection([records["external"]] if negative else []), text)
     assert observed["stage_outcome"] == ("changes_requested" if negative else "clear")
+    assert observed["feedback"]["findings"] == (expected["findings"][:1] if negative else [])
     context = transfer(executor, reviewer)
     assert context["stage"] == "audit_report"
     if repair:
         rejected = submit(reviewer, context, inspection([records["report"]]), "Missing report evidence.")
         assert rejected["stage_outcome"] == "changes_requested"
+        assert rejected["feedback"]["findings"] == expected["findings"]
+        assert rejected["feedback"]["resolutions"] == []
+        assert rejected["feedback"]["decisions"] == []
         assert [f["id"] for f in rejected["feedback"]["open_findings"]] == ["EXTERNAL", "REPORT"]
         for number, decision in ((1, "rejected"), (2, "accepted")):
             context = transfer(reviewer, executor, target="review_subject")
@@ -282,6 +287,10 @@ def test_public_report_acceptance_preserves_subject_and_internal_history(project
             assert plan_text(executor) == records["accepted_plan"]
             resolution = dict(records["resolution"], id=f"REPORT-R{number}")
             proposed = submit(executor, context, inspection(resolutions=[resolution]), text)
+            assert proposed["feedback"]["findings"] == expected["findings"]
+            assert proposed["feedback"]["resolutions"] == expected["resolutions"][:number]
+            assert proposed["feedback"]["decisions"] == expected["decisions"][:number - 1]
+            assert proposed["feedback"]["pending_resolutions"] == expected["resolutions"][number - 1:number]
             assert [r["finding_id"] for r in proposed["feedback"]["pending_resolutions"]] == ["REPORT"]
             assert [f["id"] for f in proposed["feedback"]["open_findings"]] == ["EXTERNAL", "REPORT"]
             context = transfer(executor, reviewer)
@@ -291,13 +300,11 @@ def test_public_report_acceptance_preserves_subject_and_internal_history(project
                 "reason": "The independent fixture checks the current report evidence.",
             }]), text)
             assert reviewed["stage_outcome"] == ("clear" if number == 2 else "changes_requested")
+            assert reviewed["feedback"]["findings"] == expected["findings"]
+            assert reviewed["feedback"]["resolutions"] == expected["resolutions"][:number]
+            assert reviewed["feedback"]["decisions"] == expected["decisions"][:number]
+            assert reviewed["feedback"]["pending_resolutions"] == []
         history = reviewed["feedback"]
-        assert [(r["id"], r["finding_id"]) for r in history["resolutions"]] == [
-            ("REPORT-R1", "REPORT"), ("REPORT-R2", "REPORT"),
-        ]
-        assert [(r["resolution_id"], r["decision"]) for r in history["decisions"]] == [
-            ("REPORT-R1", "rejected"), ("REPORT-R2", "accepted"),
-        ]
         assert [f["id"] for f in history["open_findings"]] == ["EXTERNAL"]
     else:
         reviewed = submit(reviewer, context, inspection(), text)
@@ -309,8 +316,9 @@ def test_public_report_acceptance_preserves_subject_and_internal_history(project
     assert state["workflow"]["visits"]["audit_report"] == (3 if repair else 1)
     completed = call(reviewer, "accept")
     assert completed["status"] == "completed"
-    assert [f["id"] for f in completed["feedback"]["findings"]] == (
-        ["EXTERNAL", "REPORT"] if repair else ["EXTERNAL"] if negative else [])
+    assert completed["feedback"]["findings"] == expected["findings"][:2 if repair else 1 if negative else 0]
+    assert completed["feedback"]["resolutions"] == (expected["resolutions"] if repair else [])
+    assert completed["feedback"]["decisions"] == (expected["decisions"] if repair else [])
     assert [f["id"] for f in completed["feedback"]["open_findings"]] == (["EXTERNAL"] if negative else [])
     assert completed["feedback"]["pending_resolutions"] == []
     assert source.read_bytes() == source_bytes

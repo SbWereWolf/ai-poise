@@ -385,6 +385,9 @@ python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-review
 analysis, profiling, environment_diagnostics, environment_remediation, documentation,
 task_planning, integration. `--scenario short|feedback` выбирается явно.
 Создаются только учебные репозитории и bare remote, сеть не нужна.
+Собственная новая БД учебных требований заполняется до открытия query-only reader;
+порядок и границы описаны в
+[подготовке учебного реестра](../workflows/runnable-examples.md#подготовка-учебного-реестра-требований).
 Исходные тексты приложения меняет сценарный драйвер нативно; служебные Task/Sprint состояния
 создаются через публичные API, не SQL. Fault-injection tests используют SQL только для установки
 заведомо аварийного trigger, а не подстановки будущего бизнес-состояния.

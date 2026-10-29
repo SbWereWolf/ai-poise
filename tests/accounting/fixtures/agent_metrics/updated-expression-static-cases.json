@@ -1,0 +1,2390 @@
+[
+  {
+    "id": "purpose_expression_contracts::test_literal_array_map_and_slice_preserve_target_roles::16-0",
+    "language": "javascript",
+    "source": "const p=[\"tasks/a.txt\",\"tasks/b.txt\"].map(x=>\"cat \"+x);for(const cmd of p){await tools.exec_command({cmd});}",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 16
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_array_map_and_slice_preserve_target_roles::16-1",
+    "language": "javascript",
+    "source": "const p=[\"src/a.py\"].map(x=>\"cat \"+x);for(const cmd of p){await tools.exec_command({cmd});}",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 16
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_array_map_and_slice_preserve_target_roles::16-2",
+    "language": "javascript",
+    "source": "const p=load(\"packet\");await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify({items:p.slice(0,6)},null,2)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 16
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_array_map_and_slice_preserve_target_roles::16-3",
+    "language": "javascript",
+    "source": "const p=load(\"packet\");p.report=\"new text\";await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 16
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_array_map_and_slice_preserve_target_roles::16-4",
+    "language": "javascript",
+    "source": "const p=[\"tasks/a.txt\"].map(x=>fetch(x));await tools.exec_command({cmd:p.join(\" \")});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 16
+  },
+  {
+    "id": "purpose_expression_contracts::test_immediate_literal_map_executes_but_callback_storage_does_not::25-0",
+    "language": "javascript",
+    "source": "const paths=[\"tasks/a.txt\",\"tasks/b.txt\"];await Promise.all(paths.map(async p=>{await tools.exec_command({cmd:\"cat \"+p});}));",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 25
+  },
+  {
+    "id": "purpose_expression_contracts::test_immediate_literal_map_executes_but_callback_storage_does_not::25-1",
+    "language": "javascript",
+    "source": "const paths=[\"src/a.py\"];await Promise.all(paths.map(p=>tools.exec_command({cmd:\"cat \"+p})));",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 25
+  },
+  {
+    "id": "purpose_expression_contracts::test_immediate_literal_map_executes_but_callback_storage_does_not::25-2",
+    "language": "javascript",
+    "source": "const f=p=>tools.exec_command({cmd:\"cat src/a.py\"});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 25
+  },
+  {
+    "id": "purpose_expression_contracts::test_immediate_literal_map_executes_but_callback_storage_does_not::25-3",
+    "language": "javascript",
+    "source": "const f=()=>[\"src/a.py\"].map(p=>tools.exec_command({cmd:\"cat \"+p}));",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 25
+  },
+  {
+    "id": "purpose_expression_contracts::test_immediate_literal_map_executes_but_callback_storage_does_not::25-4",
+    "language": "javascript",
+    "source": "if(false){[\"src/a.py\"].map(p=>tools.exec_command({cmd:\"cat \"+p}));}",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 25
+  },
+  {
+    "id": "purpose_expression_contracts::test_immediate_literal_map_executes_but_callback_storage_does_not::25-5",
+    "language": "javascript",
+    "source": "const paths=load(\"paths\");await Promise.all(paths.map(p=>tools.exec_command({cmd:\"cat \"+p})));",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 25
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-0",
+    "language": "shell",
+    "source": "bash platform-infrastructure/tools/configured-test-runtime.sh composer planning-workspace format:check app/Page.php",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-1",
+    "language": "shell",
+    "source": "node platform-infrastructure/tools/local-dev.mjs commands --json --repository-root \"$PWD\"",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-2",
+    "language": "shell",
+    "source": "node platform-infrastructure/tools/local-dev.mjs check --resource ports --repository-root \"$UNKNOWN\"",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-3",
+    "language": "shell",
+    "source": "unzip -p src/release.zip README.md",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-4",
+    "language": "shell",
+    "source": "unzip -p tasks/release.zip src/a.py",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-5",
+    "language": "shell",
+    "source": "ast-index outline src/a.py",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-6",
+    "language": "shell",
+    "source": "cat tasks/a.txt | bash -n",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_repository_wrappers_use_actual_input_contracts::35-7",
+    "language": "shell",
+    "source": "git check-ref-format refs/heads/master",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 35
+  },
+  {
+    "id": "purpose_expression_contracts::test_unknown_python_branch_requires_all_possible_targets_auxiliary::48-0",
+    "language": "python",
+    "source": "from pathlib import Path; p=\"tasks/a.txt\"\nif unknown: print(Path(p).read_text())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 48
+  },
+  {
+    "id": "purpose_expression_contracts::test_unknown_python_branch_requires_all_possible_targets_auxiliary::48-1",
+    "language": "python",
+    "source": "from pathlib import Path\nif unknown: print(Path(\"src/a.py\").read_text())",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 48
+  },
+  {
+    "id": "purpose_expression_contracts::test_unknown_python_branch_requires_all_possible_targets_auxiliary::48-2",
+    "language": "python",
+    "source": "from pathlib import Path\nif unknown: print(Path(\"tasks/a.txt\").read_text())\nelse: print(Path(\"src/a.py\").read_text())",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 48
+  },
+  {
+    "id": "purpose_expression_contracts::test_unknown_python_branch_requires_all_possible_targets_auxiliary::48-3",
+    "language": "python",
+    "source": "from pathlib import Path\nif Path(\"src/a.py\").exists(): print(\"yes\")",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 48
+  },
+  {
+    "id": "purpose_expression_contracts::test_unknown_python_branch_requires_all_possible_targets_auxiliary::48-4",
+    "language": "python",
+    "source": "if unknown: custom_action()",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 48
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-0",
+    "language": "shell",
+    "source": "for p in tasks/a.txt tasks/b.txt; do cat \"$p\"; done",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-1",
+    "language": "shell",
+    "source": "for p in src; do cat \"$p/a.py\"; done",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-2",
+    "language": "shell",
+    "source": "for p in \"tasks/a file.txt\"; do cat \"$p\"; done",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-3",
+    "language": "shell",
+    "source": "for p in $UNKNOWN; do cat \"$p\"; done",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-4",
+    "language": "shell",
+    "source": "if test -e tasks/a.txt; then cat tasks/b.txt; else printf missing; fi",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-5",
+    "language": "shell",
+    "source": "if test -e tasks/a.txt; then cat src/a.py; fi",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-6",
+    "language": "shell",
+    "source": "if test -e src/a.py; then printf exists; fi",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-7",
+    "language": "shell",
+    "source": "cat src/a.py; while unknown; do custom; done",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-8",
+    "language": "shell",
+    "source": "cat tasks/a.txt; while unknown; do custom; done",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_bounded_shell_loops_and_conditional_targets::58-9",
+    "language": "shell",
+    "source": "for p in tasks; do if test -d \"$p\"; then if test -f \"$p/a.txt\"; then cat \"$p/a.txt\"; fi; fi; done",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 58
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-0",
+    "language": "python",
+    "source": "import sys; print(sys.stdin.buffer.read().decode())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-1",
+    "language": "python",
+    "source": "import zipfile; z=zipfile.ZipFile(\"src/release.zip\"); print(z.read(\"tasks/a.py\"))",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-2",
+    "language": "python",
+    "source": "import zipfile; z=zipfile.ZipFile(\"tasks/release.zip\"); print(z.read(\"src/a.py\"))",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-3",
+    "language": "python",
+    "source": "import io,zipfile,sys; z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); print(z.namelist())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-4",
+    "language": "python",
+    "source": "f=open(\"tasks/a.txt\"); print(f.read())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-5",
+    "language": "python",
+    "source": "f=custom(); print(f.read())",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-6",
+    "language": "python",
+    "source": "import zipfile; z=zipfile.ZipFile(\"tasks/a.zip\"); z.extractall(\"src\")",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-7",
+    "language": "python",
+    "source": "import zipfile; z=zipfile.ZipFile(\"tasks/a.zip\"); z.write(\"src/a.py\")",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_archive_and_stream_roles::72-8",
+    "language": "python",
+    "source": "needed={\"a\",\"b\"}; print(needed.issubset({\"a\"}))",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 72
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_shell_assignment_is_not_a_guessed_runtime_value::90-0",
+    "language": "shell",
+    "source": "set -e\np=tasks\ncat \"$p/a.txt\"",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 90
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_shell_assignment_is_not_a_guessed_runtime_value::90-1",
+    "language": "shell",
+    "source": "p=src; cat \"$p/a.py\"",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 90
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_shell_assignment_is_not_a_guessed_runtime_value::90-2",
+    "language": "shell",
+    "source": "p=src; cat '$p/a.py'",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 90
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_shell_assignment_is_not_a_guessed_runtime_value::90-3",
+    "language": "shell",
+    "source": "p=src; p=tasks; cat \"$p/a.txt\"",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 90
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_shell_assignment_is_not_a_guessed_runtime_value::90-4",
+    "language": "shell",
+    "source": "p=src; source tasks/change.sh; cat \"$p/a.py\"",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 90
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-0",
+    "language": "shell",
+    "source": "dd if=tasks/a.bin of=src/a.bin bs=8192",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-1",
+    "language": "shell",
+    "source": "dd if=tasks/a.bin bs=8192 count=1",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-2",
+    "language": "shell",
+    "source": "cmp tasks/a.txt tasks/b.txt",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-3",
+    "language": "shell",
+    "source": "cmp -n 10 tasks/a.txt tasks/b.txt",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-4",
+    "language": "shell",
+    "source": "diff -r tasks/a tasks/b",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-5",
+    "language": "shell",
+    "source": "diff -r tasks/a src",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_binary_and_comparison_commands_keep_operand_roles::99-6",
+    "language": "shell",
+    "source": "ast-index --format json stats",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 99
+  },
+  {
+    "id": "purpose_expression_contracts::test_output_only_loop_does_not_hide_following_tool_calls::110-0",
+    "language": "javascript",
+    "source": "const results=load(\"results\");for(const r of results)text(r);await tools.exec_command({cmd:\"cat tasks/a.txt\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 110
+  },
+  {
+    "id": "purpose_expression_contracts::test_output_only_loop_does_not_hide_following_tool_calls::110-1",
+    "language": "javascript",
+    "source": "for(const id of [123,456])text(await tools.write_stdin({session_id:id,chars:\"\"}));",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 110
+  },
+  {
+    "id": "purpose_expression_contracts::test_output_only_loop_does_not_hide_following_tool_calls::110-2",
+    "language": "javascript",
+    "source": "for(const p of [\"src/a.py\"])text(await tools.exec_command({cmd:\"cat \"+p}));",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 110
+  },
+  {
+    "id": "purpose_expression_contracts::test_output_only_loop_does_not_hide_following_tool_calls::110-3",
+    "language": "javascript",
+    "source": "for(const p of load(\"paths\"))text(await tools.exec_command({cmd:\"cat \"+p}));",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 110
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_subprocess_arguments_reuse_command_roles::118-0",
+    "language": "python",
+    "source": "import subprocess; subprocess.run([\"git\",\"merge-base\",\"--is-ancestor\",\"abc\",\"HEAD\"],check=True)",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 118
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_subprocess_arguments_reuse_command_roles::118-1",
+    "language": "python",
+    "source": "import subprocess; subprocess.run([\"cat\",\"src/a.py\"])",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 118
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_subprocess_arguments_reuse_command_roles::118-2",
+    "language": "python",
+    "source": "import subprocess; subprocess.check_output([\"cat\",\"tasks/a.txt\"])",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 118
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_subprocess_arguments_reuse_command_roles::118-3",
+    "language": "python",
+    "source": "import subprocess; subprocess.run(command)",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 118
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_subprocess_arguments_reuse_command_roles::118-4",
+    "language": "python",
+    "source": "import subprocess; subprocess.run([\"cat\",\"tasks/a.txt\"],executable=other)",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 118
+  },
+  {
+    "id": "purpose_expression_contracts::test_raw_template_is_data_until_used_as_a_file_target::178-0",
+    "language": "javascript",
+    "source": "const code=String.raw`import fs from \"node:fs\"; fs.readFileSync(\"src/a.py\");`;const p={source:code};await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 178
+  },
+  {
+    "id": "purpose_expression_contracts::test_raw_template_is_data_until_used_as_a_file_target::178-1",
+    "language": "javascript",
+    "source": "const path=String.raw`src/a.py`;await tools.exec_command({cmd:\"cat \"+path});",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 178
+  },
+  {
+    "id": "purpose_expression_contracts::test_raw_template_is_data_until_used_as_a_file_target::178-2",
+    "language": "javascript",
+    "source": "const path=String.raw`${load(\"path\")}`;await tools.exec_command({cmd:\"cat \"+path});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 178
+  },
+  {
+    "id": "purpose_expression_contracts::test_generated_finite_array_and_json_clones_keep_data_roles::185-0",
+    "language": "javascript",
+    "source": "const paths=[...Array.from({length:2},(_,i)=>`tasks/file-${String(i+1).padStart(2,\"0\")}.txt`)];for(const p of paths){await tools.exec_command({cmd:\"cat \"+p});}",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 185
+  },
+  {
+    "id": "purpose_expression_contracts::test_generated_finite_array_and_json_clones_keep_data_roles::185-1",
+    "language": "javascript",
+    "source": "const p=JSON.parse(JSON.stringify(load(\"packet\")));await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 185
+  },
+  {
+    "id": "purpose_expression_contracts::test_generated_finite_array_and_json_clones_keep_data_roles::185-2",
+    "language": "javascript",
+    "source": "const text=load(\"text\").replace(\"before\",\"after\");await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify({text})+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 185
+  },
+  {
+    "id": "purpose_expression_contracts::test_generated_finite_array_and_json_clones_keep_data_roles::185-3",
+    "language": "javascript",
+    "source": "const path=load(\"text\").replace(\"before\",\"after\");await tools.exec_command({cmd:\"cat \"+path});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 185
+  },
+  {
+    "id": "purpose_expression_contracts::test_generated_finite_array_and_json_clones_keep_data_roles::185-4",
+    "language": "javascript",
+    "source": "const paths=Array.from({length:load(\"n\")},(_,i)=>\"src/a.py\");for(const p of paths){await tools.exec_command({cmd:\"cat \"+p});}",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 185
+  },
+  {
+    "id": "purpose_expression_contracts::test_failed_script_has_both_compile_proof_and_paired_failure::194-0",
+    "language": "javascript",
+    "source": "await tools.exec_command({cmd:\"cat src/a.py\"});String.raw`text`broken`tail`;",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 194,
+    "paired_compile_failure": true
+  },
+  {
+    "id": "purpose_expression_contracts::test_failed_script_has_both_compile_proof_and_paired_failure::194-1",
+    "language": "javascript",
+    "source": "const path=\"src/a.py\";throw new SyntaxError(\"Unexpected token\");",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 194,
+    "paired_compile_failure": true
+  },
+  {
+    "id": "purpose_expression_contracts::test_failed_script_has_both_compile_proof_and_paired_failure::194-2",
+    "language": "javascript",
+    "source": "await tools.exec_command({cmd:\"cat src/a.py\"});throw new SyntaxError(\"Unexpected token\");",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 194,
+    "paired_compile_failure": true
+  },
+  {
+    "id": "purpose_expression_contracts::test_failed_script_has_both_compile_proof_and_paired_failure::194-3",
+    "language": "javascript",
+    "source": "await tools.exec_command({cmd:\"cat tasks/a.txt\"});String.raw`text`broken`tail`;",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 194,
+    "paired_compile_failure": false
+  },
+  {
+    "id": "purpose_expression_contracts::test_filter_input_and_default_search_have_distinct_targets::250-0",
+    "language": "shell",
+    "source": "cat tasks/a.txt | rg pattern",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 250
+  },
+  {
+    "id": "purpose_expression_contracts::test_filter_input_and_default_search_have_distinct_targets::250-1",
+    "language": "shell",
+    "source": "rg pattern",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 250
+  },
+  {
+    "id": "purpose_expression_contracts::test_filter_input_and_default_search_have_distinct_targets::250-2",
+    "language": "shell",
+    "source": "ls -t tasks/a.txt",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 250
+  },
+  {
+    "id": "purpose_expression_contracts::test_filter_input_and_default_search_have_distinct_targets::250-3",
+    "language": "shell",
+    "source": "python3 --version",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 250
+  },
+  {
+    "id": "purpose_expression_contracts::test_sqlite_connection_and_sql_text_have_different_roles::258-0",
+    "language": "python",
+    "source": "import sqlite3; c=sqlite3.connect('tasks/a.sqlite'); print(c.execute(\"SELECT 'src/a.py'\").fetchall())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 258
+  },
+  {
+    "id": "purpose_expression_contracts::test_sqlite_connection_and_sql_text_have_different_roles::258-1",
+    "language": "python",
+    "source": "import sqlite3; c=sqlite3.connect('src/a.sqlite'); print(c.execute('SELECT 1').fetchone())",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 258
+  },
+  {
+    "id": "purpose_expression_contracts::test_sqlite_connection_and_sql_text_have_different_roles::258-2",
+    "language": "python",
+    "source": "import sqlite3; c=sqlite3.connect(':memory:'); print(c.execute('SELECT 1').fetchone())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 258
+  },
+  {
+    "id": "purpose_expression_contracts::test_sqlite_connection_and_sql_text_have_different_roles::258-3",
+    "language": "python",
+    "source": "import sqlite3; p='tasks/a.sqlite'; c=sqlite3.connect(f'file:{p}?mode=ro',uri=True); c.close()",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 258
+  },
+  {
+    "id": "purpose_expression_contracts::test_sqlite_connection_and_sql_text_have_different_roles::258-4",
+    "language": "python",
+    "source": "import sqlite3; c=sqlite3.connect('tasks/a.sqlite'); c.execute(\"ATTACH 'src/a.sqlite' AS other\")",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 258
+  },
+  {
+    "id": "purpose_expression_contracts::test_sqlite_connection_and_sql_text_have_different_roles::258-5",
+    "language": "python",
+    "source": "import socket; socket.connect('src/a.py')",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 258
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-0",
+    "language": "shell",
+    "source": "sqlite3 -readonly tasks/a.sqlite \"SELECT 'src/a.py'\"",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-1",
+    "language": "shell",
+    "source": "sqlite3 -readonly -separator 'src/a.py' tasks/a.sqlite 'SELECT 1'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-2",
+    "language": "shell",
+    "source": "sqlite3 src/a.sqlite 'SELECT 1'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-3",
+    "language": "shell",
+    "source": "curl -sSI http://127.0.0.1:8300/page",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-4",
+    "language": "shell",
+    "source": "curl --data 'src/a.py' http://127.0.0.1:8300",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-5",
+    "language": "shell",
+    "source": "curl --output=src/a.txt http://127.0.0.1:8300",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_cli_sqlite_and_http_roles::268-6",
+    "language": "shell",
+    "source": "curl -H @tasks/headers.txt http://127.0.0.1:8300",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 268
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_file_operands_are_not_commit_message_data::286-0",
+    "language": "shell",
+    "source": "git add -- src/a.py",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 286
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_file_operands_are_not_commit_message_data::286-1",
+    "language": "shell",
+    "source": "git commit -m 'src/a.py'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 286
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_file_operands_are_not_commit_message_data::286-2",
+    "language": "shell",
+    "source": "git commit -F tasks/message.txt",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 286
+  },
+  {
+    "id": "purpose_expression_contracts::test_heredoc_pipeline_keeps_body_as_data_and_output_targets::319-0",
+    "language": "shell",
+    "source": "bash task-management/exec-ctl <<'JSON' | jq -c '{status}'\n{\"message\":\"src/a.py\"}\nJSON",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 319
+  },
+  {
+    "id": "purpose_expression_contracts::test_heredoc_pipeline_keeps_body_as_data_and_output_targets::319-1",
+    "language": "shell",
+    "source": "python3 - <<'PY' | tee src/generated.txt\nprint('data')\nPY",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 319
+  },
+  {
+    "id": "purpose_expression_contracts::test_heredoc_pipeline_keeps_body_as_data_and_output_targets::319-2",
+    "language": "shell",
+    "source": "printf '%s' python3 <<'EOF'\nfrom pathlib import Path\nPath('src/a.py').read_text()\nEOF",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 319
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-0",
+    "language": "shell",
+    "source": "find tasks -maxdepth 2 -name 'src.py' -print",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-1",
+    "language": "shell",
+    "source": "find src -name '*.py' -print",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-2",
+    "language": "shell",
+    "source": "sha256sum src/a.py",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-3",
+    "language": "shell",
+    "source": "sha256sum tasks/state.json",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-4",
+    "language": "shell",
+    "source": "printf text | sha256sum",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-5",
+    "language": "shell",
+    "source": "cat tasks/log | rg 'src/a.py' | head -3",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_refinement_contracts::test_actual_file_search_and_hash_roles::19-6",
+    "language": "shell",
+    "source": "set -o pipefail; ps -eo pid,args",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 19
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_reference_inventory_is_not_an_unknown_file_operation::literal-86-0",
+    "language": "shell",
+    "source": "git symbolic-ref HEAD",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 86
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_reference_inventory_is_not_an_unknown_file_operation::literal-86-1",
+    "language": "shell",
+    "source": "git show-ref --verify --quiet refs/heads/example",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 86
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_reference_inventory_is_not_an_unknown_file_operation::literal-86-2",
+    "language": "shell",
+    "source": "git ls-files",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 86
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_reference_inventory_is_not_an_unknown_file_operation::literal-86-3",
+    "language": "shell",
+    "source": "git check-ignore src/a.py",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 86
+  },
+  {
+    "id": "purpose_expression_contracts::test_git_reference_inventory_is_not_an_unknown_file_operation::literal-87-4",
+    "language": "shell",
+    "source": "git diff --check",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 87
+  },
+  {
+    "id": "purpose_expression_contracts::test_branch_and_callback_bindings_do_not_leak::literal-129-5",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path; p=\"src/a.py\"\nif unknown: p=\"tasks/a.txt\"\nelse: print(Path(p).read_text())'",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 129
+  },
+  {
+    "id": "purpose_expression_contracts::test_branch_and_callback_bindings_do_not_leak::literal-131-6",
+    "language": "shell",
+    "source": "for p in tasks; do p=src; cat \"$p/a.py\"; done",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 131
+  },
+  {
+    "id": "purpose_expression_contracts::test_branch_and_callback_bindings_do_not_leak::literal-133-7",
+    "language": "javascript",
+    "source": "const paths=[\"src/a.py\"];const results=false && paths.map(p=>tools.exec_command({cmd:\"cat \"+p}));",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 133
+  },
+  {
+    "id": "purpose_expression_contracts::test_registry_configuration_is_an_actual_input::literal-137-8",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path; from test_package_lib import TestPackageRegistry; TestPackageRegistry.load(Path(\"src/packages.toml\"),Path.cwd())'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 137
+  },
+  {
+    "id": "purpose_expression_contracts::test_registry_configuration_is_an_actual_input::literal-138-9",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path; from unknown_lib import TestPackageRegistry; TestPackageRegistry.load(Path(\"src/packages.toml\"),Path.cwd())'",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 138
+  },
+  {
+    "id": "purpose_expression_contracts::test_known_path_tuple_keeps_path_types_and_actual_reads::literal-175-10",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path\nfor p in (Path(\"tasks/a.txt\"),Path(\"tasks/b.txt\")): p.replace(Path(\"src/a.py\"))'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 175
+  },
+  {
+    "id": "purpose_expression_contracts::test_conditional_path_receiver_keeps_its_outer_type::literal-214-11",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path; p=Path(\"tasks/a.txt\")\nif unknown: p.replace(\"src/a.py\")'",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 214
+  },
+  {
+    "id": "purpose_expression_contracts::test_conditional_path_receiver_keeps_its_outer_type::literal-215-12",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path; p=\"tasks/a.txt\"\nif unknown: p.replace(\"src/a.py\")'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 215
+  },
+  {
+    "id": "purpose_expression_contracts::test_array_report_join_remains_stdin_data::literal-227-13",
+    "language": "javascript",
+    "source": "const report=[\"quoted src/a.py\",\"another line\"].join(\"\\n\");const p={sections:{report}};await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 227
+  },
+  {
+    "id": "purpose_expression_contracts::test_literal_shell_quote_function_preserves_jq_input_role::literal-231-14",
+    "language": "javascript",
+    "source": "const q=s=>\"'\"+s.replaceAll(\"'\",\"'\\\"'\\\"'\")+\"'\";const data=\"quoted src/a.py\";const cmd=\"jq --arg report \"+q(data)+\" '.x=$report' tasks/state.json\";await tools.exec_command({cmd});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 231
+  },
+  {
+    "id": "purpose_expression_contracts::test_string_helper_preserves_real_main_target::literal-235-15",
+    "language": "javascript",
+    "source": "const q=s=>s.replaceAll(\"X\",\"src\");await tools.exec_command({cmd:\"cat \"+q(\"X/a.py\")});",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 235
+  },
+  {
+    "id": "purpose_expression_contracts::test_mutable_scalar_is_not_stale::literal-239-16",
+    "language": "javascript",
+    "source": "let root=\"tasks/a.py\";root=\"src/a.py\";await tools.exec_command({cmd:\"cat \"+root});",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 239
+  },
+  {
+    "id": "purpose_expression_contracts::test_mutated_array_is_not_the_old_literal::literal-243-17",
+    "language": "javascript",
+    "source": "const paths=[\"tasks/a.py\"];paths.push(\"src/a.py\");for(const path of paths){await tools.exec_command({cmd:\"cat \"+path});}",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 243
+  },
+  {
+    "id": "purpose_expression_contracts::test_unsupported_helper_remains_unknown::literal-247-18",
+    "language": "javascript",
+    "source": "const q=s=>fetch(s);await tools.exec_command({cmd:q(\"src/a.py\")});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 247
+  },
+  {
+    "id": "purpose_expression_contracts::test_json_stream_load_keeps_its_actual_open_target::literal-255-19",
+    "language": "shell",
+    "source": "python3 -c 'import json; print(json.load(open(\"tasks/a.json\")))'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 255
+  },
+  {
+    "id": "purpose_expression_contracts::test_runtime_test_wrapper_resolves_its_test_root::literal-283-20",
+    "language": "shell",
+    "source": "bash platform-infrastructure/tools/playwright-runtime.sh --repository-root \"$UNKNOWN_ROOT\" --suite planning-workspace --test-path suites/example.spec.mjs --browser firefox",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 283
+  },
+  {
+    "id": "purpose_expression_contracts::test_loaded_json_is_data_inside_a_literal_quoted_heredoc::literal-298-21",
+    "language": "javascript",
+    "source": "const p=load(\"packet\");await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 298
+  },
+  {
+    "id": "purpose_expression_contracts::test_loaded_json_with_proven_shell_quote_is_jq_data::literal-302-22",
+    "language": "javascript",
+    "source": "const q=s=>\"'\"+s.replaceAll(\"'\",\"'\\\"'\\\"'\")+\"'\";await tools.exec_command({cmd:\"jq --argjson report \"+q(JSON.stringify(load(\"report\")))+\" '.x=$report' tasks/state.json\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 302
+  },
+  {
+    "id": "purpose_expression_contracts::test_opaque_json_never_becomes_a_known_file_target::literal-306-23",
+    "language": "javascript",
+    "source": "const q=s=>\"'\"+s.replaceAll(\"'\",\"'\\\"'\\\"'\")+\"'\";await tools.exec_command({cmd:\"cat \"+q(JSON.stringify(load(\"path\")))});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 306
+  },
+  {
+    "id": "purpose_expression_contracts::test_naive_quote_and_raw_json_do_not_prove_shell_safety::literal-312-24",
+    "language": "javascript",
+    "source": "const q=s=>\"\\'\"+s+\"\\'\";await tools.exec_command({cmd:\"printf %s \"+q(JSON.stringify(load(\"data\")))+\" | bash task-management/exec-ctl\"});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 312
+  },
+  {
+    "id": "purpose_expression_contracts::test_naive_quote_and_raw_json_do_not_prove_shell_safety::literal-312-25",
+    "language": "javascript",
+    "source": "await tools.exec_command({cmd:\"printf %s \"+JSON.stringify(load(\"data\"))+\" | bash task-management/exec-ctl\"});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 312
+  },
+  {
+    "id": "purpose_expression_contracts::test_loaded_capture_paths_stay_json_payload_data::literal-316-26",
+    "language": "javascript",
+    "source": "const task=\"/external/task\";const paths=load(\"items\").map(i=>task+\"/artifacts/\"+i.path);const p={artifact_paths:paths,sections:{report:\"src/a.py\"}};await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 316
+  },
+  {
+    "id": "purpose_expression_contracts::test_iterator_open_is_executed_before_pure_processing::literal-327-27",
+    "language": "shell",
+    "source": "python3 -c 'from pathlib import Path\np=Path('\"'\"'tasks/a.txt'\"'\"')\nfor n,line in enumerate(p.open(),1):\n if n<5: print(line)\n'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 327
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_loop_bindings_do_not_revert_to_old_values::literal-331-28",
+    "language": "shell",
+    "source": "python3 -c 'p='\"'\"'tasks/a.txt'\"'\"'\nfor p in ['\"'\"'src/b.txt'\"'\"']:\n print(p)\nopen(p)\n'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 331
+  },
+  {
+    "id": "purpose_expression_contracts::test_python_loop_bindings_do_not_revert_to_old_values::literal-333-29",
+    "language": "shell",
+    "source": "python3 -c 'paths=['\"'\"'tasks/a.txt'\"'\"'];paths.append('\"'\"'src/b.txt'\"'\"')\nfor p in paths:\n open(p)\n'",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "donor_line": 333
+  },
+  {
+    "id": "purpose_refinement_contracts::test_python_heredoc_body_is_not_shell_control::literal-66-30",
+    "language": "shell",
+    "source": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('src/a.py').read_text()\nfor line in p.splitlines():\n print(line)\nPY\n",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 66
+  },
+  {
+    "id": "purpose_refinement_contracts::test_native_packet_json_is_data::literal-76-31",
+    "language": "javascript",
+    "source": "const report=\"quoted src/a.py\";const result={sections:{report}};const packet={operation:\"handoff\",input:{result},messages:[]};text(await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(packet)+\"\\nJSON\"}));",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7",
+    "donor_line": 76
+  },
+  {
+    "id": "path-target-oracle::read-source",
+    "language": "shell",
+    "source": "cat src/a.py",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::read-doc",
+    "language": "shell",
+    "source": "sed -n '1,4p' docs/api.md",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::pattern-is-not-target",
+    "language": "shell",
+    "source": "rg 'src/fake.py' tasks/notes.md",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::echo-is-not-target",
+    "language": "shell",
+    "source": "echo src/a.py",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::cwd-is-not-target",
+    "language": "shell",
+    "source": "pwd",
+    "cwd": "src",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::task-cli-in-source-directory",
+    "language": "shell",
+    "source": "bash src/exec-ctl --command work",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::agent-policy",
+    "language": "shell",
+    "source": "cat .agents/skills/x/SKILL.md",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::content-reader-target",
+    "language": "shell",
+    "source": "bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/agent/content-read.py --path src/a.py --lines 1:4",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::redirect-target",
+    "language": "shell",
+    "source": "cat > docs/generated.md <<'EOF'\nhello\nEOF",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::tee-target",
+    "language": "shell",
+    "source": "tee docs/generated.md",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::copy-target",
+    "language": "shell",
+    "source": "cp tasks/in.md docs/api.md",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::move-source-and-target",
+    "language": "shell",
+    "source": "mv docs/api.md tasks/old.md",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::python-write",
+    "language": "shell",
+    "source": "python -c 'from pathlib import Path; Path(\"docs/api.md\").write_text(\"x\")'",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::python-quoted-path",
+    "language": "shell",
+    "source": "python -c 'print(\"docs/api.md\")'",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::python-path-constructor-only",
+    "language": "shell",
+    "source": "python -c 'from pathlib import Path; print(Path(\"docs/api.md\"))'",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::python-dynamic-target",
+    "language": "shell",
+    "source": "python -c 'from pathlib import Path; Path(get_path()).write_text(\"x\")'",
+    "cwd": ".",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::literal-cd",
+    "language": "shell",
+    "source": "cd src; cat a.py",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::parent-relative-target",
+    "language": "shell",
+    "source": "cat ../src/a.py",
+    "cwd": "tests",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::status-no-target",
+    "language": "shell",
+    "source": "git status --short",
+    "cwd": ".",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::diff-target",
+    "language": "shell",
+    "source": "git diff -- src/a.py",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "path-target-oracle::test-target",
+    "language": "shell",
+    "source": "pytest tests/",
+    "cwd": ".",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/fixtures/path-token-command-cases.json",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "92b1496906947da1345cc3934df38250dd308b575f4e11253fabc409a7090a9e"
+  },
+  {
+    "id": "manual::test_independent_review_mutation_and_inventory_regressions::0",
+    "language": "python",
+    "source": "import subprocess; args=[\"cat\",\"tasks/a.txt\"]; args[1]=\"src/a.py\"; subprocess.run(args)",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_independent_review_mutation_and_inventory_regressions",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_independent_review_mutation_and_inventory_regressions::1",
+    "language": "python",
+    "source": "import zipfile; z=zipfile.ZipFile(file=\"src/release.zip\"); z.namelist()",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_independent_review_mutation_and_inventory_regressions",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_independent_review_mutation_and_inventory_regressions::2",
+    "language": "shell",
+    "source": "for p in src; do cd \"$p\"; done; cat tasks/a.txt",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_independent_review_mutation_and_inventory_regressions",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_independent_review_mutation_and_inventory_regressions::3",
+    "language": "javascript",
+    "source": "const paths=[\"tasks/a.txt\"];paths[0]=\"src/a.py\";for(const p of paths){await tools.exec_command({cmd:\"cat \"+p});}",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_independent_review_mutation_and_inventory_regressions",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_independent_review_mutation_and_inventory_regressions::4",
+    "language": "javascript",
+    "source": "const r=[[\"tasks/a.txt\"].map(p=>tools.exec_command({cmd:\"cat \"+p})),[\"src/a.py\"].map(p=>tools.exec_command({cmd:\"cat \"+p}))];",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_independent_review_mutation_and_inventory_regressions",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_augmented_assignments_and_conditional_cwd_are_not_stale::0",
+    "language": "python",
+    "source": "import subprocess; args=[\"cat\",\"tasks/a.txt\"]; args += [\"src/a.py\"]; subprocess.run(args)",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_augmented_assignments_and_conditional_cwd_are_not_stale",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_augmented_assignments_and_conditional_cwd_are_not_stale::1",
+    "language": "shell",
+    "source": "if test -d tasks; then cd src; fi; cat tasks/a.txt",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_augmented_assignments_and_conditional_cwd_are_not_stale",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_augmented_assignments_and_conditional_cwd_are_not_stale::2",
+    "language": "javascript",
+    "source": "let cmd=\"cat tasks/a.txt\";cmd += \" src/a.py\";await tools.exec_command({cmd});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_augmented_assignments_and_conditional_cwd_are_not_stale",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_unexecuted_callback_and_regex_are_not_main::0",
+    "language": "javascript",
+    "source": "const f=()=>tools.exec_command({cmd:\"cat src/a.py\"});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_unexecuted_callback_and_regex_are_not_main",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_unexecuted_callback_and_regex_are_not_main::1",
+    "language": "javascript",
+    "source": "/tools.exec_command({cmd:\"cat src/a.py\"})/.test(\"example\");",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_unexecuted_callback_and_regex_are_not_main",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_output_processing_is_not_a_new_tool_call::0",
+    "language": "javascript",
+    "source": "const r=await tools.mcp__codex_app__wait_threads({targets:[]});for(const c of r.content??[])if(c.type===\"text\")text(c.text);",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_output_processing_is_not_a_new_tool_call",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_output_processing_is_not_a_new_tool_call::1",
+    "language": "javascript",
+    "source": "text(\"tools.exec_command({cmd:cat src/a.py})\");",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_output_processing_is_not_a_new_tool_call",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_unknown_sibling_tool_is_not_erased_by_observed_aux_command::0",
+    "language": "javascript",
+    "source": "await tools.exec_command({cmd:\"printf text\"});await tools.unknown({});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_unknown_sibling_tool_is_not_erased_by_observed_aux_command",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_shell_wrapper_does_not_reinterpret_python_lines::0",
+    "language": "shell",
+    "source": "/bin/bash -lc 'python3 - <<'\"'\"'PY'\"'\"'\nfrom pathlib import Path\np=Path('\"'\"'tasks/state.json'\"'\"').read_text()\nfor line in p.splitlines():\n print(line)\nPY\n'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_shell_wrapper_does_not_reinterpret_python_lines",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_literal_xml_iteration_retains_file_targets::0",
+    "language": "python",
+    "source": "import xml.etree.ElementTree as ET\nroot='tasks/'\nfor name in ['a.xml','b.xml']:\n node=ET.parse(root+name).getroot()\n print(node.attrib)\n",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_literal_xml_iteration_retains_file_targets",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_literal_xml_iteration_retains_file_targets::1",
+    "language": "python",
+    "source": "import xml.etree.ElementTree as ET\nroot='src/'\nfor name in ['a.xml','b.xml']:\n node=ET.parse(root+name).getroot()\n print(node.attrib)\n",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_refinement_contracts.py",
+    "donor_method": "test_literal_xml_iteration_retains_file_targets",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "2381146be72cb75e8cad87afe9121b0d805c38ab01c1d144ffcd894bb8955fe7"
+  },
+  {
+    "id": "manual::test_known_path_tuple_keeps_path_types_and_actual_reads::0",
+    "language": "python",
+    "source": "from pathlib import Path; a=Path('tasks/a.txt'); b=Path('tasks/b.txt')\nfor p in (a,b): print(p.read_text())",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_known_path_tuple_keeps_path_types_and_actual_reads",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_known_path_tuple_keeps_path_types_and_actual_reads::1",
+    "language": "python",
+    "source": "from pathlib import Path; a=Path('tasks/a.txt'); b=Path('src/a.py')\nfor p in (a,b): print(p.read_text())",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_known_path_tuple_keeps_path_types_and_actual_reads",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_tool_result_data_does_not_hide_an_unknown_producer::0",
+    "language": "javascript",
+    "source": "const r=await tools.mcp__codex_app__read_thread({});const p={report:r.output};await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_tool_result_data_does_not_hide_an_unknown_producer",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_tool_result_data_does_not_hide_an_unknown_producer::1",
+    "language": "javascript",
+    "source": "const r=await tools.unsupported_operation({});const p={report:r.output};await tools.exec_command({cmd:\"bash task-management/exec-ctl <<'JSON'\\n\"+JSON.stringify(p)+\"\\nJSON\"});",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_tool_result_data_does_not_hide_an_unknown_producer",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99"
+  },
+  {
+    "id": "manual::test_sqlite_path_uri_preserves_the_decoded_filename::0",
+    "language": "python",
+    "source": "import sqlite3; from pathlib import Path; c=sqlite3.connect(Path('@CHECKOUT@/tasks/a database.sqlite').as_uri()+'?mode=ro',uri=True); c.close()",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_sqlite_path_uri_preserves_the_decoded_filename",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "3bf1aff9ddcf93448ac2d7989f59e65054db2da97bc1cc8b1082c3616fe5ef99",
+    "expected_target": "@CHECKOUT@/tasks/a database.sqlite"
+  },
+  {
+    "id": "runtime-wrapper-actual-main-target",
+    "language": "shell",
+    "source": "bash platform-infrastructure/tools/playwright-runtime.sh --repository-root \"$PWD\" --suite planning-workspace --test-path suites/example.spec.mjs --browser firefox",
+    "expected": "main",
+    "expected_target": "@CHECKOUT@/planning-workspace/tests/playwright/suites/example.spec.mjs",
+    "donor_path": "ai-assistant/tests/analytics/purpose_expression_contracts.py",
+    "donor_method": "test_runtime_test_wrapper_resolves_its_test_root",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "approved-worktree-alias-True",
+    "language": "shell",
+    "source": "cat @CHECKOUT@/worktrees/T/src/a.py",
+    "expected": "main",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@",
+        "@CHECKOUT@/worktrees/T"
+      ],
+      "include": [
+        "src/**"
+      ],
+      "exclude": []
+    },
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt08_approved_worktree_alias_and_external_path",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "approved-worktree-alias-False",
+    "language": "shell",
+    "source": "cat @CHECKOUT@/worktrees/T/src/a.py",
+    "expected": "auxiliary",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "src/**"
+      ],
+      "exclude": []
+    },
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt08_approved_worktree_alias_and_external_path",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "known-external-path-is-auxiliary",
+    "language": "shell",
+    "source": "cat /different/place/src/a.py",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt08_approved_worktree_alias_and_external_path",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "quoted-heredoc-marker-is-data",
+    "language": "shell",
+    "source": "printf '%s\\n' '<<MARKER'\nprintf '%s\\n' '\nMARKER\n'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/analytics/invocation_targets.py",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "source_contract": "Known quoted << marker must remain data, not cause whole-session shlex failure. Both actual commands are printf; journal code is never executed. Counterpart reported same ordinary lexical defect; regex/split source independently inspected."
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::185",
+    "language": "shell",
+    "source": "jq -c '{url}' config/app.json",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/config/app.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::186",
+    "language": "shell",
+    "source": "jq -c '{url}' tasks/state.json",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/tasks/state.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::187",
+    "language": "shell",
+    "source": "jq -cn --arg example 'src/a.py' '{sample:$example}'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::188",
+    "language": "shell",
+    "source": "jq --slurpfile example docs/data.json -n '$example'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/docs/data.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::189",
+    "language": "shell",
+    "source": "jq -r '.state' tasks/state.json | head -5",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/tasks/state.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::190",
+    "language": "shell",
+    "source": "cat src/a.py | jq -r '.' | head -5",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/src/a.py"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::191",
+    "language": "shell",
+    "source": "jq -r '\"src/a.py\"'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::192",
+    "language": "shell",
+    "source": "jq -r '.x' 'config/report with spaces.json'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/config/report with spaces.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::193",
+    "language": "shell",
+    "source": "jq -r '.x' 'tasks/report with spaces.json'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/tasks/report with spaces.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::194",
+    "language": "shell",
+    "source": "jq -r '.x' 'config/has\"quote.json'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/config/has\"quote.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::195",
+    "language": "shell",
+    "source": "jq -r '.x' 'tasks/has\"quote.json'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/tasks/has\"quote.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::196",
+    "language": "shell",
+    "source": "jq -r '.x' 'config/has'\"'\"'quote.json'",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "expected_target": "@CHECKOUT@/config/has'quote.json"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::197",
+    "language": "shell",
+    "source": "jq -cn --arg example 'config/not a target.json' '{sample:$example}'",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::198",
+    "language": "shell",
+    "source": "jq -r \".x\" \"$INPUT_JSON\"",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf05_jq_program_data_and_actual_input_roles::199",
+    "language": "shell",
+    "source": "jq --slurpfile data \"$INPUT_JSON\" -n '$data'",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf05_jq_program_data_and_actual_input_roles",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf06_shell_targets_routing_references_and_stdin::200",
+    "language": "shell",
+    "source": "test -f src/a.py",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf06_shell_targets_routing_references_and_stdin",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf06_shell_targets_routing_references_and_stdin::201",
+    "language": "shell",
+    "source": "test -f tasks/state.json",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf06_shell_targets_routing_references_and_stdin",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf06_shell_targets_routing_references_and_stdin::202",
+    "language": "shell",
+    "source": "bash ai-assistant/agent/preflight.sh --phase plan --path src/a.py --intake --json",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf06_shell_targets_routing_references_and_stdin",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf06_shell_targets_routing_references_and_stdin::203",
+    "language": "shell",
+    "source": "printf '%s' 'cat src/a.py' | head -5",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf06_shell_targets_routing_references_and_stdin",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf06_shell_targets_routing_references_and_stdin::204",
+    "language": "shell",
+    "source": "if test -f \"$dynamic\"; then cat src/a.py; fi",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf06_shell_targets_routing_references_and_stdin",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf06_shell_targets_routing_references_and_stdin::205",
+    "language": "shell",
+    "source": "cp tasks/state.json src/a.py",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf06_shell_targets_routing_references_and_stdin",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf09_python_receiver_type_not_path_looking_data::206",
+    "language": "python",
+    "source": "s='src/example.py'; s.replace('example','sample')",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf09_python_receiver_type_not_path_looking_data",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf09_python_receiver_type_not_path_looking_data::207",
+    "language": "python",
+    "source": "from pathlib import Path; Path('src/a.py').replace('tasks/a.py')",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf09_python_receiver_type_not_path_looking_data",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf09_python_receiver_type_not_path_looking_data::208",
+    "language": "python",
+    "source": "from pathlib import Path; Path('tasks/a.py').replace('tasks/b.py')",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf09_python_receiver_type_not_path_looking_data",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf09_python_receiver_type_not_path_looking_data::209",
+    "language": "python",
+    "source": "factory().replace('src/a.py')",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf09_python_receiver_type_not_path_looking_data",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "uf::test_uf07_js_constants_iteration_and_inactive_examples::210",
+    "language": "javascript",
+    "source": "const root=\"@CHECKOUT@\"; text(await tools.exec_command({cmd:\"cat src/a.py\",workdir:root}));",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf07_js_constants_iteration_and_inactive_examples",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "**"
+      ],
+      "exclude": [
+        "tasks/**",
+        ".runtime/**",
+        "var/**",
+        ".agents/**",
+        ".codex/**",
+        "docs/plans/**",
+        "ai-assistant/analytics/data/**",
+        "AGENTS.md",
+        "**/AGENTS.md"
+      ]
+    }
+  },
+  {
+    "id": "uf::test_uf07_js_constants_iteration_and_inactive_examples::211",
+    "language": "javascript",
+    "source": "for(const path of [\"AGENTS.md\",\"src/AGENTS.md\"]){text(await tools.exec_command({cmd:`cat ${path}`}));}",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf07_js_constants_iteration_and_inactive_examples",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "**"
+      ],
+      "exclude": [
+        "tasks/**",
+        ".runtime/**",
+        "var/**",
+        ".agents/**",
+        ".codex/**",
+        "docs/plans/**",
+        "ai-assistant/analytics/data/**",
+        "AGENTS.md",
+        "**/AGENTS.md"
+      ]
+    }
+  },
+  {
+    "id": "uf::test_uf07_js_constants_iteration_and_inactive_examples::212",
+    "language": "javascript",
+    "source": "if(flag){await tools.exec_command({cmd:\"cat src/a.py\"});}",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf07_js_constants_iteration_and_inactive_examples",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "**"
+      ],
+      "exclude": [
+        "tasks/**",
+        ".runtime/**",
+        "var/**",
+        ".agents/**",
+        ".codex/**",
+        "docs/plans/**",
+        "ai-assistant/analytics/data/**",
+        "AGENTS.md",
+        "**/AGENTS.md"
+      ]
+    }
+  },
+  {
+    "id": "uf::test_uf07_js_constants_iteration_and_inactive_examples::213",
+    "language": "javascript",
+    "source": "text(\"tools.exec_command({cmd: cat src/a.py})\");",
+    "expected": "auxiliary",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf07_js_constants_iteration_and_inactive_examples",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "**"
+      ],
+      "exclude": [
+        "tasks/**",
+        ".runtime/**",
+        "var/**",
+        ".agents/**",
+        ".codex/**",
+        "docs/plans/**",
+        "ai-assistant/analytics/data/**",
+        "AGENTS.md",
+        "**/AGENTS.md"
+      ]
+    }
+  },
+  {
+    "id": "uf::test_uf07_js_constants_iteration_and_inactive_examples::214",
+    "language": "javascript",
+    "source": "for(const path of load(\"paths\")){await tools.exec_command({cmd:`cat ${path}`});}",
+    "expected": "unclassified",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf07_js_constants_iteration_and_inactive_examples",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "**"
+      ],
+      "exclude": [
+        "tasks/**",
+        ".runtime/**",
+        "var/**",
+        ".agents/**",
+        ".codex/**",
+        "docs/plans/**",
+        "ai-assistant/analytics/data/**",
+        "AGENTS.md",
+        "**/AGENTS.md"
+      ]
+    }
+  },
+  {
+    "id": "uf::test_uf08_registered_check_project_root_is_an_action_role::215",
+    "language": "javascript",
+    "source": "const root=\"@CHECKOUT@\";const r=await tools.mcp__repo_checks__run({command_id:\"fixture-check\",project_root:root,config_root:root});text(r);",
+    "expected": "main",
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_uf08_registered_check_project_root_is_an_action_role",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898",
+    "donor_file_sha256": "5101bc31e11d3d7f4f2898a5146531f5b7684baa208af55e478c37b32d5ae692"
+  },
+  {
+    "id": "path-families-only-explicit-policy",
+    "language": "shell",
+    "source": "cat other/report.md",
+    "expected": "auxiliary",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "src/**",
+        "tests/**",
+        "docs/**",
+        "config/**"
+      ],
+      "exclude": [
+        "docs/plans/**"
+      ]
+    },
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt06_only_configured_path_families_are_main",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "path-family-policy-src/a.py",
+    "language": "javascript",
+    "source": "await tools.apply_patch(\"*** Update File: src/a.py\\n+x\");",
+    "expected": "main",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "src/**",
+        "tests/**",
+        "docs/**",
+        "config/**"
+      ],
+      "exclude": [
+        "docs/plans/**"
+      ]
+    },
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt06_only_configured_path_families_are_main",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "path-family-policy-config/app.env",
+    "language": "javascript",
+    "source": "await tools.apply_patch(\"*** Update File: config/app.env\\n+x\");",
+    "expected": "main",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "src/**",
+        "tests/**",
+        "docs/**",
+        "config/**"
+      ],
+      "exclude": [
+        "docs/plans/**"
+      ]
+    },
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt06_only_configured_path_families_are_main",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  },
+  {
+    "id": "path-family-policy-docs/plans/A.md",
+    "language": "javascript",
+    "source": "await tools.apply_patch(\"*** Update File: docs/plans/A.md\\n+x\");",
+    "expected": "auxiliary",
+    "path_policy": {
+      "schema_version": 1,
+      "path_roots": [
+        "@CHECKOUT@"
+      ],
+      "include": [
+        "src/**",
+        "tests/**",
+        "docs/**",
+        "config/**"
+      ],
+      "exclude": [
+        "docs/plans/**"
+      ]
+    },
+    "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+    "donor_method": "test_pt06_only_configured_path_families_are_main",
+    "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+  }
+]

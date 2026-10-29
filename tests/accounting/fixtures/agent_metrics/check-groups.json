@@ -95,5 +95,44 @@
   ],
   "installed-source-control": [
     "tests/accounting/test_agent_metrics_installed.py::test_noneditable_installed_taskless_native_producer_and_fresh_reader[existing-sprint-control]"
+  ],
+  "delta-initial-controls": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_unfinished_turn_keeps_duration_unknown",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
+    "tests/accounting/test_agent_metrics_aggregates.py::test_four_sessions_keep_known_subtotal_without_inventing_a_complete_total"
+  ],
+  "delta-selection-diagnostic": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_stop_only_selection_populated_empty_missing_restored"
+  ],
+  "delta-expression-diagnostic": [
+    "tests/accounting/test_agent_metrics_target_expressions.py"
+  ],
+  "delta-frame-diagnostic": [
+    "tests/accounting/test_agent_metrics_updated_frames.py",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_dedicated_source_is_not_reported_missing_by_overlapping_selection"
+  ],
+  "delta-retained-diagnostic": [
+    "tests/accounting/test_agent_metrics_retained_analysis.py",
+    "tests/accounting/test_agent_metrics_target_expressions.py"
+  ],
+  "delta-current-diagnostic": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py",
+    "tests/accounting/test_agent_metrics_updated_frames.py",
+    "tests/accounting/test_agent_metrics_target_expressions.py",
+    "tests/accounting/test_agent_metrics_retained_analysis.py",
+    "tests/accounting/test_agent_metrics_fork_identity.py"
+  ],
+  "delta-read-boundaries": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_initial_store_is_unavailable_until_real_first_commit",
+    "tests/accounting/test_agent_metrics_lifetime.py"
+  ],
+  "delta-read-boundaries-focused": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_initial_store_is_unavailable_until_real_first_commit"
+  ],
+  "delta-retained-git-and-source-sentinel": [
+    "tests/accounting/test_agent_metrics_retained_analysis.py::test_paired_git_result_targets_survive_source_retirement",
+    "tests/accounting/test_agent_metrics_retained_analysis.py::test_changed_parser_requires_explicit_source_reprocess"
   ]
 }

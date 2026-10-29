@@ -3,7 +3,7 @@ import json
 import pytest
 from tests.accounting.agent_metrics_support import (
     MetricsScene, assert_measurements, assert_metadata, assert_unavailable_metadata,
-    committed_observations, literal,
+    committed_observations, literal, replace_tokens,
 )
 
 
@@ -12,7 +12,8 @@ def test_actual_response_link_decides_main_auxiliary_or_unclassified_spend(proje
     scene = MetricsScene(project, tmp_path)
     source = scene.source()
     event = literal("purpose-tool-event.json")
-    event["payload"].update(name=case["name"], response_id=case["response_id"])
+    event["payload"].update(name=case["name"], response_id=case["response_id"],
+                            input=json.dumps(replace_tokens(case["arguments"], scene.tokens)))
     # The transcript is a source fixture, never a command to execute this tool.
     with source.open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(event) + "\n")

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "schema-version",
+    "patch": {
+      "schema_version": 99
+    }
+  },
+  {
+    "id": "include-type",
+    "patch": {
+      "include": false
+    }
+  },
+  {
+    "id": "missing-roots",
+    "remove": "path_roots"
+  }
+]

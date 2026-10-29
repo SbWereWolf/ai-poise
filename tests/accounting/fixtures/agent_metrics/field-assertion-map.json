@@ -739,7 +739,7 @@
         {
           "file": "tests/accounting/fixtures/agent_metrics/expected-invocation-metadata.json",
           "json_pointer": "/parser_version",
-          "expected": "invocations-2.0"
+          "expected": "invocations-2.5"
         }
       ],
       "inline_source_references": [],
@@ -756,7 +756,7 @@
         {
           "file": "tests/accounting/fixtures/agent_metrics/expected-invocation-metadata.json",
           "json_pointer": "/classification_version",
-          "expected": "purpose-1"
+          "expected": "purpose-14"
         }
       ],
       "inline_source_references": [],
@@ -1015,7 +1015,7 @@
         }
       ],
       "behavioral_evidence": null,
-      "semantic_note": "Complete source has no explicitly response-linked tools. Exact independent SHA-256([]) literal 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 is asserted, alongside shape. This preserves the donor purpose-1 evidence contract, not arbitrary hex acceptance."
+      "semantic_note": "Complete source has no explicitly response-linked tools. Exact independent SHA-256([]) literal 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 is asserted, alongside shape. The final candidate retains this exact empty linked-evidence hash; current policy identity is separate. Historical purpose-1 receipts are not relabeled as purpose-14 proof."
     },
     {
       "family": "invocation-provenance",

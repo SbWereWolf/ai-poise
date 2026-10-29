@@ -1,0 +1,7 @@
+{
+  "directory": "@GATE@",
+  "module": "poise.infrastructure.sqlite.accounting_database",
+  "function": "validate_accounting_schema",
+  "class": "NoneType",
+  "timeout_seconds": 20
+}

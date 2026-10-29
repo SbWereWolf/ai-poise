@@ -1,0 +1,17 @@
+{
+  "type": "response_item",
+  "timestamp": "2026-10-29T00:00:01Z",
+  "payload": {
+    "type": "custom_tool_call",
+    "id": "ctc_main",
+    "status": "completed",
+    "call_id": "main-call",
+    "name": "mcp__repo_checks__run",
+    "namespace": null,
+    "response_id": "response-f16-a",
+    "input": "{\"project_root\": \"@CHECKOUT@/src\"}",
+    "internal_chat_message_metadata_passthrough": {
+      "turn_id": "turn-f16"
+    }
+  }
+}

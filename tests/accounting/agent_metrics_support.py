@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+import os
 import subprocess
 import sqlite3
 import shlex
@@ -47,7 +48,9 @@ class MetricsScene:
         self.policy_path = parent / "metrics-policy.json"
         self.tokens = {"@METRICS@": self.metrics, "@SOURCE@": self.sources,
                        "@CHECKOUT@": project["app"], "@POLICY@": self.policy_path}
-        self.policy = replace_tokens(literal("policy.json"), self.tokens)
+        policy_fixture = os.environ.get("POISE_F16_POLICY_FIXTURE", "policy.json")
+        assert policy_fixture in ("policy.json", "updated-policy.json"), "F16_EXPLICIT_TEST_POLICY_REQUIRED"
+        self.policy = replace_tokens(literal(policy_fixture), self.tokens)
         write(self.policy_path, self.policy)
         self.definition, self.events = self.general.native_definition(all_events=True)
         self.installation = None
@@ -100,7 +103,7 @@ class MetricsScene:
             raise
         assert self.installation["status"] == "installed"
 
-    def native(self, kind, *, gate=None, commit_exit=None, **changes):
+    def native(self, kind, *, gate=None, commit_exit=None, trace_directory=None, **changes):
         event = deepcopy(next(item for item in self.events if item["hook_event_name"] == kind))
         event.update(session_id=self.session, cwd=str(self.project["app"]),
                      transcript_path=str(self.transcript_path))
@@ -115,7 +118,7 @@ class MetricsScene:
                          "--definition", self.installation["definition_path"]]
         python_arguments = [self.python, *(["-I"] if self.isolated else []), "-B"]
         arguments = [*python_arguments, "-m", "poise", *cli_arguments]
-        if gate is None and commit_exit is None:
+        if gate is None and commit_exit is None and trace_directory is None:
             result = subprocess.run(arguments, input=json.dumps(event).encode(),
                                     capture_output=True, cwd=self.project["app"], env=environment)
             code, stdout, stderr = result.returncode, result.stdout, result.stderr
@@ -123,7 +126,8 @@ class MetricsScene:
             request = literal("driver-request.json")
             observer = Path(__file__).parents[1] / "hook_transport/fixtures/architecture/task_observer.py"
             request.update(argv=cli_arguments, packet=event, observer=str(observer), gate=gate,
-                           commit_exit=commit_exit)
+                           commit_exit=commit_exit,
+                           trace_directory=None if trace_directory is None else str(trace_directory))
             result = subprocess.run([*python_arguments, str(FIXTURES / "cli_driver.py")],
                                     input=json.dumps(request).encode(), capture_output=True,
                                     cwd=self.project["app"], env=environment)
@@ -185,7 +189,7 @@ class MetricsScene:
             self.record({"kind": "fixture-native-work-full-readback", "path": str(saved), "result": value})
         return value
 
-    def cli(self, packet=None, *, audience="machine", fresh=True):
+    def cli(self, packet=None, *, audience="machine", fresh=True, trace_sources=None, trace_sql=None):
         request = replace_tokens(literal("query.json"), {SESSION: self.session}) if packet is None else deepcopy(packet)
         environment = dict(self.general.env)
         if fresh:
@@ -198,7 +202,8 @@ class MetricsScene:
                      "--audience", audience]
         observer = Path(__file__).parents[1] / "hook_transport/fixtures/architecture/task_observer.py"
         driver = literal("driver-request.json")
-        driver.update(argv=arguments, packet=request, observer=str(observer))
+        driver.update(argv=arguments, packet=request, observer=str(observer), trace_sources=trace_sources,
+                      trace_sql=None if trace_sql is None else str(trace_sql))
         result = subprocess.run([self.python, *(["-I"] if self.isolated else []),
                                  "-B", str(FIXTURES / "cli_driver.py")],
                                 input=json.dumps(driver).encode(), capture_output=True,
@@ -210,7 +215,8 @@ class MetricsScene:
         assert value["unexpected"] is None, ("F16_UNEXPECTED_PRODUCT_EXCEPTION", value)
         return value
 
-    def query(self, *, family=None, kind="facts", scope=None, period=None, allow_unavailable=False):
+    def query(self, *, family=None, kind="facts", scope=None, period=None, allow_unavailable=False,
+              trace_sql=None):
         request = literal("query.json")
         request["scope"]["id"] = self.session
         request["view"] = {"kind": kind, "family": family}
@@ -218,7 +224,7 @@ class MetricsScene:
             request["scope"] = scope
         if period is not None:
             request["period"] = period
-        result = self.cli(request)
+        result = self.cli(request, trace_sql=trace_sql)
         assert result["reached"] == ["real-poise-module-entry"]
         if result["exit_code"] == 2 and "invalid choice: 'telemetry'" in result["stderr"]:
             raise AssertionError("F16_METRICS_CLI_ENTRY_MISSING: actual argparse rejected telemetry")

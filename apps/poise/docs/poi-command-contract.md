@@ -1,505 +1,533 @@
 # Контракт команды Poise
 
-Это согласуемый проект интерфейса T068, выбранный вариант B+O1. Провайдер,
-асинхронный исполнитель, MCP-адаптер и чтение потоков ещё требуют реализации
-и настоящей проверки в T069/T070. Нынешняя [оболочка](shell-poi.md) поддерживает
-свой опубликованный срез; этот документ не включает в неё новые операции.
-Действующие Session, caller, роль и конверт `stride-poise/v1` описаны в
-[операторском договоре Session](shell-poi.md). Более широкий
-[целевой контракт Poise](contract-poi.md), особенно §5–7, сохраняет проект
-допуска инструментов и будущего gateway; он не заменяет действующий Session API.
+## Назначение и поддержанное использование
 
-Синхронный вызов явно настроенной публичной команды уже доступен через
-[`hook.intercept`](hooks-poi.md#публичный-внешний-вызов). Он сохраняет фактический
-исход и advisory наблюдения; описанные ниже async/request/gateway операции
-сохраняют собственный проект и порядок поставки.
+Самостоятельный `apps/poise/bin/poise --config PATH` исполняет
+`command.request`, `command.completion` и `command.delete`. Нужны Linux/POSIX,
+CPython 3.13 со стандартной библиотекой, подготовленная собственная Session и явная
+конфигурация. Поддержаны локальная команда и один вызов MCP через stdio; выбранная
+и проверенная версия MCP — `2024-11-05`. Запрос и последующее чтение могут приходить
+из разных процессов CLI одной Session. Независимые команды выполняются параллельно.
 
-## 1. Граница и владельцы
+Это действующий договор исполнения, заменяющий прежний проект T068. Общий запуск,
+caller, подготовка и статус Session принадлежат [руководству оболочки](shell-poi.md),
+подготовка её состояния — [poise-state](state-poi.md). Task, Stage, Workspace,
+оркестратор и базы Stride для команды не требуются. Синхронный внешний вызов hooks
+и пробы доступности имеют [собственный договор](hooks-poi.md).
 
-Команду можно запускать в самостоятельной установке Poise с действительной
-Session и разрешённым инструментом. Task, Stage, Workspace, task-Orchestrator
-и БД Stride для этого не нужны. Первый поддерживаемый транспорт — локальный
-Linux CLI. Доступность MCP публикуется после проверки настоящего адаптера,
-его ожидания и бюджетов, а не по наличию записи в конфигурации.
+Полные потоки и результат сохраняются отдельными файлами. Порционные представления
+командного вывода `minimal/ranges` относятся к дальнейшей работе T070. Более широкий
+[исторический проект gateway](contract-poi.md) остаётся проектным материалом;
+действующий вход команд определён на этой странице.
 
-| Владелец | Ответственность |
+## Подготовка и конфигурация
+
+Скопируйте [полный пример](../config/command.example.json) в рабочий каталог вне
+исходников. Все известные поля секции `commands` обязательны. Значения примера
+выбраны явно: приложение не подставляет их как значения по умолчанию. Общие поля
+`schema`, `installation_id`, `session_store`, `caller`, `roles` и `limits` описаны
+в [справочнике оболочки](shell-poi.md). Для локального примера используйте отдельный
+generated caller; для native caller следуйте тому же руководству.
+
+Подготовьте родительский каталог `session_store`, родительский каталог
+`commands.request_store` и каталог `commands.output_root`. Пути внутри конфига
+разрешаются относительно каталога самого конфига. Подготовьте Session-хранилище
+версии `1` через `bin/poise-state`, затем вызовите `session.ensure` с тем же
+`session_store` и caller. Назначение роли для исполнения команды не требуется.
+
+`request_store` выбирает отдельный от Session SQLite-файл. При первом запросе
+владелец команд создаёт отсутствующий каталог записей формата `1`, затем допускает
+запрос. Здесь «каталог записей» означает базу команд; её родительская директория
+уже подготовлена оператором. Существующий файл должен иметь совместимый формат.
+Сохраните исходные данные перед операторским исправлением несовместимой установки
+и выберите подготовленное хранилище. Длительное исполнение и ожидание работают вне
+коротких транзакций записи.
+
+| Поле `commands` | Смысл и явное значение примера |
 | --- | --- |
-| Допуск команды | Сохранить identity, исходный запрос и ревизию определения до dispatch; исключить второй dispatch при replay |
-| Исполнитель | Один раз запустить child, наблюдать deadline/exit, закончить capture и сохранить фактический исход |
-| Completion waiter | Ждать сохранённый terminal либо явно установленную неопределённость; сам child не запускает |
-| Output owner | Сохранить полные отдельные stdout/stderr и полные поля результата; предоставить minimal/ranges |
-| Gateway Poise | Проверить Session/permission/schema, доставить точный ответ провайдера и сохранить свой request outcome |
+| `schema` | `poise-command-config/v1` |
+| `request_store` | `command-state/commands.sqlite`; отдельный SQLite-каталог идентичностей и результатов |
+| `output_root` | `command-output`; подготовленная директория полных файлов |
+| `file_mode` | Целое `384` (`0600`); режим stdout, stderr и полного результата устанавливается явно, независимо от umask |
+| `files.stdout` | `stdout.bin`; отдельное имя файла stdout |
+| `files.stderr` | `stderr.bin`; отдельное имя файла stderr |
+| `files.result` | `result.json`; имя полного JSON-результата |
 
-Существующие execution/output primitives используются или выделяются через их
-владельцев. Здесь не назначаются будущие классы, worker loop или способ IPC.
-Task policy остаётся у своего приложения. Нет общей транзакции с child или
-с чужой БД. Один executor обслуживает одну identity; независимые команды
-могут выполняться параллельно. Протокол не требует брокера или кластера.
+Три имени файлов — разные непустые имена без `/`, отличные от `.` и `..`.
+`file_mode` — целое от `0` до `511` (`0777`). Неизвестные поля конфигурации
+сохраняются в рабочем файле и не меняют поведение известных полей. Настройки
+`commands` проверяются при выбранной командной операции; другие семейства
+операций используют свои настройки.
 
-## 2. Версии, личности и внешний конверт
-
-Новый provider schema — `poise-command/v1`; это явный новый tool binding,
-а не дополнительный формат старого payload. Зарегистрированное определение
-инструмента предоставляет полные input/output JSON schemas этого договора.
-`tool_id` выбирается явно из конфигурации. Ни alias, ни автоматический выбор
-старого провайдера в этот договор не входят.
-
-Каждый вызов сохраняет внешний `stride-poise/v1`, `operation="tool.invoke"`
-и четыре поля input: `request_id`, `tool_id`, `tool_schema`, `arguments`.
-`tool_schema="poise-command/v1"`; arguments содержит ровно `operation` и `input`.
-Допустимые provider operations: `request`, `completion`, `minimal`, `ranges`.
-Внутри arguments второй schema не дублируется: её уже выбрало определение.
-
-Внешняя identity `(session_id, request_id)` обозначает один вызов gateway.
-Командная identity `(session_id, command_id)` обозначает один запуск у
-провайдера. Session передаётся доверенным адаптером из проверенного контекста;
-provider input не принимает желаемую Session или смену роли. Ожидание использует
-новый внешний request_id и прежний command_id. Менять arguments под прежним
-внешним request_id нельзя: общий `request_reuse_conflict` сохраняет смысл.
-
-`request.status` читает только запись своего gateway-вызова. Для вызова request
-это может быть успешно доставленный admission, а не terminal child. Для вызова
-completion это сохранённый ответ ожидания. Он не становится скрытым waiter.
-Закрытая Session читает уже имеющиеся gateway receipts согласно общему договору;
-новый tool.invoke выполняется при открытой Session. Штатный сценарий завершает
-completion до закрытия Session.
-
-## 3. Точные входы
-
-Объекты имеют ровно указанные поля. Известные версии строгие: лишнее поле,
-неверный тип, повторный JSON key и неограниченное/nonfinite число дают явный
-отказ. Булево значение не является целым числом. Строки argv/env — без NUL.
-command_id — непустой непрозрачный идентификатор в явном `id_bytes` лимите;
-строки identity не содержат NUL. Потребитель не извлекает из них путь, время
-или порядок. Все digests в этом договоре — 64 строчные hex-цифры SHA-256.
-
-| Операция | Поля input |
+| Поле `commands.limits` | Единица и явное значение примера |
 | --- | --- |
-| request | `command_id:string`, `argv:string[]` непустой, `cwd:string`, `env:object<string,string>`, `execution_budget_ms:integer>0`, `cleanup_budget_ms:integer>0` |
-| completion | `command_id:string` |
-| minimal | `command_id:string` |
-| ranges | `command_id:string`, `stream:"stdout"|"stderr"`, `source_id:string`, `prefix_bytes:integer>=0`, `offset:integer>=0`, `limit_bytes:integer>0` |
+| `id_bytes` | `128` байтов UTF-8 для `command_id` |
+| `sqlite_timeout_seconds` | `1` секунда ожидания занятого каталога; допустимо конечное число от нуля |
+| `poll_ms` | `10` мс между наблюдениями; ближайший deadline или момент эскалации наступает раньше этого интервала |
+| `capture_chunk_bytes` | `4096` байтов за одно чтение потока |
+| `terminate_grace_ms` | `100` мс между TERM и KILL при execution deadline |
+| `completion_budget_ms` | `5000` мс на ожидание результата текущим `command.completion` |
+| `delivery_margin_ms` | `100` мс запаса при согласовании бюджетов запроса |
+| `transport_budget_ms` | `6000` мс бюджета внешней доставки, который учитывает вызывающий транспорт |
+| `transport_margin_ms` | `100` мс запаса внешнего транспорта |
+| `mcp_max_message_bytes` | `1048576` байтов UTF-8 одного входящего кадра без завершающего LF |
+| `mcp_max_messages` | `16` входящих кадров, включая уведомления, до конца потока |
 
-argv[0] и cwd — явные абсолютные Linux paths. argv передаётся без shell
-интерполяции. env — полный явный child environment; скрытого объединения с
-окружением агента нет. Если программа использует PATH, он входит в env.
-Разрешение инструмента и ограничения его определения проверяются до dispatch.
-Нет автоматического создания cwd или исправления входной конфигурации.
-
-request сохраняет canonical input и выбранные definition revision/digest,
-исполняемый адаптер и конфигурацию бюджетов как provenance. Exact replay того
-же command_id с тем же canonical input возвращает имеющуюся identity и её
-текущее сохранённое состояние, `replayed=true`; второй worker не создаётся.
-Другой payload даёт `command_reuse_conflict`. Admission не гарантирует
-восстановление child после падения. Неустановленный dispatch/exit сохраняет
-UNKNOWN и требует отдельной явной сверки владельцем.
-
-Это provider replay, когда вызов действительно дошёл до провайдера. Exact
-повтор всего внешнего пакета с прежним gateway request_id возвращает прежний
-gateway receipt: внешнее replayed=true, исходный provider payload неизменен,
-включая его собственный replayed и прежний admission snapshot. Новый внешний
-request_id с тем же точным provider request позволяет прочитать текущий provider
-snapshot с внутренним replayed=true. Ни один из вариантов не повторяет dispatch.
-
-## 4. Состояние и ответы
-
-Ответ request/completion/minimal имеет ровно поля:
-
-`schema`, `operation`, `command_id`, `revision`, `state`, `termination`,
-`deadline_exceeded`, `stdout`, `stderr`, `full_result_ref`, `error`, `replayed`.
-
-schema равна `poise-command/v1`; operation повторяет вызов. revision — целое
-от 1, увеличивается при изменении сохранённого командного наблюдения, включая
-публикацию нового prefix. Чтение его не увеличивает. После TERMINAL исход,
-revision и полные источники неизменны; replay читает тот же результат. state:
-
-| Состояние | Значение |
-| --- | --- |
-| ADMITTED | Identity сохранена; dispatch ещё не подтверждён |
-| RUNNING | Единственный executor подтвердил запуск; terminal ещё не сохранён |
-| TERMINAL | Подтверждены завершение/отсутствие запуска, исход capture и запись результата |
-| UNKNOWN | Полнота наблюдения исхода не установлена; сохранены все известные факты и bytes |
-
-Обычный ход: ADMITTED → RUNNING → TERMINAL. Ошибка spawn до запуска даёт
-TERMINAL с not_started и явной ошибкой. Потерянное наблюдение даёт UNKNOWN;
-PID, отсутствие процесса и истечение waiter budget не доказывают child exit.
-UNKNOWN меняется только через отдельно разрешённую сверку владельца, которая
-сохраняет прежние receipts и не запускает команду повторно автоматически.
-
-termination — null до установленного наблюдения либо один из точных объектов:
-
-- `{ "kind": "exit", "exit_code": integer }`, exit_code от 0 до 255;
-- `{ "kind": "signal", "signal": integer>0 }`;
-- `{ "kind": "not_started" }`.
-
-deadline_exceeded — boolean, факт наблюдения execution deadline владельцем.
-Если deadline замечен раньше exit, executor инициирует штатное завершение
-своего child и сохраняет реально наблюдённую termination. Даже последующий
-exit0 не превращает этот timeout в успешную команду. Если exit наблюдён первым,
-он является исходом команды. Неустановленное завершение после cleanup оставляет
-UNKNOWN с null termination или с ранее достоверно сохранённым наблюдением.
-В поддерживаемом Linux-сценарии остановка начинается с SIGTERM собственному
-child; после explicit terminate_grace_ms применяется SIGKILL, если child ещё
-не завершён. Остаток cleanup budget предназначен наблюдению завершения/capture.
-Завершение не установлено — UNKNOWN, а не предположительный signal receipt.
-
-error — null либо ровно `{code:string,message:string,details:object}`.
-Ненулевой child exit сам по себе не является ошибкой протокола: он находится
-в termination. Ошибка capture может дать известный TERMINAL failure с partial
-источниками; она не превращает неполный поток в complete. Неподтверждённая
-полнота наблюдения даёт UNKNOWN. UTC служит аудиту; deadlines и длительности
-используют обязательный Clock и сопоставимые monotonic observations.
-
-stdout/stderr — null, если источник ещё не создан, либо Source (§6).
-full_result_ref — null до публикации полного receipt либо ровно
-`{path:string,sha256:string,bytes:integer>=0}`. Это immutable UTF-8 JSON schema
-`poise-command-result/v1` с точными полями `schema`, `command_id`, `revision`,
-`state`, `termination`, `deadline_exceeded`, `stdout`, `stderr`, `error`,
-`provenance`. Первые значения совпадают с сохранённым командным наблюдением;
-provenance содержит ровно `session_id`, `command_input_digest`,
-`definition_revision`, `definition_digest`, `configuration_digest`,
-`admitted_at_utc`, `observed_at_utc`. Digests — SHA-256, даты — RFC3339 UTC;
-исходные command/env значения сохранены у владельца, секретные env значения
-не включаются в публичную provenance. Receipt ссылается на Source bytes,
-не содержит самоссылки full_result_ref или пересказа. Terminal receipt
-обязателен; UNKNOWN сохраняет доступный полный receipt, если его публикация
-подтверждена. Отсутствие receipt не подменяется синтетическим JSON успеха.
-replayed=true относится только к exact повтору request; у чтений false.
-
-Отказ до допуска/чтения имеет отдельную точную форму:
-`{schema:"poise-command/v1",status:"rejected",error:{code,message,details}}`.
-Он не создаёт новый запуск. Неизвестный command_id даёт command_not_found,
-а не новый admission. Чтение чужой Session не разрешается по одному ID.
-
-## 5. Ожидание, CLI и границы исходов
-
-completion ждёт внутри провайдера до TERMINAL/UNKNOWN. Один request → один
-completion — обычный сценарий; модель не ведёт цикл request.status/RUNNING.
-Waiter использует существующего executor, не создаёт второй и не удерживает
-DB transaction на время child. Completion deadline не является child deadline.
-
-Конфигурация `poise-command-config/v1` задаёт явно `state_root`, `request_store`,
-`lock_path`, `output_root` и limits: `packet_bytes`, `id_bytes`, `lock_wait_ms`,
-`lock_poll_ms`, `range_bytes`, `minimal_bytes`, `terminate_grace_ms`, `completion_budget_ms`,
-`delivery_margin_ms`, `transport_budget_ms`, `transport_margin_ms`.
-Все limits — положительные целые; terminate_grace_ms меньше cleanup_budget_ms.
-Известные обязательные значения проверяются строго; неизвестные опции
-игнорируются с сохранением их исходных значений. Пути явные; относительные относятся к
-каталогу этого provider config. Работающие файлы конфигурации не коммитятся.
-Новый schema не утверждает существование этого config parser в нынешнем CLI.
-
-До dispatch/wait проверяются:
-
-`completion_budget_ms >= execution_budget_ms + cleanup_budget_ms + delivery_margin_ms`
-
+Все лимиты, кроме `sqlite_timeout_seconds`, — положительные целые. Выберите
 `transport_budget_ms >= completion_budget_ms + transport_margin_ms`.
+Для каждого нового `command.request` также требуется:
 
-Gateway provider_timeout_seconds и реальный host transport также вмещают
-этот срок. Gateway provider_output_bytes/result limits вмещают полный provider
-metadata response; большие child streams остаются полными у output owner,
-а не помещаются в этот транспортный лимит. Нет молчаливого увеличения бюджетов.
-Неподдерживаемый бюджет даёт configuration_error до dispatch/wait. Реальная
-совместимость host/MCP проверяется в T069 до объявления адаптера доступным.
-
-Полный пример будущего provider config для сценариев §8:
-
-```json
-{
-  "schema": "poise-command-config/v1",
-  "state_root": "/work/command-example/state",
-  "request_store": "/work/command-example/state/commands.sqlite",
-  "lock_path": "/work/command-example/state/commands.lock",
-  "output_root": "/work/command-example/output",
-  "limits": {
-    "packet_bytes": 1048576,
-    "id_bytes": 128,
-    "lock_wait_ms": 2000,
-    "lock_poll_ms": 10,
-    "range_bytes": 1024,
-    "minimal_bytes": 4096,
-    "terminate_grace_ms": 100,
-    "completion_budget_ms": 17000,
-    "delivery_margin_ms": 1000,
-    "transport_budget_ms": 19000,
-    "transport_margin_ms": 2000
-  }
-}
+```text
+execution_budget_ms + cleanup_budget_ms + delivery_margin_ms <= completion_budget_ms
+cleanup_budget_ms > terminate_grace_ms
 ```
 
-Этот файл выбирает настроенное tool definition; Poise Session/caller/permission
-задаются своим общим config. Для примера provider_timeout_seconds=30,
-provider_output_bytes=8388608, result_bytes=8388608 вмещают срок и metadata.
-Это документированная целевая конфигурация, не записанный рабочий файл.
+Внешний вызывающий устанавливает свой реальный timeout с учётом
+`transport_budget_ms`: это настройка согласованной доставки, а не отдельный таймер,
+которым Poise прерывает свой CLI. `completion_budget_ms` ограничивает ожидание
+результата после получения Session; ожидания SQLite внутри этого чтения расходуют
+тот же оставшийся бюджет. Для последующего `command.completion` можно выбрать
+более короткое ожидание в текущем конфиге, сохранив согласованное соотношение
+transport/completion. Это не меняет сохранённые настройки самого запуска.
 
-При непредвиденном истечении waiter budget возвращается тот же snapshot
-формата §4 с error.code=completion_budget_expired. state остаётся фактическим
-ADMITTED/RUNNING/UNKNOWN; child автоматически не останавливается. Это не
-terminal receipt. После устранения причины владелец допускает новое чтение
-той же identity; повторный dispatch не является способом получить результат.
+## Точный публичный вход
 
-CLI провайдера возвращает: rejected=2; UNKNOWN/expiry=3; ошибка инфраструктуры
-при известном исходе=1; наблюдённый deadline=124; обычный exit — его exit_code;
-signal — 128+signal. У успешно доставленного ADMITTED/RUNNING и minimal/ranges
-чтения exit0. Приоритет для completion и request с уже сохранённым исходом:
-UNKNOWN/expiry, infrastructure error, deadline, затем обычная termination.
-Typed payload сохраняется при nonzero.
+Один JSON UTF-8 на stdin и EOF, один JSON с LF на stdout. Внешний пакет содержит
+ровно `schema`, `operation`, `input`; `schema` — `stride-poise/v1`.
+JSON использует уникальные ключи и конечные числа. Типы проверяются строго;
+булево значение отличается от числа. Общий `limits.packet_bytes` ограничивает
+входной пакет, а не размер сохранённых потоков или MCP-ответа.
 
-Это сохраняет §5–7 общего gateway: provider_exit_code — настоящий exit CLI
-провайдера, SUCCEEDED/FAILED — исход данного provider invocation. Completion
-для child exit7 даёт provider_exit_code7/FAILED и сохраняет termination exit7
-(F6). Request с доставленным admission может иметь gateway SUCCEEDED, пока
-команда RUNNING. Minimal успешно читает даже command failure и имеет exit0.
-Потеря самого transport без наблюдённого provider exit даёт gateway UNKNOWN
-и provider_exit_code=null. Эти уровни не подменяют друг друга. Business verdict
-в child stdout остаётся исходными bytes: exit0 с business FAIL не переписывается
-в PASS и не вычисляет Task verdict. Gateway request.status возвращает receipt
-именно соответствующего вызова, включая completion failure.
-
-## 6. Полный источник, minimal и ranges
-
-Source имеет ровно `source_id:string`, `path:string`, `prefix_bytes:integer>=0`,
-`final_bytes:integer>=0|null`, `sha256:string|null`, `complete:boolean`.
-source_id — непрозрачная стабильная identity одного stream данной команды.
-path — явный owner-published путь bytes, не доступ к private DB. Пока capture
-идёт, prefix_bytes означает уже опубликованный неизменяемый префикс;
-final_bytes/sha256 равны null, complete=false. После полного закрытия capture
-complete=true, final_bytes=prefix_bytes и sha256 — digest всех bytes. Известная
-ошибка capture сохраняет partial prefix и complete=false даже при TERMINAL.
-
-Output owner сохраняет streams отдельно, без вымышленного общего порядка.
-Полные provider fields сохраняются без перефразирования. Machine consumer
-читает полный metadata receipt и ровно опубликованные bytes обоих Source;
-в terminal complete источнике это весь поток. Presentation budget не изменяет
-эти данные. Active prefix identity — `(source_id,prefix_bytes)`; добавление bytes
-не меняет уже опубликованный префикс. Это snapshot чтения, не обещание EOF child.
-
-minimal возвращает фиксированную проекцию §4, без body streams и без обязательной
-summary. Она ссылается на полный receipt и Source. Если целая metadata проекция
-в виде фактически выдаваемого UTF-8 JSON с завершающим LF не помещается в
-explicit minimal_bytes, возвращается view_budget_too_small;
-поля/источник не обрезаются. Общий presentation owner применяет бюджет один раз;
-provider не добавляет competing internal clipper к чужому полному ответу.
-
-ranges читает выбранный ранее опубликованный prefix. source_id должен
-принадлежать указанным command_id/stream; prefix_bytes не превышает текущий
-published prefix. offset не превышает выбранный prefix; limit_bytes не больше
-range_bytes. Ответ имеет ровно:
-
-`schema`, `operation:"ranges"`, `command_id`, `stream`, `source_id`, `prefix_bytes`,
-`offset`, `length_bytes`, `data_base64`, `next_offset`, `eof`, `source_complete`, `sha256`.
-
-length_bytes=min(limit_bytes,prefix_bytes-offset); base64 хранит точные bytes,
-next_offset=offset+length_bytes, eof=(next_offset==prefix_bytes). Пустой конечный
-range при offset==prefix_bytes корректен.
-source_complete=(Source.complete && prefix_bytes==Source.final_bytes); тогда sha256 — его полный digest,
-иначе null. eof выбранного active/старого prefix не означает завершение команды.
-UTF-8 может пересекать границу диапазона; consumer декодирует последовательность
-инкрементально. Замена повреждённых или неполных символов не входит в протокол.
-
-Повторное чтение того же prefix/range возвращает те же bytes. Отсутствующий
-источник, несоответствие source_id или потеря подтверждённого prefix дают явный
-отказ. Ошибка digest существующего immutable terminal source сохраняется как
-evidence_mismatch; инструмент не чинит файл и не запускает child заново.
-
-## 7. Ошибки и правильное продолжение
-
-| Код | Наблюдение и действие владельца |
+| `operation` | Точные поля `input` |
 | --- | --- |
-| configuration_error | Исправить явную конфигурацию/совместимый транспорт, затем выполнить корректный допуск |
-| command_reuse_conflict | Использовать исходный сохранённый пакет для чтения его результата; отдельный запуск получает новую identity после разрешения |
-| command_not_found | Использовать identity из действительного admission этой Session |
-| provider_start_failed | Сохранён not_started и actual error; новый запуск требует отдельного намерения |
-| completion_budget_expired | Сохранить фактический snapshot; установить причину ожидания и продолжить чтение существующей identity |
-| observation_lost | UNKNOWN с известными bytes; явная отдельная сверка владельца |
-| capture_failed | Сохранить partial bytes и настоящую termination/неопределённость; устранить причину storage failure |
-| source_not_found / source_conflict | Выбрать Source из действительного ответа указанной команды и stream |
-| range_invalid / range_limit_exceeded | Читать опубликованный prefix последовательными диапазонами в указанном лимите |
-| view_budget_too_small | Явно настроить достаточный размер целой metadata проекции |
-| evidence_mismatch | Сохранить исходный receipt и передать восстановление владельцу данных |
-| store_busy / store_incompatible | Освободить удерживаемый ресурс его владельцем / выбрать поддерживаемый store через оператора |
+| `command.request` | `schema`, `command_id`, `transport`, `argv`, `cwd`, `env`, `execution_budget_ms`, `cleanup_budget_ms`, `mcp` |
+| `command.completion` | `command_id` |
+| `command.delete` | `command_id` |
 
-details имеет ровно следующие поля для соответствующего code. ID/stream/state
-используют типы выше; числа бюджетов/координат — целые; reason/option/path —
-строки. Объект values у configuration_error допускает произвольные имена
-с известными scalar string/integer/null значениями; в нём записываются все
-фактические значения нарушенного бюджетного неравенства.
+У `command.request` поле `schema` равно `poise-command-request/v1`.
+`command_id` — непустая непрозрачная строка без NUL в пределах `id_bytes` UTF-8.
+`transport` — `command` или `mcp_stdio`. `argv` — непустой список строк без NUL;
+`argv[0]` — абсолютный путь исполняемого файла, последующие аргументы могут быть
+пустыми. `cwd` — абсолютный путь существующей рабочей директории.
 
-| Code | Поля details |
+`env` — полный словарь строковых переменных дочернего процесса. Ключи непустые,
+без `=` и NUL; значения без NUL. Если программе нужен `PATH`, укажите его явно.
+Передача argv выполняется непосредственно, без интерполяции shell. Вход stdin
+обычной команды — EOF. Для MCP stdin содержит сообщения протокола.
+
+Оба бюджета запроса — положительные целые миллисекунды с соотношениями выше.
+Для `transport="command"` задайте `mcp:null`. Для `mcp_stdio` задайте ровно:
+
+```json
+{
+  "protocol_version": "2024-11-05",
+  "client_info": {"name": "example-client", "version": "1"},
+  "tool_name": "echo",
+  "arguments": {"text": "готово"}
+}
+```
+
+`protocol_version`, `tool_name`, `client_info.name/version` — непустые строки без
+NUL. `arguments` — произвольный JSON-объект аргументов выбранного инструмента;
+его значения сохраняются целиком.
+
+## Идентичность, повтор и сохранение
+
+Идентичность запуска — `(текущая Session, command_id)`. Запрос не принимает
+идентичность Session или роль от вызывающего: их определяет существующий caller.
+Новый запрос сохраняет полный вход и выбранные настройки исполнения перед
+запуском отдельного worker. CLI допуска может завершиться раньше команды;
+последующее чтение той же Session получает её сохранённое состояние.
+
+Точное повторение `command.request` возвращает текущий сохранённый результат
+с `replayed=true`. Второго запуска нет. Порядок ключей JSON-объекта незначим,
+порядок списка значим, булево и число различаются; численно равные JSON-числа
+сравниваются равными. Для этой же identity сохраняйте исходный запрос и настройки
+исполнения: выходной root, режим и имена файлов, `poll_ms`, размер чтения, grace
+и MCP-лимиты. Их изменение под прежней identity даёт `command_reuse_conflict`.
+Лимиты чтения результата, внешнего транспорта, длины ID и SQLite-ожидания
+используются текущим вызовом и не заменяют сохранённые настройки worker.
+
+В другой Session такой же `command_id` обозначает независимый запуск.
+Данные хранятся до явного удаления оператором. Закрытая Session может прочитать
+сохранённый результат, выполнить точный повтор и удалить его; новый запуск
+производится в открытой Session. У текущего CLI нет операции `session.close`.
+Существующее закрытое состояние принадлежит владельцу Session.
+
+## Состояния и точные ответы
+
+Внешний ответ всегда содержит `schema`, `status`, `result`, `error`, `evidence`.
+Для команд `schema="stride-poise/v1"`, `evidence=[]`.
+
+| `status` и exit CLI | Смысл |
 | --- | --- |
-| configuration_error | `option`, `reason`, `values:object` |
-| command_reuse_conflict / command_not_found | `command_id` |
-| provider_start_failed | `command_id`, `reason` |
-| completion_budget_expired | `command_id`, `completion_budget_ms`, `observed_state` |
-| observation_lost | `command_id`, `phase:"dispatch"|"execution"|"capture"|"publication"`, `reason` |
-| capture_failed | `command_id`, `stream`, `reason` |
-| source_not_found | `command_id`, `stream` |
-| source_conflict | `command_id`, `stream`, `source_id` |
-| range_invalid | `command_id`, `stream`, `prefix_bytes`, `offset`, `limit_bytes` |
-| range_limit_exceeded | `command_id`, `stream`, `prefix_bytes`, `offset`, `limit_bytes`, `range_bytes` |
-| view_budget_too_small | `command_id`, `minimal_bytes`, `required_bytes` |
-| evidence_mismatch | `command_id`, `source_id`, `expected_sha256`, `observed_sha256:string|null` |
-| store_busy | `lock_wait_ms` |
-| store_incompatible | `schema_version:integer|null` |
+| `ok`, `0` | Доставлено сохранённое состояние без инфраструктурной ошибки; реальный ненулевой exit child или `isError=true` MCP читаются отдельно |
+| `unavailable`, `1` | Сохранённая ошибка запуска/протокола/capture либо текущая недоступность/исчерпанное ожидание; `result` содержит метаданные, когда они доступны |
+| `rejected`, `2` | Вход, конфигурация, Session или повтор не соответствуют договору |
 
-Недоступное наблюдение не заполняется нулём. При отказе provider parser до
-чтения command применяются invalid_json с details `{}`, invalid_packet с
-`{path:string}` или unsupported_schema с `{schema:string|null}`; эти три
-случая также имеют rejected форму §4 и exit2.
-Ошибки внешнего JSON/caller/Session/permission/schema принадлежат gateway §7.
-Доступность инструмента не является разрешением запуска. Специальная защита от
-враждебного администратора, восстановление конфигурации и автоматический ремонт
-не являются предпосылками этого обычного локального протокола.
-
-## 8. Независимые literal сценарии
-
-Эти данные задают будущие проверки, а не отчёт о выполненных командах. Во всех
-сценариях installation изолирована от Stride; Session открыта, tool разрешён,
-cwd `/work/command-example` подготовлен, выбран Python `/usr/bin/python3`.
-env в примерах ровно `{}`. Output roots задаются собственным config. Для L1
-execution=15000, cleanup=1000, delivery_margin=1000, completion=17000,
-transport_margin=2000, transport=19000 ms; terminate_grace=100 ms. Host CLI держит этот срок. Для остальных
-используется тот же достаточный config; range_bytes=1024, minimal_bytes=4096.
-
-L1 — один request и один completion для десятисекундной команды:
+У успешного ответа `error=null`; у отказа `error` содержит ровно
+`code`, `details`, `action`. Пример конверта допуска:
 
 ```json
-{
-  "schema": "stride-poise/v1",
-  "operation": "tool.invoke",
-  "input": {
-    "request_id": "command-long-start",
-    "tool_id": "command.local",
-    "tool_schema": "poise-command/v1",
-    "arguments": {
-      "operation": "request",
-      "input": {
-        "command_id": "long-1",
-        "argv": ["/usr/bin/python3", "-c", "import time; time.sleep(10); print('done')"],
-        "cwd": "/work/command-example",
-        "env": {},
-        "execution_budget_ms": 15000,
-        "cleanup_budget_ms": 1000
-      }
-    }
-  }
-}
+{"schema":"stride-poise/v1","status":"ok","result":{"schema":"poise-command/v1","operation":"request","command_id":"cli-1","transport":"command","state":"ADMITTED","termination":null,"deadline_exceeded":false,"business_error":null,"stdout":null,"stderr":null,"full_result_ref":null,"error":null,"replayed":false},"error":null,"evidence":[]}
 ```
+
+Фактически первый ответ может уже содержать `RUNNING` или завершённый результат.
+`request/completion` возвращают ровно 13 полей приведённых метаданных;
+`operation` — `request` или `completion`. `completion` имеет `replayed=false`.
+
+| `state` | Смысл |
+| --- | --- |
+| `ADMITTED` | Идентичность и настройки сохранены, результат ещё не наблюдён |
+| `RUNNING` | Worker принял единственный запуск; окончательный результат ещё не опубликован |
+| `TERMINAL` | Наблюдён реальный exit, signal либо невозможность старта |
+| `UNKNOWN` | Сохранена неопределённость наблюдения, которую нужно учитывать вызывающему |
+
+`termination` — `null` до наблюдения или ровно один объект:
+`{"kind":"exit","exit_code":N}`, `{"kind":"signal","signal":N}`,
+`{"kind":"not_started"}`. `deadline_exceeded` — отдельное булево значение;
+`business_error` — `null` для обычной команды или ещё не полученного MCP-результата,
+булево для полученного ответа инструмента. Эти факты независимы.
+
+Каждый `stdout/stderr` — `null` до публикации или объект ровно с полями
+`source_id`, `path`, `bytes`, `complete`. `source_id` — непрозрачная сохранённая
+строка, `path` — абсолютный путь отдельного бинарного файла, `bytes` — число
+сохранённых байтов. `complete` означает полученный EOF и успешное сохранение этого
+потока. Файлы могут содержать произвольные байты, включая NUL и не-UTF-8.
+`full_result_ref` — `null` или ровно `{"path":"/absolute/result.json","bytes":N}`.
+Полный файл публикуется перед метаданными, которые на него ссылаются.
+
+Полный результат — JSON с LF и ровно 11 полями: `schema`, `command_id`, `transport`,
+`state`, `termination`, `deadline_exceeded`, `business_error`, `stdout`, `stderr`,
+`error`, `mcp_response`. `schema="poise-command-result/v1"`; остальные общие поля
+совпадают с опубликованным состоянием. `mcp_response` — полный сопоставленный
+JSON-RPC-ответ поставщика или `null`; все дополнительные поля поставщика сохранены.
+Тела stdout/stderr читаются из отдельных файлов, не из краткого конверта CLI.
+
+## Бюджеты и фактическое завершение
+
+Execution budget начинается непосредственно перед попыткой запуска child.
+При его исчерпании отправляется SIGTERM группе процесса и начинается один общий
+cleanup budget. После `terminate_grace_ms` отправляется SIGKILL, если ещё нужен
+переход эскалации. Ожидание учитывает ближайший момент эскалации независимо от
+величины `poll_ms`. Итоговый signal/exit берётся из реального наблюдения child.
+
+Естественное завершение child или полученный окончательный MCP-ответ также
+начинает cleanup. В этом общем бюджете дочитываются оба потока и ожидается child.
+Получение MCP-ответа закрывает stdin; проверка входящих уведомлений и лимитов
+продолжается до EOF. При исчерпании cleanup публикуется реально известный исход
+и сохранённые префиксы; неполный поток имеет `complete=false` и ошибку capture.
+Если исход child не наблюдён, `termination=null`, состояние — `UNKNOWN`.
+При естественном завершении с ещё открытым у потомка потоком cleanup тоже конечен.
+
+Ненулевой exit команды сам по себе сохраняется как `ok` без инфраструктурной
+ошибки. Достигнутый execution deadline с полностью наблюдённым signal/exit и
+полными потоками также сохраняет свои факты при `ok`. Чтение completion не
+запускает worker. По окончании своего бюджета оно сообщает текущую ошибку
+занятого хранилища либо `command_wait_expired` с последним прочитанным состоянием.
+Последующее чтение использует прежнюю identity.
+
+## Обмен MCP
+
+Адаптер отправляет `initialize` с выбранной версией, пустыми `capabilities` и
+`clientInfo`, получает сопоставленный ответ, затем отправляет
+`notifications/initialized` и один `tools/call`. У ответа initialize обязательны
+совпадающий `protocolVersion`, объект `capabilities` и `serverInfo` со строками
+`name/version`. Идентификаторы запросов сопоставляются по значению и типу.
+
+У tool-result обязателен массив `content`; `isError` при наличии — булево,
+при отсутствии результат считается успешным. Поддержаны элементы `text` со
+строкой `text`, `image` со строками `data/mimeType`, `resource` с объектом
+`resource`, строкой `uri` и строкой `text` либо `blob`. Дополнительные поля
+поставщика сохраняются в полном ответе. `isError=true` задаёт
+`business_error=true`; exit сервера остаётся самостоятельным фактом.
+JSON-RPC error инструмента сохраняется полным с `business_error=true` и
+инфраструктурной диагностикой `mcp_response_error`.
+
+Каждое входящее сообщение — JSON-объект `jsonrpc="2.0"` и LF. Лимит размера
+считает все байты до LF; лимит количества включает ответы и уведомления,
+в том числе после tool-result. Граница включительна. Уведомление имеет непустой
+`method`, необязательный объект `params` и не содержит `id`, `result`, `error`.
+Несопоставленный ответ, неверная структура/версия, превышенный лимит или
+незавершённый кадр дают явную диагностику. После ошибки протокола semantic parsing
+заканчивается, а полные raw-потоки продолжают сохраняться до конца cleanup.
+Поздняя ошибка сохраняет уже полученный ответ и его `business_error`.
+EOF до ответа инструмента сохраняется как неопределённость `mcp_response`.
+
+## Ошибки и правильное продолжение
+
+Общие `invalid_config`, `invalid_json`, `invalid_request`, `unsupported_schema`,
+`packet_limit` и ошибки Session описаны в [руководстве оболочки](shell-poi.md).
+Следующая таблица уточняет командные ошибки; `errno` может быть `null`, если
+источник ошибки не предоставляет код POSIX.
+
+| `code` | `details`, `action` и правильное действие |
+| --- | --- |
+| `commands_not_configured` | `{}`, `configure:commands`: подготовить полную секцию `commands` |
+| `command_budget_incompatible` | Два бюджета запроса и текущие completion/delivery; `configure:commands`: согласовать бюджеты по формулам выше |
+| `command_reuse_conflict` | `command_id`, `use:new-command`: для нового намерения выбрать новый ID |
+| `command_not_found` | `command_id`, `use:command`: выбрать сохранённый ID своей Session |
+| `command_store_incompatible` | `version` (целое либо `null`), `select:command-store`: выбрать совместимое подготовленное состояние после сохранения прежних данных |
+| `command_store_busy` | `{}`, `retry:command`: повторить тот же запрос после завершения текущей короткой операции с каталогом |
+| `command_store_io` | `errno`, `configure:command-store`: подготовить доступные каталог и права хранилища |
+| `command_wait_expired` | `command_id`, `budget_ms`, `wait:command`: повторить completion той же identity с выбранным конечным ожиданием |
+| `command_start_failed` | `path`, `errno`, `configure:command`: подготовить исполняемый файл/cwd и для новой попытки выбрать новый ID |
+| `command_capture_failed` | `stream`, `errno`, `inspect:command`: прочитать сохранённый префикс и фактический исход, восстановить доступность назначения перед новым запуском |
+| `command_protocol_failed` | `phase` (`initialize` или `tools_call`), `reason` (`invalid_response`, `protocol_version`, `message_limit`), `configure:command`: согласовать сервер, выбранную версию и лимиты перед новым запуском |
+| `mcp_response_error` | `code` ответа JSON-RPC, `inspect:command`: прочитать полный ответ инструмента |
+| `command_observation_lost` | `phase` (`dispatch`, `execution`, `publication`, `mcp_response`), `inspect:command`: проверить сохранённые файлы и фактическую активность исполнителя |
+| `command_delete_failed` | `command_id`, `path`, `errno`, `inspect:command`: устранить причину доступа и повторить удаление того же ID |
+
+Удаление выполняют после завершения всех писателей и читателей результата.
+`command.delete` удаляет stdout, stderr, полный результат, пустую директорию
+данного исполнения, затем запись своей Session. Ответ:
 
 ```json
-{
-  "schema": "stride-poise/v1",
-  "operation": "tool.invoke",
-  "input": {
-    "request_id": "command-long-wait",
-    "tool_id": "command.local",
-    "tool_schema": "poise-command/v1",
-    "arguments": {
-      "operation": "completion",
-      "input": {"command_id": "long-1"}
-    }
-  }
-}
+{"schema":"stride-poise/v1","status":"ok","result":{"schema":"poise-command-delete/v1","command_id":"cli-1","state":"absent"},"error":null,"evidence":[]}
 ```
 
-После реализации/квалификации провайдера оператор явно регистрирует binding
-`command.local`, открывает Session и сохраняет эти два пакета как request.json
-и completion.json. Из корня поставки, с этим выбранным рабочим Poise config:
+Повтор удаления отсутствующего ID имеет тот же ответ. При частичной ошибке
+удалённые файлы остаются удалёнными, запись сохраняется для продолжения.
+Удаление — процедура окончания хранения после остановки участников, а не
+команда отмены процесса. После удаления тот же ID снова может обозначить новый
+запуск, поэтому для самостоятельных намерений выбирайте новые ID.
+
+Допуск SQLite и запуск процесса — отдельные действия. Неожиданная остановка
+между ними или во время публикации может оставить `ADMITTED/RUNNING` без нового
+результата либо наблюдённый `UNKNOWN`. Точный повтор сохраняет одну identity;
+автоматического повторного запуска и восстановления процесса нет. После проверки
+сохранённых данных и завершения участников оператор может закончить хранение
+и явно создать новое намерение с новым ID. При необходимости предварительно
+сохраните нужные полные файлы обычной операторской копией.
+
+## Пример: подготовка и команда
+
+Выполняйте три блока по порядку из корня поставки. Выберите абсолютный
+`POISE_PYTHON` CPython 3.13 и существующий `POISE_EXAMPLE_PARENT` для рабочих
+материалов. Пример сохраняет конфиги, полные ответы и результаты в отдельной
+директории; его `client.py` — локальный помощник примера, не часть API.
 
 ```bash
-apps/poise/bin/poise --config /work/command-example/poise.json < request.json
-apps/poise/bin/poise --config /work/command-example/poise.json < completion.json
-```
-
-До реализации T069 это образец целевого использования, а не команда нынешнего
-среза. Два внешних request_id различны, внутренняя command identity одна.
-
-Ожидаются одна durable command identity/один dispatch, terminal termination
-`{"kind":"exit","exit_code":0}`, deadline_exceeded=false, stdout ровно UTF-8
-`done\n` (5 bytes), stderr пустой (0 bytes), complete=true обоих Source и полный
-immutable receipt. Между запросами нет модельного status polling. Exact повтор
-первого внешнего пакета имеет gateway replayed=true и прежний provider payload;
-число dispatch остаётся1. Новый gateway request_id с тем же provider request
-проверяет внутреннее replayed=true и ту же command identity без второго запуска.
-
-L2 — корректная команда с exit7 использует тот же request input, command_id
-`exit-7`, argv `["/usr/bin/python3","-c","raise SystemExit(7)"]`, execution=15000,
-cleanup=1000. Completion ожидает TERMINAL, termination exit7, пустые complete
-streams, provider exit7 и gateway FAILED. Для business-result отдельно команда
-`print('{"verdict":"FAIL"}')` имеет child exit0, неизменный stdout с FAIL,
-provider exit0/gateway SUCCEEDED; consumer сохраняет business FAIL.
-
-L3 — наблюдённый timeout: command_id `timeout-1`, execution=1000, cleanup=1000.
-Python устанавливает SIGTERM handler с выходом23, публикует `ready\n` и ожидает:
-
-```python
-import signal
+export POISE_PYTHON
+export POISE_EXAMPLE_PARENT
+export POISE_EXAMPLE="$(mktemp -d "${POISE_EXAMPLE_PARENT:?}/command-example.XXXXXX")"
+cat > "$POISE_EXAMPLE/client.py" <<'PY'
+import json
+import os
+from pathlib import Path
+import subprocess
 import sys
-import time
-signal.signal(signal.SIGTERM, lambda *_: sys.exit(23))
-print('ready', flush=True)
-time.sleep(10)
+
+ROOT = Path(os.environ['POISE_EXAMPLE'])
+APP = Path.cwd() / 'apps/poise'
+ENV = dict(os.environ)
+# This isolated generated caller belongs only to example child processes.
+ENV.pop('CODEX_SESSION_ID', None)
+ENV.pop('CODEX_THREAD_ID', None)
+
+def call(operation, value, entry='poise', config='command.json'):
+    schema = 'poise-state/v1' if entry == 'poise-state' else 'stride-poise/v1'
+    packet = {'schema': schema, 'operation': operation, 'input': value}
+    number = len(list((ROOT / 'calls').glob('*.request.json')))
+    stem = ROOT / 'calls' / f'{number:03d}'
+    command = [sys.executable, '-I', '-S', '-B', str(APP / 'bin' / entry),
+               '--config', str(ROOT / config)]
+    stem.with_suffix('.request.json').write_text(json.dumps(packet) + '\n')
+    result = subprocess.run(command, input=(json.dumps(packet) + '\n').encode(),
+                            capture_output=True, env=ENV, timeout=10)
+    stem.with_suffix('.stdout').write_bytes(result.stdout)
+    stem.with_suffix('.stderr').write_bytes(result.stderr)
+    stem.with_suffix('.execution.json').write_text(json.dumps({
+        'argv': command, 'cwd': str(Path.cwd()), 'env': ENV,
+        'exit_code': result.returncode}) + '\n')
+    assert result.returncode == 0 and result.stderr == b''
+    response = json.loads(result.stdout)
+    assert response['status'] == 'ok' and response['error'] is None
+    return response['result']
+
+def request(identity, argv, transport='command', mcp=None):
+    return {'schema': 'poise-command-request/v1', 'command_id': identity,
+            'transport': transport, 'argv': argv, 'cwd': str(ROOT),
+            'env': {'LANG': 'C.UTF-8', 'EXAMPLE_VALUE': 'example'},
+            'execution_budget_ms': 1000, 'cleanup_budget_ms': 500, 'mcp': mcp}
+
+if __name__ == '__main__':
+    for name in ('state', 'command-state', 'command-output', 'calls'):
+        (ROOT / name).mkdir()
+    command = json.loads((APP / 'config/command.example.json').read_text())
+    (ROOT / 'command.json').write_text(json.dumps(command) + '\n')
+    state = json.loads((APP / 'config/state.example.json').read_text())
+    state['database'] = command['session_store']
+    (ROOT / 'state.json').write_text(json.dumps(state) + '\n')
+    call('prepare', {}, 'poise-state', 'state.json')
+    call('session.ensure', {})
+    source = ("import os,sys;from pathlib import Path;"
+              "assert sys.argv[1]=='';assert os.environ['EXAMPLE_VALUE']=='example';"
+              "assert set(os.environ)=={'LANG','EXAMPLE_VALUE'};"
+              "Path('cli.effects').open('ab').write(b'one\\n');"
+              "os.write(1,b'hello\\x00world\\n');os.write(2,b'note\\n');sys.exit(7)")
+    packet = request('cli-1', [sys.executable, '-I', '-S', '-B', '-c', source, ''])
+    (ROOT / 'cli.request.json').write_text(json.dumps(packet) + '\n')
+    first = call('command.request', packet)
+    assert first['command_id'] == 'cli-1' and first['replayed'] is False
+    final = call('command.completion', {'command_id': 'cli-1'})
+    assert final['state'] == 'TERMINAL' and final['termination'] == {'kind': 'exit', 'exit_code': 7}
+    assert final['deadline_exceeded'] is False and final['business_error'] is None
+    full_path = Path(final['full_result_ref']['path'])
+    full_bytes = full_path.read_bytes()
+    assert len(full_bytes) == final['full_result_ref']['bytes']
+    full = json.loads(full_bytes)
+    assert full['schema'] == 'poise-command-result/v1' and full['mcp_response'] is None
+    assert Path(full['stdout']['path']).read_bytes() == b'hello\x00world\n'
+    assert Path(full['stderr']['path']).read_bytes() == b'note\n'
+    assert full['stdout']['complete'] and full['stderr']['complete']
+    assert (ROOT / 'cli.effects').read_bytes() == b'one\n'
+    replay = call('command.request', packet)
+    assert replay == dict(final, operation='request', replayed=True)
+    assert full_path.read_bytes() == full_bytes
+    assert (ROOT / 'cli.effects').read_bytes() == b'one\n'
+    (ROOT / 'cli.final.json').write_text(json.dumps(final) + '\n')
+    print('CLI: exit 7, complete separate streams, exact replay, one execution')
+PY
+"${POISE_PYTHON:?}" -B "$POISE_EXAMPLE/client.py"
 ```
 
-Test-owned готовность и Clock устанавливают deadline после публикации ready.
-Исполнитель наблюдает deadline, завершает свой child и подтверждает точную
-termination `{"kind":"exit","exit_code":23}`; state TERMINAL,
-deadline_exceeded=true, stdout `ready\n` (6 bytes), provider exit124. Таким
-образом проверяется настоящее завершение, а не только выставленный флаг timeout.
-Если завершение
-после cleanup не подтверждено, L4 требует UNKNOWN, а не этот terminal.
+Ожидаемый последний вывод — `CLI: exit 7, complete separate streams, exact replay, one execution`.
+Успешная доставка результата имеет exit CLI `0`, а результат child — `7`.
+Полные stdout/stderr и JSON пока сохранены по ссылкам в `cli.final.json`.
 
-L4 — потеря наблюдения после admission: identity `unknown-1` уже существует,
-один запуск подтверждён, terminal не квалифицирован. Детерминированное test-owned событие
-потери наблюдения задаёт error observation_lost, state UNKNOWN, termination=null,
-partial stdout bytes ровно `part` (4), stderr пустой, complete=false, final_bytes
-и sha256 null. Completion/повтор request сохраняют uncertainty и один dispatch;
-provider exit3 отличается от gateway UNKNOWN при потерянном самом transport
-(provider_exit_code=null). Это моделирует обычный отказ, а не саморемонт.
+## Пример: действительный MCP stdio
 
-L5 — большой многоязычный вывод: identity `large-1`, Python выполняет:
+Продолжите в той же оболочке. Сервер примера отвечает на настоящий обмен,
+сохраняет один вызов инструмента и завершает процесс после EOF stdin.
 
-```python
+```bash
+cat > "$POISE_EXAMPLE/peer.py" <<'PY'
+import json
+from pathlib import Path
 import sys
-sys.stdout.buffer.write(bytes.fromhex('d096f09f9982') * 100000)
-sys.stderr.buffer.write(bytes.fromhex('6572720a') * 25000)
+
+def receive():
+    return json.loads(sys.stdin.buffer.readline())
+
+def send(value):
+    print(json.dumps(value, ensure_ascii=False), flush=True)
+
+initialize = receive()
+assert initialize['method'] == 'initialize'
+send({'jsonrpc': '2.0', 'id': initialize['id'], 'result': {
+    'protocolVersion': '2024-11-05', 'capabilities': {'tools': {}},
+    'serverInfo': {'name': 'example-peer', 'version': '1'}}})
+assert receive()['method'] == 'notifications/initialized'
+call = receive()
+assert call['method'] == 'tools/call' and call['params']['name'] == 'echo'
+assert call['params']['arguments'] == {'text': 'готово'}
+with Path('mcp.effects').open('ab') as effects:
+    effects.write(b'one\n')
+send({'jsonrpc': '2.0', 'id': call['id'], 'result': {
+    'content': [{'type': 'text', 'text': 'готово'}], 'isError': False,
+    'example': {'retained': True}}})
+assert sys.stdin.buffer.read() == b''
+PY
+"$POISE_PYTHON" -B - <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
+
+sys.path.insert(0, os.environ['POISE_EXAMPLE'])
+from client import ROOT, call, request
+
+mcp = {'protocol_version': '2024-11-05',
+       'client_info': {'name': 'example-client', 'version': '1'},
+       'tool_name': 'echo', 'arguments': {'text': 'готово'}}
+packet = request('mcp-1', [sys.executable, '-I', '-S', '-B', str(ROOT / 'peer.py')],
+                 'mcp_stdio', mcp)
+call('command.request', packet)
+final = call('command.completion', {'command_id': 'mcp-1'})
+assert final['state'] == 'TERMINAL' and final['termination'] == {'kind': 'exit', 'exit_code': 0}
+assert final['business_error'] is False and final['deadline_exceeded'] is False
+full_path = Path(final['full_result_ref']['path'])
+full_bytes = full_path.read_bytes()
+assert len(full_bytes) == final['full_result_ref']['bytes']
+full = json.loads(full_bytes)
+response = full['mcp_response']
+assert response['jsonrpc'] == '2.0' and type(response['id']) is int
+assert response['result'] == {'content': [{'type': 'text', 'text': 'готово'}],
+                              'isError': False, 'example': {'retained': True}}
+frames = [json.loads(line) for line in Path(full['stdout']['path']).read_bytes().splitlines()]
+assert len(frames) == 2 and frames[-1] == response
+assert Path(full['stderr']['path']).read_bytes() == b''
+assert full['stdout']['complete'] and full['stderr']['complete']
+assert call('command.request', packet) == dict(final, operation='request', replayed=True)
+assert (ROOT / 'mcp.effects').read_bytes() == b'one\n'
+assert full_path.read_bytes() == full_bytes
+(ROOT / 'mcp.final.json').write_text(json.dumps(final) + '\n')
+print('MCP: real exchange, full provider result, one tool call')
+PY
 ```
 
-Независимый byte oracle: stdout — 100000 повторов UTF-8 `Ж🙂`, ровно600000 bytes;
-stderr — 25000 повторов `err\n`, ровно100000 bytes. Complete sources и digest
-проверяются по этим test-owned bytes. minimal не содержит тела; полный machine
-read восстанавливает все700000 bytes, независимо от4096-byte presentation.
-Последовательные ranges покрывают без пропусков/дублирования выбранный prefix.
-Первый stdout range offset0/limit1 даёт data_base64=`0A==`, next_offset=1;
-второй offset1/limit1 — `lg==`, next_offset=2. Их объединение декодируется в `Ж`.
-На final offset600000 length0/eof=true/source_complete=true; stderr проверяется
-как отдельный источник, а не часть вымышленного межпоточного порядка.
+Ожидаемый вывод — `MCP: real exchange, full provider result, one tool call`.
+Неизвестное приложению поле `example` остаётся в полном ответе поставщика.
 
-L6 — active prefix: stdout уже опубликовал bytes `part`, prefix_bytes=4,
-complete=false, final_bytes/sha256=null. ranges offset0/limit4 возвращает
-`cGFydA==`, next_offset4/eof=true/source_complete=false. Последующее добавление
-`ial` не меняет повторное чтение выбранного prefix4. Новый minimal показывает
-prefix7; terminal complete Source имеет final_bytes7 и SHA-256 bytes `partial`.
+## Пример: окончание хранения
 
-IDs, пути результата и revision получают из реального owner response и
-проверяют на принадлежность/устойчивость, не назначают посредством gateway
-payload. Literal expected bytes/states/exit/limits выше независимы от кода
-будущего провайдера. T069/T070 переносят эти сценарии в свои test-owned fixtures
-и проверяют настоящий producer и настоящего consumer, включая MCP boundary.
+Оба процесса уже завершились, чтение примера окончено. Сохраните нужные вам
+результаты перед удалением. Следующий блок явно заканчивает хранение двух запусков
+и проверяет повтор процедуры.
 
-## 9. Проверка дизайна и последствия
+```bash
+"$POISE_PYTHON" -B - <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
 
-| Обязательство T068 | Где оно определено |
-| --- | --- |
-| R01 / POI-07: command/completion/bounded stdout/stderr | §3–6, L1/L3/L5/L6: owner wait, полные sources, byte ranges |
-| R02 / POI-02: самостоятельный вызов | §1–2, L1: Poise Session без Task/Stage/Workspace/Stride |
-| DoD: долгий запуск/failure/timeout/large output без service polling/mandatory summary | §5–8, L1–L6, разделение provider/child/business исходов |
-| DoD: договор, конфиг и команда документируются вместе | Этот документ: точные версии, поля, бюджеты, внешний invoke и правильные provider packets |
+sys.path.insert(0, os.environ['POISE_EXAMPLE'])
+from client import ROOT, call
 
-T068 изменяет только этот app-owned документ и содержательные Task sections.
-Общий конверт/Session contract сохраняются. Реализация parser/store/executor/
-waiter и реальная MCP qualification — T069; output preservation/minimal/ranges
-и их qualification — T070. До них не заявляются executable provider capability,
-background survival, выполненные long-run tests или завершение этих задач.
-Дизайн проверяется чтением, literal сценариями и существующим documentation
-checker с inbound links; maintained smoke относится к фактической ревизии
-документа. Это статическая проверка дизайна, не end-to-end evidence провайдера.
+for identity, saved in [('cli-1', 'cli.final.json'), ('mcp-1', 'mcp.final.json')]:
+    final = json.loads((ROOT / saved).read_text())
+    paths = [Path(final[key]['path']) for key in ('stdout', 'stderr', 'full_result_ref')]
+    expected = {'schema': 'poise-command-delete/v1', 'command_id': identity, 'state': 'absent'}
+    assert call('command.delete', {'command_id': identity}) == expected
+    assert all(not path.exists() for path in paths)
+    assert call('command.delete', {'command_id': identity}) == expected
+print('DELETE: both results removed, repeated deletion succeeds')
+PY
+```
+
+Ожидаемый вывод — `DELETE: both results removed, repeated deletion succeeds`.
+Локальные журналы вызовов и конфиги примера остаются в `POISE_EXAMPLE`.
+
+## Владельцы реализации и проверка
+
+[CommandOperations](../application/commands.py) использует собственную Session,
+допускает запрос, читает завершение и заканчивает хранение.
+[Домен команд](../domain/command.py) задаёт входы, типизированный повтор и значения;
+[настройки](../domain/command_config.py) — известные поля и бюджеты.
+[CommandStore](../infrastructure/command_store.py) владеет короткими транзакциями
+идентичности, claim и публикации. [Worker](../infrastructure/command_execution.py)
+и [MCP](../infrastructure/command_mcp.py) наблюдают процесс/протокол;
+[CommandFiles](../infrastructure/command_files.py) сохраняет полные файлы через
+существующий [OutputStore](../infrastructure/files.py).
+[Shell](../shell.py) и приватный [вход worker](../bin/poise-command-worker)
+соединяют владельцев. Этот приватный вход запускает само приложение.
+
+Из корня checkout с выбранным `POISE_PYTHON` и подготовленным рабочим
+`POISE_COMMAND_CHECK_OUTPUT` выполните:
+
+```bash
+"$POISE_PYTHON" -B apps/poise/tests/test_command.py --suite delivery \
+  --output-root "$POISE_COMMAND_CHECK_OUTPUT/delivery"
+"$POISE_PYTHON" -B apps/poise/tests/test_command.py --suite behavior \
+  --output-root "$POISE_COMMAND_CHECK_OUTPUT/behavior"
+```
+
+`delivery` проверяет доступность командного входа после настоящей подготовки Session.
+`behavior` проверяет 33 сценария реальных процессов/MCP/SQLite/файлов, включая
+настроенные argv/cwd/env, повтор и параллельный допуск, deadlines и cleanup,
+раздельные большие и бинарные потоки, ненулевые exit, протокол и лимиты,
+ошибки хранения/capture/удаления и область Session. Полные отчёты находятся в
+выбранном каталоге; успешный stdout краткий. Эти проверки относятся к выбранному
+локальному stdio binding, а не к доступности произвольного внешнего MCP-сервиса.

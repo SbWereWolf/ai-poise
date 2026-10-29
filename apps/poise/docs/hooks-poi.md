@@ -9,8 +9,9 @@
 Это действующий договор hooks. Общие поля настройки, семь полей Session и прямой
 caller описаны в [руководстве Session](shell-poi.md), подготовка состояния — в
 [руководстве poise-state](state-poi.md), настройки наблюдений — в
-[руководстве poise-generic](generic-poi.md). Асинхронная команда и gateway остаются
-[отдельным проектом](poi-command-contract.md).
+[руководстве poise-generic](generic-poi.md). Самостоятельные асинхронные команды/MCP имеют
+[действующий договор](poi-command-contract.md); общий gateway остаётся
+[проектной областью](contract-poi.md).
 
 ## Подготовка и конфигурация
 

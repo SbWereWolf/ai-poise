@@ -80,6 +80,19 @@ def capture_event(transport, binding, packet, options, resources):
                                          'sha256': hashlib.sha256(message.encode()).hexdigest()}
         return envelope(document, binding['external_session'], clock)
 
+    def source_failure(source, path, reason, kind='source_unavailable'):
+        scope = {'project': binding['project'], 'session': binding['external_session']}
+        if task['state'] == 'known':
+            scope.update(task=task['task_id'], sprint=task['sprint_id'])
+        selected = source['paths'] if source['kind'] in ('skill-policy', 'skill-content') else str(path)
+        coverage = {'source_key': identity([source['id'], selected]), 'partial_tail': False,
+                    'excluded_prefix_events': 0, 'complete_for_registered_scope': False,
+                    'errors': [{'kind': kind, 'source': str(path), 'reason': str(reason)}]}
+        document = {'kind': 'normalized-capture', 'observation': {
+                    'facts': [], 'metadata': [], 'scope': scope, 'source': source, 'coverage': coverage},
+                    'policy_digest': policy.digest, 'native': native}
+        jobs.append(envelope(document, binding['external_session'], clock))
+
     count = 0
     dedicated = {Path(address) for source in policy.collection['sources']
                  if source['kind'] not in ('codex-transcript', 'codex-native') for address in source['paths']
@@ -90,8 +103,8 @@ def capture_event(transport, binding, packet, options, resources):
         if source['kind'] in ('skill-policy', 'skill-content'):
             try:
                 jobs.append(source_job(capture_inventory(source, event['cwd'], policy.accounting.data['max_files']), source))
-            except (PoiseError, OSError, ValueError):
-                continue
+            except (PoiseError, OSError, ValueError) as exc:
+                source_failure(source, source['paths'][0], exc)
             continue
         if source['kind'] not in ('codex-transcript', 'codex-native', 'hook-adoption'):
             continue
@@ -105,14 +118,15 @@ def capture_event(transport, binding, packet, options, resources):
                     continue  # The primary invocation source owns an overlapping physical journal.
                 count += 1
                 if count > policy.accounting.data['max_files']:
+                    source_failure(source, path, 'Configured collection file bound reached', 'source_selection_bound')
                     break
                 try:
                     descriptor = capture_source(path, source)
                     jobs.append(source_job(descriptor, source))
-                except (PoiseError, OSError, ValueError):
+                except (PoiseError, OSError, ValueError) as exc:
                     # This optional owner never replaces the actual native/tool
                     # outcome. Saved delivery failures retain their spool route.
-                    continue
+                    source_failure(source, path, exc)
     if jobs:
         batch = {'kind': 'capture-batch', 'jobs': [{'identity': job.identity, 'data': job.data} for job in jobs]}
         dispatcher.submit(envelope(batch, binding['external_session'], clock))

@@ -1,5 +1,6 @@
 """Compose metric captures with the existing detached dispatcher and spool."""
 from dataclasses import asdict
+from threading import Lock
 
 from ...application.agent_metrics import AgentMetrics
 from ...application.telemetry import TelemetryEnvelope
@@ -30,24 +31,33 @@ class MetricCaptureProcessor:
     """Prepare a whole source outside the one existing accounting transaction."""
     def __init__(self, repository, clock):
         self.repository, self.clock = repository, clock
+        # Spool replay retains its existing parallel source preparation. This
+        # one receiver serializes its own SQLite boundaries, so its short
+        # writer admission is spent on other processes, not its own threads.
+        self.commit_lock = Lock()
+
+    def commit(self, job, prepared):
+        with self.commit_lock:
+            self.repository.accept_metric_capture(job, prepared)
 
     def __call__(self, job):
         # Missing storage is ordinary on the first capture; no source I/O on a
         # replay whose committed immutable job already proves the entire batch.
-        if self.repository.database.path.exists() and self.repository.metric_capture_committed(job):
-            return
+        with self.commit_lock:
+            if self.repository.database.path.exists() and self.repository.metric_capture_committed(job):
+                return
         document = observation_document(job.data['agent_metrics'])
         if document['kind'] == 'normalized-capture':
             prepared = envelope({'kind': 'facts', **document['observation']}, job.data['session'],
                                 asdict(self.clock.observe()))
-            self.repository.accept_metric_capture(job, [prepared])
+            self.commit(job, [prepared])
             return
         descriptor = document['descriptor']
         policy = AgentMetricsPolicy.parse(document['policy'])
         if descriptor['source']['kind'] in ('skill-policy', 'skill-content'):
             prepared = skill_source_observations(descriptor, document['scope'], policy.collection['max_source_bytes'],
                                                   job.data['started']['audit_utc'])
-            self.repository.accept_metric_capture(job, [envelope(prepared, job.data['session'], asdict(self.clock.observe()))])
+            self.commit(job, [envelope(prepared, job.data['session'], asdict(self.clock.observe()))])
             return
         batch = scan_jsonl(descriptor, max_source_bytes=policy.collection['max_source_bytes'],
                            max_records=policy.collection['max_records'])
@@ -57,7 +67,7 @@ class MetricCaptureProcessor:
             scope = {'project': self.repository.project}
             prepared = envelope({'kind': 'facts', **facts, 'coverage': coverage, 'scope': scope,
                                  'source': descriptor['source']}, job.data['session'], asdict(self.clock.observe()))
-            self.repository.accept_metric_capture(job, [prepared])
+            self.commit(job, [prepared])
             return
         session, meta, records, excluded = owned_records(batch)
         clock = asdict(self.clock.observe())
@@ -82,7 +92,8 @@ class MetricCaptureProcessor:
         coverage.update(session_id=session, first_event_at=min(stamps).isoformat() if stamps else None,
                         last_event_at=max(stamps).isoformat() if stamps else None)
         if self.repository.database.path.exists():
-            prior = self.repository.metric_snapshot()['observations']
+            with self.commit_lock:
+                prior = self.repository.metric_snapshot()['observations']
             previous = next((row['envelope']['agent_metrics']['coverage'] for row in reversed(prior)
                              if row['envelope']['agent_metrics'].get('kind') == 'facts' and
                              row['envelope']['agent_metrics']['coverage']['source_key'] == batch.source_key), None)
@@ -118,7 +129,7 @@ class MetricCaptureProcessor:
         facts['metadata'].extend(task_facts['metadata'])
         prepared = envelope({'kind': 'facts', **facts, 'coverage': coverage, 'scope': scope,
                              'source': descriptor['source']}, session, clock)
-        self.repository.accept_metric_capture(job, [prepared])
+        self.commit(job, [prepared])
 
 
 def metric_tools(project, policy):
@@ -139,9 +150,10 @@ def metric_dispatcher(service, policy):
         failures = []
         for item in batch.data['agent_metrics']['jobs']:
             try:
-                service.delivery(TelemetryEnvelope(item['identity'], item['data']))
+                service.delivery.enqueue(TelemetryEnvelope(item['identity'], item['data']))
             except Exception as exc:
                 failures.append(type(exc).__name__)
+        service.delivery.replay()
         if failures:
             from ...modules.foundation.errors import PoiseError
             raise PoiseError('Optional capture delivery failed: ' + ', '.join(failures))

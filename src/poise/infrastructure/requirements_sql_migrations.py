@@ -261,8 +261,12 @@ class RequirementsSqlMigrations:
                 f"SQL {name} задаёт неподдерживаемый режим transactional; "
                 "удалите transactional:false и оставьте транзакцию штатному yoyo"
             )
+        families = set()
         for sql in statements:
             for statement in sqlparse.parse(sql):
+                if all(part.is_whitespace or part.ttype in sqlparse.tokens.Comment
+                       or part.match(sqlparse.tokens.Punctuation, ';') for part in statement.flatten()):
+                    continue
                 position, token = statement.token_next(-1, skip_ws=True, skip_cm=True)
                 while token is not None and token.value == "\ufeff":
                     position, token = statement.token_next(position, skip_ws=True, skip_cm=True)
@@ -280,6 +284,20 @@ class RequirementsSqlMigrations:
                         f'SQL {name} содержит команду, несовместимую с ролью {role}; '
                         'разделите DDL и DML на соответствующие полные SQL-пары до публикации'
                     )
+                if family in {'INSERT', 'UPDATE', 'DELETE', 'REPLACE', 'MERGE'}:
+                    families.add('data')
+                elif family in {'CREATE', 'ALTER', 'DROP', 'TRUNCATE'} or (
+                    token is not None and token.normalized.upper() == 'PRAGMA'
+                ):
+                    families.add('schema')
+                elif role == 'initial' and family != 'SELECT':
+                    raise PoiseError(
+                        f'SQL {name} содержит неподдерживаемую начальную команду; '
+                        'используйте отдельные буквальные DDL- и DML-пары'
+                    )
+        if role == 'initial' and len(families) > 1:
+            raise PoiseError(f'SQL {name} смешивает DDL и DML; разделите их на отдельные полные SQL-пары')
+        return families
 
     @classmethod
     def validate_text(cls, body, name, *, role):
@@ -291,14 +309,17 @@ class RequirementsSqlMigrations:
         """Admit literal bodies; yoyo alone owns their transactions and execution."""
         path = Path(path)
         reverse = path.with_name(path.stem + ".rollback.sql")
+        families = set()
         for candidate in (path, reverse):
             if candidate.is_symlink() or not candidate.is_file():
                 raise PoiseError(f"Неполная SQL-пара: {candidate}; восстановите оба обычных SQL-файла")
             try:
                 directives, _, statements = read_sql_migration(str(candidate))
-                cls._validate_statements(directives, statements, candidate.name, role)
+                families.update(cls._validate_statements(directives, statements, candidate.name, role))
             except (OSError, UnicodeError, sqlparse.exceptions.SQLParseError) as exc:
                 raise PoiseError(f"SQL {candidate.name} нельзя прочитать: {exc}; исправьте исходную SQL-пару") from exc
+        if role == 'initial' and len(families) > 1:
+            raise PoiseError(f'SQL-пара {path.name} смешивает DDL и DML; разделите схему и данные на отдельные пары')
 
     @classmethod
     def validate_directory(cls, directory, *, role):

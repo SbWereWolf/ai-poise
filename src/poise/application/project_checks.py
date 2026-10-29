@@ -1,7 +1,7 @@
 """Coordinate admitted project checks through their existing and specific owners."""
 from copy import deepcopy
 
-from ..modules.project_checks.contracts import CheckFailure, UnstartedCheck
+from ..modules.project_checks.contracts import CheckFailure, ObservedCheckFailure, UnstartedCheck
 from ..modules.project_checks.outcomes import aggregate, cache_metadata, item_status, not_executed, omitted_step
 from ..modules.project_checks.profiles import resolved_selection
 from ..modules.project_checks.timing import eligible
@@ -19,6 +19,11 @@ class ProjectChecks:
         self.known_records = []
         self.establish_session = None
         self.failure = None
+        self.invocation = None
+
+    def _check_cancellation(self):
+        if self.invocation is not None:
+            self.invocation.before_step()
 
     def catalogue(self, kind, field):
         value = getattr(self.configuration, kind)
@@ -197,6 +202,7 @@ class ProjectChecks:
         return deepcopy(self.provenance)
 
     def run(self, plan):
+        self._check_cancellation()
         if plan.get('kind') == 'suite_selection':
             items, stopped = [], False
             for child in plan['items']:
@@ -263,7 +269,11 @@ class ProjectChecks:
                 omitted.append(omitted_step(i + 1, step_selection))
                 continue
             try:
+                self._check_cancellation()
                 record = self.execute_step(step, metadata)
+            except ObservedCheckFailure as exc:
+                record = exc.record
+                self.failure = exc
             except CheckFailure as exc:
                 if not steps:
                     raise
@@ -278,14 +288,15 @@ class ProjectChecks:
             self.ledger.save_run(record)
             steps.append({'ordinal': i + 1, 'package_id': step['package_id'], 'driver': step['driver'],
                           'selection': deepcopy(step['selection']), 'record': record})
-            stopped = record['status'] != 'passed'
+            stopped = record['status'] != 'passed' or self.failure is not None
         if eligible_cache and not stopped:
             final_key, _ = self.inputs.key(profile, plan['options']['scope_paths'], plan['package'])
             if final_key != key:
                 metadata['reason'] = 'declared_inputs_changed_during_run'
             else:
                 metadata.update(stored=True, reason='fresh_stored' if plan['options']['fresh'] else 'miss_stored')
-        result = self.build_execution(plan, steps, omitted, metadata)
+        result = self.build_execution(plan, steps, omitted, metadata,
+                                      status=None if self.failure is None else self.partial_status(self.failure))
         if metadata['stored']:
             try:
                 self.cache.store(key, result)
@@ -302,8 +313,11 @@ class ProjectChecks:
         return 'unconfirmed' if failure.status == 'invalid' else failure.status
 
     def execute_step(self, step, metadata):
+        self._check_cancellation()
         self.runtime.prerequisites(step['profile'], step['invocation'], step['environment'], step['field'])
         addresses = self.ledger.allocate(process=True)
+        if self.invocation is not None:
+            self.invocation.allocated(addresses)
         evidence_id = step['timeout']['evidence_run_id']
         if evidence_id is not None:
             self.ledger.reserve_diagnostic(evidence_id, addresses['id'])
@@ -329,8 +343,9 @@ class ProjectChecks:
         self.ledger.save_result(result)
         return result
 
-    def execute(self, request):
-        admitted = self.admit_batch(request)
+    def execute(self, request, *, admitted=None):
+        if admitted is None:
+            admitted = self.admit_batch(request)
         if self.establish_session is not None:
             self.establish_session()
         operation = request.operation

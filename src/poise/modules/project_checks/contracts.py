@@ -20,6 +20,16 @@ class CheckFailure(ValueError):
                     'stdout_paths': [], 'stderr_paths': []}}
 
 
+class ObservedCheckFailure(CheckFailure):
+    """Coordination failed after a complete process record became known."""
+
+    def __init__(self, record, cause):
+        super().__init__('invocation_save_failed', 'run.invocation', str(cause),
+                         'Прочитайте сохранённый результат и потоки; восстановите запись состояния вызова без повторения команды.',
+                         status='unconfirmed')
+        self.record = record
+
+
 class UnstartedCheck(CheckFailure):
     """The actual process owner proved that no child began this attempt."""
 

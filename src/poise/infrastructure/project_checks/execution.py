@@ -4,7 +4,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from ...modules.project_checks.contracts import CheckFailure, UnstartedCheck
+from ...modules.foundation.errors import PoiseError
+from ...modules.project_checks.contracts import CheckFailure, ObservedCheckFailure, UnstartedCheck
 from ...execution import RegisteredLaunchFailure
 from ...modules.project_checks.parsers import parse_lines
 from ...modules.project_checks.profiles import resolved_selection
@@ -69,13 +70,17 @@ class CheckExecution:
         mode = configuration.bound.config['batch']['file_mode']
         observer = ProgressObserver(profile['progress'], self.clock, addresses['progress'], mode)
         started = observation(self.clock.observe())
+        control = getattr(self, 'invocation', None)
+        coordination = {} if control is None else {
+            'invocation_cancellation': control, 'cancellation_policy': control.policy}
         try:
             raw = self.runner.run(addresses['id'], invocation['argv'], Path(invocation['cwd']), environment,
                                   timeout['effective_seconds'], addresses['stdout'], addresses['stderr'],
                                   progress_gap_seconds=stall if profile['progress']['mode'] == 'regex' and stall else None,
                                   poll_seconds=configuration.policy['timing']['poll_seconds'],
                                   cleanup_seconds=configuration.policy['timing']['cleanup_seconds'],
-                                  capture_observer=observer if profile['progress']['mode'] == 'regex' else None)
+                                  capture_observer=observer if profile['progress']['mode'] == 'regex' else None,
+                                  **coordination)
         except RegisteredLaunchFailure as exc:
             raise UnstartedCheck('prerequisites_unavailable', step['field'] + '.argv[0]', str(exc),
                                  'Укажите действительный исполняемый файл для выбранной среды.',
@@ -143,7 +148,7 @@ class CheckExecution:
                                  'Исправьте создание обязательных материалов и выполните новую проверку.')
         if error is not None and status == 'passed':
             status = 'unconfirmed'
-        return {'schema': 'poise-named-check-run-1', 'run_id': addresses['id'],
+        record = {'schema': 'poise-named-check-run-1', 'run_id': addresses['id'],
                 'project': configuration.bound.config['project'], 'checkout': str(configuration.bound.checkout),
                 'selection': resolved_selection(profile), 'profile_sha256': configuration.profiles_sha256,
                 'argv': list(invocation['argv']), 'cwd': invocation['cwd'], 'runtime': invocation['runtime'],
@@ -154,3 +159,10 @@ class CheckExecution:
                 'stdout': references['stdout'], 'stderr': references['stderr'],
                 'record_path': addresses['record_path'], 'verified_success': status == 'passed' and error is None,
                 'error': None if error is None else error.as_dict()}
+        if control is not None:
+            try:
+                control.observed({**raw, 'termination': {
+                    **raw['termination'], 'capture_complete': termination['capture_complete']}})
+            except (OSError, PoiseError, CheckFailure) as exc:
+                raise ObservedCheckFailure(record, exc) from exc
+        return record

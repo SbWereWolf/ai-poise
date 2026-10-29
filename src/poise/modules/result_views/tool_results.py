@@ -172,6 +172,13 @@ class ToolResultPolicy:
                     for view in ('brief', 'expanded'):
                         limits = config(parser[view], 'chars bytes')
                         if any(not integer(n, 1) for n in limits.values()): raise ValueError(view)
+                    if parser['format'] == 'mcp-checks-json':
+                        if parser['parser'] != 'mcp':
+                            raise ValueError('Invalid check result parser')
+                        for field, allowed in (
+                                ('brief_template', {'status'}), ('expanded_template', {'brief', 'names'}),
+                                ('error_brief_template', {'error'}), ('error_expanded_template', {'brief', 'error'})):
+                            template_fields(parser[field], allowed)
                     if parser['format'] == 'mcp-content-json':
                         if (parser['parser'] != 'mcp' or not integer(parser['content_index'], 0)
                                 or not integer(parser['expected_version'], 0)):
@@ -325,7 +332,7 @@ def native_snapshot(event, policy, *, selected=None):
             reject('unmapped_input', 'exit_code', 'configure:input')
         exit_code = response['exit_code']
         output = response['output']
-    elif parser['format'] in ('records-json', 'mcp-content-json'):
+    elif parser['format'] in ('records-json', 'mcp-content-json', 'mcp-checks-json'):
         if not isinstance(response, dict) or not isinstance(response.get('content'), list):
             reject('unmapped_input', 'tool_response', 'configure:input')
     elif parser['format'] == 'work-json':
@@ -434,6 +441,40 @@ def mcp_content_views(raw, parser):
     return brief, expanded
 
 
+def mcp_checks_views(raw, parser):
+    content = raw['content']
+    if len(content) != 1 or content[0].get('type') != 'text':
+        raise ValueError('Expected one full check JSON value')
+    value = json.loads(content[0]['text'])
+    if raw.get('structuredContent') != value:
+        raise ValueError('Check payloads disagree')
+    if value['schema'] == 'poise-mcp-check-result-1':
+        result = value['result']
+        if result['schema'] != 'poise-project-checks-result-1':
+            raise ValueError('Unknown named-check result')
+        names = []
+
+        def selections(items):
+            for item in items:
+                if item.get('kind') == 'suite_selection':
+                    selections(item['items'])
+                elif isinstance(item.get('selection'), dict):
+                    names.append(item['selection']['id'])
+        selections(result['items'])
+        status, error = result['status'], result['error']
+    elif value['schema'] == 'poise-mcp-check-cancel-result-1':
+        status, error = value['status'], value['error']
+        names = [] if value['target'] is None else [value['target']['invocation_id']]
+    else:
+        raise ValueError('Unknown check envelope')
+    if raw['isError']:
+        detail = '' if error is None else json.dumps(error, ensure_ascii=False)
+        brief = parser['error_brief_template'].format(error=detail)
+        return brief, parser['error_expanded_template'].format(brief=brief, error=detail)
+    brief = parser['brief_template'].format(status=status)
+    return brief, parser['expanded_template'].format(brief=brief, names=','.join(names))
+
+
 def prepare_views(record, sources, policy, *, selected_parser=None):
     """Select both forms once from the complete source at its canonical owner."""
     parser = (policy.get('parsers', {}).get(record['tool']['name'])
@@ -461,7 +502,9 @@ def prepare_views(record, sources, policy, *, selected_parser=None):
                 raise ValueError('Missing summary')
             expanded = parser['expanded_template'].format(brief=brief, details=details)
         elif kind == 'mcp':
-            if parser['format'] == 'mcp-content-json':
+            if parser['format'] == 'mcp-checks-json':
+                brief, expanded = mcp_checks_views(raw, parser)
+            elif parser['format'] == 'mcp-content-json':
                 brief, expanded = mcp_content_views(raw, parser)
             else:
                 content = raw['structuredContent']

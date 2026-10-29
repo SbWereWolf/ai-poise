@@ -1,0 +1,6 @@
+{
+  "policy_path": "@TRANSPORT@",
+  "checks_policy_path": "@CHECKS@",
+  "tool_selectors": {"run": "mcp__repo_checks__run", "cancel": "mcp__repo_checks__cancel"},
+  "cli_argv": ["@PYTHON@", "-B", "-m", "poise", "checks"]
+}

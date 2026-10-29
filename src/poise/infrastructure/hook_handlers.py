@@ -88,6 +88,10 @@ class BuiltinHandlers:
             from .document_intake.command_configuration import load_command_profile
             reader(options['policy_path'])
             load_command_profile(settings, policy_path=options['policy_path'], snapshots=resources)
+        elif name == 'check-invocation':
+            from ..modules.project_checks.mcp import CheckTransportPolicy
+            CheckTransportPolicy.parse(snapshot(options['policy_path']))
+            snapshot(options['checks_policy_path'])
         elif name == 'tool-result':
             from ..modules.result_views.tool_results import ToolResultPolicy
             policy = ToolResultPolicy.parse(snapshot(options['policy_path'])).data
@@ -119,6 +123,10 @@ class BuiltinHandlers:
                                 policy_path=options['policy_path'], snapshots=resources)
                       if event.get('tool_name') == 'Bash' else {})
             response.update(output)
+        elif name == 'check-invocation':
+            from .project_checks.hook_transport import tool_event
+            response = tool_event(self.service, self.binding, self.delivery_path, packet,
+                                  options, resources)
         elif name == 'tool-result':
             from ..composition import tool_result_tools
             from ..modules.result_views.tool_results import ToolResultPolicy, ToolResultFailure, encoded
@@ -129,8 +137,9 @@ class BuiltinHandlers:
             try:
                 text = service_delivery(event, owner, options['policy_path'], self.service.settings)
                 if text is None:
+                    native = parse_native_event(event, self.definition)
                     result = owner.execute({'schema': 'poise-tool-result-request-1', 'operation': 'hook',
-                        'request_id': event['tool_use_id'], 'event': event,
+                        'request_id': event['tool_use_id'], 'event': {**event, 'turn_id': native['turn_id']},
                         'streams': {'stdout': None, 'stderr': None},
                         'capture': {'state': 'unknown', 'reason': 'native source not yet classified'},
                         'exit_code': None}, 'agent')

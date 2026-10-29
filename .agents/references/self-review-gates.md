@@ -1,5 +1,11 @@
 # Self-review checkpoints
 
+At the applicable checkpoint include the bounded
+[complexity pass](../skills/ponytail-review/SKILL.md), following the
+[canonical review boundary](../../docs/workflows/evidence-based-review.md#осмотр-избыточной-сложности).
+Keep it inside the current self-review; no extra stage, artifact or mandatory
+line reduction follows from it. Preserve required validation and tests.
+
 Self-review belongs to the current executor or reviewer. It is not independent review, acceptance, another role or a user-stop ceremony. Store its compact result through the current [verify contract](../../docs/workflows/batch-work.md#verify); do not create manual identifiers or parallel reports.
 
 ## Test work

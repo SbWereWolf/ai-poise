@@ -382,6 +382,30 @@
   ],
   "excluded": [
     {
+      "id": "playwright",
+      "reason": "Load only for actual automated browser tests in a configured target application; browser-visible or documentation-only work is not a trigger."
+    },
+    {
+      "id": "system-tests",
+      "reason": "Select for an explicit system/acceptance journey in the configured target project, not ordinary Python unit or documentation work."
+    },
+    {
+      "id": "preflight",
+      "reason": "Use when actual environment/instruction preparation is needed; registration and unchanged session state do not require an additional baseline procedure."
+    },
+    {
+      "id": "jetbrains-ide",
+      "reason": "Load for an actual supported IDE semantic or diagnostic operation using observed session capabilities, not for every documentation or Task operation."
+    },
+    {
+      "id": "ponytail-review",
+      "reason": "Loaded by the applicable review/self-review skill or an explicit simplification request, rather than as an unconditional work-start baseline."
+    },
+    {
+      "id": "safe-commit",
+      "reason": "Select explicitly for an authorized direct commit or commit recovery; ordinary Task finalization keeps its configured owner."
+    },
+    {
       "id": "laravel",
       "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
     },

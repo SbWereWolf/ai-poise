@@ -21,6 +21,10 @@ class SingleArgument(argparse.Action):
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
+    source_index=sub.add_parser('source-index',help='Use the index of one explicitly selected checkout')
+    for name in ('config', 'checkout', 'policy'):
+        source_index.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
+    source_index.add_argument('--handler',action='store_true')
     result_view=sub.add_parser('result-view',help='Read a bounded view of an existing complete result')
     result_view.add_argument('--response',type=Path,required=True)
     result_view.add_argument('--view',choices=('brief','expanded','full'),required=True)
@@ -35,6 +39,11 @@ def parser():
     for name in ('config', 'checkout', 'policy'):
         checks.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     checks.add_argument('--view',choices=('brief','expanded','full'),required=True,action=SingleArgument)
+    checks.add_argument('--transport-policy',type=Path,action=SingleArgument)
+    checks.add_argument('--invocation',action=SingleArgument)
+    checks_mcp=sub.add_parser('checks-mcp',help='Serve configured checks through full stdio MCP')
+    for name in ('config','checkout','policy','transport-policy'):
+        checks_mcp.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
     reader=sub.add_parser('content-read',help='Read selected project-file parts in the native context')
     for name in ('config','checkout','policy'):
         reader.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
@@ -109,6 +118,9 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='source-index':
+        from .interfaces.source_index import execute
+        return execute(args.config,args.checkout,args.policy,args.handler,sys.stdin.buffer,sys.stdout)
     if args.command=='tool-result':
         from .interfaces.tool_results import execute
         return execute(args.config,args.checkout,args.policy,args.audience,sys.stdin.buffer,sys.stdout)
@@ -119,7 +131,18 @@ def main():
     if args.command=='checks':
         from .interfaces.project_checks import execute_cli
         from .infrastructure.clock import SystemClock
+        if args.transport_policy is not None:
+            from .interfaces.checks_cli import execute
+            return execute(args.config,args.checkout,args.policy,args.transport_policy,args.invocation,
+                           args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
+        if args.invocation is not None:
+            parser().error('--invocation requires --transport-policy')
         return execute_cli(args.config,args.checkout,args.policy,args.view,sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
+    if args.command=='checks-mcp':
+        from .interfaces.checks_mcp import serve
+        from .infrastructure.clock import SystemClock
+        return serve(args.config,args.checkout,args.policy,args.transport_policy,
+                     sys.stdin.buffer,sys.stdout,sys.stderr,SystemClock())
     if args.command=='result-view':
         from .interfaces.result_views import execute
         return execute(args.response,args.view,args.output_chars,sys.stdout,sys.stderr)

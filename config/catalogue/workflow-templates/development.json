@@ -1,21 +1,21 @@
 {
-  "goal_type": "development",
-  "worktree_required": true,
-  "route": {
-    "entry": "baseline"
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
   },
   "content_contract": {
-    "sections": [],
-    "routes": [],
     "requirements": [
       {
         "id": "verification_planning-input-solution_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
         "stages": [
           "verification_planning"
         ],
-        "phase": "pre",
-        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -23,11 +23,11 @@
       {
         "id": "test_implementation-input-verification_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
         "stages": [
           "test_implementation"
         ],
-        "phase": "pre",
-        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -35,11 +35,11 @@
       {
         "id": "test_inspection-input-verification_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
         "stages": [
           "test_inspection"
         ],
-        "phase": "pre",
-        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -47,11 +47,11 @@
       {
         "id": "test_inspection-input-test_registry",
         "kind": "section",
+        "phase": "pre",
+        "section": "test_registry",
         "stages": [
           "test_inspection"
         ],
-        "phase": "pre",
-        "section": "test_registry",
         "states": [
           "populated"
         ]
@@ -59,11 +59,11 @@
       {
         "id": "implementation-input-solution_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
         "stages": [
           "implementation"
         ],
-        "phase": "pre",
-        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -71,11 +71,11 @@
       {
         "id": "implementation-input-verification_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
         "stages": [
           "implementation"
         ],
-        "phase": "pre",
-        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -83,11 +83,11 @@
       {
         "id": "implementation-input-test_registry",
         "kind": "section",
+        "phase": "pre",
+        "section": "test_registry",
         "stages": [
           "implementation"
         ],
-        "phase": "pre",
-        "section": "test_registry",
         "states": [
           "populated"
         ]
@@ -95,11 +95,11 @@
       {
         "id": "implementation_inspection-input-solution_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
         "stages": [
           "implementation_inspection"
         ],
-        "phase": "pre",
-        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -107,108 +107,11 @@
       {
         "id": "documentation-input-documentation_plan",
         "kind": "section",
+        "phase": "pre",
+        "section": "documentation_plan",
         "stages": [
-          "documentation_planning",
           "documentation"
         ],
-        "phase": "pre",
-        "section": "documentation_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "implementation-input-implementation_plan",
-        "kind": "section",
-        "stages": [
-          "implementation"
-        ],
-        "phase": "pre",
-        "section": "implementation_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "solution_planning_inspection-input-solution_plan",
-        "kind": "section",
-        "stages": [
-          "solution_planning_inspection"
-        ],
-        "phase": "pre",
-        "section": "solution_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "solution_planning_inspection-input-decisions",
-        "kind": "section",
-        "stages": [
-          "solution_planning_inspection"
-        ],
-        "phase": "pre",
-        "section": "decisions",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "solution_planning_inspection-input-assumptions",
-        "kind": "section",
-        "stages": [
-          "solution_planning_inspection"
-        ],
-        "phase": "pre",
-        "section": "assumptions",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "solution_planning_inspection-input-documentation_plan",
-        "kind": "section",
-        "stages": [
-          "solution_planning_inspection"
-        ],
-        "phase": "pre",
-        "section": "documentation_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "verification_planning_inspection-input-verification_plan",
-        "kind": "section",
-        "stages": [
-          "verification_planning_inspection"
-        ],
-        "phase": "pre",
-        "section": "verification_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "implementation_design_inspection-input-implementation_plan",
-        "kind": "section",
-        "stages": [
-          "implementation_design_inspection"
-        ],
-        "phase": "pre",
-        "section": "implementation_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "documentation_planning_inspection-input-documentation_plan",
-        "kind": "section",
-        "stages": [
-          "documentation_planning_inspection"
-        ],
-        "phase": "pre",
-        "section": "documentation_plan",
         "states": [
           "populated"
         ]
@@ -216,511 +119,599 @@
       {
         "id": "documentation_inspection-input-result",
         "kind": "section",
+        "phase": "pre",
+        "section": "result",
         "stages": [
           "documentation_inspection"
         ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "documentation_planning_inspection-input-documentation_plan",
+        "kind": "section",
         "phase": "pre",
-        "section": "result",
+        "section": "documentation_plan",
+        "stages": [
+          "documentation_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation-input-implementation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "implementation_plan",
+        "stages": [
+          "implementation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_design_inspection-input-implementation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "implementation_plan",
+        "stages": [
+          "implementation_design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "assumptions",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-decisions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decisions",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-documentation_scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "documentation_scope",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-solution_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "verification_planning_inspection"
+        ],
         "states": [
           "populated"
         ]
       }
-    ]
+    ],
+    "routes": [],
+    "sections": []
+  },
+  "goal_type": "development",
+  "route": {
+    "entry": "baseline"
   },
   "stages": [
     {
-      "id": "baseline",
-      "handler": "observe",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Установить исходное поведение или обоснованную неприменимость. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Correct rejected observations on this same observation stage using the agreed observation goal and acceptance criteria.",
-      "read_only": true,
       "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "observe",
+      "id": "baseline",
+      "instruction": "Before subject work, the executor defines the coarse stage list needed for the Task goal and the independent reviewer agrees it. Do not detail the whole Task or Sprint. Require an accepted baseline design stating its goal, result requirements and acceptance criteria before observing or changing the environment. Observe the current behavior and code, reproduce the reported issue, and record evidence or justified non-applicability. Do not change product code, tests or target documentation; preserve existing data and configuration.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
       "required_sections": [
         "report"
       ],
-      "artifact_requirements": [],
+      "rework_targets": [
+        "baseline"
+      ],
+      "role": "executor",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
       "transitions": {
         "complete": "baseline_inspection"
-      },
-      "rework_targets": [
-        "baseline"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
-      "id": "baseline_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result. Check observations against their agreed goal and acceptance criteria; return rejected observations to baseline.",
-      "read_only": true,
       "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
-      "required_sections": [
-        "report"
-      ],
       "artifact_requirements": [],
-      "transitions": {
-        "clear": "solution_planning",
-        "changes_requested": "baseline"
-      },
-      "rework_targets": [
-        "baseline"
-      ],
-      "purpose": "observation",
       "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "solution_planning",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and solution_plan, decisions, assumptions, documentation_plan. Output: solution_plan, decisions, assumptions, documentation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Спланировать изменение компонентов, интерфейсов и документации. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. State the phase goal, result requirements and acceptance criteria. Agree the coarse Task phase outline first; detail only the immediately upcoming phase. Correct a rejected design on this same design stage before execution.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "solution_plan": "Intermediate outcomes, current code facts, feasible steps, assumptions and finite scope. Do not predesign classes or demand future test names. State the phase goal, result requirements and acceptance criteria; detail only the immediately upcoming phase.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
-        "documentation_plan": "required/not_required с причиной; при required deliverables/paths, content requirements и exact validation methods/DoD refs. State the phase goal, result requirements and acceptance criteria; detail only the immediately upcoming phase."
+        "decide": [],
+        "propose": []
       },
+      "handler": "produce",
+      "id": "solution_planning",
+      "instruction": "Plan the solution from the accepted baseline: the Task goal, required intermediate outcomes, coarse stage list, scope, assumptions and substantive decisions. Identify only the possible canonical documentation owners and disposition in documentation_scope. Do not design future tests, classes, methods or detailed documentation, or approve their execution criteria. Each later phase is designed immediately before it starts.",
+      "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
       "required_sections": [
         "report",
         "solution_plan",
         "decisions",
         "assumptions",
-        "documentation_plan"
+        "documentation_scope"
       ],
-      "artifact_requirements": [],
+      "rework_targets": [
+        "solution_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "assumptions": "List each assumption, its evidence or unresolved status, justification and consequence if false; state explicitly when none apply.",
+        "decisions": "Record substantive decisions with their authority, scope and source. Preserve actual user decisions; do not infer consent from a file or a successful command.",
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict.",
+        "solution_plan": "Record accepted-baseline facts, finite scope, coarse intermediate outcomes and feasible stage boundaries. Do not predesign later tests, code or documentation.",
+        "documentation_scope": "Record only potentially affected canonical documentation owners and required, not_required or unknown disposition with a rationale. Do not specify detailed future deliverables, content or validation criteria. This provisional scope is not an accepted documentation execution plan."
+      },
       "transitions": {
         "complete": "solution_planning_inspection"
-      },
-      "rework_targets": [
-        "solution_planning"
-      ],
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [
-          "test_implementation",
-          "implementation",
-          "documentation"
-        ],
-        "decide": []
       }
     },
     {
-      "id": "solution_planning_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result. Check the proposed phase goal, result requirements and acceptance criteria for feasibility, completeness and unambiguity. Return a rejected design to solution_planning.",
-      "read_only": true,
       "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
-      "required_sections": [
-        "report"
-      ],
       "artifact_requirements": [],
-      "transitions": {
-        "clear": "verification_planning",
-        "changes_requested": "solution_planning"
-      },
-      "rework_targets": [
-        "solution_planning"
-      ],
-      "purpose": "observation",
       "criteria_authority": {
-        "propose": [],
-        "decide": [
-          "test_implementation",
-          "implementation",
-          "documentation"
+        "decide": [],
+        "propose": [
+          "test_implementation"
         ]
-      }
-    },
-    {
-      "id": "verification_planning",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and verification_plan. Output: verification_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Спроектировать доказательства до реализации. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. State the phase goal, result requirements and acceptance criteria. Agree the coarse Task phase outline first; detail only the immediately upcoming phase. Correct a rejected design on this same design stage before execution.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "verification_plan": "Requirement coverage, independent oracles, scenario outlines and required existing environment. Real methods may be registered when sources are known; future test names are not a start gate. State the phase goal, result requirements and acceptance criteria; detail only the immediately upcoming phase."
       },
+      "handler": "produce",
+      "id": "verification_planning",
+      "instruction": "Design only the upcoming test phase from the accepted requirements and current code. State the phase goal, result requirements, acceptance criteria, requirement coverage, independent oracles and necessary environment and fixture setup, at scenario level. Reuse valid existing proof; do not invent future test names or write tests, product code or documentation in this design.",
+      "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
       "required_sections": [
         "report",
         "verification_plan"
       ],
-      "artifact_requirements": [],
+      "rework_targets": [
+        "verification_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict.",
+        "verification_plan": "State the upcoming test phase goal, result requirements and acceptance criteria, requirement coverage, independent oracles, scenario outlines, fixture setup and existing environment. Defer test source implementation until this design is independently accepted."
+      },
       "transitions": {
         "complete": "verification_planning_inspection"
-      },
-      "rework_targets": [
-        "verification_planning"
-      ],
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [
-          "test_implementation"
-        ],
-        "decide": []
       }
     },
     {
-      "id": "verification_planning_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result. Check the proposed phase goal, result requirements and acceptance criteria for feasibility, completeness and unambiguity. Return a rejected design to verification_planning.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": "test_implementation",
-        "changes_requested": "verification_planning"
-      },
-      "rework_targets": [
-        "verification_planning"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": [
-          "test_implementation"
-        ]
-      }
-    },
-    {
-      "id": "test_implementation",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and test_registry. Output: test_registry and evidence for this exact stage. Forbidden: product code and canonical documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Написать тесты/fixtures до production change. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Execute the accepted phase design. Correct rejected execution on this same ordinary stage under the unchanged accepted design; propose resolutions for the original finding IDs and return to the original independent inspector.",
-      "read_only": false,
       "allowed_paths": [
         "tests/**",
         "fixtures/**"
       ],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "produce",
+      "id": "test_implementation",
+      "instruction": "Implement and self-review the accepted test design, proving every requirement not already supported by valid evidence. Run the checks and distinguish a meaningful missing-behavior result from an environment failure or existing compliance. Do not change product code or target documentation. Submit the exact tests and observations for independent acceptance.",
+      "normalization": "strip",
+      "purpose": "execution",
+      "read_only": false,
       "required_sections": [
         "report",
         "test_registry"
       ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "test_inspection"
-      },
       "rework_targets": [
         "test_implementation"
       ],
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+      "role": "executor",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
+      },
+      "transitions": {
+        "complete": "test_inspection"
       }
     },
     {
-      "id": "test_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Read-only осмотр oracle, покрытия, чувствительности и fixtures. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Check execution against the accepted phase design, acceptance criteria, development rules and general result requirements. Return rejected execution to test_implementation; preserve the accepted design and original finding history.",
-      "read_only": true,
       "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "inspect",
+      "id": "test_inspection",
+      "instruction": "Independently inspect and run the submitted tests against the accepted test design and requirements. Verify independent fixtures, exact oracles and meaningful observations. Return rejected test execution to test_implementation. On acceptance record the exact accepted test revision; implementation must preserve it.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
       "required_sections": [
         "report"
       ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": "implementation_design",
-        "changes_requested": "test_implementation"
-      },
       "rework_targets": [
         "test_inspection",
         "test_implementation"
       ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "implementation_design",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and implementation_plan. Output: implementation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Design responsibilities, namespaces, contracts, classes and methods from the accepted tests and current code. State additions, changes, removals and reasons. Do not implement code or alter tests. State the phase goal, result requirements and acceptance criteria. Agree the coarse Task phase outline first; detail only the immediately upcoming phase. Correct a rejected design on this same design stage before execution.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result and its evidence.",
-        "implementation_plan": "Design responsibilities, namespaces, contracts, classes and methods from the accepted tests and current code. State additions, changes, removals and reasons. Do not implement code or alter tests. State the phase goal, result requirements and acceptance criteria; detail only the immediately upcoming phase."
-      },
-      "required_sections": [
-        "report",
-        "implementation_plan"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "implementation_design_inspection"
-      },
-      "rework_targets": [
-        "implementation_design"
-      ],
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [
-          "implementation"
-        ],
-        "decide": []
-      }
-    },
-    {
-      "id": "implementation_design_inspection",
-      "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result. Check the proposed phase goal, result requirements and acceptance criteria for feasibility, completeness and unambiguity. Return a rejected design to implementation_design.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
       "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
       },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
       "transitions": {
-        "clear": "implementation",
-        "changes_requested": "implementation_design"
-      },
-      "rework_targets": [
-        "implementation_design"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": [
-          "implementation"
-        ]
+        "changes_requested": "test_implementation",
+        "clear": "implementation_design"
       }
     },
     {
-      "id": "implementation",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: accepted test changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Реализовать production change по принятым тестам. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Execute the accepted phase design. Correct rejected execution on this same ordinary stage under the unchanged accepted design; propose resolutions for the original finding IDs and return to the original independent inspector.",
-      "read_only": false,
       "allowed_paths": [
         "src/**"
       ],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "produce",
+      "id": "implementation",
+      "instruction": "Execute the accepted implementation design and run the accepted tests until the production result satisfies them. Self-review the code and evidence. Return ordinary implementation failures to this same implementation phase; do not reopen its accepted design or rewrite accepted tests. If an accepted test is erroneous, agree an explicit Task restart before correcting it. Do not update target documentation in this phase.",
+      "normalization": "strip",
+      "purpose": "execution",
+      "read_only": false,
       "required_sections": [
         "report"
       ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "implementation_inspection"
-      },
       "rework_targets": [
         "implementation"
       ],
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+      "role": "executor",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "complete": "implementation_inspection"
       }
     },
     {
-      "id": "implementation_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Read-only осмотр корректности, сложности и соответствия. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Check execution against the accepted phase design, acceptance criteria, development rules and general result requirements. Return rejected execution to implementation; preserve the accepted design and original finding history.",
-      "read_only": true,
       "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "inspect",
+      "id": "implementation_inspection",
+      "instruction": "Independently review the frozen implementation against its accepted design, acceptance criteria, unchanged accepted tests, development rules and general result requirements. Verify applicable focused evidence and report reproducible findings or a substantiated clear outcome. Return rejected execution to implementation, without changing code, tests or the accepted design.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
       "required_sections": [
         "report"
       ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": "documentation_planning",
-        "changes_requested": "implementation"
-      },
       "rework_targets": [
         "implementation_inspection",
         "implementation"
       ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "documentation_planning",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and documentation_plan. Output: documentation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Design the canonical documentation updates from implemented, verified behaviour. Identify readers, user and code flows, affected links and validation. Do not change product code or tests. State the phase goal, result requirements and acceptance criteria. Agree the coarse Task phase outline first; detail only the immediately upcoming phase. Correct a rejected design on this same design stage before execution.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result and its evidence.",
-        "documentation_plan": "Design the canonical documentation updates from implemented, verified behaviour. Identify readers, user and code flows, affected links and validation. Do not change product code or tests. State the phase goal, result requirements and acceptance criteria; detail only the immediately upcoming phase."
-      },
-      "required_sections": [
-        "report",
-        "documentation_plan"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "documentation_planning_inspection"
-      },
-      "rework_targets": [
-        "documentation_planning"
-      ],
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [
-          "documentation"
-        ],
-        "decide": []
-      }
-    },
-    {
-      "id": "documentation_planning_inspection",
-      "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result. Check the proposed phase goal, result requirements and acceptance criteria for feasibility, completeness and unambiguity. Return a rejected design to documentation_planning.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
       "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
       },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
       "transitions": {
-        "clear": "documentation",
-        "changes_requested": "documentation_planning"
-      },
-      "rework_targets": [
-        "documentation_planning"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": [
-          "documentation"
-        ]
+        "changes_requested": "implementation",
+        "clear": "documentation_planning"
       }
     },
     {
-      "id": "documentation",
-      "handler": "produce",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and result. Output: result and evidence for this exact stage. Forbidden: product code and test changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Выполнить прямо предусмотренную документацию. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Execute the accepted phase design. Correct rejected execution on this same ordinary stage under the unchanged accepted design; propose resolutions for the original finding IDs and return to the original independent inspector.",
-      "read_only": false,
       "allowed_paths": [
         "docs/**"
       ],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "produce",
+      "id": "documentation",
+      "instruction": "Execute the accepted detailed documentation plan. Update only the agreed canonical documentation, validate its content, links, executable claims and traceability, and record the actual result or the accepted no-change assessment. Do not change product code or tests. Prepare truthful delivery and cleanup evidence without claiming future publication or completion.",
+      "normalization": "strip",
+      "purpose": "execution",
+      "read_only": false,
       "required_sections": [
         "report",
         "result"
       ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "documentation_inspection"
-      },
       "rework_targets": [
         "documentation"
       ],
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+      "role": "executor",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict.",
+        "result": "Record the actual documentation and Task result, supporting evidence, preserved scope, verified delivery status and any outstanding obligations. Do not present an unverified future action as complete."
+      },
+      "transitions": {
+        "complete": "documentation_inspection"
       }
     },
     {
-      "id": "documentation_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result. Check execution against the accepted phase design, acceptance criteria, development rules and general result requirements. Return rejected execution to documentation; preserve the accepted design and original finding history.",
-      "read_only": true,
       "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
       },
+      "handler": "inspect",
+      "id": "baseline_inspection",
+      "instruction": "Independently verify the baseline against its accepted design, observed evidence and preservation criteria. Check the agreed Task stage list and the next phase boundary. Return rejected observations to baseline; accept only reproducible results and explicit limitations.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
       "required_sections": [
         "report"
       ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": null,
-        "changes_requested": "documentation"
+      "rework_targets": [
+        "baseline"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
       },
+      "transitions": {
+        "changes_requested": "baseline",
+        "clear": "solution_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "documentation_inspection",
+      "instruction": "Independently verify the documentation execution against its accepted detailed plan, acceptance criteria, development rules and general result requirements. Check consistency with the accepted implementation and actual verification evidence. Return rejected execution to documentation. Report the actual final result and outstanding delivery or cleanup obligations; a clear review is not itself proof of native delivery.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
       "rework_targets": [
         "documentation"
       ],
-      "purpose": "observation",
+      "role": "reviewer",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "changes_requested": "documentation",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [],
+        "propose": [
+          "documentation"
+        ]
+      },
+      "handler": "produce",
+      "id": "documentation_planning",
+      "instruction": "After implementation acceptance, design the actual documentation phase from implemented and verified behavior. Produce the first detailed documentation_plan: goal, result requirements, acceptance criteria, canonical owners and exact deliverables, content, reader flows, affected links and validation. A justified no-change disposition requires evidence. Do not change product code, tests or target documentation.",
+      "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "documentation_plan"
+      ],
+      "rework_targets": [
+        "documentation_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "documentation_plan": "Create the first detailed documentation phase design from accepted implementation: goal, required result, acceptance criteria, canonical paths and deliverables, content, reader flows, links and exact validation. Do not reuse provisional documentation_scope as final acceptance.",
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "complete": "documentation_planning_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "documentation"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "documentation_planning_inspection",
+      "instruction": "Independently check the detailed documentation plan for executability, completeness, unambiguity and consistency with accepted implementation and canonical ownership. Decide only documentation criteria. Return rejected design to documentation_planning; early documentation_scope is not an accepted execution plan.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "documentation_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "changes_requested": "documentation_planning",
+        "clear": "documentation"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "implementation"
+        ]
+      },
+      "handler": "produce",
+      "id": "implementation_design",
+      "instruction": "After the tests are accepted, design only the implementation phase. State its goal, result requirements and acceptance criteria; identify existing behavior owners, responsibilities, namespaces, contracts, classes and methods to add, change or remove. Reuse existing owners and justify each responsibility. Do not write implementation, change accepted tests or design future documentation here.",
+      "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "implementation_plan"
+      ],
+      "rework_targets": [
+        "implementation_design"
+      ],
+      "role": "executor",
+      "sections": {
+        "implementation_plan": "State the upcoming implementation goal, result requirements, acceptance criteria and responsibility-owned additions, changes and removals derived from accepted tests and current code. Do not implement or alter accepted tests.",
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "complete": "implementation_design_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "implementation"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "implementation_design_inspection",
+      "instruction": "Independently check the implementation design against the accepted requirements, tests, development rules and responsibility boundaries. Check executability, completeness and unambiguity. Decide only implementation criteria and return rejected design to implementation_design.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "implementation_design"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "changes_requested": "implementation_design",
+        "clear": "implementation"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "solution_planning_inspection",
+      "instruction": "Independently check the solution scope and coarse stage list for completeness, executability and unambiguity. Check assumptions, decision authority and provisional documentation_scope. Do not accept future test, implementation or documentation execution criteria here. Return an incomplete solution plan to solution_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "solution_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "changes_requested": "solution_planning",
+        "clear": "verification_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "test_implementation"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "verification_planning_inspection",
+      "instruction": "Independently review the upcoming test design for executability, completeness, unambiguous independent oracles, requirement coverage, environment setup and preservation. Decide only the test_implementation criteria. Return rejected design to verification_planning before any test implementation.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "verification_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record this phase's goal, required result, acceptance criteria, substantive result, evidence and limitations. A review records the inspected obligations, findings and justified verdict."
+      },
+      "transitions": {
+        "changes_requested": "verification_planning",
+        "clear": "test_implementation"
       }
     }
   ],
-  "benefit": {
-    "git_categories": [
-      "code",
-      "documentation"
-    ],
-    "sections": []
-  }
+  "worktree_required": true
 }

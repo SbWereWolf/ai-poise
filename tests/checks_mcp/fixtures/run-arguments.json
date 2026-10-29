@@ -1,0 +1,7 @@
+{
+  "binding": null,
+  "selection": {"kind": "profile", "id": "sample", "workload_class": "unit", "runtime_class": "python"},
+  "options": {"fresh": true, "scope_paths": null, "timeout_override": null},
+  "preview": false,
+  "verbose": true
+}

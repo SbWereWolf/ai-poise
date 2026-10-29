@@ -1,0 +1,851 @@
+{
+  "goal_type": "documentation",
+  "worktree_required": true,
+  "route": {
+    "entry": "framing"
+  },
+  "content_contract": {
+    "sections": [
+      {
+        "id": "validation.verdict",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "validation"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "validation-post-verdict",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "post",
+        "section": "validation.verdict",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "outline"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "outline"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-outline",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-content",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "content",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-examples_commands",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "examples_commands",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-content",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "content",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-verification_scope",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_scope",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-outline",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-outline_plan",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "outline_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline-input-outline_plan",
+        "kind": "section",
+        "stages": [
+          "outline"
+        ],
+        "phase": "pre",
+        "section": "outline_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-outline_plan",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "outline_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline_inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "outline_inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-outline",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning-input-verification_scope",
+        "kind": "section",
+        "stages": [
+          "drafting_planning"
+        ],
+        "phase": "pre",
+        "section": "verification_scope",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-outline",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "drafting_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-outline",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-drafting_plan",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "drafting_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-validation.verdict",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "validation.verdict",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-examples_commands",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "examples_commands",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-publication_target",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_target",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "benefit": {
+    "git_categories": [
+      "documentation"
+    ],
+    "sections": []
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Before subject work agree coarse Task phases with the independent reviewer. Identify audience/language/ownership, actual sources, content requirements and delivery target. Design only the imminent outline artifact: goal, required result, acceptance criteria, mapping/navigation, completeness and preservation. Keep later verification scope coarse; do not predesign detailed drafting or write document/product/test files.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "source_inventory": "Identify actual sources of truth by revision/digest, coverage of factual claims and conflicting/stale sources. Preserve document ownership and source generation; resolve conflicts explicitly from their actual owner.",
+        "content_requirements": "For each requirement identify required information/example/instruction, actual source and DoD references, audience/language/ownership constraints and target section. Account for every required item.",
+        "publication_target": "State actual codebase/path or Task artifact destination, format, visibility and delivery/transport policy, including push restrictions and actual authority. Local drafting/validation is not external publication or user consent. Reuse actual authorization; do not invent approval loops.",
+        "verification_scope": "State coarse coverage and evidence classes for documentation accuracy, requirements, examples/commands, links and source identity. Do not design detailed future invocations before the accepted outline.",
+        "outline_plan": "State current outline goal, required structure/mapping, acceptance criteria, audience, language and ownership, actual source/content-requirement inputs, navigation/ordering and completeness checks. Do not write final document files."
+      },
+      "required_sections": [
+        "report",
+        "source_inventory",
+        "content_requirements",
+        "verification_scope",
+        "publication_target",
+        "outline_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "framing_inspection"
+      },
+      "rework_targets": [
+        "framing"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "outline"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "framing_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review the imminent outline design and actual source/content/delivery context for executability, completeness and unambiguity. Check goal/result/acceptance, audience/language/ownership, source identity/conflicts and coverage; keep future verification scope coarse. Decide criteria only for outline artifact execution. Reject design to framing.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "outline",
+        "changes_requested": "framing"
+      },
+      "rework_targets": [
+        "framing"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "outline"
+        ]
+      }
+    },
+    {
+      "id": "outline",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Produce only the current outline Task artifact under accepted outline_plan. Map every content requirement/source to ordered sections, purposes and navigation, with the actual audience/language and ownership constraints. Preserve sources and unrelated files. Do not draft final documents or detailed future implementation plans before outline acceptance.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "outline": "Publish section IDs, purposes, reader/navigation order and content-requirement/source mapping as the current Task outline artifact. Account for every required item and actual conflicting-source disposition."
+      },
+      "required_sections": [
+        "report",
+        "outline"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "outline_inspection"
+      },
+      "rework_targets": [
+        "outline"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "outline_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify the actual outline artifact against accepted outline_plan, source inventory, content requirements, audience/language/ownership and navigation/completeness criteria. Reject outline execution to outline; accept the real outline before detailed drafting planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "drafting_planning",
+        "changes_requested": "outline"
+      },
+      "rework_targets": [
+        "outline"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "drafting_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Only after independent acceptance of the actual outline, design imminent drafting and verification: goal, result requirements, acceptance criteria, exact owned docs paths, current source/outline identities, audience/language/ownership, factual content, requirement mapping, safe actual example/command checks, links and delivery policy. Do not write document files or invent future commands/hashes or new environments.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "drafting_plan": "State current drafting goal, result requirements, acceptance criteria, accepted outline/source identities, exact owned docs paths, audience/language, content/command/link scope, requirement mapping, preservation and safe verification methods.",
+        "verification_plan": "Bind current drafting requirements/DoD to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, before/after predicates, phase applicability, reuse/retry/limits and real source/document identity. Existing methods/inputs and safe authorized mutation bounds must be explicit. Runtime adds actual BoundExecution digests; never fabricate future commands/hashes or introduce unauthorized environments."
+      },
+      "required_sections": [
+        "report",
+        "drafting_plan",
+        "verification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "drafting_planning_inspection"
+      },
+      "rework_targets": [
+        "drafting_planning"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "drafting"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "drafting_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review current drafting/verification plans against accepted actual outline and sources for executability, completeness and unambiguity. Check all content requirements, audience/language/ownership, exact docs scope, factual/source identity, real safe methods/inputs, example outcomes, links and preservation. Decide only drafting execution criteria. Reject design to drafting_planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "drafting",
+        "changes_requested": "drafting_planning"
+      },
+      "rework_targets": [
+        "drafting_planning"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "drafting"
+        ]
+      }
+    },
+    {
+      "id": "drafting",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Write only the independently accepted document deliverable within docs/** using accepted outline, current sources and drafting/verification plans. Follow the target repository audience/language/ownership rules and preserve unrelated prose, product code and tests. Publish actual content references/digests and requirement mapping without unnecessary full Git-document duplication in Task DB. Record real example/command locators and proof. Do not infer external publication, push or user consent from local drafting.",
+      "read_only": false,
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "content": "Publish actual final document references/digests or required standalone Markdown content, with requirement-to-section mapping. Do not unnecessarily duplicate a complete Git document into Task DB. Bind the delivered current document and factual sources to actual revisions.",
+        "examples_commands": "For each example identify actual document locator, exact executable method and inputs, safe authorized mutation/environment bounds, expected outcome and actual verification receipts. A plausible command string or lint success alone is not proof of accuracy."
+      },
+      "required_sections": [
+        "report",
+        "content",
+        "examples_commands"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "validation"
+      },
+      "rework_targets": [
+        "drafting"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "validation",
+      "handler": "check",
+      "role": "executor",
+      "instruction": "Execute accepted exact checks against current document/source identity and all content requirements: factual accuracy, substantive completeness, actual safe authorized examples/commands and expected outcomes, links/navigation, audience/language and preservation. Publish actual validation.verdict and complete current receipts; a placeholder, stale success or lint alone is not proof. Satisfied proceeds to independent review; failure/inconclusive returns to drafting without reopening accepted design. Do not edit product/state or use unauthorized environments.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "inspection",
+        "not_satisfied": "drafting",
+        "inconclusive": "drafting"
+      },
+      "rework_targets": [
+        "validation"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently inspect the current final document/diff against accepted drafting/verification plans, outline, source identities and every content requirement. Require actual complete current-document/source-matched validation.verdict and evidence of substantive coverage, factual claims, safe examples/commands, links, audience/language/ownership, development rules and general result requirements; lint alone cannot pass. Reject execution to drafting within this same phase, never to accepted design. Record actual delivery/publication status and actual authority; do not edit documents or fabricate push, publication or user consent.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State current phase goal, result requirements, acceptance criteria, exact source/evidence identities, result, limitations and preservation. Reviews record independent substantiated findings and decisions.",
+        "result": "Record actual final substantive document result, fulfilled/unfulfilled DoD/verdicts, source/current-document identities, coverage/example/link evidence, deliverables and actual delivery/publication status, limitations, incidents and outstanding obligations. Do not fabricate push, publication, user consent or waivers."
+      },
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "drafting"
+      },
+      "rework_targets": [
+        "drafting"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    }
+  ]
+}

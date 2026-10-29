@@ -1,0 +1,7 @@
+[
+  ["before-init", -32002],
+  ["missing-initialized", -32002],
+  ["repeat-initialize", -32600],
+  ["unknown-method", -32601],
+  ["unknown-tool", -32602]
+]

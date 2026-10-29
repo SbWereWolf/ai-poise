@@ -1,0 +1,15 @@
+[
+  "development",
+  "test_development",
+  "verification",
+  "review",
+  "design",
+  "analysis",
+  "profiling",
+  "environment_diagnostics",
+  "environment_remediation",
+  "documentation",
+  "task_planning",
+  "sprint_planning",
+  "integration"
+]

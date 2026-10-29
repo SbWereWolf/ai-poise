@@ -153,24 +153,648 @@
         ]
       },
       {
-        "id": "self_inspection-input-analysis",
+        "id": "analysis-input-analysis_plan",
         "kind": "section",
         "phase": "pre",
-        "section": "analysis",
+        "section": "analysis_plan",
         "stages": [
-          "self_inspection"
+          "analysis"
         ],
         "states": [
           "populated"
         ]
       },
       {
-        "id": "self_inspection-input-limitations",
+        "id": "analysis-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-experiment_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiment_plan",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-baseline_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_plan",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_inspection-input-workload",
+        "kind": "section",
+        "phase": "pre",
+        "section": "workload",
+        "stages": [
+          "baseline_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_measurement-input-baseline_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_plan",
+        "stages": [
+          "baseline_measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiment_planning-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "experiment_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiment_planning-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "experiment_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiment_planning-input-workload",
+        "kind": "section",
+        "phase": "pre",
+        "section": "workload",
+        "stages": [
+          "experiment_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiment_planning_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "experiment_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiment_planning_inspection-input-experiment_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiment_plan",
+        "stages": [
+          "experiment_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiment_planning_inspection-input-instrumentation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "instrumentation_plan",
+        "stages": [
+          "experiment_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-baseline_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-workload",
+        "kind": "section",
+        "phase": "pre",
+        "section": "workload",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "measurement_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement_inspection-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "measurement_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement_inspection-input-experiment_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiment_plan",
+        "stages": [
+          "measurement_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement_inspection-input-instrumentation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "instrumentation_plan",
+        "stages": [
+          "measurement_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement_inspection-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "measurement_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement_inspection-input-workload",
+        "kind": "section",
+        "phase": "pre",
+        "section": "workload",
+        "stages": [
+          "measurement_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-alternative_explanations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "alternative_explanations",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-confirmation.confirmation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation.confirmation",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-limitations",
         "kind": "section",
         "phase": "pre",
         "section": "limitations",
         "stages": [
-          "self_inspection"
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-product_findings",
+        "kind": "section",
+        "phase": "pre",
+        "section": "product_findings",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "profiling_inspection-input-recommendations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "recommendations",
+        "stages": [
+          "profiling_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-baseline_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline_evidence",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-confirmation.confirmation",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation.confirmation",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-measurement_evidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "measurement_evidence",
+        "stages": [
+          "synthesis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "synthesis-input-recommendations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "recommendations",
+        "stages": [
+          "synthesis"
         ],
         "states": [
           "populated"
@@ -190,7 +814,6 @@
     ]
   },
   "goal_type": "profiling",
-  "worktree_required": true,
   "route": {
     "entry": "framing"
   },
@@ -198,83 +821,79 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "framing",
-      "instruction": "Спланировать исходное измерение и критерии воспроизводимости. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before subject work agree coarse Task phases with the independent reviewer. Design only the imminent baseline: goal, required result, acceptance criteria, actual environment/workload, reproducible capture methods, limits and preservation. Do not design detailed experiments or analysis before actual predecessor results are accepted.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
         "environment",
         "workload",
-        "verification_plan"
+        "verification_plan",
+        "baseline_plan"
       ],
       "rework_targets": [
-        "framing",
-        "baseline_measurement",
-        "experiment_planning",
-        "measurement",
-        "analysis",
-        "confirmation",
-        "self_inspection"
+        "framing"
       ],
+      "role": "executor",
       "sections": {
-        "environment": "relevant facts/readiness, versions/input generation, resource identities, no secret values; required facts и observation methods явно заданы.",
-        "report": "Record the substantive result for this stage.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
-        "workload": "input/data digests, concurrency/cache/warmup/measurement schedule, exact generation/execution commands, resource namespaces."
+        "baseline_plan": "State the current baseline goal, required measurements/units/coverage, acceptance criteria, exact environment/workload, capture/provenance methods, repetitions, bounds and preservation.",
+        "environment": "Identify actual runtime/versions, source/build and input generations, resource namespaces, readiness and observation methods without secret values. Bind baseline and experiment to actual identities and report relevant drift.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions.",
+        "verification_plan": "For the imminent baseline only bind requirement/DoD references to exact existing PlannedInvocation HR-054 or declared logical/inspection methods, predicates, phase applicability, retries and limits. Use actual method inputs and stage receipts; runtime adds real BoundExecution digests. Never invent future commands or hashes.",
+        "workload": "Specify actual input/data digests, concurrency, cache state, warmup, repetitions, sampling and measurement schedule, exact registered generation/execution commands, resource namespaces and bounds. Preserve comparability and identify agreed changed variables."
       },
       "transitions": {
-        "complete": "baseline_measurement"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "framing_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "observe",
-      "role": "executor",
       "id": "baseline_measurement",
-      "instruction": "Получить исходные measurements. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only the accepted baseline plan through exact registered methods. Publish actual baseline_evidence with exact stage/check receipts, runtime/source/workload identities, measured values/units, repetitions and completeness. Never substitute an ambiguous latest shared report, invent measurements or write project data/instrumentation.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
-        "report"
+        "report",
+        "baseline_evidence"
       ],
       "rework_targets": [
-        "baseline_measurement",
-        "framing",
-        "experiment_planning",
-        "measurement",
-        "analysis",
-        "confirmation",
-        "self_inspection"
+        "baseline_measurement"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "baseline_evidence": "Publish actual baseline check/stage receipt identities, runtime/source/build/environment/workload/input identities, measured values/units, repetitions, sampling/noise and completeness. Separate observations from assumptions; missing required capture is not a complete baseline.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
       },
       "transitions": {
-        "complete": "experiment_planning"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "baseline_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "experiment_planning",
-      "instruction": "Спланировать различающие эксперименты после baseline. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "After independent acceptance of actual baseline_evidence, design only imminent controlled experiments: goal, required result, acceptance criteria, discriminatory hypotheses, controlled/changed variables, exact read-only methods, resource bounds, observer effects and workload comparability. Do not predesign analytical conclusions.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
@@ -282,69 +901,59 @@
         "instrumentation_plan"
       ],
       "rework_targets": [
-        "experiment_planning",
-        "framing",
-        "baseline_measurement",
-        "measurement",
-        "analysis",
-        "confirmation",
-        "self_inspection"
+        "experiment_planning"
       ],
+      "role": "executor",
       "sections": {
-        "experiment_plan": "id, question/hypothesis, controlled/changed variables, exact actions/measurements, expected discriminatory information, order and limits.",
-        "instrumentation_plan": "tools/exact commands, temporary changes/allowed paths, before state, restoration/check commands, observer-effect risks.",
-        "report": "Record the substantive result for this stage."
+        "experiment_plan": "State the current experiment goal, required result, acceptance criteria, hypotheses/discriminating information, controlled and changed variables, exact actions and measurements, order and limits. Bind independently accepted actual baseline receipts and comparable workload.",
+        "instrumentation_plan": "Specify existing registered tools/commands, read-only observation methods, observer effects, readiness and preservation checks. No product, instrumentation, configuration or database writes are permitted; required changes need separately authorized work.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
       },
       "transitions": {
-        "complete": "measurement"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "experiment_planning_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "observe",
-      "role": "executor",
       "id": "measurement",
-      "instruction": "Выполнить эксперименты. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only independently accepted experiments against accepted actual baseline identities. Publish actual measurement_evidence and exact stage/check receipts, workload/source identities, controlled variables, values/units, repetitions, observer effects and completeness. Preserve accepted baseline and project state; no product, instrumentation, configuration or database writes.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
-        "report"
+        "report",
+        "measurement_evidence"
       ],
       "rework_targets": [
-        "measurement",
-        "framing",
-        "baseline_measurement",
-        "experiment_planning",
-        "analysis",
-        "confirmation",
-        "self_inspection"
+        "measurement"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "measurement_evidence": "Publish actual experiment check/stage receipts, accepted baseline identity, controlled/changed variables, runtime/source/environment/workload/input identities, measured values/units, repetitions, observer effects, comparability and completeness.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
       },
       "transitions": {
-        "complete": "analysis"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "measurement_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "analysis",
-      "instruction": "Отделить измерения от интерпретаций. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Produce the draft analytical report under accepted current analysis/confirmation plans using actual independently accepted baseline/measurement receipts. Map claim IDs to values, workload/source identities, assumptions, reproducible inference summaries, alternatives, recommendations, limitations and product findings. Do not expose private chain-of-thought or alter accepted measurements. The report remains unaccepted until actual confirmation, reconciliation and independent review.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report",
@@ -352,106 +961,297 @@
         "alternative_explanations",
         "recommendations",
         "limitations",
-        "confirmation_plan",
         "product_findings"
       ],
       "rework_targets": [
-        "analysis",
-        "framing",
-        "baseline_measurement",
-        "experiment_planning",
-        "measurement",
-        "confirmation",
-        "self_inspection"
+        "analysis"
       ],
+      "role": "executor",
       "sections": {
-        "alternative_explanations": "id, объяснение, supporting/counter facts, проверка различия с основным выводом и disposition.",
-        "analysis": "claims с fact/evidence refs, assumptions, inference summary, alternative explanations; охват questions/metrics.",
-        "confirmation_plan": "Claims to confirm; exact confirmation methods, input selectors, repetitions/limits, independent observation criterion. Формируется в analysis до confirmation execution.",
-        "limitations": "что не установлено, ограничения данных/метода, влияние на conclusions/DoD; explicit none с основанием.",
-        "product_findings": "Record product_findings.",
-        "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
-        "report": "Record the substantive result for this stage."
+        "alternative_explanations": "For each relevant alternative state supporting/opposing measured evidence, distinguishing checks and disposition. Justify any assertion of none.",
+        "analysis": "Map each current claim ID to actual baseline/measurement/confirmation receipts, workload/source identities, measured values, reproducible inference summaries and assumptions. Separate facts from interpretation, revise refuted claims, and never present unsupported new performance claims as proved.",
+        "limitations": "State measurement/method/comparability limits, unestablished claims, missing capture and effects on Task acceptance. Unknown is not a waiver; inconclusive acceptance needs explicit agreed criteria.",
+        "product_findings": "Record actual product findings with exact evidence and severity, or substantiate none. Separate negative empirical findings from report quality and completeness.",
+        "recommendations": "Propose actions from current supported claims/evidence, expected effect, risk and subsequent verification. Reconcile the effects of refutation or uncertainty. Never execute optimizations automatically.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
       },
       "transitions": {
         "complete": "confirmation"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "check",
-      "role": "executor",
       "id": "confirmation",
-      "instruction": "Независимо/повторно подтвердить существенные выводы. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute exact accepted independent/repeated confirmation methods for actual draft claim IDs and source/workload identities. Publish the actual declared confirmation.confirmation with receipts, measured observations and confirmed/refuted/unresolved claim dispositions; a placeholder is not evidence. All real outcomes proceed to synthesis; failure is never converted to positive performance proof or silently waived.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "confirmation",
-        "framing",
-        "baseline_measurement",
-        "experiment_planning",
-        "measurement",
-        "analysis",
-        "self_inspection"
+        "confirmation"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
       },
       "transitions": {
-        "inconclusive": "self_inspection",
-        "not_satisfied": "self_inspection",
-        "satisfied": "self_inspection"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "inconclusive": "synthesis",
+        "not_satisfied": "synthesis",
+        "satisfied": "synthesis"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
-      "handler": "inspect",
-      "role": "executor",
-      "id": "self_inspection",
-      "instruction": "Осмотреть качество измерений и выводов. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "analysis",
+          "synthesis"
+        ]
+      },
+      "handler": "produce",
+      "id": "analysis_planning",
+      "instruction": "Only after actual measurements are independently accepted, design the imminent analytical-report phase: draft claims, obtain real confirmation and reconcile the same unaccepted report. Specify goal, required result, acceptance criteria, reproducible inference and confirmation procedures/claim selectors using actual accepted data. Never invent conclusions, future commands/hashes or rewrite accepted measurements.",
       "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "analysis_plan",
+        "confirmation_plan"
+      ],
+      "rework_targets": [
+        "analysis_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "analysis_plan": "Specify the current report goal, required results, acceptance criteria, actual accepted baseline/measurement receipt identities, workload/source comparison, reproducible inference procedures, assumptions, alternatives, claim IDs and confirmation/reconciliation rules.",
+        "confirmation_plan": "Define reproducible independent/repeated checks and claim selectors against accepted actual measurements, exact existing methods/inputs, repetitions/limits, confirmed/refuted/unresolved criteria and required evidence. Do not preselect conclusions or invent future commands, measurements or hashes.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "complete": "analysis_planning_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "analysis",
+          "synthesis"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "analysis_planning_inspection",
+      "instruction": "Independently review the imminent report/confirmation plans against actual accepted measurements for executability, completeness and unambiguity: traceable claim selectors, reproducible inference, exact confirmation methods, completeness, permitted uncertainty and reconciliation. Decide criteria only for analysis and synthesis execution within this same report phase. Reject design to analysis_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "analysis_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "changes_requested": "analysis_planning",
+        "clear": "analysis"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "baseline_inspection",
+      "instruction": "Independently verify actual baseline_evidence and exact stage/check receipts against accepted baseline design, runtime/source/environment/workload identity, units, repetitions, coverage and reproducibility. A placeholder or missing capture cannot pass. Reject execution to baseline_measurement; accept actual baseline before experiment design.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "baseline_measurement"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "changes_requested": "baseline_measurement",
+        "clear": "experiment_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "experiment_planning_inspection",
+      "instruction": "Independently review current experiment/instrumentation plans against accepted actual baseline for executability, completeness and unambiguity: goals/results/acceptance, exact read-only methods, controlled variables, observer effects, comparability, bounds and preservation. Reject design to experiment_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "experiment_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "changes_requested": "experiment_planning",
+        "clear": "measurement"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "framing_inspection",
+      "instruction": "Independently review the imminent baseline design for executability, completeness and unambiguity: goal, result requirements, acceptance criteria, actual environment/source/workload, reproducibility, exact capture methods, bounds and preservation. Reject design to framing.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "framing"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "changes_requested": "framing",
+        "clear": "baseline_measurement"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "measurement_inspection",
+      "instruction": "Independently verify actual measurement_evidence and receipts against accepted experiments/baseline identity: variables, comparability, units, repetitions, observer effects, coverage and preservation. Missing required measurements are not complete evidence. Reject execution to measurement; accept actual results before analytical design.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "measurement"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "changes_requested": "measurement",
+        "clear": "analysis_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "profiling_inspection",
+      "instruction": "Independently verify the current reconciled report against accepted plans and actual baseline/measurement/confirmation receipts, claim IDs, workload/source identity, reproducibility, required capture, development rules and general result requirements. Require actual confirmation.confirmation and consistent current claims/recommendations after every confirmation outcome. Separate empirical refutation from report defects; uncertainty needs explicit accepted criteria, never invented waivers. Reject execution to analysis within this same report phase, never to accepted earlier design/measurements. Do not edit reports or invent user authority.",
+      "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report",
         "result"
       ],
       "rework_targets": [
-        "self_inspection",
-        "experiment_planning",
-        "measurement",
-        "analysis",
-        "confirmation",
-        "framing",
-        "baseline_measurement"
+        "analysis"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions.",
+        "result": "State the final reconciled substantive result, actual fulfilled/unfulfilled DoD/verdicts, deliverables/evidence identities, limitations, incidents and outstanding delivery obligations. Decisions/waivers require their actual authority and provenance."
       },
       "transitions": {
-        "changes_requested": "experiment_planning",
+        "changes_requested": "analysis",
         "clear": null
-      },
-      "purpose": "observation",
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [],
+        "propose": []
+      },
+      "handler": "produce",
+      "id": "synthesis",
+      "instruction": "Reconcile the same unaccepted analytical report against actual confirmation.confirmation and accepted baseline/measurement receipts. Update claims by ID, alternatives, recommendations, limitations and product findings consistently. Do not rewrite accepted measurements or create unmeasured performance proof by report editing. Empirical negative findings can support a correct report; incomplete required capture is not completion. Inconclusive acceptance requires explicit agreed criteria. Recommendations remain proposals.",
+      "normalization": "strip",
+      "purpose": "execution",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "analysis",
+        "alternative_explanations",
+        "recommendations",
+        "limitations",
+        "product_findings"
+      ],
+      "rework_targets": [
+        "synthesis"
+      ],
+      "role": "executor",
+      "sections": {
+        "alternative_explanations": "For each relevant alternative state supporting/opposing measured evidence, distinguishing checks and disposition. Justify any assertion of none.",
+        "analysis": "Map each current claim ID to actual baseline/measurement/confirmation receipts, workload/source identities, measured values, reproducible inference summaries and assumptions. Separate facts from interpretation, revise refuted claims, and never present unsupported new performance claims as proved.",
+        "limitations": "State measurement/method/comparability limits, unestablished claims, missing capture and effects on Task acceptance. Unknown is not a waiver; inconclusive acceptance needs explicit agreed criteria.",
+        "product_findings": "Record actual product findings with exact evidence and severity, or substantiate none. Separate negative empirical findings from report quality and completeness.",
+        "recommendations": "Propose actions from current supported claims/evidence, expected effect, risk and subsequent verification. Reconcile the effects of refutation or uncertainty. Never execute optimizations automatically.",
+        "report": "State the current phase goal, required result, acceptance criteria, exact source and evidence identities, actual result, limitations and preservation. Independent reviews record substantiated decisions."
+      },
+      "transitions": {
+        "complete": "profiling_inspection"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

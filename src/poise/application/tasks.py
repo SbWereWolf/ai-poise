@@ -34,7 +34,7 @@ def require_reviewer_identity(
     source, task: Task, actor: str, *,
     target_stage: str | None = None, acquiring: bool = False,
 ) -> dict | None:
-    """Require distinct effective actors only for different configured stage roles."""
+    """Capture actual review provenance; the user assigns agents to roles."""
     from ..modules.workflow.domain import HandlerKind
     current = task.stage.stage_id
     node = task.route.node(current)
@@ -59,23 +59,8 @@ def require_reviewer_identity(
     if producer_role == inspection_role:
         return None  # A single-role workflow does not require identity separation.
     executor = identity["executor_actor"]
-    if executor is None:
-        raise DomainError(
-            "Reviewer identity provenance is unavailable for the produced result; "
-            "a distinct native reviewer session must be established from saved evidence"
-        )
-    if (executor == actor and acquiring and current != target
-            and task.route.node(current).handler != HandlerKind.INSPECT
-            and source.selected_result_author(task.state.task_id) == actor):
-        # Reacquire one's saved selected result; advance still guards the reviewer role.
-        return None
-    if executor == actor:
-        raise DomainError(
-            f"Reviewer actor {actor!r} equals executor {executor!r} "
-            f"({identity['source']}, stage {identity['stage']}); "
-            "use a distinct native reviewer session and public handoff"
-        )
-    return {**identity, "reviewer_actor": actor, "distinct_actor": True}
+    return {**identity, "reviewer_actor": actor,
+            "distinct_actor": executor is not None and executor != actor}
 
 
 def _action_digest(action: str, payload: dict) -> str:
@@ -589,11 +574,6 @@ class TaskCommands:
             target = ownership
             if target.worktree_owner not in (None, actor):
                 raise DomainError('Task workspace is owned by another session; handoff is required')
-            if (isinstance(authorization, dict) and authorization.get('role') == 'reviewer'
-                    and (current.draft.get('planning') is not None or current.restart_history)):
-                reviewer = inputs.review_identity(task_id, include_unsubmitted=True)
-                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
-                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             changed = current.restart_draft(actor, reason, authorization)
             before = inputs.ownership(actor)
             context = inputs.restart_context(task_id)
@@ -609,12 +589,6 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Task worktree is owned by another session; handoff is required")
             context = inputs.restart_context(task_id)
-            if (context['contract'].get('planning') is not None
-                    and isinstance(authorization, dict)
-                    and authorization.get('role') == 'reviewer'):
-                reviewer = inputs.review_identity(task_id, include_unsubmitted=True)
-                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
-                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             restart_contract = deepcopy(context["contract"])
             if context["requirements_snapshot"] is not None:
                 restart_contract["requirements_snapshot"] = deepcopy(

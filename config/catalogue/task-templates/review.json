@@ -40,8 +40,9 @@
     },
     "checks": {
       "planning": [],
+      "planning_inspection": [],
       "inspection": [],
-      "self_inspection": []
+      "execution_inspection": []
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

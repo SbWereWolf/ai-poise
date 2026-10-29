@@ -14,6 +14,10 @@ from .inputs import canonical
 
 
 class NamedRunLedger:
+    def invocation_store(self, policy):
+        from .invocations import FileCheckInvocationStore
+        return FileCheckInvocationStore(self, policy)
+
     def __init__(self, configuration):
         self.configuration = configuration
         self.project = configuration.bound.config['project']

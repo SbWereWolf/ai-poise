@@ -343,20 +343,48 @@ def test_ready_sprint_newborn_is_already_frozen_before_publication(project):
         edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Unapproved acceptance']}, 'denied')
 
 
-def test_executor_cannot_declare_itself_the_independent_restart_reviewer(project):
+@pytest.mark.parametrize('state', ['active', 'newborn'])
+@pytest.mark.parametrize('author', ['same', 'unknown'])
+def test_user_assigned_reviewer_can_restart_its_task(project, monkeypatch, state, author):
     c = client(project)
     create(c, 'FLEX')
     out = edit(c, 'FLEX', 0, full_draft(project), 'complete')
     ready(c, 'FLEX', out['revision'])
     c.runtime.bootstrap({'id': 'FLEX'})
+    authorization = {
+        'role': 'reviewer',
+        'decision': 'The user-assigned reviewer agrees to revise acceptance.',
+        'revision_fields': ['definition_of_done'],
+    }
+    if state == 'newborn':
+        c.runtime.ownership.release_task('FLEX')
+        other = WorkTools(WorkPoise(project['config_path'], 'first-restart-reviewer'))
+        other.runtime.bootstrap({'id': 'FLEX'})
+        rec = other.runtime.task_queries.record('FLEX')
+        restart(other, 'FLEX', rec['version'], request_id='first-restart', authorization=authorization)
+        other.runtime.ownership.release_task('FLEX')
+        c.runtime.bootstrap({'id': 'FLEX'})
+    if author == 'unknown':
+        from poise.infrastructure.sqlite.task_inputs import SqliteTaskInputs
+        original = SqliteTaskInputs.review_identity
+
+        def unavailable(self, task_id, *, include_unsubmitted=False):
+            identity = original(self, task_id, include_unsubmitted=include_unsubmitted)
+            assert identity is not None
+            return {**identity, 'executor_actor': None, 'source': 'unavailable'}
+
+        monkeypatch.setattr(SqliteTaskInputs, 'review_identity', unavailable)
     rec = c.runtime.task_queries.record('FLEX')
-    with pytest.raises(PoiseError, match='distinct reviewer'):
-        restart(c, 'FLEX', rec['version'], authorization={
-            'role': 'reviewer',
-            'decision': 'I accept my own changed constraints.',
-            'revision_fields': ['definition_of_done'],
-        })
-    assert c.runtime.task_queries.record('FLEX') == rec
+    version = rec['revision'] if state == 'newborn' else rec['version']
+    out = restart(c, 'FLEX', version, authorization=authorization)
+    assert out['status'] == 'newborn'
+    assert out['claimed_by'] == 'planner'
+    assert out['draft']['goal'] == project['task']['goal']
+    revised = edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Revised acceptance']}, 'granted-dod')
+    before = c.runtime.task_queries.record('FLEX')
+    with pytest.raises(PoiseError, match='reviewer authorization'):
+        edit(c, 'FLEX', revised['revision'], {'methods': []}, 'ungranted-methods')
+    assert c.runtime.task_queries.record('FLEX') == before
 
 
 def test_allocated_workspace_is_preserved_not_silently_replaced(project):
@@ -438,3 +466,46 @@ def test_revised_ready_sprint_draft_keeps_resolved_revision_audit(project):
     assert history[-1]['resolved_revision']['changed_fields'] == ['goal']
     assert len(history[-1]['resolved_revision']['contract_digest']) == 64
     assert history[-1]['planning_revision']['before_contract']['goal'] == draft['goal']
+
+
+@pytest.mark.parametrize('draft_restarts', [0, 1])
+def test_ready_uses_execution_restart_origin_after_draft_restarts(project, draft_restarts):
+    c = client(project)
+    create(c, 'FLEX')
+    edited = edit(c, 'FLEX', 0, full_draft(project), 'origin-complete')
+    promoted = ready(c, 'FLEX', edited['revision'], 'origin-initial-ready')
+    before = c.runtime.task_queries.record('FLEX')
+    authorization = {'role': 'user', 'decision': 'Revise execution criteria.'}
+    restarted = restart(
+        c, 'FLEX', promoted['revision'], request_id='origin-execution-restart',
+        reason='Retain the execution origin.', authorization=authorization,
+    )
+    for number in range(draft_restarts):
+        restarted = restart(
+            c, 'FLEX', restarted['revision'], request_id=f'origin-draft-{number}',
+            reason='Clarify the existing draft.', authorization=authorization,
+        )
+    contracts = deepcopy(restarted['draft']['stage_contracts'])
+    revised = next(item for item in contracts if item['stage_id'] == 'implementation')
+    revised['criteria'] = {
+        'requirements': ['Revised execution'],
+        'definition_of_ready': [],
+        'definition_of_done': [],
+    }
+    edited = edit(c, 'FLEX', restarted['revision'],
+                  {'stage_contracts': contracts}, 'origin-revised-criteria')
+
+    assert ready(c, 'FLEX', edited['revision'], 'origin-final-ready')['status'] == 'available'
+
+    after = c.runtime.task_queries.record('FLEX')
+    current = after['stage_criteria']['stages']['implementation']
+    assert current['criteria']['requirements'] == ['Revised execution']
+    assert current['revision'] == 1
+    assert current['execution'] == {'state': 'unstarted', 'epoch': 1, 'bound_revision': None}
+    assert current['history'][-1]['stage'] == 'tests'
+    assert current['history'][-1]['iteration'] == 1
+    assert current['history'][-1]['reason'] == 'Retain the execution origin.'
+    for stage in ('tests', 'test_review', 'code_review'):
+        assert after['stage_criteria']['stages'][stage] == before['stage_criteria']['stages'][stage]
+    assert after['goal'] == before['goal']
+    assert after['worktree'] == before['worktree']

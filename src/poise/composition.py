@@ -1,3 +1,13 @@
+def source_index_tools(bound, policy_path, environment):
+    """One selected-checkout owner uses the shared process and lock mechanics."""
+    from .application.source_index import SourceIndex
+    from .infrastructure.source_index import LocalSourceIndex
+    from .execution import RegisteredCheckRunner
+    runner = RegisteredCheckRunner(bound.config['limits']['output_chars'])
+    workspace = LocalSourceIndex.load(bound, policy_path, environment, runner)
+    return SourceIndex(workspace)
+
+
 def tool_result_tools(bound, policy, environment, *, caller=None, resources=None):
     """Taskless output uses the same explicit caller and placement owners."""
     from .application.tool_results import ToolResults
@@ -45,6 +55,15 @@ def project_checks_tools(bound, policy_path, environment, clock):
                             timing, subject, publisher, environment)
     service.establish_session = lambda: establish_project_session(bound, direct_caller(bound.config['project'], environment))
     return service
+
+
+def check_invocation_tools(service, policy, environment, *, caller=None):
+    from .application.check_invocations import CheckInvocations
+    from .infrastructure.project_checks.invocations import InvocationCancellation
+    from .infrastructure.session_establishment import direct_caller
+    if caller is None:
+        caller = direct_caller(service.configuration.bound.config['project'], environment)
+    return CheckInvocations(service.ledger.invocation_store(policy), caller, InvocationCancellation)
 
 
 def intake_session_tools(configuration, caller, authority_factory, clock):

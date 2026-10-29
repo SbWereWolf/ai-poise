@@ -1,0 +1,11 @@
+{
+  "parser": "mcp",
+  "format": "mcp-checks-json",
+  "brief_template": "Checks: {status}",
+  "expanded_template": "{brief}\nChecks: {names}",
+  "error_brief_template": "Checks: error",
+  "error_expanded_template": "{brief}\n{error}",
+  "overflow": "reject",
+  "brief": {"chars": 128, "bytes": 256},
+  "expanded": {"chars": 512, "bytes": 1024}
+}

@@ -1,0 +1,5 @@
+{
+  "seconds": 2,
+  "evidence_run_id": "@RUN@",
+  "reason": "One explicit diagnostic retry."
+}

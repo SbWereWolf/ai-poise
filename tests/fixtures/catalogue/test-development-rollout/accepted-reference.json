@@ -1,0 +1,82 @@
+{
+  "id": "test_development",
+  "purpose": "Тесты и тестовые fixtures как самостоятельный конечный продукт.",
+  "stages": [
+    {
+      "id": "baseline",
+      "source_id": "GS-TST-01",
+      "handler": "observe",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "baseline_inspection",
+      "source_id": "PAIRED-20261003-baseline_inspection",
+      "handler": "inspect",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "coverage_planning",
+      "source_id": "GS-TST-02",
+      "handler": "produce",
+      "before": [
+        "coverage_matrix"
+      ],
+      "after": []
+    },
+    {
+      "id": "coverage_planning_inspection",
+      "source_id": "PAIRED-20261003-coverage_planning_inspection",
+      "handler": "inspect",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "test_planning",
+      "source_id": "GS-TST-03",
+      "handler": "produce",
+      "before": [
+        "verification_plan",
+        "fixture_plan",
+        "sensitivity_plan"
+      ],
+      "after": []
+    },
+    {
+      "id": "test_planning_inspection",
+      "source_id": "PAIRED-20261003-test_planning_inspection",
+      "handler": "inspect",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "test_implementation",
+      "source_id": "GS-TST-04",
+      "handler": "produce",
+      "before": [
+        "test_registry"
+      ],
+      "after": []
+    },
+    {
+      "id": "sensitivity_verification",
+      "source_id": "GS-TST-05",
+      "handler": "check",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "test_inspection",
+      "source_id": "GS-TST-06",
+      "handler": "inspect",
+      "before": [],
+      "after": []
+    }
+  ],
+  "method_schedule": {
+    "baseline": "BASELINE",
+    "test_implementation": "TEST_GREEN",
+    "sensitivity_verification": "SENSITIVITY"
+  }
+}

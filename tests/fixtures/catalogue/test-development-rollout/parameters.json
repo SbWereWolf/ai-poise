@@ -1,0 +1,262 @@
+{
+  "identity": "TEST-DEVELOPMENT-ROLLOUT-FIXTURE",
+  "membership": null,
+  "goal": "Создать проверяемые тесты для согласованного поведения.",
+  "requirements": [
+    "Проверки обнаруживают отклонение результата от согласованного поведения."
+  ],
+  "dod": [
+    "Полный набор проверок проходит на корректном поведении и обнаруживает контрольную ошибку."
+  ],
+  "executable_obligations": [
+    "requirements[0]"
+  ],
+  "methods": [],
+  "method_inputs": [],
+  "artifact_requirements": [],
+  "contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "evidence": {
+    "baseline": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "baseline_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "coverage_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "coverage_planning_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_planning_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "sensitivity_verification": {
+      "subject_methods": {},
+      "arguments": [
+        {
+          "id": "SENSITIVITY-FIXTURE-PROOF",
+          "kind": "inspection",
+          "phase": "prepare",
+          "observation_methods": []
+        }
+      ],
+      "review_arguments": []
+    },
+    "test_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": [
+        "SENSITIVITY-FIXTURE-PROOF"
+      ]
+    }
+  },
+  "checks": {
+    "baseline": [],
+    "baseline_inspection": [],
+    "coverage_planning": [],
+    "coverage_planning_inspection": [],
+    "test_planning": [],
+    "test_planning_inspection": [],
+    "test_implementation": [],
+    "sensitivity_verification": [],
+    "test_inspection": []
+  },
+  "stage_contracts": [
+    {
+      "stage_id": "baseline",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "baseline_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "coverage_planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "coverage_planning_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "test_planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "test_planning_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "test_implementation",
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "sensitivity_verification",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    },
+    {
+      "stage_id": "test_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "criteria": {
+        "requirements": [],
+        "definition_of_ready": [],
+        "definition_of_done": []
+      }
+    }
+  ],
+  "decomposition": {
+    "kind": "ordinary",
+    "phases": [
+      {
+        "stage": "baseline",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "baseline_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "coverage_planning",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "coverage_planning_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_planning",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_planning_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_implementation",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "sensitivity_verification",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_inspection",
+        "skills": [
+          "workflow"
+        ],
+        "areas": []
+      }
+    ],
+    "integration": null
+  }
+}

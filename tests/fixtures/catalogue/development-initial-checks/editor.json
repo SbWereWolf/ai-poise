@@ -1,0 +1,27 @@
+{
+  "schema": "goal-config-editor-1",
+  "root": ".",
+  "database": "unused/database.sqlite",
+  "lock": "unused/editor.lock",
+  "responses": "unused/responses",
+  "file_mode": 420,
+  "json_indent": 2,
+  "lock_seconds": 2.0,
+  "lock_poll_seconds": 0.01,
+  "max_changes": 2000,
+  "max_input_bytes": 1000000,
+  "output_chars": 2200,
+  "exit_codes": {
+    "success": 0,
+    "rejected": 2,
+    "pending": 3
+  },
+  "workflows": {
+    "development": "configured/development.json"
+  },
+  "templates": {
+    "development-v1": {
+      "path": "workflow-templates/development.json"
+    }
+  }
+}

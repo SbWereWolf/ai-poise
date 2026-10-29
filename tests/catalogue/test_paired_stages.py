@@ -18,6 +18,28 @@ PAIRED = (
     "test_development",
 )
 
+REFERENCE_GOALS = (
+    "development", "test_development", "verification", "review", "design", "analysis",
+    "profiling", "environment_diagnostics", "environment_remediation", "documentation",
+    "task_planning", "sprint_planning", "integration",
+)
+ACCEPTED_PATHS = {
+    goal: ROOT / "tests/fixtures/catalogue/erp-rollout" / f"{goal}.json"
+    for goal in REFERENCE_GOALS
+    if goal not in {"development", "test_development", "verification"}
+}
+ACCEPTED_PATHS.update({
+    "development": ROOT / "tests/fixtures/catalogue/development-rollout/accepted-development.json",
+    "test_development": ROOT / "tests/fixtures/catalogue/test-development-rollout/accepted-test_development.json",
+    "verification": ROOT / "tests/fixtures/catalogue/verification-rollout/accepted-verification.json",
+})
+
+
+def accepted_workflow(goal):
+    """Independent literal producer inputs, never generated from the subject."""
+    return json.loads(ACCEPTED_PATHS[goal].read_text())
+
+
 DEVELOPMENT_SEQUENCE = (
     "baseline", "baseline_inspection",
     "solution_planning", "solution_planning_inspection",
@@ -113,22 +135,23 @@ def workflow(goal):
     )
 
 
-@pytest.mark.parametrize("goal", PAIRED)
+@pytest.mark.parametrize("goal", REFERENCE_GOALS)
 def test_every_executor_result_has_an_independent_immediate_inspection(goal):
-    data = GoalTypeDefinition.parse(workflow(goal)).data
-    stages = {stage["id"]: stage for stage in data["stages"]}
-    for stage in stages.values():
-        if stage["role"] != "executor" or stage["handler"] not in (
-            "produce", "observe", "revise", "apply_plan",
-        ):
-            continue
-        target = stage["transitions"]["complete"]
-        assert target is not None, (goal, stage["id"])
-        inspection = stages[target]
-        assert inspection["handler"] == "inspect", (goal, stage["id"], target)
-        assert inspection["role"] == "reviewer"
-        assert inspection["read_only"] is True
-        assert inspection["allowed_paths"] == []
+    """Review boundaries follow logical phases, including their mechanical nodes."""
+    expected = GoalTypeDefinition.parse(accepted_workflow(goal)).data
+    actual = GoalTypeDefinition.parse(workflow(goal)).data
+    assert actual["route"] == expected["route"]
+    fields = (
+        "handler", "role", "purpose", "criteria_authority", "transitions",
+        "rework_targets", "read_only", "allowed_paths",
+    )
+    assert {
+        stage["id"]: {field: stage[field] for field in fields}
+        for stage in actual["stages"]
+    } == {
+        stage["id"]: {field: stage[field] for field in fields}
+        for stage in expected["stages"]
+    }
 
 
 def test_development_has_the_six_explicit_design_and_delivery_pairs():
@@ -153,16 +176,21 @@ def test_development_has_the_six_explicit_design_and_delivery_pairs():
     assert "test_registry" in stages["test_implementation"]["sections"]
 
 
-@pytest.mark.parametrize("goal", PAIRED)
+@pytest.mark.parametrize("goal", REFERENCE_GOALS)
 def test_paired_instructions_explain_boundaries_and_inspection(goal):
-    for stage in workflow(goal)["stages"]:
-        if stage["handler"] in ("produce", "observe", "revise", "apply_plan", "inspect"):
-            assert "Inputs:" in stage["instruction"]
-            assert "Output:" in stage["instruction"]
-            assert "Forbidden:" in stage["instruction"]
-            if stage["role"] == "reviewer":
-                assert "allowed_paths" in stage["instruction"]
-                assert "restart" in stage["instruction"]
+    expected = GoalTypeDefinition.parse(accepted_workflow(goal)).data
+    actual = GoalTypeDefinition.parse(workflow(goal)).data
+    fields = (
+        "instruction", "sections", "required_sections", "normalization", "artifact_requirements",
+    )
+    assert {
+        stage["id"]: {field: stage[field] for field in fields}
+        for stage in actual["stages"]
+    } == {
+        stage["id"]: {field: stage[field] for field in fields}
+        for stage in expected["stages"]
+    }
+    assert actual["content_contract"] == expected["content_contract"]
 
 
 @pytest.mark.parametrize("goal", PAIRED)

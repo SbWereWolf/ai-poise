@@ -34,11 +34,23 @@ def test_historical_nodes_remain_present_in_the_expanded_reference_graph():
     source=json.loads((ROOT/'docs/architecture-design/data/stage-library-map.json').read_text())['nodes']
     expected={(n['goal_type'],n['stage']) for n in source}
     actual={(g,s['id']) for g in GOALS for s in documents(g)[0]['stages']}
-    assert expected <= actual
+    from tests.catalogue.test_paired_stages import accepted_workflow
+    accepted = {
+        (goal, stage["id"])
+        for goal in GOALS for stage in accepted_workflow(goal)["stages"]
+    }
+    retired = expected - accepted
+    assert len(expected) == 102
+    assert len(expected & accepted) == 83
+    assert len(retired) == 19
+    assert len(accepted - expected) == 60
+    assert len(accepted) == 143
+    assert not (retired & actual)
+    assert actual == accepted
 
 
 def test_every_feedback_target_is_declared_for_user_rework():
-    edges=json.loads((ROOT/'docs/architecture-design/reference/feedback-map.json').read_text())['edges']
+    edges=json.loads((ROOT/'config/catalogue/reference.json').read_text())['feedback_edges']
     for edge in edges:
         stages={s['id']:s for s in documents(edge['goal_type'])[0]['stages']}
         assert edge['to_stage'] in stages[edge['from_stage']]['rework_targets']

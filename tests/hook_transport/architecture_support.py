@@ -44,13 +44,14 @@ def trace(marker, boundary, **values):
 
 
 class Chain:
-    def __init__(self, project, parent, marker):
+    def __init__(self, project, parent, marker, *, general=None):
         self.marker = marker
         self.session = "architecture-fixture"
         self.parent = parent
         self.effects = parent / "handler-effects"
-        self.general = GeneralScene(project, parent, marker)
-        self.general.publish()
+        self.general = GeneralScene(project, parent, marker) if general is None else general
+        if general is None:
+            self.general.publish()
         self.service = HookService(self.general.settings_path)
         self.definition = literal("definition.json")
         self.definition["events"].append(next(

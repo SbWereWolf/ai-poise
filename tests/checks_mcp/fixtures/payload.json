@@ -1,0 +1,49 @@
+{
+  "stdout": "first α\nвторая строка 🐺\nlast without LF",
+  "stderr": "literal diagnostic\r\n",
+  "success": {
+    "exit": 0,
+    "status": "passed",
+    "isError": false
+  },
+  "failure": {
+    "exit": 7,
+    "status": "failed",
+    "isError": false
+  },
+  "run_fields": [
+    "schema",
+    "operation",
+    "invocation",
+    "result"
+  ],
+  "invocation_fields": [
+    "id",
+    "state",
+    "project",
+    "checkout",
+    "response_path"
+  ],
+  "cancel_fields": [
+    "schema",
+    "status",
+    "target",
+    "termination",
+    "references",
+    "error"
+  ],
+  "termination_fields": [
+    "graceful_requested",
+    "force_requested",
+    "process_group_stopped",
+    "child_reaped",
+    "capture_complete"
+  ],
+  "forced_termination": {
+    "graceful_requested": true,
+    "force_requested": true,
+    "process_group_stopped": true,
+    "child_reaped": true,
+    "capture_complete": true
+  }
+}

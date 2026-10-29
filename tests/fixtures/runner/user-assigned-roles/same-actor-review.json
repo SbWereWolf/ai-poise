@@ -1,0 +1,9 @@
+{
+  "executor_actor": "session-A",
+  "source": "verified_task_event",
+  "stage": "build",
+  "iteration": 1,
+  "submission_id": 17,
+  "reviewer_actor": "session-A",
+  "distinct_actor": false
+}

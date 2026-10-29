@@ -118,6 +118,11 @@ def _parameters(workflow: dict, checks: dict, methods: list[dict] | None = None)
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {
+                "requirements": [],
+                "definition_of_ready": [],
+                "definition_of_done": [],
+            },
         } for stage in workflow["stages"]],
         "decomposition": {
             "kind": "ordinary",
@@ -222,32 +227,72 @@ def test_active_observe_still_requires_a_subject_method():
 
 
 def test_catalogue_identity_reference_and_example_use_explicit_checks():
+    from copy import deepcopy
+    from tempfile import TemporaryDirectory
     from poise.application.catalogue import CatalogueCommands
     from poise.infrastructure.catalogue import FileCatalogue
-    from poise.modules.goal_config.domain import fingerprint
 
-    template = json.loads(TEMPLATE_PATH.read_text())
+    fixtures = ROOT / "tests/fixtures/catalogue/development-initial-checks"
+    template_bytes = TEMPLATE_PATH.read_bytes()
+    workflow_bytes = WORKFLOW_PATH.read_bytes()
+    template = json.loads(template_bytes)
     settings = json.loads((ROOT / "config/catalogue/settings.example.json").read_text())
     reference = json.loads((ROOT / "config/catalogue/reference.json").read_text())
     entry = settings["task_templates"]["development-v1"]
-    assert entry["digest"] == fingerprint(template)
+    assert entry["goal_type"] == "development"
+    assert entry["path"] == "poise-op/app/config/catalogue/task-templates/development.json"
     development = next(
         item for item in reference["goal_types"] if item["id"] == "development"
     )
     assert development["method_schedule"] == {}
     assert reference["methods"]["development"] == {}
     walkthrough = _load_walkthrough()
-    catalogue = FileCatalogue(ROOT / "config/catalogue/settings.example.json")
-    workflow = GoalTypeDefinition.parse(json.loads(WORKFLOW_PATH.read_text())).data
-    task = walkthrough["prepare_task"](
-        catalogue,
-        CatalogueCommands(catalogue, None, catalogue.raw["max_items"]),
-        {"development": workflow},
-        _policy(),
-        "development",
-        "REAL-CONSUMER",
-        ROOT,
-    )
+    assert walkthrough["SOURCE"] == ROOT
+    workflow = GoalTypeDefinition.parse(json.loads(workflow_bytes)).data
+    with TemporaryDirectory(prefix="development-checks-") as directory:
+        home = Path(directory)
+        for name in ("editor.json", "settings.json"):
+            (home / name).write_bytes((fixtures / name).read_bytes())
+        (home / "task-templates").mkdir()
+        (home / "workflow-templates").mkdir()
+        copied_template = home / "task-templates/development.json"
+        copied_template.write_bytes(template_bytes)
+        (home / "workflow-templates/development.json").write_bytes(workflow_bytes)
+        catalogue = FileCatalogue(home / "settings.json")
+        assert catalogue.root == home
+        selection = catalogue.task_selection("development")
+        assert selection == {"id": "development-v1"}
+        assert catalogue.task_blueprint(selection).goal_type == "development"
+        assert catalogue.task_blueprint(selection).data == template
+        registered_path = catalogue.root / catalogue.raw["task_templates"]["development-v1"]["path"]
+        assert registered_path == copied_template
+        assert registered_path.read_bytes() == template_bytes
+        assert catalogue.workflow_template({"id": "development-v1"}) == json.loads(workflow_bytes)
+        wrong_identity = deepcopy(template)
+        wrong_identity["goal_type"] = "review"
+        wrong_identity["task"]["goal_type"] = "review"
+        assert TaskBlueprint.parse(wrong_identity).goal_type == "review"
+        try:
+            copied_template.write_text(json.dumps(wrong_identity), encoding="utf-8")
+            with pytest.raises(PoiseError, match="^Task template identity mismatch$"):
+                catalogue.task_blueprint(selection)
+        finally:
+            copied_template.write_bytes(template_bytes)
+        assert copied_template.read_bytes() == template_bytes
+        assert not (home / "unused/database.sqlite").exists()
+        task = walkthrough["prepare_task"](
+            catalogue,
+            CatalogueCommands(catalogue, None, catalogue.raw["max_items"]),
+            {"development": workflow},
+            _policy(),
+            "development",
+            "REAL-CONSUMER",
+            home,
+        )
+        assert not (home / "unused/database.sqlite").exists()
+    assert TEMPLATE_PATH.read_bytes() == template_bytes
+    assert WORKFLOW_PATH.read_bytes() == workflow_bytes
+    assert task["checks"] == json.loads((fixtures / "expected-initial-checks.json").read_text())
     assert task["checks"] == walkthrough["_initial_checks"](
         workflow,
         task["methods"],
@@ -276,7 +321,10 @@ def test_canonical_guidance_distinguishes_initial_and_planned_checks():
     batch = (ROOT / "docs/workflows/batch-work.md").read_text()
     root_rules = (ROOT / "AGENTS.md").read_text()
     development_skill = (ROOT / ".agents/skills/poise-development/SKILL.md").read_text()
-    assert "пустое начальное расписание" in catalogue
+    fixtures = ROOT / "tests/fixtures/catalogue/development-initial-checks"
+    guidance = json.loads((fixtures / "guidance.json").read_text())
+    for snippet in guidance["catalogue_required"]:
+        assert snippet in catalogue
     assert "verification_planning" in catalogue
     assert "initial checks" in root_rules
     assert "initial checks" in development_skill

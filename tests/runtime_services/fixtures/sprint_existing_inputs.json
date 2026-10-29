@@ -37,5 +37,9 @@
   },
   "binding_error": "method_inputs binding mismatch",
   "profile_error": "method CHECK: unsupported reference_profile",
+  "historical_refusals": {
+    "missing": "method_inputs binding mismatch: current historical declarations missing=['CHECK']; восстановите декларации через task/edit и повторите запрос",
+    "profile": "method CHECK: unsupported reference_profile {'parser': 'inline-no-path-arguments', 'runner': 'python', 'version': 999}; укажите поддержанный versioned profile"
+  },
   "interruption": "Late Sprint member publication interrupted before commit"
 }

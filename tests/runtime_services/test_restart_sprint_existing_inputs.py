@@ -11,7 +11,7 @@ from conftest import write_json
 from poise.infrastructure.sqlite.tasks import SqliteTaskRepository
 from poise.modules.foundation.errors import DomainError, PoiseError, VersionConflict
 from runtime_services.test_restart_late_method_inputs import claims
-from runtime_services.test_restart_registry_preservation import wire_hash
+from runtime_services.test_restart_registry_preservation import persisted, wire_hash
 from runtime_services.test_task_restart import restart
 from sprints.helpers import bootstrap, draft, publish, setup, task
 from sprints.test_unpublish import client, git_state, release_member, reopen, unchanged
@@ -224,4 +224,64 @@ def test_existing_sprint_historical_input_refusal_preserves_all_state(project, i
     assert unchanged(owner) == before
     assert claim_rows(owner) == DATA["claims_owned"]
     assert owner.runtime.requirements_commands.query([{"id": "registry", "kind": "registry"}]) == requirements
+    assert_material(material)
+
+
+@pytest.mark.parametrize("invalid", ["missing", "profile"])
+@pytest.mark.parametrize("entry", ["draft-upsert", "publish"])
+def test_existing_sprint_consumers_reject_historical_input_edits(project, invalid, entry):
+    planner, owner, opened, newborn, registry, declarations, material = late_member(project, mixed=True)
+    original_rows = persisted(planner, "A")
+    original_requirements = planner.runtime.requirements_commands.query([{"id": "registry", "kind": "registry"}])
+    inputs = deepcopy(declarations)
+    if invalid == "missing":
+        inputs = []
+    else:
+        inputs[0]["reference_profile"]["version"] = 999
+    # Input-only edits keep original CHECK methods/checks beside authoritative
+    # CHECK+LATE registry. The four positives separately materialize all methods.
+    if entry == "publish":
+        edited = owner.invoke(request("task", {
+            "action": "edit", "task_id": "A", "request_id": "edit-only-sprint-historical-inputs",
+            "expected_revision": newborn["revision"], "patch": {"method_inputs": inputs}, "remove": [],
+        }))
+        assert edited["ready"] is False
+        release_member(owner, "historical-input-publication")
+    else:
+        release_member(owner, "historical-input-upsert")
+        candidate = {"id": "A", "sprint_id": "S", **deepcopy(newborn["draft"]), "method_inputs": inputs}
+        opened = draft(planner, [], revision=opened["revision"], request_id="upsert-sprint-historical-inputs",
+            updates=[{"kind": "upsert_tasks", "tasks": [candidate]}])
+        assert opened["errors"] == ["Task creation intent: " + DATA["historical_refusals"][invalid]]
+    current = planner.runtime.task_queries.record("A")
+    assert current["ready"] is False
+    assert current["draft"]["methods"] == newborn["draft"]["methods"]
+    assert current["draft"]["checks"] == {"work": ["CHECK"]}
+    assert current["draft"]["method_inputs"] == inputs
+    assert current["draft"]["requirements_snapshot"] == newborn["draft"]["requirements_snapshot"]
+    assert planner.runtime.requirements_commands.query([{"id": "registry", "kind": "registry"}]) == original_requirements
+    after_edit = persisted(planner, "A")
+    for name in ("methods", "workflow", "execution", "results", "proofs", "submissions", "evidence", "layers"):
+        assert after_edit[name] == original_rows[name]
+    assert after_edit["events"][:len(original_rows["events"])] == original_rows["events"]
+    historical = planner.runtime.task_queries.verification_registry("A")
+    assert historical["active_contract"] is False and historical["current"] == []
+    assert historical["historical_registry"] == {
+        "revision": 1, "entries": registry["current"], "history": registry["history"],
+        "requests": registry["requests"], "executable_obligations": [],
+    }
+    before = unchanged(planner)
+    registry_rows = persisted(planner, "A")
+    requirements = planner.runtime.requirements_commands.query([{"id": "registry", "kind": "registry"}])
+    assert claim_rows(planner) == DATA["claims_released"]
+    assert_material(material)
+    with pytest.raises(DomainError) as refusal:
+        publish(planner, opened["revision"], "reject-existing-sprint-historical-inputs")
+    assert str(refusal.value) == "Task creation intent: " + DATA["historical_refusals"][invalid]
+    reloaded = client(project, "planner")
+    assert unchanged(reloaded) == before
+    assert reloaded.runtime.task_queries.verification_registry("A") == historical
+    assert persisted(reloaded, "A") == registry_rows
+    assert reloaded.runtime.requirements_commands.query([{"id": "registry", "kind": "registry"}]) == requirements
+    assert claim_rows(reloaded) == DATA["claims_released"]
     assert_material(material)

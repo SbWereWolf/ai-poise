@@ -234,6 +234,22 @@ def require_start_execution(execution):
 
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
+
+    def save_requirements_migrations(self, task_id, actor, expected, context):
+        facade = self.unit_of_work()
+        inputs = facade.capture(TaskReadSet((task_id,), actors=(actor,), execution_ids=(task_id,)))
+        task = inputs.task(task_id)
+        if task.state.claimed_by != actor or task.state.status not in (TaskStatus.ACTIVE, TaskStatus.VERIFIED):
+            raise DomainError("Requirements migration publication requires the actual active Task owner")
+        execution, version = inputs.required_execution(task_id)
+        if execution.get('requirements_migrations') != expected:
+            raise VersionConflict("Requirements migration publication context changed")
+        prepared = facade.prepare_execution(inputs, task_id,
+            {**execution, 'requirements_migrations': deepcopy(context)})
+        with self.unit_of_work() as uow:
+            uow.require_inputs(inputs)
+            uow.execution.save_prepared(task_id, prepared, version)
+
     def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader,
                  requirements_gate):
         self.unit_of_work = unit_of_work

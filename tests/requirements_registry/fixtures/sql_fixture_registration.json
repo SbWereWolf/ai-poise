@@ -1,0 +1,13 @@
+{
+  "requirements": [
+    ["FIXTURE-SYSTEM", "system", "current", "The fixture preserves an explicit Requirements chain."],
+    ["FIXTURE-APPLICATION", "application", "current", "Fixture Tasks declare their agreed Requirements context."]
+  ],
+  "links": [["FIXTURE-SYSTEM", "FIXTURE-APPLICATION"]],
+  "revision": 1,
+  "receipt": {
+    "request_id": "seed-fixture-requirements",
+    "digest": "58ca3d9f5171b507efaacd44c07dc3a07ca74d563f475b96a4f1862ba9b9e733",
+    "response": "{\"replayed\":false,\"revision\":1}"
+  }
+}

@@ -7,17 +7,22 @@ from ..modules.requirements_registry.crud import is_crud_query_batch
 class RequirementsCommands:
     """Bounded declarative command and query API for one project registry."""
 
-    def __init__(self, store, max_items):
+    def __init__(self, store, max_items, *, writer=None):
         if type(max_items) is not int or max_items <= 0:
             raise DomainError("Requirements max_items must be a positive integer")
         self.store = store
         self.max_items = max_items
+        self.writer = writer
 
     def apply(self, request):
-        return self.store.apply(request, self.max_items)
+        if self.writer is None:
+            raise DomainError("Requirements writes require the active Task migration owner")
+        return self.writer.apply(request)
 
     def command(self, request):
-        return self.store.command(request, self.max_items)
+        if self.writer is None:
+            raise DomainError("Requirements writes require the active Task migration owner")
+        return self.writer.command(request)
 
     def query(self, queries):
         if is_crud_query_batch(queries):

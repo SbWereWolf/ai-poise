@@ -1,0 +1,28 @@
+{
+  "requirements": {
+    "create":[["A1","application","future","Application one."],["FIXTURE-APPLICATION","application","current","Fixture Tasks declare their agreed Requirements context."],["FIXTURE-SYSTEM","system","current","The fixture preserves an explicit Requirements chain."],["R2","system","current","Created requirement."],["S1","system","current","System one."]],
+    "update":[["A1","application","future","Application one."],["FIXTURE-APPLICATION","application","current","Fixture Tasks declare their agreed Requirements context."],["FIXTURE-SYSTEM","system","current","The fixture preserves an explicit Requirements chain."],["R2","system","current","Changed requirement."],["S1","system","current","System one."]],
+    "delete":[["A1","application","future","Application one."],["FIXTURE-APPLICATION","application","current","Fixture Tasks declare their agreed Requirements context."],["FIXTURE-SYSTEM","system","current","The fixture preserves an explicit Requirements chain."],["S1","system","current","System one."]]
+  },
+  "domain_areas": {
+    "create":[["D1","Domain one","Domain fixture."],["D2","Domain two","Created domain."]],
+    "update":[["D1","Domain one","Domain fixture."],["D2","Domain two","Changed domain."]],
+    "delete":[["D1","Domain one","Domain fixture."]]
+  },
+  "domain_entities": {
+    "create":[["E1","D1","Entity one","entity_one","Entity fixture."],["E2","D1","Entity two","entity_two","Created entity."]],
+    "update":[["E1","D1","Entity one","entity_one","Entity fixture."],["E2","D1","Entity two","entity_two","Changed entity."]],
+    "delete":[["E1","D1","Entity one","entity_one","Entity fixture."]]
+  },
+  "domain_actions": {
+    "create":[["X1","D1","Action one","action_one","Action fixture."],["X2","D1","Action two","action_two","Created action."]],
+    "update":[["X1","D1","Action one","action_one","Action fixture."],["X2","D1","Action two","action_two","Changed action."]],
+    "delete":[["X1","D1","Action one","action_one","Action fixture."]]
+  },
+  "requirement_links": {
+    "create":[["FIXTURE-SYSTEM","FIXTURE-APPLICATION"],["S1","A1"]],
+    "delete":[["FIXTURE-SYSTEM","FIXTURE-APPLICATION"]]
+  },
+  "requirement_entities": {"create":[["S1","D1","E1"]],"delete":[]},
+  "requirement_actions": {"create":[["S1","D1","X1"]],"delete":[]}
+}

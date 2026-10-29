@@ -1,0 +1,7 @@
+{
+  "schema":"requirements-bootstrap-1",
+  "purpose":"Literal migration-backed bootstrap fixture.",
+  "system_requirements":[{"id":"BS","status":"current","text":"Bootstrap system."}],
+  "application_requirements":[{"id":"BA","application":"fixture","status":"current","text":"Bootstrap application."}],
+  "derivations":[{"child":"BA","parents":["BS"]}]
+}

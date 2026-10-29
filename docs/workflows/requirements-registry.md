@@ -656,9 +656,11 @@ Admission-ошибки CLI/config и старые специализирован
 
 Запустить следующий Python-фрагмент выбранным интерпретатором, передав аргументы:
 абсолютный путь того же интерпретатора, абсолютный manifest, ID существующей области,
-явно выбранное новое определение и уникальный request_id. Это **запись** в выбранный
-проект, не демонстрационный dry run. Исполнять только при полномочии на это изменение.
-Пример изменяет только указанную область после анализа текущего значения.
+явно выбранное новое определение и уникальный request_id. Пример только читает
+реестр и выводит work-пакет изменения выбранной области после анализа значения.
+Он не отправляет этот пакет и не выполняет запись. Для применения передайте
+выведенный пакет в настроенный work-вход того же проекта с активной Task и
+полномочием на изменение, как описано в [SQL-маршруте](#sql-миграции-требований).
 
 ```python
 import json
@@ -667,7 +669,7 @@ import sys
 
 python, config, domain_id, definition, request_id = sys.argv[1:]
 
-def call(packet):
+def query(packet):
     run = subprocess.run(
         [python, "-B", "-m", "poise", "requirements", "--config", config],
         input=json.dumps(packet, ensure_ascii=False), text=True,
@@ -679,7 +681,7 @@ def call(packet):
     return result
 
 selected = {"id": {"eq": domain_id}}
-read = call({"operation": "query", "input": {"queries": [{
+read = query({"operation": "query", "input": {"queries": [{
     "id": "domain", "kind": "entities", "table": "domain_areas",
     "filter": selected, "page": {"limit": 1, "after": None},
 }]}})
@@ -694,9 +696,11 @@ else:
         "operations": [{"id": "edit", "kind": "update", "table": "domain_areas",
                         "filter": selected, "changes": {"definition": definition}}],
     }}
-    print(json.dumps(call(packet), ensure_ascii=False))
+    print(json.dumps({"operation": "requirements", "input": {"request": packet},
+                      "messages": []}, ensure_ascii=False))
 ```
 
-При конфликте пример завершается с ошибкой без скрытого retry. Для восстановления
-неопределённого результата сохранять исходный Command до вызова отдельно в материалах
-операции; повторный запуск всего сценария чтение/анализ не является точным replay.
+Отказ чтения завершает пример без скрытого retry. Перед отдельной отправкой
+сохраните исходный выведенный work-пакет в материалах операции. Отказ применения
+восстанавливается по [фактическому состоянию](#ошибка-записи-статуса-yoyo);
+повторный запуск всего сценария чтение/анализ не является точным replay.

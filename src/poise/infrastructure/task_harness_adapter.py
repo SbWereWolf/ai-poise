@@ -7,6 +7,45 @@ from ..modules.projects.harness import TaskAdapterReference
 
 class TaskHarnessAdapter:
     @staticmethod
+    def observe_current(profile_path, profile, internal_session):
+        """Read an existing genuine claim without establishing or acquiring work."""
+        if profile['task_adapter'] is None:
+            return {'state': 'not_applicable', 'reason': 'No Task adapter is connected'}
+        import json
+        from ..common import load_config
+        from ..storage import Store
+        from .sqlite.task_record import capture_record_in
+        from .task_paths import task_root
+        task_path = TaskHarnessAdapter.resolve_task_configuration(profile_path)
+        root, cfg, workflows = load_config(task_path)
+        state = configured_root(root, cfg['paths']['state'])
+        store = Store(descendant(state, cfg['paths']['database']), descendant(state, cfg['paths']['lock']),
+                      cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'], workflows,
+                      read_only=True, read_wait=cfg['limits']['sqlite_read_seconds'])
+        current = store.current(internal_session)
+        if current is None:
+            return {'state': 'not_applicable', 'reason': 'The genuine native session has no current Task'}
+        with store.database.read_transaction() as db:
+            capture = capture_record_in(db, current['id'])
+        if capture is None or capture.row['claimed_by'] != internal_session:
+            return {'state': 'unavailable', 'reason': 'The observed Task claim changed during capture'}
+        stage = current['workflow']['stages'][current['stage_index']]['id']
+        workflow = json.loads(capture.row['workflow'])
+        from ..modules.inspection.domain import FeedbackBook
+        feedback = FeedbackBook.from_dict(workflow['feedback'])
+        open_ids = {item.id for item in feedback.open_findings}
+        phases = current['contract']['decomposition']['phases']
+        skills = next((phase['skills'] for phase in phases if phase['stage'] == stage), [])
+        return {'state': 'known', 'task_id': current['id'], 'task_status': current['status'],
+                'phase': stage, 'sprint_id': current.get('sprint_id'),
+                'task_path': str(task_root(state, cfg['paths'], current['id'], current.get('sprint_id'))),
+                'required_skills': list(skills),
+                'findings': [{'finding_id': item.id, 'finding_status': 'open' if item.id in open_ids else 'resolved'}
+                             for item in feedback.findings],
+                'task_binding_confidence': 1,
+                'binding_reason': 'Current Task claim matches the genuine internal native session'}
+
+    @staticmethod
     def resolve_task_configuration(path):
         path = Path(path).resolve()
         document = read_json(path)

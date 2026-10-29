@@ -92,6 +92,9 @@ class BuiltinHandlers:
             from ..modules.project_checks.mcp import CheckTransportPolicy
             CheckTransportPolicy.parse(snapshot(options['policy_path']))
             snapshot(options['checks_policy_path'])
+        elif name == 'agent-metrics':
+            from .agent_metrics.configuration import AgentMetricsPolicy
+            AgentMetricsPolicy.parse(snapshot(options['policy_path']))
         elif name == 'tool-result':
             from ..modules.result_views.tool_results import ToolResultPolicy
             policy = ToolResultPolicy.parse(snapshot(options['policy_path'])).data
@@ -108,7 +111,10 @@ class BuiltinHandlers:
         name = handler['implementation']['name']
         options, event, response = handler['options'], packet['event'], deepcopy(packet['response'])
         execution = None
-        if name == 'capability-summary':
+        if name == 'agent-metrics':
+            from .agent_metrics.native import capture_event
+            capture_event(self.service, self.binding, packet, options, resources)
+        elif name == 'capability-summary':
             readiness = self.service._readiness(self.binding, summary_options=options['summary'])
             summary = readiness.refresh(self.binding['session_id'], event['cwd'],
                                         options['probes'], self.service.clock).to_dict()

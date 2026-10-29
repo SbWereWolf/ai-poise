@@ -16,7 +16,10 @@ def evaluate_stage(route: RouteDefinition, work: dict, book: FeedbackBook,
     node = route.node(stage)
     if node.handler == HandlerKind.PUBLISH:
         return handler(node.handler).evaluate(work, book, stage, iteration)
-    scope = route.inspection_scope(stage)
+    report_review = route.report_inspector(stage)
+    scope_stage = (report_review if report_review is not None
+                   and isinstance(work, dict) and "resolutions" in work else stage)
+    scope = route.inspection_scope(scope_stage)
     inspectors = {n.stage_id for n in route.nodes if n.handler == HandlerKind.INSPECT}
     for finding in book.findings:
         if finding.stage not in inspectors:

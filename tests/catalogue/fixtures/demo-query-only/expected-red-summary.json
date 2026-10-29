@@ -1,0 +1,69 @@
+{
+  "collection_errors": [],
+  "exit_code": 1,
+  "reports": [
+    {
+      "code": null,
+      "exception": "PoiseError",
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_demo_bootstrap_supports_query_only_requirements",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "code": null,
+      "exception": null,
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_demo_bootstrap_supports_query_only_requirements",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "code": null,
+      "exception": null,
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_demo_bootstrap_supports_query_only_requirements",
+      "outcome": "passed",
+      "phase": "teardown"
+    },
+    {
+      "code": null,
+      "exception": "PoiseError",
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_review_routes_support_query_only_requirements[feedback]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "code": null,
+      "exception": null,
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_review_routes_support_query_only_requirements[feedback]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "code": null,
+      "exception": null,
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_review_routes_support_query_only_requirements[feedback]",
+      "outcome": "passed",
+      "phase": "teardown"
+    },
+    {
+      "code": null,
+      "exception": "PoiseError",
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_review_routes_support_query_only_requirements[short]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "code": null,
+      "exception": null,
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_review_routes_support_query_only_requirements[short]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "code": null,
+      "exception": null,
+      "nodeid": "tests/catalogue/test_demo_query_only.py::test_review_routes_support_query_only_requirements[short]",
+      "outcome": "passed",
+      "phase": "teardown"
+    }
+  ]
+}

@@ -907,7 +907,9 @@ class Task:
             raise DomainError("Нет проверенного outcome этапа")
         target = self.route.node(self.stage.stage_id).target(self.progress.outcome)
         if target is None:
-            if self.feedback.open_findings or self.feedback.pending_resolutions:
+            internal_findings = (finding for finding in self.feedback.open_findings
+                                 if self.route.report_inspector(finding.stage) is None)
+            if any(internal_findings) or self.feedback.pending_resolutions:
                 raise DomainError("Нельзя завершить задачу с открытыми внутренними находками")
             return self._change("user_accept", None, None, status=TaskStatus.COMPLETED, claimed_by=None)
         if advance:
@@ -953,7 +955,8 @@ class Task:
         pending_resolutions = self.feedback.pending_resolutions
         if not pending_resolutions:
             return
-        inspectors = {resolution.id: self.route.next_inspection(resolution.stage)
+        inspectors = {resolution.id: (self.route.report_inspector(resolution.stage)
+                                     or self.route.next_inspection(resolution.stage))
                       for resolution in pending_resolutions}
         if any(stage is None for stage in inspectors.values()):
             raise DomainError(

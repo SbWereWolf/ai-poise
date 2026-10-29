@@ -70,7 +70,7 @@ def persisted(tools, task_id):
 
 
 def setup_current(project, *, initially_empty=False, allow_method_edit=True, with_extra=False,
-                  allow_requirements_edit=False):
+                  allow_requirements_edit=False, unplanned=False):
     configure_public_registry_case(project)
     project["task"]["planning"] = {
         "schema": "task-planning-1", "template": None,
@@ -84,6 +84,8 @@ def setup_current(project, *, initially_empty=False, allow_method_edit=True, wit
         project["task"]["planning"]["restart_revision_policy"]["user"].extend(
             ["requirements", "requirements_snapshot", "requirements_agreement"]
         )
+    if unplanned:
+        project["task"].pop("planning")
     original = deepcopy(project["task"])
     if initially_empty:
         project["task"]["methods"] = []

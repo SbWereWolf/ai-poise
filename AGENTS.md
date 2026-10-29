@@ -31,6 +31,17 @@ Do not give the final answer until every result has been verified
 
 USE [i-have-adhd](./.agents/skills/i-have-adhd/SKILL.md)
 
+## Requirements migrations
+
+Write requirements through the active Task-owned `work.operation=requirements` route:
+publish primitive SQL/rollback pairs in that Task branch, then use ordinary yoyo.
+Keep DDL and DML separate. Completion preserves DDL bytes and original execution order,
+concatenates only consecutive DML segments with required identity cuts, and verifies
+original-down/final-up/down/up. Keep mutable DB/configuration outside Git and physically
+retain the legacy database while writers and transfers remain. Follow the exact
+[canonical SQL migration contract](docs/workflows/requirements-registry.md#sql-миграции-требований),
+including explicit configuration and honest manual status repair after committed SQL.
+
 # Working on AI poise
 
 A direct user instruction may temporarily override a project process rule. Request an exception only

@@ -16,10 +16,41 @@ from ..modules.tasks.contracts import stages_from_workflow, evidence_plan_from_m
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError, VersionConflict
+from ..modules.goal_config.domain import fingerprint
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.tasks.definition import build_task, validate_creation
 from ..modules.tasks.replay import ReplayIntent, ReplayResult
 from .check_attempts import CheckAttempts, is_check_attempt
+
+
+def prepare_existing_creation_context(newborn, inputs, contract, *, request_id):
+    """Calculate existing input ownership from one capture and the actual candidate."""
+    histories = newborn.restart_history
+    origins = [index for index, item in enumerate(histories)
+               if item.get('from_status') != 'newborn']
+    if not origins:
+        return None
+    existing_contract = inputs.restart_context(newborn.task_id)['contract']
+    if not isinstance(existing_contract, dict):
+        raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
+    start = origins[-1]
+    edited = frozenset(field for item in histories[start:]
+                       for field in item.get('registry_edits', []))
+    authority = histories[-1].get('planning_revision')
+    previous = inputs.restarted_registry(newborn.task_id)
+    if request_id is None:
+        # Preview receipts exist only in this discarded calculation, never in storage.
+        request_id = 'validation:' + fingerprint({
+            'registry': {**previous.to_state(), **previous.current_snapshot.to_dict()},
+            'contract': contract, 'workflow': newborn.workflow,
+        })
+    current, change = Task.prepare_restarted_registry(
+        previous, contract, newborn.workflow, edited, request_id,
+        None if authority is None else authority['allowed_changes'],
+    )
+    return {'existing_contract': existing_contract, 'previous_registry': previous,
+            'current_registry': current, 'registry_change': change,
+            'restart_origin': deepcopy(histories[start])}
 
 
 def require_reviewer_identity_in(
@@ -861,29 +892,15 @@ class TaskCommands:
         context = inputs.restart_context(task_id)
         sprint_snapshot = None if newborn.sprint_id is None else inputs.sprint(newborn.sprint_id)
         execution_snapshot = inputs.execution(task_id) if inputs.execution(task_id) is not None else None
-        executed_restart = any(item.get('from_status') != 'newborn' for item in newborn.restart_history)
-        existing_contract = context['contract'] if executed_restart else None
-        if executed_restart and not isinstance(existing_contract, dict):
-            raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
+        existing_context = prepare_existing_creation_context(newborn, inputs, contract, request_id=request_id)
+        executed_restart = existing_context is not None
+        existing_contract = existing_context['existing_contract'] if executed_restart else None
         effective_hash = context['config_hash'] if executed_restart else config_hash
         effective_checks = automatic_checks
         effective_decomposition = decomposition_policy
-        current_registry = None
-        previous_registry = None
-        registry_change = None
-        if executed_restart:
-            histories = newborn.restart_history
-            start = max(index for index, item in enumerate(histories)
-                        if item.get('from_status') != 'newborn')
-            edited = frozenset(field for item in histories[start:]
-                               for field in item.get('registry_edits', []))
-            authority = histories[-1].get('planning_revision')
-            from ..modules.tasks.domain import Task
-            previous_registry = inputs.restarted_registry(task_id)
-            current_registry, registry_change = Task.prepare_restarted_registry(
-                previous_registry, contract, newborn.workflow, edited,
-                request_id, None if authority is None else authority['allowed_changes'],
-            )
+        current_registry = existing_context['current_registry'] if executed_restart else None
+        previous_registry = existing_context['previous_registry'] if executed_restart else None
+        registry_change = existing_context['registry_change'] if executed_restart else None
         restart_base = None
         if newborn.restart_history and inputs.execution(task_id) is not None:
             restart_base = inputs.execution(task_id)[0]['base']
@@ -948,7 +965,7 @@ class TaskCommands:
                 'registry': current_registry, 'previous_registry': previous_registry,
                 'registry_change': registry_change,
                 'executed_restart': executed_restart, 'restart_base': restart_base,
-                'restart_origin': deepcopy(newborn.restart_history[start]) if executed_restart else None,
+                'restart_origin': existing_context['restart_origin'] if executed_restart else None,
                 'frozen_context_unchanged': frozen_context_unchanged,
                 'criteria_book': context['stage_criteria'],
                 'resolved_revision': resolved_revision, 'config_hash': effective_hash,

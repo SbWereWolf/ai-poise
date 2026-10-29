@@ -8,7 +8,10 @@ from ..modules.tasks.definition import path_identifier, validate_creation
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
 from ..modules.result_integration.domain import IntegrationHistoricalBackupScope
-from .tasks import creation_batch_reservations, rewrite_task_plan, validate_creation_intent
+from .tasks import (
+    creation_batch_reservations, prepare_existing_creation_context,
+    rewrite_task_plan, validate_creation_intent,
+)
 
 
 def fingerprint(value):
@@ -74,7 +77,7 @@ class SprintCommands:
                     'backup_scope':historical}
         return {'publication_target':None,'backup_scope':None}
 
-    def _errors(self,record,facts):
+    def _errors(self,record,facts,inputs,newborns):
         s=Sprint.restore(record['aggregate']);errors=s.plan.content_errors(s.policy)+s.plan.graph_errors(s.policy)
         for t in s.plan.data['tasks']:
             try:
@@ -83,14 +86,21 @@ class SprintCommands:
                     if fact is None:raise DomainError('Newborn Sprint member does not exist')
                     if fact['status']!='newborn':
                         continue
-                    body={'id':t,'sprint_id':s.plan.data['id'],**deepcopy(fact['_newborn_draft'])}
-                    workflow=fact['_newborn_workflow']
+                    newborn = newborns[t] if t in newborns else inputs.newborn(t)
+                    body={'id':t,'sprint_id':s.plan.data['id'],**deepcopy(newborn.draft)}
+                    workflow=newborn.workflow
                     if workflow is None:raise DomainError('Unknown goal_type')
+                    definition = _creation_definition(body)
+                    context = prepare_existing_creation_context(newborn, inputs, definition, request_id=None)
+                    validation = {} if context is None else {
+                        'current_registry': context['current_registry'],
+                        'existing_contract': context['existing_contract'],
+                    }
                     validate_creation(
-                        _creation_definition(body), workflow, record['automatic_checks'],
-                        record['task_decomposition'],
+                        definition, workflow, record['automatic_checks'],
+                        record['task_decomposition'], **validation,
                     )
-                    if not fact.get('ready',False):
+                    if not newborn.ready:
                         raise DomainError('Newborn Sprint member is not type-ready')
                     continue
                 body=t['task'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t
@@ -118,7 +128,7 @@ class SprintCommands:
         ):
             raise DomainError('Every dependency endpoint must belong to the same Sprint')
 
-    def _describe_facts(self, record, facts):
+    def _describe_facts(self, record, facts, inputs, newborns):
         s=Sprint.restore(record['aggregate']);sid=s.plan.data['id']
         status=s.work_overview(facts)
         return {**status,'sprint':sid,'goal':s.plan.data['goal'],'revision':s.revision,
@@ -126,7 +136,7 @@ class SprintCommands:
             'tasks':[{'id':i,**{k:value for k,value in v.items()
                                 if not k.startswith('_')}} for i,v in facts.items()],
             'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('newborn','available','active','verified','accepted','completed','cancelled')},
-            'errors':self._errors(record,facts) if s.state=='draft' else [],
+            'errors':self._errors(record,facts,inputs,newborns) if s.state=='draft' else [],
             'next_work':'Исправить draft и опубликовать одним пакетом' if s.state=='draft' else
                         'Выбрать одну доступную задачу; продолжать поручение через advance с действующими ограничениями',
             'active_task':None}
@@ -194,7 +204,7 @@ class SprintCommands:
         errors = sprint.republication_errors()
         if errors:
             raise DomainError('; '.join(errors))
-        errors = self._errors(record, facts)
+        errors = self._errors(record, facts, snapshot.inputs, {})
         if errors:
             raise DomainError('; '.join(errors))
         base = self.creation_base()
@@ -277,7 +287,7 @@ class SprintCommands:
             sprint_write = facade.prepare_sprint(updated)
             candidates = [facade.promotion_member_fact(snapshot, item) for item in promotions]
             candidates.extend(facade.creation_member_fact(write, snapshot) for write in writes)
-            result = self._describe_facts(updated, snapshot.facts(updated, candidates))
+            result = self._describe_facts(updated, snapshot.facts(updated, candidates), snapshot.inputs, {})
             if allocations:
                 result = {**result, 'allocations':allocations}
             receipt = facade.prepare_sprint_receipt(result)
@@ -468,7 +478,7 @@ class SprintCommands:
                 s = s.cancel(ids, packet['reason']) if whole else s.record_task_cancellation(ids, packet['reason'])
             record = {**record, 'actor':self.actor, 'aggregate':s.to_dict()}
         facts = snapshot.facts(record, [*tasks.facts.values(), *extra_facts])
-        result = self._describe_facts(record, facts)
+        result = self._describe_facts(record, facts, snapshot.inputs, tasks.newborns)
         if materialized is not None:
             result = {**result, 'materialized':sorted(materialized)}
         if action == 'extract_tasks':
@@ -534,7 +544,9 @@ class SprintCommands:
         with self.uow() as u:return u.sprints.published_ids(self.project)
 
     def read(self, sprint_id, view):
-        snapshot = self.uow().capture_sprint_view(sprint_id, self.actor, view)
+        facade = self.uow()
+        snapshot = (facade.capture_sprint(sprint_id, self.actor, (), ()) if view == 'current'
+                    else facade.capture_sprint_view(sprint_id, self.actor, view))
         sid = snapshot.sprint_id
         if sid is None:
             return None
@@ -547,7 +559,7 @@ class SprintCommands:
             return deepcopy(record)
         if view != 'current':
             raise DomainError('Unknown sprint view')
-        return self._describe_facts(record, snapshot.facts())
+        return self._describe_facts(record, snapshot.facts(), snapshot.inputs, {})
 
     def select(self, sprint_id):
         snapshot = self.uow().capture_sprint_view(sprint_id, self.actor, 'plan')

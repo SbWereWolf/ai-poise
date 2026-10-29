@@ -1,0 +1,38 @@
+{
+  "contract": {
+    "id": "T",
+    "requirements": [
+      "Inspect each result in its declared scope."
+    ]
+  },
+  "requirements_snapshot": {
+    "requirements": {
+      "UNIT-SYSTEM": {
+        "id": "UNIT-SYSTEM",
+        "level": "system",
+        "status": "current",
+        "text": "Unit scenarios preserve result obligations and history."
+      },
+      "UNIT-APPLICATION": {
+        "id": "UNIT-APPLICATION",
+        "level": "application",
+        "status": "current",
+        "text": "Inspect each result in its declared scope."
+      }
+    },
+    "links": [
+      {
+        "system": "UNIT-SYSTEM",
+        "application": "UNIT-APPLICATION"
+      }
+    ],
+    "task_requirements": [
+      {
+        "text": "Inspect each result in its declared scope.",
+        "applications": [
+          "UNIT-APPLICATION"
+        ]
+      }
+    ]
+  }
+}

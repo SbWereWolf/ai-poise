@@ -1,6 +1,10 @@
 from poise.modules.evidence.domain import EvidencePlan
 import copy
+import json
+from dataclasses import replace
+from pathlib import Path
 from poise.modules.tasks.domain import Task, StageSpec, TaskStageContracts
+from poise.modules.tasks.stage_criteria import StageCriteriaBook
 from poise.modules.content.domain import SectionRule
 from poise.modules.content_requirements.domain import ContentPolicy
 from poise.modules.verification.domain import CheckRegistry
@@ -32,12 +36,18 @@ def task(cfg=None):
     route = RouteDefinition.from_workflow(cfg)
     contracts = TaskStageContracts.parse([
         {"stage_id": stage["id"], "allowed_paths": list(stage["allowed_paths"]),
-         "entry_requirements": [], "exit_requirements": []}
+         "entry_requirements": [], "exit_requirements": [],
+         "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []}}
         for stage in cfg["stages"]
     ], route, policy)
-    return Task.new("T",stages,"S",policy,registry,route, EvidencePlan.parse(
+    created = Task.new("T",stages,"S",policy,registry,route, EvidencePlan.parse(
         {s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in cfg["stages"]},
         {s["id"]:s["handler"] for s in cfg["stages"]}, {s["id"]:[] for s in cfg["stages"]}), contracts)
+    source = json.loads((Path(__file__).parent / "fixtures/criteria-source.json").read_text())
+    criteria = StageCriteriaBook.initialize_initial(
+        route, contracts, source["contract"], source["requirements_snapshot"],
+    )
+    return replace(created, criteria_book=criteria)
 
 def inspect(findings=(),decisions=()):
     return {"coverage":"Проверен текущий результат по требованиям.","findings":list(findings),"resolution_decisions":list(decisions)}

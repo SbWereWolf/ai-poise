@@ -58,7 +58,7 @@ def source(tmp_path):
     selected = tmp_path / "selected-supply"
     shutil.copytree(REPO / "config", selected / "config")
     settings = read_json(selected / "config/project-setup.example.json")
-    blueprint = read_json(selected / "config/project-templates/linux-reference.json")
+    blueprint = read_json(selected / "config/project-templates/common.json")
     for reference in blueprint["workflow_sources"].values():
         relative = reference["path"]
         original = REPO / relative.removeprefix("app/")
@@ -68,14 +68,14 @@ def source(tmp_path):
         serialized = json.dumps(read_json(original), ensure_ascii=False,
                                 sort_keys=True, separators=(",", ":"))
         reference["digest"] = hashlib.sha256(serialized.encode()).hexdigest()
-    write_json(selected / "config/project-templates/linux-reference.json", blueprint)
+    write_json(selected / "config/project-templates/common.json", blueprint)
     settings["root"] = str(selected)
     # A valid test-owned selection for the old public materializer. Digest is
     # an input provenance value, never an expected materialization result.
     encoded = json.dumps(blueprint, ensure_ascii=False, sort_keys=True,
                          separators=(",", ":"))
-    settings["templates"] = {"linux-reference": {
-        "path": "config/project-templates/linux-reference.json",
+    settings["templates"] = {"common": {
+        "path": "config/project-templates/common.json",
         "digest": hashlib.sha256(encoded.encode()).hexdigest(),
     }}
     write_json(selected / "config/project-setup.json", settings)

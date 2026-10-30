@@ -16,7 +16,7 @@ from .helpers import shipped_setup, shipped_edits, fill_markers
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.parametrize('name', ['linux-reference', 'wsl-poise'])
+@pytest.mark.parametrize('name', ['common'])
 def test_new_project_publishes_separate_stores_at_explicit_project_root(tmp_path, name):
     tools = tmp_path / 'tools'
     settings_path = shipped_setup(tools)
@@ -99,7 +99,7 @@ def test_manifest_example_uses_canonical_stores_and_validates_with_workflow_owne
     assert not (data / 'tasks/tasks.sqlite').exists()
 
 
-@pytest.mark.parametrize('name', ['linux-reference', 'wsl-poise'])
+@pytest.mark.parametrize('name', ['common'])
 def test_missing_worktrees_answer_refuses_before_project_or_data_publication(tmp_path, name):
     tools = tmp_path / 'tools'
     settings_path = shipped_setup(tools)

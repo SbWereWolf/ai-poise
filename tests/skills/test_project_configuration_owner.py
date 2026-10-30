@@ -11,8 +11,7 @@ from poise.modules.tasks.decomposition import FocusedDecomposition
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = (
     "config/project.example.json",
-    "config/project-templates/linux-reference.json",
-    "config/project-templates/wsl-poise.json",
+    "config/project-templates/common.json",
 )
 
 
@@ -42,7 +41,7 @@ def test_configuration_template_resolves_delivered_narrow_owner(source):
 
 @pytest.mark.parametrize("path,selected", [
     ("config/project.example.json", True),
-    ("config/project-templates/wsl-poise.json", True),
+    ("config/project-templates/common.json", True),
     ("docs/configuration/project-setup.md", False),
     ("src/poise/modules/tasks/domain.py", False),
 ])

@@ -195,13 +195,7 @@ def test_public_initial_setup_uses_only_explicit_selected_storage(project):
             {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},
         ),
         (
-            "config/project-templates/linux-reference.json",
-            True,
-            False,
-            {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},
-        ),
-        (
-            "config/project-templates/wsl-poise.json",
+            "config/project-templates/common.json",
             True,
             False,
             {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},

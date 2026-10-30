@@ -1,0 +1,30 @@
+{
+  "template_ids": [
+    "common"
+  ],
+  "template_file_names": [
+    "common.json"
+  ],
+  "retired_ids": [
+    "linux-reference",
+    "wsl-poise"
+  ],
+  "blueprint_schema": "project-blueprint-1",
+  "blueprint_version": "10",
+  "blueprint_sha256": "56db0bb73801b3356c2954082aa15007d836c481e259c481d5b0924b0790c6bf",
+  "goal_types": [
+    "analysis",
+    "design",
+    "development",
+    "documentation",
+    "environment_diagnostics",
+    "environment_remediation",
+    "integration",
+    "profiling",
+    "review",
+    "sprint_planning",
+    "task_planning",
+    "test_development",
+    "verification"
+  ]
+}

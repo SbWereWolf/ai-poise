@@ -1,0 +1,111 @@
+{
+  "exit_code": 1,
+  "collection_errors": [],
+  "reports": [
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_common_creation_copies_all_thirteen_graphs",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "PoiseError",
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_common_creation_copies_all_thirteen_graphs",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_common_creation_copies_all_thirteen_graphs",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_profile_default_selects_common",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "AssertionError",
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_profile_default_selects_common",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_profile_default_selects_common",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_retired_blueprint_is_not_selectable[linux-reference]",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "Failed",
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_retired_blueprint_is_not_selectable[linux-reference]",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_retired_blueprint_is_not_selectable[linux-reference]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_retired_blueprint_is_not_selectable[wsl-poise]",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "Failed",
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_retired_blueprint_is_not_selectable[wsl-poise]",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_retired_blueprint_is_not_selectable[wsl-poise]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_shipped_registry_has_one_common_blueprint",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "AssertionError",
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_shipped_registry_has_one_common_blueprint",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/projects/test_common_blueprint.py::test_shipped_registry_has_one_common_blueprint",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "project-setup-1",
+  "request_id": "create-common",
+  "destination": "projects/common-case/config",
+  "template": {
+    "id": "common"
+  },
+  "edits": [],
+  "probe_repository": true
+}

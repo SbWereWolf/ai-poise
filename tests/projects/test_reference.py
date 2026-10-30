@@ -13,10 +13,10 @@ def test_installed_reference_template_builds_all_thirteen_workflows(project):
     settings=shipped_setup(root / 'shipped')
     tools=settings.parent.parent
     cfg=json.loads(settings.read_text())
-    blueprint=json.loads((tools/cfg['templates']['linux-reference']['path']).read_text())
+    blueprint=json.loads((tools/cfg['templates']['common']['path']).read_text())
     data=root.parent/'reference-data'
     request={'schema':'project-setup-1','request_id':'reference','destination':'projects/real-probe/config',
-             'template':{'id':'linux-reference'},
+             'template':{'id':'common'},
              'edits':shipped_edits(blueprint,tools=tools,project='real-probe',repository=project['app'],
                                    data=data,trees=project['app']/'task-worktrees'),
              'probe_repository':True}

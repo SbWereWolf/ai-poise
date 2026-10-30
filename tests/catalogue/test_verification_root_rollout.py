@@ -204,7 +204,7 @@ def test_reference_matches_accepted_verification_semantics():
     assert reference["methods"]["verification"] == {"execution": "VERIFY"}
 
 
-@pytest.mark.parametrize("family", ["linux-reference", "wsl-poise"])
+@pytest.mark.parametrize("family", ["common"])
 def test_project_creation_uses_accepted_verification(project, family):
     tools = project["root"] / family
     settings = shipped_setup(tools)

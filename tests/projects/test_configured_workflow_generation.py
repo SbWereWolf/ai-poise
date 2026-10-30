@@ -11,7 +11,7 @@ from poise.common import PoiseError, load_config, digest
 from poise.composition import project_tools
 from poise.infrastructure.projects import FileProjectSetup, ProjectSettings
 from tests.conftest import write_json
-from .helpers import setup_case
+from .helpers import setup_case, shipped_setup
 
 
 def external_request(project):
@@ -114,12 +114,12 @@ def test_existing_external_file_is_never_replaced(project):
     assert not (project['root'] / request['destination']).exists()
 
 
-@pytest.mark.parametrize('family', ['linux-reference', 'wsl-poise'])
+@pytest.mark.parametrize('family', ['common'])
 def test_shipped_blueprint_creates_all_selected_workflows_under_data_root(tmp_path, family):
     repository = Path(__file__).resolve().parents[2]
     tools = tmp_path / 'explicit-tools'
     tools.mkdir()
-    actual_settings = ProjectSettings(repository / 'config/project-setup.json')
+    actual_settings = ProjectSettings(shipped_setup(tmp_path / 'source-tools'))
     selected = actual_settings.raw['templates'][family]
     source_blueprint = json.loads((actual_settings.root / selected['path']).read_text())
     for goal, item in source_blueprint['workflow_sources'].items():

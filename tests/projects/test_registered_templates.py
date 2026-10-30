@@ -1,17 +1,16 @@
 """Shipped registry selections must be real, exact, owner-validated templates."""
 import re
-from pathlib import Path
 
 import pytest
 
 from poise.common import PoiseError
 from poise.infrastructure.projects import FileProjectSetup, ProjectSettings
 
-ROOT = Path(__file__).resolve().parents[2]
+from .helpers import shipped_setup
 
 
-def test_every_registered_template_can_be_loaded_by_its_owner():
-    settings = ProjectSettings(ROOT / 'config/project-setup.json')
+def test_every_registered_template_can_be_loaded_by_its_owner(tmp_path):
+    settings = ProjectSettings(shipped_setup(tmp_path / 'supply'))
     owner = FileProjectSetup(settings)
     before = settings.path.read_bytes()
     for name, entry in settings.raw['templates'].items():
@@ -19,16 +18,16 @@ def test_every_registered_template_can_be_loaded_by_its_owner():
     assert settings.path.read_bytes() == before
 
 
-def test_missing_retired_template_is_not_an_advertised_selection():
-    settings = ProjectSettings(ROOT / 'config/project-setup.json')
-    assert set(settings.raw['templates']) == {'linux-reference', 'wsl-poise'}
+def test_missing_retired_template_is_not_an_advertised_selection(tmp_path):
+    settings = ProjectSettings(shipped_setup(tmp_path / 'supply'))
+    assert set(settings.raw['templates']) == {'common'}
     with pytest.raises(PoiseError, match='Unknown selected project template'):
         FileProjectSetup(settings).template({'id': 'wsl-system'})
 
 
-@pytest.mark.parametrize('name', ['linux-reference', 'wsl-poise'])
-def test_registered_template_accepts_multiline_commit_message(name):
-    settings = ProjectSettings(ROOT / 'config/project-setup.json')
+@pytest.mark.parametrize('name', ['common'])
+def test_registered_template_accepts_multiline_commit_message(tmp_path, name):
+    settings = ProjectSettings(shipped_setup(tmp_path / 'supply'))
     entry = settings.raw['templates'][name]
     blueprint = FileProjectSetup(settings).template({
         'id': name,

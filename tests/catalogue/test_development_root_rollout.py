@@ -112,7 +112,7 @@ def test_reference_matches_accepted_documentation_scope():
     assert solution["before"] == fixture("obligations.json")["reference_early_before"]
 
 
-@pytest.mark.parametrize("family", ["linux-reference", "wsl-poise"])
+@pytest.mark.parametrize("family", ["common"])
 def test_project_creation_uses_accepted_root(project, family):
     tools = project["root"] / family
     settings = shipped_setup(tools)

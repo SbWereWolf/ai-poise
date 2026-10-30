@@ -35,8 +35,7 @@ def test_read_wait_is_independent_from_writer_wait(project):
 
 
 @pytest.mark.parametrize('name', ['project.example.json',
-                                  'project-templates/linux-reference.json',
-                                  'project-templates/wsl-poise.json'])
+                                  'project-templates/common.json'])
 def test_shipped_project_starters_declare_read_wait(name):
     starter = json.loads(
         (SOURCE.parent / 'config' / name).read_text())

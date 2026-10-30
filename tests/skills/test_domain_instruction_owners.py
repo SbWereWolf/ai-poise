@@ -11,8 +11,7 @@ from poise.modules.tasks.decomposition import FocusedDecomposition
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = (
     "config/project.example.json",
-    "config/project-templates/linux-reference.json",
-    "config/project-templates/wsl-poise.json",
+    "config/project-templates/common.json",
 )
 OWNERS = (
     ("task-domain", "tasks"),

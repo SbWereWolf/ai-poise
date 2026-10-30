@@ -45,8 +45,7 @@ def test_obsolete_artifact_lock_value_survives_managed_editor(project):
 
 @pytest.mark.parametrize("relative", [
     "config/batch.example.json", "config/project.example.json",
-    "config/project-templates/wsl-poise.json",
-    "config/project-templates/linux-reference.json",
+    "config/project-templates/common.json",
 ])
 def test_sanitized_examples_offer_no_artifact_lock(relative):
     data = json.loads((Path(__file__).resolve().parents[2] / relative).read_text())

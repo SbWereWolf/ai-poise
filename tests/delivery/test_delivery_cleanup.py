@@ -33,11 +33,11 @@ def test_delivery_does_not_ship_a_second_requirements_store():
     assert "Requirements DB" in text and "6" in text and "4" in text
 
 
-def test_single_wsl_template_has_project_local_storage_and_no_system_split():
-    blueprint = json.loads((ROOT / "config/project-templates/wsl-poise.json").read_text())
+def test_common_template_has_project_local_storage_and_no_system_split():
+    blueprint = json.loads((ROOT / "config/project-templates/common.json").read_text())
     paths = blueprint["config"]["paths"]
-    assert paths["database"] == "tasks.sqlite"
-    assert paths["standalone_tasks"] == "artifacts/standalone"
-    assert paths["sprints"] == "artifacts/sprints"
+    assert paths["database"] == "tasks/tasks.sqlite"
+    assert paths["standalone_tasks"] == "standalone"
+    assert paths["sprints"] == "sprint"
     assert not (ROOT / "config/project-templates/wsl-system.json").exists()
     assert not (ROOT / "delivery/task-definitions/system").exists()

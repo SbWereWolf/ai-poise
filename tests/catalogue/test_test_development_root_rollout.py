@@ -154,7 +154,7 @@ def test_reference_matches_accepted_test_development_contract():
     )
 
 
-@pytest.mark.parametrize("family", ["linux-reference", "wsl-poise"])
+@pytest.mark.parametrize("family", ["common"])
 def test_project_creation_uses_accepted_test_development(project, family):
     tools = project["root"] / family
     settings = shipped_setup(tools)

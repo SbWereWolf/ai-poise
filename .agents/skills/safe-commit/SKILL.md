@@ -9,6 +9,11 @@ Use the [commit owner and authority contract](../../../docs/workflows/commit-mes
 and [message format](../../../docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070).
 This skill does not replace Task finalization, independent acceptance or integration.
 
+[Group changes by one coherent result](../../../docs/workflows/commit-messages.md#смысловая-группировка-изменений),
+including its supporting tests and documentation where appropriate. File types
+or shared directories alone do not determine commit boundaries. Preserve existing
+Task stage and checkpoint commits; grouping does not require squashing history.
+
 ## Task-owned delivery
 
 An assigned Task authorizes its necessary stage, checkpoint, handoff and integration
@@ -23,11 +28,17 @@ If finalization was interrupted, inspect the actual outcome and use
    A non-Task commit requires the user's explicit authorization.
 2. Inspect both working and staged changes. Preserve unrelated work and stage only
    owned paths; unclear ownership requires a user decision before alteration.
-3. Verify the staged diff and the checks appropriate to this change. When ordinary
-   Git is the authorized owner, commit those paths with the required 50/70 message.
+3. Inspect the prepared diff, semantic grouping and message. When ordinary Git
+   is the authorized owner, commit those changes with the required 50/70 message.
    Use the configured Task operation when that operation owns delivery.
 4. Read back the resulting commit and its changed paths. Keep commit, verification,
    acceptance and integration as separate facts. Never push.
+
+[Quality checks belong to the work result](../../../docs/workflows/commit-messages.md#проверка-качества-коммит-и-интеграция).
+Saving another commit alone does not require rerunning them. Recheck when changed
+subjects or inputs, failures or unresolved concerns justify it; preserve actual
+evidence and native gate requirements. Application-path-based check selection
+belongs to integration of an application result, through its existing owner.
 
 Read-only review and a final response do not themselves require a commit. A result
 containing only workflow materials follows its existing artifact/delivery contract.

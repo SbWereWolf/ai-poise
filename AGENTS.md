@@ -370,6 +370,14 @@ workflow owns the commit. See [message
 policy](docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070)
 and [execution limits](docs/workflows/commit-messages.md#запуск-и-границы-полномочий).
 
+[Group each commit by a coherent result](docs/workflows/commit-messages.md#смысловая-группировка-изменений),
+including its necessary tests and documentation; file types and shared directories
+alone do not define the grouping. Preserve existing stage and checkpoint commits.
+[Quality checks belong to the work result](docs/workflows/commit-messages.md#проверка-качества-коммит-и-интеграция),
+not a mandatory rerun for each commit. Changed subjects or inputs, failures and
+unresolved concerns justify rechecking; native evidence and gate requirements stay
+in force. Select checks by affected application paths at integration.
+
 ## Shared agent policy
 
 When presenting or reviewing a current author proof, read the

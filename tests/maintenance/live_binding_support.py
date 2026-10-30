@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import tarfile
+from copy import deepcopy
 from dataclasses import replace
 from string import Template
 
@@ -264,6 +265,50 @@ def working_binding(runtime, application, selected, baseline, context, evidence)
     return report
 
 
+def coordinate_projection(selected, context, preparation, report):
+    """Attest the reviewed private coordinates without changing the command chain."""
+    declaration = Path(selected['coordinate_projection'])
+    assert declaration.is_relative_to(context['task_root'])
+    projection = json.loads(declaration.read_text())
+    assert projection['ports'] == {
+        '32200': '33300', '32201': '33301', '32211': '33311', '32973': '33973'}
+    private_preparation = declaration.parent / 'erp.json'
+    private_values = declaration.parent / 'erp-values.json'
+    assert report['configuration']['path'] == str(private_preparation)
+    assert sha(private_preparation) == projection['preparation_sha256'] == report['configuration']['sha256']
+    assert Path(report['configuration']['snapshot_path']).read_bytes() == private_preparation.read_bytes()
+    original = json.loads(preparation.read_text())
+    expected = deepcopy(original)
+    expected['inputs'][1]['source'] = str(private_values)
+    assert json.loads(private_preparation.read_text()) == expected
+    original_values = Path(Template(original['inputs'][1]['source']).substitute(original['parameters']))
+    source_values = json.loads(original_values.read_text())
+    expected_values = deepcopy(source_values)
+    expected_values['parameters']['operator_source'] = str(declaration.parent / 'consumer')
+    assert json.loads(private_values.read_text()) == expected_values
+    assert sha(private_values) == projection['values_sha256']
+    captured = report['inputs'][1]
+    assert captured['source'] == str(private_values)
+    assert captured['sha256'] == sha(private_values)
+    assert Path(captured['snapshot_path']).read_bytes() == private_values.read_bytes()
+    assert Path(captured['destination']).read_bytes() == private_values.read_bytes()
+    templates = projection['consumer_templates']
+    names = {'erp-runtime.example.env', 'erp-environment.example.env', 'erp-bootstrap.example.env'}
+    assert len(templates) == 3 and {Path(row['source']).name for row in templates} == names
+    for row in templates:
+        source, target = Path(row['source']), Path(row['selected'])
+        assert source == Path(source_values['parameters']['operator_source']) / source.name
+        assert target == declaration.parent / 'consumer' / source.name
+        assert sha(source) == row['source_sha256']
+        assert sha(target) == row['selected_sha256']
+        expected_bytes = source.read_bytes()
+        for before, after in projection['ports'].items():
+            expected_bytes = expected_bytes.replace(before.encode(), after.encode())
+        assert target.read_bytes() == expected_bytes
+    return {'path': str(declaration), 'sha256': sha(declaration),
+            'registered_preparation_sha256': sha(preparation)}
+
+
 def selected_instance_observation(runtime, selected, context, evidence, binding):
     """Link this Task's ERP scenario to its real public-owner V04 deployment.
 
@@ -297,7 +342,9 @@ def selected_instance_observation(runtime, selected, context, evidence, binding)
     primary = next(row for row in context['listing']['projects'] if row['project'] == 'erp')
     _, configuration, _ = load_config(Path(primary['config_path']))
     preparation = Path(primary['config_path']).parent / configuration['worktree_preparation']['configuration']
-    assert sha(preparation) == supplied_report['configuration']['sha256']
+    projected = None
+    if sha(preparation) != supplied_report['configuration']['sha256']:
+        projected = coordinate_projection(selected, context, preparation, supplied_report)
     result, stdout = capture([runtime['git'], '-C', str(target), 'remote', 'get-url', 'origin'],
         cwd=target, env={'PATH': runtime['path'], 'LANG': 'C.UTF-8'},
         root=evidence, label='selected-instance-origin', timeout=30)
@@ -307,5 +354,7 @@ def selected_instance_observation(runtime, selected, context, evidence, binding)
         'proof_sha256': sha(proof_path), 'native_preparation': actual,
         'registration': registration['config_path'],
         'input_sha256': {str(path): sha(path) for path in (app, parameters)}}
+    if projected is not None:
+        report['coordinate_projection'] = projected
     write(evidence / 'selected-instance.json', report)
     return report

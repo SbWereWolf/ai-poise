@@ -403,6 +403,77 @@ runtime selector; аргументы operation SDK передаются ему �
 coherence-конфиг. Отсутствующая availability отражается как `not_configured`;
 это не выдуманное подтверждение доступности.
 
+### Дополнительные CLI-зависимости ERP
+
+Зависимости CLI расчётчика `erp-calendar-optimizer` входят в подготовку ERP до
+запуска приложения. В рабочей установке этот шаг задаётся исходной операционной
+спецификацией `application_spec` из values подготовки. Связь источника с новыми
+деревьями описана в [настройке values](start-app-worktree-setup.md#заполнение-values).
+
+В её `documents` выберите проекцию исходного
+`platform-infrastructure/config/dev/start-app/deps.example.json` в `deps.json`.
+Настройте две правки, сохраняя исходные команды и остальные ресурсы:
+
+1. Для `path: ["requirements", 0, "commands"]` значение `value` содержит исходную
+   цепочку Node `deps`, затем приведённую ниже команду Composer.
+2. Для `path: ["requirements", 0, "checks", "presence", "commands"]` значение
+   `value` содержит исходную проверку Node `dependencies`, затем проверку autoload.
+
+Команда установки в исходной спецификации:
+
+```json
+{
+  "argv": [
+    "${composer_executable}",
+    "install",
+    "--no-interaction",
+    "--prefer-dist",
+    "--no-progress",
+    "--no-scripts"
+  ],
+  "cwd": "$${instance}/erp-calendar-optimizer",
+  "env": {
+    "PATH": "$${path}",
+    "COMPOSER_HOME": "$${composer_home}",
+    "COMPOSER_MIRROR_PATH_REPOS": "1"
+  },
+  "interpreter": {
+    "name": "exit",
+    "options": {"accept": [0]}
+  }
+}
+```
+
+Проверка наличия установленного autoload в той же спецификации:
+
+```json
+{
+  "argv": [
+    "/usr/bin/test",
+    "-s",
+    "$${instance}/erp-calendar-optimizer/vendor/autoload.php"
+  ],
+  "cwd": "$${instance}",
+  "env": {"PATH": "$${path}"},
+  "interpreter": {
+    "name": "exit",
+    "options": {"accept": [0]}
+  }
+}
+```
+
+`composer_executable` выбирается в values оператором и подставляется при
+публикации. Запись `$$` сохраняет placeholders для последующего исполнения SDK;
+так же оформите placeholders сохраняемых исходных Node-команд. Параметры
+`instance`, `path`, `composer_home` заполняются действительными координатами
+нового дерева. Composer устанавливает пакеты по его собственному lock-файлу.
+
+Повторная публикация и подготовка новых Task получают эту цепочку из постоянной
+рабочей спецификации. Проверьте свежую подготовку, наличие autoload, штатный
+`check` и прикладной сценарий расчёта. Повторная подготовка сохраняет данные
+экземпляра. Рабочая спецификация и заполненные values хранятся вне Git;
+версии инструмента и пакетов выбираются средствами установки.
+
 ### Конфигурация и результаты ERP
 
 Рабочие env/settings создаются при отсутствии; пользовательские bytes повторной

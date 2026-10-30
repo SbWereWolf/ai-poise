@@ -86,6 +86,8 @@ Do not invent resolution proposals or native stage completion before actual fixe
 
 Use the [SDK2 instance/action setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
 and [Task-worktree configuration](../../../docs/operator/start-app-worktree-setup.md#подключение-установленного-инструмента).
+Use the [persistent ERP CLI dependency projection](../../../docs/operator/maintenance-profile-v2.md#дополнительные-cli-зависимости-erp)
+so fresh preparation includes the calculator's Composer dependencies.
 Deploy through the configured standalone tool; update every actual registered consumer through
 [the mandatory gate](../../../docs/operator/maintenance-profile-v2.md#согласованное-обновление-потребителей).
 For preserved legacy ERP settings use the [owner migration](../../../docs/operator/maintenance-profile-v2.md#сохранённые-настройки-erp)

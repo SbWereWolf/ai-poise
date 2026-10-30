@@ -843,7 +843,6 @@ class SqliteTaskRepository:
 
 # Execution bookkeeping is deliberately separate from the Task lifecycle.
 EXECUTION_FIELDS = frozenset(("worktree","branch","base","attempts","publication","pending","entry_tree","last_report"))
-OPTIONAL_EXECUTION_FIELDS = frozenset(("requirements_migrations",))
 
 
 class SqliteExecutionRepository:
@@ -852,14 +851,14 @@ class SqliteExecutionRepository:
 
     @staticmethod
     def prepare_create(data):
-        if not EXECUTION_FIELDS <= set(data) or set(data) - EXECUTION_FIELDS - OPTIONAL_EXECUTION_FIELDS:
+        if set(data) != EXECUTION_FIELDS:
             raise PoiseError("Неполный/неизвестный execution snapshot")
         return encode(data)
 
     @staticmethod
     def prepare_save(previous, data):
-        opaque = set(previous) - EXECUTION_FIELDS - OPTIONAL_EXECUTION_FIELDS
-        if (not EXECUTION_FIELDS <= set(data) or set(data) - EXECUTION_FIELDS - OPTIONAL_EXECUTION_FIELDS - opaque
+        opaque = set(previous) - EXECUTION_FIELDS
+        if (not EXECUTION_FIELDS <= set(data) or set(data) - EXECUTION_FIELDS - opaque
                 or any(encode(data[key]) != encode(previous[key]) for key in opaque & set(data))):
             raise PoiseError("Из execution adapter нельзя менять Task lifecycle")
         return encode({**previous, **data})
@@ -891,7 +890,7 @@ class SqliteExecutionRepository:
         return expected_version+1
 
     def patch(self, task_id: str, updates: dict) -> None:
-        if not set(updates) <= EXECUTION_FIELDS | OPTIONAL_EXECUTION_FIELDS:
+        if not set(updates) <= EXECUTION_FIELDS:
             raise PoiseError("Неизвестные поля execution update")
         if not updates: return
         data,version=self.load(task_id)

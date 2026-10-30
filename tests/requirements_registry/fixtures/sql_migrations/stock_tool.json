@@ -1,5 +1,0 @@
-[
-  {"id":"9000_schema","source":"schema","forward":"CREATE TABLE stock_probe(id INTEGER PRIMARY KEY,value TEXT NOT NULL);\n","reverse":"DROP TABLE stock_probe;\n"},
-  {"id":"0001_data","source":"data","forward":"-- depends: 9000_schema\nINSERT INTO stock_probe(id,value) VALUES(1,CAST(X'410042' AS TEXT));\n","reverse":"DELETE FROM stock_probe WHERE id=1;\n"},
-  {"id":"0010_index","source":"schema","forward":"-- depends: 0001_data\nCREATE INDEX stock_value ON stock_probe(value);\n","reverse":"DROP INDEX stock_value;\n"}
-]

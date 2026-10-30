@@ -67,7 +67,7 @@ def parse_request(value, config):
             'revise_stage_contract':{
                 'request_id','task_id','expected_version','stage_id','contract','reason','authorization'
             },
-            'task':None,'sprint':None,'delivery':None,'requirements':{'request'}}
+            'task':None,'sprint':None,'delivery':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')

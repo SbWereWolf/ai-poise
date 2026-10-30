@@ -1,4 +1,4 @@
-"""Read-only validation of the supported historical Requirements schemas."""
+"""Historical Requirements schema 1 → 2; caller owns the SQL transaction."""
 
 
 def validate_schema(connection, version):
@@ -117,3 +117,9 @@ def _schema_2_definitions():
             f"FOREIGN KEY(domain_id,{name}) REFERENCES {parent}(domain_id,id))"
         )
     return definitions
+
+
+def schema_2(connection):
+    for statement in _schema_2_definitions().values():
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=2")

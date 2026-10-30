@@ -9,8 +9,6 @@ description = "Real-source verification, portable pilot checkpoints and retained
 requires-python = ">=3.15,<3.16"
 dependencies = [
     "psutil",
-    "yoyo-migrations==9.0.0",
-    "sqlparse==0.6.0",
 ]
 
 [project.scripts]
@@ -28,10 +26,6 @@ include = [
 ]
 
 [tool.setuptools.package-data]
-poise = [
-    "infrastructure/requirements_sql/*.sql",
-    "infrastructure/requirements_sql/historical/*.sql",
-]
 poise_environment = [
     "erp/runtime/application.php",
     "erp/runtime/environment.mjs",

@@ -1,5 +1,0 @@
-{
-  "id":"0008_foreign",
-  "forward":"INSERT INTO domain_areas(id,business_name,definition) VALUES('OTHER','Other Task','Foreign history');\nUPDATE requirements_meta SET revision=2;\nINSERT INTO requirement_requests(request_id,digest,response) VALUES('foreign-history','0000000000000000000000000000000000000000000000000000000000000000','{\"replayed\":false,\"revision\":2}');\n",
-  "reverse":"DELETE FROM requirement_requests WHERE request_id='foreign-history';\nUPDATE requirements_meta SET revision=1;\nDELETE FROM domain_areas WHERE id='OTHER';\n"
-}

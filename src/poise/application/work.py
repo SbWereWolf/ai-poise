@@ -36,7 +36,6 @@ class WorkTools:
             if op=='delivery':out=h.delivery_tools.apply(args)
             elif op=='task':out=h.task_action(args)
             elif op=='sprint':out=h.sprint_tools.apply(args)
-            elif op=='requirements':out=h.requirements(args['request'])
             elif op=='bootstrap':
                 out=h.bootstrap(**args)
             elif op=='release':out=h.ownership.release(args)

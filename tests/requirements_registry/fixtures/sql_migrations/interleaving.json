@@ -1,5 +1,0 @@
-[
-  {"id":"0010_owned_schema","source":"schema","forward":"CREATE TABLE completion_probe(id INTEGER PRIMARY KEY,value TEXT NOT NULL);\n","reverse":"DROP TABLE completion_probe;\n"},
-  {"id":"0011_data","source":"data","forward":"-- depends: 0010_owned_schema\nINSERT INTO completion_probe(id,value) VALUES(1,'Original');\n","reverse":"DELETE FROM completion_probe WHERE id=1;\n"},
-  {"id":"0012_dependent_schema","source":"schema","forward":"-- depends: 0011_data\nCREATE INDEX completion_value ON completion_probe(value);\n","reverse":"DROP INDEX completion_value;\n"}
-]

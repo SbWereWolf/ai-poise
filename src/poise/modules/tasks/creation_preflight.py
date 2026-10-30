@@ -12,6 +12,11 @@ from ..verification.domain import CheckRegistry, exact_keys
 from ..workflow.domain import RouteDefinition
 
 
+METHOD_INPUT_FIELDS = {
+    "method_id", "repository_inputs", "future_outputs", "reference_profile",
+}
+
+
 PYTEST_POSITIONAL_PATHS_V1 = {
     "runner": "pytest",
     "parser": "positional-paths",
@@ -158,7 +163,7 @@ class MethodInputs:
         _method_cwd(method["cwd"], method_id)
         exact_keys(
             raw,
-            {"method_id", "repository_inputs", "future_outputs", "reference_profile"},
+            METHOD_INPUT_FIELDS,
             f"method_inputs for {method_id}",
         )
         if raw["method_id"] != method_id:
@@ -203,9 +208,62 @@ class MethodInputs:
         return cls(method_id, baseline, tuple(outputs), references)
 
 
+def _declarations_by_id(values):
+    if not isinstance(values, list):
+        raise DomainError("method_inputs must be an explicit list; исправьте декларации через task/edit")
+    declarations = {}
+    for value in values:
+        if not isinstance(value, dict):
+            raise DomainError("method_inputs declaration must be an object; исправьте task/edit")
+        exact_keys(value, METHOD_INPUT_FIELDS, "method_inputs declaration")
+        method_id = value["method_id"]
+        if not isinstance(method_id, str) or not method_id or method_id in declarations:
+            raise DomainError("method_inputs requires unique nonempty method IDs; исправьте binding через task/edit")
+        declarations[method_id] = value
+    return declarations
+
+
 @dataclass(frozen=True)
 class CreationPreflight:
     methods: tuple[MethodInputs, ...]
+
+    @classmethod
+    def parse_existing(cls, contract, workflow, *, current_registry, existing_contract):
+        """Validate declared current inputs without rewriting saved creation provenance."""
+        if not isinstance(current_registry, CheckRegistry):
+            raise DomainError("Existing Task input validation requires its current registry; восстановите Task через владельца")
+        if not isinstance(existing_contract, dict) or "method_inputs" not in existing_contract:
+            raise DomainError("Existing Task method_inputs context is missing; восстановите сохранённый договор через владельца")
+        if not isinstance(contract, dict) or "method_inputs" not in contract:
+            raise DomainError("method_inputs declaration missing; исправьте договор через task/edit")
+        previous = _declarations_by_id(existing_contract["method_inputs"])
+        declared = _declarations_by_id(contract["method_inputs"])
+        current = {entry.method_id: entry for entry in current_registry.entries}
+        missing = (previous.keys() & current.keys()) - declared.keys()
+        if missing:
+            raise DomainError(
+                f"method_inputs binding mismatch: current historical declarations missing={sorted(missing)}; "
+                "восстановите декларации через task/edit и повторите запрос"
+            )
+        for method_id, value in declared.items():
+            if method_id not in current and (method_id not in previous or value != previous[method_id]):
+                raise DomainError(
+                    f"method_inputs for {method_id} has no current method; "
+                    "удалите новую orphan-декларацию или восстановите прежнюю через task/edit"
+                )
+        active = declared.keys() & current.keys()
+        view = {
+            **contract,
+            "methods": [entry.to_dict()["method"] for entry in current_registry.entries
+                        if entry.method_id in active],
+            "method_inputs": [value for method_id, value in declared.items() if method_id in active],
+            "checks": {
+                stage["id"]: [entry.method_id for entry in current_registry.entries
+                              if entry.method_id in active and stage["id"] in entry.stages]
+                for stage in workflow["stages"]
+            },
+        }
+        return cls.parse(view, workflow)
 
     @classmethod
     def parse(cls, contract, workflow):

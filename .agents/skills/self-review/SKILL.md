@@ -1,7 +1,8 @@
 ---
 name: self-review
 description: Inspect the current role's own result and evidence before handoff, without creating another role or replacing independent review.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Self-review
@@ -9,6 +10,13 @@ version: 1.0.0
 The current executor or reviewer performs self-review before handoff. It does not create a third role, require a new user stop, or replace independent inspection or acceptance.
 
 ## Inputs
+
+Load this skill at the applicable checkpoint rather than at every work start.
+Include [ponytail-review](../ponytail-review/SKILL.md) for the current result or
+proposed design, under the [shared review contract](../../../docs/workflows/evidence-based-review.md#осмотр-избыточной-сложности).
+Keep that pass additive and within this checkpoint. Its ending does not skip
+requirements, correctness or evidence checks. If there is no applicable code or
+proposed complexity, state that briefly and do not invent a reduction.
 
 The current role's result, requirements/DoD, all Task-related diff, applicable loaded skills, source/result revision, and current evidence from the [Poise workflow](../poise/SKILL.md). Resolve commands and any project routing/settings through the selected Poise-owned configuration. Read target-worktree facts only for the active scenario; missing inputs remain explicit limitations.
 

@@ -1,4 +1,11 @@
 {
+  "benefit": {
+    "git_categories": [
+      "tests",
+      "fixtures"
+    ],
+    "sections": []
+  },
   "goal_type": "test_development",
   "worktree_required": true,
   "route": {
@@ -117,18 +124,6 @@
         ]
       },
       {
-        "id": "remediation-input-verification_plan",
-        "kind": "section",
-        "stages": [
-          "remediation"
-        ],
-        "phase": "pre",
-        "section": "verification_plan",
-        "states": [
-          "populated"
-        ]
-      },
-      {
         "id": "coverage_planning_inspection-input-coverage_matrix",
         "kind": "section",
         "stages": [
@@ -177,13 +172,37 @@
         ]
       },
       {
-        "id": "test_implementation_inspection-input-test_registry",
+        "id": "test_implementation-input-sensitivity_plan",
         "kind": "section",
         "stages": [
-          "test_implementation_inspection"
+          "test_implementation"
         ],
         "phase": "pre",
-        "section": "test_registry",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-fixture_plan",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "fixture_plan",
         "states": [
           "populated"
         ]
@@ -195,13 +214,9 @@
       "id": "baseline",
       "handler": "observe",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Установить существующее покрытие/известное поведение. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
       "required_sections": [
         "report"
       ],
@@ -209,33 +224,26 @@
       "transitions": {
         "complete": "baseline_inspection"
       },
-      "rework_targets": [
-        "baseline",
-        "coverage_planning",
-        "test_planning",
-        "test_implementation",
-        "sensitivity_verification",
-        "test_inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
+      },
+      "instruction": "Before subject work, the executor defines the coarse stage list needed for the Task goal and the independent reviewer agrees it. Do not detail the whole Task or Sprint. Require an accepted baseline design stating its goal, result requirements and acceptance criteria before observing or changing the environment. Observe the current behavior and code, reproduce the reported issue, and record evidence or justified non-applicability. Do not change product code, tests or target documentation; preserve existing data and configuration. Establish the actual requirements, existing test coverage and fixture/environment constraints for this test-only Task.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "baseline"
+      ]
     },
     {
       "id": "baseline_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
       "required_sections": [
         "report"
       ],
@@ -244,27 +252,26 @@
         "clear": "coverage_planning",
         "changes_requested": "baseline"
       },
-      "rework_targets": [
-        "baseline"
-      ],
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
+      },
+      "instruction": "Independently verify baseline observations against the accepted baseline design, source identity, evidence and preservation criteria. Confirm the coarse Task phase list. Return rejected observations to baseline; do not change product code, tests or documentation.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "baseline"
+      ]
     },
     {
       "id": "coverage_planning",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and coverage_matrix. Output: coverage_matrix and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Связать поведение с будущими тестами. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "coverage_matrix": "requirement→scenario→case→oracle→method, обязательность и причина explicit exclusion."
-      },
       "required_sections": [
         "report",
         "coverage_matrix"
@@ -273,33 +280,27 @@
       "transitions": {
         "complete": "coverage_planning_inspection"
       },
-      "rework_targets": [
-        "coverage_planning",
-        "baseline",
-        "test_planning",
-        "test_implementation",
-        "sensitivity_verification",
-        "test_inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
       "purpose": "design",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
+      },
+      "instruction": "From the accepted baseline, map each requirement to valid existing proof or a remaining gap and a proposed scenario purpose. State the coverage phase goal, required result and acceptance criteria. Keep this scope coarse; do not prescribe future test code, names, commands or detailed sensitivity mechanics.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict.",
+        "coverage_matrix": "Map every requirement to valid existing proof or an uncovered scenario purpose; justify each exclusion. Do not require future test names or exact commands in this coarse scope."
+      },
+      "rework_targets": [
+        "coverage_planning"
+      ]
     },
     {
       "id": "coverage_planning_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
       "required_sections": [
         "report"
       ],
@@ -308,29 +309,26 @@
         "clear": "test_planning",
         "changes_requested": "coverage_planning"
       },
-      "rework_targets": [
-        "coverage_planning"
-      ],
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
+      },
+      "instruction": "Independently check the coverage matrix for complete requirement accounting, valid existing evidence, justified exclusions and clear missing coverage. Check executability and unambiguity without approving detailed future execution criteria. Return rejected coverage design to coverage_planning.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "coverage_planning"
+      ]
     },
     {
       "id": "test_planning",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and verification_plan, test_registry, fixture_plan, sensitivity_plan. Output: verification_plan, test_registry, fixture_plan, sensitivity_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Спроектировать oracle, fixtures, sensitivity и команды. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "verification_plan": "High-level scenario coverage, independent oracles and environment. Exact methods are registered on test implementation when real sources are known; future commands are not a start gate.",
-        "fixture_plan": "required/not_applicable+reason; при required id,purpose,consumers,input invariants,создание/cleanup,метод validation.",
-        "sensitivity_plan": "case_id, negative-control/known-bad revision/mutation method, exact commands/expected detectable error, clean target restoration; not_applicable только с обоснованием и inspection verdict."
-      },
       "required_sections": [
         "report",
         "verification_plan",
@@ -341,33 +339,31 @@
       "transitions": {
         "complete": "test_planning_inspection"
       },
-      "rework_targets": [
-        "test_planning",
-        "baseline",
-        "coverage_planning",
-        "test_implementation",
-        "sensitivity_verification",
-        "test_inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
       "purpose": "design",
       "criteria_authority": {
-        "propose": [],
+        "propose": [
+          "test_implementation"
+        ],
         "decide": []
-      }
+      },
+      "instruction": "Design only the imminent test-package execution phase: write the tests and fixtures, then prove their sensitivity. State one phase goal, result requirements and acceptance criteria, with scenario-level independent oracles, environment and fixture setup, positive and negative controls, exact expected observable failures and restoration. Plan both contiguous mechanical steps before execution; do not implement tests or product code. Exact runnable method registration follows actual source creation, not invented future test names.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict.",
+        "verification_plan": "State the one upcoming execution phase goal, result requirements, acceptance criteria, requirement scenarios, independent expected outcomes and existing environment. Register exact methods when actual sources exist.",
+        "fixture_plan": "State required or justified not_applicable disposition. For required fixtures identify literal inputs, purpose, consumers, invariants, independent setup, ownership, preservation, cleanup and validation.",
+        "sensitivity_plan": "For each applicable requirement identify an approved negative control, independent exact expected detectable failure, source binding, actual method registration, evidence capture and restoration. Explain any claimed non-applicability for independent review; never infer satisfaction from an arbitrary nonzero exit."
+      },
+      "rework_targets": [
+        "test_planning"
+      ]
     },
     {
       "id": "test_planning_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
-      },
       "required_sections": [
         "report"
       ],
@@ -376,93 +372,60 @@
         "clear": "test_implementation",
         "changes_requested": "test_planning"
       },
-      "rework_targets": [
-        "test_planning"
-      ],
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
-        "decide": []
-      }
+        "decide": [
+          "test_implementation"
+        ]
+      },
+      "instruction": "Independently review the complete imminent test-package design for executability, coverage, unambiguous independent oracles, literal fixtures, environment preservation and meaningful sensitivity proof. Decide only test_implementation criteria for the whole coherent phase; sensitivity_verification is its mechanical observation step. Return rejected design to test_planning before tests are written.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "test_planning"
+      ]
     },
     {
       "id": "test_implementation",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and test_registry. Output: test_registry and evidence for this exact stage. Forbidden: product code and canonical documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Написать только тестовый deliverable. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": false,
       "allowed_paths": [
         "tests/**",
         "fixtures/**"
       ],
       "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
-      },
       "required_sections": [
         "report",
         "test_registry"
       ],
       "artifact_requirements": [],
       "transitions": {
-        "complete": "test_implementation_inspection"
+        "complete": "sensitivity_verification"
       },
-      "rework_targets": [
-        "test_implementation",
-        "baseline",
-        "coverage_planning",
-        "test_planning",
-        "sensitivity_verification",
-        "test_inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
       "purpose": "execution",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
-    },
-    {
-      "id": "test_implementation_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record inspected obligations, evidence, findings and verdict."
       },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": "sensitivity_verification",
-        "changes_requested": "test_implementation"
+      "instruction": "Implement and self-review the accepted test-package design and register its actual runnable methods, inputs, coverage and expected observations. Write only tests and fixtures. Run the tests and prepare the approved sensitivity check; record truthful environment failures separately from missing behavior or passing coverage. The test package is not yet independently accepted or frozen. Do not change the accepted design, implement production behavior or silently weaken an oracle.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict.",
+        "test_registry": "Record actual test IDs and sources, codebase, working directory, mode, argv, environment and input selectors, exact expected and observed collection/assertion/outcome, stage applicability and requirement references. Bind evidence to the actual created sources; do not fabricate future hashes or passing proof."
       },
       "rework_targets": [
         "test_implementation"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
+      ]
     },
     {
       "id": "sensitivity_verification",
       "handler": "check",
       "role": "executor",
-      "instruction": "Inputs: accepted stage evidence and exact registered commands/authorization. Execute only the declared mechanical operation; no role switch for its internal substeps. Output: terminal receipts or a truthful failure. Forbidden: treating elapsed time, a stale check or a publication receipt as Task completion. Подтвердить различение правильного и неправильного поведения. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
       "required_sections": [
         "report"
       ],
@@ -472,137 +435,48 @@
         "not_satisfied": "test_implementation",
         "inconclusive": "test_implementation"
       },
-      "rework_targets": [
-        "sensitivity_verification",
-        "baseline",
-        "coverage_planning",
-        "test_planning",
-        "test_implementation",
-        "test_inspection",
-        "remediation",
-        "remediation_inspection"
-      ],
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
+      },
+      "instruction": "Run the approved sensitivity plan against the exact current test revision using the registered methods and test-owned controls. Capture actual expected and observed behavior, interpretable complete evidence and exact restoration of any approved temporary stimuli. Do not change product code or claim a failed capture is satisfied. A negative control is satisfied only when its accepted oracle detects the intended wrong behavior. A not_satisfied or inconclusive observation returns to test_implementation within this same unaccepted execution phase; no accepted design is reopened.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
+      },
+      "rework_targets": [
+        "sensitivity_verification",
+        "test_implementation"
+      ]
     },
     {
       "id": "test_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Осмотреть coverage/oracles/isolation/fixtures. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
       "required_sections": [
         "report"
       ],
       "artifact_requirements": [],
       "transitions": {
         "clear": null,
-        "changes_requested": "remediation"
+        "changes_requested": "test_implementation"
       },
-      "rework_targets": [
-        "test_inspection",
-        "remediation",
-        "baseline",
-        "coverage_planning",
-        "test_planning",
-        "test_implementation",
-        "sensitivity_verification",
-        "remediation_inspection"
-      ],
       "purpose": "observation",
       "criteria_authority": {
         "propose": [],
         "decide": []
-      }
-    },
-    {
-      "id": "remediation",
-      "handler": "revise",
-      "role": "executor",
-      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and test_registry. Output: test_registry and evidence for this exact stage. Forbidden: changes outside the current stage scope or accepted design. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Исправить дефекты тестового результата. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
-      "read_only": false,
-      "allowed_paths": [
-        "tests/**",
-        "fixtures/**"
-      ],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
       },
-      "required_sections": [
-        "report",
-        "test_registry"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "complete": "remediation_inspection"
+      "instruction": "Independently inspect the exact final test package, coverage matrix, fixtures, registered methods and complete sensitivity evidence against the accepted phase design, acceptance criteria, development rules and general result requirements. Clear only a latest satisfied sensitivity result tied to this exact test revision; reject failed, inconclusive, incomplete or stale proof. Return rejected execution to test_implementation without reopening the accepted design. Only this final acceptance freezes the test revision; a subsequently discovered accepted-test error requires an agreed Task restart.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual result, exact source and evidence identities, limitations and preservation. An inspection records findings and a substantiated verdict."
       },
       "rework_targets": [
-        "remediation",
-        "baseline",
-        "coverage_planning",
-        "test_planning",
-        "test_implementation",
-        "sensitivity_verification",
         "test_inspection",
-        "remediation_inspection"
-      ],
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "id": "remediation_inspection",
-      "handler": "inspect",
-      "role": "reviewer",
-      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Проверить исправления read-only. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
-      "read_only": true,
-      "allowed_paths": [],
-      "normalization": "strip",
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "required_sections": [
-        "report"
-      ],
-      "artifact_requirements": [],
-      "transitions": {
-        "clear": null,
-        "changes_requested": "remediation"
-      },
-      "rework_targets": [
-        "remediation_inspection",
-        "remediation",
-        "baseline",
-        "coverage_planning",
-        "test_planning",
-        "test_implementation",
-        "sensitivity_verification",
-        "test_inspection"
-      ],
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
+        "test_implementation"
+      ]
     }
-  ],
-  "benefit": {
-    "git_categories": [
-      "tests",
-      "fixtures"
-    ],
-    "sections": []
-  }
+  ]
 }

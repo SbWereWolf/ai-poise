@@ -16,10 +16,41 @@ from ..modules.tasks.contracts import stages_from_workflow, evidence_plan_from_m
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError, VersionConflict
+from ..modules.goal_config.domain import fingerprint
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.tasks.definition import build_task, validate_creation
 from ..modules.tasks.replay import ReplayIntent, ReplayResult
 from .check_attempts import CheckAttempts, is_check_attempt
+
+
+def prepare_existing_creation_context(newborn, inputs, contract, *, request_id):
+    """Calculate existing input ownership from one capture and the actual candidate."""
+    histories = newborn.restart_history
+    origins = [index for index, item in enumerate(histories)
+               if item.get('from_status') != 'newborn']
+    if not origins:
+        return None
+    existing_contract = inputs.restart_context(newborn.task_id)['contract']
+    if not isinstance(existing_contract, dict):
+        raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
+    start = origins[-1]
+    edited = frozenset(field for item in histories[start:]
+                       for field in item.get('registry_edits', []))
+    authority = histories[-1].get('planning_revision')
+    previous = inputs.restarted_registry(newborn.task_id)
+    if request_id is None:
+        # Preview receipts exist only in this discarded calculation, never in storage.
+        request_id = 'validation:' + fingerprint({
+            'registry': {**previous.to_state(), **previous.current_snapshot.to_dict()},
+            'contract': contract, 'workflow': newborn.workflow,
+        })
+    current, change = Task.prepare_restarted_registry(
+        previous, contract, newborn.workflow, edited, request_id,
+        None if authority is None else authority['allowed_changes'],
+    )
+    return {'existing_contract': existing_contract, 'previous_registry': previous,
+            'current_registry': current, 'registry_change': change,
+            'restart_origin': deepcopy(histories[start])}
 
 
 def require_reviewer_identity_in(
@@ -34,7 +65,7 @@ def require_reviewer_identity(
     source, task: Task, actor: str, *,
     target_stage: str | None = None, acquiring: bool = False,
 ) -> dict | None:
-    """Require distinct effective actors only for different configured stage roles."""
+    """Capture actual review provenance; the user assigns agents to roles."""
     from ..modules.workflow.domain import HandlerKind
     current = task.stage.stage_id
     node = task.route.node(current)
@@ -59,23 +90,8 @@ def require_reviewer_identity(
     if producer_role == inspection_role:
         return None  # A single-role workflow does not require identity separation.
     executor = identity["executor_actor"]
-    if executor is None:
-        raise DomainError(
-            "Reviewer identity provenance is unavailable for the produced result; "
-            "a distinct native reviewer session must be established from saved evidence"
-        )
-    if (executor == actor and acquiring and current != target
-            and task.route.node(current).handler != HandlerKind.INSPECT
-            and source.selected_result_author(task.state.task_id) == actor):
-        # Reacquire one's saved selected result; advance still guards the reviewer role.
-        return None
-    if executor == actor:
-        raise DomainError(
-            f"Reviewer actor {actor!r} equals executor {executor!r} "
-            f"({identity['source']}, stage {identity['stage']}); "
-            "use a distinct native reviewer session and public handoff"
-        )
-    return {**identity, "reviewer_actor": actor, "distinct_actor": True}
+    return {**identity, "reviewer_actor": actor,
+            "distinct_actor": executor is not None and executor != actor}
 
 
 def _action_digest(action: str, payload: dict) -> str:
@@ -246,7 +262,8 @@ class TaskCommands:
         if candidate != saved['contract']:
             raise DomainError('Existing task contract is immutable; bootstrap is not an editor')
 
-    def prepare_creation(self, intent, workflow, automatic_checks, base_revision, decomposition_policy, *, current_registry=None):
+    def prepare_creation(self, intent, workflow, automatic_checks, base_revision, decomposition_policy, *,
+                         current_registry=None, existing_contract=None):
         return self._prepare_creation(
             intent,
             workflow,
@@ -255,6 +272,7 @@ class TaskCommands:
             decomposition_policy,
             self.requirements_gate.prepare_contract,
             current_registry=current_registry,
+            existing_contract=existing_contract,
         )
 
     def _prepare_restarted_creation(
@@ -273,11 +291,12 @@ class TaskCommands:
                 persisted_context["requirements_agreement"],
             ),
             current_registry=current_registry,
+            existing_contract=persisted_context["contract"],
         )
 
     def _prepare_creation(
         self, intent, workflow, automatic_checks, base_revision, decomposition_policy, prepare_requirements,
-        *, current_registry=None
+        *, current_registry=None, existing_contract=None
     ):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
@@ -286,10 +305,13 @@ class TaskCommands:
         intent, requirements_context = prepare_requirements(intent)
         candidate, _ = materialize_contract(intent, creation_alias(intent))
         try:
-            preflight = CreationPreflight.parse(candidate, workflow)
+            preflight = (CreationPreflight.parse(candidate, workflow) if existing_contract is None else
+                         CreationPreflight.parse_existing(candidate, workflow, current_registry=current_registry,
+                                                          existing_contract=existing_contract))
         except KeyError as exc:
             validate_creation(
-                candidate, workflow, automatic_checks, decomposition_policy, current_registry=current_registry
+                candidate, workflow, automatic_checks, decomposition_policy, current_registry=current_registry,
+                existing_contract=existing_contract
             )
             raise DomainError(
                 f"Task creation preflight requires field {exc.args[0]!r}"
@@ -300,7 +322,7 @@ class TaskCommands:
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
         validate_creation(candidate, workflow, automatic_checks, decomposition_policy,
-                          current_registry=current_registry)
+                          current_registry=current_registry, existing_contract=existing_contract)
         return PreparedCreation(
             source_intent,
             deepcopy(intent),
@@ -573,11 +595,6 @@ class TaskCommands:
             target = ownership
             if target.worktree_owner not in (None, actor):
                 raise DomainError('Task workspace is owned by another session; handoff is required')
-            if (isinstance(authorization, dict) and authorization.get('role') == 'reviewer'
-                    and (current.draft.get('planning') is not None or current.restart_history)):
-                reviewer = inputs.review_identity(task_id, include_unsubmitted=True)
-                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
-                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             changed = current.restart_draft(actor, reason, authorization)
             before = inputs.ownership(actor)
             context = inputs.restart_context(task_id)
@@ -593,12 +610,6 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Task worktree is owned by another session; handoff is required")
             context = inputs.restart_context(task_id)
-            if (context['contract'].get('planning') is not None
-                    and isinstance(authorization, dict)
-                    and authorization.get('role') == 'reviewer'):
-                reviewer = inputs.review_identity(task_id, include_unsubmitted=True)
-                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
-                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             restart_contract = deepcopy(context["contract"])
             if context["requirements_snapshot"] is not None:
                 restart_contract["requirements_snapshot"] = deepcopy(
@@ -707,9 +718,12 @@ class TaskCommands:
         parsed = TaskStageContracts.parse(contracts, task.route, task.content_policy)
         from ..modules.tasks.creation_preflight import CreationPreflight
         context = inputs.restart_context(task_id)
-        CreationPreflight.parse(
+        if not isinstance(context['contract'], dict):
+            raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
+        CreationPreflight.parse_existing(
             {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
             context["workflow"],
+            current_registry=task.check_registry, existing_contract=context["contract"],
         )
         change = task.initialize_stage_contracts(parsed)
         prepared = facade.prepare_stage_contract_change(inputs, change, audit)
@@ -735,6 +749,8 @@ class TaskCommands:
         inputs = facade.capture(TaskReadSet((task_id,), actors=(actor,)))
         task = inputs.task(task_id)
         context = inputs.restart_context(task_id)
+        if not isinstance(context['contract'], dict):
+            raise DomainError('Existing Task contract is missing; восстановите Task через публичного владельца')
         if context['contract'].get('planning') is not None:
             raise DomainError('Frozen Task planning contract requires authorized restart')
         old = task._require_stage_contracts().stage(stage_id).to_dict()
@@ -771,9 +787,10 @@ class TaskCommands:
         ]
         parsed = TaskStageContracts.parse(candidate, task.route, task.content_policy)
         from ..modules.tasks.creation_preflight import CreationPreflight
-        CreationPreflight.parse(
+        CreationPreflight.parse_existing(
             {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
             context["workflow"],
+            current_registry=task.check_registry, existing_contract=context["contract"],
         )
         release = prepare_actor_release(facade, inputs, actor, task_id)
         replacement = parsed.stage(stage_id)
@@ -875,26 +892,15 @@ class TaskCommands:
         context = inputs.restart_context(task_id)
         sprint_snapshot = None if newborn.sprint_id is None else inputs.sprint(newborn.sprint_id)
         execution_snapshot = inputs.execution(task_id) if inputs.execution(task_id) is not None else None
-        executed_restart = any(item.get('from_status') != 'newborn' for item in newborn.restart_history)
+        existing_context = prepare_existing_creation_context(newborn, inputs, contract, request_id=request_id)
+        executed_restart = existing_context is not None
+        existing_contract = existing_context['existing_contract'] if executed_restart else None
         effective_hash = context['config_hash'] if executed_restart else config_hash
         effective_checks = automatic_checks
         effective_decomposition = decomposition_policy
-        current_registry = None
-        previous_registry = None
-        registry_change = None
-        if executed_restart:
-            histories = newborn.restart_history
-            start = max(index for index, item in enumerate(histories)
-                        if item.get('from_status') != 'newborn')
-            edited = frozenset(field for item in histories[start:]
-                               for field in item.get('registry_edits', []))
-            authority = histories[-1].get('planning_revision')
-            from ..modules.tasks.domain import Task
-            previous_registry = inputs.restarted_registry(task_id)
-            current_registry, registry_change = Task.prepare_restarted_registry(
-                previous_registry, contract, newborn.workflow, edited,
-                request_id, None if authority is None else authority['allowed_changes'],
-            )
+        current_registry = existing_context['current_registry'] if executed_restart else None
+        previous_registry = existing_context['previous_registry'] if executed_restart else None
+        registry_change = existing_context['registry_change'] if executed_restart else None
         restart_base = None
         if newborn.restart_history and inputs.execution(task_id) is not None:
             restart_base = inputs.execution(task_id)[0]['base']
@@ -929,11 +935,13 @@ class TaskCommands:
                 base_revision,
                 effective_decomposition,
                 current_registry=current_registry,
+                existing_contract=existing_contract,
             )
         metadata = validate_creation(
             prepared.intent, newborn.workflow, effective_checks,
             effective_decomposition,
             current_registry=current_registry,
+            existing_contract=existing_contract,
         )
         metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
         if newborn.creation_request is not None:
@@ -957,6 +965,7 @@ class TaskCommands:
                 'registry': current_registry, 'previous_registry': previous_registry,
                 'registry_change': registry_change,
                 'executed_restart': executed_restart, 'restart_base': restart_base,
+                'restart_origin': existing_context['restart_origin'] if executed_restart else None,
                 'frozen_context_unchanged': frozen_context_unchanged,
                 'criteria_book': context['stage_criteria'],
                 'resolved_revision': resolved_revision, 'config_hash': effective_hash,
@@ -974,7 +983,7 @@ class TaskCommands:
             book = StageCriteriaBook.from_dict(candidate['criteria_book'])
             if candidate['executed_restart']:
                 book = book.revise_after_restart(task.route, task.stage_contracts,
-                    candidate['metadata']['restart_history'][-1], actor,
+                    candidate['restart_origin'], actor,
                     candidate['metadata']['contract'], candidate['creation'].requirements_context['snapshot'])
         else:
             if candidate['executed_restart']:

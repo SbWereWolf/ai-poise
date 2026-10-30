@@ -329,9 +329,11 @@ See [restart recovery](../docs/workflows/sprints.md#локальная-дора�
 
 Workflow roles are required explicit configuration, not handler policy. For inspection compare
 the actual produced-result stage role with the inspecting stage role from the Task snapshot.
-Equal roles require no identity separation; unequal roles require distinct effective actors
-with saved provenance. Keep ownership, evidence and gate validation unchanged. Never infer
-missing legacy roles or rewrite stored Task snapshots as an implicit upgrade.
+The user assigns roles to agents and may assign both executor and reviewer roles to one agent.
+Different stage roles do not require different effective actors. Preserve actual actor provenance,
+native caller identity, ownership, history, evidence and gate validation; unknown authors remain
+unknown. Never infer missing legacy roles or rewrite stored Task snapshots as an implicit upgrade.
+Follow [user-assigned roles](../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
 
 ## Accepted-stage replay after restart
 

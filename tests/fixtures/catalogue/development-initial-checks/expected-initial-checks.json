@@ -1,0 +1,26 @@
+{
+  "baseline": [
+    "BASELINE"
+  ],
+  "baseline_inspection": [],
+  "solution_planning": [],
+  "solution_planning_inspection": [],
+  "verification_planning": [],
+  "verification_planning_inspection": [],
+  "test_implementation": [
+    "TEST_RED"
+  ],
+  "test_inspection": [],
+  "implementation_design": [],
+  "implementation_design_inspection": [],
+  "implementation": [
+    "TEST_GREEN"
+  ],
+  "implementation_inspection": [],
+  "documentation_planning": [],
+  "documentation_planning_inspection": [],
+  "documentation": [
+    "DOC_CHECK"
+  ],
+  "documentation_inspection": []
+}

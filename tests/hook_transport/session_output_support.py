@@ -34,14 +34,15 @@ def install_output(service, definition, request_id):
     return value
 
 
-def configure_chain(chain, scene, *, matcher='Bash', before=(), after=()):
+def configure_chain(chain, scene, *, matcher='Bash', before=(), after=(), include_end=False):
     # Real healthy configuration control, before the new capability is selected.
     chain.install([])
     descriptors = literal('native-events.json')
     definition = deepcopy(chain.definition)
+    events = ('SessionStart', 'PreToolUse', 'PostToolUse', 'SessionEnd') if include_end else (
+        'SessionStart', 'PreToolUse', 'PostToolUse')
     definition['events'] = [row['descriptor'] for row in descriptors
-                            if row['descriptor']['event'] in
-                            ('SessionStart', 'PreToolUse', 'PostToolUse')]
+                            if row['descriptor']['event'] in events]
     for event in definition['events']:
         if event['event'] in ('PreToolUse', 'PostToolUse'):
             event['matcher'] = matcher

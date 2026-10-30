@@ -44,9 +44,11 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `tool-result` | Обязательные абсолютный `--policy PATH` и `--audience agent\|machine`; JSON stdin. Для session route `--config PATH`/`--checkout PATH` необязательны парой; non-session project-bound route требует оба абсолютных пути. | Общий вывод/сохранённые expanded/full последнего run и прямые capture/read операции без обязательной Task. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
+| `source-index` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin; необязательный `--handler`. | [Поиск и обновление индекса выбранной копии](../configuration/source-index.md#запросы-и-первоначальный-индекс), Git callback и optional sync handler без обязательной Task. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
 | `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
-| `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
+| `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. Необязательные `--transport-policy PATH` и `--invocation ID` включают coordination подготовленного вызова. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
+| `checks-mcp` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH --transport-policy PATH`; JSON-RPC stdio. | Настроенные run/preview/cancel с ожиданием конечного результата и полным машинным ответом. |
 
 ### Результаты инструментов
 
@@ -76,6 +78,23 @@ session route, не project-bound policy без session. Сам CLI получа
 `preview.available` не подтверждает executable или исполнение. `--view full`
 обращает к сохранённому полному ответу; чтение не повторяет ребёнка.
 Команда `check` ниже относится к обслуживанию окружения и не является этим API.
+
+Для MCP-клиента запускается процесс выбранной поставки:
+
+```bash
+"${poise[@]}" checks-mcp --config "$project_json" --checkout "$checkout" \
+  --policy "$checks_policy" --transport-policy "$checks_transport_policy"
+```
+
+`checks_transport_policy` — отдельная заполненная policy транспорта. Имена tools,
+версии протокола, run/preview/cancel arguments, ограничения, собственный invocation,
+результаты и восстановление описаны в
+[каноническом справочнике MCP](../configuration/named-project-checks.md#mcp-stdio-настройка-и-вызов).
+Обычный `checks` сохраняет полный named-check договор. При явном
+`--transport-policy` он использует ту же coordination; `--invocation` потребляет
+настоящую подготовленную Pre-ссылку соответствующего запроса и требует
+`--transport-policy`. Этот ID не выбирают
+произвольно и не заимствуют у другого caller или проекта. Подключение не требует Task.
 
 Работа над Task использует launcher, выданный нативным hook для этой сессии:
 

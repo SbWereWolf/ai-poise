@@ -1,0 +1,10 @@
+{
+  "matches": [
+    {
+      "symbol": "net_total",
+      "caller": "invoice_due",
+      "file": "src/invoice.py",
+      "line": 5
+    }
+  ]
+}

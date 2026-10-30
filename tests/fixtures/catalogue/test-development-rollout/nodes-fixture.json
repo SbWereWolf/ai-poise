@@ -1,0 +1,5 @@
+[
+  "tests/catalogue/test_test_development_root_rollout.py::test_accepted_fixture_materializes_with_current_blueprint",
+  "tests/catalogue/test_test_development_root_rollout.py::test_oracle_rejects_structurally_valid_semantic_corruption[missing_implementation_authority]",
+  "tests/catalogue/test_test_development_root_rollout.py::test_oracle_rejects_structurally_valid_semantic_corruption[sensitivity_returns_to_design]"
+]

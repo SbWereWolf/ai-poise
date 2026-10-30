@@ -22,6 +22,16 @@ unrelated options, unknown raw values and workflows. Never edit managed files or
 Task snapshots directly. Before integration or a base-ref correction, verify the
 [actual primary branch](../../../docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
 
+For the shipped `verification` starter, preserve the five-stage paired process and
+its caller-supplied `VERIFY` method contract. Source, prepared definition, live
+workflow and the actually selected Task blueprint have separate delivery owners.
+Follow the [canonical verification procedure](../../../docs/configuration/workflow-catalogue.md#проверка-соответствия-результата).
+
+For all accepted ERP starters, treat reference metadata and stage tables as projections
+of the copied source graph. Keep the selected Goal and Task blueprint coherent; preserve
+literal roles and criteria authorities. Follow the [shared-source and reference
+contract](../../../docs/configuration/workflow-catalogue.md#общие-исходники-erp-и-справочные-представления).
+
 Keep skill metadata in the [delivered catalog](../../../docs/configuration/skill-catalog.md#владелец-и-состав)
 and selection conditions in the existing
 [routing owner](../../../docs/configuration/development-routing.md#декларативные-условия-выбора-skills).

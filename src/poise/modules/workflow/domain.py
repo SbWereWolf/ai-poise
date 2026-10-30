@@ -246,11 +246,25 @@ class RouteDefinition:
             stage_id = node.target(POSITIVE_OUTCOME[node.handler])
         return None
 
+    def report_inspector(self, stage_id: str) -> str | None:
+        """Identify an inspection whose two subject outcomes forward its report."""
+        node = self.node(stage_id)
+        if node.handler != HandlerKind.INSPECT:
+            return None
+        following = node.target("clear")
+        if (following is not None and node.target("changes_requested") == following
+                and self.node(following).handler == HandlerKind.INSPECT):
+            return following
+        return None
+
     def inspection_scope(self, stage_id: str) -> tuple[str, ...]:
         """Group original/follow-up inspectors through their corrective result."""
         inspectors = {n.stage_id: n for n in self.nodes if n.handler == HandlerKind.INSPECT}
         adjacent = {sid: set() for sid in inspectors}
         for sid, inspector in inspectors.items():
+            if self.report_inspector(sid) is not None:
+                # A negative external subject is reported, not repaired here.
+                continue
             corrective = inspector.target("changes_requested")
             following = self.next_inspection(corrective)
             if following is None:
@@ -259,11 +273,16 @@ class RouteDefinition:
             # original result. Cross those approvals only within this explicit
             # corrective branch; intermediate inspectors keep their own scopes.
             visited = set()
-            while (following is not None and following != sid
-                   and inspector.target("clear") != inspectors[following].target("clear")):
+            while following is not None:
                 if following in visited:
                     raise DomainError(f"Inspection scope is ambiguous for {sid}: corrective inspections cycle; correct the workflow graph")
                 visited.add(following)
+                report_review = self.report_inspector(following)
+                if report_review is not None:
+                    following = report_review
+                    continue
+                if following == sid or inspector.target("clear") == inspectors[following].target("clear"):
+                    break
                 following = self.next_inspection(inspectors[following].target("clear"))
             if following is None:
                 raise DomainError(f"Inspection scope is ambiguous for {sid}, {corrective}: no corrective inspector shares its positive continuation; declare separate corrective results")

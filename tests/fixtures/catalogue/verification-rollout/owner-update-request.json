@@ -1,0 +1,17 @@
+{
+  "schema": "goal-config-batch-1",
+  "request_id": "fixture-verification-unmanaged-update",
+  "goal_type": "verification",
+  "mode": "update",
+  "expected_revision": null,
+  "template": null,
+  "changes": [
+    {
+      "op": "patch_stage",
+      "id": "planning",
+      "set": {
+        "instruction": "Observe the supplied fixture value."
+      }
+    }
+  ]
+}

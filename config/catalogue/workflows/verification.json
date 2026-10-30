@@ -57,24 +57,180 @@
         ]
       },
       {
-        "id": "self_inspection-input-verification_criteria",
+        "id": "analysis-input-environment",
         "kind": "section",
         "phase": "pre",
-        "section": "verification_criteria",
+        "section": "environment",
         "stages": [
-          "self_inspection"
+          "analysis"
         ],
         "states": [
           "populated"
         ]
       },
       {
-        "id": "self_inspection-input-verdict",
+        "id": "analysis-input-verification_methods",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_methods",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis-input-verification_program",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_program",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution-input-verification_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_criteria",
+        "stages": [
+          "execution"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-product_findings",
+        "kind": "section",
+        "phase": "pre",
+        "section": "product_findings",
+        "stages": [
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-result",
+        "kind": "section",
+        "phase": "pre",
+        "section": "result",
+        "stages": [
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-verdict",
         "kind": "section",
         "phase": "pre",
         "section": "verdict",
         "stages": [
-          "self_inspection"
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-verification_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_criteria",
+        "stages": [
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-verification_methods",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_methods",
+        "stages": [
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-verification_program",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_program",
+        "stages": [
+          "execution_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "planning_inspection-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "planning_inspection-input-verification_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_criteria",
+        "stages": [
+          "planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "planning_inspection-input-verification_methods",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_methods",
+        "stages": [
+          "planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "planning_inspection-input-verification_program",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_program",
+        "stages": [
+          "planning_inspection"
         ],
         "states": [
           "populated"
@@ -85,7 +241,6 @@
     "sections": []
   },
   "goal_type": "verification",
-  "worktree_required": true,
   "route": {
     "entry": "planning"
   },
@@ -93,11 +248,17 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "execution"
+        ]
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "planning",
-      "instruction": "Определить программу, критерии и точные способы доказательства. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before substantive verification, define the coarse Task phases and agree the verification scope with the independent reviewer. Design only the imminent verification-and-report execution phase: goal, result requirements, acceptance criteria, what to check, focus, independent predicates, coverage and justified exclusions, exact existing inputs and environment, ordered methods, stop or continue rules and resource limits. Do not run the substantive verification or change the product while designing it. The final report is the second mechanical step of this same phase, not a prematurely designed future phase.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
@@ -107,67 +268,61 @@
         "environment"
       ],
       "rework_targets": [
-        "planning",
-        "execution",
-        "analysis",
-        "self_inspection"
+        "planning"
       ],
+      "role": "executor",
       "sections": {
-        "environment": "relevant facts/readiness, versions/input generation, resource identities, no secret values; required facts и observation methods явно заданы.",
-        "report": "Record the substantive result for this stage.",
-        "verification_criteria": "id, subject requirement/DoD, expected predicate/вердикт, applicable scope.",
-        "verification_methods": "Typed methods: command с точным PlannedInvocation; logical_argument/inspection с обязательными submission_stage=execution, evidence_phase PREPARE/CONTINUE, source_refs, criteria/obligation refs, observation_method_refs (явно [] для PREPARE), required=true/false. Никакого определения kind по отсутствию команды. CONTINUE references указывают только на реально исполняемые объявленные command observations; циклический/неизвестный reference недопустим.",
-        "verification_program": "ordered methods, exact inputs/environment/readiness, обязательность, stop/continue-on-outcome, ресурсные границы и limits."
+        "environment": "Record relevant readiness facts, versions, input generation and resource identities without secret values. State required facts and their actual observation methods explicitly.",
+        "report": "Record the phase goal, required result, acceptance criteria, actual evidence and exact source identities, limitations and preservation. An inspection records findings and its justified acceptance decision.",
+        "verification_criteria": "For each requirement or DoD criterion, state its identity, applicable scope and independent expected predicate or question. Separate the product verdict from the quality and completion criteria of this verification Task.",
+        "verification_methods": "Declare each method kind explicitly. A command has an exact PlannedInvocation. A logical_argument or inspection has explicit submission_stage=execution, evidence_phase PREPARE or CONTINUE, source_refs, criteria and obligation references, observation_method_refs and required true or false. PREPARE uses an explicit empty observation_method_refs array. CONTINUE references only declared command observations that actually execute. Never infer a kind from an absent command or use unknown or cyclic references.",
+        "verification_program": "State the ordered declared methods, exact existing inputs, readiness and environment, mandatory or justified optional coverage, stop or continue behavior for each outcome, and resource identities and limits. Do not invent future commands or passing results."
       },
       "transitions": {
-        "complete": "execution"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "planning_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "check",
-      "role": "executor",
       "id": "execution",
-      "instruction": "Выполнить программу и получить evidence. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only the independently accepted verification program and typed evidence contract against the declared exact inputs and source revision. Capture actual complete interpretable observations without changing product code, tests, configuration or working data. Preserve all three native outcomes: satisfied, not_satisfied and inconclusive each proceed to analysis so negative or incomplete evidence is reported honestly. Do not turn an expected or unexpected nonzero exit into an invented pass or waiver.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "execution",
-        "planning",
-        "analysis",
-        "self_inspection"
+        "execution"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record the phase goal, required result, acceptance criteria, actual evidence and exact source identities, limitations and preservation. An inspection records findings and its justified acceptance decision."
       },
       "transitions": {
         "inconclusive": "analysis",
         "not_satisfied": "analysis",
         "satisfied": "analysis"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "analysis",
-      "instruction": "Интерпретировать evidence и сформировать несоответствия. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Produce the verification report from the actual observations and accepted criteria without changing the product. For every criterion distinguish proved, disproved, inconclusive and an actually authorized waived result with evidence and authority. A conclusive negative product result can support a correct diagnostic report; it does not establish product readiness. Missing or uninterpretable required evidence is not Task completion merely because it is labelled inconclusive. Preserve the exact source and observation identities and report reproducible product findings, explicit exclusions, limitations and outstanding delivery obligations.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report",
@@ -177,55 +332,78 @@
       ],
       "rework_targets": [
         "analysis",
-        "planning",
-        "execution",
-        "self_inspection"
+        "execution"
       ],
+      "role": "executor",
       "sections": {
-        "product_findings": "Record product_findings.",
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "verdict": "по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи."
+        "product_findings": "Record reproducible product findings with the criterion, expected and actual behavior, exact source and evidence. State explicitly when none were found. Do not implement repairs or create a remediation phase.",
+        "report": "Record the phase goal, required result, acceptance criteria, actual evidence and exact source identities, limitations and preservation. An inspection records findings and its justified acceptance decision.",
+        "result": "Record the actual substantive result, fulfilled or unfulfilled Task DoD, report deliverables, limitations, source and evidence identity, delivery vector and incidents. Do not claim an unverified publication, product pass or Task completion.",
+        "verdict": "For every declared criterion record proved, disproved, inconclusive or actually authorized waived status, exact supporting evidence and reasoning. Keep the product verdict separate from verification execution quality; never fabricate approval or waiver."
       },
       "transitions": {
-        "complete": "self_inspection"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "execution_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "inspect",
-      "role": "executor",
-      "id": "self_inspection",
-      "instruction": "Осмотреть качество самой проверки. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "id": "execution_inspection",
+      "instruction": "Independently verify the execution and resulting report against the accepted phase design, Task acceptance criteria, development rules and general result requirements. Inspect exact source-matched observations, typed evidence, program coverage, verdict, result and product findings. A truthful conclusive product failure can be an accepted verification result, but incomplete required execution cannot become Task completion by labelling it inconclusive. Accept an inconclusive result only when the agreed acceptance criteria explicitly permit it; a waiver requires actual authority and provenance. Return rejected execution or report to execution within the same phase, reusing valid matching evidence only under its real owner. Do not reopen accepted planning or modify the product.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "self_inspection",
-        "planning",
-        "execution",
-        "analysis"
+        "execution_inspection",
+        "execution"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record the phase goal, required result, acceptance criteria, actual evidence and exact source identities, limitations and preservation. An inspection records findings and its justified acceptance decision."
+      },
+      "transitions": {
+        "changes_requested": "execution",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "execution"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "planning_inspection",
+      "instruction": "Independently review the immediate verification scope, criteria, program, typed methods and environment before substantive checking. Check executability, completeness, unambiguity, independent expected predicates, coverage, preservation and separation of product and Task verdicts. Decide only execution criteria for this coherent verification-and-report phase. Return rejected design to planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual evidence and exact source identities, limitations and preservation. An inspection records findings and its justified acceptance decision."
       },
       "transitions": {
         "changes_requested": "planning",
-        "clear": null
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "clear": "execution"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

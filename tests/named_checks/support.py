@@ -259,6 +259,9 @@ def beta_project(project, tmp_path):
     created = project_tools(setup).apply(packet)
     base['config_path'] = Path(created['config_path'])
     base['root'] = base['config_path'].parent
+    # Setup publishes its own runtime-resources owner.  Consumers need those
+    # actual values, not the original draft inherited from the first project.
+    base['cfg'] = json.loads(base['config_path'].read_text())
     return base, beta_root
 
 
@@ -288,9 +291,21 @@ class Scene:
         entry()
         self.project = project
         self.checkout = project['app']
-        self.config = project['config_path']
         self.root = tmp_path / 'named-arrangement'
         self.root.mkdir()
+        # The public checks port consumes the general harness profile.  Publish
+        # it through the same existing owner as the native dispatcher fixtures;
+        # keep the Task configuration and behavioural expectations untouched.
+        from tests.hook_transport.architecture_support import GeneralScene
+        self.general = GeneralScene(project, self.root, 'F13_NAMED_GENERAL')
+        self.general.publish(request_id='named-check-general-profile')
+        self.config = self.general.path
+        # Standalone native checks deliberately remove the executor's identity.
+        # Every isolated arrangement therefore supplies its own persistent
+        # caller, rather than accidentally borrowing the interactive launcher.
+        for key in ('CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'POISE_CALLER_BINDING'):
+            monkeypatch.delenv(key, raising=False)
+        monkeypatch.setenv('POISE_CALLER_BINDING', str(self.general.binding))
         self.events = self.root / 'events'
         self.events.mkdir()
         self.monkeypatch = monkeypatch
@@ -299,7 +314,7 @@ class Scene:
         self.profiles_path = self.root / 'profiles.toml'
         self.packages_path = self.root / 'packages.toml'
         self.suites_path = self.root / 'suites.json'
-        self.state = project['root'] / project['cfg']['paths']['state'] / 'named-checks'
+        self.state = self.general.state / 'named-checks'
         substitutions = {'@PYTHON@': sys.executable,
                          '@CHILD@': str(Path(__file__).with_name('fixture_child.py'))}
         self.profiles = tomllib.loads((FIXTURES / 'input-profiles.toml').read_text())

@@ -1,0 +1,33 @@
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "source-index-context",
+  "handlers": [
+    {
+      "id": "source-index",
+      "implementation": {
+        "kind": "command",
+        "argv": [
+          "/absolute/path/to/python",
+          "-B",
+          "-m",
+          "poise",
+          "source-index",
+          "--config",
+          "/absolute/path/to/project-profile.json",
+          "--checkout",
+          "/absolute/path/to/checkout",
+          "--policy",
+          "/absolute/path/to/source-index-policy.json",
+          "--handler"
+        ]
+      },
+      "mode": "sync",
+      "options": {},
+      "execution": {
+        "run_seconds": 90.0,
+        "cleanup_seconds": 3.0
+      },
+      "on_error": "stop"
+    }
+  ]
+}

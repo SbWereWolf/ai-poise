@@ -1,0 +1,61 @@
+{
+  "id": "verification",
+  "stages": [
+    {
+      "id": "planning",
+      "handler": "produce",
+      "before": [
+        "verification_criteria",
+        "verification_program",
+        "verification_methods",
+        "environment"
+      ],
+      "after": []
+    },
+    {
+      "id": "planning_inspection",
+      "handler": "inspect",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "execution",
+      "handler": "check",
+      "before": [],
+      "after": []
+    },
+    {
+      "id": "analysis",
+      "handler": "produce",
+      "before": [
+        "verdict",
+        "result",
+        "product_findings"
+      ],
+      "after": []
+    },
+    {
+      "id": "execution_inspection",
+      "handler": "inspect",
+      "before": [],
+      "after": []
+    }
+  ],
+  "method_schedule": {
+    "execution": "VERIFY"
+  },
+  "feedback": [
+    {
+      "from_stage": "execution_inspection",
+      "to_stage": "execution",
+      "from_handler": "inspect",
+      "to_handler": "check"
+    },
+    {
+      "from_stage": "planning_inspection",
+      "to_stage": "planning",
+      "from_handler": "inspect",
+      "to_handler": "produce"
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 ---
 name: remediation-review
 description: Independently inspect every proposed correction against original findings, the exact diff, and current evidence without editing product code.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Remediation inspection
@@ -9,6 +10,12 @@ version: 1.0.0
 This is reviewer work in the existing Poise route, not another lifecycle. The executor's self-review is input, not independent acceptance.
 
 ## Inputs
+
+Apply [ponytail-review](../ponytail-review/SKILL.md) to the remediation diff within
+this inspection, under the [shared review contract](../../../docs/workflows/evidence-based-review.md#осмотр-избыточной-сложности).
+It supplements proof-by-finding, correctness and regression checks; ending that pass
+does not end the inspection. Preserve required safeguards/tests and report only
+grounded complexity findings, not a required number of reductions.
 
 Use the [Poise workflow](../poise/SKILL.md) to acquire the released Task. Batch-read the original findings, proposed resolutions, requirements, exact pre-fix/current revision and diff, current test/evidence records, relevant skills, and result template. Ensure that evidence describes the revision being inspected. Resolve commands, browser/runtime settings, versions and file maps from the selected Poise-owned configuration; read target-worktree facts only as needed.
 

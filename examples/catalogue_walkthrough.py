@@ -197,9 +197,7 @@ def _initial_checks(workflow, methods):
     by_stage={
         'baseline':['BASELINE'],
         'test_implementation':['TEST_RED'],
-        'test_remediation':['TEST_RED'],
         'implementation':['TEST_GREEN'],
-        'implementation_remediation':['TEST_GREEN'],
         'documentation':['DOC_CHECK'],
     }
     for stage,method_ids in by_stage.items():
@@ -357,6 +355,8 @@ def _run(directory,goal,scenario,feedback_edge=None):
     git(app,'remote','add','backup',str(remote))
     repo,commands=install(home)
     cfg=json.loads((home/'project.json').read_text());cfg['workflows']=deepcopy(repo.editor.raw['workflows']);cfg['automatic_checks']=[]
+    if goal=='integration':
+        cfg['git']['commit_pattern']='(?s).+'
     save(home/'project.json',cfg)
     _,_,workflows=load_config(home/'project.json');workflow=workflows[goal]
     base,sources=_seed(app,home,goal,scenario)
@@ -484,7 +484,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
                 trigger=False
         elif kind=='revise':p['stage_work']={'resolutions':proposals}
         elif kind=='apply_plan':
-            plan={'kind':'git_merge','base_commit':base,'sources':sources} if goal=='integration' else _environment_plan(home,2 if sid=='correction' else 1)
+            plan={'kind':'git_merge','base_commit':git(wt,'rev-parse','HEAD'),'sources':sources} if goal=='integration' else _environment_plan(home,2 if sid=='correction' else 1)
             p['stage_work']={'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':proposals}
         elif kind=='publish':
             p['stage_work']=({'kind':'tasks','section':'planned_task','authorization':'User: publish the reviewed child contracts.'} if goal=='task_planning' else
@@ -576,6 +576,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
             'expected_source_commit':final['commit'],
             'expected_target_commit':base,
             'authorization':'Fixture user authorizes local integration of this accepted result.',
+            'commit_message':'Integrate reviewed catalogue result\n\nPreserve both accepted components in the local target.',
             'resolutions':[],
         })
         assert integration['status']=='integrated',integration

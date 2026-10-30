@@ -7,7 +7,6 @@ import pytest
 from batch.helpers import request, result, verify
 from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
-from poise.common import PoiseError
 from .test_stage_progression import configure_progression, advance, bootstrap, release_current
 
 
@@ -61,21 +60,25 @@ def test_single_role_can_reacquire_its_review_after_handoff(project):
     assert verify(resumed, payload)['status'] == 'verified'
 
 
-def test_different_roles_keep_same_actor_rejection_at_public_acquisition(project):
+@pytest.mark.parametrize('reviewer_actor', ['session-A', 'session-B'])
+def test_user_assigned_different_roles_allow_same_or_distinct_actor(project, reviewer_actor):
     tools = _through_implementation(project, role='author', review_role='assayer')
     boundary = advance(tools)
     assert boundary['status'] == 'role_handoff_required'
     assert (boundary['from_role'], boundary['to_role']) == ('author', 'assayer')
     assert release_current(tools)['status'] == 'ownership_released'
-    with pytest.raises(PoiseError, match='equals executor'):
-        bootstrap(tools, {'id': 'T1'})
-    other = WorkTools(WorkPoise(project['config_path'], 'session-B'))
+    other = WorkTools(WorkPoise(project['config_path'], reviewer_actor))
     bootstrap(other, {'id': 'T1'})
     review = advance(other)
     assert review['stage'] == 'code_review'
+    assert review['workflow']['role'] == 'assayer'
     payload = result(review)
-    payload['stage_work']['coverage'] = 'Distinct participant performed the configured inspection.'
+    payload['stage_work']['coverage'] = 'The user-assigned reviewer inspected the result.'
     assert verify(other, payload)['status'] == 'verified'
+    with other.runtime.store.unit_of_work() as unit:
+        identity = unit.tasks.review_identity('T1')
+    assert identity['executor_actor'] == 'session-A'
+    assert other.runtime.task_queries.record('T1')['claimed_by'] == reviewer_actor
 
 
 def test_task_role_snapshot_survives_external_workflow_edits(project):

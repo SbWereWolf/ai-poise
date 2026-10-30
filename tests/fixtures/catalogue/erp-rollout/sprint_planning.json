@@ -1,0 +1,1343 @@
+{
+  "goal_type": "sprint_planning",
+  "worktree_required": true,
+  "route": {
+    "entry": "framing"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "decomposition-input-constraints",
+        "kind": "section",
+        "stages": [
+          "decomposition"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_classification-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "task_classification"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_contracts-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "task_contracts"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_contracts-input-constraints",
+        "kind": "section",
+        "stages": [
+          "task_contracts"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "dependency_design-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "dependency_design"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "dependency_design-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "dependency_design"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_planning-input-dependency_plan",
+        "kind": "section",
+        "stages": [
+          "execution_planning"
+        ],
+        "phase": "pre",
+        "section": "dependency_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_planning-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "execution_planning"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-dependency_plan",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "dependency_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-dependency_plan",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "dependency_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-execution_plan",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "execution_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-dependency_plan",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "dependency_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decomposition_inspection-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "decomposition_inspection"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-composition_plan",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "composition_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decomposition-input-composition_plan",
+        "kind": "section",
+        "stages": [
+          "decomposition"
+        ],
+        "phase": "pre",
+        "section": "composition_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_classification-input-composition_plan",
+        "kind": "section",
+        "stages": [
+          "task_classification"
+        ],
+        "phase": "pre",
+        "section": "composition_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decomposition_inspection-input-composition_plan",
+        "kind": "section",
+        "stages": [
+          "decomposition_inspection"
+        ],
+        "phase": "pre",
+        "section": "composition_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decomposition_inspection-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "decomposition_inspection"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decomposition_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "decomposition_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decomposition_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "decomposition_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-constraints",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "specification_planning"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "specification_planning_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "specification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_contracts-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "task_contracts"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_contracts-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "task_contracts"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "dependency_design-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "dependency_design"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "dependency_design-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "dependency_design"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_planning-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "execution_planning"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_planning-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "execution_planning"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-execution_plan",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "execution_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-shared_context_plan",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "shared_context_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-shared_artifacts_plan",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "shared_artifacts_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-risks",
+        "kind": "section",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "phase": "pre",
+        "section": "risks",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-specification_plan",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "specification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-decomposition",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "decomposition",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-shared_context_plan",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "shared_context_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-shared_artifacts_plan",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "shared_artifacts_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-risks",
+        "kind": "section",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "phase": "pre",
+        "section": "risks",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "publication_planning"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "publication_planning"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning-input-dependency_plan",
+        "kind": "section",
+        "stages": [
+          "publication_planning"
+        ],
+        "phase": "pre",
+        "section": "dependency_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_planning_inspection-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "publication_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication_result"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "publication_result"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-task_contracts",
+        "kind": "section",
+        "stages": [
+          "publication_result"
+        ],
+        "phase": "pre",
+        "section": "task_contracts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_result-input-dependency_plan",
+        "kind": "section",
+        "stages": [
+          "publication_result"
+        ],
+        "phase": "pre",
+        "section": "dependency_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-publication_plan",
+        "kind": "section",
+        "stages": [
+          "publication_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-planned_sprint",
+        "kind": "section",
+        "stages": [
+          "publication_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_sprint",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication_inspection-input-publication_result",
+        "kind": "section",
+        "stages": [
+          "publication_inspection"
+        ],
+        "phase": "pre",
+        "section": "publication_result",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "task_contracts",
+      "dependency_plan"
+    ]
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Before subject work agree coarse phases of this planning Task with the independent reviewer. Preserve actual Sprint requirements, constraints and assumptions; design only imminent composition/classification: goal, required result, acceptance criteria, one primary outcome per Task, necessary boundaries/coverage and supported sources. Do not design all future Task stages, tests/classes/commands or prototypes.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "constraints": "For each constraint state ID, predicate, source, scope and verification method; justify none. Preserve actual project/object/action authority, native ownership, configured policy and graph limits.",
+        "assumptions": "For each assumption state ID, statement, justification, effect if false and actual evidence/status. Explicitly justify none; do not turn unknowns into accepted facts.",
+        "composition_plan": "State imminent Sprint composition/classification goal, required result, acceptance criteria, actual Sprint requirements/constraints/assumptions, one primary result per candidate Task, scope, coverage and supported goal-type sources. Do not design future Task execution stages."
+      },
+      "required_sections": [
+        "report",
+        "constraints",
+        "assumptions",
+        "composition_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "framing_inspection"
+      },
+      "rework_targets": [
+        "framing"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "decomposition",
+          "task_classification"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "framing_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review imminent composition/classification design for executability, completeness and unambiguity: actual Sprint requirements/constraints/assumptions, goal/result/acceptance, candidate boundaries, coverage and supported sources. Decide only decomposition and task_classification execution criteria. Reject design to framing.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "decomposition",
+        "changes_requested": "framing"
+      },
+      "rework_targets": [
+        "framing"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "decomposition",
+          "task_classification"
+        ]
+      }
+    },
+    {
+      "id": "decomposition",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Execute accepted composition_plan and produce actual candidate Task goals/results/scopes with necessary decomposition and Sprint requirement coverage. Keep this composition basis unaccepted until task classification and independent joint review; do not create objects or implement future work.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "decomposition": "For each candidate record stable draft identity, one result-oriented goal/scope, contribution to Sprint requirements, necessary deliverable and reason for a separate Task. Produce a coherent current composition basis without speculative implementation."
+      },
+      "required_sections": [
+        "report",
+        "decomposition"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "task_classification"
+      },
+      "rework_targets": [
+        "decomposition"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "task_classification",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Complete the SAME unaccepted composition basis under accepted composition_plan by assigning each candidate one supported primary goal type/result with actual canonical grounds and owner. Reconcile genuinely independent candidates within this current artifact; do not execute future Tasks or change accepted constraints.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "goal_classification": "For each candidate select one supported primary goal_type/main deliverable with actual canonical grounds; identify genuinely independent secondary candidates and ownership. Classifications and decomposition remain the SAME unaccepted composition artifact until joint review."
+      },
+      "required_sections": [
+        "report",
+        "goal_classification"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "decomposition_inspection"
+      },
+      "rework_targets": [
+        "task_classification"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "decomposition_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify actual joint decomposition/classification against accepted composition_plan and Sprint goals/constraints: one necessary primary result/goal type per Task, justified boundaries, ownership and complete requirement coverage. Reject SAME composition execution to decomposition; accept actual basis before Sprint specification planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "specification_planning",
+        "changes_requested": "decomposition"
+      },
+      "rework_targets": [
+        "decomposition"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "specification_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Only after actual composition/classification acceptance, design the imminent coherent native Sprint specification: goal, required result, acceptance criteria, exact native {sprint_id,template,changes} envelope and configured policy/template, bounded child drafts, matching membership, DAG/coverage, coarse operations/shared context/artifacts/risks and actual validation. The next three producers assemble one unaccepted body; future subject-stage details remain just in time.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "specification_plan": "State current coherent native Sprint specification goal, result requirements, acceptance criteria, accepted composition/classification and source identities, exact native publication envelope/policy/template, bounded child contracts, same-Sprint membership, DAG/coverage, operational/shared context/artifact ownership and risk requirements. Future subject Task stages remain coarse and detailed only immediately before execution."
+      },
+      "required_sections": [
+        "report",
+        "specification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "specification_planning_inspection"
+      },
+      "rework_targets": [
+        "specification_planning"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "task_contracts",
+          "dependency_design",
+          "execution_planning"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "specification_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review current specification_plan against accepted actual composition for executability, completeness and unambiguity. Check exact native publication envelope and configured policy/template, full bounded child contracts/membership, DAG/coverage, shared context/artifact owners, operational risks and deferred future stage details. Decide only current task_contracts, dependency_design and execution_planning execution criteria. Reject design to specification_planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "task_contracts",
+        "changes_requested": "specification_planning"
+      },
+      "rework_targets": [
+        "specification_planning"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "task_contracts",
+          "dependency_design",
+          "execution_planning"
+        ]
+      }
+    },
+    {
+      "id": "task_contracts",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Produce bounded actual child contracts and initial native planned_sprint under accepted specification_plan and composition/classification. Use actual goal schemas/templates, initial DoR/DoD, known requirements, constraints, unknowns and real creation-validation provenance. Preserve the correct native automatic versus explicit-ID forms, stable aliases and explicit matching Sprint membership. Do not invent future tests/classes/methods/hashes or child ready/start/consent. This complete typed draft remains unaccepted while dependencies and operational sections are assembled.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "task_contracts": "Produce bounded child drafts using each actual goal_type schema and selected templates: stable result-oriented goal, initial DoR/DoD, known requirements, constraints, explicit unknowns, source/deliverable traceability, origin draft identity and real individual creation-validation receipts. Preserve native automatic {request_id,task} WITHOUT task.id or ordinary explicit-ID Task contracts; retain actual mode/identity and explicit matching sprint_id. Valid empty initial checks are permitted; defer future tests/classes/commands/stage implementation details and hashes.",
+        "planned_sprint": "Retain the exact native reviewed publication body with ONLY {sprint_id,template,changes}; template has exact {id,version} matching actual configured SprintPolicy. Use supported typed changes to carry actual Sprint purpose/requirements/DoD, configured named sections, full child intents and dependencies; do not submit raw SprintPlan.data or invent outer metadata/receipt keys. Preserve actual chosen Sprint identity, child automatic-vs-explicit forms/aliases and explicit membership. Assemble the SAME unaccepted current body through its producer steps. Coverage may carry an identical substantive body plus genuine evidence in report/permitted owner sections, never rewrite it to pass. After acceptance the payload is immutable; native validation/publication receipts remain actual evidence outside unsupported envelope keys."
+      },
+      "required_sections": [
+        "report",
+        "task_contracts",
+        "planned_sprint"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "dependency_design"
+      },
+      "rework_targets": [
+        "task_contracts"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "dependency_design",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Execute accepted specification_plan to produce the actual dependency_plan and update the SAME unaccepted exact native planned_sprint body using supported changes. Preserve child contracts/membership/identities; require justified acyclic same-Sprint completion/result edges on actual intent aliases. No dangling/duplicate edges or invented future allocations/results/hashes. Do not create native objects or add unsupported envelope fields.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "dependency_plan": "Specify justified same-Sprint directed edges with exact predecessor/successor intent aliases, kind completion or result, and required predecessor outcome/artifact/materialization. Use automatic request_id aliases or genuinely chosen fixed Task IDs until actual allocation rewrites them. Prove no dangling/duplicate/cyclic edges. Bind actual predecessor identities/digests at consumption; never fabricate future result hashes.",
+        "planned_sprint": "Retain the exact native reviewed publication body with ONLY {sprint_id,template,changes}; template has exact {id,version} matching actual configured SprintPolicy. Use supported typed changes to carry actual Sprint purpose/requirements/DoD, configured named sections, full child intents and dependencies; do not submit raw SprintPlan.data or invent outer metadata/receipt keys. Preserve actual chosen Sprint identity, child automatic-vs-explicit forms/aliases and explicit membership. Assemble the SAME unaccepted current body through its producer steps. Coverage may carry an identical substantive body plus genuine evidence in report/permitted owner sections, never rewrite it to pass. After acceptance the payload is immutable; native validation/publication receipts remain actual evidence outside unsupported envelope keys."
+      },
+      "required_sections": [
+        "report",
+        "dependency_plan",
+        "planned_sprint"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "execution_planning"
+      },
+      "rework_targets": [
+        "dependency_design"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "execution_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Complete current operational/shared-context/shared-artifact/risk plans under accepted specification_plan and update the SAME unaccepted exact native planned_sprint body using supported typed changes and actual configured named sections. Let the DAG determine eligibility; record only coarse future Task phases and real ownership/reviewer provenance, with detailed design just before each subject phase. Preserve actual child contracts/dependencies and no speculative test/class/method/hash requirements.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "execution_plan": "Record coarse priorities, risk ordering, resource bounds and shared preparation; eligible work order comes from the DAG, not a second manual queue. Record required result/input and reviewer agreement provenance for each future Task's coarse phases. Detailed designs, tests/classes/commands and methods belong immediately before their actual subject phase.",
+        "shared_context_plan": "Identify shared facts/sections, actual source/generation, owner and consuming Task references, access/preservation and what must not be duplicated.",
+        "shared_artifacts_plan": "Identify shared artifact IDs/types, intended producers/consumers, known exact paths/formats/acceptance, ownership and retention/cleanup responsibilities. Do not invent future content hashes or introduce unauthorized environments.",
+        "risks": "For each risk state condition, effect, control/mitigation and actual decision owner; justify none. Distinguish unresolved prerequisites from permissible uncertainty.",
+        "planned_sprint": "Retain the exact native reviewed publication body with ONLY {sprint_id,template,changes}; template has exact {id,version} matching actual configured SprintPolicy. Use supported typed changes to carry actual Sprint purpose/requirements/DoD, configured named sections, full child intents and dependencies; do not submit raw SprintPlan.data or invent outer metadata/receipt keys. Preserve actual chosen Sprint identity, child automatic-vs-explicit forms/aliases and explicit membership. Assemble the SAME unaccepted current body through its producer steps. Coverage may carry an identical substantive body plus genuine evidence in report/permitted owner sections, never rewrite it to pass. After acceptance the payload is immutable; native validation/publication receipts remain actual evidence outside unsupported envelope keys."
+      },
+      "required_sections": [
+        "report",
+        "execution_plan",
+        "shared_context_plan",
+        "shared_artifacts_plan",
+        "risks",
+        "planned_sprint"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "coverage_analysis"
+      },
+      "rework_targets": [
+        "execution_planning"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "coverage_analysis",
+      "handler": "check",
+      "role": "executor",
+      "instruction": "Mechanically execute accepted actual coverage/native validation methods against the complete current typed body, child contracts, membership, DAG, operational/shared context/artifacts and risks. Publish genuine receipts/coverage evidence in report or permitted owner sections and carry an IDENTICAL substantive planned_sprint body; do not design or repair the draft inside its own check or add schema-invalid outer receipt keys. Complete required coverage, source/policy identity and actual child schema validation are mandatory; unknown is not a waiver. Satisfied proceeds to independent Sprint review; failure/inconclusive returns to task_contracts within this SAME unaccepted spec phase.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "planned_sprint": "Retain the exact native reviewed publication body with ONLY {sprint_id,template,changes}; template has exact {id,version} matching actual configured SprintPolicy. Use supported typed changes to carry actual Sprint purpose/requirements/DoD, configured named sections, full child intents and dependencies; do not submit raw SprintPlan.data or invent outer metadata/receipt keys. Preserve actual chosen Sprint identity, child automatic-vs-explicit forms/aliases and explicit membership. Assemble the SAME unaccepted current body through its producer steps. Coverage may carry an identical substantive body plus genuine evidence in report/permitted owner sections, never rewrite it to pass. After acceptance the payload is immutable; native validation/publication receipts remain actual evidence outside unsupported envelope keys."
+      },
+      "required_sections": [
+        "report",
+        "planned_sprint"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "sprint_inspection",
+        "not_satisfied": "task_contracts",
+        "inconclusive": "task_contracts"
+      },
+      "rework_targets": [
+        "coverage_analysis"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "sprint_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify the complete current SAME unaccepted native Sprint specification against accepted specification_plan/composition and actual native policy/template. Check all child schemas/real validation provenance, selected intent forms/aliases/membership, acyclic justified DAG, actual complete coverage evidence, execution_plan, shared_context_plan, shared_artifacts_plan and risks. Require exact {sprint_id,template,changes}, no extra receipt keys, valid bounded initial checks/unknowns and coarse future phases without premature implementation design. Reject spec execution to task_contracts within this phase, never accepted design; freeze accepted payload before publication planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication_planning",
+        "changes_requested": "task_contracts"
+      },
+      "rework_targets": [
+        "task_contracts"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "After actual independent acceptance of the complete Sprint specification, design only imminent native publication and result collection: goal/results/acceptance, exact accepted immutable body/project/policy/template/authority, stage_work protocol, child aliases/allocation/membership/DAG readback and supported owner recovery/refusal. No payload replacement, mode/ID conversion, automatic re-creation or new approval loop when genuine authority already covers the action.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "publication_plan": "State imminent Sprint publication and result-collection goal, required result, acceptance criteria, actual project/owner and existing explicit user authority, immutable reviewed planned_sprint identity/digest, exact stage_work kind=sprint section=planned_sprint and configured template/allocation policy. Define actual canonical Sprint/child receipts, alias allocations, membership/DAG readback, legitimate later progress and supported authorized owner recovery/refusal. No replacement payload, automatic return to creation, duplicate evasion, guessed API or identity/mode conversion."
+      },
+      "required_sections": [
+        "report",
+        "publication_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "publication_planning_inspection"
+      },
+      "rework_targets": [
+        "publication_planning"
+      ],
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [
+          "publication_result"
+        ],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently review imminent publication_plan for executability, completeness and unambiguity against the accepted immutable native body and actual authority/project/owner/policy/template. Check exact stage_work kind=sprint section=planned_sprint, correct child identity forms/aliases/membership, canonical receipt/allocation/DAG readback, legitimate later progress and supported recovery/refusal. Decide criteria only for publication_result execution, never publish other. Reject design to publication_planning.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication",
+        "changes_requested": "publication_planning"
+      },
+      "rework_targets": [
+        "publication_planning"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": [
+          "publication_result"
+        ]
+      }
+    },
+    {
+      "id": "publication",
+      "handler": "publish",
+      "role": "executor",
+      "instruction": "Publish only retained independently reviewed planned_sprint through exact stage_work kind=sprint, section=planned_sprint, with actual explicit user authorization. Read the accepted exact {sprint_id,template,changes} body; do not replace it or make its source writable here. Match actual configured template {id,version} and policy; preserve selected Sprint identity and child native automatic {request_id,task} without task.id versus ordinary top-level explicit-ID Task contracts, stable actual aliases/digests and explicit matching membership. Do not infer user consent/requirements_agreement or change modes/IDs to evade conflict. Before retry inspect actual native receipts/state: only complete same-intent replay while publication is active is supported; incomplete transactions explicitly refuse silent repetition and require actual supported owner recovery. No blind duplicate creation, extra outer receipt keys or invented APIs. Publication action readiness is not child ready/start.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {},
+      "required_sections": [],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "publication_result"
+      },
+      "rework_targets": [],
+      "purpose": "other",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_result",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "After actual mechanical Sprint publication completes, execute accepted result collection: canonical Sprint and child receipts, actual selected intent modes/digests, alias-to-allocation mapping, matching membership, rewritten DAG and real readback/current states. Distinguish legitimate later child progress from original publication defects; never overwrite existing work to force a snapshot match. Use only actually admitted authorized native-owner recovery and record its genuine outcome, otherwise preserve unresolved refusal without final success. Do not invoke stage_work publication outside the active publish node, recreate/republish Sprint or children, replace accepted envelope/IDs/modes, invent recovery APIs, edit raw databases or fabricate consent/readiness. No automatic return to creation after completion.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "publication_result": "Record actual canonical Sprint and child publication receipts, project/owner, frozen envelope/policy/template identities, selected intent modes/digests, actual allocation-to-alias mapping, child membership and rewritten DAG readback, and actual current states. Distinguish legitimate later progress from creation defects. Record only supported authorized owner-recovery outcomes or unresolved refusal. Do not recreate/republish, replace accepted payload/IDs/modes or infer human consent/child readiness."
+      },
+      "required_sections": [
+        "report",
+        "publication_result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "publication_inspection"
+      },
+      "rework_targets": [
+        "publication_result"
+      ],
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    },
+    {
+      "id": "publication_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Independently verify actual executor publication_result against accepted publication_plan/immutable planned_sprint, canonical Sprint/child receipts, chosen intent modes/digests, actual allocation-to-alias map, membership and rewritten DAG readback. Recognize legitimate later progress; never infer child ready/start or human agreement from action readiness. Check development rules and general result requirements. Reject SAME result execution to publication_result for supported authorized owner reconciliation or truthful refusal, never back to creation. Do not republish/recreate, invoke stage_work outside publish, edit objects, replace accepted IDs/modes/payload or invent recovery APIs.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "State the current phase goal, result requirements, acceptance criteria, exact source/evidence identities, actual result, limitations and preservation. Independent reviews record substantiated findings and decisions.",
+        "result": "Record actual final substantive planning/publication result, fulfilled/unfulfilled DoD, immutable source/policy identities, current coverage and canonical Sprint/child/alias/DAG receipts/readback, actual delivery and child states, limitations, incidents and unresolved obligations. Action readiness is not child ready/start or requirements_agreement."
+      },
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "publication_result"
+      },
+      "rework_targets": [
+        "publication_result"
+      ],
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      }
+    }
+  ]
+}

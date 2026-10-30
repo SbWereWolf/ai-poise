@@ -1,0 +1,42 @@
+{
+  "collected": [
+    "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[draft-upsert-missing]",
+    "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[publish-missing]"
+  ],
+  "collection": [],
+  "exit_code": 1,
+  "reports": [
+    {
+      "diagnostic": "assert ['Task creati...вьте binding'] == ['Task creati...орите запрос']\n  \n  At index 0 diff: \"Task creation intent: method_inputs binding mismatch: declared=[], methods=['CHECK']; исправьте binding\" != \"Task creation intent: method_inputs binding mismatch: current historical declarations missing=['CHECK']; восстановите декларации через task/edit и повторите запрос\"\n  Use -v to get more diff",
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[draft-upsert-missing]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[draft-upsert-missing]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[draft-upsert-missing]",
+      "outcome": "passed",
+      "phase": "teardown"
+    },
+    {
+      "diagnostic": "AssertionError: assert 'Task creatio...авьте binding' == 'Task creatio...торите запрос'\n  \n  Skipping 44 identical leading characters in diff, use -v to show\n  - mismatch: current historical declarations missing=['CHECK']; восстановите декларации через task/edit и повторите запрос\n  + mismatch: declared=[], methods=['CHECK']; исправьте binding",
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[publish-missing]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[publish-missing]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_consumers_reject_historical_input_edits[publish-missing]",
+      "outcome": "passed",
+      "phase": "teardown"
+    }
+  ]
+}

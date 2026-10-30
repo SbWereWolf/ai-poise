@@ -153,24 +153,252 @@
         ]
       },
       {
-        "id": "remediation-input-verification_plan",
+        "id": "alternatives-input-alternatives_plan",
         "kind": "section",
         "phase": "pre",
-        "section": "verification_plan",
+        "section": "alternatives_plan",
         "stages": [
-          "remediation"
+          "alternatives"
         ],
         "states": [
           "populated"
         ]
       },
       {
-        "id": "remediation_inspection-input-design",
+        "id": "alternatives_inspection-input-alternatives",
         "kind": "section",
         "phase": "pre",
-        "section": "design",
+        "section": "alternatives",
         "stages": [
-          "remediation_inspection"
+          "alternatives_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "alternatives_inspection-input-alternatives_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "alternatives_plan",
+        "stages": [
+          "alternatives_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "alternatives_inspection-input-decision_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decision_criteria",
+        "stages": [
+          "alternatives_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decision_inspection-input-decisions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decisions",
+        "stages": [
+          "decision_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decision_inspection-input-design_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design_plan",
+        "stages": [
+          "decision_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decision_inspection-input-selected_approach",
+        "kind": "section",
+        "phase": "pre",
+        "section": "selected_approach",
+        "stages": [
+          "decision_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decision_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "decision_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-design_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design_plan",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-design_verification.verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design_verification.verdict",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-impact_analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "impact_analysis",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-selected_approach",
+        "kind": "section",
+        "phase": "pre",
+        "section": "selected_approach",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_verification-input-design_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design_plan",
+        "stages": [
+          "design_verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_verification-input-impact_analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "impact_analysis",
+        "stages": [
+          "design_verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "detailed_design-input-design_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design_plan",
+        "stages": [
+          "detailed_design"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-alternatives_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "alternatives_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "assumptions",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-baseline",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-decision_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decision_criteria",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-verification_scope",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_scope",
+        "stages": [
+          "framing_inspection"
         ],
         "states": [
           "populated"
@@ -190,7 +418,6 @@
     ]
   },
   "goal_type": "design",
-  "worktree_required": true,
   "route": {
     "entry": "framing"
   },
@@ -198,117 +425,106 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "alternatives"
+        ]
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "framing",
-      "instruction": "Зафиксировать исходную архитектуру и критерии выбора. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before subject work, define the coarse Task phases with the independent reviewer. Design only the immediate production of alternatives: goal, result requirements, acceptance criteria, current baseline and assumptions, comparison criteria and alternatives_plan. Record only coarse future verification_scope. Do not demand detailed future methods, test names, document hashes or implementation. A required baseline needs actual applicable evidence; do not mark a mandatory baseline not_applicable.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
         "baseline",
         "assumptions",
         "decision_criteria",
-        "verification_plan"
+        "verification_scope",
+        "alternatives_plan"
       ],
       "rework_targets": [
-        "framing",
-        "alternatives",
-        "decision",
-        "detailed_design",
-        "design_verification",
-        "design_inspection",
-        "remediation",
-        "remediation_inspection"
+        "framing"
       ],
+      "role": "executor",
       "sections": {
-        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
-        "baseline": "applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён.",
-        "decision_criteria": "id, statement, priority/weights только при явно выбранной scoring model, evidence/predicate для сравнения.",
-        "report": "Record the substantive result for this stage.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
+        "alternatives_plan": "Design only current alternatives production: goal, required result, acceptance criteria, requirements and constraints to cover, comparison method, available evidence, boundaries and preservation.",
+        "assumptions": "List each assumption, its evidence or unresolved status, justification and impact if false; explicitly state when none apply.",
+        "baseline": "State required or justified not_applicable disposition, the exact relevant target revision and state, and actual evidence references. A profile-mandated baseline cannot be skipped.",
+        "decision_criteria": "State criterion identity, comparison predicate and evidence. Use priorities or numeric weights only under an actually selected scoring model; never invent decision authority or product values.",
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision.",
+        "verification_scope": "Identify only the future verification purpose, potentially applicable obligations and known constraints. This is coarse scope, not the detailed verification_plan or an approval of later execution criteria."
       },
       "transitions": {
-        "complete": "alternatives"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "framing_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "alternatives",
-      "instruction": "Сравнить допустимые решения. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute the accepted alternatives_plan and produce the current alternatives artifact. Compare feasible options against the agreed requirements, constraints and comparison criteria, recording risks, assumptions and independent evidence. Do not silently change accepted comparison criteria or prescribe detailed future implementation. This is the execution of the alternatives-production phase; do not write product code or target documentation.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report",
         "alternatives"
       ],
       "rework_targets": [
-        "alternatives",
-        "framing",
-        "decision",
-        "detailed_design",
-        "design_verification",
-        "design_inspection",
-        "remediation",
-        "remediation_inspection"
+        "alternatives"
       ],
+      "role": "executor",
       "sections": {
-        "alternatives": "id, description, requirements/constraints coverage, pros/cons, risk/assumption refs, evaluation по каждому критерию.",
-        "report": "Record the substantive result for this stage."
+        "alternatives": "For each actual option state its identity, description, requirement and constraint coverage, pros and cons, risks and assumptions, and evidence-based comparison against each accepted criterion.",
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
       },
       "transitions": {
-        "complete": "decision"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "alternatives_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "detailed_design"
+        ]
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "decision",
-      "instruction": "Выбрать решение и обосновать отказ от других. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "After alternatives acceptance, design only the upcoming detailed-design-and-validation phase. Record the selected approach, comparison-based rationale, rejected options and actual decision authority. Produce design_plan with this phase goal, result requirements and acceptance criteria, and the first detailed verification_plan for this current phase. Register real methods when their sources are known; do not invent future hashes. Do not author the target design artifact, implement production behavior or predesign unrelated Sprint work.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
         "selected_approach",
-        "decisions"
+        "decisions",
+        "design_plan",
+        "verification_plan"
       ],
       "rework_targets": [
-        "decision",
-        "framing",
-        "alternatives",
-        "detailed_design",
-        "design_verification",
-        "design_inspection",
-        "remediation",
-        "remediation_inspection"
+        "decision"
       ],
+      "role": "executor",
       "sections": {
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "report": "Record the substantive result for this stage.",
-        "selected_approach": "alternative_id, rationale, criteria comparisons, constraints/evidence refs, rejected alternatives причины."
+        "decisions": "Record substantive decisions with their actual authority, scope and source. Do not infer user acceptance, waiver or publication permission from a file or command.",
+        "design_plan": "State only the upcoming artifact-production-and-validation phase goal, required design and contract result, acceptance criteria, owned deliverables, responsibilities, inputs, method and preservation. Do not implement the artifact or unrelated future Tasks here.",
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision.",
+        "selected_approach": "Identify the selected alternative, evidence-based rationale, criterion comparisons, constraints and reasons for rejecting other options. Respect actual decision authority.",
+        "verification_plan": "State current-phase requirement and DoD obligations, independent before and after predicates, applicable command or logical or inspection methods, reuse and retry rules and limits. Register exact actual invocations when their real sources are known; runtime binds executed identities and digests. Do not require an invented future hash."
       },
       "transitions": {
-        "complete": "detailed_design"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "decision_inspection"
       }
     },
     {
@@ -316,11 +532,15 @@
         "docs/**"
       ],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "detailed_design",
-      "instruction": "Описать конкретные contracts и failure modes. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute the accepted design_plan and selected approach, producing only the explicitly scoped design and contract documentation in its owned paths. Record responsibilities, data, states, interfaces, failures, applicable cross-cutting properties, requirement mapping and impact. Self-review and prepare the approved validation against this exact artifact revision. Do not implement production code, silently change accepted decisions or predesign unrelated future Tasks. The artifact is not accepted before validation and final independent inspection.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": false,
       "required_sections": [
         "report",
@@ -329,175 +549,166 @@
         "impact_analysis"
       ],
       "rework_targets": [
-        "detailed_design",
-        "framing",
-        "alternatives",
-        "decision",
-        "design_verification",
-        "design_inspection",
-        "remediation",
-        "remediation_inspection"
+        "detailed_design"
       ],
+      "role": "executor",
       "sections": {
-        "design": "components/responsibilities, данные, состояния/переходы, interfaces, errors/failures, concurrency/security/observability applicability, requirement mapping; каждый неприменимый блок явно помечен с причиной.",
-        "impact_analysis": "affected/unchanged codebases/components/contracts; prerequisites/risks; downstream requirements, не самостоятельная реализация.",
-        "interfaces_contracts": "applicability; API/CLI/data contract, inputs/outputs/errors, side effects, invariants, versioned target references, schema validators.",
-        "report": "Record the substantive result for this stage."
+        "design": "Describe the scoped components and responsibilities, data, states and transitions, interfaces and failure behavior, and applicable concurrency, security and observability. Map requirements and justify each genuinely inapplicable block. Do not implement production behavior.",
+        "impact_analysis": "Identify affected and unchanged codebases, components and contracts, prerequisites, risks and downstream requirement relations. This is design impact, not implementation.",
+        "interfaces_contracts": "State applicability, owned API, CLI and data contracts, inputs, outputs, errors, side effects, invariants, versioned references and actual schema validators.",
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
       },
       "transitions": {
         "complete": "design_verification"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "check",
-      "role": "executor",
       "id": "design_verification",
-      "instruction": "Проверить design против требований. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute the accepted current-phase verification_plan against the exact current design and interfaces revision. Publish the actual declared design_verification.verdict after obtaining complete interpretable observations; a template placeholder is not evidence. Preserve satisfied, not_satisfied and inconclusive outcomes. A failed or inconclusive attempt returns to detailed_design within this same unaccepted execution phase; do not reopen decision or weaken its accepted criteria.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
         "design_verification",
-        "framing",
-        "alternatives",
-        "decision",
-        "detailed_design",
-        "design_inspection",
-        "remediation",
-        "remediation_inspection"
+        "detailed_design"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
       },
       "transitions": {
         "inconclusive": "detailed_design",
         "not_satisfied": "detailed_design",
         "satisfied": "design_inspection"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "inspect",
-      "role": "reviewer",
       "id": "design_inspection",
-      "instruction": "Осмотреть consistency, неопределённости и лишнюю сложность. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Independently verify the actual design, interfaces, impact, accepted approach and phase plans against the agreed acceptance criteria, development rules and general result requirements. Clear only complete latest satisfied validation tied to this exact design and interfaces revision, with the actual declared verification verdict and requirement coverage. Return rejected execution to detailed_design, not to accepted framing or decision. An invalid accepted earlier decision requires the actual agreed lifecycle, not a graph shortcut. Record truthful delivery and cleanup obligations without claiming future publication.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
         "design_inspection",
-        "remediation",
-        "framing",
-        "alternatives",
-        "decision",
-        "detailed_design",
-        "design_verification",
-        "remediation_inspection"
+        "detailed_design"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
       },
       "transitions": {
-        "changes_requested": "remediation",
+        "changes_requested": "detailed_design",
         "clear": null
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
-      }
-    },
-    {
-      "allowed_paths": [
-        "docs/**"
-      ],
-      "artifact_requirements": [],
-      "handler": "revise",
-      "role": "executor",
-      "id": "remediation",
-      "instruction": "Исправить design findings. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
-      "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report",
-        "design",
-        "interfaces_contracts"
-      ],
-      "rework_targets": [
-        "remediation",
-        "framing",
-        "alternatives",
-        "decision",
-        "detailed_design",
-        "design_verification",
-        "design_inspection",
-        "remediation_inspection"
-      ],
-      "sections": {
-        "design": "components/responsibilities, данные, состояния/переходы, interfaces, errors/failures, concurrency/security/observability applicability, requirement mapping; каждый неприменимый блок явно помечен с причиной.",
-        "interfaces_contracts": "applicability; API/CLI/data contract, inputs/outputs/errors, side effects, invariants, versioned target references, schema validators.",
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "complete": "remediation_inspection"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "inspect",
-      "role": "reviewer",
-      "id": "remediation_inspection",
-      "instruction": "Проверить design corrections read-only. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "id": "alternatives_inspection",
+      "instruction": "Independently verify the produced alternatives against the accepted alternatives_plan, comparison criteria, scope and evidence. Check meaningful coverage and tradeoffs without silently choosing for a decision owner. Return rejected execution to alternatives, preserving accepted framing and criteria.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "remediation_inspection",
-        "remediation",
-        "framing",
-        "alternatives",
-        "decision",
-        "detailed_design",
-        "design_verification",
-        "design_inspection"
+        "alternatives"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
       },
       "transitions": {
-        "changes_requested": "remediation",
-        "clear": null
-      },
-      "purpose": "observation",
+        "changes_requested": "alternatives",
+        "clear": "decision"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [
+          "detailed_design"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "decision_inspection",
+      "instruction": "Independently review the selected approach, actual authority, design_plan and detailed current-phase verification_plan for executability, completeness, unambiguity and consistency with accepted alternatives and comparison criteria. Decide only detailed_design execution criteria. Return rejected design to decision before the artifact is produced.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "decision"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
+      },
+      "transitions": {
+        "changes_requested": "decision",
+        "clear": "detailed_design"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "alternatives"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "framing_inspection",
+      "instruction": "Independently review the immediate alternatives-production design for executability, completeness and unambiguity, including baseline, assumptions, comparison criteria, alternatives_plan and coarse verification_scope. Decide only alternatives execution criteria. Do not approve the later detailed artifact plan or verification methods here. Return rejected design to framing.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "framing"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual source and evidence identities, limitations and preservation. Independent inspection records findings and a justified decision."
+      },
+      "transitions": {
+        "changes_requested": "framing",
+        "clear": "alternatives"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

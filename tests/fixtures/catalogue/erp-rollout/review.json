@@ -1,0 +1,255 @@
+{
+  "goal_type": "review",
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "verdict",
+      "result",
+      "product_findings"
+    ]
+  },
+  "worktree_required": true,
+  "route": {
+    "entry": "planning"
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "inspection-input-review_criteria",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "review_criteria",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-review_plan",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "review_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-review_criteria",
+        "kind": "section",
+        "stages": [
+          "execution_inspection"
+        ],
+        "phase": "pre",
+        "section": "review_criteria",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-verdict",
+        "kind": "section",
+        "stages": [
+          "execution_inspection"
+        ],
+        "phase": "pre",
+        "section": "verdict",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "planning_inspection-input-review_criteria",
+        "kind": "section",
+        "stages": [
+          "planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "review_criteria",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "planning_inspection-input-review_plan",
+        "kind": "section",
+        "stages": [
+          "planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "review_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-review_plan",
+        "kind": "section",
+        "stages": [
+          "execution_inspection"
+        ],
+        "phase": "pre",
+        "section": "review_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-result",
+        "kind": "section",
+        "stages": [
+          "execution_inspection"
+        ],
+        "phase": "pre",
+        "section": "result",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_inspection-input-product_findings",
+        "kind": "section",
+        "stages": [
+          "execution_inspection"
+        ],
+        "phase": "pre",
+        "section": "product_findings",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "planning",
+      "handler": "produce",
+      "role": "executor",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report",
+        "review_criteria",
+        "review_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "planning_inspection"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "rework_targets": [
+        "planning"
+      ],
+      "instruction": "Before substantive review, the executor defines the coarse Task phases and a review design: goal, result requirements, acceptance criteria, what to inspect and where to focus. Identify the exact frozen subject, revision and diff bounds, relevant units, coverage, independent methods, source-author independence and justified exclusions. Agree this scope with the independent reviewer before executing the review; do not inspect a different revision or predesign unrelated future work.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual inspected source and evidence identities, limitations and preservation. An independent inspection records findings and its justified decision.",
+        "review_criteria": "For each criterion state its identity, inspected property, required scope, independent method and requirement references where available. Define review-report acceptance separately from the verdict about the external subject; do not claim an exhaustive product specification without evidence.",
+        "review_plan": "Identify the frozen subject and revision, exact diff bounds, units, criterion allocation, focus, inspection order, method inputs, preservation and exclusions with reasons. Record applicable independence from source authors; never label review of one's own implementation as independent."
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "handler": "inspect",
+      "id": "planning_inspection",
+      "instruction": "Independently review the immediate review design for executability, completeness and unambiguity. Agree what will be checked, its focus, criteria, frozen subject, methods, coverage, justified exclusions and source-author independence before substantive inspection. Accepted review_criteria and review_plan are the required observation inputs; do not invent native criteria authority for observation targets. Return rejected design to planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual inspected source and evidence identities, limitations and preservation. An independent inspection records findings and its justified decision."
+      },
+      "transitions": {
+        "clear": "inspection",
+        "changes_requested": "planning"
+      }
+    },
+    {
+      "id": "inspection",
+      "handler": "inspect",
+      "role": "executor",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report",
+        "verdict",
+        "result",
+        "product_findings"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "execution_inspection",
+        "changes_requested": "execution_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "rework_targets": [
+        "inspection"
+      ],
+      "instruction": "Execute the independently accepted review plan against the exact frozen external subject and its agreed criteria. Respect required independence from source authors and inspect with reproducible source-bound evidence. Record findings or a justified no-finding result and self-review the report. Do not change the subject, product files, accepted scope or criteria. Native clear and changes_requested describe the subject outcome and both proceed to independent review of this report; neither outcome is final acceptance of this Task result. If the subject differs from the frozen revision, report the identity failure and obtain an actual owner-approved scope or revision change through the applicable lifecycle before reinspection.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual inspected source and evidence identities, limitations and preservation. An independent inspection records findings and its justified decision.",
+        "verdict": "For every agreed criterion record proved, disproved, inconclusive or actually authorized waived status with exact evidence and reasoning. Distinguish the external subject verdict from the quality and completeness of the review Task; do not invent approval or a waiver.",
+        "result": "Record the actual substantive review result, fulfilled or unfulfilled Task DoD, report deliverables, limitations, source and evidence identity, incidents and delivery obligations. Do not claim product approval, repaired findings or an unverified publication.",
+        "product_findings": "Record reproducible findings with criterion, frozen source location, expected and actual behavior, impact and supporting evidence; state explicitly when none were found. Do not implement repairs or silently replace the reviewed subject."
+      }
+    },
+    {
+      "id": "execution_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "required_sections": [
+        "report",
+        "decisions"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "rework_targets": [
+        "execution_inspection",
+        "inspection"
+      ],
+      "instruction": "Independently check the review execution and report against the accepted review plan, criteria, Task acceptance conditions, development rules and general result requirements. Verify frozen source identity, actual coverage, independent evidence, finding accuracy and justified no-finding or negative-subject conclusions. Incomplete agreed coverage cannot become Task completion by calling it unknown; any permitted inconclusive result or exclusion needs the actual agreed criteria or authority. Do not rewrite the executor's report, subject or accepted criteria. Return rejected execution to inspection within the same phase; do not reopen planning. Acceptance of an accurate report does not approve or repair the external subject.",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, actual inspected source and evidence identities, limitations and preservation. An independent inspection records findings and its justified decision.",
+        "decisions": "Record substantive decisions with their actual authority, scope and source. Preserve user acceptance, waiver and publication decisions only when they actually exist; do not infer consent or permission from a file, command success or an accepted review report."
+      }
+    }
+  ]
+}

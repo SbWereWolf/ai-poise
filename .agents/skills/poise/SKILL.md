@@ -340,6 +340,11 @@ The ordinary managed-data prohibition below does not prohibit the narrowly scope
 audited manual recovery authorized by the canonical rule. Manual work is never a
 fabricated native receipt or Task completion.
 
+Users assign agents to roles. Perform both executor and reviewer stages only when the
+user assigned both; keep their work and decisions separate. Different workflow roles
+do not require different agent/session identities. Preserve actual provenance and claims.
+Follow the [canonical role-assignment rule](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
+
 ## Start or resume work
 
 Before creating or configuring a Poise project, read the canonical
@@ -621,9 +626,8 @@ publication authority. A publish stage opens only through the separately authori
 acceptance path.
 
 Continue the exact current verified result through its proved ownership history after an
-authorized ordinary release/acquire or authenticated historical ownership events. A receiver's later
-self-cycle
-retains the already proved transfer; the original verified author alone does not establish one.
+authorized ordinary release/acquire or authenticated historical ownership events. A lawful release/acquire may continue the next role with the same actor
+when the user assigned both roles; changing identity is not required.
 Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
 Follow the canonical [verified-result
 continuation](../../../docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения);
@@ -1070,9 +1074,9 @@ Native caller isolation: a session launcher is not caller identity. Use only the
 for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
 Never set these values to impersonate a stored binding or combine native identity with
 POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
-parent-only signals must not mutate the parent's Task. The sender uses ordinary public release;
-a genuinely separate native session obtains its own SessionStart launcher and bootstraps
-the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
+parent-only signals must not mutate the parent's Task. For a handoff to another assigned agent, the sender uses ordinary public release;
+the receiver uses its own native launcher and bootstraps the exact Task. If the user assigned
+both roles to one agent, the same actor may resume after release. Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
 
 ## Requirements provenance

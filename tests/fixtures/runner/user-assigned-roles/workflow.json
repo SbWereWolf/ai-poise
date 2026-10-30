@@ -1,0 +1,77 @@
+{
+  "goal_type": "user-assigned-roles",
+  "worktree_required": false,
+  "route": {
+    "entry": "build"
+  },
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "report"
+    ]
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": [
+    {
+      "id": "build",
+      "role": "executor",
+      "handler": "produce",
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "transitions": {
+        "complete": "inspect"
+      },
+      "rework_targets": [
+        "build"
+      ],
+      "read_only": false,
+      "allowed_paths": [
+        "src/**"
+      ],
+      "instruction": "Perform the work assigned by the user.",
+      "normalization": "strip",
+      "sections": {
+        "report": "Execution result"
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "inspect",
+      "role": "reviewer",
+      "handler": "inspect",
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
+      },
+      "transitions": {
+        "clear": null,
+        "changes_requested": "build"
+      },
+      "rework_targets": [
+        "build"
+      ],
+      "read_only": true,
+      "allowed_paths": [],
+      "instruction": "Inspect the result under the reviewer role assigned by the user.",
+      "normalization": "strip",
+      "sections": {
+        "report": "Review result"
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    }
+  ]
+}

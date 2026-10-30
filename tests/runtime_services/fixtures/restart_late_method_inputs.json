@@ -1,0 +1,5 @@
+{
+  "bash_prefix": ["bash", "-c", "exec \"$@\"", "late-method"],
+  "changed_requirement": "The fixture preserves explicitly revised verification inputs.",
+  "unsupported_profile": {"runner": "pytest", "parser": "positional-paths", "version": 99}
+}

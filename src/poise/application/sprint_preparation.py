@@ -5,6 +5,7 @@ from ..modules.foundation.errors import DomainError, PoiseError, VersionConflict
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.tasks.definition import path_identifier, validate_creation
 from ..modules.tasks.allocation import TaskIdPolicy, materialize_contract
+from .tasks import prepare_existing_creation_context
 
 
 def require_available_membership(snapshot, expected_sprint):
@@ -174,7 +175,11 @@ def prepare_draft_changes(changes, sid, workflows, execution_hash, automatic_che
                 if updates:
                     if newborn.claimed_by not in (None, prepared.actor):
                         raise DomainError('Newborn Task is owned by another session')
-                    changed = replace(newborn.materialize_draft(updates, workflows, prepared.actor), claimed_by=newborn.claimed_by)
+                    if any(item.get('from_status') != 'newborn' for item in newborn.restart_history):
+                        changed = newborn.edit(updates, [], workflows, prepared.actor)
+                    else:
+                        changed = newborn.materialize_draft(updates, workflows, prepared.actor)
+                    changed = replace(changed, claimed_by=newborn.claimed_by)
                     prepared.update(newborn, changed, execution_hash, 'newborn_edited')
                     newborn = changed
             else:
@@ -189,7 +194,15 @@ def prepare_draft_changes(changes, sid, workflows, execution_hash, automatic_che
                 if workflow is None:
                     raise DomainError('Unknown goal_type')
                 body = {'id':task_id, 'sprint_id':sid, **deepcopy(newborn.draft)}
-                validate_creation(_creation_definition(body), workflow, automatic_checks, decomposition_policy)
+                definition = _creation_definition(body)
+                context = prepare_existing_creation_context(
+                    newborn, prepared.snapshot.inputs, definition, request_id=None,
+                )
+                validation = {} if context is None else {
+                    'current_registry': context['current_registry'],
+                    'existing_contract': context['existing_contract'],
+                }
+                validate_creation(definition, workflow, automatic_checks, decomposition_policy, **validation)
             except PoiseError:
                 pass
             else:

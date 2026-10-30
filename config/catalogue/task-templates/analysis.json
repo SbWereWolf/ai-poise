@@ -40,12 +40,16 @@
     },
     "checks": {
       "framing": [],
+      "framing_inspection": [],
       "evidence_collection": [
         "COLLECT"
       ],
+      "evidence_collection_inspection": [],
+      "analysis_planning": [],
+      "analysis_planning_inspection": [],
       "reasoning": [],
       "challenge": [],
-      "self_inspection": []
+      "analysis_inspection": []
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

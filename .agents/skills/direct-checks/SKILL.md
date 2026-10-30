@@ -1,12 +1,19 @@
 ---
 name: direct-checks
 description: Select and preserve targeted behavior/boundary checks plus maintained fast smoke without full-suite fallback during ordinary work.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Targeted verification
 
 ## Inputs
+
+Load at an actual verification/evidence decision, not every implementation start.
+For focused/smoke/release selection or cache reuse, read
+[quality profiles](references/quality-profiles.md). For a registered check or
+nested host wait, read [runner wait discipline](references/registered-runner-wait.md).
+Keep these references conditional; they do not introduce ERP command IDs.
 
 The exact owned diff, accepted requirement and observable boundary, current Task/stage/evidence plan, reusable evidence identity, selected Poise project commands/runtime/tool versions and current impact/routing result. Read target-worktree manifests and documentation as facts; do not store Poise configuration there. Use [poise-workflow](../poise/SKILL.md) for the actual executable API.
 

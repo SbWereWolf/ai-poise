@@ -58,30 +58,6 @@
         ]
       },
       {
-        "id": "evidence_collection-input-method",
-        "kind": "section",
-        "phase": "pre",
-        "section": "method",
-        "stages": [
-          "evidence_collection"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "reasoning-input-method",
-        "kind": "section",
-        "phase": "pre",
-        "section": "method",
-        "stages": [
-          "reasoning"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
         "id": "challenge-input-analysis",
         "kind": "section",
         "phase": "pre",
@@ -106,60 +82,492 @@
         ]
       },
       {
-        "id": "self_inspection-input-conclusions",
-        "kind": "section",
-        "phase": "pre",
-        "section": "conclusions",
-        "stages": [
-          "self_inspection"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "self_inspection-input-analysis",
-        "kind": "section",
-        "phase": "pre",
-        "section": "analysis",
-        "stages": [
-          "self_inspection"
-        ],
-        "states": [
-          "populated"
-        ]
-      },
-      {
-        "id": "self_inspection-input-alternative_explanations",
+        "id": "analysis_inspection-input-alternative_explanations",
         "kind": "section",
         "phase": "pre",
         "section": "alternative_explanations",
         "stages": [
-          "self_inspection"
+          "analysis_inspection"
         ],
         "states": [
           "populated"
         ]
       },
       {
-        "id": "self_inspection-input-counterevidence",
+        "id": "analysis_inspection-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-analysis_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_method",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-conclusions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "conclusions",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-counterevidence",
         "kind": "section",
         "phase": "pre",
         "section": "counterevidence",
         "stages": [
-          "self_inspection"
+          "analysis_inspection"
         ],
         "states": [
           "populated"
         ]
       },
       {
-        "id": "self_inspection-input-limitations",
+        "id": "analysis_inspection-input-evidence_collection.assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-evidence_collection.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-evidence_collection.sources",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-limitations",
         "kind": "section",
         "phase": "pre",
         "section": "limitations",
         "stages": [
-          "self_inspection"
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_inspection-input-recommendations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "recommendations",
+        "stages": [
+          "analysis_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-evidence_collection.assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-evidence_collection.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning-input-evidence_collection.sources",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "analysis_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-analysis_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_method",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-evidence_collection.assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-evidence_collection.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis_planning_inspection-input-evidence_collection.sources",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "analysis_planning_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-analysis_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_method",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-evidence_collection.assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-evidence_collection.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-evidence_collection.sources",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-recommendations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "recommendations",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection-input-collection_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "collection_method",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection-input-collection_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "collection_plan",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection_inspection-input-collection_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "collection_method",
+        "stages": [
+          "evidence_collection_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection_inspection-input-collection_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "collection_plan",
+        "stages": [
+          "evidence_collection_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection_inspection-input-evidence_collection.assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "evidence_collection_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection_inspection-input-evidence_collection.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "evidence_collection_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection_inspection-input-evidence_collection.sources",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "evidence_collection_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection_inspection-input-source_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "source_plan",
+        "stages": [
+          "evidence_collection_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-collection_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "collection_method",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-collection_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "collection_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "framing_inspection-input-source_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "source_plan",
+        "stages": [
+          "framing_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reasoning-input-analysis_method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_method",
+        "stages": [
+          "reasoning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reasoning-input-analysis_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis_plan",
+        "stages": [
+          "reasoning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reasoning-input-evidence_collection.assumptions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "reasoning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reasoning-input-evidence_collection.facts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "reasoning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reasoning-input-evidence_collection.sources",
+        "kind": "section",
+        "phase": "pre",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "reasoning"
         ],
         "states": [
           "populated"
@@ -195,7 +603,6 @@
     ]
   },
   "goal_type": "analysis",
-  "worktree_required": true,
   "route": {
     "entry": "framing"
   },
@@ -203,77 +610,75 @@
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "framing",
-      "instruction": "Сформулировать вопросы и метод до сбора огромного массива. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Before subject work, agree the coarse Task phases with the independent reviewer. Design only the imminent evidence-collection phase: goal, result requirements, acceptance criteria, source classes, exact scope and time window, sample and coverage policy, collection and parsing method, exclusions and completeness. Do not prescribe detailed reasoning procedures or conclusions before the actual data is independently accepted. Do not collect substantive evidence before the collection design is accepted.",
       "normalization": "strip",
+      "purpose": "design",
       "read_only": true,
       "required_sections": [
         "report",
         "source_plan",
-        "method"
+        "collection_method",
+        "collection_plan"
       ],
       "rework_targets": [
-        "framing",
-        "evidence_collection",
-        "reasoning",
-        "challenge",
-        "self_inspection"
+        "framing"
       ],
+      "role": "executor",
       "sections": {
-        "method": "аналитическая/измерительная процедура, inputs, steps, reproducible calculations/exact commands, assumptions, expected information; не private chain of thought.",
-        "report": "Record the substantive result for this stage.",
-        "source_plan": "required source classes, time window, sample/coverage policy, parsers/aggregation, exclusions, completeness criteria."
+        "collection_method": "Specify only the current collection procedure, exact existing inputs, observation or parsing methods, aggregation and preservation. Do not predesign the later analytical inference method.",
+        "collection_plan": "State the current collection goal, required source/fact/assumption result, independent acceptance criteria, methods, source identities, resource limits, ownership and preservation.",
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision.",
+        "source_plan": "Identify required source classes, exact scope and time window, sampling and coverage, collection transformations, exclusions and actual completeness criteria. Missing required sources cannot be disguised as a complete sample."
       },
       "transitions": {
-        "complete": "evidence_collection"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "framing_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "observe",
-      "role": "executor",
       "id": "evidence_collection",
-      "instruction": "Обработать данные инструментами, извлечь факты. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute only the independently accepted collection plans. Publish the actual declared evidence_collection.sources, evidence_collection.facts and evidence_collection.assumptions with exact source identities and scope. Preserve source data and distinguish observations from assumptions. A template placeholder or invented fact is not evidence; report missing inputs, failed parsing or incomplete coverage truthfully. Do not perform the later analysis or overwrite product data.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report"
       ],
       "rework_targets": [
-        "evidence_collection",
-        "framing",
-        "reasoning",
-        "challenge",
-        "self_inspection"
+        "evidence_collection"
       ],
+      "role": "executor",
       "sections": {
-        "report": "Record the substantive result for this stage."
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
       },
       "transitions": {
-        "complete": "reasoning"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "evidence_collection_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "reasoning",
-      "instruction": "Сформировать проверяемые выводы. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute the accepted analytical plan against the independently accepted facts and produce a draft analysis, conclusions and recommendations with exact evidence and assumption references. State reproducible procedures and inference summaries without private chain-of-thought. Do not alter accepted source records, scope or method. The report is not accepted before the adversarial challenge and independent final inspection.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report",
@@ -282,97 +687,209 @@
         "recommendations"
       ],
       "rework_targets": [
-        "reasoning",
-        "framing",
-        "evidence_collection",
-        "challenge",
-        "self_inspection"
+        "reasoning"
       ],
+      "role": "executor",
       "sections": {
-        "analysis": "claims с fact/evidence refs, assumptions, inference summary, alternative explanations; охват questions/metrics.",
-        "conclusions": "question/criterion refs, claim, facts+assumptions, inference summary, ограничения и verdict.",
-        "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
-        "report": "Record the substantive result for this stage."
+        "analysis": "Relate every substantive claim to exact facts and assumptions, a reproducible inference summary and alternative explanations, covering the agreed questions or metrics. Do not expose private chain-of-thought or fabricate support.",
+        "conclusions": "For every question or criterion state the current supported claim or permitted unresolved status, exact evidence and assumptions, inference summary, limitations and verdict. Reconcile actual counterevidence; do not leave a disproved draft as the final conclusion.",
+        "recommendations": "Propose actions only from supported current conclusions and evidence, stating expected effect, risks and a subsequent way to verify them. Correct recommendations affected by counterevidence. Do not execute the proposed actions automatically.",
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
       },
       "transitions": {
         "complete": "challenge"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "produce",
-      "role": "executor",
       "id": "challenge",
-      "instruction": "Проверить альтернативы и опровергающие данные. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Execute the agreed adversarial scrutiny and reconcile this same unaccepted analysis report. Search for alternative explanations and actual counterevidence, record distinguishing checks, dispositions and limitations, and revise affected analysis, conclusions and recommendations before final review. Do not fabricate a positive conclusion or leave contradictory evidence beside stale claims. Use an evidence-backed unresolved status only where the agreed criteria allow it. Do not rewrite collector-owned facts or silently obtain facts outside accepted scope; an actual owner-approved scope or lifecycle change is required.",
       "normalization": "strip",
+      "purpose": "execution",
       "read_only": true,
       "required_sections": [
         "report",
         "alternative_explanations",
         "counterevidence",
-        "limitations"
+        "limitations",
+        "analysis",
+        "conclusions",
+        "recommendations"
       ],
       "rework_targets": [
         "challenge",
-        "framing",
-        "evidence_collection",
-        "reasoning",
-        "self_inspection"
+        "reasoning"
       ],
+      "role": "executor",
       "sections": {
-        "alternative_explanations": "id, объяснение, supporting/counter facts, проверка различия с основным выводом и disposition.",
-        "counterevidence": "source/fact, какой claim оспаривает, disposition/изменение вывода; explicit search performed+none если не найдено.",
-        "limitations": "что не установлено, ограничения данных/метода, влияние на conclusions/DoD; explicit none с основанием.",
-        "report": "Record the substantive result for this stage."
+        "alternative_explanations": "For each relevant alternative explanation state its identity, supporting and opposing evidence, a distinguishing check and its disposition.",
+        "analysis": "Relate every substantive claim to exact facts and assumptions, a reproducible inference summary and alternative explanations, covering the agreed questions or metrics. Do not expose private chain-of-thought or fabricate support.",
+        "conclusions": "For every question or criterion state the current supported claim or permitted unresolved status, exact evidence and assumptions, inference summary, limitations and verdict. Reconcile actual counterevidence; do not leave a disproved draft as the final conclusion.",
+        "counterevidence": "Record actual sources or facts, the claim challenged and its effect on the reconciled report. If none were found, identify the actual search performed and justify that result.",
+        "limitations": "State what is not established, data or method limits and their effect on current conclusions and Task acceptance. Explicitly justify any assertion of no limitations.",
+        "recommendations": "Propose actions only from supported current conclusions and evidence, stating expected effect, risks and a subsequent way to verify them. Correct recommendations affected by counterevidence. Do not execute the proposed actions automatically.",
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
       },
       "transitions": {
-        "complete": "self_inspection"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "complete": "analysis_inspection"
       }
     },
     {
       "allowed_paths": [],
       "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
       "handler": "inspect",
-      "role": "executor",
-      "id": "self_inspection",
-      "instruction": "Осмотреть достоверность собственного анализа. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "id": "analysis_inspection",
+      "instruction": "Independently verify the reconciled current analysis, conclusions, recommendations, alternatives, counterevidence and limitations against the accepted actual collection and analytical phase plan. Check source identity, fact-versus-assumption separation, coverage, reproducible methods, inference summaries, current claim consistency, development rules and general result requirements. Incomplete required coverage is not Task completion merely because it is labelled unknown; inconclusive results need explicit permission in the agreed criteria. Return rejected analytical execution to reasoning within this same phase, never to accepted framing or collection design. Do not rewrite the report or collector-owned facts. Acceptance of proposals does not execute recommendations or invent user authority.",
       "normalization": "strip",
+      "purpose": "observation",
       "read_only": true,
       "required_sections": [
         "report",
         "result"
       ],
       "rework_targets": [
-        "self_inspection",
-        "evidence_collection",
-        "reasoning",
-        "challenge",
-        "framing"
+        "analysis_inspection",
+        "reasoning"
       ],
+      "role": "reviewer",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision.",
+        "result": "Record the actual final substantive analysis result, fulfilled or unfulfilled Task DoD, current supported verdicts, report deliverables, source and evidence identities, limitations, incidents and outstanding delivery obligations. Record decisions or waivers only with their actual authority and provenance."
+      },
+      "transitions": {
+        "changes_requested": "reasoning",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": [
+          "reasoning"
+        ]
+      },
+      "handler": "produce",
+      "id": "analysis_planning",
+      "instruction": "After independent acceptance of the actual collection, design only the imminent analytical-report phase: draft the claims and recommendations, then challenge and reconcile the same unaccepted report. State the goal, required result, acceptance criteria, coverage, data and assumption references, reproducible analytical procedures and counterexample strategy. Do not preselect unsupported conclusions or design unrelated future work. Accepted collection records cannot be rewritten by this analytical phase.",
+      "normalization": "strip",
+      "purpose": "design",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "analysis_plan",
+        "analysis_method"
+      ],
+      "rework_targets": [
+        "analysis_planning"
+      ],
+      "role": "executor",
+      "sections": {
+        "analysis_method": "Describe reproducible procedures, formulas or actual commands, inputs, assumptions, independent comparisons and adversarial checks against the accepted facts. Publish evidence-backed inference summaries, not private chain-of-thought. Further facts outside accepted scope require an actual owner-approved scope or lifecycle change.",
+        "analysis_plan": "State the current analytical-report goal, required result, acceptance criteria, questions and metrics, accepted data and assumptions, independent inference checks, counterevidence coverage, reconciliation and permitted uncertainty.",
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
+      },
+      "transitions": {
+        "complete": "analysis_planning_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [
+          "reasoning"
+        ],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "analysis_planning_inspection",
+      "instruction": "Independently review the current analysis_plan and analysis_method against the accepted actual facts for executability, completeness and unambiguity. Check independent reasoning checks, counterevidence search, final report consistency, justified uncertainty and preservation of accepted source records. Decide only reasoning execution criteria for this coherent drafting-and-reconciliation phase. Return rejected design to analysis_planning.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "analysis_planning"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
+      },
+      "transitions": {
+        "changes_requested": "analysis_planning",
+        "clear": "reasoning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "criteria_authority": {
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "evidence_collection_inspection",
+      "instruction": "Independently verify actual collected sources, facts and assumptions against the accepted collection plans, completeness criteria and preserved source identity. Require the three actual declared results; a placeholder cannot satisfy the obligation. Do not accept missing mandatory coverage by declaring it unknown. Return rejected collection execution to evidence_collection; accept data before the analytical phase is designed.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "evidence_collection"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
       },
       "transitions": {
         "changes_requested": "evidence_collection",
-        "clear": null
-      },
-      "purpose": "observation",
+        "clear": "analysis_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
       "criteria_authority": {
-        "propose": [],
-        "decide": []
+        "decide": [],
+        "propose": []
+      },
+      "handler": "inspect",
+      "id": "framing_inspection",
+      "instruction": "Independently review the source_plan, collection_method and collection_plan for executability, completeness and unambiguity before evidence collection. Check actual source availability, scope, coverage, exclusions, completeness criteria and preservation. Observation criteria are accepted through these explicit plans; do not invent unsupported native criteria authority. Return rejected design to framing.",
+      "normalization": "strip",
+      "purpose": "observation",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "framing"
+      ],
+      "role": "reviewer",
+      "sections": {
+        "report": "Record the phase goal, required result, acceptance criteria, exact sources and evidence, actual result, limitations and preservation. Independent inspection records findings and a substantiated decision."
+      },
+      "transitions": {
+        "changes_requested": "framing",
+        "clear": "evidence_collection"
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

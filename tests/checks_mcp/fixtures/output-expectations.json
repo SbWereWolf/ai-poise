@@ -1,0 +1,4 @@
+{
+  "passed": {"brief": "Checks: passed", "expanded": "Checks: passed\nChecks: sample"},
+  "failed": {"brief": "Checks: failed", "expanded": "Checks: failed\nChecks: sample"}
+}

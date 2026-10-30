@@ -1,0 +1,66 @@
+{
+  "schema": "task-blueprint-1",
+  "goal_type": "verification",
+  "parameters": {
+    "identity": "text",
+    "membership": "nullable_text",
+    "goal": "text",
+    "requirements": "strings",
+    "dod": "strings",
+    "methods": "list",
+    "method_inputs": "list",
+    "artifact_requirements": "list",
+    "contract": "object",
+    "evidence": "object",
+    "stage_contracts": "list",
+    "decomposition": "object"
+  },
+  "task": {
+    "id": {
+      "$input": "identity"
+    },
+    "sprint_id": {
+      "$input": "membership"
+    },
+    "goal_type": "verification",
+    "goal": {
+      "$input": "goal"
+    },
+    "requirements": {
+      "$input": "requirements"
+    },
+    "definition_of_done": {
+      "$input": "dod"
+    },
+    "methods": {
+      "$input": "methods"
+    },
+    "method_inputs": {
+      "$input": "method_inputs"
+    },
+    "checks": {
+      "planning": [],
+      "planning_inspection": [],
+      "execution": [
+        "VERIFY"
+      ],
+      "analysis": [],
+      "execution_inspection": []
+    },
+    "artifact_requirements": {
+      "$input": "artifact_requirements"
+    },
+    "content_contract": {
+      "$input": "contract"
+    },
+    "evidence_plan": {
+      "$input": "evidence"
+    },
+    "stage_contracts": {
+      "$input": "stage_contracts"
+    },
+    "decomposition": {
+      "$input": "decomposition"
+    }
+  }
+}

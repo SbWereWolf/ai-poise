@@ -1,0 +1,4 @@
+[
+  "tests/catalogue/test_development_root_rollout.py",
+  "tests/catalogue/test_development_initial_checks.py"
+]

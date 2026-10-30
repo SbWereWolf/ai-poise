@@ -1,7 +1,8 @@
 ---
 name: infrastructure
 description: Change actual runtime, deployment, environment, health, backup/restore and rollback contracts through their project owners with focused operational evidence.
-version: 3.0.0
+metadata:
+  version: "3.0.0"
 ---
 
 # Infrastructure
@@ -19,6 +20,13 @@ and [coordinated consumer update](../../../docs/operator/maintenance-profile-v2.
 Keep native Task readiness, individual resource observations and application launch evidence distinct.
 
 ## Inputs
+
+For configured environment actions, use the selected instance's installed
+environment-maintenance owner and [operator profile guide](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия).
+Choose its actual profile, explicit paths/arguments and requirement IDs. Prepare,
+align where supported, check and launch are distinct operations; submission does
+not prove readiness. Preserve full status/streams and follow the returned recheck.
+Do not copy ERP start-app/local-dev commands, Composer inputs or nine-unit topology.
 
 The current Poise Task/stage/scope and session-selected worktree, changed operational scenario, exact target environment and authorization, actual runtime/build identity, owners/runbooks and explicit success/failure/recovery requirements. Resolve paths, commands, versions, runtime and file maps through the selected Poise-owned configuration using the target's versioned documentation as read-only facts. Never add an AI poise configuration to the target repository. Use [poise-workflow](../poise/SKILL.md).
 

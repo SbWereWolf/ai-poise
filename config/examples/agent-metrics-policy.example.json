@@ -69,7 +69,7 @@
         "kind": "codex-transcript",
         "parser_version": "invocations-2.5",
         "paths": [
-          "/srv/example/codex/sessions/*.jsonl"
+          "/srv/example/codex/sessions"
         ]
       }
     ]

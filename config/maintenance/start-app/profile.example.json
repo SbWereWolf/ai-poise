@@ -3,7 +3,7 @@
   "settings": "config/project-setup.example.json",
   "recommendations": "config/maintenance/recommendations.example.json",
   "templates": {
-    "linux-reference": "config/project-templates/linux-reference.json"
+    "common": "config/project-templates/common.json"
   },
   "asset_directories": [
     {
@@ -630,7 +630,7 @@
     "directory_mode": "0750",
     "python_minimum": "3.15",
     "python_maximum": "3.16",
-    "template_id": "linux-reference",
+    "template_id": "common",
     "remote": "disabled",
     "env_executable": "env",
     "wheelhouse": "/srv/poise/wheels",

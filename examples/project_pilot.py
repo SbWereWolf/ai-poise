@@ -35,7 +35,7 @@ def _stage_contracts(workflow):
 def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_root,worktrees_root):
     root=Path(root).resolve();repository=Path(repository).resolve()
     settings=root/'config/project-setup.json'
-    setup=ProjectSettings(settings);selected=setup.raw['templates']['linux-reference']
+    setup=ProjectSettings(settings);selected=setup.raw['templates']['common']
     template=json.loads((setup.root/selected['path']).read_text())
     replacements={'PROJECT_ID':'poise-pilot','REPOSITORY_ROOT':str(repository),
                   'POISE_SOURCE_ROOT':str(root),'PROJECT_CONFIG_ROOT':str(setup.root/destination),
@@ -58,7 +58,7 @@ def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_ro
         edits.append({'path':question['path'],'value':value})
     edits.append({'path':['runtime_resources','hooks'],'value':[]})
     request={'schema':'project-setup-1','request_id':task_id,'destination':destination,
-             'template':{'id':'linux-reference'},
+             'template':{'id':'common'},
              'edits':edits,
              'probe_repository':True}
     setup_result=project_tools(settings).apply(request)

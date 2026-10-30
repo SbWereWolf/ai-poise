@@ -2,11 +2,8 @@
   "schema": "project-setup-settings-1",
   "root": "${SETUP_ROOT}",
   "templates": {
-    "linux-reference": {
-      "path": "app/config/project-templates/linux-reference.json"
-    },
-    "wsl-poise": {
-      "path": "app/config/project-templates/wsl-poise.json"
+    "common": {
+      "path": "app/config/project-templates/common.json"
     }
   },
   "manifest": "project.json",

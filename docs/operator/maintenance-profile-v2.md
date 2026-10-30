@@ -111,7 +111,7 @@ npm install --prefix "$tool_prefix" --no-audit --no-fund "$tool_package"
 | `--base-ref REF` | Обязательная доступная локальная базовая ревизия выбранного checkout. |
 | `--author-name NAME` | Обязательное имя автора проекта. |
 | `--author-email EMAIL` | Обязательная почта автора проекта. |
-| `--template ID` | ID из спецификации; исходное значение CLI — `linux-reference`. |
+| `--template ID` | ID из спецификации; исходное значение CLI — `common`. |
 | `--module-path PATH` | Публикуемое значение `module_path`; исходное значение — пустая строка. Новый operation-профиль отдельно задаёт исполняемый `runtime_module_path`. |
 | `-h`, `--help` | Стандартная справка без публикации. |
 
@@ -433,7 +433,7 @@ project/registry/editor настройки. Обслуживаемые данн�
 | `directory_mode` | В примере `0750`; права создаваемых каталогов. |
 | `python_minimum` | В примере `3.13`; включительная нижняя граница Python. |
 | `python_maximum` | В примере `3.14`; исключительная верхняя граница Python. |
-| `template_id` | `--template`, исходно `linux-reference`. |
+| `template_id` | `--template`, исходно `common`. |
 | `remote` | В примере `disabled`; значение конфигурации проекта. |
 | `php_executable` | В примере `php`; выбранный PHP для проверок и Composer. |
 | `node_executable` | В примере `node`; выбранный Node для проверок и npm. |

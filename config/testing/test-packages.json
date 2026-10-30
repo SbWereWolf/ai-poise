@@ -284,8 +284,7 @@
           "config/batch.example.json",
           "config/accounting.example.json",
           "config/project.example.json",
-          "config/project-templates/linux-reference.json",
-          "config/project-templates/wsl-poise.json",
+          "config/project-templates/common.json",
           "tests/requirements_registry/fixtures/schema_v1.sql"
         ]
       }
@@ -313,8 +312,7 @@
         "fixtures": [
           "tests/conftest.py",
           "config/project.example.json",
-          "config/project-templates/linux-reference.json",
-          "config/project-templates/wsl-poise.json"
+          "config/project-templates/common.json"
         ]
       }
     },

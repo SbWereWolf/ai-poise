@@ -10,43 +10,54 @@
 
 ## Архитектура локальной установки
 
-AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный
-project manifest, собственный каталог workflow configs, собственная Task DB, собственная Requirements DB и собственные
-task/sprint artifacts. Операционные данные отделены от версионируемых файлов продукта; Requirements DB может
-версионироваться по решению пользователя. Физическое размещение внутри checkout допустимо по правилам соответствующего
+AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise
+используется собственный
+project manifest, собственный каталог workflow configs, собственная Task DB, собственная
+Requirements DB и собственные
+task/sprint artifacts. Операционные данные отделены от версионируемых файлов продукта; Requirements
+DB может
+версионироваться по решению пользователя. Физическое размещение внутри checkout допустимо по
+правилам соответствующего
 хранилища.
 
-Настройка создаёт проект, но не создаёт задачи и Sprint автоматически. Идентификаторы Task локальны для проекта и
+Настройка создаёт проект, но не создаёт задачи и Sprint автоматически. Идентификаторы Task локальны
+для проекта и
 выделяются штатным allocator при публикации постановки.
 
-13 workflow configs проекта создаются из reference templates AI poise и после публикации проекта являются
+13 workflow configs проекта создаются из reference templates AI poise и после публикации проекта
+являются
 самостоятельными конфигурациями проекта: изменение reference template не меняет их автоматически.
 
 ## Пути project-local storage
 
-Пути задаёт только project configuration. В WSL template `wsl-poise` поле `paths.state` — абсолютный project-data root
+Пути задаёт только project configuration. В общей заготовке `common` поле `paths.state` — абсолютный
+project-data root
 вне Git checkout обслуживаемой кодовой базы. Остальные operational paths заданы относительно него:
 
 ```text
-paths.database         = tasks.sqlite
-paths.lock             = tasks.lock
-paths.standalone_tasks = artifacts/standalone
-paths.sprints          = artifacts/sprints
-paths.runtime          = runtime
+paths.database         = tasks/tasks.sqlite
+paths.lock             = tasks/tasks.lock
+paths.standalone_tasks = standalone
+paths.sprints          = sprint
+paths.runtime          = .runtime
 paths.worktrees        = worktrees
 ```
 
 Standalone Task хранит файлы в
-`artifacts/standalone/<task-id>/`. Task, принадлежащая Sprint, использует
-`artifacts/sprints/<sprint-id>/task/<task-id>/`; её файлы не дублируются в standalone
+`standalone/<task-id>/`. Task, принадлежащая Sprint, использует
+`sprint/<sprint-id>/task/<task-id>/`; её файлы не дублируются в standalone
 namespace. Поле `paths.standalone_tasks` обязательно. Удалённое `paths.tasks` не является
 alias и отклоняется при загрузке конфигурации.
 
-Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project configuration.
-Requirements DB и lock должны быть отдельны друг от друга и от Task DB и lock. Внешнее размещение в этом шаблоне —
-конкретный выбор; внутри репозитория БД также допустима, а её версионирование выбирает пользователь без разрешительного
+Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project
+configuration.
+Requirements DB и lock должны быть отдельны друг от друга и от Task DB и lock. Внешнее размещение в
+этом шаблоне —
+конкретный выбор; внутри репозитория БД также допустима, а её версионирование выбирает пользователь
+без разрешительного
 флага и Git-проверки размещения. Сохраняется [правило явных путей и отделения
-хранилищ](../workflows/requirements-registry.md#владение-и-явные-пути). Код AI poise не должен иметь скрытого
+хранилищ](../workflows/requirements-registry.md#владение-и-явные-пути). Код AI poise не должен иметь
+скрытого
 универсального пути Requirements DB.
 
 ## Настройка проекта в WSL
@@ -57,14 +68,16 @@ Requirements DB и lock должны быть отдельны друг от д�
 export PYTHONPATH="$PWD/src"
 python -m poise project-init \
   --settings "$PWD/config/project-setup.json" \
-  --template wsl-poise \
+  --template common \
   --destination projects/poise \
   --request-id POISE-WSL-SETUP-1 \
   --probe-repository yes
 ```
 
-В анкете явно задаются repository исходников AI poise, base ref, неиспользуемое имя remote, Git author, обязательное
-`push_required=false`, абсолютный project-data root и наследуемые environment variables. `push_required=true` запрещён и
+В анкете явно задаются repository исходников AI poise, base ref, неиспользуемое имя remote, Git
+author, обязательное
+`push_required=false`, абсолютный project-data root и наследуемые environment variables.
+`push_required=true` запрещён и
 отклоняется до Git-команды.
 
 ## Реестры и постановка задач
@@ -77,7 +90,8 @@ python -m poise project-init \
 
 Для восстановления этой поставки использовать существующие снимки Task DB и
 Requirements DB из полного архива. Утверждённые 6 требований и 4 связи уже импортированы;
-[порядок восстановления](../workflows/requirements-registry.md#однократный-импорт-утверждённой-поставки)
+[порядок
+восстановления](../workflows/requirements-registry.md#однократный-импорт-утверждённой-поставки)
 описывает их явные пути. Пустой реестр не заменяет сохранённый снимок.
 
 ## Начало работы над задачей
@@ -103,15 +117,19 @@ python -m poise next --settings "$PWD/config/project-setup.json"
 
 ## Skills для агента
 
-Для обычной работы: [AI poise task workflow](../../.agents/skills/poise/SKILL.md#ai-poise-task-workflow). Для изменения
-AI poise: [AI poise development](../../.agents/skills/poise-development/SKILL.md#ai-poise-development).
+Для обычной работы: [AI poise task
+workflow](../../.agents/skills/poise/SKILL.md#ai-poise-task-workflow). Для изменения
+AI poise: [AI poise
+development](../../.agents/skills/poise-development/SKILL.md#ai-poise-development).
 
-Skill, который опирается на нормативную документацию, должен ссылаться на минимальный конкретный section, достаточный
+Skill, который опирается на нормативную документацию, должен ссылаться на минимальный конкретный
+section, достаточный
 для данного operational rule.
 
 ## Резервирование
 
-Task DB и task/sprint artifacts не являются Git history обслуживаемого продукта. Requirements DB может входить в Git
+Task DB и task/sprint artifacts не являются Git history обслуживаемого продукта. Requirements DB
+может входить в Git
 history по решению пользователя. Готовый результат передаётся штатным
 [`handoff`](../workflows/batch-work.md#передача-результата-одной-командой), незавершённые
 материалы — через их владельцев и обычный release/bootstrap той же Task.
@@ -159,7 +177,8 @@ Checkout исходников не определяет операторскую
 При переносе установки проверьте interpreter, manifest, базы, привязки native hooks
 и существование настроенного Git base_ref. Не удаляйте базу хуков ради переустановки.
 Для поддерживаемого изменения installation identity используйте публичный reconcile,
-описанный в [контракте хуков](runtime-hooks.md#согласование-installation-identity-после-переименования).
+описанный в [контракте
+хуков](runtime-hooks.md#согласование-installation-identity-после-переименования).
 Это не обещание поддержки переноса корня с прежним ID. Если соответствующей публичной
 операции нет, фиксируйте ограничение и задачу исправления; не создавайте старые-path
 symlinks и не объявляйте ручной обход штатной процедурой.

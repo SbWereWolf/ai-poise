@@ -55,7 +55,7 @@
     },
     "template_id": {
       "type": "string",
-      "default": "linux-reference"
+      "default": "common"
     },
     "remote": {
       "type": "string",

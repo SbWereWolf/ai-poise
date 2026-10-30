@@ -89,7 +89,7 @@ poise-project-data/demo/
 |---|---|---|
 | [project-registry.example.json](../../config/project-registry.example.json) | Начальный реестр | Пустой `projects`; генератор регистрирует опубликованный manifest. |
 | [project-setup.example.json](../../config/project-setup.example.json) | Настройки генератора | `root`, registry, внешний setup lock и явные пути шаблонов и выбор template ID. |
-| [linux-reference.json](../../config/project-templates/linux-reference.json), [wsl-poise.json](../../config/project-templates/wsl-poise.json) | Полные blueprint нового проекта | Все вопросы, включая абсолютные корни данных и worktrees; не править blueprint ради одной установки. |
+| [common.json](../../config/project-templates/common.json) | Общая заготовка нового проекта | Все вопросы, включая абсолютные корни данных и worktrees; не править blueprint ради одной установки. |
 | [project.example.json](../../config/project.example.json) | Обезличенный полный manifest и справочный образец значений | Project ID, репозиторий, наблюдённая ветка, автор, политика публикации и корни. Для создания использовать генератор. |
 | [hook-settings.example.json](../../config/hook-settings.example.json) | Отдельные настройки Hook Registry | Общий файловый `root`, выбранные Python/source root, project config, native hooks, definitions и проектный hook state. |
 | [stride.example.env](../../config/stride.example.env), [stride-launcher.example.json](../../config/stride-launcher.example.json) | Запуск выбранного проекта | Явный интерпретатор установленного пакета, registry settings, ID проекта и независимые tool/data roots. |
@@ -150,9 +150,8 @@ poise-op. Компонентные примеры accounting, batch, runtime и 
 переменные в командах принадлежат его существующему контракту. Полные пути Python
 задаются отдельно от корней Poise; получение родителя каталога не требуется.
 
-Действующие [linux-reference.json](../../config/project-templates/linux-reference.json)
-и [wsl-poise.json](../../config/project-templates/wsl-poise.json) предлагают тот же
-полный профиль размещения. Редактирование шаблона или источника графа
+Общая заготовка [common.json](../../config/project-templates/common.json)
+предлагает полный профиль размещения для любого проекта. Редактирование шаблона или источника графа
 применяется при следующем создании без перерегистрации версии или хэша.
 
 Текущий `ProjectBlueprint.build` принимает явные правки полей и не раскрывает

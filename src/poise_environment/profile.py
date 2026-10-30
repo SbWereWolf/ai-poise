@@ -196,7 +196,7 @@ def main(argv=None):
     for name in ("source", "output", "state", "repository", "project",
                  "base-ref", "author-name", "author-email"):
         parser.add_argument("--" + name, required=True)
-    parser.add_argument("--template", default="linux-reference")
+    parser.add_argument("--template", default="common")
     parser.add_argument("--module-path", default="")
     parser.add_argument("--profile-spec")
     args = parser.parse_args(argv)

@@ -12,7 +12,7 @@
   "directory_mode": "0750",
   "python_minimum": "3.15",
   "python_maximum": "3.14",
-  "template_id": "linux-reference",
+  "template_id": "common",
   "remote": "disabled",
   "php_executable": "php",
   "node_executable": "node",

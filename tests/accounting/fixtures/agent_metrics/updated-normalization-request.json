@@ -12,25 +12,7 @@
     "source_path": "@CHECKOUT@/fixture-session.jsonl",
     "checkout": "@CHECKOUT@",
     "source_key": "independent-source-fixture",
-    "policy_digest": "test-policy-identity",
-    "path_policy": {
-      "schema_version": 1,
-      "path_roots": [
-        "@CHECKOUT@"
-      ],
-      "include": [
-        "**"
-      ],
-      "exclude": [
-        "tasks/**",
-        ".runtime/**",
-        "var/**",
-        ".agents/**",
-        ".codex/**",
-        "docs/plans/**",
-        "ai-assistant/analytics/data/**"
-      ]
-    }
+    "policy_digest": "test-policy-identity"
   },
   "processed_at": "2026-10-29T00:01:00Z"
 }

@@ -267,3 +267,5 @@ def test_query_scope_does_not_leak_another_session_or_write_observations(project
         assert committed_observations(scene.metrics / "observed.sqlite") == before
     finally:
         scene.close()
+
+

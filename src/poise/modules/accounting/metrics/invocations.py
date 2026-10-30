@@ -4,8 +4,7 @@ from .domain import canonical, identity, known_counter
 
 COMPONENTS = ('input_tokens', 'cached_input_tokens', 'cache_write_input_tokens',
               'output_tokens', 'reasoning_output_tokens', 'total_tokens')
-PARSER_VERSION = 'invocations-2.0'
-CLASSIFICATION_VERSION = 'purpose-1'
+PARSER_VERSION = 'invocations-2.5'
 
 
 def usage_values(observations):
@@ -44,6 +43,8 @@ def modern_invocations(records, session):
         if event.get('type') != 'token_usage_record':
             continue
         payload = event['payload']
+        if payload.get('thread_id') is not None and payload['thread_id'] != session:
+            continue
         response = payload.get('response_id')
         valid = isinstance(response, str) and bool(response.strip()) and payload.get('thread_id') == session
         key = 'response:' + identity([session, response]) if valid else 'unknown:' + identity([session, record.event_hash])
@@ -57,7 +58,8 @@ def modern_invocations(records, session):
             components = {name: {'value': None, 'state': 'unknown',
                                  'reason': 'Response identity is incomplete'} for name in COMPONENTS}
         status = 'conflict' if any(row['state'] == 'conflict' for row in components.values()) else components['total_tokens']['state']
-        result.append({'key': key, 'thread_id': payload.get('thread_id'), 'response_id': payload.get('response_id'),
+        result.append({'key': key, 'thread_id': payload.get('thread_id'), 'root_session_id': payload.get('session_id'),
+                       'response_id': payload.get('response_id'),
                        'turn_id': payload.get('turn_id'), 'model': payload.get('model'),
                        'timestamp': event.get('timestamp'), 'kind': 'modern', 'usage_status': status,
                        'components': components, 'observations': [
@@ -71,7 +73,7 @@ def legacy_invocations(records, session):
     previous, modern_seen, result = None, False, []
     for record in records:
         event, payload = record.event, record.event['payload']
-        if event.get('type') == 'token_usage_record':
+        if event.get('type') == 'token_usage_record' and payload.get('thread_id') in (None, session):
             modern_seen = True
         if modern_seen or event.get('type') != 'event_msg' or payload.get('type') != 'token_count':
             continue

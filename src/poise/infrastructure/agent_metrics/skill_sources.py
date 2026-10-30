@@ -1,13 +1,9 @@
-"""Bounded skill/policy inventories using the existing Markdown link owner."""
-from collections import deque
+"""Record explicitly supplied policy snapshots without evaluating skill quality."""
 import hashlib
-from pathlib import Path, PurePosixPath
-import posixpath
-from urllib.parse import unquote, urlsplit
+from pathlib import Path
 
 from ...modules.accounting.metrics.domain import ObservationFacts, identity
 from ...modules.foundation.errors import PoiseError
-from ..documentation_checks import links
 from ..goal_config import strict_json
 from .sources import capture_source, file_identity
 
@@ -61,65 +57,22 @@ def skill_source_observations(descriptor, scope, limit, at):
     source = descriptor['source']
     files = read_inventory(descriptor, limit)
     facts = ObservationFacts(scope, source, at)
-    if source['kind'] == 'skill-policy':
-        for file in files:
-            value = strict_json(file['raw'].decode('utf-8'))
-            if not isinstance(value, dict):
-                raise PoiseError('Effective skill policy/routing source must be an object')
-            if 'skills' in value and 'session_id' in value:
-                if type(value.get('schema_version')) is not int or value['schema_version'] != 1:
-                    raise PoiseError('Unsupported effective skill policy schema')
-                fields = {name: value[name] for name in POLICY_FIELDS if name in value}
-                fields['record_type'] = 'effective-skill-policy'
-            elif 'required_path_rules' in value:
-                fields = {name: value[name] for name in ROUTING_FIELDS if name in value}
-                fields['record_type'] = 'skill-routing'
-            else:
-                raise PoiseError('Unrecognized effective skill policy/routing source')
-            fields.update(source_path=file['path'], content_sha256=file['content_sha256'])
-            facts.describe('skill-selection', identity([source['id'], file['path'], file['content_sha256']]), fields)
-    else:
-        nodes = {}
-        for file in files:
-            body = file['raw'].decode('utf-8')
-            normalized = '\n'.join(line.rstrip() for line in body.replace('\r\n', '\n').replace('\r', '\n').split('\n')).strip()
-            targets = []
-            for link in links(body):
-                if not link.target:
-                    continue
-                url = urlsplit(link.target)
-                if url.scheme or url.netloc or not url.path:
-                    continue
-                target = unquote(url.path)
-                if target.startswith('/'):
-                    target = target.lstrip('/')
-                elif not target.startswith(('.agents/', 'docs/', 'ai-assistant/')):
-                    target = posixpath.join(str(PurePosixPath(file['path']).parent), target)
-                targets.append(posixpath.normpath(target))
-            nodes[file['path']] = {'path': file['path'], 'bytes': len(file['raw']),
-                                   'lines': body.count('\n') + int(bool(body) and not body.endswith('\n')),
-                                   'normalized_content_sha256': hashlib.sha256(normalized.encode()).hexdigest() if normalized else None,
-                                   'links': targets}
-        roots = [path for path in nodes if path.endswith('/SKILL.md') and '/skills/' in path]
-        reached, pending = set(), deque(roots)
-        while pending:
-            path = pending.popleft()
-            if path in reached:
-                continue
-            reached.add(path)
-            if path in nodes:
-                pending.extend(nodes[path]['links'])
-        skills = []
-        for root in sorted(roots):
-            owner = str(PurePosixPath(root).parent)
-            skills.append({'skill': PurePosixPath(owner).name, 'core': nodes[root],
-                           'references': [node for path, node in nodes.items() if path.startswith(owner + '/') and
-                                          path != root and path in reached],
-                           'unreachable_paths': sorted(path for path in nodes if path.startswith(owner + '/') and path not in reached)})
-        fields = {'record_type': 'skill-inventory', 'skills': skills,
-                  'unreachable_paths': sorted(path for path in nodes if path not in reached),
-                  'files': list(nodes.values())}
-        facts.describe('skill-content', identity([source['id'], fields]), fields)
+    for file in files:
+        value = strict_json(file['raw'].decode('utf-8'))
+        if not isinstance(value, dict):
+            raise PoiseError('Effective skill policy/routing source must be an object')
+        if 'skills' in value and 'session_id' in value:
+            if type(value.get('schema_version')) is not int or value['schema_version'] != 1:
+                raise PoiseError('Unsupported effective skill policy schema')
+            fields = {name: value[name] for name in POLICY_FIELDS if name in value}
+            fields['record_type'] = 'effective-skill-policy'
+        elif 'required_path_rules' in value:
+            fields = {name: value[name] for name in ROUTING_FIELDS if name in value}
+            fields['record_type'] = 'skill-routing'
+        else:
+            raise PoiseError('Unrecognized effective skill policy/routing source')
+        fields.update(source_path=file['path'], content_sha256=file['content_sha256'])
+        facts.describe('skill-selection', identity([source['id'], file['path'], file['content_sha256']]), fields)
     coverage = {'source_key': identity([source['id'], source['paths']]), 'partial_tail': False,
                 'excluded_prefix_events': 0, 'errors': [], 'complete_for_registered_scope': True,
                 'inventory_sha256': identity([{k: row[k] for k in ('path', 'content_sha256')} for row in files])}

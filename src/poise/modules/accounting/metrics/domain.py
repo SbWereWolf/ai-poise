@@ -11,10 +11,8 @@ from ...foundation.validation import nonempty, validate_exact_keys
 
 FAMILIES = frozenset((
     'usage-current', 'invocation-provenance', 'turn-timing-context', 'turn-counts',
-    'legacy-turn-usage', 'tools', 'files-skills-checks', 'hook-adoption',
-    'delivery-health', 'exposure', 'skill-selection', 'skill-references',
-    'skill-content', 'history', 'optional-task-policy', 'aggregate-readouts',
-    'readiness-documented-only',
+    'tools', 'files-skills-checks', 'hook-adoption', 'delivery-health',
+    'optional-task-policy', 'skill-selection',
 ))
 OBSERVATION_SCHEMA = 'poise-agent-metrics-observation-1'
 
@@ -76,16 +74,18 @@ class MetricRequest:
             raise PoiseError('Metric scope belongs to another project; select the bound project')
         if operation != 'query':
             if scope != {'kind': 'project', 'id': project}:
-                raise PoiseError('Delivery observation and replay require the bound project scope')
+                raise PoiseError('Metric mutation/delivery scope must be the bound project')
             return cls(operation, deepcopy(scope), None, None)
         period, view = value['period'], value['view']
         validate_exact_keys(period, {'from', 'to'}, 'metric period', PoiseError)
         times = {key: None if text is None else instant(text) for key, text in period.items()}
         if times['from'] is not None and times['to'] is not None and times['from'] > times['to']:
             raise PoiseError('Metric period ends before it starts')
+        if not isinstance(view, dict):
+            raise PoiseError('Metric view must be an object')
         validate_exact_keys(view, {'kind', 'family'}, 'metric view', PoiseError)
-        if view['kind'] not in ('facts', 'derived'):
-            raise PoiseError('Select facts or explicitly derived metrics')
+        if view['kind'] != 'facts':
+            raise PoiseError('Select recorded facts; analytical processing belongs to an external consumer')
         if view['family'] is not None and (not isinstance(view['family'], str) or view['family'] not in FAMILIES):
             raise PoiseError('Unsupported metric family')
         return cls(operation, deepcopy(scope), deepcopy(period), deepcopy(view))

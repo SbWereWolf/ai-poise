@@ -152,43 +152,6 @@ def test_unfinished_turn_keeps_duration_unknown(project, tmp_path):
         scene.close()
 
 
-def test_updated_parser_version_is_admitted_by_actual_native_handler(project, tmp_path):
-    from poise.common import PoiseError
-
-    scene = MetricsScene(project, tmp_path)
-    scene.source()
-    scene.policy["collection"]["sources"][1]["parser_version"] = "invocations-2.5"
-    scene.policy_path.write_text(json.dumps(scene.policy))
-    scene.configure_metrics()
-    for event in scene.definition["routes"]:
-        if event != "Stop":
-            scene.definition["routes"][event] = []
-    try:
-        scene.install(metrics=False)
-    except PoiseError as error:
-        scene.record({"kind": "actual-parser-installation-refusal", "error": str(error)})
-        if str(error) == "Unsupported parser version for metric source codex-transcript":
-            raise AssertionError("F16_UPDATED_PARSER_INSTALLATION_NOT_ADMITTED") from error
-        raise
-    try:
-        scene.native("SessionStart")
-        scene.native("Stop")
-        deliveries = []
-        for path in scene.service.settings.observations.rglob("response.json"):
-            data = json.loads(path.read_text())
-            if (data.get("schema") == "poise-hook-event-delivery-2"
-                    and data["event_receipt"]["event"] == "Stop"
-                    and data["event_receipt"]["session_id"] == scene.session):
-                deliveries.append(data)
-        assert len(deliveries) == 1, "F16_NATIVE_PARSER_DELIVERY_NOT_OBSERVED"
-        actual = deliveries[0]
-        scene.record({"kind": "actual-current-parser-native-delivery", "response": actual})
-        if not actual["chain_complete"] or actual["chain_failed"]:
-            raise AssertionError("F16_UPDATED_NATIVE_PARSER_NOT_ADMITTED")
-        result = scene.wait_query(family="usage-current")
-        assert_measurements(result, literal("expected-usage-complete.json"))
-    finally:
-        scene.close()
 
 
 def test_existing_store_query_during_held_optional_writer(project, tmp_path):

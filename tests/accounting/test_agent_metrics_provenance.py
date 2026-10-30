@@ -29,14 +29,8 @@ def test_complete_source_provenance_matches_actual_capture_bytes_and_response_id
         assert hashlib.sha256(usage_line).hexdigest() in event_hashes
         identities = set(metadata_values(reply, "invocation_key"))
         assert len(identities) == 1 and all(isinstance(item, str) and item for item in identities)
-        for field in ("source_key", "classification_evidence_hash"):
-            values = metadata_values(reply, field)
-            assert values and all(isinstance(item, str) and item for item in values), field
-        evidence_hashes = metadata_values(reply, "classification_evidence_hash")
-        assert all(len(item) == 64 and set(item) <= set("0123456789abcdef") for item in evidence_hashes)
-        # No response-linked tool exists in this complete source. The donor's
-        # versioned evidence digest is SHA-256 of canonical [], not any hex value.
-        assert set(evidence_hashes) == {"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"}
+        values = metadata_values(reply, "source_key")
+        assert values and all(isinstance(item, str) and item for item in values)
         times = metadata_values(reply, "timestamp")
         assert any(datetime.fromisoformat(item.replace("Z", "+00:00")) ==
                    datetime(2026, 10, 29, 0, 0, 1, tzinfo=timezone.utc) for item in times)

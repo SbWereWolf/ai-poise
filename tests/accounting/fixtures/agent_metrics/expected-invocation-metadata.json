@@ -5,7 +5,6 @@
   "turn_id": "turn-f16",
   "usage_status": "known",
   "parser_version": "invocations-2.5",
-  "classification_version": "purpose-14",
   "kind": "modern",
   "later_bytes": 0,
   "partial_tail": false,

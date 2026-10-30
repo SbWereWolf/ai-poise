@@ -71,26 +71,3 @@ def turn_observations(records, scope, source):
         result['metadata'].extend(facts.metadata)
     return result
 
-
-def alternative_usage(invocations, scope, source):
-    groups = {}
-    for invocation in invocations:
-        groups.setdefault(invocation['turn_id'], []).append(invocation)
-    result = {'facts': [], 'metadata': []}
-    for turn, rows in groups.items():
-        context = {'session_id': scope['session'], 'turn_id': turn}
-        entity = identity([scope['session'], turn])
-        facts = ObservationFacts(scope, source, rows[0]['timestamp'])
-        values = {'model_calls': len(rows)}
-        for name in ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens', 'total_tokens'):
-            components = [row['components'][name] for row in rows]
-            values[name] = sum(row['value'] for row in components) if all(
-                row['state'] == 'known' for row in components) else None
-        raw, cached = values['input_tokens'], values['cached_input_tokens']
-        values['uncached_input_tokens'] = raw - cached if raw is not None and cached is not None else None
-        for name, value in values.items():
-            facts.add('legacy-turn-usage', entity, name, value, 'count' if name == 'model_calls' else 'tokens',
-                      kind='derived', state='known' if value is not None else 'unknown', context=context,
-                      reason=None if value is not None else 'One or more response components are unavailable')
-        result['facts'].extend(facts.facts)
-    return result

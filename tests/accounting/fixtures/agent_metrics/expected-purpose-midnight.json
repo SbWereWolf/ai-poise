@@ -11,8 +11,8 @@
     "date": "2026-10-28",
     "known_tokens": 240,
     "main_tokens": 0,
-    "auxiliary_tokens": 120,
-    "unclassified_tokens": 120,
+    "auxiliary_tokens": 0,
+    "unclassified_tokens": 240,
     "unknown_usage": 0
   }
 ]

@@ -418,3 +418,8 @@ input/messages. JSON-SDK execute имеет тот же пакет. Это metad
 отказов](../configuration/project-file-reading.md#решения-и-восстановление-учёта-команд)
 принадлежат каноническому reader owner. Рабочий каталог доказан literal absolute cd prefix
 либо независимым absolute operand; ambient cwd не угадывается.
+
+## Запись телеметрии
+
+Команда `telemetry` читает сохранённые наблюдения и управляет повторной доставкой.
+[Политика, примеры и диагностика](../configuration/agent-metrics.md#чтение-и-повторная-доставка).

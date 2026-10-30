@@ -11,16 +11,16 @@ from ...modules.foundation.errors import PoiseError
 from ..goal_config import strict_json
 from .configuration import AgentMetricsPolicy
 from .runtime import envelope, metric_dispatcher, metric_tools
-from .sources import capture_source
+from .sources import capture_source, source_selections
 from .skill_sources import capture_inventory
 
 
 def capture_event(transport, binding, packet, options, resources):
     policy = AgentMetricsPolicy.parse(strict_json(resources[options['policy_path']]))
     event = packet['event']
-    service = metric_tools(binding['project'], policy)
+    service = metric_tools(binding['project'], policy, event['cwd'])
     dispatcher = metric_dispatcher(service, policy)
-    jobs = []
+    jobs, coverage_observations = [], []
     clock = asdict(transport.clock.observe())
     native = {'external_session': binding['external_session'], 'internal_session': binding['session_id'],
               'invocation_id': packet['invocation_id'], 'event_receipt': deepcopy(packet['event_receipt'])}
@@ -80,53 +80,58 @@ def capture_event(transport, binding, packet, options, resources):
                                          'sha256': hashlib.sha256(message.encode()).hexdigest()}
         return envelope(document, binding['external_session'], clock)
 
-    def source_failure(source, path, reason, kind='source_unavailable'):
+    def coverage_job(source, coverage):
         scope = {'project': binding['project'], 'session': binding['external_session']}
         if task['state'] == 'known':
             scope.update(task=task['task_id'], sprint=task['sprint_id'])
-        selected = source['paths'] if source['kind'] in ('skill-policy', 'skill-content') else str(path)
+        coverage_observations.append({'facts': [], 'metadata': [], 'scope': scope,
+                                      'source': source, 'coverage': coverage})
+
+    def source_failure(source, path, reason, kind='source_unavailable', selection=None):
+        selected = source['paths'] if source['kind'] == 'skill-policy' else str(path)
         coverage = {'source_key': identity([source['id'], selected]), 'partial_tail': False,
                     'excluded_prefix_events': 0, 'complete_for_registered_scope': False,
                     'errors': [{'kind': kind, 'source': str(path), 'reason': str(reason)}]}
-        document = {'kind': 'normalized-capture', 'observation': {
-                    'facts': [], 'metadata': [], 'scope': scope, 'source': source, 'coverage': coverage},
-                    'policy_digest': policy.digest, 'native': native}
-        jobs.append(envelope(document, binding['external_session'], clock))
+        if selection is not None:
+            coverage.update(selection_key=selection['selection_key'],
+                            selection_generation=selection['generation'])
+        coverage_job(source, coverage)
 
-    count = 0
-    dedicated = {Path(address) for source in policy.collection['sources']
-                 if source['kind'] not in ('codex-transcript', 'codex-native') for address in source['paths']
-                 if Path(address).is_file()}
-    primary = [Path(address) for source in policy.collection['sources']
-               if source['kind'] == 'codex-transcript' for address in source['paths']]
     for source in policy.collection['sources']:
-        if source['kind'] in ('skill-policy', 'skill-content'):
+        if source['kind'] == 'skill-policy':
             try:
                 jobs.append(source_job(capture_inventory(source, event['cwd'], policy.accounting.data['max_files']), source))
             except (PoiseError, OSError, ValueError) as exc:
                 source_failure(source, source['paths'][0], exc)
-            continue
-        if source['kind'] not in ('codex-transcript', 'codex-native', 'hook-adoption'):
-            continue
-        for address in source['paths']:
-            selected = Path(address)
-            files = sorted(selected.rglob('*.jsonl')) if selected.is_dir() else [selected]
-            for path in files:
-                if source['kind'] in ('codex-transcript', 'codex-native') and path in dedicated:
-                    continue
-                if source['kind'] == 'codex-native' and any(path == root or root in path.parents for root in primary):
-                    continue  # The primary invocation source owns an overlapping physical journal.
-                count += 1
-                if count > policy.accounting.data['max_files']:
-                    source_failure(source, path, 'Configured collection file bound reached', 'source_selection_bound')
-                    break
-                try:
-                    descriptor = capture_source(path, source)
-                    jobs.append(source_job(descriptor, source))
-                except (PoiseError, OSError, ValueError) as exc:
-                    # This optional owner never replaces the actual native/tool
-                    # outcome. Saved delivery failures retain their spool route.
-                    source_failure(source, path, exc)
+    for selection in source_selections(policy.collection['sources'], policy.accounting.data['max_files']):
+        source = selection['source']
+        generation = identity([native['invocation_id'], selection['selection_key'], clock['audit_utc']])
+        selection['generation'] = generation
+        coverage_job(source, {
+            'source_key': selection['selection_key'], 'partial_tail': False, 'excluded_prefix_events': 0,
+            'complete_for_registered_scope': not selection['errors'], 'errors': selection['errors'],
+            'selection': {'key': selection['selection_key'], 'generation': generation,
+                          'address': selection['address'], 'observed_at': clock['audit_utc'],
+                          'expected_files': len(selection['files']),
+                          'owned_elsewhere': selection['owned_elsewhere']},
+        })
+        for path in selection['files']:
+            try:
+                descriptor = capture_source(path, source)
+                descriptor.update(selection_key=selection['selection_key'], selection_generation=generation)
+                jobs.append(source_job(descriptor, source))
+            except (PoiseError, OSError, ValueError) as exc:
+                source_failure(source, path, exc, selection=selection)
+    if coverage_observations:
+        if jobs and jobs[0].data['agent_metrics']['kind'] == 'normalized-capture':
+            document = deepcopy(jobs[0].data['agent_metrics'])
+            document['coverage_observations'] = coverage_observations
+            jobs[0] = envelope(document, binding['external_session'], clock)
+        else:
+            document = {'kind': 'normalized-capture', 'observation': coverage_observations[0],
+                        'coverage_observations': coverage_observations[1:],
+                        'policy_digest': policy.digest, 'native': native}
+            jobs.insert(0, envelope(document, binding['external_session'], clock))
     if jobs:
         batch = {'kind': 'capture-batch', 'jobs': [{'identity': job.identity, 'data': job.data} for job in jobs]}
         dispatcher.submit(envelope(batch, binding['external_session'], clock))

@@ -7,13 +7,13 @@ from ...application.telemetry import TelemetryEnvelope
 from ...modules.accounting.metrics.domain import OBSERVATION_SCHEMA, identity, instant, observation_document
 from ...modules.accounting.metrics.adoption import adoption_observations
 from ...modules.accounting.metrics.delivery import capture_health
-from ...modules.accounting.metrics.exposure import exposure_observations
 from ...modules.accounting.metrics.normalization import response_observations
 from ...modules.accounting.metrics.invocations import invocation_facts
 from ...modules.accounting.metrics.tools import tool_observations
 from ...modules.accounting.metrics.task_context import task_observations
 from ..clock import SystemClock
 from ..sqlite.accounting import SqliteAccounting
+from ..sqlite.accounting_database import AccountingSnapshotUnavailable
 from ..telemetry import AsyncTelemetryDispatcher, DetachedTelemetryProcessor, TelemetryDatabase
 from ..telemetry_spool import TelemetrySpool
 from .sources import owned_records, prefix_digest, scan_jsonl
@@ -44,43 +44,48 @@ class MetricCaptureProcessor:
         # Missing storage is ordinary on the first capture; no source I/O on a
         # replay whose committed immutable job already proves the entire batch.
         with self.commit_lock:
-            if self.repository.database.path.exists() and self.repository.metric_capture_committed(job):
-                return
+            try:
+                if self.repository.database.path.exists() and self.repository.metric_capture_committed(job):
+                    return
+            except AccountingSnapshotUnavailable:
+                pass  # No committed input exists; the writer rechecks atomically.
+        self.commit(job, self.prepare(job))
+
+    def prepare(self, job):
         document = observation_document(job.data['agent_metrics'])
         if document['kind'] == 'normalized-capture':
-            prepared = envelope({'kind': 'facts', **document['observation']}, job.data['session'],
-                                asdict(self.clock.observe()))
-            self.commit(job, [prepared])
-            return
+            observations = [document['observation'], *document.get('coverage_observations', [])]
+            return [envelope({'kind': 'facts', **observed}, job.data['session'],
+                             asdict(self.clock.observe())) for observed in observations]
         descriptor = document['descriptor']
         policy = AgentMetricsPolicy.parse(document['policy'])
-        if descriptor['source']['kind'] in ('skill-policy', 'skill-content'):
+        if descriptor['source']['kind'] == 'skill-policy':
             prepared = skill_source_observations(descriptor, document['scope'], policy.collection['max_source_bytes'],
                                                   job.data['started']['audit_utc'])
-            self.commit(job, [envelope(prepared, job.data['session'], asdict(self.clock.observe()))])
-            return
+            return [envelope(prepared, job.data['session'], asdict(self.clock.observe()))]
         batch = scan_jsonl(descriptor, max_source_bytes=policy.collection['max_source_bytes'],
                            max_records=policy.collection['max_records'])
         if descriptor['source']['kind'] == 'hook-adoption':
             facts = adoption_observations(batch.records, self.repository.project, descriptor['source'])
-            coverage = {**batch.coverage, 'source_key': batch.source_key, 'excluded_prefix_events': 0}
+            coverage = {**batch.coverage, 'source_key': batch.source_key, 'source_content_hash': batch.sha256,
+                        'source_path': descriptor['path'],
+                        'excluded_prefix_events': 0}
             scope = {'project': self.repository.project}
             prepared = envelope({'kind': 'facts', **facts, 'coverage': coverage, 'scope': scope,
                                  'source': descriptor['source']}, job.data['session'], asdict(self.clock.observe()))
-            self.commit(job, [prepared])
-            return
+            return [prepared]
         session, meta, records, excluded = owned_records(batch)
         clock = asdict(self.clock.observe())
         scope = {**document['scope'], 'session': session}
         association = document['task_association']
-        if session != document['scope']['session']:
+        if session != document['scope'].get('session'):
             scope.pop('task', None)
             scope.pop('sprint', None)
             association = {'state': 'not_applicable', 'reason': 'Source session differs from the observed native Task owner'}
         coverage = {**batch.coverage, 'source_key': batch.source_key, 'source_content_hash': batch.sha256,
                     'source_path': descriptor['path'], 'checkout': meta.get('cwd', ''),
                     'policy_digest': document['policy_digest'],
-                    'native': document['native'],
+                    **({'native': document['native']} if 'native' in document else {}),
                     'excluded_prefix_events': len(excluded),
                     'undated_invocations': sum(not row['timestamp'] for row in invocation_facts(records, session)),
                     'unprocessed_sessions': [], 'processing_failures': [],
@@ -93,7 +98,10 @@ class MetricCaptureProcessor:
                         last_event_at=max(stamps).isoformat() if stamps else None)
         if self.repository.database.path.exists():
             with self.commit_lock:
-                prior = self.repository.metric_snapshot()['observations']
+                try:
+                    prior = self.repository.metric_snapshot()['observations']
+                except AccountingSnapshotUnavailable:
+                    prior = []
             previous = next((row['envelope']['agent_metrics']['coverage'] for row in reversed(prior)
                              if row['envelope']['agent_metrics'].get('kind') == 'facts' and
                              row['envelope']['agent_metrics']['coverage']['source_key'] == batch.source_key), None)
@@ -111,35 +119,22 @@ class MetricCaptureProcessor:
         health = capture_health(records, scope, descriptor['source'], descriptor, job, clock)
         facts['facts'].extend(health['facts'])
         facts['metadata'].extend(health['metadata'])
-        excluded_set = set(excluded)
-        owned_start = min((record.offset for record in records), default=descriptor['boundary'])
-        fork = instant(meta['timestamp']) if meta.get('forked_from_id') and meta.get('timestamp') else None
-        inherited_outputs = sum(record.offset in excluded_set and meta.get('forked_from_id') is not None
-            and record.event.get('payload', {}).get('type') in ('custom_tool_call_output', 'function_call_output')
-            and (record.offset < owned_start or record.event['payload'].get('thread_id') == meta['forked_from_id']
-                 or fork is not None and record.event.get('timestamp') is not None and instant(record.event['timestamp']) < fork)
-            for record in batch.records)
-        exposure = exposure_observations(records, scope, descriptor['source'],
-                                         policy.analyses['exposure']['token_estimate_method'], batch.source_key,
-                                         inherited_outputs)
-        facts['facts'].extend(exposure['facts'])
-        facts['metadata'].extend(exposure['metadata'])
         task_facts = task_observations(association, scope, descriptor['source'], job.data['started']['audit_utc'])
         facts['facts'].extend(task_facts['facts'])
         facts['metadata'].extend(task_facts['metadata'])
         prepared = envelope({'kind': 'facts', **facts, 'coverage': coverage, 'scope': scope,
                              'source': descriptor['source']}, session, clock)
-        self.commit(job, [prepared])
+        return [prepared]
 
 
-def metric_tools(project, policy):
+def metric_tools(project, policy, checkout):
     database = TelemetryDatabase(policy.database, policy.lock,
                                  policy.delivery.lock_seconds, policy.delivery.lock_poll_seconds)
     repository = SqliteAccounting(database, project, policy.accounting)
     clock = SystemClock()
     processor = MetricCaptureProcessor(repository, clock)
     delivery = TelemetrySpool(policy.directory, asdict(policy.delivery), processor)
-    return AgentMetrics(repository, delivery, policy.accounting, policy.analyses)
+    return AgentMetrics(repository, delivery)
 
 
 def metric_dispatcher(service, policy):

@@ -51,7 +51,9 @@ class SourceBatch:
                 'partial_tail': self.complete_offset < boundary, 'later_bytes': self.later_bytes,
                 'errors': list(self.errors), 'captured_source_identity': self.descriptor['source_identity'],
                 'observed_source_identity': self.observed_identity,
-                'source_changed_since_capture': self.descriptor['source_identity'] != self.observed_identity}
+                'source_changed_since_capture': self.descriptor['source_identity'] != self.observed_identity,
+                **{name: self.descriptor[name] for name in ('selection_key', 'selection_generation')
+                   if name in self.descriptor}}
 
 
 def scan_jsonl(descriptor, *, max_source_bytes, max_records):
@@ -135,14 +137,13 @@ def owned_records(batch):
              and isinstance(record.event.get('payload'), dict)]
     if not metas:
         raise PoiseError('Transcript has no session metadata; select the complete source journal')
-    meta = metas[-1].event['payload']
-    session = meta.get('session_id') or meta.get('id')
+    meta = metas[0].event['payload']
+    session = meta.get('id')
     if not isinstance(session, str) or not session:
         raise PoiseError('Transcript session identity is unavailable')
-    start = min(record.offset for record in metas
-                if (record.event['payload'].get('session_id') or record.event['payload'].get('id')) == session)
+    start = metas[0].offset
     if not meta.get('forked_from_id') and any(
-            (record.event['payload'].get('session_id') or record.event['payload'].get('id')) != session
+            record.event['payload'].get('id') != session
             for record in metas):
         raise PoiseError('Transcript has several owners without an explicit fork identity')
     fork = instant(meta['timestamp']) if meta.get('forked_from_id') and meta.get('timestamp') else None
@@ -161,3 +162,62 @@ def owned_records(batch):
         else:
             selected.append(record)
     return session, meta, tuple(selected), tuple(excluded)
+
+
+def source_selections(sources, max_files, selected_ids=None):
+    """Select physical journals once, preserving every configured source owner."""
+    selected_ids = None if selected_ids is None else set(selected_ids)
+    dedicated = {Path(address) for source in sources
+                 if source['kind'] not in ('codex-native', 'codex-transcript')
+                 for address in source['paths']
+                 if source['kind'] == 'hook-adoption' or Path(address).is_file()}
+    primary = [Path(address) for source in sources if source['kind'] == 'codex-transcript'
+               for address in source['paths']]
+    used, count, result = set(), 0, []
+    for source in sources:
+        if selected_ids is not None and source['id'] not in selected_ids:
+            continue
+        if source['kind'] not in ('codex-native', 'codex-transcript', 'hook-adoption'):
+            continue
+        for address in source['paths']:
+            root, errors, excluded, eligible = Path(address), [], False, []
+            delegated_root = (source['kind'] in ('codex-native', 'codex-transcript') and
+                              any(root == owner or owner in root.parents for owner in dedicated)
+                              or source['kind'] == 'codex-native' and
+                              any(root == owner or owner in root.parents for owner in primary))
+            try:
+                if delegated_root:
+                    candidates, excluded = [], True
+                elif not root.exists():
+                    errors.append({'kind': 'source_unavailable', 'source': address,
+                                   'reason': 'Configured source path is unavailable'})
+                    candidates = []
+                else:
+                    candidates = sorted(root.rglob('*.jsonl')) if root.is_dir() else [root]
+                for path in candidates:
+                    delegated = (source['kind'] in ('codex-native', 'codex-transcript') and
+                                 any(path == owner or owner in path.parents for owner in dedicated)
+                        or source['kind'] == 'codex-native' and any(path == parent or parent in path.parents
+                                                                   for parent in primary)
+                        or (source['id'], path) in used)
+                    if delegated:
+                        excluded = True
+                        continue
+                    used.add((source['id'], path))
+                    eligible.append(path)
+            except OSError as exc:
+                errors.append({'kind': 'source_unavailable', 'source': address, 'reason': str(exc)})
+            if not eligible and not errors and not excluded:
+                errors.append({'kind': 'source_selection_empty', 'source': address,
+                               'reason': 'No eligible source journals in the configured selection'})
+            remaining = max(0, max_files - count)
+            if len(eligible) > remaining:
+                errors.append({'kind': 'source_selection_bound', 'source': address,
+                               'reason': 'Configured collection file bound reached'})
+                eligible = eligible[:remaining]
+            count += len(eligible)
+            result.append({'source': source, 'address': address, 'files': eligible, 'errors': errors,
+                           'selection_key': identity([source['id'], 'selection', address]),
+                           'owned_elsewhere': excluded and not eligible and not errors,
+                           'delegated_root': bool(delegated_root)})
+    return result

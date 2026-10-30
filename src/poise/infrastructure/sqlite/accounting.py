@@ -434,7 +434,10 @@ class SqliteAccounting:
     def metric_snapshot(self):
         """One committed optional snapshot for native metric and legacy usage views."""
         with self.database.read_transaction() as db:
-            captured = self._capture_accounting_snapshot_in(db)
+            return self._metric_snapshot_in(db)
+
+    def _metric_snapshot_in(self, db):
+        captured = self._capture_accounting_snapshot_in(db)
         observations = []
         for row in captured['cycles']:
             body = json.loads(row['data'])
@@ -455,8 +458,18 @@ class SqliteAccounting:
             raise PoiseError('Telemetry identity has conflicting content')
         return True
 
+    def _validate_metric_envelopes(self, envelopes):
+        for envelope in envelopes:
+            if len(encoded(envelope.data).encode('utf-8')) > self.policy.data['max_blob_bytes']:
+                raise PoiseError('Metric capture exceeds max_blob_bytes; select a narrower source')
+            document = envelope.data['agent_metrics']
+            if document.get('kind') == 'facts' and (
+                    len(document['facts']) + len(document['metadata']) > self.policy.data['max_events']):
+                raise PoiseError('Metric capture exceeds max_events; select a narrower source')
+
     def accept_metric_capture(self, job, fact_envelopes):
         """Commit one immutable source input and all its prepared facts atomically."""
+        self._validate_metric_envelopes([job, *fact_envelopes])
         with self.database.transaction() as db:
             if not self._store_telemetry(db, job):
                 return False

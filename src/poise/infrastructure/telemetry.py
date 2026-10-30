@@ -40,7 +40,7 @@ class TelemetryDatabase:
         """Read the last committed SQLite snapshot without the writer flock."""
         from .diagnostic_io import preparation_transaction
         with preparation_transaction(self.path, self.wait, self.poll) as database:
-            validate_accounting_schema(database)
+            validate_accounting_schema(database, unavailable_if_empty=True)
             yield database
 
 

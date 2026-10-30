@@ -63,32 +63,17 @@
   "task-adapter-green": [
     "tests/accounting/test_agent_metrics_task_adapter.py"
   ],
-  "skills-green": [
-    "tests/accounting/test_agent_metrics_skills.py"
-  ],
-  "exposure-green": [
-    "tests/accounting/test_agent_metrics_exposure.py"
-  ],
   "recovery-green": [
     "tests/accounting/test_agent_metrics_recovery.py"
   ],
   "files-checks-green": [
     "tests/accounting/test_agent_metrics_files_checks.py"
   ],
-  "aggregates-green": [
-    "tests/accounting/test_agent_metrics_aggregates.py"
-  ],
   "provenance-green": [
     "tests/accounting/test_agent_metrics_provenance.py"
   ],
-  "history-green": [
-    "tests/accounting/test_agent_metrics_history.py"
-  ],
   "delivery-health-green": [
     "tests/accounting/test_agent_metrics_delivery_health.py"
-  ],
-  "readiness-green": [
-    "tests/accounting/test_agent_metrics_readiness.py"
   ],
   "sprint-source-control": [
     "tests/accounting/test_agent_metrics_task_adapter.py::test_optional_sprint_source_control_uses_real_publication_and_native_task_acquisition"
@@ -98,29 +83,18 @@
   ],
   "delta-initial-controls": [
     "tests/accounting/test_agent_metrics_updated_contracts.py::test_unfinished_turn_keeps_duration_unknown",
-    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
-    "tests/accounting/test_agent_metrics_aggregates.py::test_four_sessions_keep_known_subtotal_without_inventing_a_complete_total"
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer"
   ],
   "delta-selection-diagnostic": [
     "tests/accounting/test_agent_metrics_updated_contracts.py::test_stop_only_selection_populated_empty_missing_restored"
   ],
-  "delta-expression-diagnostic": [
-    "tests/accounting/test_agent_metrics_target_expressions.py"
-  ],
   "delta-frame-diagnostic": [
-    "tests/accounting/test_agent_metrics_updated_frames.py",
     "tests/accounting/test_agent_metrics_updated_contracts.py::test_dedicated_source_is_not_reported_missing_by_overlapping_selection"
-  ],
-  "delta-retained-diagnostic": [
-    "tests/accounting/test_agent_metrics_retained_analysis.py",
-    "tests/accounting/test_agent_metrics_target_expressions.py"
   ],
   "delta-current-diagnostic": [
     "tests/accounting/test_agent_metrics_updated_contracts.py",
-    "tests/accounting/test_agent_metrics_updated_frames.py",
-    "tests/accounting/test_agent_metrics_target_expressions.py",
-    "tests/accounting/test_agent_metrics_retained_analysis.py",
-    "tests/accounting/test_agent_metrics_fork_identity.py"
+    "tests/accounting/test_agent_metrics_fork_identity.py",
+    "tests/accounting/test_agent_metrics_recording_only.py"
   ],
   "delta-read-boundaries": [
     "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
@@ -131,11 +105,14 @@
     "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
     "tests/accounting/test_agent_metrics_updated_contracts.py::test_initial_store_is_unavailable_until_real_first_commit"
   ],
-  "delta-retained-git-and-source-sentinel": [
-    "tests/accounting/test_agent_metrics_retained_analysis.py::test_paired_git_result_targets_survive_source_retirement",
-    "tests/accounting/test_agent_metrics_retained_analysis.py::test_changed_parser_requires_explicit_source_reprocess"
+  "recording-only-correction": [
+    "tests/accounting/test_agent_metrics_recording_only.py"
   ],
-  "delta-policy-reactivation-diagnostic": [
-    "tests/accounting/test_agent_metrics_retained_analysis.py::test_reactivated_purpose_policy_is_persisted_and_repeat_is_noop"
+  "recording-preservation-controls": [
+    "tests/accounting/test_agent_metrics_contracts.py::test_real_source_usage_preserves_values_units_and_availability",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_general_capture_and_fresh_read_require_no_task_configuration",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_same_source_observation_is_not_charged_by_each_stop",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_new_response_appends_usage_without_recharging_prior_response",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_existing_native_fixture_preserves_two_real_intentional_tool_executions"
   ]
 }

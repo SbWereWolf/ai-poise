@@ -145,23 +145,6 @@ def test_usage_alternatives_reset_and_inherited_prefix_keep_truthful_current_tot
         scene.close()
 
 
-def test_legacy_projection_is_available_as_an_alternative_without_additional_spend(project, tmp_path):
-    from tests.accounting.test_agent_metrics_pipeline import total_values
-
-    scene = MetricsScene(project, tmp_path)
-    scene.source("modern-legacy-overlap")
-    scene.install()
-    try:
-        scene.native("SessionStart")
-        scene.native("Stop")
-        expected = literal("expected-legacy-projection.json")
-        scene.wait_measurements("legacy-turn-usage", expected, kind="derived")
-        primary = scene.query(family="usage-current")
-        assert total_values(primary) == [150]
-        scene.close()
-        assert_measurements(scene.query(family="legacy-turn-usage", kind="derived"), expected)
-    finally:
-        scene.close()
 
 
 def test_full_turn_context_keeps_capacity_model_effort_compaction_and_actual_source_times(project, tmp_path):

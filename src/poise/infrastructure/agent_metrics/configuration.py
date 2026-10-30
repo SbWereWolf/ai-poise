@@ -13,8 +13,8 @@ from ..goal_config import read_document
 
 
 SOURCE_VERSIONS = {
-    'codex-native': '1', 'codex-transcript': 'invocations-2.0',
-    'hook-adoption': '1', 'skill-policy': '1', 'skill-content': '1',
+    'codex-native': '1', 'codex-transcript': 'invocations-2.5',
+    'hook-adoption': '1', 'skill-policy': '1',
 }
 
 
@@ -54,7 +54,6 @@ class AgentMetricsPolicy:
     delivery: TelemetryDeliveryPolicy
     directory: Path
     collection: dict
-    analyses: dict
     effective: dict
 
     @property
@@ -79,7 +78,7 @@ class AgentMetricsPolicy:
     @classmethod
     def parse(cls, raw):
         value = configuration_fields(raw, {'schema', 'root', 'accounting', 'delivery',
-                                          'collection', 'retention', 'analyses'}, 'agent metrics policy')
+                                          'collection', 'retention'}, 'agent metrics policy')
         if value['schema'] != 'poise-agent-metrics-policy-1':
             raise PoiseError('Unsupported agent metrics policy schema')
         nonempty(value['root'], 'agent metrics root')
@@ -114,58 +113,9 @@ class AgentMetricsPolicy:
         retention = configuration_fields(value['retention'], {'mode'}, 'metric retention')
         if retention['mode'] != 'keep':
             raise PoiseError('Unsupported metric retention mode; use keep')
-        analyses = configuration_fields(value['analyses'], {'exposure', 'skill_content'}, 'metric analyses')
-        exposure = configuration_fields(analyses['exposure'], {'token_estimate_method'}, 'metric exposure')
-        if exposure['token_estimate_method'] != 'utf8-bytes-div-4-ceil':
-            raise PoiseError('Unsupported exposure token estimate method')
-        content = deepcopy(configuration_fields(analyses['skill_content'],
-            {'minimum_skill_sessions', 'minimum_reference_sessions', 'priority_limit', 'protected_skills'},
-            'metric skill content'))
-        for key in ('minimum_skill_sessions', 'minimum_reference_sessions', 'priority_limit'):
-            positive(content[key], 'skill_content.' + key)
-        protected = content['protected_skills']
-        if not isinstance(protected, list):
-            raise PoiseError('Explicit protected skill list required')
-        for name in protected:
-            nonempty(name, 'protected skill')
-        if len(set(protected)) != len(protected):
-            raise PoiseError('Protected skills must be unique')
-        analyses = {'exposure': exposure, 'skill_content': content}
-        if 'history' in value['analyses']:
-            analyses['history'] = history_policy(value['analyses']['history'])
         effective = {'schema': value['schema'], 'root': str(root), 'accounting': accounting.data,
                      'delivery': {'directory': delivery['directory'], 'policy': asdict(delivery_policy)},
-                     'collection': collection, 'retention': retention, 'analyses': analyses}
+                     'collection': collection, 'retention': retention}
         return cls(root, accounting, delivery_policy, root / delivery['directory'],
-                   collection, analyses, effective)
+                   collection, effective)
 
-
-def history_policy(value):
-    result = deepcopy(configuration_fields(value,
-        {'schema_version', 'timezone', 'logs', 'format', 'display', 'path_roots', 'include', 'exclude'},
-        'metric history'))
-    if type(result['schema_version']) is not int or result['schema_version'] != 1:
-        raise PoiseError('Unsupported history policy schema')
-    timezone(result['timezone'])
-    result['logs'] = paths(result['logs'], 'history logs')
-    result['path_roots'] = paths(result['path_roots'], 'history path roots')
-    if result['format'] != 'json':
-        raise PoiseError('Unsupported history data format')
-    for key in ('include', 'exclude'):
-        if not isinstance(result[key], list):
-            raise PoiseError('History path patterns must be explicit lists')
-        for pattern in result[key]:
-            nonempty(pattern, 'history path pattern')
-    display = configuration_fields(result['display'],
-        {'token_unit', 'token_unit_label', 'token_decimals', 'line_decimals', 'ratio_decimals',
-         'group_separator', 'decimal_separator'}, 'metric history display')
-    positive(display['token_unit'], 'history token unit')
-    nonempty(display['token_unit_label'], 'history token unit label')
-    for key in ('token_decimals', 'line_decimals', 'ratio_decimals'):
-        if type(display[key]) is not int or display[key] < 0:
-            raise PoiseError('History decimal counts must be nonnegative integers')
-    for key in ('group_separator', 'decimal_separator'):
-        if not isinstance(display[key], str):
-            raise PoiseError('History separators must be text')
-    result['display'] = display
-    return result

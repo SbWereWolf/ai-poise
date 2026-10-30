@@ -1,15 +1,52 @@
 """Read-only fact selection and reconciliation over immutable observations."""
 from copy import deepcopy
-from dataclasses import replace
 
 from .domain import canonical, instant, observation_document
-from .aggregates import aggregate_readouts, stored_usage_observations
-from .history import history_readouts
-from .skills import content_readouts, skill_readouts
+from .stored_usage import stored_usage_observations
+
+
+def current_coverages(items):
+    """Current selection generations affect coverage, not retained measurements."""
+    items = list(items)
+    selections = {}
+    for index, item in enumerate(items):
+        selected = item.get('selection')
+        if selected is None:
+            continue
+        score = (instant(selected['observed_at']), index)
+        previous = selections.get(selected['key'])
+        if previous is None or score > previous[0]:
+            selections[selected['key']] = (score, item)
+    managed = {item['source_id'] for _, item in selections.values()}
+    files = {}
+    for item in items:
+        if 'selection' in item:
+            continue
+        key = item.get('selection_key')
+        if key is not None:
+            selected = selections.get(key)
+            if selected is not None and item.get('selection_generation') != selected[1]['selection']['generation']:
+                continue
+        elif item.get('source_id') in managed:
+            continue
+        files[item['source_key']] = item
+    result = list(files.values())
+    for _, item in selections.values():
+        selected = item['selection']
+        observed = sum(row.get('selection_key') == selected['key'] and
+                       row.get('selection_generation') == selected['generation'] for row in files.values())
+        value = deepcopy(item)
+        if observed < selected['expected_files']:
+            value['complete_for_registered_scope'] = False
+            value['errors'] = [*value['errors'], {'kind': 'selection_processing_pending',
+                'source': selected['address'], 'reason': 'The selected source capture has not committed completely; '
+                'observe delivery status and replay pending captures.'}]
+        result.append(value)
+    return sorted(result, key=lambda item: item['source_key'])
 
 
 def summarize_coverage(items):
-    items = list(items)
+    items = current_coverages(items)
     result = {'state': 'complete', 'partial_tail': any(item['partial_tail'] for item in items),
               'excluded_prefix_events': sum(item['excluded_prefix_events'] for item in items),
               'errors': [error for item in items for error in item['errors']], 'sources': items,
@@ -21,13 +58,12 @@ def summarize_coverage(items):
 
 
 def committed_coverage(observations):
-    latest = {}
+    coverages = []
     for observed in observations:
         document = observation_document(observed['envelope']['agent_metrics'])
         if document.get('kind') == 'facts':
-            coverage = document['coverage']
-            latest[coverage['source_key']] = coverage
-    return summarize_coverage(latest.values())
+            coverages.append({**document['coverage'], 'source_id': document['source']['id']})
+    return summarize_coverage(coverages)
 
 
 def matches(item, request):
@@ -76,16 +112,12 @@ def reconcile(rows):
 class MetricQueries:
     """No source reads, ingestion, clock or authoritative Task access."""
 
-    def __init__(self, observations, usage, accounting_policy, analyses):
+    def __init__(self, observations, usage):
         self.observations = observations + stored_usage_observations(usage)
-        self.timezone = accounting_policy.data['timezone']
-        self.week_start = accounting_policy.data['week_start']
-        self.analyses = analyses
 
     def query(self, request):
-        groups, metadata, provenance, coverages, all_groups, all_metadata = {}, {}, {}, {}, {}, {}
-        analysis_records = []
-        any_family = replace(request, view={**request.view, 'family': None})
+        groups, metadata, provenance = {}, {}, {}
+        coverages, selections = [], []
         def contribute(witness, source, entity):
             identifier = witness['observation_id']
             entry = provenance.setdefault(identifier, {**witness, 'source': deepcopy(source), 'entities': []})
@@ -98,28 +130,30 @@ class MetricQueries:
             witness = {'observation_id': observed['id'], 'sha256': document['coverage'].get('source_content_hash'),
                        'source_key': document['coverage']['source_key']}
             own = document['scope']
+            coverage = {**document['coverage'], 'source_id': document['source']['id']}
+            if 'selection' in coverage or 'selection_key' in coverage:
+                selections.append(coverage)
             scope = request.scope
             if (scope['kind'] == 'source' and document['source']['id'] == scope['id'] or
                     scope['kind'] != 'source' and own.get(scope['kind']) == scope['id']):
-                coverage = document['coverage']
-                coverages[coverage['source_key']] = coverage
+                coverages.append(coverage)
             for item in document['facts']:
                 item = {**item, '_witness': witness}
-                if matches(item, any_family):
-                    all_groups.setdefault(item['key'], []).append(item)
                 if not matches(item, request):
-                    continue
-                if request.view['kind'] == 'facts' and item['kind'] != 'observed':
                     continue
                 groups.setdefault(item['key'], []).append(item)
             for item in document['metadata']:
-                if matches(item, any_family):
-                    all_metadata.setdefault(item['key'], deepcopy(item['fields']))
-                    analysis_records.append({**item, '_witness': witness})
                 if matches(item, request):
                     if item['key'] not in metadata:
                         metadata[item['key']] = deepcopy(item['fields'])
                         contribute(witness, item['source'], {'metadata_key': item['key']})
+        relevant = {item['selection_key'] for item in coverages if 'selection_key' in item}
+        relevant.update(item['selection']['key'] for item in coverages if 'selection' in item)
+        # A reached selection owns its full capture membership. File facts keep
+        # their actual session scopes; coverage joins only the same selection.
+        coverages.extend(item for item in selections
+                         if item.get('selection_key', item.get('selection', {}).get('key')) in relevant
+                         and item not in coverages)
         metrics = []
         for key in sorted(groups):
             item = reconcile(groups[key])
@@ -128,45 +162,7 @@ class MetricQueries:
             metrics.append({k: item[k] for k in ('name', 'value', 'unit', 'kind', 'availability', 'context')}
                                         | {'family': item['family'], 'provenance': {'fact_key': key, 'source': item['source'], 'at': item['at'],
                                                           'observations': item['_support']}})
-        if request.view['kind'] == 'derived' and request.view['family'] in (None, 'aggregate-readouts'):
-            metrics.extend({**row, 'family': 'aggregate-readouts'} for row in aggregate_readouts(
-                [reconcile(rows) for rows in all_groups.values()], list(all_metadata.values()), self.timezone))
-            if metrics and not provenance:
-                for key, rows in all_groups.items():
-                    item = reconcile(rows)
-                    for witness in item['_support']:
-                        contribute(witness, item['source'], {'fact_key': key, 'context': item['context']})
-            if not any(row['scope'].get('task') for rows in all_groups.values() for row in rows):
-                metadata['task-coverage'] = {'field_availability': {'complete_for_bound_sessions': {
-                    'source_id': 'task-adapter', 'state': 'not_applicable',
-                    'reason': 'These observations have no Task association'}}}
-        if request.view['kind'] == 'derived' and request.view['family'] in (None, 'history') and 'history' in self.analyses:
-            history, details = history_readouts([reconcile(rows) for rows in all_groups.values()],
-                                               coverages.values(), self.analyses['history'], self.week_start)
-            metrics.extend({**row, 'family': 'history'} for row in history)
-            metadata['history-sources'] = details
-            if history:
-                for key, rows in all_groups.items():
-                    item = reconcile(rows)
-                    for witness in item['_support']:
-                        contribute(witness, item['source'], {'fact_key': key, 'context': item['context']})
-        skill_families = ('skill-selection', 'skill-references', 'skill-content')
-        if request.view['kind'] == 'derived' and request.view['family'] in (None, *skill_families):
-            views, observed_skills, observed_references, inventory = skill_readouts(
-                [reconcile(rows) for rows in all_groups.values()], analysis_records, self.analyses['skill_content'])
-            views['skill-content'] = content_readouts(inventory, observed_skills, observed_references,
-                                                      self.analyses['skill_content'])
-            for family, rows in views.items():
-                if request.view['family'] in (None, family):
-                    metrics.extend({**row, 'family': family} for row in rows)
-            for key, rows in all_groups.items():
-                item = reconcile(rows)
-                for witness in item['_support']:
-                    contribute(witness, item['source'], {'fact_key': key, 'context': item['context']})
-            for item in analysis_records:
-                if item['fields'].get('record_type') in ('effective-skill-policy', 'skill-routing', 'skill-inventory'):
-                    contribute(item['_witness'], item['source'], {'metadata_key': item['key']})
-        coverage = summarize_coverage(coverages.values())
+        coverage = summarize_coverage(coverages)
         if not coverages:
             coverage.update(state='unavailable', reason='No committed source capture covers the selected scope',
                             complete_for_registered_scope=False)

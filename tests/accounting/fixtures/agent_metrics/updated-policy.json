@@ -96,24 +96,6 @@
       "protected_skills": [
         "fixture-protected"
       ]
-    },
-    "purpose": {
-      "schema_version": 1,
-      "path_roots": [
-        "@CHECKOUT@"
-      ],
-      "include": [
-        "**"
-      ],
-      "exclude": [
-        "tasks/**",
-        ".runtime/**",
-        "var/**",
-        ".agents/**",
-        ".codex/**",
-        "docs/plans/**",
-        "ai-assistant/analytics/data/**"
-      ]
     }
   }
 }

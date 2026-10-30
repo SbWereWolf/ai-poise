@@ -7467,5 +7467,6 @@
   "supplementary_semantic_nodes": [
     "tests/accounting/test_agent_metrics_aggregates.py::test_actual_response_link_decides_main_auxiliary_or_unclassified_spend",
     "tests/accounting/test_agent_metrics_task_adapter.py::test_actual_published_sprint_enriches_task_facts_and_survives_session_end"
-  ]
+  ],
+  "current_scope": "Historical17family291 catalogue is provenance only; F16 records producer-supplied observations and capture measurements. All computed analytical/classification/report fields belong external processing unless already supplied by a producer. No requirement to compute them in F16."
 }

@@ -4,18 +4,58 @@ import json
 
 import pytest
 
-from tests.accounting.agent_metrics_support import committed_observations, literal
+from tests.accounting.agent_metrics_support import (
+    MetricsScene, ProcessorGate, committed_observations, literal,
+)
 from tests.accounting.test_agent_metrics_pipeline import open_scene, total_values
 from tests.hook_transport.architecture_support import write
 
 
+def query_scene(project, tmp_path):
+    """Prepare without launching an unobserved initial recording producer."""
+    scene = MetricsScene(project, tmp_path)
+    scene.source()
+    scene.install()
+    return scene
+
+
+def terminal_capture(scene, event):
+    """Observe the one expected batch from this launch, then its actual termination."""
+    gate = ProcessorGate(scene.parent / ("query-capture-" + event))
+    trace = gate.root / "capture-trace"
+    try:
+        scene.native(event, gate=gate.configuration, trace_directory=trace)
+        # A missing/delayed producer must reach its gate; an empty PID set is
+        # never interpreted as completion. Each fixture event submits one batch.
+        entered = gate.wait_entered()
+        assert len(entered) == 1, ("F16_EXPECTED_ONE_CAPTURE_PRODUCER", event, entered)
+        gate.release()
+        gate.wait_terminal()
+        observed = [json.loads(line) for path in trace.glob("*.jsonl")
+                    for line in path.read_text().splitlines()]
+        captures = [row for row in observed if row["boundary"] == "actual-capture-return"]
+        producers = [row for row in observed if row["boundary"] == "actual-detached-entry"]
+        assert len(captures) == 1 and captures[0]["jobs"] > 0, (
+            "F16_EXPECTED_CAPTURE_NOT_OBSERVED", event, observed)
+        assert len(producers) == 1 and producers[0]["pid"] == entered[0]["pid"], (
+            "F16_EXPECTED_PRODUCER_NOT_OBSERVED", event, observed, entered)
+        assert producers[0]["pid"] != captures[0]["pid"]
+        scene.record({"kind": "query-capture-producer-terminal", "event": event,
+                      "expected_producers": 1, "entered": entered,
+                      "capture_observations": observed, "terminal": True})
+    finally:
+        gate.release()
+        gate.wait_terminal()
+
+
 @pytest.mark.parametrize("case", literal("query-period-cases.json"), ids=lambda row: row["id"])
 def test_source_time_filter_uses_aware_bounds_without_ingestion(project, tmp_path, case):
-    scene = open_scene(project, tmp_path)
+    scene = query_scene(project, tmp_path)
     try:
-        scene.native("Stop")
+        terminal_capture(scene, "SessionStart")
+        terminal_capture(scene, "Stop")
         assert total_values(scene.wait_query(family="usage-current")) == [150]
-        scene.close()
+        terminal_capture(scene, "SessionEnd")
         before = committed_observations(scene.metrics / "observed.sqlite")
         raw = (scene.sources / "session.jsonl").read_bytes()
         reply = scene.query(family="usage-current", period=case["period"])
@@ -24,30 +64,34 @@ def test_source_time_filter_uses_aware_bounds_without_ingestion(project, tmp_pat
         assert (scene.sources / "session.jsonl").read_bytes() == raw
         assert not any(row.get("request", {}).get("operation") == "replay" for row in scene.calls)
     finally:
-        scene.close()
+        if scene.started:
+            terminal_capture(scene, "SessionEnd")
 
 
 @pytest.mark.parametrize("case", literal("query-source-cases.json"), ids=lambda row: row["id"])
 def test_query_source_scope_keeps_the_producer_identity(project, tmp_path, case):
-    scene = open_scene(project, tmp_path)
+    scene = query_scene(project, tmp_path)
     try:
-        scene.native("Stop")
+        terminal_capture(scene, "SessionStart")
+        terminal_capture(scene, "Stop")
         assert total_values(scene.wait_query(family="usage-current")) == [150]
-        scene.close()
+        terminal_capture(scene, "SessionEnd")
         before = committed_observations(scene.metrics / "observed.sqlite")
         result = scene.query(family="usage-current", scope={"kind": "source", "id": case["id"]})
         assert total_values(result) == case["totals"]
         assert committed_observations(scene.metrics / "observed.sqlite") == before
     finally:
-        scene.close()
+        if scene.started:
+            terminal_capture(scene, "SessionEnd")
 
 
 def test_full_machine_query_is_not_clipped_by_the_agent_display_budget(project, tmp_path):
-    scene = open_scene(project, tmp_path)
+    scene = query_scene(project, tmp_path)
     try:
-        scene.native("Stop")
+        terminal_capture(scene, "SessionStart")
+        terminal_capture(scene, "Stop")
         complete = scene.wait_query(family="usage-current")
-        scene.close()
+        terminal_capture(scene, "SessionEnd")
         scene.general.profile["limits"]["output_chars"] = 512
         scene.general.publish(request_id="f16-small-agent-display")
         before = committed_observations(scene.metrics / "observed.sqlite")
@@ -58,7 +102,8 @@ def test_full_machine_query_is_not_clipped_by_the_agent_display_budget(project, 
         assert full["provenance"] == complete["provenance"]
         assert committed_observations(scene.metrics / "observed.sqlite") == before
     finally:
-        scene.close()
+        if scene.started:
+            terminal_capture(scene, "SessionEnd")
 
 
 @pytest.mark.parametrize("case", literal("api-invalid-cases.json"), ids=lambda row: row["id"])

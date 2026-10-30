@@ -8,8 +8,9 @@ from ..infrastructure.agent_metrics.configuration import AgentMetricsPolicy
 from ..infrastructure.agent_metrics.runtime import metric_tools
 from ..infrastructure.goal_config import strict_json
 from ..infrastructure.project_binding import read_project_checkout
+from ..infrastructure.sqlite.accounting_database import AccountingSnapshotUnavailable
 from ..modules.accounting.metrics.domain import MetricFailure, MetricRequest
-from ..modules.foundation.errors import PoiseError
+from ..modules.foundation.errors import PoiseError, SQLiteBoundaryUnavailable
 
 
 def execute(config_path, checkout, policy_path, audience, stream, output):
@@ -28,9 +29,17 @@ def execute(config_path, checkout, policy_path, audience, stream, output):
         if request.operation == 'query' and not policy.database.is_file():
             raise MetricFailure('unavailable', 'No committed metric history at the selected database',
                                 'Enable the agent-metrics capability and deliver an ordinary native event.')
-        result = metric_tools(bound.config['project'], policy).execute(request)
+        result = metric_tools(bound.config['project'], policy, checkout).execute(request)
     except MetricFailure as exc:
         result.update(status=exc.status, reason=exc.reason, continuation=exc.continuation)
+    except AccountingSnapshotUnavailable as exc:
+        result.update(status='unavailable', reason=str(exc),
+                      continuation='Wait for the current capture to commit, then repeat this read; '
+                                   'deliver an ordinary native event if no capture is running.')
+    except SQLiteBoundaryUnavailable as exc:
+        result.update(status='unavailable', reason=str(exc),
+                      continuation='The committed read could not be admitted within the configured SQLite budget; '
+                                   'repeat this read after pending delivery or the observed transaction settles.')
     except (PoiseError, OSError, ValueError, UnicodeError, sqlite3.DatabaseError, RecursionError) as exc:
         result.update(status='rejected', reason=str(exc),
                       continuation='Correct the explicit request or selected metric policy; preserve existing history.')

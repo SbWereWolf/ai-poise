@@ -29,11 +29,17 @@ SCHEMA = (
 )
 
 
-def validate_accounting_schema(db):
+class AccountingSnapshotUnavailable(PoiseError):
+    """The selected optional file has no committed schema yet."""
+
+
+def validate_accounting_schema(db, *, unavailable_if_empty=False):
     """Recognize existing formats using schema metadata, without Task reads."""
     application = db.execute('PRAGMA application_id').fetchone()[0]
     version = db.execute('PRAGMA user_version').fetchone()[0]
     tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if unavailable_if_empty and application == 0 and version == 0 and not tables:
+        raise AccountingSnapshotUnavailable('No committed metric snapshot is available yet')
     current = application == APPLICATION_ID and version == FORMAT_VERSION
     legacy = application == 0 and version == 13 and {'tasks', 'task_workflows', 'sessions'} <= tables
     if not (current or legacy) or not TABLE_COLUMNS.keys() <= tables:

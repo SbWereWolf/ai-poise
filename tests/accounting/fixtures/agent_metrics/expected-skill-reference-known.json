@@ -1,0 +1,9 @@
+{
+  "sessions": {"value": 1, "unit": "count", "kind": "observed", "state": "known"},
+  "reads": {"value": 2, "unit": "count", "kind": "observed", "state": "known"},
+  "raw_read_bytes": {"value": 12, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "repeated_read_bytes": {"value": 6, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "untriggered_sessions": {"value": 0, "unit": "count", "kind": "derived", "state": "known"},
+  "unknown_trigger_sessions": {"value": 0, "unit": "count", "kind": "derived", "state": "known"},
+  "context_exposure": {"value": 4, "unit": "estimated tokens multiplied by calls", "kind": "proxy", "state": "known"}
+}

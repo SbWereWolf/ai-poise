@@ -1,0 +1,6 @@
+{
+  "skill": "fixture-protected",
+  "protected": true,
+  "sample_status": "insufficient-data",
+  "audit_action": "observe-only"
+}

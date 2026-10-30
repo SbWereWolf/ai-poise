@@ -1,0 +1,8 @@
+{"type": "session_meta", "timestamp": "2026-10-29T00:00:00Z", "payload": {"id": "00000000-0000-4000-8000-000000000161", "session_id": "00000000-0000-4000-8000-000000000161", "cwd": "@CHECKOUT@", "timestamp": "2026-10-29T00:00:00Z", "cli_version": "fixture-1", "originator": "Codex Desktop"}}
+{"type": "event_msg", "timestamp": "2026-10-29T00:00:00Z", "payload": {"type": "task_started", "turn_id": "turn-f16"}}
+{"type": "event_msg", "timestamp": "2026-10-29T00:00:00.010Z", "payload": {"type": "thread_settings_applied", "turn_id": "turn-f16", "thread_settings": {"model": "fixture-model", "reasoning_effort": "medium"}}}
+{"type": "event_msg", "timestamp": "2026-10-29T00:00:00.125Z", "payload": {"type": "agent_message", "message": "PRIVATE_F16_ASSISTANT"}}
+{"type": "token_usage_record", "timestamp": "2026-10-29T00:00:01Z", "payload": {"thread_id": "00000000-0000-4000-8000-000000000161", "turn_id": "turn-f16", "response_id": "response-f16-a", "usage": {"input_tokens": 120, "cached_input_tokens": 24, "cache_write_input_tokens": 7, "output_tokens": 30, "reasoning_output_tokens": 9, "total_tokens": 150}}}
+{"type": "event_msg", "timestamp": "2026-10-29T00:00:01.100Z", "payload": {"type": "token_count", "turn_id": "turn-f16", "info": {"total_token_usage": {"total_tokens": 150}, "last_token_usage": {"input_tokens": 120, "cached_input_tokens": 24, "output_tokens": 30, "reasoning_output_tokens": 9, "total_tokens": 150}, "model_context_window": 4096}}}
+{"type": "compacted", "timestamp": "2026-10-29T00:00:01.500Z", "payload": {"turn_id": "turn-f16", "message": "PRIVATE_F16_COMPACTION"}}
+{"type": "event_msg", "timestamp": "2026-10-29T00:00:02Z", "payload": {"type": "task_complete", "turn_id": "turn-f16"}}

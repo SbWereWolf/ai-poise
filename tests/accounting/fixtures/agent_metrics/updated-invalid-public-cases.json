@@ -1,0 +1,48 @@
+[
+  {
+    "id": "foreign-reclassify-scope",
+    "operation": "reclassify",
+    "scope": {
+      "kind": "project",
+      "id": "foreign"
+    },
+    "reason_field": "scope"
+  },
+  {
+    "id": "session-reclassify-scope",
+    "operation": "reclassify",
+    "scope": {
+      "kind": "session",
+      "id": "00000000-0000-4000-8000-000000000161"
+    },
+    "reason_field": "scope"
+  },
+  {
+    "id": "missing-reprocess-sources",
+    "operation": "reprocess",
+    "reason_field": "source"
+  },
+  {
+    "id": "empty-reprocess-sources",
+    "operation": "reprocess",
+    "sources": [],
+    "reason_field": "source"
+  },
+  {
+    "id": "duplicate-reprocess-source",
+    "operation": "reprocess",
+    "sources": [
+      "codex-transcript",
+      "codex-transcript"
+    ],
+    "reason_field": "source"
+  },
+  {
+    "id": "unknown-reprocess-source",
+    "operation": "reprocess",
+    "sources": [
+      "unconfigured-source"
+    ],
+    "reason_field": "source"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "tool_name": "Bash",
+  "tool_use_id": "f16-private-call",
+  "tool_input": {
+    "command": "cat src/example.py # PRIVATE_F16_INPUT"
+  },
+  "tool_response": {
+    "stdout": "PRIVATE_F16_OUTPUT\n",
+    "stderr": "",
+    "exit_code": 0
+  }
+}

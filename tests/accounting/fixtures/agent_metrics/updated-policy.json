@@ -1,0 +1,101 @@
+{
+  "schema": "poise-agent-metrics-policy-1",
+  "root": "@METRICS@",
+  "accounting": {
+    "timezone": "UTC",
+    "week_start": 0,
+    "max_events": 1000,
+    "max_files": 1000,
+    "max_blob_bytes": 1048576,
+    "time_mode": "tool_cycle",
+    "causes": [
+      "initial",
+      "internal_qa",
+      "delivered_rework",
+      "requirement_change",
+      "poise_incident"
+    ],
+    "sources": {
+      "codex": "observed",
+      "hooks": "observed",
+      "skills": "observed",
+      "codex-transcript": "observed"
+    },
+    "path_categories": {
+      "code": [
+        "src/**"
+      ],
+      "tests": [
+        "tests/**"
+      ],
+      "fixtures": [
+        "fixtures/**"
+      ],
+      "documentation": [
+        "docs/**",
+        "*.md"
+      ]
+    },
+    "tokenizer": {
+      "kind": "unavailable",
+      "identity": "fixture-unavailable",
+      "command": null
+    },
+    "storage": {
+      "database": "observed.sqlite",
+      "lock": "observed.lock"
+    }
+  },
+  "delivery": {
+    "directory": "spool",
+    "policy": {
+      "max_entries": 64,
+      "max_bytes": 1048576,
+      "max_event_bytes": 65536,
+      "max_attempts": 3,
+      "batch_items": 4,
+      "retry_seconds": 0.05,
+      "lock_seconds": 0.05,
+      "lock_poll_seconds": 0.005
+    }
+  },
+  "collection": {
+    "max_pending": 8,
+    "max_source_bytes": 1048576,
+    "max_records": 2,
+    "sources": [
+      {
+        "id": "codex",
+        "kind": "codex-native",
+        "parser_version": "1",
+        "paths": [
+          "@SOURCE@"
+        ]
+      },
+      {
+        "id": "codex-transcript",
+        "kind": "codex-transcript",
+        "parser_version": "invocations-2.5",
+        "paths": [
+          "@SOURCE@"
+        ]
+      }
+    ]
+  },
+  "retention": {
+    "mode": "keep"
+  },
+  "analyses": {
+    "exposure": {
+      "token_estimate_method": "utf8-bytes-div-4-ceil"
+    },
+    "skill_content": {
+      "minimum_skill_sessions": 2,
+      "minimum_reference_sessions": 2,
+      "priority_limit": 4,
+      "protected_skills": [
+        "fixture-protected"
+      ]
+    }
+  }
+}

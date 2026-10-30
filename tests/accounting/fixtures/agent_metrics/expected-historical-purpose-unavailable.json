@@ -1,0 +1,26 @@
+{
+  "known_tokens": {
+    "value": 120,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "main_tokens": {
+    "value": 0,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "auxiliary_tokens": {
+    "value": 0,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "unclassified_tokens": {
+    "value": 120,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  }
+}

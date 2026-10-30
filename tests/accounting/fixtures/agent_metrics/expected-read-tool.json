@@ -1,0 +1,4 @@
+{
+  "input_bytes": {"value": 18, "unit": "bytes", "kind": "observed", "state": "known"},
+  "output_bytes": {"value": 4, "unit": "bytes", "kind": "observed", "state": "known"}
+}

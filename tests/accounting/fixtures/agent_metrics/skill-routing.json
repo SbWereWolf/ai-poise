@@ -1,0 +1,10 @@
+{
+  "profiles": [{"name": "fixture-code", "paths": ["src/"]}],
+  "required_path_rules": [
+    {"name": "fixture-code", "path_regex": "^src/", "profiles_any": ["fixture-code"], "skills": ["fixture-alpha", "fixture-beta"]}
+  ],
+  "required_signal_skills": {},
+  "recommended_signal_skills": {},
+  "cross_profile_contract_profiles": [],
+  "cross_profile_skills": []
+}

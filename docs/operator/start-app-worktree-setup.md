@@ -2,115 +2,148 @@
 
 ## Подключение установленного инструмента
 
-Эта инструкция настраивает автоматическую подготовку обоих проектов.
-[Протокол подготовки](worktree-preparation.md#опции-рабочего-json) описывает все
-поля, placeholders и результат. Рабочие файлы создаёт оператор один раз;
-профиль отдельной Task затем материализуется из её действительных координат.
-
-Проверенный маршрут использует самостоятельное приложение environment-maintenance
-с командой `start-app`, установленное отдельно от Poise и ERP. В этой установке
-выбран релиз приложения 1.0.0; `catalog/v2` и `result/v2` — версии его протоколов,
-а не приложение 2.0. Версии поставки выбирает оператор средствами установки;
-Poise запускает настроенный argv. Разработка ENV2 к этому маршруту не относится.
+[Заполните рабочие конфиги по инструкции ниже](#заполнение-двух-конфигов-подготовки).
+Штатная подготовка новых Task-worktree запускает самостоятельный пакет
+**environment-maintenance 2.0** командой `start-app`. SDK исполняет выбранные
+цепочки внешних инструментов; Poise выделяет область, передаёт координаты,
+сохраняет результат и вызывает настроенный плагин. SDK установлен отдельно от
+исходников Poise и ERP. Обновление исходников инструмента отдельно от принятой
+пакетной поставки не переключает потребителей.
 
 ### Условия
 
-Нужны Linux/WSL, Bash, jq, Git, подготовленные проекты `poise-op` и `erp`
-с выделяемым Task worktree и доступной базовой ревизией. Python действий Poise
-выбирается явно: текущая поставка использует >=3.15,<3.16 и её установленные
-зависимости. Python самого внешнего приложения — отдельный runtime его установки.
-Для ERP заранее выберите доступные PHP с нужными расширениями, Node, npm,
-Composer и согласованные expectedToolchainIdentity. Эти значения не подбираются
-лаунчером вместо оператора. Полные условия ресурсов — в
-[руководстве ERP](maintenance-profile-v2.md#ресурсы-и-обслуживание-erp).
+Нужны Linux/WSL, Bash, Git, jq, настроенные проекты с выделяемым Task worktree и
+доступной базовой ревизией. Выберите совместимый Python действий Poise с его
+зависимостями, отдельный Python установленного SDK, доступные PHP/Composer/Node/npm
+для ERP и согласованный environment. В проверенной установке Python действий3.15
+и Python SDK3.12 различаются. Их пути задаются явно. Все runtime, caches и данные
+обслуживаемого окружения выбираются конфигом, а не текущим каталогом терминала.
 
-Примеры ниже используют обезличенные абсолютные пути. Замените их во всех
-рабочих JSON и командах на пути своей установки и укажите своё имя/email автора.
-`/srv/poise/app` — выбранный код Poise, `/srv/environment-maintenance` —
-самостоятельный корень установленного внешнего приложения со своим runtime.
-Основной ERP checkout остаётся Git-источником базы, не целью установки ресурсов.
+Примеры `/srv/...` — значения для заполнения, не обязательные пути. Основной
+checkout служит источником Git; ресурсы нового окружения создаются в выбранном
+дочернем дереве и его собственном state. Подготовка независимого экземпляра без
+Task использует тот же SDK с явно выбранными repository/profile/state:
+[инструкция профиля](maintenance-profile-v2.md#развёртывание-из-примера).
 
-```bash
-poise_root=/srv/poise/app
-poise_python=/srv/poise/app/tools/.venv/bin/python
-start_app=/srv/environment-maintenance/start-app
-operator_root="$poise_root/operator/profile/start-app-worktrees"
-mkdir -p -- "$operator_root"
-cp -- "$poise_root/config/worktree-preparation/poise-op.example.json" "$operator_root/poise-op.json"
-cp -- "$poise_root/config/worktree-preparation/erp.example.json" "$operator_root/erp.json"
-cp -- "$poise_root/config/worktree-preparation/poise-op-values.example.json" "$operator_root/poise-op-values.json"
-cp -- "$poise_root/config/worktree-preparation/erp-values.example.json" "$operator_root/erp-values.json"
-```
-
-Это установка в новый выбранный рабочий каталог. При обслуживании существующей
-установки сохраните её файлы и согласуйте конкретное изменение вместо замены
-заполненных настроек примерами. Здесь используется уже игнорируемый Poise путь
-`operator/profile/`; проверьте его в выбранной поставке через `git check-ignore`.
-Только санитарные `config/worktree-preparation/*.example.json` отслеживаются Git.
-Рабочие JSON, values, `prepare.sh`, manifests и настройки Stride остаются вне
-коммитов. Можно выбрать другой явно исключённый operator каталог внутри Poise.
+Рабочий каталог внутри Poise сначала исключите из Git. Рабочие JSON/env, выбранные
+пакеты и captures остаются вне VCS; отслеживаются только санитарные примеры и
+инструкция. Существующие заполненные файлы обновляются с сохранением их данных.
 
 ### Заполнение двух конфигов подготовки
 
-Откройте рабочие `poise-op.json` и `erp.json`. Все значения перечислены ниже;
-данные-примеры —
-[Poise](../../config/worktree-preparation/poise-op.example.json) и
-[ERP](../../config/worktree-preparation/erp.example.json).
+1. Выберите постоянный `operator_root`, установленный `start-app`, Python действий
+   и источник принятого кода Poise. Проверьте `git check-ignore` для рабочего каталога.
+2. Создайте рабочие копии [Poise configuration](../../config/worktree-preparation/poise-op.example.json)
+   и [ERP configuration](../../config/worktree-preparation/erp.example.json).
+3. Заполните оба файла и [values](#заполнение-values). Опубликуйте постоянные
+   recipe-файлы из принятых примеров, перечисленных ниже.
+4. Подключите `worktree_preparation.configuration` каждого проекта через
+   [владельца конфигурации](../configuration/project-setup.md).
+5. Запустите штатный bootstrap своей Task и проверьте её полную квитанцию.
 
-| Поле | Что указать |
+| Поле configuration | Значение |
 |---|---|
-| `parameters.source_root` | Выбранный абсолютный корень кода Poise с профилями и action modules. |
-| `parameters.python` | Абсолютный Python действий Poise с зависимостями этой поставки. |
-| `parameters.start_app` | Абсолютная команда установленного независимого приложения `start-app`. |
-| `parameters.operator` | Абсолютный постоянный рабочий каталог с `prepare.sh` и двумя values. |
-| `catalog_dir` | `${task_root}/environment-maintenance/profile`: новый профиль внутри собственной Task. |
-| `inputs` | Снимки рабочего script и values выбранного проекта с destinations под `${task_root}`. |
-| `operations` | `prepare`, затем `check`: исполнение и отдельное подтверждение готовности. |
-| `commands.prepare` | Bash и script из Task snapshot, далее девять явных аргументов из примера. |
-| `commands.check` / `verify` | Установленный `start-app check` с отдельными `--catalog-dir` и `--values`. |
-| `commands.repair` | Явная команда `start-app run`, доступная интерфейсу handler. |
-| `handler.callable` | Для Poise `apps.bootstrap.environment_result:handle`, для ERP `apps.bootstrap.erp_result:handle`. |
-| `handler.options` | Явные schema/коды/статусы; `repair_operations=[]` этого маршрута оставляет обслуживание `run`, без дополнительного plugin repair. |
-| ERP `configuration_root` / `configuration_targets` | Текущий `${worktree}` и три его JSON settings, совпадающие с destinations в ERP values. |
+| `parameters.source_root` | Абсолютный источник Poise с совместимыми модулями и примерами. |
+| `parameters.python` | Python действий Poise. |
+| `parameters.start_app` | Entry принятой пакетной поставки, например `/srv/environment-maintenance/dist/installed/2.0.0/bin/start-app`. |
+| `parameters.operator` | Постоянный каталог выбранных script/values/recipes. |
+| `catalog_dir` | Шаблон `${task_root}/environment-maintenance/v2/profile`; имя поля протокола, содержимое — operation-профиль SDK2. |
+| `inputs` | Снимки `prepare.sh` и values выбранного проекта в собственной Task. |
+| `operations` | `prepare`, затем отдельный `check`. |
+| `commands.prepare` | Bash, снимок script и девять координат из примера. |
+| `commands.check` / `verify` | `start-app check --config .../app.json --parameters .../parameters.json --base-dir ...`. |
+| `commands.repair` | Выбранный `start-app infra --requirements all`. |
+| `handler.callable` | `apps.bootstrap.environment_result:handle` для operation-результата SDK2. |
+| `handler.options` | `schema=null`, `succeeded:0`, `failed:1`, `success_statuses=[succeeded]`, `repairable_statuses=[failed]`, `repair_operations=[]`, имена repair/verify и `failure_exit_code=4` по примерам. |
 
-Полный справочник handler options и стандартного `string.Template.substitute` —
-[протокол](worktree-preparation.md#обработчик-и-одна-попытка-исправления).
-Процесс запускается с готовым argv без shell-разбора; shell здесь выбран явно
-первым аргументом `/bin/bash`. Values передаются готовыми значениями, без второго
-прохода подстановок. Координаты `${worktree}`, `${task_root}`, `${base}`,
-`${project_id}` поставляет сам Poise после допустимого выделения области.
-Не нужно вручную вычислять будущий путь каждого Task.
+Полный [справочник протокола](worktree-preparation.md#опции-рабочего-json) описывает
+все поля, разрешение путей, snapshots и placeholders. Стандартный
+`string.Template.substitute` рендерит значения; argv передаётся без shell-разбора.
+Внутри явно выбранного Bash буквальный `$` в шаблоне записывается как `$$`.
+Значения не проходят скрытый второй цикл подстановки.
 
 ### Заполнение values
 
-Примеры:
 [Poise values](../../config/worktree-preparation/poise-op-values.example.json),
-[ERP values](../../config/worktree-preparation/erp-values.example.json).
-Они задают именно операторские входы. Остальные параметры каталога берутся
-из выбранной полной спецификации; script добавляет действительные координаты
-Task. Рабочие каталоги, БД и caches принадлежат новой области и её Task root.
+[ERP values](../../config/worktree-preparation/erp-values.example.json) и
+[ERP agent values](../../config/worktree-preparation/erp-agent-values.example.json)
+имеют единый контракт. `publisher` на верхнем уровне выбирает постоянную копию
+владельца публикации; `parameters` содержит явные строковые значения;
+`derived_parameters` вычисляет значения по порядку стандартным шаблонизатором;
+`prepare_command` задаёт argv SDK; `prepare_environment` — его явное окружение.
 
-| Поле | Назначение |
+| Параметр values | Что заполнить |
 |---|---|
-| `profile_spec` | Абсолютная спецификация Poise `config/maintenance/profile.example.json` либо ERP `config/projects/erp/profile.example.json`. |
-| `author_name`, `author_email` | Выбранная оператором Git identity. В примерах только нейтральные Operator/operator@example.invalid. |
-| `python_minimum`, `python_maximum` | Границы Python действий, согласованные с выбранным runtime; здесь 3.15 и 3.16. |
-| ERP `consumer_python` | Python самостоятельной установки environment-maintenance, отдельно от Python действий. |
-| ERP `php_executable`, `node_executable`, `composer_executable` | Доступные абсолютные исполняемые файлы. Пути `/opt/...` являются местами заполнения. |
-| ERP `npm_entry_point`, `npm_executable` | Вход npm для выбранного Node и его executable, согласованные с одной установкой. |
-| ERP `expected_toolchain_identity` | Явные PHP majorMinor, Node majorMinor/modulesAbi для проверок ERP. Пример соответствует PHP8.4/Node22.23/ABI127, а не требованию Poise к версии внешнего start-app. |
-| ERP `environment_file` | Общий локальный `.env`, относительно нового repository: `platform-infrastructure/config/dev/local-development.env`. |
-| ERP `local_settings_path`, `host_runtime_settings_path`, `cjm_settings_path` | Три JSON назначения относительно того же repository. |
-| ERP `local_settings_source`, `host_runtime_settings_source`, `cjm_settings_source` | Три исходных документа относительно собственного profile_root. |
+| `author_name`, `author_email` | Git identity оператора. |
+| `sdk_python` | Python принятого SDK, отдельно от Python действий. |
+| `path` | PATH инструментов выбранного окружения. |
+| `supervisor_config` | Рабочий app-конфиг цепочки подготовки выбранного приложения. |
+| `profile_spec`, `patch_spec` | Спецификация Poise operation-профиля и его SDK binding. |
+| `application_spec`, `consumer_spec` | Спецификации ERP operation-профиля и runtime consumer. |
+| `sdk_binding_template` | Шаблон ERP `runtime.env`, публикующий выбранный SDK Python. |
+| `env_executable` | Явный executable `env`. |
+| `wheelhouse` | Подготовленные пакеты зависимостей Poise для configured pip. |
+| `publisher`, `operator_source` | Постоянный `worktree_profile.py` и корень его выбранных operator assets. |
+| ERP `node`, `php_executable`, `composer_executable` | Выбранные executables. |
+| ERP `npm_entry_point`, `npm_executable` | npm CLI для выбранного Node и executable npm. |
+| ERP `composer_home` | Явный cache/home Composer. |
+| ERP `environment_source` | Явная операторская ссылка на утверждённый environment. Текущий consumer читает текст `erp-environment.example.env` из `operator_source`; подготовьте этот текст из утверждённого источника, как описано ниже. |
+| ERP `terminal`, `display`, `xauthority`, `terminal_font` | Выбранная видимая консоль и display. Для автоматических проверок выбирается отдельный виртуальный display. |
+| ERP `console_tool` | `examples/process-launch/start_console.py` из принятого пакета SDK. |
+| ERP agent `base_supervisor_config` | Базовая ERP preparation chain, вызываемая wrapper. |
+| ERP agent `jq_executable` | Стандартный jq для проекции настроек. |
+| ERP agent `session_logs`, `archived_session_logs` | Существующие каталоги журналов агента, явно выбранные оператором. |
 
-ERP-профиль содержит все56ресурсов, Poise —14. Script согласует npm install/probe
-и host-runtime Playwright entryPoint под корневым `var/test/node-modules/` нового
-ERP дерева, копируя туда его собственные package.json/package-lock.json.
-Зависимости не берутся из основной установки. Общий локальный env создаётся из
-собственного tracked example только при отсутствии; существующий файл сохраняется.
-Три потребителя Playwright связываются с одной подготовленной зависимостью.
-Подтверждение их semantic directory identity сохраняет чужой несовместимый путь
-и возвращает диагностируемую ошибку вместо его удаления.
+Derived-параметры примеров:
+
+| Имя | Назначение |
+|---|---|
+| `module_path` | Источник Poise modules `${source_root}/src:${source_root}`. |
+| `supervisor_parameters` | Публикуемый JSON координат под собственной Task. |
+| `state_root` | Собственные данные обслуживаемого Poise под Task. |
+| `consumer_root` | `${repository}/.runtime/environment-consumer`. |
+| `application_source` | `${repository}`: tracked inputs самого целевого приложения. |
+| `runtime_module_path` | Модули обслуживаемой копии и её `.runtime/dependencies`; для потребителя со своим layout задайте точный источник явно. |
+| `template_id` | Выбранный шаблон проекта Poise. |
+
+Координаты вызова имеют приоритет над одноимёнными values. Для штатного Poise
+supervisor выполняет публикацию профиля/binding, `infra`, `deps`, `check`.
+ERP supervisor публикует собственные конфиги из целевого checkout, создаёт
+отсутствующие working files, выполняет начальные `infra(environment,base)`, `deps`,
+полные `infra`, `adjust`, `check`. `adjust` использует установленные зависимости.
+Вызов `run` является отдельным запуском; preparation не запускает пользовательские
+серверы скрыто.
+
+Постоянные recipes копируются из соответствующих отслеживаемых примеров:
+
+| Рабочее имя | Источник |
+|---|---|
+| `prepare.sh` | [prepare.sh](../../config/worktree-preparation/prepare.sh) |
+| `worktree_profile.py` | [владелец публикации](../../src/poise_environment/worktree_profile.py) |
+| `poise-profile.json` | [Poise profile](../../config/maintenance/start-app/profile.example.json) |
+| `poise-sdk-binding.json` | [SDK binding](../../config/worktree-preparation/poise-sdk-binding.example.json) |
+| `poise-op-supervisor.json`, `poise-op-supervisor-infra.json` | [app](../../config/worktree-preparation/poise-op-supervisor.example.json), [цепочка](../../config/worktree-preparation/poise-op-supervisor-infra.example.json) |
+| `erp-profile.json`, `erp-consumer.json` | [profile](../../config/worktree-preparation/erp-profile.example.json), [consumer](../../config/worktree-preparation/erp-consumer.example.json) |
+| `erp-runtime.example.env`, `erp-bootstrap.example.env` | [runtime](../../config/worktree-preparation/erp-runtime.example.env), [bootstrap](../../config/worktree-preparation/erp-bootstrap.example.env) |
+| `erp-supervisor.json`, `erp-supervisor-infra.json` | [app](../../config/worktree-preparation/erp-supervisor.example.json), [цепочка](../../config/worktree-preparation/erp-supervisor-infra.example.json) |
+| `empty.json` | [пустой список requirements](../../config/worktree-preparation/empty.example.json) |
+
+Также подготовьте рабочий `$operator_root/erp-environment.example.env` из собственного
+утверждённого environment ERP со всеми обязательными значениями, включая девять
+units. Это **рабочий** текстовый вход consumer, исключённый из Git, несмотря на
+имя example. Поле `environment_source` само не копирует его: точный источник
+объявлен в `erp-consumer.json`. При применении стандартного текстового шаблона
+координаты `${repository}` берутся из parameters; буквальный `$` сохраняется как
+`$$`. Перед применением проверьте согласованные порты, URLs и полноту значений.
+Санитарная форма исходного environment принадлежит самому ERP, а filled values
+этой установки остаются у оператора.
+
+Для agent-профиля добавьте [wrapper app](../../config/worktree-preparation/erp-agent-supervisor.example.json)
+и [цепочку](../../config/worktree-preparation/erp-agent-supervisor-infra.example.json)
+под именами из values. Wrapper после базовой подготовки создаёт отсутствующий
+`session-history.json` из tracked example ERP, задаёт logs/path_roots, проверяет
+конечный файл собственным consumer и наличие `planning-workspace/.env`.
+Существующие корректные пользовательские настройки сохраняются.
 
 ## Постоянное правило Git для ERP
 
@@ -144,165 +177,46 @@ tracked `.gitignore`, остальные — common `info/exclude`. Правил
 
 ## Полный рабочий prepare.sh
 
-Сохраните следующий текст целиком в `$operator_root/prepare.sh`.
-Это проекция уже проверенной рабочей конфигурации, не новый встроенный движок.
-Он исполняется через Bash из Task snapshot; executable bit для этого не требуется.
-Его аргументы: source_root, action_python, start_app, project_id, repository,
-task_root, profile, base, selected_values. Вход `selected_values` также является
-сохранённым Task snapshot. stdout остаётся JSON результата, полные служебные
-потоки сохраняются Poise отдельно.
+Используйте полный [отслеживаемый thin entry](../../config/worktree-preparation/prepare.sh)
+без встраивания цепочек установки в этот script. Он читает `publisher` выбранных
+values и передаёт девять аргументов владельцу `prepare`:
 
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
+| Позиция | Значение |
+|---|---|
+| 1 | `source_root`: выбранный источник Poise. |
+| 2 | `python`: Python действий. |
+| 3 | `start_app`: выбранный пакетный entry. |
+| 4 | `project_id`: действительный проект. |
+| 5 | `repository`: действительный worktree. |
+| 6 | `task_root`: собственная папка Task. |
+| 7 | `profile_root`: выбранный operation-профиль. |
+| 8 | `base_ref`: закреплённая базовая ревизия. |
+| 9 | `selected_values`: сохранённый снимок values. |
 
-source_root=$1
-action_python=$2
-start_app=$3
-project_id=$4
-repository=$5
-task_root=$6
-profile=$7
-base=$8
-selected_values=$9
-
-author_name=$(jq -er '.author_name' "$selected_values")
-author_email=$(jq -er '.author_email' "$selected_values")
-profile_spec=$(jq -er '.profile_spec' "$selected_values")
-mkdir -p -- "$(dirname -- "$profile")"
-PYTHONPATH="$source_root/src:$source_root" "$action_python" -P -s -B \
-  -m poise_environment.profile --source "$source_root" \
-  --profile-spec "$profile_spec" --output "$profile" \
-  --state "$task_root/environment-maintenance/state" \
-  --repository "$repository" --project "$project_id" --base-ref "$base" \
-  --author-name "$author_name" --author-email "$author_email" \
-  --module-path "$source_root/src" >&2
-
-jq --slurpfile selected "$selected_values" \
-  --arg repository "$repository" --arg profile "$profile" \
-  --arg state "$task_root/environment-maintenance/state" \
-  --arg project "$project_id" --arg base "$base" \
-  '(.parameters | with_entries(.value = .value.default)) +
-   ($selected[0] | del(.profile_spec, .npm_executable, .expected_toolchain_identity)) +
-   {repository:$repository, profile_root:$profile, state_root:$state,
-    project_id:$project, base_ref:$base}' \
-  "$profile/catalog.json" > "$profile/values.json.pending"
-mv -- "$profile/values.json.pending" "$profile/values.json"
-
-if [[ "$project_id" == erp ]]; then
-  dependency_project="$repository/var/test/node-modules/host-platform-playwright"
-  mkdir -p -- "$dependency_project"
-  cp -- "$repository/platform-infrastructure/tests/playwright/package.json" \
-    "$repository/platform-infrastructure/tests/playwright/package-lock.json" \
-    "$dependency_project/"
-  jq '
-    .resources["erp-node-playwright"].cwd =
-      "${repository}/var/test/node-modules/host-platform-playwright" |
-    .resources["erp-playwright"].required_files[0] =
-      "${repository}/var/test/node-modules/host-platform-playwright/node_modules/@playwright/test/cli.js" |
-    .resources["erp-runtime-directories"].paths +=
-      ["${repository}/var/test/node-modules/host-platform-playwright"]
-  ' "$profile/resources.json" > "$profile/resources.json.pending"
-  mv -- "$profile/resources.json.pending" "$profile/resources.json"
-  jq --slurpfile values "$profile/values.json" --slurpfile selected "$selected_values" '
-    .nodeExecutable = $values[0].node_executable |
-    .phpExecutable = $values[0].php_executable |
-    .composerExecutable = $values[0].composer_executable |
-    .npmEntryPoint = $values[0].npm_entry_point |
-    .npmExecutable = $selected[0].npm_executable |
-    .expectedToolchainIdentity = $selected[0].expected_toolchain_identity |
-    .testRunners.playwright.entryPoint =
-      "var/test/node-modules/host-platform-playwright/node_modules/@playwright/test/cli.js" |
-    .localBootstrap.nodeApplications =
-      ["document-ui", "var/test/node-modules/host-platform-playwright"]
-  ' "$profile/documents/host-runtime-settings.json" \
-    > "$profile/documents/host-runtime-settings.json.pending"
-  mv -- "$profile/documents/host-runtime-settings.json.pending" \
-    "$profile/documents/host-runtime-settings.json"
-  environment_relative=$(jq -er '.environment_file' "$profile/values.json")
-  if [[ ! -e "$repository/$environment_relative" ]]; then
-    cp -- "$repository/platform-infrastructure/config/dev/local-development.example.env" \
-      "$repository/$environment_relative"
-  fi
-  if [[ ! -e "$repository/platform-infrastructure/test-execution.json" ]]; then
-    jq '{schemaVersion:1,runners:{playwright:{driver:"playwright",workers:4}}}' \
-      "$selected_values" > "$repository/platform-infrastructure/test-execution.json"
-  fi
-fi
-
-run_result="$task_root/environment-maintenance/run-result.json"
-run_exit=0
-"$start_app" run --catalog-dir "$profile" --values "$profile/values.json" \
-  > "$run_result" || run_exit=$?
-cat -- "$run_result" >&2
-if [[ "$run_exit" != 0 ]]; then
-  cat -- "$run_result"
-  exit "$run_exit"
-fi
-if [[ "$project_id" == erp ]]; then
-  for owner in platform-infrastructure planning-workspace system-admin; do
-    consumer="$repository/$owner/tests/playwright/node_modules"
-    if [[ ! -e "$consumer" ]]; then
-      ln -s -- "$dependency_project/node_modules" "$consumer"
-    fi
-    if [[ ! "$consumer" -ef "$dependency_project/node_modules" ]]; then
-      printf 'Playwright consumer does not select the prepared dependency directory: %s\n' "$consumer" >&2
-      exit 4
-    fi
-  done
-fi
-exec "$start_app" check --catalog-dir "$profile" --values "$profile/values.json"
-```
-
-Проверьте сохранённый текст и заполненные файлы перед подключением:
-
-```bash
-bash -n "$operator_root/prepare.sh"
-"$poise_python" -m json.tool "$operator_root/poise-op.json"
-"$poise_python" -m json.tool "$operator_root/erp.json"
-"$poise_python" -m json.tool "$operator_root/poise-op-values.json"
-"$poise_python" -m json.tool "$operator_root/erp-values.json"
-```
-
-Проверка синтаксиса не выполняет команды обслуживания и не доказывает готовность.
-Сам Poise валидирует контракт рабочего JSON при действительной подготовке.
+Публикация конфигов выполняется `worktree_profile.py publish --spec PATH
+--source PATH --output PATH --parameters PATH`; все четыре аргумента обязательны.
+`prepare` принимает ровно девять позиционных координат. Публикация переносит
+объявленные assets/text/JSON и сохраняемые пути; исполнения инфраструктуры в ней нет.
+Цепочки реально выполняет SDK через выбранные supervisor configs.
 
 ## Привязка проектов и первый запуск
 
-Через [владельца конфигурации проекта](../configuration/project-setup.md#обновление-действующего-проекта)
-задайте каждому manifest собственный абсолютный путь. Для ERP:
+В manifest каждого проекта через его владельца подключите собственный рабочий файл:
 
 ```json
 {
   "worktree_preparation": {
-    "configuration": "/srv/poise/app/operator/profile/start-app-worktrees/erp.json"
+    "configuration": "/srv/poise/operator/start-app-worktrees/erp.json"
   }
 }
 ```
 
-В poise-op выберите соседний `poise-op.json`. Полный контракт и остальные поля
-manifest остаются у своего owner. Для полного ERP capture в проверенной установке
-явно выбран `batch.max_artifact_bytes=4194304`; учитывается размер отдельного
-материала, а не preview. Конфигурационный editor проверяет наблюдённую revision.
-Если первое добавление отсутствующей optional секции отклонено, используйте
-[описанное ограничение и согласованный recovery](../operations/known-bugs.md#poise-project-optional-section-first-add-001).
-Рабочий manifest не превращается в source-пример.
+Для Poise выберите его `poise-op.json`. Относительный configuration считается от
+manifest. При первом добавлении optional секции действует [известное ограничение
+editor](../operations/known-bugs.md#poise-project-optional-section-first-add-001);
+разрешённое восстановление сохраняет locks, исходные bytes/modes/revision и историю.
 
-Выберите корни Stride так, чтобы `data_root` охватывал все реальные stores
-выбранных проектов, включая Requirements. Если нужен их общий родитель,
-это изменение только конфигурации запуска, не перенос БД. Условия —
-[независимые корни](../configuration/stride-launcher.md#независимые-корни).
-Изменение data_root не выдаёт caller identity или native binding.
-
-Подготовка срабатывает по допустимому `work/bootstrap`: после выделения Task
-ветки/папки Poise создаёт snapshots, исполняет `prepare`, затем `check` и сохраняет
-receipt. Здесь нет фонового автозапуска, привязки к любому произвольному процессу
-ERP или автоматического запуска бизнес-приложений. Новый профиль materializer
-выбирает действительный repository; каждый Task получает отдельные profile/state.
-
-Task должна быть ready и законно назначена. Сохраните пакет в
-`$operator_root/bootstrap.json` со своим существующим Task ID и передайте
-текущему выбранному entry:
+Передайте пакет своему доставленному launcher, явно выбрав нужный проект:
 
 ```json
 {
@@ -317,82 +231,41 @@ Task должна быть ready и законно назначена. Сохр�
 }
 ```
 
-Приоритет имеет собственный выданный native session entry соответствующего
-проекта. Если для этой установки отдельно разрешён selected Stride route,
-используется действительная native identity того же caller:
-
-```bash
-project_id=erp
-packet="$operator_root/bootstrap.json"
-bash "$poise_root/stride.sh" --poise-root "$poise_root" --project "$project_id" \
-  "$poise_root/config/stride.env" work < "$packet"
-```
-
-Для poise-op выберите его project ID и Task. Разрешённый конкретной установке
-маршрут не создаёт hook delivery и не является универсальной заменой чужому
-launcher. Сессионные идентификаторы и binding не подставляются оператором
-вместо настоящих host данных. Одновременно приобретается только текущая Task.
+Poise сначала выделяет законную область, затем сохраняет snapshots и запускает
+подготовку. Подтверждение владения и готовность окружения — разные факты.
+Полный протокол чтения: [запуск и результат](worktree-preparation.md#запуск-и-чтение-результата).
 
 ## Результат, повтор и продолжение
 
-Ожидается `preparation.status=ready`, полный receipt с точными Task/project/
-worktree/base/configuration/inputs и командами; у всех14или56ресурсов ready.
-Прочитайте полный сохранённый ответ/потоки, а не только preview. Готовность среды,
-приёмка Task и интеграция — разные результаты.
+Проверьте полный receipt: выбранные входы/digests, фактический repository/profile,
+исходную ревизию, все операции, полные stdout/stderr и реальные exit codes.
+Успех требует законченных команд и отдельного `check`; наличие файлов само по себе
+не заменяет готовность. Preview нужен для чтения агентом, полный capture — для
+машинных решений. [Неизвестная ошибка и единственная попытка
+исправления](worktree-preparation.md#обработчик-и-одна-попытка-исправления)
+принадлежат выбранному плагину.
 
-Обычный replay bootstrap возвращает уже подтверждённый attempt. Для настоящей
-новой проверки той же области задайте новый `preparation_request_id`:
+После известного отказа исправьте установленную причину и передайте новый
+`preparation_request_id`; пример и границы повторов —
+[продолжение после отказа](worktree-preparation.md#продолжение-после-отказа).
+Повтор завершённого request читает его историю. Неопределённый исход сначала
+согласует владелец операции.
 
-```json
-{
-  "operation": "bootstrap",
-  "input": {
-    "task": {"id": "ERP-TASK-001"},
-    "decision": null,
-    "feedback": null,
-    "rework_stage": null,
-    "preparation_request_id": "erp-task-001-preparation-2"
-  },
-  "messages": []
-}
-```
-
-При готовых ресурсах повтор проверяет их состояние. При подтверждённом error
-прочитайте конкретную диагностику и исправьте известную причину в рабочей
-конфигурации соответствующей области, затем запросите новый attempt.
-При unconfirmed сначала установите исход предыдущего действия по
-[протоколу согласования](worktree-preparation.md#продолжение-после-отказа).
-Внешний `run` обслуживает ресурсы; `repair_operations=[]` этого подключения
-не добавляет второй автоматический plugin repair. Неразрешённую ошибку получает
-агент. Общий plugin contract допускает одну настроенную попытку с повторной
-проверкой; неизвестный результат и повторная ошибка возвращаются агенту.
-
-Для ERP consumer без запуска браузера используйте штатный план:
-
-```bash
-bash platform-infrastructure/tools/configured-test-runtime.sh \
-  --plan playwright --profile local-development --list
-```
-
-Запускайте из полученного child. JSON.executable и JSON.arguments/entryPoint
-должны выбирать подготовленный CLI под его `var/**`; `executed=false` означает
-только план. Реальное выполнение именно выбранного CLI с `--version` проверяет
-его доступность. Готовность56ресурсов и CLI не доказывают запуск полного CJM.
+Новые конфиги ERP используют create-only публикацию пользовательских env/settings.
+Сохранённое старое дерево обслуживается по [инструкции миграции](maintenance-profile-v2.md#сохранённые-настройки-erp),
+с собственным утверждённым источником значений и последующей новой полной подготовкой.
+Успешная миграция или отдельный tooling smoke не являются её квитанцией READY.
 
 ## Сохранение результатов и освобождение
 
-Полные native receipts/снимки/потоки и независимые решения сохраняют своих
-истинных владельцев, commits и digests. До завершения передайте требуемые файлы
-следующему этапу/получателю и прочитайте постоянные назначения обратно.
-Применяется [договор поставки](../workflows/terminal-materials.md#публичный-договор-поставки).
-Известный preterminal разрыв и ограниченный вариант продолжения описаны в
-[реестре](../operations/known-bugs.md#poise-preterminal-file-delivery-001).
+Перед очисткой передайте результаты всем предусмотренным потребителям, завершите
+независимую приёмку и интеграцию через их владельцев. Постоянные selected SDK,
+operator recipes, рабочие manifests/configs и данные приложений находятся вне
+удаляемой Task. Captures и временные тестовые конфиги принадлежат Task;
+инциденты и ручные исправления до очистки сохраняются в
+[общем постоянном журнале](../operations/harness-incident-journal.md#постоянное-хранилище).
 
-Для принятой completed Task используйте штатный
-[integrate](../workflows/batch-work.md#интеграция-принятого-результата)
-с отдельным разрешением и точными observed commits. Владелец завершает интеграцию,
-убирает только свои worktree/branch и согласует delivery/retirement.
-`cleanup` для cancelled Task не заменяет этот completed маршрут.
-Проверьте состояние владельцев, физическое освобождение собственных ресурсов,
-полные SHA постоянных outputs и сохранение operator файлов/common Git ignore.
-Рабочие конфиги — оставляемый результат подключения, а не временная Task копия.
+После доставки остановите только собственные проверочные процессы, освободите
+порты/Task/worktree claims и удалите собственные временные области через владельца.
+Работающие чужие экземпляры и их процессы сохраняются. Последующие обновления
+поставки выполняются по [общему порядку](maintenance-profile-v2.md#согласованное-обновление-потребителей).

@@ -1,0 +1,13 @@
+{
+  "selected_instances": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "required_instances": {"value": 2, "unit": "count", "kind": "derived", "state": "known"},
+  "over_selected_instances": {"value": 0, "unit": "count", "kind": "derived", "state": "known"},
+  "missed_instances": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "selected_not_read_instances": {"value": 0, "unit": "count", "kind": "derived", "state": "known"},
+  "reference_reads": {"value": 2, "unit": "count", "kind": "derived", "state": "known"},
+  "raw_read_bytes": {"value": 46, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "repeated_read_bytes": {"value": 6, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "selection_precision_proxy": {"value": 1, "unit": "ratio", "kind": "proxy", "state": "known"},
+  "selection_recall_proxy": {"value": 0.5, "unit": "ratio", "kind": "proxy", "state": "known"},
+  "policy_coverage": {"value": 1, "unit": "ratio", "kind": "proxy", "state": "known"}
+}

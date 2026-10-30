@@ -31,8 +31,8 @@ SDK и локальный wheelhouse с зависимостями обслуж�
 poise_source=/srv/poise/source
 repository=/srv/poise/instance
 python_runtime=/srv/runtime/python3.15
-tool_prefix=/srv/tools/environment-maintenance
-tool_python="$tool_prefix/node_modules/environment-maintenance/.venv/bin/python"
+tool_prefix=/srv/environment-maintenance/2.0.0
+tool_python="$tool_prefix/lib/node_modules/environment-maintenance/.venv/bin/python"
 wheelhouse=/srv/packages/poise-wheels
 state_root=/srv/poise/data/own-instance
 profile="$repository/operator/profile"
@@ -41,8 +41,7 @@ base_ref=master
 author_name=Operator
 author_email=operator@example.invalid
 
-"$python_runtime" -m venv "$repository/.venv"
-poise_python="$repository/.venv/bin/python"
+poise_python="$python_runtime"
 mkdir -p "$repository/operator"
 PYTHONPATH="$poise_source/src:$poise_source" "$poise_python" -P -s -B -m poise_environment.profile \
   --source "$poise_source" \
@@ -86,17 +85,13 @@ Task-деревья размещаются в `repository/.runtime/worktrees`: �
 state должен быть вне этого каталога и отдельно от профиля. Изменение cwd запуска
 не перепривязывает ранее сохранённый repository.
 
-Для новой установки внешнего инструмента заранее выберите принятый npm-пакет
-с operation-интерфейсами и выполните его установку отдельно, например:
-
-```bash
-tool_package=/srv/packages/environment-maintenance-2.0.0.tgz
-npm install --prefix "$tool_prefix" --no-audit --no-fund "$tool_package"
-```
-
-Это установка выбранного артефакта, а не утверждение о публикации версии в registry.
-Для уже подготовленного `tool_python` повторная установка не требуется.
-Подготовка runtime внешнего приложения принадлежит его инструкции поставки.
+Установка самого SDK выполняется выбранным пакетным менеджером в постоянный prefix.
+Для обновления используйте настроенную SDK-цепочку [общей поставки](#согласованное-обновление-потребителей):
+она вызывает npm с выбранным архивом и обязательную проверку всех потребителей.
+Исходное наличие работоспособного исполнителя SDK и Python действий — условия
+запуска этой цепочки. Это отдельная локальная поставка, не обещание публикации
+артефакта в npm registry. Подготовка ресурсных зависимостей обслуживаемого приложения
+выполняется его конфигами `infra`/`deps`.
 
 ### Аргументы материализатора
 
@@ -198,6 +193,10 @@ Source/output/state/repository становятся абсолютными от 
 | `path_separator` | Разделитель путей платформы материализатора. |
 | `runtime_module_path` | Производное repository/src, dependency_target, repository с этим разделителем. |
 | `worktree_root` | Производное `${repository}/.runtime/worktrees`, общее для проекта и действий. |
+| `task_database_lock_executable` | Исполнитель `flock`, например `/usr/bin/flock`. |
+| `task_database_lock_wait_seconds` | Время ожидания блокировки; выбранное `2.0` означает секунды ожидания lock, а не всей SDK-операции. |
+| `task_database_lock_relative` | Путь Task lock относительно state; у нового профиля `state.lock`, у действующей установки задаётся её настоящий `tasks/tasks.lock`. |
+| `task_database_lock` | Производное `${state_root}/${task_database_lock_relative}`. |
 
 В `bootstrap.json` отдельно опубликованы строковые `python`, `env_executable`,
 `runtime_module_path`, `tool_config`, `parameters_file`: команда внешнего SDK,
@@ -268,8 +267,8 @@ SDK-интерпретатор оценивает и тело, и exit. Суще
 отказ даже при успешном exit самой команды чтения реестра.
 
 [Все аргументы и обработчики](bootstrap-catalog-v2.md#подготовка-и-безопасная-проверка)
-принадлежат Bootstrap. ERP, действующий catalog/v2 и подготовка Task-worktree
-сохраняют отдельные command config и свои операции. Выбирайте их собственные
+принадлежат Bootstrap. ERP и подготовка Task-worktree используют свои operation-конфиги SDK2.
+Исторический catalog/v2 имеет отдельный совместимый оператор и собственные входы. Выбирайте их собственные
 профили, не меняя входы другого оператора. Для автоматической Task-подготовки
 используйте [её инструкцию](worktree-preparation.md#подготовка-рабочей-области).
 
@@ -320,432 +319,360 @@ SDK-интерпретатор оценивает и тело, и exit. Суще
 native hooks, редактор или проверенный бизнес-маршрут ERP. Поставка нового профиля
 не переключает уже работающий launcher. Готовность других ОС отдельно не заявляется.
 
+## Выбор экземпляра и действия
+
+[Инструкция настройки рабочих файлов и запуска](start-app-worktree-setup.md#подключение-установленного-инструмента)
+применяется к Poise и ERP. Выберите repository, постоянные SDK/profile/state,
+явный environment и ресурсы конкретной среды. `infra` подготавливает инфраструктуру,
+`deps` — зависимости, `adjust` — объявленное согласование, `check` — presence,
+availability и дополнительные проверки, `run` — только запуск. Рабочее дерево,
+разработка, тестирование и production используют этот же механизм с собственными
+конфигами и условиями; конкретные production credentials/topology заполняет владелец.
+Проверенные локальные сценарии не являются испытанием каждой production-площадки.
+
 ## Профиль ERP
 
-ERP использует отдельный выбранный каталог: **56 ресурсов в 21 группе**.
-Сохранённый самостоятельный каталог Poise содержит 14 ресурсов; собственный
-operation-профиль основной инструкции содержит 15 ресурсов (12 infra и 3 deps).
-Владелец ERP-профиля — поставляемая
-[спецификация ERP](../../config/projects/erp/profile.example.json).
-Каталог задаёт команды и порядок обслуживания; внешний engine исполняет действия,
-предметные адаптеры наблюдают ресурсы, подключаемый обработчик анализирует результат.
-Готовность окружения не заменяет приёмку Task, Sprint или эксплуатационный переход.
+Текущий маршрут2.0 публикует конфиги из **самого целевого ERP checkout** по
+[спецификации проекции](../../config/worktree-preparation/erp-profile.example.json).
+Предметные инструменты и цепочки принадлежат ERP; Poise выбирает поставку SDK и
+действительные координаты. Прежний catalog/v2 с56ресурсами — исторический контракт
+отдельной поставки, не текущий2.0 профиль. Его прежние тексты доступны в Git.
 
 ### Подготовка ERP-профиля
 
-Используйте Linux, Python 3.15 выбранной поставки Poise и отдельный выбранный
-Python внешнего инструмента с поддержкой `catalog/v2`. Пакетный менеджер выбирает
-версии зависимостей. Python действий должен видеть модули выбранной поставки и
-объявленную в её `pyproject.toml` зависимость `psutil`. Для source-запуска доступ
-к этим модулям задаёт `module_path`; сам внешний consumer устанавливается отдельно.
-
-В рабочих values согласуйте Python действий и его диапазон: для текущего собственного
-runtime выбраны `python_minimum="3.15"` и `python_maximum="3.16"`.
-Исходные примеры не заменяют заполнения рабочих значений; их старые значения
-в таблицах ниже описывают сами примеры, не текущую рекомендацию для установки.
-Оставшееся исправление несовместимых границ в примере общей установки учитывается
-отдельно в [известных
-ограничениях](../operations/known-bugs.md#aip-operator-upgrade-compatibility-001--согласование-runtime-после-обновления).
-
-Для автоматической подготовки новых Task подключите
-[установленный start-app](start-app-worktree-setup.md#подключение-установленного-инструмента)
-один раз для каждого проекта. Действительные repository/profile/state выбираются
-из native координат новой области; предварительная ручная материализация каждой
-Task не требуется. ERP-вариант согласует Playwright install/probe и consumer
-под корневым `var/**`, сохраняя все56ресурсов.
-
-При выборе явного заранее материализованного каталога выполните
-[Task-specific подготовку профиля](worktree-preparation.md#профиль-конкретной-задачи):
-отдельные profile/state и `--repository`, равный её фактическому или выбранному
-будущему worktree. Связаны и catalog_dir, и values, и все settings destinations.
-Рабочий configuration, shared environment и test-execution поставляются явно;
-готовность56ресурсов/21группы не подтверждает запуск полного бизнес-CJM.
-
-Ниже — самостоятельное обслуживание существующего ERP checkout, а не автоматическое
-переназначение профиля для Task. Для этого маршрута выберите существующий
-ERP-репозиторий и доступную локальную базовую ревизию.
-Публикуйте в выделенную папку внутри выбранного Poise, с отдельным state вне
-заменяемого профиля и остановленными владельцами записей. Значения `/srv/...`
-в примере заменяются выбранными путями установки:
+Заполните [values и supervisor](start-app-worktree-setup.md#заполнение-values),
+выбрав repository и отдельный profile/state. `worktree_profile.py publish` принимает
+`--spec`, `--source`, `--output`, `--parameters`: все обязательны. Полный argv
+публикации и SDK операций задан [ERP supervisor](../../config/worktree-preparation/erp-supervisor-infra.example.json).
+Для самостоятельного окружения подготовьте JSON тех же координат и выполните его:
 
 ```bash
-poise_root=/srv/poise/app
-poise_python=/srv/poise/poise-venv/bin/python
-consumer_python=/srv/poise/environment-venv/bin/python
-catalog_dir="$poise_root/operator/profile"
-state_root=/srv/poise/data/erp-maintenance
-repository=/srv/projects/erp
-cd "$poise_root"
-mkdir -p "$poise_root/operator"
-PYTHONPATH="$poise_root/src" "$poise_python" -B -m poise_environment.profile \
-  --source "$poise_root" --profile-spec config/projects/erp/profile.example.json \
-  --output "$catalog_dir" --state "$state_root" --repository "$repository" \
-  --project erp --base-ref main --author-name Operator \
-  --author-email operator@example.invalid --module-path "$poise_root/src"
+"$start_app" infra --config "$operator_root/erp-supervisor.json" \
+  --parameters "$supervisor_parameters" --base-dir "$repository" --requirements all
+"$start_app" check --config "$profile/app.json" \
+  --parameters "$profile/parameters.json" --base-dir "$repository"
 ```
 
-Все [аргументы материализатора](#аргументы-материализатора) сохраняют своё
-назначение. Команда публикует профиль, но ещё не обслуживает ERP.
-В `config/projects/erp/` отслеживаются девять заполненных примеров: `profile`,
-`catalog`, `resources`, `bootstrap`, `values`, `recommendations`, `local-settings`,
-`host-runtime-settings`, `cjm-settings` с окончанием `.example.json`.
-Из них и объявленных assets появляются рабочие `catalog.json`, `resources.json`,
-`bootstrap.json`, `values.json`, `recommendations.json`, `documents/*.json`,
-`runtime/` и настройки project setup. `operator/profile/` исключён из Git.
-
-После публикации заполните рабочие файлы:
-
-1. В `values.json` задайте выбранные инструменты и параметры ERP из таблицы ниже;
-   `python` — Python действий Poise, `consumer_python` — Python внешнего engine.
-2. В `bootstrap.json` задайте `parameters.python` равным фактическому
-   `consumer_python`, а `parameters.tool_config` — абсолютному пути `values.json`.
-   Это отдельная настройка команды: изменение одного values-файла не меняет argv
-   уже опубликованного Bootstrap.
-3. В `documents/local-settings.json`, `documents/host-runtime-settings.json` и
-   `documents/cjm-settings.json` заполните параметры своей установки. Это источники
-   публикуемых JSON; их рабочие назначения определены значениями `*_path`.
-
-Для повторной публикации выполните ту же команду с той же папкой. Поставляемые
-assets и документы заменяются; сохраняются только объявленные `preserve_paths`
-из [спецификации](../../config/projects/erp/profile.example.json), включая
-project/registry/editor настройки. Обслуживаемые данные остаются в отдельном state.
-После повтора вновь согласуйте рабочие values, Bootstrap и источники JSON со своей
-установкой. Публикация не перенастраивает существующий проект скрытно.
+`supervisor_parameters` содержит девять [координат](start-app-worktree-setup.md#полный-рабочий-preparesh)
+и явно заполненные/производные values. Его при Task-вызове создаёт thin bridge.
+В самостоятельном запуске оператор выбирает те же поля непосредственно. SDK
+возвращает полный JSON результатов; сохраните stdout, stderr и фактический exit.
 
 ### Параметры и корни ERP
 
-В каталоге 27 строковых параметров. Значения, выбранные аргументами материализации,
-попадают в каталог и рабочие документы; остальные исходно берутся из выбранного
-примера. Рабочие переопределения задаются values-файлом или внешними `--set`.
-
-| Параметр | Источник и назначение |
+| Вход | Владелец/значение |
 |---|---|
-| `python` | `sys.executable` материализатора; Python предметных действий. |
-| `module_path` | `--module-path`; доступ действий к выбранным source-модулям. |
-| `profile_root` | Абсолютный `--output`; корень опубликованных assets. |
-| `state_root` | Абсолютный `--state`; отдельные обслуживаемые данные и caches. |
-| `repository` | Абсолютный `--repository`; выбранный ERP checkout. |
-| `project_id` | `--project`; идентификатор публикуемой конфигурации проекта. |
-| `base_ref` | `--base-ref`; доступная выбранная ревизия. |
-| `author_name` | `--author-name`; имя автора конфигурации проекта. |
-| `author_email` | `--author-email`; почта автора. |
-| `git` | В примере `git`; выбранная команда Git. |
-| `directory_mode` | В примере `0750`; права создаваемых каталогов. |
-| `python_minimum` | В примере `3.13`; включительная нижняя граница Python. |
-| `python_maximum` | В примере `3.14`; исключительная верхняя граница Python. |
-| `template_id` | `--template`, исходно `common`. |
-| `remote` | В примере `disabled`; значение конфигурации проекта. |
-| `php_executable` | В примере `php`; выбранный PHP для проверок и Composer. |
-| `node_executable` | В примере `node`; выбранный Node для проверок и npm. |
-| `composer_executable` | В примере `composer`; выбранный Composer. |
-| `npm_entry_point` | В примере `/usr/share/nodejs/npm/bin/npm-cli.js`; фактический npm CLI для выбранного Node. |
-| `consumer_python` | В примере `python3`; выбранный Python внешнего engine, используемый при публикации команды Bootstrap. |
-| `environment_file` | В примере `platform-infrastructure/config/dev/local-development.env`; рабочий файл окружения. |
-| `local_settings_path` | В примере `platform-infrastructure/config/dev/local-development.settings.json`; локальная конфигурация. |
-| `host_runtime_settings_path` | В примере `platform-infrastructure/config/dev/local-dev-host-runtime.settings.json`; конфигурация host runtime. |
-| `cjm_settings_path` | В примере `platform-infrastructure/tests/playwright/cjm.local-development.settings.json`; конфигурация пользовательского маршрута проверки. |
-| `local_settings_source` | В примере `documents/local-settings.json`; источник локальной конфигурации. |
-| `host_runtime_settings_source` | В примере `documents/host-runtime-settings.json`; источник host runtime. |
-| `cjm_settings_source` | В примере `documents/cjm-settings.json`; источник конфигурации пользовательского маршрута. |
+| `application_source` | Целевой checkout ERP, источник `platform-infrastructure/config/dev/start-app/*.example.json`. |
+| `profile_root` | Новые app/infra/deps/adjust/check/run/processes/parameters JSON; переносимая конфигурация этого окружения. |
+| `environment_source` | Операторская ссылка на утверждённые значения; consumer читает подготовленный `operator_source/erp-environment.example.env`. Полученный environment.env переносится в target create-only. |
+| `consumer_root` | Working `.runtime/environment-consumer` с `bootstrap.env`, `runtime.env`, `environment.env`. |
+| `sdk_python` | Python выбранной установленной версии SDK. |
+| `console_tool` | Пакетный launcher видимых консолей. |
+| `terminal`, `display`, `xauthority`, `terminal_font` | Явное консольное окружение конкретного запуска. |
+| PHP/Composer/Node/npm | Заполненные [values](start-app-worktree-setup.md#заполнение-values). |
+| Profile `parameters.json` | Полная проекция собственного tracked ERP parameters example, включая пути, порты, URLs и выбранные инструменты. |
 
-Авторские шаблоны команд и проекций рендерятся стандартным `string.Template`.
-Выбранные значения — данные: строка с буквальным `$` сохраняется буквально,
-без повторной подстановки её содержимого. Для буквального доллара в самом
-авторском шаблоне применяется стандартное `$$`.
-
-Обязательный `path_roots` в `resources.json` явно задаёт разрешение путей:
-
-| Параметры | Корень относительного значения |
-|---|---|
-| `environment_file`, `local_settings_path`, `host_runtime_settings_path`, `cjm_settings_path` | `repository` |
-| `local_settings_source`, `host_runtime_settings_source`, `cjm_settings_source` | `profile_root` |
-
-Абсолютное переопределение остаётся абсолютным. Пути принадлежат конфигурации,
-а не угадываются из cwd предметного адаптера. У ERP-обработчика в `bootstrap.json`
-обязателен `handler.options.configuration_root`: материализатор задаёт `repository`.
-Его `configuration_targets` содержит `id`, `kind`, `path` трёх наблюдаемых JSON.
-Относительный target разрешается от этого корня, абсолютный используется как задан.
-При изменении рабочей цели согласуйте values и соответствующий target обработчика.
-При выборе другого `repository` согласуйте также `configuration_root`.
+При публикации JSON edits задают точный массив `path` и `value`; тексты
+публикуются стандартным шаблонизатором. Неизвестные поля копируемых документов
+сохраняются. Исполняемый consumer получает выбранный SDK из quoted literal
+`ERP_ENVIRONMENT_PYTHON_BIN` в `runtime.env`; путь с пробелами передаётся целиком.
+Общий environment и согласованные адреса/порты заполняются явно до запуска.
+Для параллельной проверки выберите свободные собственные порты и обновите все
+связанные URLs; работающие экземпляры не требуется останавливать.
 
 ### Ресурсы и обслуживание ERP
 
-Каждая из 56 записей имеет самостоятельные `check`, `install`, `repair` с
-объявленными argv/cwd/env, схемой ответа и пределами исполнения/вывода. Конкретные
-команды и dependencies заданы [каталогом](../../config/projects/erp/catalog.example.json),
-предметные параметры — [ресурсами](../../config/projects/erp/resources.example.json).
+[Полная цепочка](../../config/worktree-preparation/erp-supervisor-infra.example.json)
+сначала публикует inputs/consumer, затем выполняет `infra` для environment/base,
+`deps`, полную `infra`, `adjust`, `check`. Для каждой зависимости используется
+объявленная цепочка внешних команд и проверки ресурса. Миграции данных относятся
+к инфраструктуре. Post-deps `adjust` использует уже установленный PHP dotenv parser.
 
-| Группа | Что наблюдается или обслуживается |
-|---|---|
-| `git` | Git-репозиторий и выбранная базовая ревизия. |
-| `service_tools` | Команды обслуживания, включая jq и остальные объявленные инструменты. |
-| `php` | Выбранный исполняемый PHP. |
-| `php_extensions` | Объявленные PHP-расширения. |
-| `node` | Выбранный Node и сведения его runtime/ABI. |
-| `managers` | Доступность выбранных Composer и npm. |
-| `local_settings` | Локальная и host-runtime JSON-конфигурации. |
-| `cjm_settings` | JSON-настройки выбранного пользовательского маршрута проверки. |
-| `environment` | Файл окружения, его разбор и проверка действующим владельцем ERP. |
-| `installation_units` | Канонические единицы измерения приложения. |
-| `directories` | Рабочие каталоги приложений и browser-home. |
-| `application_databases` | Наличие и читаемость баз приложений. |
-| `queues` | Схемы объявленных очередей. |
-| `composer_dependencies` | Lock/install/autoload трёх PHP-приложений. |
-| `mirrored_packages` | Содержимое зеркальных пакетов. |
-| `node_dependencies` | Установленные зависимости document-ui и проекта Playwright. |
-| `playwright` | Объявленные Playwright CLI и конфигурационный файл. |
-| `artifacts` | CLI, verifier и XSD приложения. |
-| `discovery` | Кэши обнаружения пакетов приложений. |
-| `initialization` | Миграции приложений и начальные настройки. |
-| `readiness` | Итоговое наблюдение готовности баз и настроек. |
-
-Объявленные связи ставят каталоги перед установкой зависимостей, Composer перед
-discovery и единицами измерения, базы перед миграциями, миграции перед начальными
-настройками, а итоговую проверку — после необходимых владельцев. Успешное наблюдение
-одной записи не заменяет результат остальных.
-
-Для Node недостаточно наличия lock-файлов. После `required_files` выполняются
-обязательные `check_argvs`: реальный `npm ls --json --depth=0` и импорт нужного entry
-с проверкой функции (`vite.createServer` или `chromium.launch`). Проверка функции
-не запускает сервер или браузер. Выбранный Node также ставится первым в PATH действия.
-При неготовности изменяющее действие выполняет один `install_argv` и прямо проверяет
-результат ещё раз. Уже готовый ресурс повторной установки не требует.
-
-Из выбранного Poise запустите последовательное обслуживание и явную проверку:
+Для поддержания подготовленного окружения и отдельного запуска:
 
 ```bash
-"$poise_python" -I -B "$poise_root/bootstrap" infra \
-  --config "$catalog_dir/bootstrap.json" --catalog-dir "$catalog_dir"
-"$poise_python" -I -B "$poise_root/bootstrap" deps \
-  --config "$catalog_dir/bootstrap.json" --catalog-dir "$catalog_dir"
-"$poise_python" -I -B "$poise_root/bootstrap" check \
-  --config "$catalog_dir/bootstrap.json" --catalog-dir "$catalog_dir"
-"$poise_python" -I -B "$poise_root/bootstrap" infra \
-  --config "$catalog_dir/bootstrap.json" --catalog-dir "$catalog_dir" --dry-run
+"$start_app" adjust --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
+"$start_app" check --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository"
+"$start_app" run --config "$profile/app.json" --parameters "$profile/parameters.json" --base-dir "$repository" --requirements all
 ```
 
-В ERP-примере первоначальные команды infra/deps вызывают внешний `run`, check —
-внешний `check`. Операции не фильтруют группы каталога по своему имени. Это отличается
-от исходного check-first базового профиля. Dry-run передаётся engine; плагин не
-предпринимает исправление при dry-run. Все [аргументы Bootstrap и контракт сменного
-обработчика](bootstrap-catalog-v2.md#интерфейс-подключаемого-обработчика) остаются общими.
-Распознанное разрешённое исправление плагина ограничено одной попыткой с проверкой
-в текущем вызове; неизвестная или последующая ошибка возвращается агенту.
+В установленном ERP wrapper `bash "$repository/start-app" ...` использует собственный
+runtime selector; аргументы operation SDK передаются ему по выбранному контракту.
+`run` исполняет ровно конфиг запуска, подготовку он не добавляет. `check` использует
+обязательный presence каждого ресурса, объявленный availability и отдельный
+coherence-конфиг. Отсутствующая availability отражается как `not_configured`;
+это не выдуманное подтверждение доступности.
+
+### Дополнительные CLI-зависимости ERP
+
+Зависимости CLI расчётчика `erp-calendar-optimizer` входят в подготовку ERP до
+запуска приложения. В рабочей установке этот шаг задаётся исходной операционной
+спецификацией `application_spec` из values подготовки. Связь источника с новыми
+деревьями описана в [настройке values](start-app-worktree-setup.md#заполнение-values).
+
+В её `documents` выберите проекцию исходного
+`platform-infrastructure/config/dev/start-app/deps.example.json` в `deps.json`.
+Настройте две правки, сохраняя исходные команды и остальные ресурсы:
+
+1. Для `path: ["requirements", 0, "commands"]` значение `value` содержит исходную
+   цепочку Node `deps`, затем приведённую ниже команду Composer.
+2. Для `path: ["requirements", 0, "checks", "presence", "commands"]` значение
+   `value` содержит исходную проверку Node `dependencies`, затем проверку autoload.
+
+Команда установки в исходной спецификации:
+
+```json
+{
+  "argv": [
+    "${composer_executable}",
+    "install",
+    "--no-interaction",
+    "--prefer-dist",
+    "--no-progress",
+    "--no-scripts"
+  ],
+  "cwd": "$${instance}/erp-calendar-optimizer",
+  "env": {
+    "PATH": "$${path}",
+    "COMPOSER_HOME": "$${composer_home}",
+    "COMPOSER_MIRROR_PATH_REPOS": "1"
+  },
+  "interpreter": {
+    "name": "exit",
+    "options": {"accept": [0]}
+  }
+}
+```
+
+Проверка наличия установленного autoload в той же спецификации:
+
+```json
+{
+  "argv": [
+    "/usr/bin/test",
+    "-s",
+    "$${instance}/erp-calendar-optimizer/vendor/autoload.php"
+  ],
+  "cwd": "$${instance}",
+  "env": {"PATH": "$${path}"},
+  "interpreter": {
+    "name": "exit",
+    "options": {"accept": [0]}
+  }
+}
+```
+
+`composer_executable` выбирается в values оператором и подставляется при
+публикации. Запись `$$` сохраняет placeholders для последующего исполнения SDK;
+так же оформите placeholders сохраняемых исходных Node-команд. Параметры
+`instance`, `path`, `composer_home` заполняются действительными координатами
+нового дерева. Composer устанавливает пакеты по его собственному lock-файлу.
+
+Повторная публикация и подготовка новых Task получают эту цепочку из постоянной
+рабочей спецификации. Проверьте свежую подготовку, наличие autoload, штатный
+`check` и прикладной сценарий расчёта. Повторная подготовка сохраняет данные
+экземпляра. Рабочая спецификация и заполненные values хранятся вне Git;
+версии инструмента и пакетов выбираются средствами установки.
 
 ### Конфигурация и результаты ERP
 
-Локальные JSON, host-runtime JSON и выбранные CJM JSON публикуются владельцем
-по одному файлу: валидное целое содержимое подготавливается рядом с целью и
-заменяет её через `os.replace`. Для первой и повторной публикации при обычном
-прерывании остаётся исходное отсутствие/прежний файл либо целое новое содержимое.
-Это per-file атомарность, а не транзакция нескольких файлов и не гарантия при
-произвольном падении системы или конкурентных изменениях.
+Рабочие env/settings создаются при отсутствии; пользовательские bytes повторной
+подготовкой не заменяются. JSON результата SDK и actual exit должны одновременно
+подтверждать успех. Наличие рабочего файла, успешный запуск команды диагностики или
+отдельный tooling smoke сами по себе не подтверждают готовность всего приложения.
+Для `run` дополнительно проверьте реальные HTTP/process endpoints выбранной среды.
+Полные записи сохраняют версии поставки, source commit, конфиги/digests и результаты.
 
-ERP-плагин дополняет результат массивом `configuration_observations`:
+### Сохранённые настройки ERP
 
-| Поле | Наблюдаемый факт |
-|---|---|
-| `id`, `kind` | Идентификатор и вид из выбранного target. |
-| `state` | `present`, `absent` или `unavailable` по фактическому чтению цели. |
-| `sha256` | SHA-256 точных прочитанных bytes при `present`, иначе `null`. |
-| `cause` | Пустая строка при чтении, `not-found`, `permission-denied` либо причина файловой ошибки. |
+Старое сохранённое дерево может иметь local-development.settings.json без девяти
+дескрипторов units, хотя новый projected `documents/local-settings.json` уже их
+содержит. Create-only публикация сохраняет этот старый файл. Владелец дерева
+выполняет точную миграцию working data через SDK с утверждённым environment:
 
-Эти факты не заменяют полный исходный ответ engine и реальный exit. Ошибка команды
-остаётся ошибкой, даже если JSON уже опубликован. При отсутствии/недоступности
-обязательного JSON наблюдаемая ранее готовность также возвращается как ошибка.
-Сохраните полный результат, stdout/stderr, exit, причину и идентичности конфигураций;
-последующее решение принимает агент/оператор.
+1. Выберите свой repository, его projected settings, установленный native PHP dotenv
+   parser, утверждённый environment и собственный audit. Проверьте все входы до записи.
+2. Используйте принятый SDK envelope из постоянного журнала: дело
+   `ENV2-LIVE-CUTOVER-001/existing-unit-recovery`, `README.ru.md`, `app.json`,
+   `infra.json`, `empty.json` и собственный parameters JSON. Helper — соседний
+   `executor-legacy-unit-configuration-recovery.php`. Расположение общего журнала:
+   [постоянное хранилище](../operations/harness-incident-journal.md#постоянное-хранилище).
+3. Передайте `start-app infra --config ENVELOPE/app.json --parameters PARAMETERS
+   --base-dir REPOSITORY --requirements all`. Wrapper выделяет ровно утверждённые
+   units assignments; native parser проверяет обе dotenv до любых target writes.
+4. Подтвердите сохранение прежних raw bytes/modes, неизвестных настроек и audit.
+   Миграция добавляет отсутствующие metadata descriptors; согласованный полный
+   набор values сохраняет, отсутствующий набор дополняет. Повтор не меняет результат.
+5. Сохраните необходимые материалы аудита в постоянном журнале до очистки Task,
+   соблюдая правило хранения секретов. Выполните новый штатный preparation intent
+   с новым `preparation_request_id`, затем получите полный check/READY от владельца.
 
-Application `.env` остаётся самостоятельной записью каталога. Его действующий
-генератор ERP пишет по существующей процедуре; атомарность этого генератора при
-прерывании **не обеспечена данной поставкой**. Доказательства атомарной публикации
-трёх JSON к `.env` не относятся. После исправления его владельцем нужна отдельная
-проверка соответствующего результата.
+Девять ключей: `QUANTITY_UNITS_LENGTH`, `QUANTITY_UNITS_WIDTH`,
+`QUANTITY_UNITS_HEIGHT`, `QUANTITY_UNITS_PIECES`, `QUANTITY_UNITS_CALENDAR_DAYS`,
+`PRICE_UNITS_WIRE`, `PRICE_UNITS_CONCRETE`, `PRICE_UNITS_SETUP`, `COST_UNITS`.
+Они берутся из собственного утверждённого источника, не из предположений инструмента.
+Envelope — проверенный ограниченный ручной ремонт рабочих данных, не новая
+автоматическая функция ERP или SDK. Его результат `configuration_migrated` либо
+`configuration_unchanged` содержит `native_preparation_verified=false`. Саму готовность доказывает
+следующая полная preparation. Этот порядок сохраняет исторический отказ и данные.
 
 ### Процессы и диагностика ERP
 
-Предметное действие выполняется отдельным последовательным Linux-процессом,
-у которого перед запуском команды нет иных дочерних процессов. Python действий
-содержит `psutil`; Linux предоставляет `prctl` child-subreaper. До spawn включается
-временное владение осиротевшими потомками. После ожидания корневой команды
-принадлежащие действию потомки завершаются и ожидаются, исходный флаг восстанавливается.
-Команды сохраняют унаследованную process group. Это не универсальный менеджер процессов.
+Конфиг `run` запускает процессы в явно выбранных видимых консолях; пользователь
+управляет каждым процессом в его консоли. Автоматические проверки используют
+собственный display/консоли и собственные порты, сохраняя пользовательский focus.
+В проверенном маршруте bwrap/Xvfb изолируют проверочный display. Это настройка
+проверочной среды, а не скрытая обязательная консоль пользователя.
+Завершение проверки останавливает только её собственные процессы. Групповой
+менеджер пользовательских серверов этим подключением не вводится.
 
-`bound_seconds` ограничивает ожидание команды и отдельный срок завершения её
-дочерних процессов; внешний предел действия задан `execution_bound_seconds`.
-Полные внутренние stdout/stderr захватываются в файловые потоки и читаются независимо.
-При ошибке чтения одного сохраняются доступные bytes другого; capture/spawn/timeout/
-settlement ошибки остаются ошибками с доступной диагностикой. Полный результат нужен
-для анализа; preview не заменяет его. Неизвестная ошибка возвращается агенту, а
-восстановление установки выполняет её владелец по рекомендациям.
+## Согласованное обновление потребителей
+
+[Заполненные примеры цепочки](../../config/maintenance/consumer-update-app.example.json)
+и [операций](../../config/maintenance/consumer-update-infra.example.json) вызывают
+стандартный npm, проверенную публикацию selectors и **обязательный** gate всех
+действующих зарегистрированных потребителей. Наблюдатель
+[consumer_updates.py](../../src/poise_environment/consumer_updates.py) только читает
+inventory и исполняет явные проверки через общий runner; установку он не выполняет.
+
+### Рабочие файлы обновления
+
+Создайте рабочие копии внутри ignored operator/update, заполнив пути установки:
+
+| Рабочее имя | Отслеживаемый источник |
+|---|---|
+| `app.json` | [update app](../../config/maintenance/consumer-update-app.example.json) |
+| `consumer-update-infra.json` | [цепочка npm/publication/gate](../../config/maintenance/consumer-update-infra.example.json) |
+| `parameters.json` | [параметры обновления](../../config/maintenance/consumer-update-parameters.example.json) |
+| `publication.json` | [план selectors](../../config/maintenance/consumer-update-publication.example.json) |
+| `gate-app.json` | [gate app](../../config/maintenance/consumer-update-gate-app.example.json) |
+| `check.json` | [gate check](../../config/maintenance/consumer-update-gate-check.example.json) |
+| `empty.json` | [пустая операция](../../config/worktree-preparation/empty.example.json) |
+| `gate-parameters.json` | [параметры gate](../../config/maintenance/consumer-update-gate-parameters.example.json) |
+| `rollout.json` | [инвентаризация и проверки](../../config/maintenance/consumer-update-rollout.example.json) |
+| `consumer_updates.py` | Постоянная копия принятого владельца наблюдения, ссылка выше. |
+
+Проверьте относительные имена `operations` в каждом app: они относятся к его
+папке. В частности gate выбирает `check.json`, а update — `consumer-update-infra.json`.
+Все файлы примеров — declarations; реальные inputs заполняются под выбранное
+окружение. Их публикация сама не устанавливает новую версию.
+
+| Параметр обновления | Назначение |
+|---|---|
+| `base`, `path`, `home`, `module_path` | cwd и явное окружение выбранных инструментов/Poise. |
+| `node`, `npm_entry_point` | Стандартный npm CLI в согласованном Node. |
+| `bootstrap_python` | Явный исходный Python установки SDK. |
+| `supply_prefix`, `archive` | Постоянный prefix и принятый локальный npm archive; до установки подтвердите его источник/digest. |
+| `start_app`, `sdk_python`, `console_tool` | Публикуемые entry/SDK Python/console launcher принятого prefix. |
+| `publication` | Полный JSON плана правок selectors. |
+| `gate_config`, `gate_parameters` | app и параметры обязательной проверки после публикации. |
+
+`publication.json` содержит два массива `json` и `shell` (пустые допустимы).
+JSON запись: `file` и `edits[]` с точным массивом `path` и `parameter`.
+Допустимые значения `parameter` в обеих формах: только `start_app`, `sdk_python`,
+`console_tool`; значения берутся из соответствующих parameters. Shell запись: `file`, `key`, `parameter`. Сначала стандартный jq читает
+и проверяет весь план/записи, затем выполняются правки. Сохраняются неизвестные
+target fields и file modes; повтор той же поставки сохраняет selectors. Это
+не транзакция возврата всех файлов при любой возможной ошибке записи.
+Рабочий shell input доверенный и заполняется владельцем своей установки.
+
+`gate-parameters.json` задаёт `python` действий, постоянный `observer`, путь
+`consumer_config` к rollout, `base`, `module_path`, `path`, `home`. Gate check
+запускает observer с единственным обязательным `--config PATH`; `-h/--help` даёт
+справку. Наблюдатель не хранит второй реестр проектов.
+
+### Инвентаризация и подтверждение совместимости
+
+| Поле rollout.json | Назначение |
+|---|---|
+| `inventory.argv`, `cwd`, `env` | Команда существующего публичного `project_tools.list`, которая возвращает `status=listed`, `projects`, `errors`. |
+| `expected_entry_stdout` | Полная ожидаемая строка `start-app --version` с переводом строки для выбранной поставки. |
+| `expected_sdk_version` | Ожидаемая версия именно принятой пакетной поставки для runtime observations. |
+| `consumers` | Все действующие потребители фактического inventory, по одному на identity. |
+| `excluded_projects` | Только явно классифицированные непродуктовые регистрации: `project` и непустая `reason`. |
+| `capture_directory` | Постоянный выбранный рабочий каталог captures этого обновления; не Git. |
+| `timeout_seconds` | Предел отдельной наблюдаемой команды. |
+
+Каждый consumer содержит `project`, `preparation_config` с выбранным
+`parameters.start_app`, `runtime` и `compatibility`. Runtime равен `null` при
+отсутствии отдельного selector либо объекту `path` (доверенный Bash env) и
+`python_key` (имя выбранного SDK Python). Compatibility — `argv`, `cwd`, `env`,
+`expected_exit_code`, `expected_status`; команда должна вернуть полный JSON со
+`status`. Настройки явно выбирают как готовность ресурсных проверок, так и
+собственную прикладную диагностику окружения, когда она требуется для совместимости.
+
+Пример перечисляет пять потребителей одной установки; перед каждым обновлением
+получите актуальный inventory и заполните **все** его реальные приложения.
+Пример `diagnostic-fixture` заменяется только действительной диагностической
+регистрацией либо удаляется из списка вместе с отсутствующей регистрацией.
+Каждый проект имеет ровно одну классификацию; пропуск, дублирование, пересечение,
+ошибочный inventory или неуспешная совместимость возвращают `status=error`/exit1.
+`ready`/exit0 содержит готовность каждого consumer и пустой `errors`.
+
+### Выполнение обновления
+
+Подготовьте реальные compatibility inputs и конфиги выбранной версии до запуска.
+Все потребители получают принятую поставку в одном согласованном обновлении:
+
+```bash
+"$start_app" infra --config "$update/app.json" --parameters "$update/parameters.json" --base-dir "$poise_source" --requirements all
+"$start_app" check --config "$update/gate-app.json" --parameters "$update/gate-parameters.json" --base-dir "$poise_source"
+```
+
+Внешняя операция `infra` уже включает обязательный gate; отдельный `check` полезен
+как повторное наблюдение завершённой поставки. Запросы потребителей сохраняют полный
+stdout/stderr/exit в отдельных captures. Версия здесь — предмет принятия конкретной
+поставки, а не встроенный запрет запуска произвольной patch-версии зависимости.
+
+Готовность фиксируется только после успеха всех потребителей. Исправление известной
+ошибки выполняется владельцем её inputs и последующей полной проверкой; ни публикация
+части selectors, ни успешный npm install по отдельности не завершают обновление.
+Для нового обновления создайте свежие compatibility inputs. До очистки Task
+отведите использованные временные rollout/parameters от рабочих вызовов и сохраните
+доказательства постоянно; selected SDK, manifests и постоянные profiles сохраняются.
 
 ## Переход на новый маршрут и возврат
 
-Ниже сохранена операторская процедура перехода отдельно выбранных catalog/v2
-профилей Poise и ERP. Их resource counts, values и команды относятся к этим
-профилям. Новый собственный operation-профиль использует описанную выше
-[инструкцию](#развёртывание-из-примера) и `--base-dir`; его публикация не выполняет
-это переключение. Для существующего каталожного оператора выбирайте его сохранённую
-совместимую поставку, source и рабочую команду.
-
-Это операторская процедура выбора команды обслуживания, а не новый автоматический
-координатор ворот. Версии внешних зависимостей выбирает пакетный менеджер.
-Poise исполняет явно настроенную команду и передаёт полный результат выбранному
-сменному [плагину Bootstrap](bootstrap-catalog-v2.md#интерфейс-подключаемого-обработчика).
-Он обрабатывает распознанную ошибку с одной разрешённой попыткой исправления
-в текущем вызове; неизвестную либо повторную ошибку возвращает агенту.
-
-Выберите общую поставку Poise с `src/`, `config/` и корневым `bootstrap`,
-поддерживаемый Python Poise, отдельное окружение внешнего инструмента,
-целевые репозитории и доступные локальные ревизии. Запишите отдельно commit/tree
-проверяемого кандидата и commit фактически выбранного runtime: готовность одной
-копии не доказывает готовность другой. Пути поставок и профилей задаются явно,
-не зашиваются в продуктовый код. Для текущего Python действий3.15 заполните
-рабочие `python_minimum="3.15"` и `python_maximum="3.16"`.
-
-Подготовьте [полный отдельный каталог Poise](bootstrap-catalog-v2.md#входы-универсального-каталога)
-и
-[полный профиль ERP](#подготовка-erp-профиля) в разные выделенные папки внутри
-выбранного Poise. Для каждого задайте отдельные state/cache и заполните values,
-рабочую команду Bootstrap и источники конфигураций. Согласуйте Python действий,
-consumer и пути по инструкциям профилей. Для Task используйте
-[автоматическое подключение](start-app-worktree-setup.md#подключение-установленного-инструмента)
-либо явно подготовьте [её собственный профиль](worktree-preparation.md#профиль-конкретной-задачи).
-Рабочие configs/values/selectors и retained supply разместите в ignored области
-вне удаляемых Task-root и worktree. В Git остаются санитарные примеры и инструкции.
+Сохраните прежнюю согласованную поставку, рабочие configs/selector bytes/modes,
+исходные ревизии и данные до переключения. Исторически подтверждён отдельный
+изолированный переход1→2→1→2; это не испытание возврата каждого действующего
+приложения с текущей версией его данных. Возврат согласуется по реальным операциям
+и совместимости конкретного экземпляра.
 
 ### Пять ворот до переключения
 
-Выполните последовательно все пять проверок на фактически выбранных входах:
-
-| Ворота | Достаточный наблюдаемый результат |
-|---|---|
-| `supply` | Принятые wheel/manifest/исходная ревизия и предусмотренные поставкой входы совпали по digest; пакетный менеджер успешно установил consumer в выбранное отдельное окружение. |
-| `profiles` | Оба полных профиля опубликованы из выбранной поставки; сохранены их файлы, значения и digests:14ресурсов Poise и56ресурсов ERP в21группе. |
-| `poise-clean-room` | В отдельном окружении реально выполнены `deps`, `infra`, `check` полного профиля Poise; подтверждена готовность всех14ресурсов. |
-| `erp-clean-room` | В отдельном окружении реально выполнены `infra`, `deps`, `check` полного профиля ERP; подтверждена готовность всех56ресурсов. |
-| `erp-task-worktree` | Штатный bootstrap создал отдельную Task worktree и подтвердил её собственную preparation; сохранена полная квитанция и все её входы/потоки. |
-
-До замены текущего launcher выполняйте проверки непосредственно через абсолютный
-`bootstrap`, как в инструкциях обоих профилей. Необходимые ERP настройки и
-test-execution задаются по [инструкции подготовки
-области](worktree-preparation.md#рабочий-файл-и-подключение-проекта).
-Изолированная Task должна иметь законное поручение и собственные данные;
-её подготовка не подменяет приёмку рабочей задачи или бизнес-CJM ERP.
-
-При предварительном отказе сохраните прежний selector и поставку без изменения,
-а также причину и полные результаты неуспешной проверки. Агент решает следующую
-проблему по диагностике. После изменения входа заново докажите затронутую проверку.
-Одного напечатанного PASS, корректного JSON либо наличия всех записей недостаточно.
+1. Принятый package archive, его digest и постоянный выбранный prefix подтверждены.
+2. Рабочие профили и значения соответствуют выбранному SDK и target revision.
+3. Независимое развёртывание Poise проходит infra/deps/check и выбранный запуск.
+4. Независимое ERP проходит подготовку/adjust/check и реальный HTTP/process запуск
+   на собственных свободных портах с согласованными URLs.
+5. Полный фактический inventory принятой поставки проходит обязательный all-consumer gate.
 
 ### Подготовка и выбор selector
 
-Заранее сохраните три явно различимых файла:
-
-- `S0` — точные исходные bytes действующего `STRIDE_CONFIG` и их SHA-256.
-- `Slegacy` — полностью заполненный selector явного возврата: retained Python/CLI
-  и его собственные старые входы, например `--catalog` и `--repairs`.
-- `Snew` — полностью заполненный новый selector с тремя префиксами абсолютного
-  Bootstrap из [примера launcher](../../config/stride-launcher.example.json).
-
-Проверьте фактическую работоспособность retained consumer. Если исходный selector
-не обслуживает окружение, его неизменная копия `S0` всё равно сохраняет исходный
-факт; работоспособный `Slegacy` готовится отдельно и не называется теми же bytes.
-Проверка `check --help` подтверждает выбор consumer и его синтаксис, но не здоровье
-всех старых ресурсов. Для обещания готовности старого окружения нужна его реальная
-проверка с собственными входами.
-
-Сохраните прочие поля selector, включая неизвестные опции, default/work/next,
-roots и код отказа. Не меняйте старые установленные файлы и рабочие входы.
-В `Snew` три override имеют вид выбранный Python, `-I`, `-B`, абсолютный
-`$poise_root/bootstrap`, имя `infra`/`deps`/`check`. Source-команда `-m poise`
-в default/next сохраняет свои `-P -s -B`. Подробности разрешения путей и аргументов
-принадлежат [launcher](../configuration/stride-launcher.md#выполнение-команды).
-
-Только после пяти успешных ворот замените selector целым подготовленным файлом.
-В примере `selector` — действующий `STRIDE_CONFIG`; `prepared_new` и `prepared_legacy`
-— проверенные неизменяемые копии `Snew` и `Slegacy`. Оператор заранее выбрал их пути,
-закрыл других писателей selector и сверил текущие bytes с сохранённым `S0`:
-
-```bash
-selector="$poise_root/config/stride-launcher.json"
-prepared_new="$poise_root/operator/selectors/Snew.json"
-prepared_legacy="$poise_root/operator/selectors/Slegacy.json"
-cp -- "$prepared_new" "$selector.next" &&
-  mv -T -- "$selector.next" "$selector"
-```
-
-Соседний `selector.next` находится на той же файловой системе: стандартный rename
-выбирает целое содержимое одного файла. Это не транзакция установки, профилей и БД.
-Связка `&&` допускает переименование только после успешного полного копирования.
-При ошибке копирования команда возвращает ненулевой код, действующий selector
-остаётся прежним; перед повтором оператор устраняет указанную причину staging-ошибки.
-Шаблон команды рендерится существующим стандартным механизмом Bootstrap;
-для перехода не нужен собственный renderer, gate engine или менеджер версий.
-
-После выбора выполните через
-[Stride](poise-command-reference.md#обслуживание-catalogv2-через-stride)
-реальные `infra`, `deps`, `check` с явными `--config` и `--catalog-dir` каждого
-профиля. Сохраните полные результаты и проверьте фактические bytes selector.
-`--values`, `--set` и `--dry-run` передаются тем же буквальным suffix по
-[контракту Bootstrap](bootstrap-catalog-v2.md#конфигурация-команды).
+Выбор команды принадлежит рабочим конфигам оператора и manifests проектов;
+настройка Bootstrap собственного экземпляра — его рабочему launcher config.
+Выберите их через соответствующих владельцев, сохраняя реальные locks/revisions.
+Переключение не означает принятие Task или интеграцию её кода. При working-data
+исправлении сохраните before/after/digest/mode и проверенный outcome в журнале.
 
 ### Явный возврат и конечный выбор
 
-Возврат выполняется тем же выбором целого файла, без удаления новой поставки:
-
-```bash
-cp -- "$prepared_legacy" "$selector.next" &&
-  mv -T -- "$selector.next" "$selector"
-```
-
-Проверьте реальный retained consumer с его документированными входами.
-Сопоставьте старые installed files и рабочие входы с сохранёнными digest.
-Если окончательный выбор — новый маршрут, повторите замену из `prepared_new`
-и выполните свежий `check` обоих новых профилей. Запишите конечный выбранный
-selector/digest, runtime и наблюдаемый результат. Возврат команды не откатывает
-изменения бизнес-данных, а готовность изолированного окружения не означает
-проверенного пользовательского маршрута ERP.
+Остановите только собственные писатели возвращаемого профиля. Восстановите
+совместимый сохранённый комплект SDK entry/Python, configs, profiles и selectors
+через их владельцев. Сохраните существующие application databases и историю;
+если их схема менялась, используйте согласованный владельцем данных способ возврата.
+Выполните тот же обязательный consumer gate и реальные проверки запуска. Зафиксируйте
+конечный выбор; возвращённые bytes сами по себе не подтверждают работоспособность.
 
 ### Полный комплект доказательств и постоянная поставка
 
-Сохраните вместе точные source commit/tree кандидата, runtime commit,
-идентичности внешней поставки и установки, оба полных профиля/values/inventories,
-все команды с argv/cwd/env, exit, полными stdout/stderr и digest. Зафиксируйте
-порядок пяти ворот, исходный и выбранные selectors, результаты возврата,
-конечный выбор и сохранность retained входов. Тестовый отказ остаётся отказом
-проверяемого случая, а не подменяется общим успешным итогом.
-
-Для [Task preparation](worktree-preparation.md#запуск-и-чтение-результата) нужен
-не только верхний DTO: прочитайте полную receipt по SHA и сохраните configuration
-snapshot, input snapshots, captures и все referenced command streams. При публикации
-копий через [artifact owner](../workflows/batch-work.md#создание-файлов) сохраните
-mapping producer path → фактический зарегистрированный путь с bytes/digest.
-Оригинальные receipt bytes и ссылки внутри них не переписываются.
-
-Опубликуйте полный комплект до перезаписи basetemp и удаления Task материалов.
-Запись выполняется во время действительного ACTIVE этапа; если результат уже
-VERIFIED, передайте сохранённые файлы следующему ACTIVE владельцу по
-[правилу комплекта при передаче](../workflows/local-handoff.md#постоянный-комплект-при-передаче).
-Это не требует фиктивной смены статуса или перезапуска Task. Не повторяйте уже
-выполненную мутацию только ради получения её сохранённого вывода.
-
-Измерьте самый большой полный файл, включая вложенные capture/receipt.
-Если `batch.max_artifact_bytes` недостаточен, измените его через существующего
-[владельца конфигурации](../configuration/project-setup.md#назначение), затем
-проверьте реальную полную публикацию. Для проверенных preparation receipts
-около1.75–1.89MB выбран предел4MiB; это измеренное значение установки, не новый
-универсальный default. Preview не заменяет полные bytes.
-
-Task/Sprint artifact и его зарегистрированный путь сами по себе не являются
-согласованной постоянной поставкой. До terminal retirement задайте нужные
-результаты через [delivery/agree и
-delivery/settle](../workflows/terminal-materials.md#публичный-договор-поставки),
-проверьте фактические постоянные файлы, digests, mapping и всех потребителей
-ссылок. Приёмка, интеграция Git и удаление служебных материалов имеют отдельные
-результаты. Новый commit документации или интеграционного кандидата получает
-собственное применимое доказательство; старый PASS не переименовывается.
-
+Сохраняйте принятый package/digest, source commit, входы/полные captures/exit,
+реальные readiness observations и независимую приёмку до удаления временных областей.
+Терминальный статус Task не доказывает доставку или физическое удаление ресурсов.
+Постоянные отказы и ручные обходы хранятся у
+[владельца журнала](../operations/harness-incident-journal.md#постоянное-хранилище),
+актуальные дефекты — в [versioned реестре](../operations/known-bugs.md#ведение-реестра).
 
 ## Выбор экземпляра и действия
 

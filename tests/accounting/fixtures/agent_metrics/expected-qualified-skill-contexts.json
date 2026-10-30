@@ -1,0 +1,4 @@
+[
+  {"skill": "fixture-alpha", "sample_status": "measured", "audit_action": "evidence-review", "issues": ["repeated-read-cost"]},
+  {"skill": "fixture-beta", "sample_status": "measured", "audit_action": "evidence-review", "issues": ["observed-missed-trigger"]}
+]

@@ -1,0 +1,118 @@
+{
+  "entry-red": [
+    "tests/accounting/test_agent_metrics_contracts.py::test_public_cli_reports_unavailable_taskless_store",
+    "tests/accounting/test_agent_metrics_contracts.py::test_native_metrics_capability_is_a_registered_public_owner"
+  ],
+  "task-source-control": [
+    "tests/accounting/test_agent_metrics_task_adapter.py::test_optional_task_source_control_uses_real_feedback_release_and_native_reacquisition"
+  ],
+  "identity-boundary-red": [
+    "tests/accounting/test_agent_metrics_pipeline.py::test_compatible_fragment_refines_one_fact_without_recharging_it",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_malformed_complete_record_keeps_valid_neighbors_and_partial_coverage"
+  ],
+  "fixture-controls": [
+    "tests/accounting/test_agent_metrics_contracts.py::test_existing_native_fixture_reaches_events_without_metrics",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_existing_native_fixture_preserves_two_real_intentional_tool_executions",
+    "tests/accounting/test_agent_metrics_lifetime.py::test_processor_observer_holds_and_releases_the_real_existing_boundary",
+    "tests/accounting/test_agent_metrics_storage.py::test_literal_historical_input_is_valid_for_the_existing_optional_owner",
+    "tests/accounting/test_agent_metrics_recovery.py::test_real_commit_exit_observer_keeps_unacknowledged_queue_record",
+    "tests/accounting/test_agent_metrics_storage.py::test_real_immutable_receiver_refuses_changed_content_under_the_same_identity",
+    "tests/accounting/test_agent_metrics_task_adapter.py::test_optional_task_source_control_uses_real_feedback_release_and_native_reacquisition",
+    "tests/accounting/test_agent_metrics_task_adapter.py::test_optional_sprint_source_control_uses_real_publication_and_native_task_acquisition"
+  ],
+  "preservation-guards": [
+    "tests/accounting/test_source_metrics.py::test_source_metrics_preserve_exact_source_time_and_unknown_fields",
+    "tests/accounting/test_domain.py::test_details_are_subsets_not_extra_spend",
+    "tests/accounting/test_domain.py::test_missing_details_remain_unknown",
+    "tests/accounting/test_storage_isolation.py::test_real_optional_write_does_not_block_current_next_or_accounting_work",
+    "tests/accounting/test_telemetry_delivery.py::test_envelope_and_projection_are_atomic_on_sink_failure",
+    "tests/accounting/test_optional_telemetry_isolation.py::test_production_worktools_envelope_persists_once_across_restart",
+    "tests/accounting/test_optional_telemetry_isolation.py::test_downstream_failure_is_visible_as_partial_only_in_public_report",
+    "tests/accounting/test_storage_isolation.py::test_cross_store_duplicate_is_counted_once",
+    "tests/accounting/test_storage_isolation.py::test_cross_store_stream_conflict_prefers_authoritative_fact",
+    "tests/runtime_services/test_general_harness_profile.py::test_general_session_without_task_owner",
+    "tests/hook_transport/test_architecture_dispatch.py::test_configuration_and_handler_order",
+    "tests/hook_transport/test_tool_results_delivery.py::test_isolated_post_tool_use_delivers_prepared_brief_and_full_source[bash-success]",
+    "tests/accounting/test_telemetry_delivery.py::test_crash_after_commit_before_ack_replays_idempotently",
+    "tests/runtime_services/test_general_harness_profile.py::test_native_lifecycle_without_task_adapter"
+  ],
+  "contracts-green": [
+    "tests/accounting/test_agent_metrics_contracts.py"
+  ],
+  "pipeline-green": [
+    "tests/accounting/test_agent_metrics_pipeline.py"
+  ],
+  "queries-green": [
+    "tests/accounting/test_agent_metrics_queries.py"
+  ],
+  "lifetime-green": [
+    "tests/accounting/test_agent_metrics_lifetime.py"
+  ],
+  "failures-green": [
+    "tests/accounting/test_agent_metrics_failures.py"
+  ],
+  "storage-green": [
+    "tests/accounting/test_agent_metrics_storage.py"
+  ],
+  "adoption-green": [
+    "tests/accounting/test_agent_metrics_adoption.py"
+  ],
+  "installed-green": [
+    "tests/accounting/test_agent_metrics_installed.py"
+  ],
+  "task-adapter-green": [
+    "tests/accounting/test_agent_metrics_task_adapter.py"
+  ],
+  "recovery-green": [
+    "tests/accounting/test_agent_metrics_recovery.py"
+  ],
+  "files-checks-green": [
+    "tests/accounting/test_agent_metrics_files_checks.py"
+  ],
+  "provenance-green": [
+    "tests/accounting/test_agent_metrics_provenance.py"
+  ],
+  "delivery-health-green": [
+    "tests/accounting/test_agent_metrics_delivery_health.py"
+  ],
+  "sprint-source-control": [
+    "tests/accounting/test_agent_metrics_task_adapter.py::test_optional_sprint_source_control_uses_real_publication_and_native_task_acquisition"
+  ],
+  "installed-source-control": [
+    "tests/accounting/test_agent_metrics_installed.py::test_noneditable_installed_taskless_native_producer_and_fresh_reader[existing-sprint-control]"
+  ],
+  "delta-initial-controls": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_unfinished_turn_keeps_duration_unknown",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer"
+  ],
+  "delta-selection-diagnostic": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_stop_only_selection_populated_empty_missing_restored"
+  ],
+  "delta-frame-diagnostic": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_dedicated_source_is_not_reported_missing_by_overlapping_selection"
+  ],
+  "delta-current-diagnostic": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py",
+    "tests/accounting/test_agent_metrics_fork_identity.py",
+    "tests/accounting/test_agent_metrics_recording_only.py"
+  ],
+  "delta-read-boundaries": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_initial_store_is_unavailable_until_real_first_commit",
+    "tests/accounting/test_agent_metrics_lifetime.py"
+  ],
+  "delta-read-boundaries-focused": [
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_existing_store_query_during_held_optional_writer",
+    "tests/accounting/test_agent_metrics_updated_contracts.py::test_initial_store_is_unavailable_until_real_first_commit"
+  ],
+  "recording-only-correction": [
+    "tests/accounting/test_agent_metrics_recording_only.py"
+  ],
+  "recording-preservation-controls": [
+    "tests/accounting/test_agent_metrics_contracts.py::test_real_source_usage_preserves_values_units_and_availability",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_general_capture_and_fresh_read_require_no_task_configuration",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_same_source_observation_is_not_charged_by_each_stop",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_new_response_appends_usage_without_recharging_prior_response",
+    "tests/accounting/test_agent_metrics_pipeline.py::test_existing_native_fixture_preserves_two_real_intentional_tool_executions"
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "status": "PROPOSED exact test contract; not implemented/ratified product",
+  "request_version": "poise-agent-metrics-request-1",
+  "evolution": "Additive operations reclassify/reprocess; query view.format absent or json preserves existing JSON, markdown includes rendered_markdown in the full structured result. No database migration or request2 alias.",
+  "policy_input": "Explicit analyses.purpose schema1 path_roots/include/exclude from selected metrics policy; native producer passes effective path_policy into normalization. Existing pure function inputs remain observed producer tests; explicit policy tests use actual normalization/native pipeline.",
+  "reclassify_result": {
+    "schema": "poise-agent-metrics-result-1",
+    "status": "completed",
+    "operation": "reclassify",
+    "scope": {
+      "kind": "project",
+      "id": "@PROJECT@"
+    },
+    "classification_version": "purpose-14",
+    "policy_digest": "@ACTUAL_EFFECTIVE_POLICY_SHA256@",
+    "changed": 1
+  },
+  "reprocess_result": {
+    "schema": "poise-agent-metrics-result-1",
+    "status": "completed",
+    "operation": "reprocess",
+    "scope": {
+      "kind": "project",
+      "id": "@PROJECT@"
+    },
+    "selected_sources": [
+      "codex-transcript"
+    ]
+  },
+  "failure_contract": {
+    "schema": "poise-agent-metrics-result-1",
+    "status": "rejected or unavailable",
+    "reason": "nonempty concrete reason",
+    "continuation": "nonempty actual continuation",
+    "exit_code": 2
+  },
+  "constraints": [
+    "Scope is bound project for mutations; source IDs unique known configured list for reprocess.",
+    "Same policy and retained evidence repeats with changed0/no duplicate charge.",
+    "Unavailable raw source preserves previous facts and reports unavailable; no implicit reprocessing in query/reclassify.",
+    "Machine JSON remains complete; Markdown is an additional stored-read presentation through the same owner.",
+    "Normalized linked_calls contains identity/namespace/source offset/hash/action targets, no raw arguments/input; output_inventory contains bounded completion provenance, no raw message archive."
+  ],
+  "test_policy_provenance": {
+    "baseline_fixture": "policy.json (supported current invocations-2.0; only current-stage controls and reached missing-operation RED)",
+    "final_fixture": "updated-policy.json (explicit invocations-2.5 and analyses.purpose)",
+    "selection": "Test-only POISE_F16_POLICY_FIXTURE in registered method environment; MetricsScene publishes the selected literal through ordinary test configuration. It is not a product option or automatic runtime fallback.",
+    "registry": "GREEN definitions for all affected original23methods and new delta methods must explicitly select updated-policy.json; preserve old revisions/receipts and exact unrelated semantic assertions. Any expected provenance version replacement is explicit with old/new fixture hashes.",
+    "review": "The exact environment/fixture evolution accompanies independent test inspection and must be ratified in the necessary implementation-design delta before product changes. Legacy-input RED is not claimed as current-version native acceptance."
+  },
+  "historical_insufficient_evidence": {
+    "status": "partial",
+    "operation": "reclassify",
+    "changed": 0,
+    "unavailable_evidence": 1,
+    "continuation": "nonempty concrete source/capture continuation; preserve original usage and original rows",
+    "measured_tokens": 120,
+    "purpose": "unclassified"
+  },
+  "daily_readout_contract": {
+    "request": "Existing query view.kind derived/family aggregate-readouts; additive group_by day and format json|markdown, default remains existing summary.",
+    "timezone": "Selected accounting.timezone; source timestamps from-inclusive/to-exclusive; do not group by capture time.",
+    "machine_rows": "Existing metrics family/name/value/unit/availability; daily rows context.scope=day, context.date=YYYY-MM-DD, context.timezone=explicit selected zone. Summary scope stays separate.",
+    "human_table": "Same owner/common presentation: Period, main/aux/unclassified known spend in grouped millions, three shares of exact known denominator incl unknown purpose. Russian labels/decimal comma, display-only2digits; zero denominator is em dash, not zero percent.",
+    "source": "Pinned path_token_efficiency_contracts.py PT13-15/UF11 and actual source baseline daily/cohort readouts; this is full migration scope, not a new metric family.",
+    "raw_amounts": "All stored/machine values remain exact integer tokens."
+  }
+}

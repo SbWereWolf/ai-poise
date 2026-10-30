@@ -1,0 +1,45 @@
+{
+  "publisher": "/srv/poise/operator/start-app-worktrees/worktree_profile.py",
+  "parameters": {
+    "author_name": "Example Developer",
+    "author_email": "developer@example.invalid",
+    "sdk_python": "/srv/environment-maintenance/dist/installed/2.0.0/lib/node_modules/environment-maintenance/.venv/bin/python",
+    "path": "/usr/local/bin:/usr/bin:/bin",
+    "supervisor_config": "/srv/poise/operator/start-app-worktrees/poise-op-supervisor.json",
+    "profile_spec": "/srv/poise/operator/start-app-worktrees/poise-profile.json",
+    "patch_spec": "/srv/poise/operator/stride-sdk-binding.json",
+    "application_spec": "/srv/poise/operator/start-app-worktrees/erp-profile.json",
+    "consumer_spec": "/srv/poise/operator/start-app-worktrees/erp-consumer.json",
+    "sdk_binding_template": "/srv/poise/operator/start-app-worktrees/erp-runtime.example.env",
+    "env_executable": "/usr/bin/env",
+    "wheelhouse": "/srv/poise/operator/wheelhouse",
+    "publisher": "/srv/poise/operator/start-app-worktrees/worktree_profile.py",
+    "operator_source": "/srv/poise/operator/start-app-worktrees"
+  },
+  "derived_parameters": {
+    "module_path": "${source_root}/src:${source_root}",
+    "supervisor_parameters": "${task_root}/environment-maintenance/supervisor-parameters.json",
+    "state_root": "${task_root}/environment-maintenance/state",
+    "consumer_root": "${repository}/.runtime/environment-consumer",
+    "application_source": "${repository}",
+    "runtime_module_path": "${module_path}:${repository}/.runtime/dependencies",
+    "template_id": "linux-reference"
+  },
+  "prepare_command": [
+    "${start_app}",
+    "infra",
+    "--config",
+    "${supervisor_config}",
+    "--parameters",
+    "${supervisor_parameters}",
+    "--base-dir",
+    "${repository}",
+    "--requirements",
+    "all"
+  ],
+  "prepare_environment": {
+    "PATH": "${path}",
+    "PYTHONPATH": "${module_path}",
+    "LANG": "C.UTF-8"
+  }
+}

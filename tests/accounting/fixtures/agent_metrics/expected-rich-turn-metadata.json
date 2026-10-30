@@ -1,0 +1,8 @@
+{
+  "session_id": "00000000-0000-4000-8000-000000000161",
+  "turn_id": "turn-f16",
+  "status": "completed",
+  "model": "fixture-model",
+  "reasoning_effort": "medium",
+  "cli_version": "fixture-1"
+}

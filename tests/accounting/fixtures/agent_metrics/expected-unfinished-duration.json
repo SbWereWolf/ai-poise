@@ -1,0 +1,8 @@
+{
+  "duration_ms": {
+    "value": null,
+    "unit": "milliseconds",
+    "kind": "observed",
+    "state": "unknown"
+  }
+}

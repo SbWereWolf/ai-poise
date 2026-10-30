@@ -1,0 +1,10 @@
+[
+  "planning-workspace-web",
+  "calculation-service-web",
+  "system-admin-web",
+  "document-ui-vite",
+  "calculation-service-worker",
+  "planning-workspace-worker",
+  "planning-workspace-events-worker",
+  "planning-workspace-export-scheduler"
+]

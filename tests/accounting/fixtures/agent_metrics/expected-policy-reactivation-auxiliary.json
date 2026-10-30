@@ -1,0 +1,68 @@
+{
+  "invocations": {
+    "value": 1,
+    "unit": "count",
+    "kind": "derived",
+    "state": "known"
+  },
+  "unknown_usage": {
+    "value": 0,
+    "unit": "count",
+    "kind": "derived",
+    "state": "known"
+  },
+  "known_tokens": {
+    "value": 150,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "total_tokens": {
+    "value": 150,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "main_tokens": {
+    "value": 0,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "auxiliary_tokens": {
+    "value": 150,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "unclassified_tokens": {
+    "value": 0,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "wall_seconds": {
+    "value": 2,
+    "unit": "seconds",
+    "kind": "derived",
+    "state": "known"
+  },
+  "days": {
+    "value": 1,
+    "unit": "count",
+    "kind": "derived",
+    "state": "known"
+  },
+  "turns": {
+    "value": 1,
+    "unit": "count",
+    "kind": "derived",
+    "state": "known"
+  },
+  "sessions": {
+    "value": 1,
+    "unit": "count",
+    "kind": "derived",
+    "state": "known"
+  }
+}

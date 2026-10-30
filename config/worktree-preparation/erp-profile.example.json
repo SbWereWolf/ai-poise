@@ -1,0 +1,1375 @@
+{
+  "preserve_paths": [],
+  "asset_directories": [],
+  "text_documents": [],
+  "documents": [
+    {
+      "source": "platform-infrastructure/config/dev/start-app/app.example.json",
+      "destination": "app.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/infra.example.json",
+      "destination": "infra.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/deps.example.json",
+      "destination": "deps.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/adjust.example.json",
+      "destination": "adjust.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/check.example.json",
+      "destination": "check.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/run.example.json",
+      "destination": "run.json",
+      "edits": [
+        {
+          "path": [
+            "requirements",
+            0,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            0,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            1,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            1,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            2,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            2,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            3,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            3,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            4,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            4,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            5,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            5,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            6,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            6,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            7,
+            "commands",
+            0,
+            "env",
+            "DISPLAY"
+          ],
+          "value": "$${display}"
+        },
+        {
+          "path": [
+            "requirements",
+            7,
+            "commands",
+            0,
+            "env",
+            "XAUTHORITY"
+          ],
+          "value": "$${xauthority}"
+        },
+        {
+          "path": [
+            "requirements",
+            0,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-web.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-web.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-web",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            1,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/calculation-service-web.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/calculation-service-web.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "calculation-service-web",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            2,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/system-admin-web.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/system-admin-web.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "system-admin-web",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            3,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/document-ui-vite.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/document-ui-vite.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "document-ui-vite",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            4,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/calculation-service-worker.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/calculation-service-worker.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "calculation-service-worker",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            5,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-worker.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-worker.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-worker",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            6,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-events-worker.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-events-worker.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-events-worker",
+            "--repository-root",
+            "$${instance}"
+          ]
+        },
+        {
+          "path": [
+            "requirements",
+            7,
+            "commands",
+            0,
+            "argv"
+          ],
+          "value": [
+            "$${python}",
+            "$${console_tool}",
+            "--stdout-log",
+            "$${console_log_directory}/planning-workspace-export-scheduler.stdout",
+            "--stderr-log",
+            "$${console_log_directory}/planning-workspace-export-scheduler.stderr",
+            "--",
+            "$${terminal}",
+            "-font",
+            "${terminal_font}",
+            "-e",
+            "$${node}",
+            "$${entry}",
+            "run-process",
+            "planning-workspace-export-scheduler",
+            "--repository-root",
+            "$${instance}"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/processes.example.json",
+      "destination": "processes.json",
+      "edits": []
+    },
+    {
+      "source": "platform-infrastructure/config/dev/start-app/parameters.example.json",
+      "destination": "parameters.json",
+      "edits": [
+        {
+          "path": [
+            "instance"
+          ],
+          "value": "${repository}"
+        },
+        {
+          "path": [
+            "entry"
+          ],
+          "value": "${repository}/platform-infrastructure/tools/local-dev.mjs"
+        },
+        {
+          "path": [
+            "generator"
+          ],
+          "value": "${repository}/platform-infrastructure/tools/configure-application-environments.sh"
+        },
+        {
+          "path": [
+            "settings"
+          ],
+          "value": "${repository}/platform-infrastructure/config/dev/local-development.settings.json"
+        },
+        {
+          "path": [
+            "source"
+          ],
+          "value": "${repository}/platform-infrastructure/config/dev/local-development.env"
+        },
+        {
+          "path": [
+            "write_mode"
+          ],
+          "value": "replace"
+        },
+        {
+          "path": [
+            "node"
+          ],
+          "value": "${node}"
+        },
+        {
+          "path": [
+            "bash"
+          ],
+          "value": "/bin/bash"
+        },
+        {
+          "path": [
+            "path"
+          ],
+          "value": "${path}"
+        },
+        {
+          "path": [
+            "composer_home"
+          ],
+          "value": "${composer_home}"
+        },
+        {
+          "path": [
+            "python"
+          ],
+          "value": "${sdk_python}"
+        },
+        {
+          "path": [
+            "console_tool"
+          ],
+          "value": "${console_tool}"
+        },
+        {
+          "path": [
+            "terminal"
+          ],
+          "value": "${terminal}"
+        },
+        {
+          "path": [
+            "console_log_directory"
+          ],
+          "value": "${repository}/.runtime/start-app/consoles"
+        },
+        {
+          "path": [
+            "display"
+          ],
+          "value": "${display}"
+        },
+        {
+          "path": [
+            "xauthority"
+          ],
+          "value": "${xauthority}"
+        }
+      ]
+    },
+    {
+      "source": "${source_root}/config/projects/erp/local-settings.example.json",
+      "destination": "documents/local-settings.json",
+      "edits": [
+        {
+          "path": [
+            "applications",
+            "planning-workspace",
+            "variables"
+          ],
+          "value": [
+            {
+              "name": "APP_ENV",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "APP_DEBUG",
+              "required": true,
+              "validator": "boolean"
+            },
+            {
+              "name": "LOG_CHANNEL",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "LOG_LEVEL",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_EXPORT_SNAPSHOT_ROOT",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_EXPORT_GRANT_ACTIVE_KEY_ID",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_EXPORT_GRANT_KEYS",
+              "required": true,
+              "validator": "json-object"
+            },
+            {
+              "name": "ERP_EXPORT_READER_PRINCIPALS",
+              "required": true,
+              "validator": "json-object"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_APP_NAME",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_APP_KEY",
+              "required": true,
+              "validator": "laravel-app-key"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_BASE_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_PORT",
+              "required": true,
+              "validator": "tcp-port"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_CACHE_STORE",
+              "required": true,
+              "validator": "cache-store"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_SESSION_DRIVER",
+              "required": true,
+              "validator": "session-driver"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_SESSION_LIFETIME",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_FILESYSTEM_DISK",
+              "required": true,
+              "validator": "filesystem-disk"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_QUEUE_CONNECTION",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_NAME",
+              "required": true,
+              "validator": "queue-name"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_RETRY_AFTER",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_NAME",
+              "required": true,
+              "validator": "queue-name"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_RETRY_AFTER",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "CALCULATION_SERVICE_BASE_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "SYSTEM_ADMIN_BASE_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "DOCUMENT_UI_VITE_ORIGIN",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "DOCUMENT_UI_ASSET_MODE",
+              "required": true,
+              "validator": "document-ui-asset-mode"
+            },
+            {
+              "name": "SETTINGS_CACHE_ENABLED",
+              "required": true,
+              "validator": "boolean"
+            },
+            {
+              "name": "VAPID_SUBJECT",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "VAPID_PUBLIC_KEY",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "VAPID_PEM_FILE",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_ENVIRONMENT_NAME",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_PHP_BINARY",
+              "required": true,
+              "validator": "repository-or-command-path"
+            },
+            {
+              "name": "ERP_CLI_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_SPEC_XSD_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_XML_VOCABULARY_CONFIG",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_PROCESS_TIMEOUT_SECONDS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_VERIFY_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_REQUEST_WORKSPACE_ROOT",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_CALCULATION_ARTIFACT_ROOT",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_SYSTEM_ADMIN_API_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_RESULT_XML_OWNER_UPLOAD_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_RESULT_XML_OWNER_UPLOAD_MAX_BYTES",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_CALCULATION_SETTINGS_READ_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_SYSTEM_ADMIN_ARTIFACT_PACKAGE_UPLOAD_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "ERP_SYSTEM_ADMIN_ARTIFACT_PACKAGE_UPLOAD_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_ARTIFACT_PUBLICATION_TIMEOUT_SECONDS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_ARTIFACT_PUBLICATION_RESPONSE_MAX_BYTES",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_SYSTEM_WIDE_EFFECTIVE_VALUE_CATALOG_DEFINITION",
+              "required": true,
+              "validator": "json-object"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_COUNTER_DRIVER",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_COUNTER_STORE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_INITIAL_PROFILE_JSON",
+              "required": true,
+              "validator": "json-object"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_INITIAL_ROLLOUT_JSON",
+              "required": true,
+              "validator": "json-object"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_OBSERVABILITY_STORE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_PUBLIC_URIS",
+              "required": true,
+              "validator": "csv"
+            },
+            {
+              "name": "ERP_GUEST_RATE_LIMIT_TARGETS",
+              "required": true,
+              "validator": "csv"
+            },
+            {
+              "name": "ERP_CALCULATION_PROFILE_VERSION",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_SEARCH_BEAM_WIDTH",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_CALCULATION_SEARCH_MAX_COMPLETED_PLANS",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_CALCULATION_SEARCH_EXTENDED_MODE_MAX_ADDED_DAYS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_DRAFT_ORDER_NUMBER_TEMPLATE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_DRAFT_BATCH_NOTE_TEMPLATE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_DRAFT_ORDER_DUE_DATE_OFFSET_DAYS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_DRAFT_TRACK_AVAILABILITY_DATE_OFFSET_DAYS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_DRAFT_WIRE_PRICE_STEP",
+              "required": true,
+              "validator": "positive-number"
+            },
+            {
+              "name": "ERP_DRAFT_SETUP_PRICE_STEP",
+              "required": true,
+              "validator": "positive-number"
+            },
+            {
+              "name": "ERP_DRAFT_FIRST_TRACK_NUMBER",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_DRAFT_TRACK_LENGTH_MM",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_DRAFT_AVAILABLE_TRACK_COUNT",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_DRAFT_NEW_POSITION_QUANTITY",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_DRAFT_NEW_READY_SLAB_QUANTITY",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_DRAFT_SLAB_COUNT_LIMIT",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_DRAFT_NAVIGATION_LABEL_MAX_LENGTH",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_DRAFT_DEFAULT_TERMINAL_ACTION",
+              "required": true,
+              "validator": "terminal-action"
+            },
+            {
+              "name": "ERP_DRAFT_PLAN_OPTIMIZATION",
+              "required": true,
+              "validator": "plan-optimization"
+            },
+            {
+              "name": "ERP_DRAFT_SPEC_CONTRACT_VERSION",
+              "required": true,
+              "validator": "version"
+            },
+            {
+              "name": "ERP_DRAFT_WEEKEND_MODE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_DRAFT_SUPPLY_DEADLINE_PERMISSIONS",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_DRAFT_DEADLINE_VIOLATION_RULE_ORDER",
+              "required": true,
+              "validator": "csv"
+            },
+            {
+              "name": "ERP_PLAN_VIEW_PERMISSION",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_SYMBOL_SUCCESS",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_SYMBOL_ERROR",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_SYMBOL_WARNING",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_SYMBOL_INFO",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_MESSAGE_SUCCESS",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_MESSAGE_ERROR",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_MESSAGE_NO_FEASIBLE_PLAN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_MESSAGE_NO_FEASIBLE_PLAN_RECOVERY",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_NOTIFICATION_PLAN_LINK_TEMPLATE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_NAME",
+              "required": true,
+              "validator": "queue-name"
+            },
+            {
+              "name": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_RETRY_AFTER",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "QUANTITY_UNITS_LENGTH",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_WIDTH",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_HEIGHT",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_PIECES",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_CALENDAR_DAYS",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PRICE_UNITS_WIRE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PRICE_UNITS_CONCRETE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PRICE_UNITS_SETUP",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "COST_UNITS",
+              "required": true,
+              "validator": "non-empty-string"
+            }
+          ]
+        },
+        {
+          "path": [
+            "applications",
+            "calculation-service",
+            "variables"
+          ],
+          "value": [
+            {
+              "name": "APP_ENV",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "APP_DEBUG",
+              "required": true,
+              "validator": "boolean"
+            },
+            {
+              "name": "LOG_CHANNEL",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "LOG_LEVEL",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "SEARCH_CANDIDATE_LIMIT",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "CALCULATION_SERVICE_APP_NAME",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "CALCULATION_SERVICE_APP_KEY",
+              "required": true,
+              "validator": "laravel-app-key"
+            },
+            {
+              "name": "CALCULATION_SERVICE_BASE_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "CALCULATION_SERVICE_PORT",
+              "required": true,
+              "validator": "tcp-port"
+            },
+            {
+              "name": "CALCULATION_SERVICE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "CALCULATION_SERVICE_CACHE_STORE",
+              "required": true,
+              "validator": "cache-store"
+            },
+            {
+              "name": "CALCULATION_SERVICE_QUEUE_CONNECTION",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_NAME",
+              "required": true,
+              "validator": "queue-name"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_RETRY_AFTER",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "PLANNING_WORKSPACE_BASE_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "SYSTEM_ADMIN_BASE_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "ERP_ENVIRONMENT_NAME",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_PHP_BINARY",
+              "required": true,
+              "validator": "repository-or-command-path"
+            },
+            {
+              "name": "ERP_CLI_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_PROCESS_TIMEOUT_SECONDS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_SPEC_XSD_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_VERIFY_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_XML_VOCABULARY_CONFIG",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_REQUEST_WORKSPACE_ROOT",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_CALCULATION_ARTIFACT_ROOT",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "ERP_SYSTEM_ADMIN_API_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_PLANNING_WORKSPACE_RESULT_XML_UPLOAD_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "ERP_PLANNING_WORKSPACE_RESULT_XML_UPLOAD_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_PLANNING_WORKSPACE_CALCULATION_SETTINGS_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "ERP_PLANNING_WORKSPACE_CALCULATION_SETTINGS_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_CALCULATION_SETTINGS_TIMEOUT_SECONDS",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_CALCULATION_SETTINGS_MAX_RESPONSE_BYTES",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_CALCULATION_SETTINGS_JSON_DEPTH",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_CALCULATION_DRAFT_FAILURE_MAX_ISSUES",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "ERP_SYSTEM_ADMIN_ARTIFACT_PACKAGE_UPLOAD_URL",
+              "required": true,
+              "validator": "http-url"
+            },
+            {
+              "name": "ERP_SYSTEM_ADMIN_ARTIFACT_PACKAGE_UPLOAD_TOKEN",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "ERP_ARTIFACT_PUBLICATION_TIMEOUT_SECONDS",
+              "required": true,
+              "validator": "non-negative-integer"
+            },
+            {
+              "name": "ERP_ARTIFACT_PUBLICATION_RESPONSE_MAX_BYTES",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+              "required": true,
+              "validator": "repository-path"
+            },
+            {
+              "name": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_NAME",
+              "required": true,
+              "validator": "queue-name"
+            },
+            {
+              "name": "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_RETRY_AFTER",
+              "required": true,
+              "validator": "positive-integer"
+            },
+            {
+              "name": "QUANTITY_UNITS_LENGTH",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_WIDTH",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_HEIGHT",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_PIECES",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "QUANTITY_UNITS_CALENDAR_DAYS",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PRICE_UNITS_WIRE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PRICE_UNITS_CONCRETE",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "PRICE_UNITS_SETUP",
+              "required": true,
+              "validator": "non-empty-string"
+            },
+            {
+              "name": "COST_UNITS",
+              "required": true,
+              "validator": "non-empty-string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "${source_root}/config/projects/erp/host-runtime-settings.example.json",
+      "destination": "documents/host-runtime-settings.json",
+      "edits": [
+        {
+          "path": [
+            "phpExecutable"
+          ],
+          "value": "${php_executable}"
+        },
+        {
+          "path": [
+            "composerExecutable"
+          ],
+          "value": "${composer_executable}"
+        },
+        {
+          "path": [
+            "npmEntryPoint"
+          ],
+          "value": "${npm_entry_point}"
+        },
+        {
+          "path": [
+            "nodeExecutable"
+          ],
+          "value": "${node}"
+        },
+        {
+          "path": [
+            "npmExecutable"
+          ],
+          "value": "${npm_executable}"
+        }
+      ]
+    },
+    {
+      "source": "${source_root}/config/projects/erp/cjm-settings.example.json",
+      "destination": "documents/cjm-settings.json",
+      "edits": []
+    }
+  ]
+}

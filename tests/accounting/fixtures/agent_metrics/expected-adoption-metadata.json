@@ -1,0 +1,19 @@
+{
+  "source": "registered-command-adoption",
+  "session_id": "00000000-0000-4000-8000-000000000161",
+  "turn_id": "turn-f16",
+  "tool_use_id": "f16-adoption-call",
+  "subagent_id": "fixture-subagent",
+  "scope_key": "fixture-external-scope",
+  "hook_event_name": "PreToolUse",
+  "rule_id": "fixture-check-rule",
+  "result": "allow",
+  "profile": "fixture-project-profile",
+  "command_profile": "fixture-command-profile",
+  "transport": "subprocess",
+  "mcp_availability": "unavailable",
+  "fallback_reason": "fixture-mcp-unavailable",
+  "terminal_status": "completed",
+  "input_sha256": "273546e63c1a8d9ee3381cb8f0647e4c5baa60f9c20189e9dcdf681437df3b88",
+  "observed_at": "2026-10-29T00:00:01Z"
+}

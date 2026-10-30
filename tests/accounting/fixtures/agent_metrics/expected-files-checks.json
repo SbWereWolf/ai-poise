@@ -1,0 +1,5 @@
+{
+  "output_bytes": {"value": 4, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "lines_added": {"value": 2, "unit": "lines", "kind": "observed", "state": "known"},
+  "lines_deleted": {"value": 1, "unit": "lines", "kind": "observed", "state": "known"}
+}

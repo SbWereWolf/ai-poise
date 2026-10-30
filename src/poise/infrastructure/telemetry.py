@@ -7,14 +7,14 @@ import json
 import os
 import select
 from pathlib import Path
-import sqlite3
 from threading import Condition, Lock, Thread
 
-from .sqlite.database import Database
+from .sqlite.accounting_database import AccountingDatabase, validate_accounting_schema
 
 
 class TelemetryDatabase:
     """Lazy optional store: composition never waits for its writer lock."""
+    accounting_only = True
 
     def __init__(self,path:Path,lock:Path,wait:float,poll:float,project_fence=None):
         self.path,self.lock,self.wait,self.poll=path,lock,wait,poll
@@ -24,9 +24,9 @@ class TelemetryDatabase:
     def _ready(self):
         database = self._database
         if database is None:
-            # Schema initialization is serialized by Database's own transaction.
+            # Optional initialization never creates authoritative Task tables.
             # A cache mutex could retain a vanished thread owner after fork.
-            database = Database(self.path,self.lock,self.wait,self.poll,self.project_fence)
+            database = AccountingDatabase(self.path,self.lock,self.wait,self.poll,self.project_fence)
             self._database = database
         return database
 
@@ -38,27 +38,10 @@ class TelemetryDatabase:
     @contextmanager
     def read_transaction(self):
         """Read the last committed SQLite snapshot without the writer flock."""
-        database=None
-        try:
-            database=sqlite3.connect(
-                self.path.resolve().as_uri()+'?mode=ro',
-                uri=True,
-                timeout=0,
-                isolation_level=None,
-                autocommit=True,
-            )
-            database.row_factory=sqlite3.Row
-            database.execute('PRAGMA query_only=ON')
-            database.execute('BEGIN')
+        from .diagnostic_io import preparation_transaction
+        with preparation_transaction(self.path, self.wait, self.poll) as database:
+            validate_accounting_schema(database, unavailable_if_empty=True)
             yield database
-            database.execute('COMMIT')
-        except BaseException:
-            if database is not None and database.in_transaction:
-                database.execute('ROLLBACK')
-            raise
-        finally:
-            if database is not None:
-                database.close()
 
 
 class _ThreadCapture:

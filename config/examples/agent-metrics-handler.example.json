@@ -1,0 +1,22 @@
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "agent-metrics",
+  "handlers": [
+    {
+      "id": "agent-metrics",
+      "implementation": {
+        "kind": "builtin",
+        "name": "agent-metrics"
+      },
+      "mode": "sync",
+      "options": {
+        "policy_path": "/etc/poise/agent-metrics-policy.json"
+      },
+      "execution": {
+        "run_seconds": 10,
+        "cleanup_seconds": 2
+      },
+      "on_error": "stop"
+    }
+  ]
+}

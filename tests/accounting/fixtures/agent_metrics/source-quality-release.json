@@ -1,0 +1,6 @@
+{
+  "task_id": "T1",
+  "request_id": "f16-source-quality-release",
+  "expected_version": null,
+  "reason": "Тестовый владелец передаёт задачу нативной сессии."
+}

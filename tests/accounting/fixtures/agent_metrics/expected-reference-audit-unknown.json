@@ -1,0 +1,5 @@
+{
+  "read_rate_per_core_read_session": {"value": 1, "unit": "ratio", "kind": "proxy", "state": "known"},
+  "trigger_match_rate_on_known_read_sessions": {"value": null, "unit": "ratio", "kind": "proxy", "state": "unknown"},
+  "repeated_byte_share": {"value": 0.5, "unit": "ratio", "kind": "proxy", "state": "known"}
+}

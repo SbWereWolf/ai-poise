@@ -7,7 +7,6 @@ from uuid import uuid4
 from ...common import PoiseError,encoded
 from ...modules.accounting.domain import UsageSample,usage_contribution,identity,parse_telemetry
 from ...modules.accounting.clock import ClockObservation
-from .queries import TaskQueries
 
 
 def timestamp(text):
@@ -361,22 +360,22 @@ class SqliteAccounting:
 
     def snapshot(self):
         with self.database.transaction() as db:
-            captured = self._capture_snapshot_in(db)
+            captured = (self._capture_accounting_snapshot_in(db) if self.database.accounting_only
+                        else self._capture_snapshot_in(db))
         return self._project_snapshot(captured)
 
     def snapshot_nonblocking(self):
         with self.database.read_transaction() as db:
-            captured = self._capture_snapshot_in(db)
+            captured = self._capture_accounting_snapshot_in(db)
         return self._project_snapshot(captured)
 
-    def _capture_snapshot_in(self, db):
-        from .task_record import capture_record_in
+    def _capture_accounting_snapshot_in(self, db):
+        """Capture optional accounting facts without importing or reading Task owners."""
         return {
             'accounts': [dict(r) for r in db.execute(
                 'SELECT task_id,project,created_at,data FROM accounting_accounts WHERE project=?',
                 (self.project,))],
-            'tasks': {r['id']: capture_record_in(db, r['id'])
-                      for r in db.execute('SELECT id FROM tasks')},
+            'tasks': {},
             'usage': [dict(r) for r in db.execute(
                 'SELECT id,task_id,project,source,stream,sequence,occurred_at,data '
                 'FROM accounting_usage WHERE project=?', (self.project,))],
@@ -386,18 +385,28 @@ class SqliteAccounting:
             'credits': [dict(r) for r in db.execute(
                 'SELECT seq,id,task_id,project,at,data FROM accounting_credits '
                 'WHERE project=? ORDER BY seq', (self.project,))],
-            'messages': [dict(r) for r in db.execute(
-                'SELECT e.id,e.project,e.data,e.received_at,b.task_id,b.sprint_id,b.goal_type,'
-                'b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b '
-                'ON b.event_id=e.id WHERE e.project=?', (self.project,))],
-            'reports': [dict(r) for r in db.execute(
-                'SELECT task_id,stage,iteration,at,source FROM interaction_reports')],
+            'messages': [],
+            'reports': [],
             'quality': [dict(r) for r in db.execute(
                 'SELECT task_id,finding_id,data FROM accounting_findings')],
-            'workflows': tuple(db.execute('SELECT task_id,data FROM task_workflows')),
-            'events': [dict(r) for r in db.execute(
-                'SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq')],
+            'workflows': (),
+            'events': [],
         }
+
+    def _capture_snapshot_in(self, db):
+        from .task_record import capture_record_in
+        return {**self._capture_accounting_snapshot_in(db),
+                'tasks': {r['id']: capture_record_in(db, r['id'])
+                          for r in db.execute('SELECT id FROM tasks')},
+                'messages': [dict(r) for r in db.execute(
+                    'SELECT e.id,e.project,e.data,e.received_at,b.task_id,b.sprint_id,b.goal_type,'
+                    'b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b '
+                    'ON b.event_id=e.id WHERE e.project=?', (self.project,))],
+                'reports': [dict(r) for r in db.execute(
+                    'SELECT task_id,stage,iteration,at,source FROM interaction_reports')],
+                'workflows': tuple(db.execute('SELECT task_id,data FROM task_workflows')),
+                'events': [dict(r) for r in db.execute(
+                    'SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq')]}
 
     @staticmethod
     def _project_snapshot(captured):
@@ -407,14 +416,66 @@ class SqliteAccounting:
             row = dict(original)
             data = json.loads(row['data'])
             if data.get('kind') == 'telemetry_envelope':
+                if 'agent_metrics' in data['envelope']:
+                    continue
                 row['data'] = encoded(data['envelope'])
                 telemetry.append(row)
             else:
                 cycles.append(row)
+        tasks = {}
+        if captured['tasks']:
+            from .queries import TaskQueries
+            tasks = {task_id: TaskQueries.project_record(raw)
+                     for task_id, raw in captured['tasks'].items()}
         return {**captured, 'cycles': cycles, 'telemetry': telemetry,
-                'tasks': {task_id: TaskQueries.project_record(raw)
-                          for task_id, raw in captured['tasks'].items()},
+                'tasks': tasks,
                 'workflows': {r['task_id']: json.loads(r['data']) for r in captured['workflows']}}
+
+    def metric_snapshot(self):
+        """One committed optional snapshot for native metric and legacy usage views."""
+        with self.database.read_transaction() as db:
+            return self._metric_snapshot_in(db)
+
+    def _metric_snapshot_in(self, db):
+        captured = self._capture_accounting_snapshot_in(db)
+        observations = []
+        for row in captured['cycles']:
+            body = json.loads(row['data'])
+            if body.get('kind') == 'telemetry_envelope' and 'agent_metrics' in body['envelope']:
+                observations.append({'id': row['id'], 'envelope': body['envelope']})
+        return {'observations': observations, 'usage': captured['usage']}
+
+    def metric_available(self):
+        return self.database.path.is_file()
+
+    def metric_capture_committed(self, job):
+        """A committed input job proves its whole atomic fact batch already exists."""
+        with self.database.read_transaction() as db:
+            row = db.execute('SELECT data FROM accounting_cycles WHERE id=?', (job.identity,)).fetchone()
+        if row is None:
+            return False
+        if json.loads(row[0]) != {'kind': 'telemetry_envelope', 'envelope': job.data}:
+            raise PoiseError('Telemetry identity has conflicting content')
+        return True
+
+    def _validate_metric_envelopes(self, envelopes):
+        for envelope in envelopes:
+            if len(encoded(envelope.data).encode('utf-8')) > self.policy.data['max_blob_bytes']:
+                raise PoiseError('Metric capture exceeds max_blob_bytes; select a narrower source')
+            document = envelope.data['agent_metrics']
+            if document.get('kind') == 'facts' and (
+                    len(document['facts']) + len(document['metadata']) > self.policy.data['max_events']):
+                raise PoiseError('Metric capture exceeds max_events; select a narrower source')
+
+    def accept_metric_capture(self, job, fact_envelopes):
+        """Commit one immutable source input and all its prepared facts atomically."""
+        self._validate_metric_envelopes([job, *fact_envelopes])
+        with self.database.transaction() as db:
+            if not self._store_telemetry(db, job):
+                return False
+            for envelope in fact_envelopes:
+                self._store_telemetry(db, envelope)
+        return True
 
     def latest_credit(self,tid):
         with self.database.transaction() as db:

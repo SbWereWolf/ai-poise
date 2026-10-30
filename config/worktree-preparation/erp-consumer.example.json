@@ -1,0 +1,19 @@
+{
+  "preserve_paths": [],
+  "asset_directories": [],
+  "documents": [],
+  "text_documents": [
+    {
+      "source": "erp-runtime.example.env",
+      "destination": "runtime.env"
+    },
+    {
+      "source": "erp-environment.example.env",
+      "destination": "environment.env"
+    },
+    {
+      "source": "erp-bootstrap.example.env",
+      "destination": "bootstrap.env"
+    }
+  ]
+}

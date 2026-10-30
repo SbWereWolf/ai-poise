@@ -1,0 +1,8 @@
+{
+  "call_id": "f16-read-call",
+  "tool_name": "exec",
+  "classification": "file-read",
+  "turn_id": "turn-f16",
+  "session_id": "00000000-0000-4000-8000-000000000161",
+  "input_hash": "273546e63c1a8d9ee3381cb8f0647e4c5baa60f9c20189e9dcdf681437df3b88"
+}

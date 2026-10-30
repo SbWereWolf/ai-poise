@@ -1,0 +1,6 @@
+{
+  "core_bytes": {"value": 33, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "reachable_reference_bytes": {"value": 6, "unit": "UTF-8 bytes", "kind": "observed", "state": "known"},
+  "reachable_reference_count": {"value": 1, "unit": "count", "kind": "observed", "state": "known"},
+  "sample_sessions": {"value": 1, "unit": "count", "kind": "observed", "state": "known"}
+}

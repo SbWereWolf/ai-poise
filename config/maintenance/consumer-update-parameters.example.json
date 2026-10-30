@@ -1,0 +1,17 @@
+{
+  "base": "/srv/poise/app",
+  "path": "/usr/local/bin:/usr/bin:/bin",
+  "home": "/home/operator",
+  "module_path": "/srv/poise/app/src:/srv/poise/app",
+  "node": "/usr/bin/node",
+  "npm_entry_point": "/usr/share/nodejs/npm/bin/npm-cli.js",
+  "bootstrap_python": "/usr/bin/python3.12",
+  "supply_prefix": "/srv/environment-maintenance/2.0.0",
+  "archive": "/srv/releases/environment-maintenance-2.0.0.tgz",
+  "start_app": "/srv/environment-maintenance/2.0.0/bin/start-app",
+  "sdk_python": "/srv/environment-maintenance/2.0.0/lib/node_modules/environment-maintenance/.venv/bin/python",
+  "console_tool": "/srv/environment-maintenance/2.0.0/lib/node_modules/environment-maintenance/examples/process-launch/start_console.py",
+  "publication": "/srv/poise/operator/update/publication.json",
+  "gate_config": "/srv/poise/operator/update/gate-app.json",
+  "gate_parameters": "/srv/poise/operator/update/gate-parameters.json"
+}

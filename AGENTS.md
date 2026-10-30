@@ -226,6 +226,14 @@ and failures implied by the rules; resolve uncertain edge cases using actual usa
 State current
 limits honestly.
 
+Use the configured external environment-maintenance for deployments of every environment,
+including Git worktrees. Application-owned tools perform infra/deps/adjust/check/run through
+its declarations. An accepted supply update covers every actual registered consumer and its
+compatibility gate. Keep working configuration outside Git and retained supply outside disposable
+Task roots; deliver results before resource retirement. Follow the canonical
+[deployment and coordinated supply rule](docs/governance/development-rules.md#развёртывание-окружений-и-общая-поставка-инструмента)
+and its linked operator instructions.
+
 ## Start and finish work
 
 Use the session launcher supplied in the current native hook context, including

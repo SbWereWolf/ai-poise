@@ -1,0 +1,6 @@
+{
+  "database": "@DATABASE@",
+  "lock": "@LOCK@",
+  "wait": 0.05,
+  "poll": 0.005
+}

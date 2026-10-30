@@ -634,12 +634,16 @@
     "remote": "disabled",
     "env_executable": "env",
     "wheelhouse": "/srv/poise/wheels",
-    "dependency_target": "/srv/poise/.runtime/dependencies"
+    "dependency_target": "/srv/poise/.runtime/dependencies",
+    "task_database_lock_executable": "/usr/bin/flock",
+    "task_database_lock_wait_seconds": "2.0",
+    "task_database_lock_relative": "state.lock"
   },
   "derived_parameters": {
     "dependency_target": "${repository}/.runtime/dependencies",
     "runtime_module_path": "${repository}/src${path_separator}${dependency_target}${path_separator}${repository}",
-    "worktree_root": "${repository}/.runtime/worktrees"
+    "worktree_root": "${repository}/.runtime/worktrees",
+    "task_database_lock": "${state_root}/${task_database_lock_relative}"
   },
   "bootstrap": "config/maintenance/start-app/bootstrap.example.json",
   "resource_inventory": [

@@ -19,6 +19,8 @@ BUILTINS = {
     'task-runtime-cleanup': {'SessionEnd'},
     'tool-result': {'PostToolUse'},
     'check-invocation': {'PreToolUse', 'PostToolUse'},
+    'agent-metrics': {'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse',
+                      'Stop', 'PreCompact', 'PostCompact', 'SessionEnd'},
 }
 
 
@@ -35,7 +37,7 @@ def validate_builtin_options(name, options):
         if (not isinstance(options['cli_argv'], list) or not options['cli_argv']
                 or any(not isinstance(v, str) or not v for v in options['cli_argv'])):
             raise PoiseError('Explicit check CLI argv required')
-    elif name in ('general-context', 'command-intake', 'tool-result'):
+    elif name in ('general-context', 'command-intake', 'tool-result', 'agent-metrics'):
         values = configuration_fields(options, {'policy_path'}, name)
         nonempty(values['policy_path'], name + '.policy_path')
         if not PurePath(values['policy_path']).is_absolute():

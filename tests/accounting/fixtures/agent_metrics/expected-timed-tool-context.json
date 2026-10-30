@@ -1,0 +1,9 @@
+{
+  "call_id": "f16-timed-call",
+  "tool_name": "exec",
+  "classification": "other",
+  "turn_id": "turn-f16",
+  "session_id": "00000000-0000-4000-8000-000000000161",
+  "status": "completed",
+  "input_hash": "2fef4933b72ae932540af1f5faf1c3278c688ea51aff9104baa55171e93a8803"
+}

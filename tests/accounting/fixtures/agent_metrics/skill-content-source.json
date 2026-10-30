@@ -1,0 +1,6 @@
+{
+  "id": "skill-content",
+  "kind": "skill-content",
+  "parser_version": "1",
+  "paths": ["@CHECKOUT@/.agents"]
+}

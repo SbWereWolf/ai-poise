@@ -1,0 +1,34 @@
+{
+  "publisher": "/srv/poise/operator/worktree_profile.py",
+  "parameters": {
+    "path": "/usr/local/bin:/usr/bin:/bin",
+    "supervisor_config": "/srv/poise/operator/consumer-supervisor.json",
+    "consumer_profile": "/srv/poise/operator/workspace-recover-profile.json",
+    "operator_source": "/srv/poise/operator",
+    "publisher": "/srv/poise/operator/worktree_profile.py",
+    "node": "/usr/bin/node",
+    "npm_entry_point": "/usr/share/nodejs/npm/bin/npm-cli.js",
+    "bootstrap_python": "/usr/bin/python3.12"
+  },
+  "derived_parameters": {
+    "module_path": "${source_root}/src:${source_root}",
+    "supervisor_parameters": "${task_root}/environment-maintenance/supervisor-parameters.json"
+  },
+  "prepare_command": [
+    "${start_app}",
+    "infra",
+    "--config",
+    "${supervisor_config}",
+    "--parameters",
+    "${supervisor_parameters}",
+    "--base-dir",
+    "${repository}",
+    "--requirements",
+    "all"
+  ],
+  "prepare_environment": {
+    "PATH": "${path}",
+    "PYTHONPATH": "${module_path}",
+    "LANG": "C.UTF-8"
+  }
+}

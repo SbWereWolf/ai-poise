@@ -1,0 +1,11 @@
+{
+  "source_kind": "tool",
+  "source_id": "f16-exposure-call",
+  "source_name": "exec",
+  "category": "other",
+  "context_generation": 0,
+  "boundary_kind": "compaction",
+  "survived_compaction": false,
+  "inherited_copy": false,
+  "estimation_basis": "utf8-bytes-div-4-ceil"
+}

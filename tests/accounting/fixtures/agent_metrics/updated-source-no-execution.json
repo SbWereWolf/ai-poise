@@ -1,0 +1,9 @@
+{
+  "id": "source-program-never-executed",
+  "language": "python",
+  "source": "from pathlib import Path; Path('@CHECKOUT@/src/never-execute.py').write_text('mutation')",
+  "expected": "main",
+  "donor_path": "ai-assistant/tests/analytics/path_token_efficiency_contracts.py",
+  "donor_method": "test_uf09_python_receiver_type_not_path_looking_data",
+  "donor_commit": "6e45598e1301824236d81c089dcd8053e23ee898"
+}

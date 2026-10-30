@@ -1,0 +1,6 @@
+{
+  "id": "registered-command-adoption",
+  "kind": "hook-adoption",
+  "parser_version": "1",
+  "paths": ["@SOURCE@/adoption.jsonl"]
+}

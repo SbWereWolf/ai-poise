@@ -1,0 +1,80 @@
+{
+  "schema": "poise-agent-metrics-policy-1",
+  "root": "/srv/example/poise-telemetry",
+  "accounting": {
+    "timezone": "UTC",
+    "week_start": 0,
+    "max_events": 1000,
+    "max_files": 1000,
+    "max_blob_bytes": 1048576,
+    "time_mode": "tool_cycle",
+    "causes": [
+      "initial",
+      "internal_qa",
+      "delivered_rework",
+      "requirement_change",
+      "poise_incident"
+    ],
+    "sources": {
+      "codex": "observed",
+      "hooks": "observed",
+      "skills": "observed",
+      "codex-transcript": "observed"
+    },
+    "path_categories": {
+      "code": [
+        "src/**"
+      ],
+      "tests": [
+        "tests/**"
+      ],
+      "fixtures": [
+        "fixtures/**"
+      ],
+      "documentation": [
+        "docs/**",
+        "*.md"
+      ]
+    },
+    "tokenizer": {
+      "kind": "unavailable",
+      "identity": "unavailable",
+      "command": null
+    },
+    "storage": {
+      "database": "observed.sqlite",
+      "lock": "observed.lock"
+    }
+  },
+  "delivery": {
+    "directory": "spool",
+    "policy": {
+      "max_entries": 64,
+      "max_bytes": 1048576,
+      "max_event_bytes": 65536,
+      "max_attempts": 3,
+      "batch_items": 4,
+      "retry_seconds": 0.05,
+      "lock_seconds": 0.05,
+      "lock_poll_seconds": 0.005
+    }
+  },
+  "collection": {
+    "max_pending": 8,
+    "max_source_bytes": 1048576,
+    "max_records": 100,
+    "sources": [
+      {
+        "id": "codex-session",
+        "kind": "codex-transcript",
+        "parser_version": "invocations-2.5",
+        "paths": [
+          "/srv/example/codex/sessions"
+        ]
+      }
+    ]
+  },
+  "retention": {
+    "mode": "keep"
+  }
+}

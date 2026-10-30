@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2026-10-27",
+    "known_tokens": 120,
+    "main_tokens": 120,
+    "auxiliary_tokens": 0,
+    "unclassified_tokens": 0,
+    "unknown_usage": 0
+  },
+  {
+    "date": "2026-10-28",
+    "known_tokens": 240,
+    "main_tokens": 0,
+    "auxiliary_tokens": 0,
+    "unclassified_tokens": 240,
+    "unknown_usage": 0
+  }
+]

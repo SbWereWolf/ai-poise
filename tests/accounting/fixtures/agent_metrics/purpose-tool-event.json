@@ -1,0 +1,11 @@
+{
+  "type": "response_item",
+  "timestamp": "2026-10-29T00:00:00.5Z",
+  "payload": {
+    "type": "function_call",
+    "name": null,
+    "arguments": "{}",
+    "call_id": "f16-purpose-call",
+    "response_id": null
+  }
+}

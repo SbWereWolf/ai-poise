@@ -1,0 +1,38 @@
+{
+  "known_tokens": {
+    "value": 300,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "total_tokens": {
+    "value": null,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "unknown"
+  },
+  "main_tokens": {
+    "value": 150,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "auxiliary_tokens": {
+    "value": 50,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "unclassified_tokens": {
+    "value": 100,
+    "unit": "tokens",
+    "kind": "derived",
+    "state": "known"
+  },
+  "unknown_usage": {
+    "value": 1,
+    "unit": "count",
+    "kind": "derived",
+    "state": "known"
+  }
+}

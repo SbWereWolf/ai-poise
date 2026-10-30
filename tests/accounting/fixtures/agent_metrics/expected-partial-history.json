@@ -1,0 +1,5 @@
+{
+  "tokens": {"value": 150, "unit": "tokens", "kind": "derived", "state": "partial"},
+  "changed_lines": {"value": 3, "unit": "lines", "kind": "derived", "state": "partial"},
+  "efficiency": {"value": null, "unit": "tokens per changed line", "kind": "derived", "state": "unknown"}
+}

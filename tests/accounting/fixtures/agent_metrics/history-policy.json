@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "timezone": "UTC",
+  "logs": ["@SOURCE@"],
+  "format": "json",
+  "display": {
+    "token_unit": 1,
+    "token_unit_label": "tokens",
+    "token_decimals": 0,
+    "line_decimals": 0,
+    "ratio_decimals": 2,
+    "group_separator": " ",
+    "decimal_separator": "."
+  },
+  "path_roots": ["@CHECKOUT@"],
+  "include": ["src/**"],
+  "exclude": []
+}

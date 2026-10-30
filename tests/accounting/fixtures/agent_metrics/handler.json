@@ -1,0 +1,22 @@
+{
+  "schema": "hook-handler-configuration-1",
+  "id": "f16-metrics",
+  "handlers": [
+    {
+      "id": "f16-metrics",
+      "implementation": {
+        "kind": "builtin",
+        "name": "agent-metrics"
+      },
+      "mode": "sync",
+      "options": {
+        "policy_path": "@POLICY@"
+      },
+      "execution": {
+        "run_seconds": 10,
+        "cleanup_seconds": 2
+      },
+      "on_error": "stop"
+    }
+  ]
+}

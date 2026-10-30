@@ -1,0 +1,13 @@
+{
+  "skill": "fixture-beta",
+  "phase": "implement",
+  "policy_available": true,
+  "surface_evaluable": true,
+  "selected": false,
+  "policy_recommended": false,
+  "required_by_surface": true,
+  "recommended_by_surface": false,
+  "core_read": false,
+  "selection_reasons": [],
+  "surface_reasons": ["path-rule:fixture-code"]
+}

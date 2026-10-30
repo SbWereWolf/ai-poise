@@ -822,6 +822,11 @@
       "commands": [
         {
           "argv": [
+            "${task_database_lock_executable}",
+            "--exclusive",
+            "--timeout",
+            "${task_database_lock_wait_seconds}",
+            "${task_database_lock}",
             "${python}",
             "-B",
             "-m",
@@ -865,6 +870,11 @@
           "commands": [
             {
               "argv": [
+                "${task_database_lock_executable}",
+                "--exclusive",
+                "--timeout",
+                "${task_database_lock_wait_seconds}",
+                "${task_database_lock}",
                 "${python}",
                 "-B",
                 "-m",

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "collection-records-bool",
+    "path": [
+      "collection",
+      "max_records"
+    ],
+    "value": true
+  },
+  {
+    "id": "collection-records-zero",
+    "path": [
+      "collection",
+      "max_records"
+    ],
+    "value": 0
+  },
+  {
+    "id": "negative-source-budget",
+    "path": [
+      "collection",
+      "max_source_bytes"
+    ],
+    "value": -1
+  },
+  {
+    "id": "retention-not-supported",
+    "path": [
+      "retention",
+      "mode"
+    ],
+    "value": "delete-everything"
+  },
+  {
+    "id": "wrong-timezone",
+    "path": [
+      "accounting",
+      "timezone"
+    ],
+    "value": "fixture/unknown-timezone"
+  },
+  {
+    "id": "unsupported-source-kind",
+    "path": ["collection", "sources", 0, "kind"],
+    "value": "fixture-unsupported-source-kind"
+  },
+  {
+    "id": "unsupported-parser-version",
+    "path": ["collection", "sources", 1, "parser_version"],
+    "value": "fixture-unsupported-parser-999"
+  }
+]

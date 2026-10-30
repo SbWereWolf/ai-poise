@@ -1,0 +1,85 @@
+{
+  "requirements": [
+    {
+      "id": "own-python-runtime",
+      "commands": [
+        {
+          "argv": [
+            "${node}",
+            "${npm_entry_point}",
+            "install",
+            "--no-audit",
+            "--no-fund"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "LANG": "C.UTF-8",
+            "ENVIRONMENT_MAINTENANCE_PYTHON": "${bootstrap_python}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${repository}/start-app",
+                "--version"
+              ],
+              "cwd": "${repository}",
+              "env": {
+                "PATH": "${path}",
+                "PYTHONPATH": "${module_path}",
+                "LANG": "C.UTF-8"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "availability": {
+          "commands": [
+            {
+              "argv": [
+                "${repository}/.venv/bin/python",
+                "-I",
+                "-B",
+                "-c",
+                "import environment_maintenance, jsonpatch, jsonpointer"
+              ],
+              "cwd": "${repository}",
+              "env": {
+                "PATH": "${path}",
+                "PYTHONPATH": "${module_path}",
+                "LANG": "C.UTF-8"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

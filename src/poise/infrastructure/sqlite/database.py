@@ -74,6 +74,7 @@ SCHEMA = (
 
 class Database:
     """Linux-only external lock + short SQL transaction with one owned v12 upgrade."""
+    accounting_only = False
     def __init__(self, path: Path, lock: Path, wait: float, poll: float, project_fence=None,
                  *, read_only=False, read_wait=None):
         self.project_fence = project_fence

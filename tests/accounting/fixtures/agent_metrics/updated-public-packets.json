@@ -1,0 +1,56 @@
+{
+  "reclassify": {
+    "schema": "poise-agent-metrics-request-1",
+    "operation": "reclassify",
+    "scope": {
+      "kind": "project",
+      "id": "@PROJECT@"
+    }
+  },
+  "reprocess": {
+    "schema": "poise-agent-metrics-request-1",
+    "operation": "reprocess",
+    "scope": {
+      "kind": "project",
+      "id": "@PROJECT@"
+    },
+    "sources": [
+      "codex-transcript"
+    ]
+  },
+  "markdown": {
+    "schema": "poise-agent-metrics-request-1",
+    "operation": "query",
+    "scope": {
+      "kind": "session",
+      "id": "00000000-0000-4000-8000-000000000161"
+    },
+    "period": {
+      "from": null,
+      "to": null
+    },
+    "view": {
+      "kind": "derived",
+      "family": "aggregate-readouts",
+      "format": "markdown"
+    }
+  },
+  "daily": {
+    "schema": "poise-agent-metrics-request-1",
+    "operation": "query",
+    "scope": {
+      "kind": "session",
+      "id": "00000000-0000-4000-8000-000000000161"
+    },
+    "period": {
+      "from": null,
+      "to": null
+    },
+    "view": {
+      "kind": "derived",
+      "family": "aggregate-readouts",
+      "format": "markdown",
+      "group_by": "day"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "model_calls": {"value": 1, "unit": "count", "kind": "derived", "state": "known"},
+  "input_tokens": {"value": 120, "unit": "tokens", "kind": "derived", "state": "known"},
+  "cached_input_tokens": {"value": 24, "unit": "tokens", "kind": "derived", "state": "known"},
+  "uncached_input_tokens": {"value": 96, "unit": "tokens", "kind": "derived", "state": "known"},
+  "output_tokens": {"value": 30, "unit": "tokens", "kind": "derived", "state": "known"},
+  "reasoning_output_tokens": {"value": 9, "unit": "tokens", "kind": "derived", "state": "known"},
+  "total_tokens": {"value": 150, "unit": "tokens", "kind": "derived", "state": "known"}
+}

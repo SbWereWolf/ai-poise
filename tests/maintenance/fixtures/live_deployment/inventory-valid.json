@@ -1,0 +1,12 @@
+{
+  "status": "listed",
+  "projects": [
+    {"project": "erp", "config_path": "erp/config.json"},
+    {"project": "poise-op", "config_path": "poise-op/config.json"},
+    {"project": "stride", "config_path": "stride/config.json"},
+    {"project": "workspace-recover", "config_path": "workspace-recover/config.json"},
+    {"project": "environment-maintenance-repair", "config_path": "environment-maintenance-repair/config.json"},
+    {"project": "diagnostic-fixture", "config_path": "diagnostic-fixture/config.json"}
+  ],
+  "errors": []
+}

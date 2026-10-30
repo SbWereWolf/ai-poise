@@ -251,11 +251,14 @@ def test_metrics_keep_survive_end_without_archiving_raw_bodies(project, tmp_path
 
 
 def test_query_scope_does_not_leak_another_session_or_write_observations(project, tmp_path):
-    scene = open_scene(project, tmp_path)
+    from tests.accounting.test_agent_metrics_queries import query_scene, terminal_capture
+
+    scene = query_scene(project, tmp_path)
     try:
-        scene.native("Stop")
+        terminal_capture(scene, "SessionStart")
+        terminal_capture(scene, "Stop")
         scene.wait_query(family="usage-current")
-        scene.close()
+        terminal_capture(scene, "SessionEnd")
         before = committed_observations(scene.metrics / "observed.sqlite")
         missing = scene.query(family="usage-current", scope={
             "kind": "session", "id": "00000000-0000-4000-8000-000000000162"})
@@ -266,6 +269,7 @@ def test_query_scope_does_not_leak_another_session_or_write_observations(project
         assert_measurements(own, literal("expected-usage-complete.json"))
         assert committed_observations(scene.metrics / "observed.sqlite") == before
     finally:
-        scene.close()
+        if scene.started:
+            terminal_capture(scene, "SessionEnd")
 
 

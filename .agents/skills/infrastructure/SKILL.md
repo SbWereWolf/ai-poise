@@ -14,6 +14,11 @@ explicit project root; separate stores; versioned template selection; owner-mana
 publication and verified consumers. Full options and examples belong to the linked
 operator documentation, not this skill.
 
+Use configured environment-maintenance for all environment and worktree deployments.
+Follow the [instance/action setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
+and [coordinated consumer update](../../../docs/operator/maintenance-profile-v2.md#согласованное-обновление-потребителей).
+Keep native Task readiness, individual resource observations and application launch evidence distinct.
+
 ## Inputs
 
 For configured environment actions, use the selected instance's installed

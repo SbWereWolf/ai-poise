@@ -1,0 +1,30 @@
+{
+  "requirements": [
+    {
+      "id": "application-runtime",
+      "commands": [
+        {
+          "argv": [
+            "${node}",
+            "${repository}/bin/workspace-recover.mjs",
+            "--help"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PATH": "${path}",
+            "PYTHONPATH": "${module_path}",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

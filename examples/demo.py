@@ -1,10 +1,12 @@
 """Автономный пример. Создаёт ТОЛЬКО новый каталог и локальные Git repositories."""
 from __future__ import annotations
+from contextlib import closing
 from copy import deepcopy
 from work_client import WorkClient
 import argparse
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -111,16 +113,26 @@ def create(directory: Path):
         ],
         'integration': None,
     }
-    from poise.composition import requirements_tools
-    commands, _ = requirements_tools(home / 'project.json')
-    commands.apply({
-        'request_id': 'demo-requirements', 'expected_revision': 0,
-        'operations': [
-            {'kind': 'put_requirement', 'requirement': {'id': 'DEMO-SYS', 'level': 'system', 'status': 'current', 'text': 'Демонстрация сохраняет проверяемые результаты.'}},
-            {'kind': 'put_requirement', 'requirement': {'id': 'DEMO-APP', 'level': 'application', 'status': 'current', 'text': 'Учебное приложение правильно удваивает число.'}},
-            {'kind': 'link', 'system': 'DEMO-SYS', 'application': 'DEMO-APP'},
-        ],
-    })
+    from poise.composition import requirements_storage, requirements_tools
+    storage, _ = requirements_storage(home / 'project.json')
+    schema = (Path(__file__).parent / 'fixtures/requirements-schema.sql').read_text(encoding='utf-8')
+    database = storage[0]
+    database.parent.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(database)) as connection, connection:
+        connection.executescript(schema)
+        connection.executemany(
+            'INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?)',
+            [
+                ('DEMO-SYS', 'system', 'current', 'Демонстрация сохраняет проверяемые результаты.'),
+                ('DEMO-APP', 'application', 'current', 'Учебное приложение правильно удваивает число.'),
+            ],
+        )
+        connection.execute(
+            'INSERT INTO requirement_links(system_id,application_id) VALUES(?,?)',
+            ('DEMO-SYS', 'DEMO-APP'),
+        )
+        connection.execute('UPDATE requirements_meta SET revision=?', (1,))
+    commands, _ = requirements_tools(home / 'project.json', read_only=True)
     plan = commands.store.registry().plan_task([
         {'text': text, 'applications': ['DEMO-APP']} for text in task['requirements']
     ])

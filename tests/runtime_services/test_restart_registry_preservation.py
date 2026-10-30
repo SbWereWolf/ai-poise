@@ -69,7 +69,8 @@ def persisted(tools, task_id):
                 for key, sql in statements.items()}
 
 
-def setup_current(project, *, initially_empty=False, allow_method_edit=True, with_extra=False):
+def setup_current(project, *, initially_empty=False, allow_method_edit=True, with_extra=False,
+                  allow_requirements_edit=False, unplanned=False):
     configure_public_registry_case(project)
     project["task"]["planning"] = {
         "schema": "task-planning-1", "template": None,
@@ -79,6 +80,12 @@ def setup_current(project, *, initially_empty=False, allow_method_edit=True, wit
                      if allow_method_edit else ["workflow"]),
         },
     }
+    if allow_requirements_edit:
+        project["task"]["planning"]["restart_revision_policy"]["user"].extend(
+            ["requirements", "requirements_snapshot", "requirements_agreement"]
+        )
+    if unplanned:
+        project["task"].pop("planning")
     original = deepcopy(project["task"])
     if initially_empty:
         project["task"]["methods"] = []
@@ -234,8 +241,9 @@ def test_restart_and_ready_exact_request_replays_preserve_result_and_do_not_exec
     assert replay["replayed"] is True
     assert verification_calls == initial_calls
     repeated = ready_task(tools, task_id, newborn["revision"])
-    assert {k: v for k, v in repeated.items() if k != "interaction"} == {
-        k: v for k, v in ready.items() if k != "interaction"}
+    assert repeated["replayed"] is True
+    assert {k: v for k, v in repeated.items() if k not in ("interaction", "replayed")} == {
+        k: v for k, v in ready.items() if k not in ("interaction", "replayed")}
     assert persisted(tools, task_id) == rows
     assert verification_calls == initial_calls
     assert projection(tools) == before
@@ -398,13 +406,13 @@ def test_failed_ready_rolls_back_task_registry_and_requirements(project, monkeyp
     rows = persisted(tools, task_id)
     query = [{"id": "requirements", "kind": "registry"}]
     requirements = deepcopy(tools.runtime.requirements_commands.query(query))
-    promote = SqliteTaskRepository.promote_newborn
+    promote = SqliteTaskRepository.promote_prepared
 
     def fail_after_promotion(repository, *args, **kwargs):
         promote(repository, *args, **kwargs)
         raise PoiseError("Fixture failure after Task promotion")
 
-    monkeypatch.setattr(SqliteTaskRepository, "promote_newborn", fail_after_promotion)
+    monkeypatch.setattr(SqliteTaskRepository, "promote_prepared", fail_after_promotion)
     with pytest.raises(PoiseError, match="Fixture failure after Task promotion"):
         ready_task(tools, task_id, newborn["revision"])
     assert persisted(tools, task_id) == rows

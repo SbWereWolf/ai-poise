@@ -1,0 +1,164 @@
+{
+  "inventory": {
+    "argv": [
+      "/srv/poise/app/tools/.venv/bin/python",
+      "-B",
+      "-c",
+      "import json,sys; from poise.composition import project_tools; print(json.dumps(project_tools(sys.argv[1]).list()))",
+      "/srv/poise/app/config/project-setup.json"
+    ],
+    "cwd": "/srv/poise/app",
+    "env": {
+      "PATH": "/usr/local/bin:/usr/bin:/bin",
+      "HOME": "/home/operator",
+      "LANG": "C.UTF-8",
+      "PYTHONPATH": "/srv/poise/app/src:/srv/poise/app"
+    }
+  },
+  "expected_entry_stdout": "environment-maintenance 2.0.0\n",
+  "expected_sdk_version": "2.0.0",
+  "consumers": [
+    {
+      "project": "environment-maintenance-repair",
+      "preparation_config": "/srv/poise/operator/start-app-worktrees/environment-maintenance-repair.json",
+      "runtime": null,
+      "compatibility": {
+        "argv": [
+          "/srv/environment-maintenance/2.0.0/bin/start-app",
+          "check",
+          "--config",
+          "/srv/verification/environment-maintenance-repair/profile/app.json",
+          "--parameters",
+          "/srv/verification/environment-maintenance-repair/profile/parameters.json",
+          "--base-dir",
+          "/srv/verification/environment-maintenance-repair/repository"
+        ],
+        "cwd": "/srv/verification/environment-maintenance-repair/repository",
+        "env": {
+          "PATH": "/usr/local/bin:/usr/bin:/bin",
+          "HOME": "/home/operator",
+          "LANG": "C.UTF-8",
+          "PYTHONPATH": "/srv/poise/app/src:/srv/poise/app"
+        },
+        "expected_exit_code": 0,
+        "expected_status": "succeeded"
+      }
+    },
+    {
+      "project": "erp",
+      "preparation_config": "/srv/poise/operator/start-app-worktrees/erp.json",
+      "runtime": {
+        "path": "/srv/erp/.runtime/environment-consumer/runtime.env",
+        "python_key": "ERP_ENVIRONMENT_PYTHON_BIN"
+      },
+      "compatibility": {
+        "argv": [
+          "/bin/bash",
+          "/srv/erp/start-app",
+          "check",
+          "--config",
+          "/srv/verification/erp/profile/app.json",
+          "--parameters",
+          "/srv/verification/erp/profile/parameters.json",
+          "--base-dir",
+          "/srv/verification/erp/repository"
+        ],
+        "cwd": "/srv/verification/erp/repository",
+        "env": {
+          "PATH": "/usr/local/bin:/usr/bin:/bin",
+          "HOME": "/home/operator",
+          "LANG": "C.UTF-8",
+          "PYTHONPATH": "/srv/verification/erp/repository/platform-infrastructure/tools:/srv/poise/app/src:/srv/poise/app"
+        },
+        "expected_exit_code": 0,
+        "expected_status": "succeeded"
+      }
+    },
+    {
+      "project": "poise-op",
+      "preparation_config": "/srv/poise/operator/start-app-worktrees/poise-op.json",
+      "runtime": null,
+      "compatibility": {
+        "argv": [
+          "/srv/environment-maintenance/2.0.0/bin/start-app",
+          "check",
+          "--config",
+          "/srv/verification/poise-op/profile/app.json",
+          "--parameters",
+          "/srv/verification/poise-op/profile/parameters.json",
+          "--base-dir",
+          "/srv/verification/poise-op/repository"
+        ],
+        "cwd": "/srv/verification/poise-op/repository",
+        "env": {
+          "PATH": "/usr/local/bin:/usr/bin:/bin",
+          "HOME": "/home/operator",
+          "LANG": "C.UTF-8",
+          "PYTHONPATH": "/srv/poise/app/src:/srv/poise/app"
+        },
+        "expected_exit_code": 0,
+        "expected_status": "succeeded"
+      }
+    },
+    {
+      "project": "stride",
+      "preparation_config": "/srv/poise/operator/start-app-worktrees/stride.json",
+      "runtime": null,
+      "compatibility": {
+        "argv": [
+          "/srv/environment-maintenance/2.0.0/bin/start-app",
+          "check",
+          "--config",
+          "/srv/verification/stride/profile/app.json",
+          "--parameters",
+          "/srv/verification/stride/profile/parameters.json",
+          "--base-dir",
+          "/srv/verification/stride/repository"
+        ],
+        "cwd": "/srv/verification/stride/repository",
+        "env": {
+          "PATH": "/usr/local/bin:/usr/bin:/bin",
+          "HOME": "/home/operator",
+          "LANG": "C.UTF-8",
+          "PYTHONPATH": "/srv/poise/app/src:/srv/poise/app"
+        },
+        "expected_exit_code": 0,
+        "expected_status": "succeeded"
+      }
+    },
+    {
+      "project": "workspace-recover",
+      "preparation_config": "/srv/poise/operator/start-app-worktrees/workspace-recover.json",
+      "runtime": null,
+      "compatibility": {
+        "argv": [
+          "/srv/environment-maintenance/2.0.0/bin/start-app",
+          "check",
+          "--config",
+          "/srv/verification/workspace-recover/profile/app.json",
+          "--parameters",
+          "/srv/verification/workspace-recover/profile/parameters.json",
+          "--base-dir",
+          "/srv/verification/workspace-recover/repository"
+        ],
+        "cwd": "/srv/verification/workspace-recover/repository",
+        "env": {
+          "PATH": "/usr/local/bin:/usr/bin:/bin",
+          "HOME": "/home/operator",
+          "LANG": "C.UTF-8",
+          "PYTHONPATH": "/srv/poise/app/src:/srv/poise/app"
+        },
+        "expected_exit_code": 0,
+        "expected_status": "succeeded"
+      }
+    }
+  ],
+  "excluded_projects": [
+    {
+      "project": "diagnostic-fixture",
+      "reason": "Явно зарегистрированный диагностический fixture, не действующее приложение."
+    }
+  ],
+  "capture_directory": "/srv/poise/operator/update/captures",
+  "timeout_seconds": 120
+}

@@ -1,29 +1,57 @@
 {
-  "profile_spec": "/srv/poise/app/config/projects/erp/profile.example.json",
-  "author_name": "Operator",
-  "author_email": "operator@example.invalid",
-  "python_minimum": "3.15",
-  "python_maximum": "3.16",
-  "consumer_python": "/srv/environment-maintenance/.venv/bin/python",
-  "php_executable": "/opt/php/bin/php",
-  "node_executable": "/opt/node/bin/node",
-  "composer_executable": "/opt/composer/bin/composer",
-  "npm_entry_point": "/opt/node/lib/node_modules/npm/bin/npm-cli.js",
-  "npm_executable": "/opt/node/bin/npm",
-  "expected_toolchain_identity": {
-    "php": {
-      "majorMinor": "8.4"
-    },
-    "node": {
-      "majorMinor": "22.23",
-      "modulesAbi": 127
-    }
+  "publisher": "/srv/poise/operator/start-app-worktrees/worktree_profile.py",
+  "parameters": {
+    "author_name": "Example Developer",
+    "author_email": "developer@example.invalid",
+    "sdk_python": "/srv/environment-maintenance/dist/installed/2.0.0/lib/node_modules/environment-maintenance/.venv/bin/python",
+    "path": "/usr/local/bin:/usr/bin:/bin",
+    "supervisor_config": "/srv/poise/operator/start-app-worktrees/erp-supervisor.json",
+    "profile_spec": "/srv/poise/operator/start-app-worktrees/poise-profile.json",
+    "patch_spec": "/srv/poise/operator/start-app-worktrees/poise-sdk-binding.json",
+    "application_spec": "/srv/poise/operator/start-app-worktrees/erp-profile.json",
+    "consumer_spec": "/srv/poise/operator/start-app-worktrees/erp-consumer.json",
+    "sdk_binding_template": "/srv/poise/operator/start-app-worktrees/erp-runtime.example.env",
+    "env_executable": "/usr/bin/env",
+    "wheelhouse": "/srv/poise/operator/wheelhouse",
+    "publisher": "/srv/poise/operator/start-app-worktrees/worktree_profile.py",
+    "operator_source": "/srv/poise/operator/start-app-worktrees",
+    "node": "/usr/bin/node",
+    "composer_home": "/srv/erp/.runtime/composer",
+    "terminal": "/usr/bin/zutty",
+    "display": ":0",
+    "xauthority": "/srv/erp/.runtime/display/Xauthority",
+    "console_tool": "/srv/environment-maintenance/dist/installed/2.0.0/lib/node_modules/environment-maintenance/examples/process-launch/start_console.py",
+    "php_executable": "/usr/bin/php",
+    "composer_executable": "/usr/local/bin/composer",
+    "npm_entry_point": "/usr/lib/node_modules/npm/bin/npm-cli.js",
+    "environment_source": "/srv/erp/platform-infrastructure/config/dev/local-development.env",
+    "npm_executable": "/usr/bin/npm",
+    "terminal_font": "DejaVuSansMono"
   },
-  "environment_file": "platform-infrastructure/config/dev/local-development.env",
-  "local_settings_path": "platform-infrastructure/config/dev/local-development.settings.json",
-  "host_runtime_settings_path": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.json",
-  "cjm_settings_path": "platform-infrastructure/tests/playwright/cjm.local-development.settings.json",
-  "local_settings_source": "documents/local-settings.json",
-  "host_runtime_settings_source": "documents/host-runtime-settings.json",
-  "cjm_settings_source": "documents/cjm-settings.json"
+  "derived_parameters": {
+    "module_path": "${source_root}/src:${source_root}",
+    "supervisor_parameters": "${task_root}/environment-maintenance/supervisor-parameters.json",
+    "state_root": "${task_root}/environment-maintenance/state",
+    "consumer_root": "${repository}/.runtime/environment-consumer",
+    "application_source": "${repository}",
+    "runtime_module_path": "${repository}/src:${repository}/.runtime/dependencies:${repository}",
+    "template_id": "linux-reference"
+  },
+  "prepare_command": [
+    "${start_app}",
+    "infra",
+    "--config",
+    "${supervisor_config}",
+    "--parameters",
+    "${supervisor_parameters}",
+    "--base-dir",
+    "${repository}",
+    "--requirements",
+    "all"
+  ],
+  "prepare_environment": {
+    "PATH": "${path}",
+    "PYTHONPATH": "${module_path}",
+    "LANG": "C.UTF-8"
+  }
 }

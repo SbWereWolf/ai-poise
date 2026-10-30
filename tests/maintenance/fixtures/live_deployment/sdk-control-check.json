@@ -1,0 +1,15 @@
+{
+  "requirements": [
+    {
+      "id": "fixture-control",
+      "commands": [
+        {
+          "argv": ["${control_python}", "-I", "-B", "${control_script}", "${control_marker}"],
+          "cwd": "${control_root}",
+          "env": {},
+          "interpreter": {"name": "exit", "options": {"accept": [0]}}
+        }
+      ]
+    }
+  ]
+}

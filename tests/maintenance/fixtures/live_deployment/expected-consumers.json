@@ -1,0 +1,37 @@
+[
+  {
+    "project": "environment-maintenance-repair",
+    "entry_version": "environment-maintenance 2.0.0",
+    "sdk_version": null,
+    "ready": true,
+    "compatibility_status": "succeeded"
+  },
+  {
+    "project": "erp",
+    "entry_version": "environment-maintenance 2.0.0",
+    "sdk_version": "2.0.0",
+    "ready": true,
+    "compatibility_status": "succeeded"
+  },
+  {
+    "project": "poise-op",
+    "entry_version": "environment-maintenance 2.0.0",
+    "sdk_version": null,
+    "ready": true,
+    "compatibility_status": "succeeded"
+  },
+  {
+    "project": "stride",
+    "entry_version": "environment-maintenance 2.0.0",
+    "sdk_version": null,
+    "ready": true,
+    "compatibility_status": "succeeded"
+  },
+  {
+    "project": "workspace-recover",
+    "entry_version": "environment-maintenance 2.0.0",
+    "sdk_version": null,
+    "ready": true,
+    "compatibility_status": "succeeded"
+  }
+]

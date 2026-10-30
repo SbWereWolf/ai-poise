@@ -1,0 +1,150 @@
+{
+  "json": [
+    {
+      "file": "/srv/poise/operator/environment-maintenance-repair.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "start_app"
+          ],
+          "parameter": "start_app"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/environment-maintenance-repair-values.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "sdk_python"
+          ],
+          "parameter": "sdk_python"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/erp.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "start_app"
+          ],
+          "parameter": "start_app"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/erp-values.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "sdk_python"
+          ],
+          "parameter": "sdk_python"
+        },
+        {
+          "path": [
+            "parameters",
+            "console_tool"
+          ],
+          "parameter": "console_tool"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/poise-op.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "start_app"
+          ],
+          "parameter": "start_app"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/poise-op-values.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "sdk_python"
+          ],
+          "parameter": "sdk_python"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/stride.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "start_app"
+          ],
+          "parameter": "start_app"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/stride-values.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "sdk_python"
+          ],
+          "parameter": "sdk_python"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/workspace-recover.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "start_app"
+          ],
+          "parameter": "start_app"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/workspace-recover-values.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "sdk_python"
+          ],
+          "parameter": "sdk_python"
+        }
+      ]
+    },
+    {
+      "file": "/srv/poise/operator/live/poise-op/bootstrap.json",
+      "edits": [
+        {
+          "path": [
+            "parameters",
+            "python"
+          ],
+          "parameter": "sdk_python"
+        }
+      ]
+    }
+  ],
+  "shell": [
+    {
+      "file": "/srv/erp/.runtime/environment-consumer/runtime.env",
+      "key": "ERP_ENVIRONMENT_PYTHON_BIN",
+      "parameter": "sdk_python"
+    }
+  ]
+}

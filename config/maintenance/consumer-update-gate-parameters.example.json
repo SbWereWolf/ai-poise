@@ -1,0 +1,9 @@
+{
+  "python": "/srv/poise/app/tools/.venv/bin/python",
+  "observer": "/srv/poise/operator/update/consumer_updates.py",
+  "consumer_config": "/srv/poise/operator/update/rollout.json",
+  "base": "/srv/poise/app",
+  "module_path": "/srv/poise/app/src:/srv/poise/app",
+  "path": "/usr/local/bin:/usr/bin:/bin",
+  "home": "/home/operator"
+}

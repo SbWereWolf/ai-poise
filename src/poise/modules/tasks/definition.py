@@ -93,7 +93,8 @@ def stored_executable_obligations(contract, workflow, registry_state):
     )
 
 
-def validate_creation(contract, workflow, automatic_checks, decomposition_policy, *, current_registry=None):
+def validate_creation(contract, workflow, automatic_checks, decomposition_policy, *, current_registry=None,
+                      existing_contract=None):
     if isinstance(contract,dict) and 'method_inputs' not in contract:
         method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
         raise DomainError(
@@ -125,7 +126,9 @@ def validate_creation(contract, workflow, automatic_checks, decomposition_policy
         obligation_catalog(contract),
     )
     from .creation_preflight import CreationPreflight
-    preflight = CreationPreflight.parse(contract,workflow)
+    preflight = (CreationPreflight.parse(contract, workflow) if existing_contract is None else
+                 CreationPreflight.parse_existing(contract, workflow, current_registry=current_registry,
+                                                  existing_contract=existing_contract))
     registry.validate_route(route.with_stage_scopes(contract['stage_contracts']))
     for entry in automatic_checks:
         for stage in stages:

@@ -1,0 +1,22 @@
+{
+  "legal_scope": ["src/**", "docs/**"],
+  "invalid_scope": ["tests/exact/**"],
+  "restart": {
+    "action": "restart",
+    "task_id": "T1",
+    "request_id": "restart-existing-unplanned",
+    "reason": "Validate existing contract consumers after an authorised unplanned restart.",
+    "authorization": "User explicitly authorises this fixture restart and materialisation of current methods."
+  },
+  "revise": {
+    "task_id": "T1",
+    "request_id": "revise-existing-unplanned",
+    "reason": "Revise an existing unplanned Task scope without inventing creation inputs.",
+    "authorization": {"role": "reviewer"}
+  },
+  "release": {
+    "task_id": "T1",
+    "request_id": "release-before-existing-inspection",
+    "reason": "Transfer genuine verified test work to the independent inspection actor."
+  }
+}

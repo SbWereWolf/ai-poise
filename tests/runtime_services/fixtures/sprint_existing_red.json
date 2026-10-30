@@ -1,0 +1,76 @@
+{
+  "collected": [
+    "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-late-only]",
+    "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-mixed]",
+    "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-late-only]",
+    "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-mixed]"
+  ],
+  "collection": [],
+  "exit_code": 1,
+  "reports": [
+    {
+      "diagnostic": "AssertionError: Regex pattern did not match.\n  Expected regex: 'Late Sprint member publication interrupted before commit'\n  Actual message: \"Task creation intent: method_inputs binding mismatch: declared=[], methods=['LATE']; исправьте binding\"",
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-late-only]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-late-only]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-late-only]",
+      "outcome": "passed",
+      "phase": "teardown"
+    },
+    {
+      "diagnostic": "AssertionError: Regex pattern did not match.\n  Expected regex: 'Late Sprint member publication interrupted before commit'\n  Actual message: \"Task creation intent: method_inputs binding mismatch: declared=['CHECK'], methods=['CHECK', 'LATE']; исправьте binding\"",
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-mixed]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-mixed]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[deferred-ready-mixed]",
+      "outcome": "passed",
+      "phase": "teardown"
+    },
+    {
+      "diagnostic": "AssertionError: Existing late Sprint materialisation must mark the valid member ready\nassert False is True",
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-late-only]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-late-only]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-late-only]",
+      "outcome": "passed",
+      "phase": "teardown"
+    },
+    {
+      "diagnostic": "AssertionError: Existing late Sprint materialisation must mark the valid member ready\nassert False is True",
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-mixed]",
+      "outcome": "failed",
+      "phase": "call"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-mixed]",
+      "outcome": "passed",
+      "phase": "setup"
+    },
+    {
+      "nodeid": "tests/runtime_services/test_restart_sprint_existing_inputs.py::test_existing_sprint_late_inputs_publish_atomically[draft-upsert-mixed]",
+      "outcome": "passed",
+      "phase": "teardown"
+    }
+  ]
+}

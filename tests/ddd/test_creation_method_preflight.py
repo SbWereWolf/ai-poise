@@ -30,6 +30,7 @@ def _stage(identifier, *, allowed_paths, target):
         "required_sections": ["report"],
         "artifact_requirements": [],
         "handler": "produce", "role": "executor",
+        "purpose": "execution", "criteria_authority": {"decide": [], "propose": []},
         "transitions": {"complete": target},
         "rework_targets": [identifier],
     }
@@ -111,6 +112,7 @@ def _task(project, workflow, *, method_inputs=...):
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
         } for stage in workflow["stages"]],
     )
     task["methods"][0]["verification_plan"]["green_stages"] = [

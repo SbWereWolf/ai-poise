@@ -1,0 +1,54 @@
+{
+  "findings": [
+    {
+      "id": "EXTERNAL",
+      "subject": "Frozen external double implementation",
+      "description": "The external implementation returns 3 rather than 4.",
+      "evidence": "Frozen src/double.py contains return n + 1.",
+      "stage": "review_subject",
+      "iteration": 1
+    },
+    {
+      "id": "REPORT",
+      "subject": "Review report coverage",
+      "description": "The review report omits required evidence.",
+      "evidence": "The agreed report evidence is absent.",
+      "stage": "audit_report",
+      "iteration": 1
+    }
+  ],
+  "resolutions": [
+    {
+      "id": "REPORT-R1",
+      "finding_id": "REPORT",
+      "description": "The report now supplies the missing evidence.",
+      "evidence": "The current report records the frozen subject and evidence.",
+      "stage": "review_subject",
+      "iteration": 2
+    },
+    {
+      "id": "REPORT-R2",
+      "finding_id": "REPORT",
+      "description": "The report now supplies the missing evidence.",
+      "evidence": "The current report records the frozen subject and evidence.",
+      "stage": "review_subject",
+      "iteration": 3
+    }
+  ],
+  "decisions": [
+    {
+      "resolution_id": "REPORT-R1",
+      "decision": "rejected",
+      "reason": "The independent fixture checks the current report evidence.",
+      "stage": "audit_report",
+      "iteration": 2
+    },
+    {
+      "resolution_id": "REPORT-R2",
+      "decision": "accepted",
+      "reason": "The independent fixture checks the current report evidence.",
+      "stage": "audit_report",
+      "iteration": 3
+    }
+  ]
+}

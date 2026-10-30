@@ -1,0 +1,30 @@
+{
+  "external": {
+    "id": "EXTERNAL",
+    "subject": "Frozen external double implementation",
+    "description": "The external implementation returns 3 rather than 4.",
+    "evidence": "Frozen src/double.py contains return n + 1."
+  },
+  "report": {
+    "id": "REPORT",
+    "subject": "Review report coverage",
+    "description": "The review report omits required evidence.",
+    "evidence": "The agreed report evidence is absent."
+  },
+  "plan": {
+    "id": "PLAN",
+    "subject": "Accepted review plan",
+    "description": "A retained planning obligation remains open.",
+    "evidence": "The old planning finding remains in history."
+  },
+  "resolution": {
+    "id": "REPORT-R1",
+    "finding_id": "REPORT",
+    "description": "The report now supplies the missing evidence.",
+    "evidence": "The current report records the frozen subject and evidence."
+  },
+  "coverage": "Inspect only the current subject with its own independent evidence.",
+  "accepted_plan": "Review the frozen external implementation, retain negative findings, and independently inspect the report.",
+  "clean_report": "No external defect is recorded in this controlled case.",
+  "negative_report": "External defect EXTERNAL is retained; accepting this accurate report does not repair the external subject."
+}

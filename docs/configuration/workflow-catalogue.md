@@ -1,6 +1,6 @@
 # Каталог независимых процессов — DDD-09
 
-Обновлено: **2026-10-28**.
+Обновлено: **2026-10-30**.
 
 ## Что поставлено
 
@@ -19,6 +19,11 @@ FB-VER-01 и FB-VER-02. Прежние 25 именованных возврат�
 ссылками на принятые графы ERP; исторические материалы остаются неизменными.
 Полный граф включает и остальные переходы. В частности, review inspection →
 execution_inspection при changes_requested ведёт к проверке отчёта, а не к rework.
+Замечания к рассматриваемому предмету и замечания к отчёту имеют
+[раздельные области](../workflows/batch-work.md#область-замечаний-при-независимом-осмотре).
+Это поведение runtime реализовано в SDK начиная с версии `2.1.1`.
+Конкретный потребитель получает её после отдельного обновления выбранной версии пакета;
+наличие шаблона само по себе установленный SDK не обновляет.
 Это референсные определения процессов, а не обещание автоматически доказать содержательную
 полноту любого проекта или выполнение всего исторического каталога приёмки.
 
@@ -372,12 +377,17 @@ ID означает конфликт, а не перезапись. Поздни
 ```bash
 python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-dev-new --goal development --scenario feedback
 python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-plan-new --goal sprint_planning --scenario short
+python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-review-short-new --goal review --scenario short
+python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-review-feedback-new --goal review --scenario feedback
 ```
 
 Каталоги должны быть новыми. Другие `--goal`: test_development, verification, review, design,
 analysis, profiling, environment_diagnostics, environment_remediation, documentation,
 task_planning, integration. `--scenario short|feedback` выбирается явно.
 Создаются только учебные репозитории и bare remote, сеть не нужна.
+Собственная новая БД учебных требований заполняется до открытия query-only reader;
+порядок и границы описаны в
+[подготовке учебного реестра](../workflows/runnable-examples.md#подготовка-учебного-реестра-требований).
 Исходные тексты приложения меняет сценарный драйвер нативно; служебные Task/Sprint состояния
 создаются через публичные API, не SQL. Fault-injection tests используют SQL только для установки
 заведомо аварийного trigger, а не подстановки будущего бизнес-состояния.

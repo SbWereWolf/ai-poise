@@ -10,7 +10,7 @@ import json
 import pytest
 
 from tests.accounting.agent_metrics_support import (
-    MetricsScene, assert_measurements, assert_metadata, literal, metadata_values,
+    MetricsScene, assert_measurements, assert_metadata, committed_observations, literal, metadata_values,
 )
 from tests.hook_transport.architecture_support import write
 
@@ -165,5 +165,60 @@ def test_full_turn_context_keeps_capacity_model_effort_compaction_and_actual_sou
                        for value in metadata_values(reply, field)), field
         assert total_values(scene.query(family="usage-current")) == [150]
         assert source.read_bytes() == original
+    finally:
+        scene.close()
+
+
+def test_supplied_policy_and_routing_survive_taskless_recording_and_fresh_reader(project, tmp_path):
+    scene = MetricsScene(project, tmp_path)
+    source = scene.source()
+    policy = literal("effective-policy.json")
+    routing = literal("skill-routing.json")
+    policy_path = write(scene.sources / "effective-policy.json", policy)
+    routing_path = write(project["app"] / ".agents/references/skill-routing.json", routing)
+    originals = {path: path.read_bytes() for path in (source, policy_path, routing_path)}
+    scene.add_source(literal("skill-policy-source.json"))
+    scene.install()
+    expected = {"effective-skill-policy": policy, "skill-routing": routing}
+    try:
+        scene.native("SessionStart")
+        scene.native("Stop")
+        reply = scene.wait_query(
+            family="skill-selection",
+            predicate=lambda value: {row.get("record_type") for row in value["context"]} == set(expected),
+        )
+        assert reply["metrics"] == []
+        assert len(reply["context"]) == 2
+        for fields in reply["context"]:
+            supplied = expected[fields["record_type"]]
+            assert {key: fields[key] for key in supplied} == supplied
+            assert {key: type(fields[key]) for key in supplied} == {key: type(value) for key, value in supplied.items()}
+        assert reply["scope"] == {"kind": "session", "id": scene.session}
+        assert reply["provenance"]
+        assert all(row["source"]["id"] == "skill-policy" and row["source"]["kind"] == "skill-policy"
+                   and row["source"]["parser_version"] == "1" for row in reply["provenance"])
+        saved = []
+        for row in committed_observations(scene.metrics / "observed.sqlite"):
+            document = json.loads(row[-1]).get("envelope", {}).get("agent_metrics")
+            if document and document.get("kind") == "facts" and document["source"]["id"] == "skill-policy":
+                assert row[1:3] == (project["cfg"]["project"], scene.session)
+                assert document["scope"]["project"] == project["cfg"]["project"]
+                assert document["scope"]["session"] == scene.session
+                assert "task" not in document["scope"]
+                assert document["source"]["kind"] == "skill-policy"
+                assert document["source"]["parser_version"] == "1"
+                for item in document["metadata"]:
+                    assert item["family"] == "skill-selection"
+                    assert item["scope"] == document["scope"]
+                    assert item["source"] == document["source"]
+                    saved.append(item["fields"])
+        assert {item["record_type"] for item in saved} == set(expected)
+        assert all(fields in saved for fields in reply["context"])
+        fresh = scene.query(family="skill-selection")
+        assert fresh["context"] == reply["context"]
+        assert fresh["provenance"] == reply["provenance"]
+        readers = [row["pid"] for row in scene.calls if row["kind"] == "cli"]
+        assert len(readers) >= 2 and len(readers) == len(set(readers))
+        assert all(path.read_bytes() == raw for path, raw in originals.items())
     finally:
         scene.close()

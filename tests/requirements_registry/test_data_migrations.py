@@ -8,7 +8,10 @@ import sys
 
 import pytest
 
-from requirements_registry.migration_support import Scene, COLUMNS, FIXTURES, create_database, migration, snapshot, sql
+from requirements_registry.migration_support import (
+    Scene, COLUMNS, FIXTURES, create_database, populate_database, schema_fixture,
+    schema_b_database, migration, snapshot, sql,
+)
 
 COMMANDS = json.loads((FIXTURES / 'commands.json').read_text())
 ORDERED_STEPS = [tuple(row) for row in json.loads((FIXTURES / 'ordered-steps.json').read_text())]
@@ -46,6 +49,37 @@ def literal_steps(path):
     return pairs
 
 
+def literal_dependencies(path):
+    assignments = {node.targets[0].id: node.value for node in ast.parse(path.read_text()).body
+                   if isinstance(node, ast.Assign)}
+    return set(ast.literal_eval(assignments['__depends__']))
+
+
+def arrange_dependent_history(scene):
+    previous = '0009-prior'
+    for name, pairs in [('0100-create', ORDERED_STEPS[:1]), ('0101-rename', ORDERED_STEPS[1:2]),
+                        ('0102-link', ORDERED_STEPS[2:])]:
+        migration(scene.data, name, [pair[0] for pair in pairs], [pair[1] for pair in pairs], depends=[previous])
+        previous = name
+    applied(scene.invoke('apply', {'kind': 'data'}))
+
+
+def snapshot_b(path):
+    result = snapshot(path)
+    result['requirements'] = sql(path, 'SELECT id,level,status,text,note FROM requirements ORDER BY id')
+    return result
+
+
+def schema_signature(path):
+    import sqlparse
+    with sqlite3.connect(path) as db:
+        definitions = db.execute('SELECT name,sql FROM sqlite_schema WHERE type=? ORDER BY name', ('table',)).fetchall()
+        return {name: ''.join(token.normalized if token.is_keyword else token.value
+                              for statement in sqlparse.parse(ddl) for token in statement.flatten()
+                              if not token.is_whitespace and token.ttype not in sqlparse.tokens.Comment)
+                for name, ddl in definitions if name in COLUMNS}
+
+
 def journal_state(database):
     """Include metadata-table creation as an effect, as well as journal rows."""
     state = []
@@ -60,12 +94,26 @@ def journal_state(database):
     return state
 
 
+def source_state(root):
+    excluded = {'.git', '.runtime', '__pycache__', '.pytest_cache'}
+    return {str(path.relative_to(root)): path.read_bytes() for path in root.rglob('*')
+            if path.is_file() and not (set(path.relative_to(root).parts) & excluded)}
+
+
+def effects(scene, foreign=None):
+    result = {'rows': snapshot(scene.database), 'journal': journal_state(scene.database),
+              'primary': source_state(scene.project['app']), 'worktree': source_state(scene.worktree)}
+    if foreign is not None:
+        result['foreign'] = source_state(foreign)
+    return result
+
+
 @pytest.fixture
 def scene(project):
     return Scene(project)
 
 
-def test_migration_fixture_uses_real_owned_task(scene):
+def test_migration_fixture_uses_real_owned_task(scene, tmp_path):
     assert scene.context['stage'] == 'tests'
     assert scene.worktree.is_dir()
     assert scene.worktree != scene.project['app']
@@ -79,6 +127,27 @@ def test_migration_fixture_uses_real_owned_task(scene):
     assert process.returncode == 0, process.stdout + process.stderr
     response = json.loads(Path(json.loads(process.stdout)['response_path']).read_text())
     assert response['results'][0]['value']['stage'] == 'tests'
+    reference = tmp_path / 'reference-b.sqlite'
+    schema_b_database(reference)
+    state = snapshot_b(reference)
+    assert all(state[table] for table in COLUMNS)
+    assert len(state['requirements']) == 4
+    signature = schema_signature(reference)
+    assert set(signature) == set(COLUMNS)
+    from copy import deepcopy
+    from conftest import write_json
+    second_config = deepcopy(scene.cfg)
+    second_config['paths']['requirements_database'] = str(reference)
+    second_config['paths']['requirements_lock'] = str(reference.with_suffix('.lock'))
+    write_json(scene.project['config_path'], second_config)
+    try:
+        code, view = scene.invoke('query', {'queries': [{'id': 'coverage', 'kind': 'coverage', 'mode': 'current'}]})
+        assert code == 0 and view['status'] == 'read_only' and view['revision'] == 17
+    finally:
+        write_json(scene.project['config_path'], scene.cfg)
+    assert snapshot(scene.database)['requirements_meta'] == [(1,)]
+    sql(reference, 'DROP TABLE requirement_actions')
+    assert schema_signature(reference) != signature
 
 
 def test_native_command_creates_one_literal_file_and_applies_it(scene):
@@ -206,8 +275,7 @@ def test_duplicate_migration_name_does_not_overwrite_source_or_data(scene):
     assert snapshot(scene.database) == before and scene.files() == files
 
 
-@pytest.mark.parametrize('store_label', ['first-store', 'second-store'])
-def test_schema_and_data_histories_with_same_id_are_independent(scene, store_label):
+def test_schema_and_data_histories_with_same_id_are_independent(scene):
     # The initialized database belongs exclusively to this temporary case.
     scene.database.unlink()
     applied(scene.invoke('apply', {'kind': 'schema'}))
@@ -230,6 +298,60 @@ def test_schema_and_data_histories_with_same_id_are_independent(scene, store_lab
     applied(scene.invoke('apply', {'kind': 'schema'}))
     applied(scene.invoke('apply', {'kind': 'data'}))
     assert snapshot(scene.database) == expected
+
+
+def test_two_configured_stores_have_isolated_interleaved_histories(scene):
+    from copy import deepcopy
+    from conftest import write_json
+    first_cfg = deepcopy(scene.cfg)
+    first_database = scene.database
+    first_data = scene.data
+    second_database = scene.database.with_name('second-requirements.sqlite')
+    second_schema = scene.project['app'] / 'second-schema-history'
+    second_relative = Path('docs/second-requirements/data')
+    second_data = scene.worktree / second_relative
+    schema_fixture(second_schema)
+    second_data.mkdir(parents=True)
+    second_cfg = deepcopy(first_cfg)
+    second_cfg['paths'].update(
+        requirements_database=str(second_database),
+        requirements_lock=str(second_database.with_suffix('.lock')),
+        requirements_schema_migrations=str(second_schema),
+        requirements_data_migrations=str(scene.project['app'] / second_relative),
+        requirements_schema_file=str(scene.project['app'] / 'docs/second-requirements/schema.sql'),
+    )
+    first_database.unlink()
+    applied(scene.invoke('apply', {'kind': 'schema'}))
+    migration(first_data, '0001', [COMMANDS['create']['sql']], [COMMANDS['create']['rollback_sql']])
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    first_rows, first_journal = snapshot(first_database), journal_state(first_database)
+    assert first_rows['requirements'] == [('TEMP', 'system', 'current', 'before')]
+    assert first_journal
+    write_json(scene.project['config_path'], second_cfg)
+    applied(scene.invoke('apply', {'kind': 'schema'}))
+    migration(second_data, '0001', [
+        "INSERT INTO requirements(id,level,status,text) VALUES('TEMP','system','current','second store')"],
+        [COMMANDS['create']['rollback_sql']])
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    second_rows, second_journal = snapshot(second_database), journal_state(second_database)
+    assert second_rows['requirements'] == [('TEMP', 'system', 'current', 'second store')]
+    assert second_journal
+    assert snapshot(first_database) == first_rows and journal_state(first_database) == first_journal
+    applied(scene.invoke('rollback', {'kind': 'data'}))
+    empty_second, rolled_second_journal = snapshot(second_database), journal_state(second_database)
+    assert empty_second['requirements'] == []
+    assert snapshot(first_database) == first_rows and journal_state(first_database) == first_journal
+    write_json(scene.project['config_path'], first_cfg)
+    applied(scene.invoke('rollback', {'kind': 'data'}))
+    assert snapshot(first_database)['requirements'] == []
+    assert snapshot(second_database) == empty_second and journal_state(second_database) == rolled_second_journal
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    assert snapshot(first_database) == first_rows
+    assert snapshot(second_database) == empty_second and journal_state(second_database) == rolled_second_journal
+    write_json(scene.project['config_path'], second_cfg)
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    assert snapshot(second_database) == second_rows
+    assert snapshot(first_database) == first_rows
 
 
 @pytest.mark.parametrize('direction', ['apply', 'rollback'])
@@ -355,8 +477,7 @@ def test_task_completion_consolidates_literal_order_before_source_freeze(project
     prior = scene.data / '0009-prior.py'
     prior_bytes = prior.read_bytes()
     applied(scene.invoke('apply', {'kind': 'data'}))
-    for name in ('create', 'rename', 'link'):
-        applied(scene.invoke('command', COMMANDS[name]))
+    arrange_dependent_history(scene)
     original_pairs = ORDERED_STEPS
     before = snapshot(scene.database)
     old_log = journal_operations(scene.database)
@@ -368,6 +489,7 @@ def test_task_completion_consolidates_literal_order_before_source_freeze(project
     consolidated = [name for name in files if name != '0009-prior.py']
     assert len(consolidated) == 1
     assert literal_steps(scene.data / consolidated[0]) == original_pairs
+    assert literal_dependencies(scene.data / consolidated[0]) == {'0009-prior'}
     assert snapshot(scene.database) == before
     added = journal_operations(scene.database)[len(old_log):]
     rollbacks = [name for name, operation in added if operation == 'rollback']
@@ -413,8 +535,7 @@ def test_explicit_squash_uses_original_steps_and_leaves_other_migrations(project
     prior = scene.data / '0009-prior.py'
     before_prior = prior.read_bytes()
     applied(scene.invoke('apply', {'kind': 'data'}))
-    for name in ('create', 'rename', 'link'):
-        applied(scene.invoke('command', COMMANDS[name]))
+    arrange_dependent_history(scene)
     before = snapshot(scene.database)
     pairs = ORDERED_STEPS
     applied(scene.invoke('squash', {'name': '0200-combined',
@@ -422,6 +543,7 @@ def test_explicit_squash_uses_original_steps_and_leaves_other_migrations(project
     assert scene.files().keys() == {'0009-prior.py', '0200-combined.py'}
     assert prior.read_bytes() == before_prior
     assert literal_steps(scene.data / '0200-combined.py') == pairs
+    assert literal_dependencies(scene.data / '0200-combined.py') == {'0009-prior'}
     assert snapshot(scene.database) == before
     applied(scene.invoke('rollback', {'kind': 'data'}))
     applied(scene.invoke('apply', {'kind': 'data'}))
@@ -440,12 +562,21 @@ def test_squash_unknown_selection_does_not_change_anything(scene):
 def test_schema_transition_replaces_active_dml_and_bootstrap_preserving_new_values(scene, tmp_path):
     scene.database.unlink()
     applied(scene.invoke('apply', {'kind': 'schema'}))
+    populate_database(scene.database)
     applied(scene.invoke('command', COMMANDS['create']))
     migration(scene.schema, '0002-note', ['ALTER TABLE requirements ADD COLUMN note TEXT'],
               ['ALTER TABLE requirements DROP COLUMN note'], depends=['0001'])
     applied(scene.invoke('apply', {'kind': 'schema'}))
-    sql(scene.database, 'UPDATE requirements SET note=? WHERE id=?', ('New-schema value', 'TEMP'))
-    before = snapshot(scene.database)
+    notes = json.loads((FIXTURES / 'schema-b-notes.json').read_text())
+    for identifier, note in notes.items():
+        sql(scene.database, 'UPDATE requirements SET note=? WHERE id=?', (note, identifier))
+    expected = {table: sorted(map(tuple, rows)) for table, rows in
+                json.loads((FIXTURES / 'data.json').read_text()).items()}
+    expected['requirements'] = sorted([tuple(row) + (notes[row[0]],) for row in expected['requirements']] +
+                                      [('TEMP', 'system', 'current', 'before', notes['TEMP'])])
+    before = snapshot_b(scene.database)
+    assert all(before[table] for table in COLUMNS)
+    assert before == expected
     applied(scene.invoke('rebase', {'name': '0200-schema-b'}))
     assert list(scene.files()) == ['0200-schema-b.py']
     pairs = literal_steps(scene.data / '0200-schema-b.py')
@@ -454,25 +585,34 @@ def test_schema_transition_replaces_active_dml_and_bootstrap_preserving_new_valu
     assert all(statement.get_type() in {'INSERT', 'UPDATE', 'DELETE'}
                for forward, backward in pairs for direction in (forward, backward)
                for statement in sqlparse.parse(direction))
-    assert snapshot(scene.database) == before
+    assert snapshot_b(scene.database) == expected
     assert sql(scene.database, 'SELECT note FROM requirements WHERE id=?', ('TEMP',)) == [('New-schema value',)]
     bootstrap = scene.worktree / scene.bootstrap_relative
     assert list(bootstrap.parent.glob('*.sql')) == [bootstrap]
-    with sqlite3.connect(tmp_path / 'bootstrap.sqlite') as db:
+    bootstrap_db = tmp_path / 'bootstrap.sqlite'
+    with sqlite3.connect(bootstrap_db) as db:
         db.executescript(bootstrap.read_text())
         assert [row[1] for row in db.execute('PRAGMA table_info(requirements)')] == [
             'id', 'level', 'status', 'text', 'note']
+    reference = tmp_path / 'reference-b.sqlite'
+    create_database(reference)
+    sql(reference, 'ALTER TABLE requirements ADD COLUMN note TEXT')
+    assert set(schema_signature(bootstrap_db)) == set(COLUMNS)
+    assert schema_signature(bootstrap_db) == schema_signature(reference)
     from yoyo import get_backend, read_migrations
     fresh = tmp_path / 'fresh.sqlite'
     schema_backend = get_backend('sqlite:///' + str(fresh), migration_table='_fixture_schema')
     schema_backend.apply_migrations(schema_backend.to_apply(read_migrations(str(scene.schema))))
     data_backend = get_backend('sqlite:///' + str(fresh), migration_table='_fixture_data')
     data_backend.apply_migrations(data_backend.to_apply(read_migrations(str(scene.data))))
-    assert snapshot(fresh) == before
+    assert snapshot_b(fresh) == expected
     assert sql(fresh, 'SELECT note FROM requirements WHERE id=?', ('TEMP',)) == [('New-schema value',)]
     data_backend.rollback_migrations(data_backend.to_rollback(read_migrations(str(scene.data))))
+    empty_b = {table: [] for table in COLUMNS}
+    empty_b['requirements_meta'] = [(0,)]
+    assert snapshot_b(fresh) == empty_b
     data_backend.apply_migrations(data_backend.to_apply(read_migrations(str(scene.data))))
-    assert snapshot(fresh) == before
+    assert snapshot_b(fresh) == expected
     assert sql(fresh, 'SELECT note FROM requirements WHERE id=?', ('TEMP',)) == [('New-schema value',)]
 
 
@@ -543,3 +683,127 @@ def test_public_query_remains_readonly_without_claimed_task(scene):
     assert value['results'] == [{'id': 'coverage', 'value': {
         'application_without_system': [], 'system_without_application': []}}]
     assert snapshot(scene.database) == before and scene.files() == files
+
+
+def test_import_bootstrap_cannot_persist_through_removed_public_writer(scene):
+    # Empty revision0 ensures this valid historical payload reaches the old writer.
+    from requirements_registry.migration_support import INSERT_ORDER
+    with sqlite3.connect(scene.database) as db:
+        db.execute('PRAGMA foreign_keys=ON')
+        for table in reversed(INSERT_ORDER):
+            db.execute(f'DELETE FROM {table}')
+        db.execute('INSERT INTO requirements_meta(revision) VALUES(?)', (0,))
+    source = FIXTURES / 'import-bootstrap.json'
+    before = effects(scene)
+    original = source.read_bytes()
+    code, value = scene.invoke('import_bootstrap', {'path': str(source), 'request_id': 'direct-import'})
+    assert code != 0 and value['status'] == 'rejected'
+    assert 'import_bootstrap' in value['reason']
+    assert value['recovery'].strip()
+    assert effects(scene) == before and source.read_bytes() == original
+
+
+@pytest.mark.parametrize('operation', ['export', 'squash'])
+@pytest.mark.parametrize('selection', [[], 'all', {}, 7], ids=['empty', 'string', 'object', 'integer'])
+def test_invalid_explicit_selection_never_means_all(project, tmp_path, operation, selection):
+    scene = Scene(project, prior=True)
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    applied(scene.invoke('command', COMMANDS['create']))
+    source = tmp_path / 'selection-source.sqlite'
+    create_database(source, populated=True)
+    source_before = (snapshot(source), journal_state(source), source.read_bytes())
+    before = effects(scene)
+    if operation == 'export':
+        body = {'source': str(source), 'requirements': selection, 'name': '0200-selection'}
+    else:
+        body = {'migrations': selection, 'name': '0200-selection'}
+    code, value = scene.invoke(operation, body)
+    assert code != 0 and value['status'] == 'rejected'
+    assert any(word in value['reason'].lower() for word in ('nonempty', 'непуст', 'selection', 'выбор'))
+    assert value['recovery'].strip()
+    assert effects(scene) == before
+    assert (snapshot(source), journal_state(source), source.read_bytes()) == source_before
+
+
+@pytest.mark.parametrize('setting', [
+    'requirements_schema_migrations', 'requirements_data_migrations', 'requirements_schema_file',
+])
+@pytest.mark.parametrize('invalid', [None, 0, []], ids=['null', 'integer', 'array'])
+def test_invalid_migration_path_type_has_no_effects(scene, setting, invalid):
+    from conftest import write_json
+    scene.cfg['paths'][setting] = invalid
+    write_json(scene.project['config_path'], scene.cfg)
+    before = effects(scene)
+    code, value = scene.invoke('command', COMMANDS['create'])
+    assert code != 0 and value['status'] == 'rejected'
+    assert setting in value['reason'] and value['recovery'].strip()
+    assert effects(scene) == before
+
+
+@pytest.mark.parametrize('field,invalid', [
+    ('name', None), ('name', 7), ('sql', ''), ('sql', None), ('sql', []),
+    ('rollback_sql', ''), ('rollback_sql', None), ('rollback_sql', 7),
+], ids=['name-null', 'name-integer', 'sql-empty', 'sql-null', 'sql-array',
+        'rollback-empty', 'rollback-null', 'rollback-integer'])
+def test_invalid_current_command_fields_have_causal_refusals(scene, field, invalid):
+    body = dict(COMMANDS['create'])
+    body[field] = invalid
+    before = effects(scene)
+    code, value = scene.invoke('command', body)
+    assert code != 0 and value['status'] == 'rejected'
+    assert field in value['reason'].lower() and value['recovery'].strip()
+    assert effects(scene) == before
+
+
+@pytest.mark.parametrize('operation', ['apply', 'rollback'])
+@pytest.mark.parametrize('body', [{}, {'kind': None}, {'kind': []}, {'kind': 'other'}],
+                         ids=['missing', 'null', 'array', 'unsupported'])
+def test_invalid_history_kind_has_causal_refusal(scene, operation, body):
+    before = effects(scene)
+    code, value = scene.invoke(operation, body)
+    assert code != 0 and value['status'] == 'rejected'
+    assert 'kind' in value['reason'].lower() and value['recovery'].strip()
+    assert effects(scene) == before
+
+
+def test_foreign_claimed_caller_cannot_write_another_task_worktree(scene):
+    binding, runtime, context = scene.foreign_context()
+    assert context['task'] == 'T2' and context['stage'] == 'tests'
+    assert runtime.session != scene.runtime.session
+    foreign = Path(context['worktree'])
+    assert foreign != scene.worktree and foreign.is_dir()
+    before = effects(scene, foreign)
+    code, value = scene.invoke('command', COMMANDS['create'], binding=binding)
+    assert code != 0 and value['status'] == 'rejected'
+    assert any(word in value['reason'].lower() for word in ('foreign', 'чуж', 'context', 'контекст', 'worktree'))
+    assert value['recovery'].strip() and effects(scene, foreign) == before
+
+
+def test_readonly_owned_context_cannot_write_requirements(project):
+    scene = Scene(project, read_only=True)
+    assert scene.context['stage'] == 'tests'
+    assert scene.context['workflow']['stage_contract']['allowed_paths'] == []
+    before = effects(scene)
+    code, value = scene.invoke('command', COMMANDS['create'])
+    assert code != 0 and value['status'] == 'rejected'
+    assert any(word in value['reason'].lower() for word in ('readonly', 'read-only', 'чтени'))
+    assert value['recovery'].strip() and effects(scene) == before
+
+
+def test_standard_sql_history_applies_rolls_back_and_reapplies(scene):
+    before = snapshot(scene.database)
+    for filename in ('standard-data.sql', 'standard-data.rollback.sql'):
+        (scene.data / filename).write_bytes((FIXTURES / filename).read_bytes())
+    files = scene.files()
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    expected = dict(before)
+    expected['requirements'] = sorted(before['requirements'] + [
+        ('STANDARD', 'system', 'current', 'Standard SQL; COMMIT remains text')])
+    assert snapshot(scene.database) == expected
+    applied(scene.invoke('rollback', {'kind': 'data'}))
+    assert snapshot(scene.database) == before
+    applied(scene.invoke('apply', {'kind': 'data'}))
+    assert snapshot(scene.database) == expected and scene.files() == files
+    assert [(name, operation) for name, operation in journal_operations(scene.database)
+            if name == 'standard-data'] == [
+        ('standard-data', 'apply'), ('standard-data', 'rollback'), ('standard-data', 'apply')]

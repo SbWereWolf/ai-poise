@@ -1,0 +1,7 @@
+{
+  "schema": "requirements-bootstrap-1",
+  "purpose": "Independent valid historical writer-removal fixture",
+  "system_requirements": [{"id":"IMPORT-SYSTEM","status":"current","text":"Independent imported system"}],
+  "application_requirements": [{"id":"IMPORT-APP","application":"fixture","status":"current","text":"Independent imported application"}],
+  "derivations": [{"child":"IMPORT-APP","parents":["IMPORT-SYSTEM"]}]
+}

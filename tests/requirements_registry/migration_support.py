@@ -7,7 +7,8 @@ import sqlite3
 import subprocess
 import sys
 
-from conftest import DeterministicClock, git, write_json
+from conftest import git, write_json
+from poise.infrastructure.clock import SystemClock
 
 FIXTURES = Path(__file__).parent / 'fixtures/native_migrations'
 SOURCE = Path(__file__).resolve().parents[2] / 'src'
@@ -51,6 +52,20 @@ def create_database(path, *, populated=False):
         db.execute('PRAGMA user_version=2')
 
 
+def populate_database(path):
+    rows = json.loads((FIXTURES / 'data.json').read_text())
+    with sqlite3.connect(path) as db:
+        db.execute('PRAGMA foreign_keys=ON')
+        for table in reversed(INSERT_ORDER):
+            db.execute(f'DELETE FROM {table}')
+        for table in INSERT_ORDER:
+            columns = COLUMNS[table]
+            db.executemany(
+                f'INSERT INTO {table}({",".join(columns)}) VALUES({",".join("?" for _ in columns)})',
+                rows[table],
+            )
+
+
 def snapshot(path):
     with sqlite3.connect(f'file:{path}?mode=ro', uri=True) as db:
         return {
@@ -65,6 +80,15 @@ def sql(path, statement, parameters=()):
     with sqlite3.connect(path) as db:
         db.execute('PRAGMA foreign_keys=ON')
         return db.execute(statement, parameters).fetchall()
+
+
+def schema_b_database(path):
+    create_database(path, populated=True)
+    sql(path, 'ALTER TABLE requirements ADD COLUMN note TEXT')
+    sql(path, 'INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?)',
+        ('TEMP', 'system', 'current', 'before'))
+    for identifier, note in json.loads((FIXTURES / 'schema-b-notes.json').read_text()).items():
+        sql(path, 'UPDATE requirements SET note=? WHERE id=?', (note, identifier))
 
 
 def migration(root, name, forward, backward, *, depends=(), transactional=True):
@@ -97,7 +121,7 @@ def schema_fixture(root):
 
 
 class Scene:
-    def __init__(self, project, *, prior=False):
+    def __init__(self, project, *, prior=False, read_only=False):
         self.project = project
         self.cfg = deepcopy(project['cfg'])
         self.database = project['root'] / self.cfg['paths']['state'] / self.cfg['paths']['requirements_database']
@@ -131,18 +155,18 @@ class Scene:
         self.task['stage_contracts'] = self.task['stage_contracts'][:1]
         # Keep the existing public workflow, with no unrelated arithmetic checks.
         for stage in project['workflow']['stages']:
-            stage['read_only'] = False
-            stage['allowed_paths'] = ['docs/**']
+            stage['read_only'] = read_only
+            stage['allowed_paths'] = [] if read_only else ['docs/**']
         write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
         for contract in self.task['stage_contracts']:
-            contract['allowed_paths'] = ['docs/**']
+            contract['allowed_paths'] = [] if read_only else ['docs/**']
         self.owner = 'requirements-migration-owner'
         self.binding = project['root'] / 'requirements-caller.json'
         write_json(self.binding, {'schema': 'poise-caller-binding-1', 'caller_id': self.owner})
         from poise.infrastructure.session_establishment import establish_direct_poise
         self.runtime = establish_direct_poise(
             project['config_path'], {'POISE_CALLER_BINDING': str(self.binding)},
-            DeterministicClock(), read_only=False,
+            SystemClock(), read_only=False,
         ).runtime
         self.context = self.runtime.bootstrap(self.task)
         self.worktree = Path(self.context['worktree'])
@@ -156,18 +180,34 @@ class Scene:
         environment['POISE_CALLER_BINDING'] = str(self.binding if owned else self.binding.with_name('unclaimed.json'))
         return environment
 
-    def invoke(self, operation, body, *, owned=True):
+    def invoke(self, operation, body, *, owned=True, binding=None):
+        environment = self.environment(owned)
+        if binding is not None:
+            environment['POISE_CALLER_BINDING'] = str(binding)
         packet = {'operation': operation, 'input': body}
         completed = subprocess.run(
             [sys.executable, '-B', '-m', 'poise', 'requirements', '--config', str(self.project['config_path'])],
             input=json.dumps(packet, ensure_ascii=False), text=True, capture_output=True,
-            cwd=self.worktree, env=self.environment(owned), timeout=30,
+            cwd=self.worktree, env=environment, timeout=30,
         )
         assert completed.stdout.strip(), completed.stderr
         value = json.loads(completed.stdout)
         if 'response_path' in value:
             value = json.loads(Path(value['response_path']).read_text())
         return completed.returncode, value
+
+    def foreign_context(self):
+        from poise.infrastructure.session_establishment import establish_direct_poise
+        binding = self.project['root'] / 'foreign-caller.json'
+        write_json(binding, {'schema': 'poise-caller-binding-1', 'caller_id': 'foreign-owner'})
+        runtime = establish_direct_poise(
+            self.project['config_path'], {'POISE_CALLER_BINDING': str(binding)},
+            SystemClock(), read_only=False,
+        ).runtime
+        task = deepcopy(self.task)
+        task['id'] = 'T2'
+        context = runtime.bootstrap(task)
+        return binding, runtime, context
 
     def command(self, name, forward, backward):
         return self.invoke('command', {'name': name, 'sql': forward, 'rollback_sql': backward})

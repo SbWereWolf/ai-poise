@@ -46,5 +46,13 @@ and [error recovery](../../../docs/workflows/requirements-registry.md#ошибк
 Use standard yoyo histories and SQL constraints. Inspect file, data and actual applied IDs after
 failure; a rejected apply does not imply that `command` never created its file.
 Keep query filters, cursors and immutable Task snapshots under their existing public owners.
-Publish truthful source-bound evidence through the actual Task lifecycle; do not use direct
-persistent CRUD, manual ledger writes, a second migration engine or compatibility modes.
+Publish truthful source-bound evidence through the actual Task lifecycle. Ordinary writes use
+the migration API and standard yoyo accounting, without direct persistent CRUD or manual ledger
+edits.
+For rare verified data/journal divergence, the canonical recovery rule permits explicitly
+operator-authorized manual repair using standard tools: capture actual state/cause, exclude
+other writers, declare the necessary finite backup, audit actions and verify data/history and
+replay.
+Authority names the exact objects/actions; this exception never permits Task DB, lifecycle,
+claim or verification-record patches or unapproved destructive operations.
+Do not add a second engine, automatic reconciliation or compatibility modes.

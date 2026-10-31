@@ -1,0 +1,7 @@
+{
+  "create": {"name": "0100-create", "sql": "INSERT INTO requirements(id,level,status,text) VALUES('TEMP','system','current','before')", "rollback_sql": "DELETE FROM requirements WHERE id='TEMP'"},
+  "rename": {"name": "0101-rename", "sql": "UPDATE requirements SET id='RENAMED',text='after' WHERE id='TEMP'", "rollback_sql": "UPDATE requirements SET id='TEMP',text='before' WHERE id='RENAMED'"},
+  "link": {"name": "0102-link", "sql": "INSERT INTO requirements(id,level,status,text) VALUES('CHILD','application','current','child'); INSERT INTO requirement_links(system_id,application_id) VALUES('RENAMED','CHILD')", "rollback_sql": "DELETE FROM requirement_links WHERE system_id='RENAMED' AND application_id='CHILD'; DELETE FROM requirements WHERE id='CHILD'"},
+  "quoted": {"name": "0100-quoted", "sql": "-- COMMIT; ROLLBACK; CREATE TABLE\nINSERT INTO requirements(id,level,status,text) VALUES('WORDS','system','current','COMMIT; ROLLBACK; CREATE TABLE; кавычка '' и\nстрока')", "rollback_sql": "/* ROLLBACK; COMMIT; */ DELETE FROM requirements WHERE id='WORDS'"},
+  "partial_apply": {"name": "0100-partial", "sql": "INSERT INTO requirements(id,level,status,text) VALUES('PARTIAL','system','current','must roll back'); INSERT INTO missing_table(id) VALUES('controlled-failure')", "rollback_sql": "DELETE FROM requirements WHERE id='PARTIAL'"}
+}

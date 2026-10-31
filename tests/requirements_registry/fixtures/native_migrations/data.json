@@ -1,0 +1,11 @@
+{
+  "requirements": [["SYS-A", "system", "current", "Кавычка ' и точка; COMMIT\nROLLBACK остаются текстом"], ["APP-A", "application", "current", "Application A"], ["SYS-UNRELATED", "system", "current", "Excluded from partial transfer"]],
+  "requirement_links": [["SYS-A", "APP-A"]],
+  "requirements_meta": [[17]],
+  "requirement_requests": [["request-A", "digest-A", "{\"text\":\"Служебное; значение ' COMMIT\"}"]],
+  "domain_areas": [["D-A", "Планирование", "Область A"]],
+  "domain_entities": [["E-A", "D-A", "Документ", "document", "Сущность A"]],
+  "domain_actions": [["ACT-A", "D-A", "Согласовать", "approve", "Действие A"]],
+  "requirement_entities": [["APP-A", "D-A", "E-A"]],
+  "requirement_actions": [["APP-A", "D-A", "ACT-A"]]
+}

@@ -3,6 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import io
 import json
+import sqlite3
 import pytest
 from conftest import WorkPoise, write_json
 from poise.interfaces.requirements_registry import execute
@@ -45,13 +46,11 @@ def test_real_task_publication_preserves_context_without_inventing_agreement(pro
     snapshot = runtime.task_commands.requirements_snapshot(body['id'])
     expected = json.loads((Path(__file__).parent / 'fixtures/initial_ready_contract.json').read_text())
     assert snapshot == expected['snapshot']
-    runtime.requirements_commands.apply({
-        'request_id': 'update-live', 'expected_revision': 1, 'operations': [
-            {'kind': 'put_requirement', 'requirement': {
-                'id': 'FIXTURE-SYSTEM', 'level': 'system', 'status': 'obsolete', 'text': 'Changed live only.'
-            }}
-        ],
-    })
+    with sqlite3.connect(runtime.requirements_store.database) as connection:
+        connection.execute(
+            'UPDATE requirements SET status=?,text=? WHERE id=?',
+            ('obsolete', 'Changed live only.', 'FIXTURE-SYSTEM'),
+        )
     assert runtime.task_commands.requirements_snapshot(body['id']) == snapshot
 
 

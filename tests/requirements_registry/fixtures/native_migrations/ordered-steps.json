@@ -1,0 +1,6 @@
+[
+  ["INSERT INTO requirements(id,level,status,text) VALUES('TEMP','system','current','before')", "DELETE FROM requirements WHERE id='TEMP'"],
+  ["UPDATE requirements SET id='RENAMED',text='after' WHERE id='TEMP'", "UPDATE requirements SET id='TEMP',text='before' WHERE id='RENAMED'"],
+  ["INSERT INTO requirements(id,level,status,text) VALUES('CHILD','application','current','child')", "DELETE FROM requirements WHERE id='CHILD'"],
+  ["INSERT INTO requirement_links(system_id,application_id) VALUES('RENAMED','CHILD')", "DELETE FROM requirement_links WHERE system_id='RENAMED' AND application_id='CHILD'"]
+]

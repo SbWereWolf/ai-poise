@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -17,7 +18,6 @@ if str(_TASK_SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(_TASK_SOURCE_ROOT))
 
 import poise
-from poise.application.requirements_registry import RequirementsCommands
 from poise.infrastructure.requirements_registry import RequirementsStore
 
 _LOADED_POISE = Path(poise.__file__).resolve() if poise.__file__ else None
@@ -73,41 +73,34 @@ def bind_task_requirements(task: dict, registry) -> dict:
 
 
 def seed_fixture_requirements(root: Path, cfg: dict):
+    database = root / cfg['paths']['state'] / cfg['paths']['requirements_database']
+    database.parent.mkdir(parents=True, exist_ok=True)
+    reference = Path(__file__).parent / 'requirements_registry/fixtures/native_migrations/schema-reference.json'
+    with sqlite3.connect(database) as connection:
+        connection.execute('PRAGMA foreign_keys=ON')
+        for table in json.loads(reference.read_text(encoding='utf-8')):
+            connection.execute(table['sql'])
+        connection.execute('INSERT INTO requirements_meta(revision) VALUES(?)', (0,))
+        connection.execute('PRAGMA user_version=2')
+        connection.executemany(
+            'INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?)',
+            [
+                ('FIXTURE-SYSTEM', 'system', 'current',
+                 'The fixture preserves an explicit Requirements chain.'),
+                ('FIXTURE-APPLICATION', 'application', 'current',
+                 'Fixture Tasks declare their agreed Requirements context.'),
+            ],
+        )
+        connection.execute(
+            'INSERT INTO requirement_links(system_id,application_id) VALUES(?,?)',
+            ('FIXTURE-SYSTEM', 'FIXTURE-APPLICATION'),
+        )
+        connection.execute('UPDATE requirements_meta SET revision=?', (1,))
     requirements_store = RequirementsStore(
-        root / cfg['paths']['state'] / cfg['paths']['requirements_database'],
-        root / cfg['paths']['state'] / cfg['paths']['requirements_lock'],
-        cfg['limits']['lock_seconds'],
-        cfg['limits']['lock_poll_seconds'],
+        database, root / cfg['paths']['state'] / cfg['paths']['requirements_lock'],
+        cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'], read_only=True,
+        read_wait=cfg['limits']['sqlite_read_seconds'],
     )
-    RequirementsCommands(requirements_store, cfg['batch']['max_items']).apply({
-        'request_id': 'seed-fixture-requirements',
-        'expected_revision': 0,
-        'operations': [
-            {
-                'kind': 'put_requirement',
-                'requirement': {
-                    'id': _FIXTURE_SYSTEM_REQUIREMENT,
-                    'level': 'system',
-                    'status': 'current',
-                    'text': 'The fixture preserves an explicit Requirements chain.',
-                },
-            },
-            {
-                'kind': 'put_requirement',
-                'requirement': {
-                    'id': _FIXTURE_APPLICATION_REQUIREMENT,
-                    'level': 'application',
-                    'status': 'current',
-                    'text': 'Fixture Tasks declare their agreed Requirements context.',
-                },
-            },
-            {
-                'kind': 'link',
-                'system': _FIXTURE_SYSTEM_REQUIREMENT,
-                'application': _FIXTURE_APPLICATION_REQUIREMENT,
-            },
-        ],
-    })
     return requirements_store.registry()
 
 

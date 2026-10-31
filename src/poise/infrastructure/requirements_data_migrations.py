@@ -12,6 +12,7 @@ from tempfile import TemporaryDirectory
 
 import sqlparse
 from yoyo import get_backend, read_migrations
+from yoyo.exceptions import LockTimeout
 
 from ..common import PoiseError
 from ..modules.foundation.paths import matches_allowed_path
@@ -308,6 +309,9 @@ class RequirementsMigrations:
         try:
             with backend.lock(timeout=busy_seconds), redirect_stdout(sys.stderr):
                 yield backend
+        except LockTimeout as exc:
+            raise PoiseError('Не получена блокировка yoyo. Дождитесь завершения другой '
+                             f'операции миграций и повторите команду: {exc}') from exc
         finally:
             backend.connection.close()
 
@@ -354,23 +358,31 @@ class RequirementsMigrations:
         paths = self._paths()
         migrations = self._history(paths, kind)
         self.database.parent.mkdir(parents=True, exist_ok=True)
+        data_backend = None
         try:
+            if rollback and kind == 'schema':
+                # Initialize before the shared schema lock, then reread under it.
+                data_backend = self._new_backend('data', self.database, self.runtime.cfg['limits']['lock_seconds'])
+                with self.runtime.project_fence.locked():
+                    with data_backend.lock(timeout=self.runtime.cfg['limits']['lock_seconds']):
+                        data_backend.get_applied_migration_hashes()
             with self._backend(kind, self.database) as backend:
-                if rollback and kind == 'schema':
-                    data_backend = self._new_backend('data', self.database, self.runtime.cfg['limits']['lock_seconds'])
-                    try:
-                        if data_backend.get_applied_migration_hashes():
-                            raise PoiseError('Перед откатом схемы выполните откат применённых миграций данных')
-                    finally:
-                        data_backend.connection.close()
+                if data_backend is not None and data_backend.get_applied_migration_hashes():
+                    raise PoiseError('Перед откатом схемы выполните откат применённых миграций данных')
                 selected = backend.to_rollback(migrations) if rollback else backend.to_apply(migrations)
                 if rollback:
                     backend.rollback_migrations(selected)
                 else:
                     backend.apply_migrations(selected)
             return {'migrations': [migration.id for migration in selected]}
+        except LockTimeout as exc:
+            raise PoiseError('Другая операция удерживает блокировку yoyo; дождитесь её '
+                             f'завершения и повторите откат схемы: {exc}') from exc
         except (sqlite3.Error, OSError) as exc:
             raise PoiseError(f'Не удалось выполнить миграции {kind}: {exc}. Исправьте SQL и повторите операцию.') from exc
+        finally:
+            if data_backend is not None:
+                data_backend.connection.close()
 
     def apply(self, body):
         return self._run(body, False)

@@ -362,6 +362,7 @@
         "plan_calculation",
         "terminal_operation_notifications",
         "migrations",
+        "execution_work",
         "calculation_lifecycle_outbox",
         "calculation_lifecycle_receipts",
         "calculation_lifecycle_projection"

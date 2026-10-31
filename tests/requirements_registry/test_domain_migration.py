@@ -270,9 +270,24 @@ def test_mid_ddl_failure_rolls_back_added_tables_version_and_all_values(legacy, 
 
 
 @pytest.fixture
-def vocabulary(legacy):
-    config, database = migrate(legacy)
+def vocabulary(project, tmp_path):
+    from requirements_registry.migration_support import create_database
+    database = tmp_path / 'vocabulary.sqlite'
+    create_database(database)
+    cfg = deepcopy(project['cfg'])
+    cfg['paths']['requirements_database'] = str(database)
+    cfg['paths']['requirements_lock'] = str(tmp_path / 'vocabulary.lock')
+    config = write_json(project['root'] / 'vocabulary-project.json', cfg)
     with connection(database) as db:
+        db.execute('UPDATE requirements_meta SET revision=?', (7,))
+        db.executemany('INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?)', [
+            ('SYS', 'system', 'current', 'Согласовать язык области.'),
+            ('APP', 'application', 'future', 'Хранить определения.'),
+        ])
+        db.execute('INSERT INTO requirement_links(system_id,application_id) VALUES(?,?)', ('SYS', 'APP'))
+        db.execute('INSERT INTO requirement_requests(request_id,digest,response) VALUES(?,?,?)',
+                   ('historical', '540b88f9c831853cdf1a2dd96580e94f59a8ff34f3835e336dfb5a01b8df51fc',
+                    '{"revision":1,"replayed":false}'))
         db.executemany("INSERT INTO domain_areas(id,business_name,definition) VALUES(?,?,?)", [
             ("D1", "Sales", "Продажи."), ("D2", "Finance", "Финансы."),
         ])

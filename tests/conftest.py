@@ -119,6 +119,13 @@ def project(tmp_path, monkeypatch):
     (app / 'src').mkdir()
     (app / 'src' / 'double.py').write_text('def double(n):\n    return n + 1\n')
     (app / 'AGENTS.md').write_text('Test command: python -m unittest discover -s tests -v\n')
+    from requirements_registry.migration_support import schema_fixture, schema_statements
+    schema_source = app / 'requirements-schema-migrations'
+    data_source = app / 'docs/requirements/data'
+    schema_file = app / 'docs/requirements/schema.sql'
+    schema_fixture(schema_source)
+    schema_file.parent.mkdir(parents=True)
+    schema_file.write_text(';\n'.join(schema_statements()) + ';\n', encoding='utf-8')
     git(app, 'add', '.')
     git(app, 'commit', '-m', 'Initial application')
     remote = tmp_path / 'remote.git'
@@ -161,6 +168,9 @@ def project(tmp_path, monkeypatch):
             'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints',
             'requirements_database': 'requirements.sqlite',
             'requirements_lock': 'requirements.lock',
+            'requirements_schema_migrations': str(schema_source),
+            'requirements_data_migrations': str(data_source),
+            'requirements_schema_file': str(schema_file),
             'worktrees': 'worktrees',
             'git_index': 'snapshot.index',
             'runs': 'runs',
@@ -227,6 +237,9 @@ def project(tmp_path, monkeypatch):
     cfg_path = Path(created['config_path'])
     poise_root = cfg_path.parent
     cfg = bootstrap_fixture_resources(setup, cfg_path)
+    assert cfg['paths']['requirements_schema_migrations'] == str(schema_source)
+    assert cfg['paths']['requirements_data_migrations'] == str(data_source)
+    assert cfg['paths']['requirements_schema_file'] == str(schema_file)
     state = poise_root / cfg['paths']['state']
     assert not (state / cfg['paths']['database']).exists()
     requirements_registry = seed_fixture_requirements(poise_root, cfg)

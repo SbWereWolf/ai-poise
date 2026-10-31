@@ -12,6 +12,7 @@ from requirements_registry.migration_support import (
     Scene, COLUMNS, FIXTURES, create_database, populate_database, schema_fixture,
     schema_b_database, migration, snapshot, sql,
 )
+from requirements_registry.fixtures.native_migrations.isolated_replay import history_backend
 
 COMMANDS = json.loads((FIXTURES / 'commands.json').read_text())
 ORDERED_STEPS = [tuple(row) for row in json.loads((FIXTURES / 'ordered-steps.json').read_text())]
@@ -108,6 +109,15 @@ def effects(scene, foreign=None):
     return result
 
 
+def isolated_replay(schema, data, target):
+    process = subprocess.run([
+        sys.executable, '-I', '-S', '-B', str(FIXTURES / 'isolated_replay.py'),
+        str(Path(__file__).resolve().parents[2] / '.runtime/dependencies'),
+        str(schema), str(data), str(target),
+    ], text=True, capture_output=True, timeout=30)
+    assert process.returncode == 0, process.stdout + process.stderr
+
+
 @pytest.fixture
 def scene(project):
     return Scene(project)
@@ -134,6 +144,51 @@ def test_migration_fixture_uses_real_owned_task(scene, tmp_path):
     assert len(state['requirements']) == 4
     signature = schema_signature(reference)
     assert set(signature) == set(COLUMNS)
+    # Exercise actual standard-only fixtures before any missing native feature.
+    data_a = tmp_path / 'isolated-a-data'
+    data_a.mkdir()
+    for suffix in ('sql', 'rollback.sql'):
+        (data_a / ('0001.' + suffix)).write_bytes((FIXTURES / ('standard-data.' + suffix)).read_bytes())
+    target_a = tmp_path / 'isolated-a.sqlite'
+    isolated_replay(scene.schema, data_a, target_a)
+    expected_a = {name: [] for name in COLUMNS}
+    expected_a['requirements_meta'] = [(0,)]
+    expected_a['requirements'] = [('STANDARD', 'system', 'current', 'Standard SQL; COMMIT remains text')]
+    assert snapshot(target_a) == expected_a
+    reference_a = tmp_path / 'reference-a.sqlite'
+    create_database(reference_a)
+    assert schema_signature(target_a) == schema_signature(reference_a)
+    schema_b = tmp_path / 'isolated-b-schema'
+    schema_fixture(schema_b)
+    migration(schema_b, '0002-note', ['ALTER TABLE requirements ADD COLUMN note TEXT'],
+              ['ALTER TABLE requirements DROP COLUMN note'], depends=['0001'])
+    data_b = tmp_path / 'isolated-b-data'
+    data_b.mkdir()
+    for suffix in ('sql', 'rollback.sql'):
+        (data_b / ('0001.' + suffix)).write_bytes((FIXTURES / ('schema-b-data.' + suffix)).read_bytes())
+    target_b = tmp_path / 'isolated-b.sqlite'
+    isolated_replay(schema_b, data_b, target_b)
+    assert snapshot_b(target_b) == state
+    assert schema_signature(target_b) == signature
+    from yoyo import read_migrations
+    parent_b = tmp_path / 'parent-b.sqlite'
+    schema_backend = history_backend(parent_b, 'schema')
+    schema_backend.apply_migrations(schema_backend.to_apply(read_migrations(str(schema_b))))
+    data_backend = history_backend(parent_b, 'data')
+    data_migrations = read_migrations(str(data_b))
+    data_backend.apply_migrations(data_backend.to_apply(data_migrations))
+    assert snapshot_b(parent_b) == state
+    data_backend.rollback_migrations(data_backend.to_rollback(data_migrations))
+    empty_b = {name: [] for name in COLUMNS}
+    empty_b['requirements_meta'] = [(0,)]
+    assert snapshot_b(parent_b) == empty_b
+    data_backend.apply_migrations(data_backend.to_apply(data_migrations))
+    assert snapshot_b(parent_b) == state and schema_signature(parent_b) == signature
+    for target in (target_a, target_b, parent_b):
+        assert sql(target, 'SELECT migration_id,operation FROM _fixture_data_log ORDER BY created_at_utc,rowid') == [
+            ('0001', 'apply'), ('0001', 'rollback'), ('0001', 'apply')]
+        expected_schema = [('0001', 'apply')] + ([('0002-note', 'apply')] if target != target_a else [])
+        assert sql(target, 'SELECT migration_id,operation FROM _fixture_schema_log ORDER BY created_at_utc,rowid') == expected_schema
     from copy import deepcopy
     from conftest import write_json
     second_config = deepcopy(scene.cfg)
@@ -397,12 +452,7 @@ def test_full_export_rebuilds_all_nine_tables_and_preserves_source(scene, tmp_pa
     assert snapshot(scene.database) == expected
     assert source.read_bytes() == original_bytes
     isolated = tmp_path / 'isolated.sqlite'
-    replay = subprocess.run([
-        sys.executable, '-I', '-B', str(FIXTURES / 'isolated_replay.py'),
-        str(Path(__file__).resolve().parents[2] / '.runtime/dependencies'),
-        str(scene.schema), str(scene.data), str(isolated),
-    ], text=True, capture_output=True, timeout=30)
-    assert replay.returncode == 0, replay.stdout + replay.stderr
+    isolated_replay(scene.schema, scene.data, isolated)
     assert snapshot(isolated) == expected
 
 
@@ -599,11 +649,11 @@ def test_schema_transition_replaces_active_dml_and_bootstrap_preserving_new_valu
     sql(reference, 'ALTER TABLE requirements ADD COLUMN note TEXT')
     assert set(schema_signature(bootstrap_db)) == set(COLUMNS)
     assert schema_signature(bootstrap_db) == schema_signature(reference)
-    from yoyo import get_backend, read_migrations
+    from yoyo import read_migrations
     fresh = tmp_path / 'fresh.sqlite'
-    schema_backend = get_backend('sqlite:///' + str(fresh), migration_table='_fixture_schema')
+    schema_backend = history_backend(fresh, 'schema')
     schema_backend.apply_migrations(schema_backend.to_apply(read_migrations(str(scene.schema))))
-    data_backend = get_backend('sqlite:///' + str(fresh), migration_table='_fixture_data')
+    data_backend = history_backend(fresh, 'data')
     data_backend.apply_migrations(data_backend.to_apply(read_migrations(str(scene.data))))
     assert snapshot_b(fresh) == expected
     assert sql(fresh, 'SELECT note FROM requirements WHERE id=?', ('TEMP',)) == [('New-schema value',)]

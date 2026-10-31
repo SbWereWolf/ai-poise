@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -36,7 +37,7 @@ observed = Observations()
 output = io.StringIO()
 with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
     code = pytest.main(['-q', '--tb=short', 'tests/requirements_registry/test_data_migrations.py'], plugins=[observed])
-record = Path('.runtime/migration-tests/pytest.txt')
+record = Path(os.environ['POISE_RUN_OUTPUT_DIR']) / 'pytest.txt'
 record.parent.mkdir(parents=True, exist_ok=True)
 record.write_text(output.getvalue(), encoding='utf-8')
 print(json.dumps({'collected': observed.collected, 'errors': sorted(observed.errors),

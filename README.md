@@ -14,7 +14,8 @@ AI poise — локальное приложение для работы AI-аг
 См. [запуск через Stride](docs/configuration/stride-launcher.md).
 
 Для обычной работы без Task доступны
-[сохранение полных результатов инструментов и адресное чтение](docs/configuration/tool-results.md#назначение-и-границы):
+[сохранение полных результатов инструментов и адресное
+чтение](docs/configuration/tool-results.md#назначение-и-границы):
 отдельные представления для агента и программного потребителя, явные Bash/MCP
 входы, поиск и чтение фрагментов сохранённых источников.
 
@@ -123,11 +124,12 @@ System/Application требования, а Task DB — согласованны
 - [Настройка Bootstrap](docs/operator/bootstrap-catalog-v2.md#настройка-команды-и-рабочего-файла) —
   параметризованные команды, рабочие файлы и подключаемый обработчик результата.
   Подготовленный Bootstrap не переключает действующего оператора автоматически.
-- [Оглавление](docs/README.md) и [пакетный Requirements
-  CRUD](docs/workflows/requirements-registry.md#пакетный-crud): Query, Command, связи, примеры и
+- [Оглавление](docs/README.md) и [Requirements
+  API](docs/workflows/requirements-registry.md#декларативный-api-и-согласование):
+  чтение, создание и применение DML-миграций, откат, склейка, экспорт и
   восстановление.
 - [Жизненный цикл хранилищ](docs/architecture/storage-lifecycle.md#владельцы-и-версии) —
-  версии, ограниченный upgrade, явные пути и полная резервная копия.
+  владельцы, миграции, явные пути и восстановление данных.
 
 - [Резервные копии Task DB](docs/task-db-backups.md) — создание,
   просмотр и безопасное восстановление копий базы задач.
@@ -166,7 +168,8 @@ IDs предусмотрен
 текста, generation и полный JSON либо text frames. Нужны явная рабочая политика и подтверждённый
 native episode; сама caller identity не заменяет admission.
 
-См. [входы, обе политики и примеры](docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
+См. [входы, обе политики и
+примеры](docs/configuration/project-file-reading.md#подготовка-политики-и-примеры)
 и [шаблон, допуск и восстановление](docs/workflows/file-intake-lifecycle.md#допуск-и-владение).
 Регистрация чтения не доказывает доставку клиенту; универсальный перехват tool results
 и общий compaction reset этот API не устанавливает.
@@ -179,8 +182,10 @@ SourceReader сохраняет отдельный контракт.
 Поддержанные обычные Bash-чтения подключаются через явные PreToolUse/PostToolUse того же
 native owner и используют общий ledger. Pre проверяет запрос, Post учитывает пригодный
 результат; `content-read` с `{"operation":"coverage"}` возвращает ограниченную сводку
-своего контекста без Task. [Полный комплект и настройка](docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд),
-[границы cwd/форм запросов](docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог)
+своего контекста без Task. [Полный комплект и
+настройка](docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд),
+[границы cwd/форм
+запросов](docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог)
 и [сводка](docs/configuration/project-file-reading.md#сводка-покрытия) описывают реализованный путь.
 Поставляемый adapter проверяется изолированным installed consumer; live host delivery
 этой парой событий не подтверждается.

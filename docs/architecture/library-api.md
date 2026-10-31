@@ -43,11 +43,12 @@ nofollow наблюдения, реальный выбранный Git root и c
 
 ## Доменные библиотеки
 
-Requirements CRUD: чистая политика `modules.requirements_registry.crud` проверяет
-пакеты, строки и курсоры; `infrastructure.requirements_crud` выполняет параметризованный
-SQL в соединении RequirementsStore. Application координирует прежних владельцев,
-interfaces обслуживает CLI. [Wire-контракт и
-восстановление](../workflows/requirements-registry.md#пакетный-crud)
+Requirements API: `RequirementsQueries` и RequirementsStore владеют read-only снимками,
+фильтрами и курсорами. `RequirementsCommands` делегирует запись RequirementsMigrations:
+создать прямую DML-миграцию в Task worktree и применить её стандартным yoyo.
+Истории схемы и данных разделены; completion готовит DML до замораживания исходников.
+Interfaces обслуживает CLI. [Wire-контракт и
+восстановление](../workflows/requirements-registry.md#декларативный-api-и-согласование)
 принадлежат руководству реестра, а не второму описанию схемы API.
 
 - `Task`:

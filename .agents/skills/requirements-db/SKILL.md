@@ -1,40 +1,50 @@
 ---
 name: requirements-db
-description: Read, analyze and change Requirements DB entities and relations through public declarative Query and Command packets, not raw SQL or Task snapshot edits.
+description: Read project requirements and persist changes by creating and applying literal DML migrations through the Poise requirements API.
 ---
 
-# Requirements DB
+# Requirements database
 
-Select the actual installation's interpreter and explicit project manifest before
-calling `python -B -m poise requirements --config /absolute/project.json`.
-This API does not require a Task claim or work bootstrap. It does require the
-configured Requirements storage, schema and packet bounds; never borrow another
-project's paths or create an installation to avoid a configuration failure.
+## Authority and inputs
 
-Read the [canonical contract](../../../docs/workflows/requirements-registry.md#пакетный-crud)
-for entity columns, exact packet shapes and filters. Send separate Query and
-Command packets. Analyze returned rows, retain the observed revision, and write
-only the authorized intent. Follow `next` unchanged while the revision is stable;
-a stale cursor requires a new read, not an invented continuation.
+Read the [canonical requirements
+contract](../../../docs/workflows/requirements-registry.md#декларативный-api-и-согласование)
+and the [storage paths](../../../docs/workflows/requirements-registry.md#владение-и-явные-пути).
+Use the selected installed interpreter, explicit project config and existing dependencies.
+For writes, continue the actual claimed mutable Task from its backend-managed worktree and branch.
+Every affected migration/bootstrap file must belong to the current stage's allowed paths.
+Read-only query does not require a Task claim and must not create storage.
 
-For relations select exactly one A entity and zero, one or many B entities.
-Omitting B's filter selects all eligible B entities. Multiple A matches are an
-error, not permission for an N:M operation. Use explicit unlink operations before
-deleting referenced entities; do not infer cascades.
+## Procedure
 
-Use a unique request_id and the observed expected_revision. Inspect every
-affected_rows value. A successful no-op still advances revision once. Retry an
-uncertain committed write only with the exact original request: historical replay
-returns its original counts and revision. A changed intent requires a new ID and
-a new decision based on current data, never a blind retry after revision conflict.
+1. Read the actual requirements, domain records and relations through `query`.
+   Preserve exact source values needed for rollback; do not infer missing business meaning.
+2. Prepare primitive literal DML and its inverse. Use `command` with exactly
+   `name`, `sql`, `rollback_sql`: it writes a standard yoyo migration and applies the data history.
+   Changes to existing requirements and links use this same algorithm.
+3. Keep schema migration history in the task-management application's configured directory,
+   data migration history in the project's documentation, and one current schema bootstrap
+   alongside that documentation. Runtime SQLite and sidecars belong to application data outside Git.
+   DML contains no DDL, application callbacks, dynamic business logic or transaction control.
+4. Use `apply`/`rollback` with explicit `kind: schema|data` and the same yoyo owner.
+   For ordinary `squash`, retain original forward order and inverse rollback order.
+   The Task completion boundary consolidates Task-added DML before source freeze and verifies
+   actual up/down/up; an unapplied single file blocks completion.
+5. After schema changes, use explicit `rebase` to replace obsolete-schema DML with a full
+   current-schema data migration, preserving every application row and administrative value.
+   Update the single bootstrap; never mix DDL into the data history.
+6. Use `export` with `source`, `requirements: null|[ids]`, `name` to generate a migration
+   from an existing read-only source, then apply it. Compare complete reconstructed rows/schema,
+   not only counts. Keep a finite recovery copy only until verified cutover and old writer
+   cessation.
 
-Read [errors and
-recovery](../../../docs/workflows/requirements-registry.md#ошибки-crud-и-восстановление)
-before reacting to rejection; confirmed-COMMIT cleanup can fail after data was
-saved. Do not delete locks or edit databases/receipts directly. Service tables and
-Task requirement snapshots are outside this CRUD surface.
+## Verification and recovery
 
-Use the [read–analyze–write
-example](../../../docs/workflows/requirements-registry.md#пример-чтение-анализ-изменение)
-with explicit interpreter/configuration/selected entity/change/request identity.
-Documentation examples are not authorization to mutate a working registry.
+Follow the [migration
+procedures](../../../docs/workflows/requirements-registry.md#изменение-требований-через-миграции)
+and [error recovery](../../../docs/workflows/requirements-registry.md#ошибки-и-восстановление).
+Use standard yoyo histories and SQL constraints. Inspect file, data and actual applied IDs after
+failure; a rejected apply does not imply that `command` never created its file.
+Keep query filters, cursors and immutable Task snapshots under their existing public owners.
+Publish truthful source-bound evidence through the actual Task lifecycle; do not use direct
+persistent CRUD, manual ledger writes, a second migration engine or compatibility modes.

@@ -20,8 +20,8 @@
 - [spec-data](spec-data/README.md)
 - [workflows](workflows/README.md)
 
-- [Пакетный Requirements CRUD](workflows/requirements-registry.md#пакетный-crud) — сущности, связи,
-  страницы, записи и исполняемый пример.
+- [Requirements API](workflows/requirements-registry.md#декларативный-api-и-согласование) —
+  чтение, DML-миграции, откат, склейка и восстановление.
 Этот каталог описывает текущее поведение AI poise. Источником требований служит раздел
 [«Управление требованиями»](governance/requirements.md), а фактические возможности нужно
 сверять со [статусом реализации](architecture/implementation-status.md) и исполняемыми
@@ -53,8 +53,10 @@
 
 ## Конфигурация и окружение
 
-- [Подключение start-app2.0 к рабочим деревьям](operator/start-app-worktree-setup.md#подключение-установленного-инструмента)
-- [Экземпляры, операции и обновление всех потребителей](operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
+- [Подключение start-app2.0 к рабочим
+  деревьям](operator/start-app-worktree-setup.md#подключение-установленного-инструмента)
+- [Экземпляры, операции и обновление всех
+  потребителей](operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
 
 - [Именованные проверки проекта](configuration/named-project-checks.md) — профили,
   пакеты, наборы, обычный запуск без Task, результаты и восстановление.
@@ -152,7 +154,8 @@
 ## Общее чтение файлов проекта
 
 [Общий reader](configuration/project-file-reading.md#назначение-и-явные-входы) возвращает выбранные
-части файлов зарегистрированного checkout без Task/Sprint. [Политика и примеры](configuration/project-file-reading.md#подготовка-политики-и-примеры)
+части файлов зарегистрированного checkout без Task/Sprint. [Политика и
+примеры](configuration/project-file-reading.md#подготовка-политики-и-примеры)
 и [жизненный цикл](workflows/file-intake-lifecycle.md#допуск-и-владение) описывают настоящий native
 admission, состояние чтения и восстановление. Специализированный acknowledged reader сохраняет
 [свой контракт](workflows/source-reader.md#явные-диапазоны-и-поколения-контекста).

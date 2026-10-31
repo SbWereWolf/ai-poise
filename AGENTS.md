@@ -231,7 +231,8 @@ including Git worktrees. Application-owned tools perform infra/deps/adjust/check
 its declarations. An accepted supply update covers every actual registered consumer and its
 compatibility gate. Keep working configuration outside Git and retained supply outside disposable
 Task roots; deliver results before resource retirement. Follow the canonical
-[deployment and coordinated supply rule](docs/governance/development-rules.md#развёртывание-окружений-и-общая-поставка-инструмента)
+[deployment and coordinated supply
+rule](docs/governance/development-rules.md#развёртывание-окружений-и-общая-поставка-инструмента)
 and its linked operator instructions.
 
 ## Start and finish work
@@ -263,7 +264,8 @@ The user assigns roles to agents. An agent may perform both executor and reviewe
 roles only when the user assigns both; keep their stage work and decisions separate.
 Different roles do not require different agent/session identities. Tool access does
 not grant an additional role. Preserve native caller identity, ownership and truthful
-provenance. Follow the [canonical role-assignment rule](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
+provenance. Follow the [canonical role-assignment
+rule](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
 
 One session works on one task. Stage ownership follows the canonical [executor/reviewer
 policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started
@@ -370,10 +372,12 @@ workflow owns the commit. See [message
 policy](docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070)
 and [execution limits](docs/workflows/commit-messages.md#запуск-и-границы-полномочий).
 
-[Group each commit by a coherent result](docs/workflows/commit-messages.md#смысловая-группировка-изменений),
+[Group each commit by a coherent
+result](docs/workflows/commit-messages.md#смысловая-группировка-изменений),
 including its necessary tests and documentation; file types and shared directories
 alone do not define the grouping. Preserve existing stage and checkpoint commits.
-[Quality checks belong to the work result](docs/workflows/commit-messages.md#проверка-качества-коммит-и-интеграция),
+[Quality checks belong to the work
+result](docs/workflows/commit-messages.md#проверка-качества-коммит-и-интеграция),
 not a mandatory rerun for each commit. Changed subjects or inputs, failures and
 unresolved concerns justify rechecking; native evidence and gate requirements stay
 in force. Select checks by affected application paths at integration.
@@ -471,8 +475,10 @@ Keep this English projection and its Russian source consistent in the same chang
   Task and replays the exact target. It never performs stage work, messaging, user acceptance,
   publication or
   integration.
-  Continue the current verified result through its proved ownership history: a lawful release/acquire can continue the next role
-  with the same actor when the user assigned both roles; another actor is not mandatory. Keep the same
+  Continue the current verified result through its proved ownership history: a lawful
+  release/acquire can continue the next role
+  with the same actor when the user assigned both roles; another actor is not mandatory. Keep the
+  same
   progression intent and existing source/claim/unknown/review gates; follow
   [verified-result
   continuation](docs/workflows/batch-work.md#продолжение-проверенного-результата-после-освобождения).
@@ -723,6 +729,12 @@ Keep this English projection and its Russian source consistent in the same chang
 - User-facing errors explain the failure, verified cause or remaining uncertainty, and an actionable
   recovery within the
   user's authority. Do not expose secrets or invent certainty.
+- Persist requirements through the Poise API: create a literal DML migration in the claimed Task
+  worktree, then apply it with yoyo. Keep DDL history in the application, DML history and one
+  current bootstrap in project documentation, and runtime SQLite/sidecars outside Git. After
+  a schema change replace obsolete DML history with a full current-schema data migration;
+  never put DDL into data migrations. Follow the [canonical
+  rule](docs/governance/development-rules.md#миграции-реестра-требований).
 - Destructive migrations require explicit authorization naming the objects and action. Never execute
   `git push`: the
   prohibition is absolute for every agent, AI poise tool, publication handler, and configurable
@@ -1093,9 +1105,11 @@ Native caller isolation: a session launcher is not caller identity. Use only the
 for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
 Never set these values to impersonate a stored binding or combine native identity with
 POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
-parent-only signals must not mutate the parent's Task. For a handoff to another assigned agent, the sender uses ordinary public release;
+parent-only signals must not mutate the parent's Task. For a handoff to another assigned agent, the
+sender uses ordinary public release;
 the receiving native session uses its own SessionStart launcher and bootstraps the exact Task.
-When the user assigned both roles to one agent, the same native actor may resume after release. Preserve WIP and diagnose missing/conflicting signals instead of renaming
+When the user assigned both roles to one agent, the same native actor may resume after release.
+Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
 
 ## Local recovery after imported duplicate results

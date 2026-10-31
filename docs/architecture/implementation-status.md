@@ -52,15 +52,17 @@ Windows invocation data/preview не подтверждают Windows execution;
 ## Текущее хранение и восстановление
 
 Конфигурационный контракт `ddd-accounting-12` не является номером SQLite schema. Текущая Task DB
-имеет schema **13**, отдельная Requirements DB — **2**. Optional telemetry использует отдельные
+имеет schema **13**, отдельная Requirements DB — собственную историю схемы yoyo. Optional telemetry
+использует отдельные
 database/lock и ленивую инициализацию общей SQLite schema; её доступность не является условием
 успешности основной работы.
 
-Requirements Registry поддерживает [пакетные
-Query/Command](../workflows/requirements-registry.md#пакетный-crud)
-для четырёх сущностей и трёх видов связей: snapshot-чтение, keyset pages,
-упорядоченные атомарные изменения, реальные counts и исторический replay.
-Эти операции не изменяют Task snapshots или service tables.
+Requirements Registry поддерживает
+[API](../workflows/requirements-registry.md#декларативный-api-и-согласование):
+snapshot-чтение и keyset pages, создание и применение DML-миграций, откат,
+склейку, экспорт и замену истории данных при изменении схемы.
+Запись выполняется стандартным yoyo по отдельным DDL/DML-историям.
+Изменение канонического реестра не переписывает исторические Task snapshots.
 
 Поддержан только [ограниченный переход Task DB 12 в
 13](storage-lifecycle.md#ограниченный-переход-task-db-12-в-13). Неоднозначные legacy claims не
@@ -158,7 +160,8 @@ smoke и смежные Task/verification проверки прошли на з�
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
-точные проверки и Git, runtime/JSONL/парсеры, обычное освобождение и продолжение в той же области, локальные hooks/probes,
+точные проверки и Git, runtime/JSONL/парсеры, обычное освобождение и продолжение в той же области,
+локальные hooks/probes,
 accounting — сохранены. Текущие утверждения проверяются профильными тестами репозитория;
 числа из удалённых исторических отчётов не считаются актуальной регрессией.
 
@@ -242,7 +245,8 @@ integration.
 `target_stage`. Она сохраняет цель в Task journal, использует обычные route transitions и
 останавливается на работе этапа, entry gate, границе executor/reviewer либо достигнутой цели.
 Точный replay после workflow loss, correction, restart и handoff продолжает тот же intent;
-изменение цели конфликтует. Переход роли требует сохранения результата, обычного release и bootstrap другой сессии.
+изменение цели конфликтует. Переход роли требует сохранения результата, обычного release и bootstrap
+другой сессии.
 Обычные переходы пишут `stage_progressed` без `user_accept*` и сохраняют report как `verified`;
 перед `publish` возвращается `user_acceptance_required` до отдельного решения пользователя.
 
@@ -347,9 +351,11 @@ Stale recovery прежнего episode сохраняет нового влад
 
 Поставка проверяется offline wheel/noneditable install, изолированным `-I` CLI consumer и
 настоящим isolated SDK lifecycle, включая оба обезличенных профиля. Ссылки на
-[политику и исполняемые примеры](../configuration/project-file-reading.md#проверка-поставленных-примеров)
+[политику и исполняемые
+примеры](../configuration/project-file-reading.md#проверка-поставленных-примеров)
 и [жизненный цикл](../workflows/file-intake-lifecycle.md#границы-поставки-и-проверка) определяют
-текущую возможность. Универсального перехвата всех tool results и автоматического reset при compaction нет;
+текущую возможность. Универсального перехвата всех tool results и автоматического reset при
+compaction нет;
 поддержанный Bash adapter подключается явно к тому же ресурсу. Специализированный
 acknowledged SourceReader сохраняет собственный API.
 Регистрация текста не является доказательством памяти модели, доставки или provider billing.
@@ -363,7 +369,8 @@ acknowledged SourceReader сохраняет собственный API.
 Post/replay/conflict/expiry и ограниченная metadata-only coverage. Прямое и обычное чтение
 используют общий реестр/эпизод. Программного универсального shell interpreter не заявлено.
 
-Полные [опции, примеры и ограничения](../configuration/project-file-reading.md#обычные-команды-чтения),
+Полные [опции, примеры и
+ограничения](../configuration/project-file-reading.md#обычные-команды-чтения),
 [event wiring](../configuration/runtime-hooks.md#подключение-событий-чтения) и
 [восстановление](../workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
 описывают реализованный путь. Python package contract — >=3.15,<3.16. Изолированный offline

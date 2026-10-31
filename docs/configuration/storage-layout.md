@@ -22,7 +22,7 @@
 | Project | Независимо настроенный проект с собственными задачами, требованиями и рабочими данными. |
 | Configuration | Настройки конкретной установки или подключения проекта; не исходный шаблон продукта. |
 | Task Store | Хранилище задач, их состояния, связей, истории и сведений о сеансах проекта. |
-| Requirements Store | Хранилище требований проекта и их связей; для ERP является частью документации. |
+| Requirements Store | Рабочее хранилище требований и связей в данных приложения; исходная DML-история принадлежит документации проекта. |
 | Hook Registry | Проектный реестр установки обработчиков, привязок сеансов, событий и операций хуков. |
 | Task Materials | Рабочие материалы одной задачи. |
 | Sprint Shared Materials | Материалы спринта, необходимые нескольким его задачам. |
@@ -45,7 +45,10 @@
 | Ресурс | Потребитель и назначение | Целевое размещение | Настройка и срок хранения |
 |---|---|---|---|
 | Task Store | Публичный `work`: задачи, спринты, история, сеансы | `D/tasks/tasks.sqlite` | `paths.state`, `paths.database`; постоянное, отдельно для проекта. |
-| Requirements Store | Публичный `requirements`, согласование и связи требований | `D/requirements/requirements.sqlite`; для ERP — `E/docs/foundations/requirements.sqlite` | `paths.requirements_database`; постоянное, выбор версионирования за пользователем. |
+| Requirements Store | Публичный `requirements`, согласование и связи требований | `D/requirements/requirements.sqlite` вне Git | `paths.requirements_database`, `paths.requirements_lock`; рабочая БД и sidecar-файлы не версионируются. |
+| История схемы Requirements | Инфраструктура приложения управления задачами | Исходники приложения, например `config/migrations/requirements` | `paths.requirements_schema_migrations`; собственная DDL-история для хранилища, стандартный yoyo. |
+| История данных Requirements | Версионируемые требования, связи и служебные строки | Документация проекта, например `docs/requirements/data` | `paths.requirements_data_migrations`; только прямой DML и откат. |
+| Bootstrap схемы Requirements | Актуальная схема для работы с данными требований | Один SQL-файл в документации, например `docs/requirements/schema.sql` | `paths.requirements_schema_file`; обновляется при смене структуры вместе с заменой DML-истории. |
 | Телеметрия | Учёт наблюдённых событий, если включён | `D/telemetry/events.sqlite` | `accounting.storage.database`; необязательна, срок хранения задаёт её политика. |
 | Hook Registry | Обработчик `poise hook`, регистрации и операции хуков проекта | `D/codex-hook/sessions-runtime.sqlite` | `database` и `state` в настройках хуков; не отдельная БД каждого агента. |
 | Редактор этапов | Редактирование маршрута задачи, этапов и связей | `O/storage/workflow-stages/` | `database` в настройках редактора конфигурации целей; один экземпляр установки. |

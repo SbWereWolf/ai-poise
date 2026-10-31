@@ -128,9 +128,11 @@ class Poise:
             read_only=read_only,
             read_wait=limits['sqlite_read_seconds'],
         )
+        from .infrastructure.requirements_data_migrations import RequirementsMigrations
         self.requirements_commands = RequirementsCommands(
             self.requirements_store,
             self.cfg['batch']['max_items'],
+            RequirementsMigrations(self),
         )
         from .infrastructure.requirements_registry import SqliteRegistrySnapshotProvider
         requirements_gate = TaskRequirementsGate.from_provider(
@@ -1624,6 +1626,9 @@ class Poise:
         gate = self.validate_stage_entry(data)
         if not gate['passed']:
             raise PoiseError('stage entry requirements are no longer satisfied')
+        refusal = self.requirements_commands.prepare_task_migrations()
+        if refusal is not None:
+            return {**refusal, 'task': data['id'], 'stage': stage['id'], 'checks': []}
         scope_state = self.validate_stage_scope(data)
         tree = scope_state['tree']
         changed = scope_state['changed']

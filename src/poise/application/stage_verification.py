@@ -45,6 +45,9 @@ class StageResultVerification:
             raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'], payload)
         h.validate_stage_scope(data)
+        refusal = h.requirements_commands.prepare_task_migrations()
+        if refusal is not None:
+            return PreparedVerification(payload, packet_digest, factory, artifacts, refusal)
         continuation = h.precheck_observation_continuation(data, payload)
         if continuation is not None:
             return PreparedVerification(payload, packet_digest, factory, artifacts, continuation)

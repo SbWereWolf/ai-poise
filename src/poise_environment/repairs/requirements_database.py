@@ -1,16 +1,19 @@
-"""requirements_database: retain the canonical schema initializer and selector."""
+"""Build missing requirements stores from their configured migration histories."""
 import argparse
-from poise.infrastructure.requirements_registry import \
-    RequirementsStore
+from pathlib import Path
+from poise.common import load_config
+from poise.infrastructure.requirements_data_migrations import RequirementsMigrations
 from ..shared.database import maintain
 from ..shared.protocol import serve
 
 
-def initialize(path, lock):
-    RequirementsStore(path, lock, 2.0, 0.01)
-
-
 def handle(args):
+    def initialize(path, lock):
+        root, configuration, _ = load_config(args.config)
+        sources = {name: (root / configuration['paths'][name]).resolve()
+                   for name in ('requirements_schema_migrations', 'requirements_data_migrations')}
+        RequirementsMigrations.initialize(Path(path), sources, configuration['limits']['lock_seconds'])
+
     return maintain(args.config, args.action,
                     lambda configuration: configuration["paths"][
                         "requirements_database"],

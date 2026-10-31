@@ -1,6 +1,5 @@
 """Pure policies for the closed Requirements entity/relation batch contract."""
 from ..foundation.errors import DomainError
-from .domain import _requirement
 
 
 ENTITIES = {
@@ -24,19 +23,8 @@ REASONS = {
     "invalid_cursor": "Invalid Requirements CRUD cursor.",
     "stale_cursor": "Requirements cursor revision changed.",
     "operand_cardinality": "Requirements relation operand A must select exactly one row.",
-    "immutable_field": "Requirements CRUD identity or level is immutable.",
-    "integrity_conflict": "Requirements CRUD integrity constraint failed.",
-    "revision_conflict": "Requirements revision changed.",
-    "request_conflict": "Requirements request_id was used for another request.",
     "store_error": "Requirements CRUD storage operation failed.",
 }
-# The current schema2 row policy, independent of the frozen historical DDL builder.
-WHITESPACE = "".join(chr(n) for n in (
-    9, 10, 11, 12, 13, 28, 29, 30, 31, 32, 133, 160, 5760,
-    8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200,
-    8201, 8202, 8232, 8233, 8239, 8287, 12288,
-))
-
 
 class RequirementsCrudError(DomainError):
     def __init__(self, code, context=(None, None)):
@@ -129,23 +117,6 @@ def validate_filter(table, value, maximum, context):
             raise RequirementsCrudError("invalid_filter", context)
 
 
-def validate_row(table, row, context, previous=None):
-    require(isinstance(row, dict) and set(row) == set(ENTITIES[table]), "invalid_item", context)
-    require(all(scalar(v) for v in row.values()), "invalid_item", context)
-    if table == "requirements":
-        try:
-            _requirement(row)
-        except DomainError as exc:
-            raise RequirementsCrudError("invalid_item", context) from exc
-        if previous is not None:
-            require(row["level"] == previous["level"], "immutable_field", context)
-    else:
-        for name, value in row.items():
-            trimmed = value.strip(WHITESPACE)
-            require(bool(trimmed) and (name == "definition" or value == trimmed),
-                    "invalid_item", context)
-
-
 def _operands(item, maximum, context):
     roles = RELATIONS[item["table"]][1]
     endpoints = []
@@ -163,19 +134,14 @@ def _operands(item, maximum, context):
     require(endpoints[0] != endpoints[1], "invalid_item", context)
 
 
-def _item(item, maximum, context, query):
+def _item(item, maximum, context):
     kind, table = item.get("kind"), item.get("table")
     require(scalar(kind), "invalid_item", context)
     shapes = {
         "entities": {"id", "kind", "table", "filter", "page"},
         "relations": {"id", "kind", "table", "a", "b", "page"},
-        "create": {"id", "kind", "table", "row"},
-        "update": {"id", "kind", "table", "filter", "changes"},
-        "delete": {"id", "kind", "table", "filter"},
-        "link": {"id", "kind", "table", "a", "b"},
-        "unlink": {"id", "kind", "table", "a", "b"},
     }
-    if query and kind not in ("entities", "relations"):
+    if kind not in ("entities", "relations"):
         specialized = {
             "coverage": ({"id", "kind"}, {"id", "kind", "mode"}),
             "registry": ({"id", "kind"},), "gaps": ({"id", "kind"},),
@@ -185,48 +151,24 @@ def _item(item, maximum, context, query):
         require(kind in specialized and set(item) in specialized[kind] and scalar_tree(item),
                 "invalid_item", context)
         return
-    require(kind in (("entities", "relations") if query else
-                     ("create", "update", "delete", "link", "unlink")), "invalid_item", context)
     require(set(item) == shapes[kind], "invalid_item", context)
-    tables = RELATIONS if kind in ("relations", "link", "unlink") else ENTITIES
+    tables = RELATIONS if kind == "relations" else ENTITIES
     require(scalar(table) and table in tables, "invalid_item", context)
     if "filter" in item:
         validate_filter(table, item["filter"], maximum, context)
-    if kind == "create":
-        validate_row(table, item["row"], context)
-    if kind == "update":
-        changes = item["changes"]
-        require(isinstance(changes, dict) and bool(changes), "invalid_item", context)
-        require(all(scalar(k) and k in ENTITIES[table] for k in changes), "invalid_item", context)
-        require(all(scalar(v) for v in changes.values()), "invalid_item", context)
-        require("id" not in changes, "immutable_field", context)
-    if kind in ("relations", "link", "unlink"):
+    if kind == "relations":
         _operands(item, maximum, context)
-    if query:
-        page = item["page"]
-        require(isinstance(page, dict) and set(page) == {"limit", "after"}, "invalid_item", context)
-        require(type(page["limit"]) is int and 1 <= page["limit"] <= maximum,
-                "invalid_item", context)
+    page = item["page"]
+    require(isinstance(page, dict) and set(page) == {"limit", "after"}, "invalid_item", context)
+    require(type(page["limit"]) is int and 1 <= page["limit"] <= maximum,
+            "invalid_item", context)
 
 
 def validate_query_batch(queries, maximum):
     _items(queries, maximum)
     for index, item in enumerate(queries):
-        _item(item, maximum, (index, item["id"]), True)
+        _item(item, maximum, (index, item["id"]))
     return _copy_json(queries)
-
-
-def validate_command(request, maximum):
-    require(isinstance(request, dict) and set(request) == {
-        "request_id", "expected_revision", "operations",
-    }, "invalid_packet")
-    require(scalar(request["request_id"]) and bool(request["request_id"]), "invalid_packet")
-    require(type(request["expected_revision"]) is int and request["expected_revision"] >= 0,
-            "invalid_packet")
-    _items(request["operations"], maximum)
-    for index, item in enumerate(request["operations"]):
-        _item(item, maximum, (index, item["id"]), False)
-    return _copy_json(request)
 
 
 def _normalized_filter(value):

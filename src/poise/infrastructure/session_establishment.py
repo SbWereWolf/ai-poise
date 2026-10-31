@@ -150,7 +150,7 @@ def _validate_observation_requirements(root, cfg):
     RequirementsStore(configured_storage_path(state, cfg['paths']['requirements_database']),
                       configured_storage_path(state, cfg['paths']['requirements_lock']),
                       cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'], read_only=True,
-                      read_wait=cfg['limits']['sqlite_read_seconds'])
+                      read_wait=cfg['limits']['sqlite_read_seconds']).read()
 
 
 def establish_direct_poise(config_path, environ, clock, *, read_only):

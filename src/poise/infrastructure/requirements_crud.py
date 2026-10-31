@@ -1,6 +1,6 @@
-"""SQL for validated Requirements CRUD; caller owns connection and transaction."""
+"""Readonly entity and relation queries for the Requirements Registry."""
 from ..modules.requirements_registry.crud import (
-    ENTITIES, RELATIONS, normalize_selection, require, validate_cursor, validate_row,
+    ENTITIES, RELATIONS, normalize_selection, require, validate_cursor,
 )
 
 
@@ -37,16 +37,6 @@ def _endpoint(connection, item, name):
     table = RELATIONS[item["table"]][1][role]
     level = role if item["table"] == "requirement_links" else None
     return select_entities(connection, table, operand.get("filter", {}), level)
-
-
-def _pair(table, first_role, first, second):
-    columns, roles = RELATIONS[table]
-    ordered = {first_role: first, next(role for role in roles if role != first_role): second}
-    if table == "requirement_links":
-        return (ordered["system"]["id"], ordered["application"]["id"])
-    role = "entity" if table == "requirement_entities" else "action"
-    name = ordered[role]
-    return ordered["requirement"]["id"], name["domain_id"], name["id"]
 
 
 def _a(connection, item, context):
@@ -110,51 +100,3 @@ def query_page(connection, item, revision, maximum, context):
     cursor = {"revision": revision, "selection": normalize_selection(item),
               "key": [rows[-1][c] for c in keys]} if more else None
     return {"rows": rows, "next": cursor}
-
-
-def execute_operation(connection, item, context):
-    table, kind = item["table"], item["kind"]
-    if kind in ("link", "unlink"):
-        a = _a(connection, item, context)
-        count = 0
-        columns = RELATIONS[table][0]
-        predicate = " AND ".join(f"{c}=?" for c in columns)
-        for b in _endpoint(connection, item, "b"):
-            pair = _pair(table, item["a"]["endpoint"], a, b)
-            exists = connection.execute(
-                f"SELECT {columns[0]} FROM {table} WHERE {predicate}", pair,
-            ).fetchone() is not None
-            if kind == "link" and not exists:
-                connection.execute(
-                    f"INSERT INTO {table}({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",
-                    pair,
-                )
-                count += 1
-            elif kind == "unlink" and exists:
-                connection.execute(f"DELETE FROM {table} WHERE {predicate}", pair)
-                count += 1
-        return count
-    columns = ENTITIES[table]
-    if kind == "create":
-        row = item["row"]
-        connection.execute(
-            f"INSERT INTO {table}({','.join(columns)}) VALUES({','.join('?' for _ in columns)})",
-            [row[c] for c in columns],
-        )
-        return 1
-    count = 0
-    for row in select_entities(connection, table, item["filter"]):
-        if kind == "delete":
-            connection.execute(f"DELETE FROM {table} WHERE id=?", (row["id"],))
-            count += 1
-        else:
-            candidate = {**row, **item["changes"]}
-            validate_row(table, candidate, context, row)
-            if candidate != row:
-                changed = [c for c in columns if c != "id" and candidate[c] != row[c]]
-                connection.execute(
-                    f"UPDATE {table} SET {','.join(c + '=?' for c in changed)} WHERE id=?",
-                    [candidate[c] for c in changed] + [row["id"]],
-                )
-                count += 1
-    return count

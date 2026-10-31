@@ -224,12 +224,14 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
         raise PoiseError('Версия конфигурации не поддерживается; автоматических миграций нет')
     task_paths = {'state','database','lock','runtime','standalone_tasks','sprints','worktrees',
                   'git_index','runs','stdout','stderr','response'}
-    requirements_paths = {'requirements_database', 'requirements_lock'}
+    requirements_paths = {'requirements_database', 'requirements_lock',
+                          'requirements_schema_migrations', 'requirements_data_migrations',
+                          'requirements_schema_file'}
     configuration_fields(cfg['paths'], task_paths | requirements_paths, 'paths')
     for key in sorted(task_paths | requirements_paths):
         _require_config_path(
             cfg['paths'][key], f'paths.{key}',
-            nonblank=key in {'state', 'database', 'lock', 'requirements_database', 'requirements_lock'},
+            nonblank=key in {'state', 'database', 'lock'} | requirements_paths,
         )
     _validated_limits(cfg['limits'])
     configuration_fields(cfg['git'], {'repository','base_ref','remote','branch_template','commit_pattern',

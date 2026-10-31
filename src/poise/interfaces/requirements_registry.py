@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from ..common import load_config
-from ..composition import migrate_requirements, requirements_tools
+from ..composition import requirements_tools
 from ..infrastructure.goal_config import strict_json
 from ..modules.foundation.errors import PoiseError
 from ..modules.requirements_registry.crud import RequirementsCrudError, is_crud_query_batch
@@ -27,11 +27,7 @@ def execute(config_path, stream, output):
         packet = _packet(strict_json(raw.decode("utf-8")))
         operation = packet["operation"]
         body = packet["input"]
-        if operation == "migrate":
-            if body:
-                raise PoiseError("Requirements migrate input must be empty")
-            result = migrate_requirements(config_path)
-        elif operation in ("apply", "query", "import_bootstrap", "command"):
+        if operation in ("apply", "rollback", "query", "command", "squash", "rebase", "export"):
             commands, _ = requirements_tools(config_path, read_only=operation == "query")
             result = _command(commands, operation, body)
         else:
@@ -41,23 +37,19 @@ def execute(config_path, stream, output):
         result = exc.response()
         code = 2
     except (PoiseError, UnicodeError, RecursionError) as exc:
-        result = {"status": "rejected", "reason": str(exc)}
+        result = {"status": "rejected", "reason": str(exc),
+                  "recovery": "Исправьте указанные поля или SQL миграции и повторите эту операцию poise requirements."}
         code = 2
     output.write(json.dumps(result, ensure_ascii=False) + "\n")
     return code
 
 
 def _command(commands, operation, body):
-    if operation == "command":
-        return {"status": "applied", **commands.command(body)}
-    if operation == "apply":
-        return {"status": "applied", **commands.apply(body)}
     if operation == "query":
         if set(body) != {"queries"}:
             if is_crud_query_batch(body.get("queries")):
                 raise RequirementsCrudError("invalid_packet")
             raise PoiseError("Requirements query input requires queries")
         return {"status": "read_only", **commands.query(body["queries"])}
-    if set(body) != {"path", "request_id"}:
-        raise PoiseError("Requirements import requires path and request_id")
-    return {"status": "imported", **commands.import_bootstrap(body["path"], body["request_id"])}
+    return {"status": "generated" if operation == "export" else "applied",
+            **getattr(commands, operation)(body)}

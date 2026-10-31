@@ -128,6 +128,18 @@
       "value": "database/requirements.lock"
     },
     {
+      "path": ["paths", "requirements_schema_migrations"],
+      "value": "${POISE_ROOT}/config/migrations/requirements"
+    },
+    {
+      "path": ["paths", "requirements_data_migrations"],
+      "value": "${PROJECT_ROOT}/docs/requirements/data"
+    },
+    {
+      "path": ["paths", "requirements_schema_file"],
+      "value": "${PROJECT_ROOT}/docs/requirements/schema.sql"
+    },
+    {
       "path": [
         "task_planning",
         "catalogue"

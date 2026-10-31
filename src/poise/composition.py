@@ -175,35 +175,27 @@ def placement_tools(bound, policy_path, environ):
                              lambda content: strict_json(content.decode('utf-8')))
 
 
-def requirements_storage(config_path):
-    from .common import configured_root, configured_storage_path, load_config
-    root, config, _ = load_config(config_path)
-    paths = config['paths']
-    state = configured_root(root, paths['state'])
-    limits = config['limits']
-    return (
-        configured_storage_path(state, paths['requirements_database']),
-        configured_storage_path(state, paths['requirements_lock']),
-        limits['lock_seconds'], limits['lock_poll_seconds'],
-    ), config
-
-
 def requirements_tools(config_path, *, read_only=False):
-    from .application.requirements_registry import RequirementsCommands
-    from .infrastructure.requirements_registry import RequirementsStore
-    storage, config = requirements_storage(config_path)
-    from .infrastructure.project_resources import ProjectRuntimeFence
-    fence = ProjectRuntimeFence(config_path)
-    return RequirementsCommands(RequirementsStore(*storage, project_fence=fence,
-                                                 read_only=read_only,
-                                                 read_wait=config['limits']['sqlite_read_seconds']),
-                                config['batch']['max_items']), config
-
-
-def migrate_requirements(config_path):
-    from .infrastructure.requirements_registry import RequirementsStore
-    storage, _ = requirements_storage(config_path)
-    return RequirementsStore.migrate(*storage)
+    if read_only:
+        from .application.requirements_registry import RequirementsQueries
+        from .common import configured_root, configured_storage_path, load_config
+        from .infrastructure.project_resources import ProjectRuntimeFence
+        from .infrastructure.requirements_registry import RequirementsStore
+        root, config, _ = load_config(config_path)
+        paths, limits = config['paths'], config['limits']
+        state = configured_root(root, paths['state'])
+        store = RequirementsStore(
+            configured_storage_path(state, paths['requirements_database']),
+            configured_storage_path(state, paths['requirements_lock']),
+            limits['lock_seconds'], limits['lock_poll_seconds'], ProjectRuntimeFence(config_path),
+            read_only=True, read_wait=limits['sqlite_read_seconds'],
+        )
+        return RequirementsQueries(store, config['batch']['max_items']), config
+    import os
+    from .infrastructure.clock import SystemClock
+    from .infrastructure.session_establishment import establish_direct_poise
+    runtime = establish_direct_poise(config_path, os.environ, SystemClock(), read_only=read_only).runtime
+    return runtime.requirements_commands, runtime.cfg
 
 
 def goal_config_tools(settings_path):

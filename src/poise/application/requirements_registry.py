@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-from ..modules.foundation.errors import DomainError
+from ..modules.foundation.errors import DomainError, PoiseError
 from ..modules.requirements_registry.crud import is_crud_query_batch
 
 
-class RequirementsCommands:
-    """Bounded declarative command and query API for one project registry."""
+class RequirementsQueries:
+    """Bounded registry reads independent of mutable Task ownership."""
 
     def __init__(self, store, max_items):
         if type(max_items) is not int or max_items <= 0:
             raise DomainError("Requirements max_items must be a positive integer")
         self.store = store
         self.max_items = max_items
-
-    def apply(self, request):
-        return self.store.apply(request, self.max_items)
-
-    def command(self, request):
-        return self.store.command(request, self.max_items)
 
     def query(self, queries):
         if is_crud_query_batch(queries):
@@ -36,53 +30,35 @@ class RequirementsCommands:
             results.append({"id": query["id"], "value": value})
         return {"revision": revision, "results": results}
 
-    def import_bootstrap(self, path, request_id):
-        document = self.store.read_bootstrap(path)
-        if not isinstance(document, dict) or set(document) != {
-            "schema",
-            "purpose",
-            "system_requirements",
-            "application_requirements",
-            "derivations",
-        }:
-            raise DomainError("Requirements bootstrap has an invalid document contract")
-        if document["schema"] != "requirements-bootstrap-1":
-            raise DomainError("Requirements bootstrap schema is unsupported")
-        operations = []
-        for item in document["system_requirements"]:
-            if not isinstance(item, dict) or set(item) != {"id", "status", "text"}:
-                raise DomainError("System bootstrap requirement has invalid fields")
-            operations.append({
-                "kind": "put_requirement",
-                "requirement": {**item, "level": "system"},
-            })
-        for item in document["application_requirements"]:
-            if not isinstance(item, dict) or set(item) != {"id", "application", "status", "text"}:
-                raise DomainError("Application bootstrap requirement has invalid fields")
-            operations.append({
-                "kind": "put_requirement",
-                "requirement": {
-                    "id": item["id"],
-                    "level": "application",
-                    "status": item["status"],
-                    "text": item["text"],
-                },
-            })
-        for derivation in document["derivations"]:
-            if not isinstance(derivation, dict) or set(derivation) != {"child", "parents"}:
-                raise DomainError("Requirements bootstrap derivation has invalid fields")
-            if not isinstance(derivation["parents"], list) or not derivation["parents"]:
-                raise DomainError("Requirements bootstrap derivation requires parents")
-            operations.extend(
-                {
-                    "kind": "link",
-                    "system": parent,
-                    "application": derivation["child"],
-                }
-                for parent in derivation["parents"]
-            )
-        return self.apply({
-            "request_id": request_id,
-            "expected_revision": 0,
-            "operations": operations,
-        })
+
+class RequirementsCommands(RequirementsQueries):
+    """Canonical changes create literal migrations and apply them through yoyo."""
+
+    def __init__(self, store, max_items, migrations):
+        super().__init__(store, max_items)
+        self.migrations = migrations
+
+    def apply(self, request):
+        return self.migrations.apply(request)
+
+    def command(self, request):
+        return self.migrations.command(request)
+
+    def rollback(self, request):
+        return self.migrations.rollback(request)
+
+    def squash(self, request):
+        return self.migrations.squash(request)
+
+    def rebase(self, request):
+        return self.migrations.rebase(request)
+
+    def export(self, request):
+        return self.migrations.export(request)
+
+    def prepare_task_migrations(self):
+        try:
+            return self.migrations.prepare_task_migrations()
+        except PoiseError as exc:
+            return {'status': 'requirements_migration_failed', 'reason': str(exc),
+                    'recovery': 'Исправьте SQL миграции требований и повторите передачу этапа.'}

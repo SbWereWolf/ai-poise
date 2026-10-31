@@ -110,6 +110,9 @@
       "lock": "tasks/tasks.lock",
       "requirements_database": "${PROJECT_DATA_ROOT}/requirements/requirements.sqlite",
       "requirements_lock": "${PROJECT_DATA_ROOT}/requirements/requirements.lock",
+      "requirements_schema_migrations": "${POISE_ROOT}/config/migrations/requirements",
+      "requirements_data_migrations": "${PROJECT_ROOT}/docs/requirements/data",
+      "requirements_schema_file": "${PROJECT_ROOT}/docs/requirements/schema.sql",
       "response": "response.json",
       "runs": "runs",
       "runtime": ".runtime",
@@ -478,6 +481,24 @@
       ],
       "type": "text",
       "prompt": "Explicit value for paths.requirements_lock; replace root markers before publication"
+    },
+    {
+      "id": "path_paths_requirements_schema_migrations",
+      "path": ["paths", "requirements_schema_migrations"],
+      "type": "text",
+      "prompt": "Explicit application-owned requirements schema migration directory"
+    },
+    {
+      "id": "path_paths_requirements_data_migrations",
+      "path": ["paths", "requirements_data_migrations"],
+      "type": "text",
+      "prompt": "Explicit project documentation directory for requirements DML migrations"
+    },
+    {
+      "id": "path_paths_requirements_schema_file",
+      "path": ["paths", "requirements_schema_file"],
+      "type": "text",
+      "prompt": "Explicit single current requirements schema SQL file in project documentation"
     },
     {
       "id": "path_task_planning_catalogue",

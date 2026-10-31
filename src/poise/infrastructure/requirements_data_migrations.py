@@ -365,6 +365,9 @@ class RequirementsMigrations:
             raise PoiseError('kind: требуется schema или data')
         paths = self._paths()
         migrations = self._history(paths, kind)
+        if kind == 'schema' and not self.database.exists() and not migrations:
+            raise PoiseError('Для создания БД требований нужна начальная миграция схемы; '
+                             f'проверьте каталог {paths["requirements_schema_migrations"]}')
         self.database.parent.mkdir(parents=True, exist_ok=True)
         data_backend = None
         try:

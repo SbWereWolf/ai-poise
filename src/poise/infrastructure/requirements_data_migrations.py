@@ -9,6 +9,7 @@ import re
 import sqlite3
 import sys
 from tempfile import TemporaryDirectory
+import uuid
 
 import sqlparse
 from yoyo import get_backend, read_migrations
@@ -235,7 +236,10 @@ class RequirementsMigrations:
         self.prepared_source = None
 
     def _capture(self, database):
-        return _capture(database, self.runtime.cfg['limits']['sqlite_read_seconds'])
+        try:
+            return _capture(database, self.runtime.cfg['limits']['sqlite_read_seconds'])
+        except sqlite3.Error as exc:
+            raise PoiseError(f'Не удалось прочитать SQLite-БД требований {database}: {exc}') from exc
 
     def _configured_paths(self):
         paths = self.runtime.cfg['paths']
@@ -275,17 +279,21 @@ class RequirementsMigrations:
             destination = (worktree / relative).resolve()
             if not destination.is_relative_to(worktree):
                 raise PoiseError(f'{key}: путь вне worktree')
-            scope = data['contract']['stage_contracts'][data['stage_index']]['allowed_paths']
-            probe = relative.as_posix()
-            if key == 'requirements_data_migrations':
-                probe += '/migration.py'
-            if not completion and not any(matches_allowed_path(probe, pattern) for pattern in scope):
-                raise PoiseError(f'{key}: путь вне области allowed_paths текущего этапа')
             configured[key] = destination
         schema = configured['requirements_schema_migrations']
         if schema == configured['requirements_data_migrations']:
             raise PoiseError('Истории schema и data должны располагаться отдельно')
         return configured
+
+    def _authorize(self, destinations):
+        data, worktree = self._context(require_cwd=False)
+        scope = data['contract']['stage_contracts'][data['stage_index']]['allowed_paths']
+        for destination in destinations:
+            resolved = Path(destination).resolve()
+            if (not resolved.is_relative_to(worktree) or not any(
+                    matches_allowed_path(resolved.relative_to(worktree).as_posix(), pattern)
+                    for pattern in scope)):
+                raise PoiseError(f'Путь {destination} вне области allowed_paths текущего этапа')
 
     @staticmethod
     def _new_backend(kind, database, busy_seconds):
@@ -392,6 +400,7 @@ class RequirementsMigrations:
 
     def _write(self, directory, name, pairs, depends=()):
         destination = directory / (name + '.py')
+        self._authorize([destination])
         if destination.exists() or destination.with_suffix('.sql').exists():
             raise PoiseError(f'name: миграция {name} уже существует')
         directory.mkdir(parents=True, exist_ok=True)
@@ -426,6 +435,13 @@ class RequirementsMigrations:
         if name in indexed or (directory / (name + '.py')).exists():
             raise PoiseError(f'name: миграция {name} уже существует')
         selected = history.filter(lambda migration: migration.id in identifiers)
+        destinations = [directory / (name + '.py')]
+        for migration in selected:
+            source = Path(migration.path)
+            destinations.append(source)
+            if source.suffix == '.sql':
+                destinations.append(source.with_name(source.stem + '.rollback.sql'))
+        self._authorize(destinations)
         dependencies = set()
         for migration in history:
             depends = {dependency.id for dependency in migration.depends}
@@ -469,6 +485,13 @@ class RequirementsMigrations:
         history = self._history(paths, 'data')
         if any(migration.id == name for migration in history):
             raise PoiseError(f'name: миграция {name} уже существует')
+        destinations = [directory / (name + '.py'), paths['requirements_schema_file']]
+        for migration in history:
+            source = Path(migration.path)
+            destinations.append(source)
+            if source.suffix == '.sql':
+                destinations.append(source.with_name(source.stem + '.rollback.sql'))
+        self._authorize(destinations)
         before = self._capture(self.database)
         pairs = _snapshot_pairs(before, self._schema_baseline(paths))
         bootstrap = ';\n'.join(before['schema']) + ';\n'
@@ -506,15 +529,49 @@ class RequirementsMigrations:
         if selection is not None:
             _selection(selection, 'requirements')
         paths = self._paths()
+        self._authorize([paths['requirements_data_migrations'] / (name + '.py')])
         captured = self._capture(source)
-        if selection is None:
-            pairs = _snapshot_pairs(captured, self._schema_baseline(paths))
-        else:
-            pairs = self._transfer_pairs(captured, selection)
+        pairs = self._export_pairs(captured, selection, paths)
         history = self._history(paths, 'data')
         destination = self._write(paths['requirements_data_migrations'], name, pairs,
                                   [migration.id for migration in history])
         return {'migration': str(destination)}
+
+    def _export_pairs(self, captured, selection, paths):
+        self.runtime.runtime.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(prefix='requirements-export-', dir=self.runtime.runtime) as temporary:
+            directory = Path(temporary)
+            database = directory / 'validation.sqlite'
+            with self._backend('schema', database) as backend:
+                history = self._history(paths, 'schema')
+                backend.apply_migrations(backend.to_apply(history))
+            baseline = self._capture(database)
+            if set(captured['tables']) != set(baseline['tables']):
+                raise PoiseError('source: схема БД не соответствует выбранному хранилищу требований')
+            for name, table in captured['tables'].items():
+                if set(table['columns']) != set(baseline['tables'][name]['columns']):
+                    raise PoiseError(f'source: несовместимые столбцы таблицы {name}')
+            if len(captured['tables']['requirements_meta']['rows']) != 1:
+                raise PoiseError('source: требуется одна служебная ревизия требований')
+            if selection is None:
+                pairs = _snapshot_pairs(captured, baseline)
+            else:
+                pairs = self._transfer_pairs(captured, selection)
+                with self.runtime.project_fence.locked():
+                    with closing(sqlite3.connect(self.database.resolve().as_uri() + '?mode=ro', uri=True,
+                                                 timeout=self.runtime.cfg['limits']['sqlite_read_seconds'])) as source:
+                        with closing(sqlite3.connect(database,
+                                                     timeout=self.runtime.cfg['limits']['sqlite_read_seconds'])) as target:
+                            source.backup(target)
+            migration = directory / ('validation-' + uuid.uuid4().hex + '.py')
+            migration.write_text(_render(pairs, ()), encoding='utf-8')
+            try:
+                with self._backend('data', database) as backend:
+                    pending = read_migrations(str(directory))
+                    backend.apply_migrations(backend.to_apply(pending))
+            except sqlite3.Error as exc:
+                raise PoiseError(f'Конфликт данных при экспорте: {exc}') from exc
+            return pairs
 
     def _transfer_pairs(self, capture, identifiers):
         tables = capture['tables']
@@ -610,6 +667,8 @@ class RequirementsMigrations:
             migration = history.filter(lambda item: item.id in selected)
             try:
                 with self._backend('data', self.database) as backend:
+                    if {item.id for item in backend.to_rollback(migration)} != set(selected):
+                        raise PoiseError('Перед завершением Task примените все её миграции данных')
                     for _ in range(2):
                         backend.rollback_migrations(backend.to_rollback(migration))
                         backend.apply_migrations(backend.to_apply(migration))

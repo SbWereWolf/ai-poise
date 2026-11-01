@@ -8,9 +8,14 @@ description: Review a diff specifically for unnecessary complexity, speculative 
 Use within review/self-review or for a requested simplification pass. Follow the
 [review boundary](../../../docs/workflows/evidence-based-review.md#осмотр-избыточной-сложности).
 This complements correctness review and does not authorize changing code.
+For executor remediation, restrict the pass to changed repair code and defects caused
+by it; send observations only in the once-per-stage consolidated message. Only the
+reviewer recognizes findings. Follow [correction boundaries](../../../docs/workflows/evidence-based-review.md#границы-исправлений-и-наблюдений-исполнителя).
 
 Inspect the actual diff and its callers, accepted requirements and responsibility
-boundaries. Give one concise finding per justified simplification:
+boundaries. As reviewer, give one concise finding per justified simplification.
+As executor, include candidate observations in the existing once-per-stage
+consolidated message for the reviewer to decide. Use the same concise format:
 `file:line: tag: what to remove; what replaces it and why behavior is preserved`.
 
 - `delete`: demonstrably unused code or speculative flexibility; replacement may be none.

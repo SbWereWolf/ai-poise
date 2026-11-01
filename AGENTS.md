@@ -86,6 +86,17 @@ after restart,
 even when the API permits goal edits. Agree the necessary stage sequence before
 Task execution; design only the imminent stage immediately before doing it. Follow the
 [canonical goal rule](docs/governance/development-rules.md#task-goal-preservation).
+Do not expand the goal or a closed requirements list. Revise closed requirements only
+through an agreed restart; all Task conditions except the goal may then change with
+justified current need/risk. Use the actual operating context, not speculative scale;
+follow [requirement boundaries](docs/governance/development-rules.md#закрытый-список-требований-и-обоснование-пересмотра).
+During remediation search only your changed repair code for defects caused by those
+changes. Send at most one consolidated executor observation message per stage,
+including rework; only the reviewer recognizes findings. Preserve complete mandatory
+check results. Reviewers check Task obligations plus application/system development
+rules, AI-agent rules and application/system instructions within the actual scope.
+Follow [paired correction boundaries](docs/workflows/evidence-based-review.md#границы-исправлений-и-наблюдений-исполнителя)
+and [review duties](docs/workflows/evidence-based-review.md#обязанности-проверяющего).
 Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
 [paired-stage

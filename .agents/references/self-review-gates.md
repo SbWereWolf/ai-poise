@@ -20,7 +20,10 @@ Inspect the complete Task diff. Record searched behavior/contracts/tests/callers
 
 ## Remediation
 
-Read every original finding and resolution. Map the corrections and current evidence to the same IDs and criteria. Confirm tests and allowlists were not weakened. Use targeted checks plus maintained fast smoke; submit the complete resolution batch through the existing FeedbackBook route. Newly discovered defects are separate facts, not implicit scope expansion.
+Read every original finding and resolution. Map the corrections and current evidence to the same IDs and criteria. Confirm tests and allowlists were not weakened. Use targeted checks plus maintained fast smoke; submit the complete resolution batch through the existing FeedbackBook route. The executor searches only its changed repair code for defects caused by those changes.
+It may send one consolidated observation message per stage including rework; only the
+reviewer recognizes findings. Preserve complete mandatory check results, including failures
+after that message. Follow [correction boundaries](../../docs/workflows/evidence-based-review.md#границы-исправлений-и-наблюдений-исполнителя).
 
 ## Reviewer results
 

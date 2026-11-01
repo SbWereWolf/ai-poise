@@ -18,6 +18,15 @@ ending the complexity pass does not end the full review. Do not remove required
 safeguards or tests, invent findings, or create another phase or artifact.
 For a subject without code or proposed complexity, state that limitation briefly.
 
+## Applicable obligations
+
+Check Task requirements together with application/system development rules, AI-agent
+rules and application/system instructions at the affected boundary. Only the reviewer
+recognizes findings, including the executor's once-per-stage consolidated observations.
+Follow [review duties](../../../docs/workflows/evidence-based-review.md#обязанности-проверяющего)
+and [requirement revision](../../../docs/governance/development-rules.md#закрытый-список-требований-и-обоснование-пересмотра);
+accept changes only for justified actual needs/risks, never speculative scale.
+
 ## Inputs
 
 Acquire the Task through the [Poise workflow](../poise/SKILL.md). Batch-read the requirements/DoD, result revision, exact diff boundary, current evidence, relevant content/trace, applicable rules and required skills. Resolve project routing, commands, browser policy, versions, runtime parameters and file maps from Poise-owned configuration. Target-worktree configuration/docs may establish facts but do not store Poise settings.

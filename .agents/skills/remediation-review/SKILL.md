@@ -9,6 +9,15 @@ metadata:
 
 This is reviewer work in the existing Poise route, not another lifecycle. The executor's self-review is input, not independent acceptance.
 
+## Applicable obligations
+
+Check Task requirements together with application/system development rules, AI-agent
+rules and application/system instructions at the affected boundary. Only the reviewer
+recognizes findings, including the executor's once-per-stage consolidated observations.
+Follow [review duties](../../../docs/workflows/evidence-based-review.md#обязанности-проверяющего)
+and [requirement revision](../../../docs/governance/development-rules.md#закрытый-список-требований-и-обоснование-пересмотра);
+accept changes only for justified actual needs/risks, never speculative scale.
+
 ## Inputs
 
 Apply [ponytail-review](../ponytail-review/SKILL.md) to the remediation diff within

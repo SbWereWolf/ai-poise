@@ -17,6 +17,13 @@ contract](../../../docs/workflows/paired-task-stages.md#постановка-п�
 Apply the canonical [product goal and requirements
 rule](../../../docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
 
+## Goal and requirement boundaries
+
+Preserve the goal throughout the Task, including restart. Do not expand closed
+requirements; revise them through an agreed restart only for justified current needs
+or concrete risks. Other Task conditions may change on restart; the goal may not.
+Follow [the canonical boundary and operating context](../../../docs/governance/development-rules.md#закрытый-список-требований-и-обоснование-пересмотра).
+
 ## Inputs
 
 After stating the problem and goal, perform the bounded

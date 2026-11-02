@@ -5,6 +5,12 @@
       "commands": [
         {
           "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
             "${python}",
             "-B",
             "-m",
@@ -26,7 +32,12 @@
           "env": {
             "PYTHONPATH": "${runtime_module_path}",
             "PYTHONDONTWRITEBYTECODE": "1",
-            "LANG": "C.UTF-8"
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
           },
           "interpreter": {
             "name": "resource",
@@ -48,6 +59,12 @@
           "commands": [
             {
               "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
                 "${python}",
                 "-B",
                 "-m",
@@ -69,7 +86,12 @@
               "env": {
                 "PYTHONPATH": "${runtime_module_path}",
                 "PYTHONDONTWRITEBYTECODE": "1",
-                "LANG": "C.UTF-8"
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
               },
               "interpreter": {
                 "name": "resource",
@@ -94,6 +116,12 @@
       "commands": [
         {
           "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
             "${python}",
             "-B",
             "-m",
@@ -113,7 +141,12 @@
           "env": {
             "PYTHONPATH": "${runtime_module_path}",
             "PYTHONDONTWRITEBYTECODE": "1",
-            "LANG": "C.UTF-8"
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
           },
           "interpreter": {
             "name": "resource",
@@ -135,6 +168,12 @@
           "commands": [
             {
               "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
                 "${python}",
                 "-B",
                 "-m",
@@ -154,7 +193,12 @@
               "env": {
                 "PYTHONPATH": "${runtime_module_path}",
                 "PYTHONDONTWRITEBYTECODE": "1",
-                "LANG": "C.UTF-8"
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
               },
               "interpreter": {
                 "name": "resource",

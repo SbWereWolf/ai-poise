@@ -45,3 +45,4 @@ dist/
 
 # Working catalogue editor settings; retain its sanitized example.
 /config/catalogue/editor.json
+/start-app.json

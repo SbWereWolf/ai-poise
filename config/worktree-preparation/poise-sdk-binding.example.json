@@ -27,6 +27,12 @@
             "wheelhouse"
           ],
           "value": "${wheelhouse}"
+        },
+        {
+          "path": [
+            "adjust_request"
+          ],
+          "value": "${adjust_request}"
         }
       ]
     }

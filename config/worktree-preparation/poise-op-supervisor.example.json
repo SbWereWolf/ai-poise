@@ -6,7 +6,7 @@
   },
   "interpreters": {
     "exit": {
-      "module": "poise_environment.result_interpreters",
+      "module": "interpreters",
       "attribute": "exit_result"
     }
   }

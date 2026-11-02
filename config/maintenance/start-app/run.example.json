@@ -5,6 +5,12 @@
       "commands": [
         {
           "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
             "${python}",
             "-P",
             "-s",
@@ -20,7 +26,9 @@
           "env": {
             "PYTHONPATH": "${runtime_module_path}",
             "PYTHONDONTWRITEBYTECODE": "1",
-            "LANG": "C.UTF-8"
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${project_list_result_filter}"
           },
           "interpreter": {
             "name": "project-list",

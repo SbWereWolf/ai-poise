@@ -1,0 +1,33 @@
+{
+  "operations": {
+    "infra": "infra.json",
+    "deps": "deps.json",
+    "adjust": "adjust.json",
+    "check": "check.json",
+    "run": "run.json"
+  },
+  "interpreters": {
+    "resource": {
+      "module": "interpreters",
+      "attribute": "exit_result"
+    },
+    "project-list": {
+      "module": "interpreters",
+      "attribute": "exit_result"
+    },
+    "exit": {
+      "module": "interpreters",
+      "attribute": "exit_result"
+    }
+  },
+  "invocation": {
+    "parameters": "parameters.json",
+    "base_dir": ".",
+    "requirements": {
+      "infra": "all",
+      "deps": "all",
+      "adjust": "all",
+      "run": "all"
+    }
+  }
+}

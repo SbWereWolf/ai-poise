@@ -1,0 +1,16 @@
+[
+  {"id": "state-satisfied", "subject": "state", "stdout": "{\"schema\":\"poise/maintenance-action/v2\",\"state\":\"satisfied\"}\n", "exit_code": 0, "success": true},
+  {"id": "state-unavailable", "subject": "state", "stdout": "{\"schema\":\"poise/maintenance-action/v2\",\"state\":\"unavailable\"}\n", "exit_code": 0, "success": false},
+  {"id": "state-schema-mismatch", "subject": "state", "stdout": "{\"schema\":\"other\",\"state\":\"satisfied\"}\n", "exit_code": 0, "success": false},
+  {"id": "state-empty", "subject": "state", "stdout": "", "exit_code": 0, "success": false},
+  {"id": "state-malformed", "subject": "state", "stdout": "not-json\n", "exit_code": 0, "success": false},
+  {"id": "state-upstream-failed", "subject": "state", "stdout": "{\"schema\":\"poise/maintenance-action/v2\",\"state\":\"satisfied\"}\n", "exit_code": 7, "success": false},
+  {"id": "outcome-completed", "subject": "outcome", "stdout": "{\"schema\":\"poise/maintenance-action/v2\",\"outcome\":\"completed\"}\n", "exit_code": 0, "success": true},
+  {"id": "outcome-unavailable", "subject": "outcome", "stdout": "{\"schema\":\"poise/maintenance-action/v2\",\"outcome\":\"unavailable\"}\n", "exit_code": 0, "success": false},
+  {"id": "project-list-valid", "subject": "project-list", "stdout": "{\"projects\":[{\"project\":\"fixture\"}],\"errors\":[]}\n", "exit_code": 0, "success": true},
+  {"id": "project-list-empty", "subject": "project-list", "stdout": "{\"projects\":[],\"errors\":[]}\n", "exit_code": 0, "success": false},
+  {"id": "project-list-errors", "subject": "project-list", "stdout": "{\"projects\":[{\"project\":\"fixture\"}],\"errors\":[{\"reason\":\"unavailable\"}]}\n", "exit_code": 0, "success": false},
+  {"id": "project-list-missing", "subject": "project-list", "stdout": "{\"projects\":[{\"project\":\"fixture\"}]}\n", "exit_code": 0, "success": false},
+  {"id": "project-list-wrong-type", "subject": "project-list", "stdout": "{\"projects\":{},\"errors\":[]}\n", "exit_code": 0, "success": false},
+  {"id": "project-list-upstream-failed", "subject": "project-list", "stdout": "{\"projects\":[{\"project\":\"fixture\"}],\"errors\":[]}\n", "exit_code": 9, "success": false}
+]

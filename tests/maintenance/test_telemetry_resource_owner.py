@@ -77,14 +77,33 @@ def test_absent_store_check_and_creation_remain_owned(selected):
         assert db.execute("SELECT name FROM sqlite_master WHERE name='tasks'").fetchall() == []
 
 
-@pytest.mark.parametrize('kind', ['unsupported', 'corrupt'])
+@pytest.mark.parametrize('kind', ['unsupported', 'corrupt', 'data-page-corrupt'])
 def test_unsupported_existing_store_is_refused_and_preserved(selected, kind):
     _, _, path = selected
     if kind == 'unsupported':
         with sqlite3.connect(path) as db:
             db.executescript('CREATE TABLE alien(id); PRAGMA user_version=99;')
-    else:
+    elif kind == 'corrupt':
         path.write_bytes(b'not a sqlite database\n')
+    else:
+        with TelemetryDatabase(path, path.with_suffix('.lock'), 2.0, 0.01).transaction() as db:
+            db.execute('INSERT INTO accounting_usage VALUES(?,?,?,?,?,?,?,?)',
+                       ('literal-event', None, 'fixture', 'fixture', 'sample', 1,
+                        '2000-01-01T00:00:00Z', '{"count":7}'))
+        reply, value = action(selected, 'check')
+        assert reply.returncode == 0 and value['state'] == 'satisfied'
+        with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True) as db:
+            page_size = db.execute('PRAGMA page_size').fetchone()[0]
+            page = db.execute("SELECT rootpage FROM sqlite_master WHERE name='accounting_usage'").fetchone()[0]
+        with path.open('r+b') as stream:
+            stream.seek((page - 1) * page_size)
+            assert stream.read(1) == b'\r'
+            stream.seek((page - 1) * page_size)
+            stream.write(b'\x00')
+        # The table itself is unreadable, even though schema metadata is intact.
+        with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True) as db:
+            with pytest.raises(sqlite3.DatabaseError):
+                db.execute('SELECT data FROM accounting_usage').fetchall()
     before = path.read_bytes()
     for operation in ('check', 'install'):
         reply, value = action(selected, operation)

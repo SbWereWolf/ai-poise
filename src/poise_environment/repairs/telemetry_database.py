@@ -34,8 +34,9 @@ def handle(args):
     owner = TelemetryDatabase(path, lock, limits["lock_seconds"],
                               limits["lock_poll_seconds"])
     try:
-        with owner.read_transaction():
-            pass
+        with owner.read_transaction() as database:
+            if [row[0] for row in database.execute("PRAGMA integrity_check")] != ["ok"]:
+                return Observation("unavailable", "corrupt")
     except SQLiteBoundaryUnavailable as error:
         return Observation("unavailable", "busy", str(error))
     except sqlite3.DatabaseError as error:

@@ -9,6 +9,10 @@ metadata:
 
 Use this skill only as the reviewer on the existing route. [Evidence-based review](../../../docs/workflows/evidence-based-review.md#что-считать-находкой) owns finding criteria; this skill applies them without adding a lifecycle.
 
+Reject unjustified checks, implementation complexity and duplicate reporting.
+Tie each requested addition to an obligation or concrete current risk.
+Follow [sufficiency](../../../docs/workflows/task-execution-contract.md#достаточность-проверок-и-оформления).
+
 ## Complexity pass
 
 In this existing review stage, read and apply

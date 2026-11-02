@@ -11,6 +11,10 @@ Use when an existing Task is active or the current project's skill selection req
 discipline. This
 skill does not own lifecycle, schema, routing, evidence, history or acceptance.
 
+Keep current-stage plans/results with their existing owner; link shared facts.
+After required proof and finding closure, proceed to acceptance and authorized delivery.
+Follow [sufficiency](../../../docs/workflows/task-execution-contract.md#достаточность-проверок-и-оформления).
+
 ## Goal and requirement boundaries
 
 Preserve the goal throughout the Task, including restart. Do not expand closed

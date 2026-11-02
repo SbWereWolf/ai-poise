@@ -7,6 +7,10 @@ metadata:
 
 # Targeted verification
 
+Choose the smallest sufficient requirement proof; reuse valid evidence.
+Justify each additional check by an uncovered obligation, actual change impact or
+concrete current risk. Follow [sufficiency](../../../docs/workflows/task-execution-contract.md#достаточность-проверок-и-оформления).
+
 ## Inputs
 
 Load at an actual verification/evidence decision, not every implementation start.

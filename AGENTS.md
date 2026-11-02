@@ -246,6 +246,12 @@ Task roots; deliver results before resource retirement. Follow the canonical
 rule](docs/governance/development-rules.md#развёртывание-окружений-и-общая-поставка-инструмента)
 and its linked operator instructions.
 
+Use the smallest sufficient proof for each requirement; reuse valid evidence and
+justify additions by an uncovered obligation, changed impact or concrete current risk.
+Keep plans/results in their existing owner and link instead of duplicating them.
+Reviewers reject unjustified work; deliver once obligations and findings are satisfied.
+Follow [verification and reporting sufficiency](docs/workflows/task-execution-contract.md#достаточность-проверок-и-оформления).
+
 ## Start and finish work
 
 Use the session launcher supplied in the current native hook context, including

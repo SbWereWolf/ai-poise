@@ -213,6 +213,8 @@ def test_declared_deployment_and_five_common_commands_preserve_context(installat
     other_settings['root'] = str(other_profile)
     other_settings['registry'] = 'configured-projects.json'
     write(other_profile / 'setup.json', other_settings)
+    write(other_profile / 'configured-projects.json',
+          {'schema': 'configured-project-registry-1', 'projects': {}})
     for relative in ('config', 'project'):
         origin = case['profile'] / relative
         if origin.exists():
@@ -249,7 +251,7 @@ def test_adjust_applies_declared_existing_setting_through_public_owner(installat
     # The native owner receipt is the authority for a new configuration intent.
     previous_result = receipt.get('result', receipt)
     request.update(request_id='common-entry-align-author',
-                   expected_revision=previous_result['after_revision'],
+                   expected_revision=previous_result['revision'],
                    receipt_path='operations/common-entry-align-author.json')
     request['manifest_edits'] = [{'path': ['git', 'author_name'], 'value': 'Aligned author'}]
     write(case['adjust_request'], request)

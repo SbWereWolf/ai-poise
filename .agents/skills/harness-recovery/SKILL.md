@@ -18,9 +18,12 @@ Canonical policy: [harness failure and manual
 recovery](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 Read that section before choosing a recovery; it owns classification, authority,
 logs, rollback, repair drafts and reconciliation. This skill adds no repair API.
-Use the [common permanent working store](../../../docs/operations/harness-incident-journal.md#постоянное-хранилище)
-and its [record/readback procedure](../../../docs/operations/harness-incident-journal.md#запись-и-проверка).
-Keep operational records outside Git; update versioned known-bug summaries separately.
+Record confirmed defects in the appropriate existing Task, or register one draft.
+Keep full incident/recovery material and necessary attachments in that Task; keep
+only a concise Task-linked known-bug summary in versioned documentation. Follow
+[Task-owned incident materials](../../../docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
+Remove completed Task/session working files after delivery. Do not create external
+permanent operation archives unless the user explicitly requests them.
 Before an agreed restart, both roles inspect the actual progression/position using
 the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
 
@@ -30,19 +33,13 @@ the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#све
 2. Use the available public owner first. Choose a proportionate correction or manual
    route within the assignment. Configuration defects remain obligations until corrected;
    reject and safely roll back failed fixes rather than layering contradictory settings.
-3. Persist every refusal/incident and manual intervention immediately in that common
-   store, with exact changes, authority, alternatives and verification. Sprint/Task
-   documents link to permanent bytes, not the only disposable copy. Read back files
-   and verify SHA-256 before terminal handling or cleanup. If a native owner is
-   unavailable, label native registration absent without postponing permanent storage.
-4. For repeated or repeatable problems, check existing drafts and create or augment one.
-   A draft can request instruction/configuration/procedure repair; code is not automatic.
-   State the required result, observed limitation, existing owner/reusable operation and
-   observable acceptance scenario. A missing capability alone is not a proven code bug.
-   Link distinct occurrence dates/times to the existing description instead of duplicating
-   it or inventing event counts/token savings. Keep Poise's canonical recurrence criterion;
-   do not import an unsupported incident-note API or require a Task for each caller typo.
-   If the API is unavailable, preserve a text draft and the unresolved registration duty.
+3. Record the refusal and recovery in Task-owned materials with cause, authority,
+   exact changes, alternatives and verification. Transfer only necessary reproduction
+   inputs to the defect Task before current-work cleanup. If an API is unavailable,
+   use the authorized manual owner route there; do not invent an API or external store.
+4. Reuse the matching defect Task or register one draft when none fits. Repeated
+   occurrences append their date and facts there. Registration does not authorize
+   code repair. An expected refusal or caller error is not automatically a defect.
 5. Verify the originally blocked action and affected adjacent scenarios. Distinguish
    recovered subject work, repaired configuration/code, unknown outcomes and native
    lifecycle status. Reconcile through the public owner when available again.

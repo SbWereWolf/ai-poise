@@ -191,15 +191,15 @@ Record every accepted global decision in its canonical documentation and a conci
 linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
-Persist every harness refusal and bypass in the [common permanent working
-journal](docs/operations/harness-incident-journal.md#постоянное-хранилище)
-as it occurs, outside Git and disposable Task/runtime roots. Verify retained bytes before terminal
-handling or cleanup;
-keep only active known-bug summaries and common instructions versioned. Deliver accepted common
-logging-rule changes
-immediately under the [explicit direct-master
-scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила), not at the
-subject Task's end.
+Record each confirmed harness defect in its appropriate Task, reusing an existing
+Task or registering one draft when none fits. Put reproduction, recovery records
+and necessary attachments in that Task. Keep only a concise active known-bug
+summary with its Task ID in versioned documentation. Do not create external permanent
+operation journals or completed-work archives. Retire completed Task/session working
+materials after delivery; separate archives require explicit user authority. Follow
+[Task-owned incident materials](docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
+Deliver accepted common recording-rule changes immediately under the
+[direct-master scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила).
 Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the
 same business
 result without duplicate effects. Refusals identify a concrete obstacle and an executable
@@ -1179,15 +1179,14 @@ unnecessary code. Always correct defective configuration; verify the original
 problem is removed, roll back unsuccessful changes, record rejected solutions,
 and avoid cycles of configuration workarounds.
 
-Record every refusal/incident and manual correction separately in the
-[common permanent journal](docs/operations/harness-incident-journal.md#запись-и-проверка),
-including cause, evidence, method, alternatives, verification and remaining limits.
-Sprint/Task materials link to retained files; they are never the only copies.
-Verify permanent-file readback and SHA-256 before Task completion or cleanup.
-Keep operational journals outside Git; version active known-bug summaries and
-common rules. Prepare a repair Task
-draft for recurring failures; label an offline draft honestly while the API is
-unavailable. Maintain active causes and reusable recovery methods in known bugs.
+Record refusals and manual corrections in Task-owned materials. A confirmed defect
+belongs to the appropriate existing Task; register one draft if none fits. Repeated
+occurrences reuse that Task and its necessary attachments. Keep the versioned known-bug
+entry concise and link the Task ID. Follow
+[incident placement](docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
+Transfer necessary defect inputs before retiring the current work; remove completed
+Task/session working files after delivery. Do not create an external permanent journal
+or archive unless the user explicitly requests one. A caller typo is not a new code defect.
 Continue authorized honest subject work manually when the harness obstructs it;
 preserve TDD and independent review, foreign WIP and data integrity. Do not invent
 native receipts or Task completion. A narrow manual data repair needs proven exact

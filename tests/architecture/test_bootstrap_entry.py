@@ -86,13 +86,20 @@ def test_other_context_override_restores_saved_call(installation, tmp_path, cont
     other = tmp_path / "other context"
     other.mkdir()
     before = item["config"].read_bytes()
+    same_flag = "--" + context.replace("_", "-")
     other_flag = "--catalog-dir" if context == "base_dir" else "--base-dir"
-    for arguments in [(), (other_flag, str(other), "--values", "first.json",
+    for arguments in [(), (same_flag, str(other), "--values", "first.json",
+                            "--set", "x=Ж", "--values", "second.json", "--dry-run"), (),
+                       (other_flag, str(other), "--values", "first.json",
                             "--set", "x=Ж", "--values", "second.json", "--dry-run"), ()]:
         assert packet(invoke(item, "check", *arguments, cwd=caller))["status"] == "second-handler"
     ordinary_cwd = item["selected"] if context == "base_dir" else caller
     override_cwd = caller if context == "base_dir" else other
     assert calls(item) == [
+        {"argv": expected_argv(item), "cwd": str(ordinary_cwd)},
+        {"argv": ["check", str(other), item["marker"], str(item["log"]), "ready",
+                  "--values", "first.json", "--set", "x=Ж", "--values", "second.json", "--dry-run"],
+         "cwd": str(other if context == "base_dir" else caller)},
         {"argv": expected_argv(item), "cwd": str(ordinary_cwd)},
         {"argv": expected_argv(item, "check", "--values", "first.json", "--set",
                                "x=Ж", "--values", "second.json", "--dry-run"),

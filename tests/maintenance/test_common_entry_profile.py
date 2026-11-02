@@ -319,3 +319,5 @@ def test_shipped_command_predicates_preserve_real_failures(sample, tmp_path):
     assert (Path(__file__).parent / 'fixtures/self_service/large.stderr.bin').read_bytes() in stderr
     if sample['success']:
         assert json.loads(base64.b64decode(command['stdout']['data'])) == json.loads(sample['stdout'])
+    else:
+        assert base64.b64decode(command['stdout']['data']) == sample['stdout'].encode()

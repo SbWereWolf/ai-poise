@@ -84,6 +84,18 @@ Do not invent resolution proposals or native stage completion before actual fixe
 
 ### Environment maintenance
 
+[Two-word entry and setup instructions](../../../docs/operator/maintenance-profile-v2.md#обычные-команды-start-app).
+Use the installed `start-app` from the serviced checkout; the project supplies persistent JSON.
+
+| Command | Purpose |
+|---|---|
+| `start-app infra` | Prepare infrastructure and its tool prerequisites. |
+| `start-app deps` | Install application dependencies. |
+| `start-app adjust` | Apply the configured project adjustment request. |
+| `start-app check` | Check declared resources and configuration. |
+| `start-app run` | Execute the configured launch chain. |
+
+
 Use the [SDK2 instance/action setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
 and [Task-worktree configuration](../../../docs/operator/start-app-worktree-setup.md#подключение-установленного-инструмента).
 Use the [persistent ERP CLI dependency projection](../../../docs/operator/maintenance-profile-v2.md#дополнительные-cli-зависимости-erp)

@@ -1137,6 +1137,74 @@
       }
     },
     {
+      "id": "requirements-migration-tools",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-P",
+            "-s",
+            "-B",
+            "-m",
+            "pip",
+            "install",
+            "--no-index",
+            "--find-links",
+            "${wheelhouse}",
+            "--target",
+            "${dependency_target}",
+            "yoyo-migrations==9.0.0",
+            "sqlparse==0.6.0"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "-P",
+                "-s",
+                "-B",
+                "-c",
+                "import sqlparse, yoyo, sys; from pathlib import Path; target = Path(sys.argv[1]).resolve(); assert all(Path(module.__file__).resolve().is_relative_to(target) for module in (sqlparse, yoyo)); print(\"migration tools available in serviced target\")",
+                "${dependency_target}"
+              ],
+              "cwd": "${repository}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "poise-requirements-database",
       "commands": [
         {

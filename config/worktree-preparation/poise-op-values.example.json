@@ -23,7 +23,8 @@
     "consumer_root": "${repository}/.runtime/environment-consumer",
     "application_source": "${repository}",
     "runtime_module_path": "${repository}/src:${repository}/.runtime/dependencies:${repository}",
-    "template_id": "linux-reference"
+    "template_id": "linux-reference",
+    "adjust_request": "${profile_root}/adjust-request.json"
   },
   "prepare_command": [
     "${start_app}",

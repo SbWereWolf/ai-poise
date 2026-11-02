@@ -57,6 +57,9 @@ def serviced(tmp_path, request):
     cloned = command(['git', 'clone', '--local', '--no-hardlinks', source, root], cwd=tmp_path)
     assert cloned.returncode == 0, ('SETUP: private serviced checkout', cloned.stderr)
     assert source != root
+    # Only the private serviced project receives the independent test data.
+    shutil.copy2(FIXTURES / 'requirements-data.py',
+                 root / 'docs/requirements/data/0001.py')
     # Only the declared source has this input marker; repository assets cannot
     # silently substitute for the source selected by --source.
     source_app = source / 'config/maintenance/start-app/app.example.json'
@@ -130,13 +133,18 @@ def inspect_required_stores(paths):
         assert db.execute('SELECT id,task_id FROM sessions ORDER BY id').fetchall() == []
         assert db.execute('SELECT task_id,stage,iteration FROM submissions ORDER BY seq').fetchall() == []
     with sqlite3.connect(requirements.as_uri() + '?mode=ro', uri=True) as db:
-        assert db.execute('PRAGMA user_version').fetchone() == (2,)
-        assert db.execute('SELECT revision FROM requirements_meta').fetchall() == [(0,)]
-        assert db.execute('SELECT id,level,status,text FROM requirements ORDER BY id').fetchall() == []
-        assert db.execute('SELECT system_id,application_id FROM requirement_links ORDER BY system_id,application_id').fetchall() == []
+        assert db.execute('SELECT migration_id FROM _poise_requirements_schema ORDER BY migration_id').fetchall() == [('0001',)]
+        assert db.execute('SELECT migration_id FROM _poise_requirements_data ORDER BY migration_id').fetchall() == [('0001',)]
+        assert db.execute('SELECT revision FROM requirements_meta').fetchall() == [(17,)]
+        assert db.execute('SELECT id,level,status,text FROM requirements ORDER BY id').fetchall() == [
+            ('APP-PRIVATE-ENV', 'application', 'current', 'Тестовая подготовка окружения'),
+            ('SYS-PRIVATE-ENV', 'system', 'current', 'Тестовое окружение'),
+        ]
+        assert db.execute('SELECT system_id,application_id FROM requirement_links ORDER BY system_id,application_id').fetchall() == [('SYS-PRIVATE-ENV', 'APP-PRIVATE-ENV')]
         assert db.execute('SELECT id,business_name,definition FROM domain_areas ORDER BY id').fetchall() == []
     with sqlite3.connect(telemetry.as_uri() + '?mode=ro', uri=True) as db:
-        assert db.execute('PRAGMA user_version').fetchone() == (13,)
+        assert db.execute('PRAGMA application_id').fetchone() == (1346456881,)
+        assert db.execute('PRAGMA user_version').fetchone() == (1,)
         assert db.execute('SELECT id,project,source,sequence FROM accounting_usage ORDER BY id').fetchall() == []
         assert db.execute('SELECT id,task_id,session_id,started_at,ended_at FROM accounting_cycles ORDER BY id').fetchall() == []
 

@@ -1,6 +1,12 @@
-PRAGMA user_version=2;
 CREATE TABLE requirements_meta(revision INTEGER);
-INSERT INTO requirements_meta(revision) VALUES(0);
+INSERT INTO requirements_meta(revision) VALUES(17);
 CREATE TABLE requirements(id TEXT PRIMARY KEY,level TEXT,status TEXT,text TEXT);
+INSERT INTO requirements VALUES('SYS-PRIVATE-ENV','system','current','Тестовое окружение');
+INSERT INTO requirements VALUES('APP-PRIVATE-ENV','application','current','Тестовая подготовка окружения');
 CREATE TABLE requirement_links(system_id TEXT,application_id TEXT);
+INSERT INTO requirement_links VALUES('SYS-PRIVATE-ENV','APP-PRIVATE-ENV');
 CREATE TABLE domain_areas(id TEXT PRIMARY KEY,business_name TEXT,definition TEXT);
+CREATE TABLE _poise_requirements_schema(migration_hash TEXT,migration_id TEXT,applied_at_utc TEXT);
+INSERT INTO _poise_requirements_schema VALUES('fixture-schema','0001','2000-01-01T00:00:00Z');
+CREATE TABLE _poise_requirements_data(migration_hash TEXT,migration_id TEXT,applied_at_utc TEXT);
+INSERT INTO _poise_requirements_data VALUES('fixture-data','0001','2000-01-01T00:00:00Z');

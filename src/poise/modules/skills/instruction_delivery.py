@@ -118,7 +118,7 @@ def delivery_result(observation, request):
     before = {} if previous is None else {
         material_key(record): record['sha256'] for record in previous['materials']}
     retained = set(request['retained'])
-    require(retained <= before.keys(), 'retained')
+    require(previous is None or retained <= before.keys(), 'retained')
     context = {key: request['context'][key] for key in ('id', 'generation')}
     comparable = (previous is not None and request['context']['reason'] == 'continue'
                   and previous['context'] == context and previous['stage'] == request['stage']

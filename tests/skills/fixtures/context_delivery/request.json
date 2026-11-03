@@ -1,0 +1,27 @@
+{
+  "operation": "deliver",
+  "project_config": "$CONFIG",
+  "checkout": "$CHECKOUT",
+  "policy": "$POLICY",
+  "paths": [
+    "src/billing/invoice.py"
+  ],
+  "stage": {
+    "id": "implementation",
+    "skill_ids": [
+      "writing"
+    ]
+  },
+  "context": {
+    "id": "context-alpha",
+    "generation": 1,
+    "reason": "initial"
+  },
+  "previous": null,
+  "retained": [],
+  "tool": {
+    "id": "skills",
+    "root": "instructions",
+    "path": ".agents/guides/skills.md"
+  }
+}

@@ -1,0 +1,10 @@
+[
+  "rule:AGENTS.md:checkout:AGENTS.md",
+  "rule:src/AGENTS.md:checkout:src/AGENTS.md",
+  "rule:src/billing/AGENTS.md:checkout:src/billing/AGENTS.md",
+  "skill:audit:instructions:.agents/skills/audit/SKILL.md",
+  "skill:billing:instructions:.agents/skills/billing/SKILL.md",
+  "skill:core:instructions:.agents/skills/core/SKILL.md",
+  "skill:writing:instructions:.agents/skills/writing/SKILL.md",
+  "tool:skills:instructions:.agents/guides/skills.md"
+]

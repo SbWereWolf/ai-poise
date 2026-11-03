@@ -1,0 +1,7 @@
+[
+  {
+    "code": "missing_required_material",
+    "key": "tool:skills:instructions:.agents/guides/skills.md",
+    "action": "restore:instructions:.agents/guides/skills.md"
+  }
+]

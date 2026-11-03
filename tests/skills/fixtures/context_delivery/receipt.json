@@ -1,0 +1,77 @@
+{
+  "schema": "poise-instruction-delivery-receipt-1",
+  "project": "alpha",
+  "checkout": "$CHECKOUT",
+  "instruction_root": "$CHECKOUT",
+  "context": {
+    "id": "context-alpha",
+    "generation": 1
+  },
+  "stage": {
+    "id": "implementation",
+    "skill_ids": [
+      "writing"
+    ]
+  },
+  "paths": [
+    "src/billing/invoice.py"
+  ],
+  "materials": [
+    {
+      "kind": "rule",
+      "id": "AGENTS.md",
+      "root": "checkout",
+      "path": "AGENTS.md",
+      "sha256": "96d6e1adbf3e611aaf81c445497891eb786c8b032c35f5b1d95a77ee20cee7a9"
+    },
+    {
+      "kind": "rule",
+      "id": "src/AGENTS.md",
+      "root": "checkout",
+      "path": "src/AGENTS.md",
+      "sha256": "9bf0513edefdb77f748b1cb50c740f6ba0b208f27437b5ef5f52b53f0068efd1"
+    },
+    {
+      "kind": "rule",
+      "id": "src/billing/AGENTS.md",
+      "root": "checkout",
+      "path": "src/billing/AGENTS.md",
+      "sha256": "5d1700267d1a83299050cc5d92f1086ddfd3ea32cb6cb215373f69000f648081"
+    },
+    {
+      "kind": "skill",
+      "id": "audit",
+      "root": "instructions",
+      "path": ".agents/skills/audit/SKILL.md",
+      "sha256": "6947e5377256136ea0c873fde4b4f279087c2997e4833e37eb920e9c496bcc5c"
+    },
+    {
+      "kind": "skill",
+      "id": "billing",
+      "root": "instructions",
+      "path": ".agents/skills/billing/SKILL.md",
+      "sha256": "d7286ed4b7910395c86a5d1eb95b3532a8f17937b8f7b0d7e5ac947ab0e19fc2"
+    },
+    {
+      "kind": "skill",
+      "id": "core",
+      "root": "instructions",
+      "path": ".agents/skills/core/SKILL.md",
+      "sha256": "9d75cbe77517e10158d807e329def0bf933e24061ec31089c9ffcfe861382c08"
+    },
+    {
+      "kind": "skill",
+      "id": "writing",
+      "root": "instructions",
+      "path": ".agents/skills/writing/SKILL.md",
+      "sha256": "2e0bed6bf9ad5ad8caca6b9e4ebfbddb2722ec6dcb51be3f33891887920ca629"
+    },
+    {
+      "kind": "tool",
+      "id": "skills",
+      "root": "instructions",
+      "path": ".agents/guides/skills.md",
+      "sha256": "a799cf3b6e7f3a57f54e9b4285c361d52462db74439ed85ad1f3e40a51620aca"
+    }
+  ]
+}

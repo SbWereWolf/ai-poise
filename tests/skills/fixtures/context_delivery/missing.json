@@ -1,0 +1,23 @@
+{
+  "billing": [
+    {
+      "code": "missing_required_material",
+      "key": "skill:billing:instructions:.agents/skills/billing/SKILL.md",
+      "action": "restore:instructions:.agents/skills/billing/SKILL.md"
+    }
+  ],
+  "audit": [
+    {
+      "code": "missing_recommended_material",
+      "key": "skill:audit:instructions:.agents/skills/audit/SKILL.md",
+      "action": "restore:instructions:.agents/skills/audit/SKILL.md"
+    }
+  ],
+  "writing": [
+    {
+      "code": "missing_required_material",
+      "key": "skill:writing:instructions:.agents/skills/writing/SKILL.md",
+      "action": "restore:instructions:.agents/skills/writing/SKILL.md"
+    }
+  ]
+}

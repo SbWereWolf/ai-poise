@@ -87,18 +87,27 @@ def assess_handoff(handoff, intent):
                             f'Выполните show для Task {task} через исходного владельца handoff.',
                             status='unknown', phase='handoff')
     if native.get('status') == 'handoff_blocked':
-        blocked = native.get('blocked') or {}
+        blocked = native.get('blocked')
+        if (not isinstance(blocked, dict) or not isinstance(blocked.get('reason'), str)
+                or not required_text(blocked.get('continuation'))):
+            return ProxyFailure('handoff_unconfirmed', 'Native blocked имеет непригодную форму; полный ответ сохранён.',
+                                replay, status='unknown', phase='handoff')
         return ProxyFailure('handoff_blocked', blocked.get('reason') or 'Native handoff остановлен.',
-                            blocked.get('continuation') or replay, phase='handoff')
+                            blocked['continuation'], phase='handoff')
     verification = native.get('verification')
     if not isinstance(verification, dict) or verification.get('status') != 'verified':
         return ProxyFailure('handoff_not_verified', 'Результат не прошёл native verification.',
                             f'Выполните согласованный rework Task {task} через владельца результата.', phase='handoff')
+    before = release.get('before') if isinstance(release, dict) else None
+    after = release.get('after') if isinstance(release, dict) else None
+    independent_retained = (isinstance(before, dict) and isinstance(after, dict)
+                            and required_text(after.get('worktree_task_id'))
+                            and after['worktree_task_id'] != task
+                            and before.get('worktree_task_id') == after['worktree_task_id'])
     if (not isinstance(release, dict) or release.get('status') != 'ownership_released'
-            or not isinstance(release.get('after'), dict)
-            or not {'task_id', 'worktree_task_id'}.issubset(release['after'])
-            or release['after'].get('task_id') is not None
-            or release['after'].get('worktree_task_id') is not None):
+            or not isinstance(after, dict) or not {'task_id', 'worktree_task_id'}.issubset(after)
+            or after['task_id'] is not None
+            or after['worktree_task_id'] is not None and not independent_retained):
         return ProxyFailure('handoff_not_released', 'Освобождение владения не подтверждено.',
                             f'Установите фактическое владение и завершите release Task {task} через его владельца.',
                             phase='handoff')

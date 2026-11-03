@@ -1,0 +1,36 @@
+{
+  "role": {
+    "status": "role_handoff_required",
+    "stage": "author",
+    "next_stage": "review",
+    "from_role": "executor",
+    "to_role": "reviewer",
+    "progression": {
+      "request_id": "progression-1",
+      "target_stage": null,
+      "status": "active"
+    }
+  },
+  "same_role": {
+    "status": "progression_work_required",
+    "stage": "next_work",
+    "workflow": {
+      "role": "executor"
+    },
+    "progression": {
+      "request_id": "progression-2",
+      "target_stage": null,
+      "status": "active"
+    }
+  },
+  "acceptance": {
+    "status": "progression_stopped",
+    "stage": "review",
+    "reason": "task_acceptance_required",
+    "progression": {
+      "request_id": "progression-3",
+      "target_stage": null,
+      "status": "active"
+    }
+  }
+}

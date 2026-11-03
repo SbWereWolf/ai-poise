@@ -1,0 +1,49 @@
+{
+  "operation": "deliver",
+  "input": {
+    "handoff": {
+      "operation": "handoff",
+      "input": {
+        "request_id": "proxy-request-1",
+        "task_id": "T1",
+        "reason": "Transfer the explicitly supplied stage result.",
+        "result": {
+          "sections": {
+            "report": "Explicit stage result."
+          },
+          "artifact_paths": [],
+          "commit_message": "Record the independently supplied stage result",
+          "content_additions": {
+            "sections": [],
+            "routes": [],
+            "requirements": []
+          },
+          "trace": {},
+          "method_additions": [],
+          "stage_work": {},
+          "evidence_work": {
+            "phase": "prepare",
+            "arguments": [],
+            "decisions": []
+          }
+        },
+        "artifacts": [
+          {
+            "scope": "task",
+            "path": "result.txt",
+            "source": {
+              "kind": "text",
+              "text": "Independent stage artifact.\n"
+            }
+          }
+        ]
+      },
+      "messages": []
+    },
+    "recipient": {
+      "thread_id": "fixture-receiver",
+      "host_id": "local"
+    },
+    "message": "Передаю подготовленный результат на независимую проверку."
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "schema": "poise-project-instructions-1",
+  "schema": "poise-instruction-delivery-1",
   "status": "rejected",
   "error": {
     "code": "invalid_request",

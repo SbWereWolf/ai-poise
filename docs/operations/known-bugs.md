@@ -988,23 +988,6 @@ before/after и результаты находятся в
 каталог `F10-COMMIT-RULES/`: `incidents.md`, `manual-corrections.md`,
 `operator-profile-repair-draft.md` и `preparation-evidence/`.
 
-## AIP-MANUAL-COMPLETION-READ-001 — чтение ручного завершения
-
-**Task:** `AIP-MANUAL-COMPLETION-READ-001`; подробности и минимальное
-воспроизведение зарегистрированы в её вложении
-`source-materials/manual-completion-read.json`.
-
-Чтение вручную завершённой Task без текущего native GREEN блокирует bootstrap,
-поставку и интеграцию: `Для выхода из inspection требуется текущий GREEN executable-test`.
-Подтверждённый владелец — [terminal projection](../../src/poise/infrastructure/sqlite/queries.py),
-`TaskQueries.project_record`. Код дефекта пока не исправлен.
-
-Разовый согласованный read-only adapter одного экземпляра runtime пропустил только
-inspection-read gate; реальные данные, реестр и проверки владельцев сохранены.
-Владельцы выполнили поставку и очистку, adapter снят. Это ручной обход по
-[правилу восстановления](../governance/development-rules.md#сбой-harness-и-ручной-обход),
-а не постоянная настройка или прохождение пропущенных native-этапов.
-
 ## POISE-OP-WORKTREE-ROOT-LIFECYCLE-001 — внешний корень рабочего дерева
 
 **Task:** `POISE-OP-WORKTREE-ROOT-LIFECYCLE-001`; минимальный случай находится

@@ -530,6 +530,12 @@ Keep this English projection and its Russian source consistent in the same chang
   your own pending
   assignments is required. See [direct role
   handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+- After confirmed notification, end the turn when no own assigned work is actionable.
+  Preserve the expected counterpart decision and next action; an incoming result message resumes
+  the assignment. Waiting for that reply does not require model calls, timers or background polling.
+  A send receipt confirms submission, not recipient completion. Recover notification errors against
+  the saved result, and finish already-started own operations. Follow
+  [ending the turn after handoff](docs/workflows/local-handoff.md#завершение-хода-после-передачи).
 - Inspect Git state before the first write. Preserve unrelated changes. If a modified or untracked
   path's ownership is
   unclear, obtain an explicit user decision before altering it. Never reset, restore, stage or

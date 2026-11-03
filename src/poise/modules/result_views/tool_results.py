@@ -243,6 +243,14 @@ class ToolResultPolicy:
                         or not isinstance(item['registration_command'], list) or not item['registration_command']
                         or any(not text(a) for a in item['registration_command'])):
                     raise ValueError('Invalid unknown input delivery')
+            if 'service_entry' in raw:
+                entry = raw['service_entry']
+                exact(entry, {'argv', 'cwd'})
+                if (not isinstance(entry['argv'], list) or not entry['argv']
+                        or any(not text(arg) for arg in entry['argv'])
+                        or entry['argv'][-1] != 'tool-result'
+                        or not text(entry['cwd']) or not entry['cwd'].startswith('/')):
+                    raise ValueError('Invalid saved-result service entry')
             return cls(deepcopy(raw))
         except (DomainError, KeyError, TypeError, ValueError, re.error) as exc:
             raise ToolResultFailure('invalid_policy', 'policy', 'correct:policy') from exc

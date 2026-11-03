@@ -203,7 +203,7 @@ def test_mcp_content_public_session(project, tmp_path, case):
     assert delivery['event']['tool_response'] == response and event == original
     assert 'tool-result' in [item['configuration']['handler_id'] for item in delivery['invocations']]
     assert observed.inputs == [response], 'F08_ACTUAL_MCP_CONTENT_UNSUPPORTED: public prepare not reached'
-    assert actual['continue'] is False
+    assert actual.get('continue') is not False
     text = actual['hookSpecificOutput']['additionalContext']
     if case == 'malformed':
         assert json.loads(text) == data('errors')['native_parser']
@@ -211,7 +211,7 @@ def test_mcp_content_public_session(project, tmp_path, case):
         assert scene.service('full')['run_id'] == predecessor['run_id']
         output = next(item for item in delivery['invocations']
                       if item['configuration']['handler_id'] == 'tool-result')
-        assert output['result']['control']['action'] == 'stop'
+        assert output['result']['control']['action'] == 'continue'
         assert scene.policy_path.read_bytes() == policy_bytes
         return
     assert text == data('expected')[name]['brief']
@@ -241,7 +241,7 @@ def test_mcp_content_public_session(project, tmp_path, case):
         with ParserCalls(prepare_owner()) as service_calls:
             delivered = chain.invoke(service, event_name='PostToolUse')
         assert service_calls.inputs == [] and scene.snapshot() == before_services
-        assert delivered['continue'] is False
+        assert delivered.get('continue') is not False
         assert delivered['hookSpecificOutput']['additionalContext'] == (
             answer['text'] if operation == 'expanded' else answer['full_path'])
         trace(MARKER, 'actual_associated_service', operation=operation,

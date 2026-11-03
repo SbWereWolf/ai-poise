@@ -9,7 +9,11 @@ from tests.runtime_services.session_tool_results_support import OutputCapability
 def scene_for_chain(chain, project, parent):
     """Reuse the already publicly selected general profile; never republish it."""
     selected = {**project, 'cfg': chain.general.profile, 'config_path': chain.general.path}
-    return SessionScenario(selected, parent)
+    scene = SessionScenario(selected, parent)
+    # Native observation preserves the host result; legacy enforcement is tested explicitly.
+    scene.policy['hook']['mode'] = 'audit'
+    scene.save_policy()
+    return scene
 
 
 def output_handler(policy_path):

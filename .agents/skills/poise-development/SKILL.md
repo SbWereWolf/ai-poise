@@ -179,6 +179,13 @@ Follow the canonical [executor/reviewer stage policy](../../../docs/governance/d
 
 After release and notification, continue actionable received assignments or the authorized stage/Task chain in the same turn. Track assignments until completed, cancelled or explicitly transferred, including pending work and blockers in checkpoints and compaction context. New messages add work unless they explicitly change an assignment; acknowledgment is not completion. Before a final answer, account for every pending assignment; end only when no authorized actionable work remains, preserving each remaining blocker and next action. Finish your own already-started operations. Checking your own pending work is required; do not poll the other agent's status, read its conversation for progress or schedule background monitoring.
 
+After confirmed notification, end the turn if no own assigned work is actionable. Preserve the
+pending counterpart decision and next action for continuation on an incoming result message.
+Do not keep the turn alive with model calls, timers or background polling. A send receipt proves
+submission, not recipient completion. Recover notification errors using the saved result and finish
+own running operations. Follow [ending the turn after
+handoff](../../../docs/workflows/local-handoff.md#завершение-хода-после-передачи).
+
 Before project setup, changing `git.base_ref`, or integration, read the canonical [target branch
 selection](../../../docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
 Treat the accepted commit as immutable. Complete delivery by advancing the existing task branch in its existing task worktree: update from the current configured target branch, merge, resolve conflicts there, and rerun every current produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The terminal content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards. Do not create a separate integration branch or worktree. Stop automation on conflicts for agent resolution in the task worktree. Under the shared target lock, recheck the configured target and repeat the cycle on drift. Publish only with `git merge --ff-only <task-branch>` in the main checkout; never directly update or force-update the target ref.

@@ -948,10 +948,13 @@ work. End the turn
 only when none remains; preserve the next action and concrete blocker for each pending assignment. A
 blocker on one Task
 does not stop other assigned work when ownership permits switching. Complete your own
-already-started operations. Never
-rely on another message to restart work that has already been assigned; duplicate notifications do
-not require repeating
-completed work.
+already-started operations. When own assigned work is actionable, continue without another prompt.
+After confirmed notification, if continuation depends only on the counterpart's result, preserve
+that dependency and next action, then end the turn. Resume on the incoming result message;
+do not wait through model calls, timers or background polling. A send receipt confirms submission,
+not recipient completion. Recover notification errors against the same saved result.
+Duplicate notifications do not require repeating completed work. Follow
+[ending the turn after handoff](../../../docs/workflows/local-handoff.md#завершение-хода-после-передачи).
 
 Scoped export/import is removed. Continue the same Task and working area through ordinary
 release/bootstrap; do not merge task databases or copy work materials between participants.

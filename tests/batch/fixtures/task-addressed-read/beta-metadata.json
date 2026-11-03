@@ -1,0 +1,160 @@
+{
+  "contract": {
+    "id": "READ-BETA",
+    "sprint_id": null,
+    "goal_type": "development",
+    "goal": "Адресат B.",
+    "requirements": [
+      "Требование B."
+    ],
+    "definition_of_done": [
+      "Результат B."
+    ],
+    "methods": [],
+    "method_inputs": [],
+    "checks": {
+      "beta_step": []
+    },
+    "artifact_requirements": [],
+    "content_contract": {
+      "sections": [
+        {
+          "id": "notes",
+          "template": "Наблюдения A.",
+          "write_stages": [
+            "beta_step"
+          ],
+          "normalization": "strip"
+        }
+      ],
+      "routes": [],
+      "requirements": []
+    },
+    "evidence_plan": {
+      "beta_step": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "beta_step",
+        "allowed_paths": [
+          "src/beta/**"
+        ],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [
+            "Критерий B."
+          ],
+          "definition_of_ready": [
+            "Вход B."
+          ],
+          "definition_of_done": [
+            "Выход B."
+          ]
+        }
+      }
+    ],
+    "decomposition": {
+      "kind": "ordinary",
+      "phases": [
+        {
+          "stage": "beta_step",
+          "skills": [
+            "workflow"
+          ],
+          "areas": [
+            "src/beta/**"
+          ]
+        }
+      ],
+      "integration": null
+    }
+  },
+  "workflow": {
+    "goal_type": "development",
+    "worktree_required": false,
+    "route": {
+      "entry": "beta_step"
+    },
+    "stages": [
+      {
+        "id": "beta_step",
+        "handler": "produce",
+        "role": "executor",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "read_only": false,
+        "allowed_paths": [
+          "src/beta/**"
+        ],
+        "sections": {
+          "report": "A report is required."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "normalization": "strip",
+        "instruction": "Изучить данные B.",
+        "rework_targets": [],
+        "transitions": {
+          "complete": null
+        },
+        "artifact_requirements": []
+      }
+    ],
+    "benefit": {
+      "git_categories": [],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "sprint_id": null,
+  "goal": "Адресат B.",
+  "config_hash": "test-config",
+  "stage_criteria": {
+    "stages": {
+      "beta_step": {
+        "purpose": "execution",
+        "revision": 0,
+        "criteria": {
+          "requirements": [
+            "Критерий B."
+          ],
+          "definition_of_ready": [
+            "Вход B."
+          ],
+          "definition_of_done": [
+            "Выход B."
+          ]
+        },
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "source": {
+          "kind": "initial",
+          "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "execution": {
+          "state": "started",
+          "epoch": 1,
+          "bound_revision": 0
+        },
+        "proposals": [],
+        "history": [],
+        "revisions": []
+      }
+    },
+    "requests": {}
+  }
+}

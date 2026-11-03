@@ -1,0 +1,11 @@
+{
+  "sprint_id": null,
+  "goal": "Неполный черновик.",
+  "config_hash": "fixture",
+  "newborn": {
+    "draft": {
+      "goal": "Неполный черновик."
+    },
+    "ready": false
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "contract": {
+    "id": "READ-ALPHA",
+    "sprint_id": null,
+    "goal_type": "development",
+    "goal": "Адресат A.",
+    "requirements": [
+      "Требование A."
+    ],
+    "definition_of_done": [
+      "Результат A."
+    ],
+    "methods": [],
+    "method_inputs": [],
+    "checks": {
+      "work": []
+    },
+    "artifact_requirements": [],
+    "content_contract": {
+      "sections": [
+        {
+          "id": "notes",
+          "template": "Наблюдения A.",
+          "write_stages": [
+            "work"
+          ],
+          "normalization": "strip"
+        }
+      ],
+      "routes": [],
+      "requirements": []
+    },
+    "evidence_plan": {
+      "work": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "work",
+        "allowed_paths": [
+          "src/alpha/**"
+        ],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [
+            "Критерий A."
+          ],
+          "definition_of_ready": [
+            "Вход A."
+          ],
+          "definition_of_done": [
+            "Выход A."
+          ]
+        }
+      }
+    ],
+    "decomposition": {
+      "kind": "ordinary",
+      "phases": [
+        {
+          "stage": "work",
+          "skills": [
+            "task-domain"
+          ],
+          "areas": [
+            "src/alpha/**"
+          ]
+        }
+      ],
+      "integration": null
+    }
+  },
+  "workflow": {
+    "goal_type": "development",
+    "worktree_required": false,
+    "route": {
+      "entry": "work"
+    },
+    "stages": [
+      {
+        "id": "work",
+        "handler": "produce",
+        "role": "executor",
+        "purpose": "execution",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "read_only": false,
+        "allowed_paths": [
+          "src/alpha/**"
+        ],
+        "sections": {
+          "report": "A report is required."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "normalization": "strip",
+        "instruction": "Изучить данные A.",
+        "rework_targets": [],
+        "transitions": {
+          "complete": null
+        },
+        "artifact_requirements": []
+      }
+    ],
+    "benefit": {
+      "git_categories": [],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "sprint_id": null,
+  "goal": "Адресат A.",
+  "config_hash": "test-config",
+  "stage_criteria": {
+    "stages": {
+      "work": {
+        "purpose": "execution",
+        "revision": 0,
+        "criteria": {
+          "requirements": [
+            "Критерий A."
+          ],
+          "definition_of_ready": [
+            "Вход A."
+          ],
+          "definition_of_done": [
+            "Выход A."
+          ]
+        },
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "source": {
+          "kind": "initial",
+          "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "execution": {
+          "state": "started",
+          "epoch": 1,
+          "bound_revision": 0
+        },
+        "proposals": [],
+        "history": [],
+        "revisions": []
+      }
+    },
+    "requests": {}
+  }
+}

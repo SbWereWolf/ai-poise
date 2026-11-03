@@ -1,0 +1,157 @@
+{
+  "contract": {
+    "id": "CURRENT-OTHER",
+    "sprint_id": null,
+    "goal_type": "development",
+    "goal": "Текущая задача читателя.",
+    "requirements": [
+      "Требование читателя."
+    ],
+    "definition_of_done": [
+      "Результат читателя."
+    ],
+    "methods": [],
+    "method_inputs": [],
+    "checks": {
+      "reader_step": []
+    },
+    "artifact_requirements": [],
+    "content_contract": {
+      "sections": [
+        {
+          "id": "notes",
+          "template": "Наблюдения A.",
+          "write_stages": [
+            "reader_step"
+          ],
+          "normalization": "strip"
+        }
+      ],
+      "routes": [],
+      "requirements": []
+    },
+    "evidence_plan": {
+      "reader_step": {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": []
+      }
+    },
+    "stage_contracts": [
+      {
+        "stage_id": "reader_step",
+        "allowed_paths": [],
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "criteria": {
+          "requirements": [
+            "Критерий читателя."
+          ],
+          "definition_of_ready": [
+            "Вход читателя."
+          ],
+          "definition_of_done": [
+            "Выход читателя."
+          ]
+        }
+      }
+    ],
+    "decomposition": {
+      "kind": "ordinary",
+      "phases": [
+        {
+          "stage": "reader_step",
+          "skills": [
+            "python"
+          ],
+          "areas": []
+        }
+      ],
+      "integration": null
+    }
+  },
+  "workflow": {
+    "goal_type": "development",
+    "worktree_required": false,
+    "route": {
+      "entry": "reader_step"
+    },
+    "stages": [
+      {
+        "id": "reader_step",
+        "handler": "inspect",
+        "role": "reviewer",
+        "purpose": "observation",
+        "criteria_authority": {
+          "propose": [],
+          "decide": []
+        },
+        "read_only": true,
+        "allowed_paths": [],
+        "sections": {
+          "report": "A report is required."
+        },
+        "required_sections": [
+          "report"
+        ],
+        "normalization": "strip",
+        "instruction": "Изучить текущую задачу читателя.",
+        "rework_targets": [
+          "reader_step"
+        ],
+        "transitions": {
+          "changes_requested": "reader_step",
+          "clear": null
+        },
+        "artifact_requirements": []
+      }
+    ],
+    "benefit": {
+      "git_categories": [],
+      "sections": []
+    },
+    "content_contract": {
+      "sections": [],
+      "routes": [],
+      "requirements": []
+    }
+  },
+  "sprint_id": null,
+  "goal": "Текущая задача читателя.",
+  "config_hash": "test-config",
+  "stage_criteria": {
+    "stages": {
+      "reader_step": {
+        "purpose": "observation",
+        "revision": 0,
+        "criteria": {
+          "requirements": [
+            "Критерий читателя."
+          ],
+          "definition_of_ready": [
+            "Вход читателя."
+          ],
+          "definition_of_done": [
+            "Выход читателя."
+          ]
+        },
+        "entry_requirements": [],
+        "exit_requirements": [],
+        "source": {
+          "kind": "initial",
+          "contract_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requirements_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "execution": {
+          "state": "started",
+          "epoch": 1,
+          "bound_revision": 0
+        },
+        "proposals": [],
+        "history": [],
+        "revisions": []
+      }
+    },
+    "requests": {}
+  }
+}

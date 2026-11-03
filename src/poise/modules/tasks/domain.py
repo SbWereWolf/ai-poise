@@ -1091,17 +1091,26 @@ class Task:
         progress=self.route.enter(self.progress,destination)
         return self._enter('user_action_rework',feedback,actor,destination,progress)
 
-    def workflow_context(self) -> dict:
-        contracts = self._require_stage_contracts()
-        node = self.route.node(self.stage.stage_id)
+    def content_context(self) -> dict:
+        context = self.content_policy.describe(self.stage.stage_id, self.content_snapshot)
+        contract = self._require_stage_contracts().stage(self.stage.stage_id)
+        active = set(contract.entry_requirements + contract.exit_requirements)
+        return {**context, "due": [item for item in context["due"] if item["id"] in active]}
+
+    def feedback_context(self) -> dict:
         feedback = self.feedback
         if self.state.status == TaskStatus.ACTIVE and self.progress.stage_work is not None:
             feedback = self._handling().feedback
+        return feedback.context()
+
+    def workflow_context(self) -> dict:
+        contracts = self._require_stage_contracts()
+        node = self.route.node(self.stage.stage_id)
         next_stage = None if self.progress.outcome is None else node.target(self.progress.outcome)
         return {"handler":node.handler.value, "role":node.role, "outcome":self.progress.outcome,
                 "next_stage":next_stage, "terminal":self.progress.outcome is not None and next_stage is None,
                 "visits":dict(self.progress.visits), "transitions":self.progress.transitions,
-                "rework_targets":list(node.rework_targets), "feedback":feedback.context(),
+                "rework_targets":list(node.rework_targets), "feedback":self.feedback_context(),
                 "stage_work_template":handler(node.handler).template(), "evidence":self.evidence_context(),
                 "stage_contract":contracts.stage(self.stage.stage_id).to_dict()}
 

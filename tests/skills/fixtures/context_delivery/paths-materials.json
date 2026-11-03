@@ -10,6 +10,7 @@
     ],
     "required": true,
     "reasons": [
+      "ancestor:docs/guide.md",
       "ancestor:src/billing/invoice.py"
     ],
     "available": true,

@@ -387,7 +387,7 @@ class FileToolResultStore:
         return sources
 
 
-def _service_request(event, policy_path, settings):
+def _service_request(event, policy_path, settings, entry=None):
     """Validate the same entry, selection and optional recorded stdin for both outcomes."""
     import shlex
     command = event.get('tool_input', {}).get('command')
@@ -397,11 +397,16 @@ def _service_request(event, policy_path, settings):
         position = argv.index('<<<')
         if len(argv) != position + 2: raise ValueError('Ambiguous stdin')
         request = strict_json(argv[-1]); argv = argv[:position]
-    if not argv or argv[0] != settings.raw['python']: raise ValueError('Different entry')
-    pos = 1
-    while pos < len(argv) and argv[pos] in ('-B', '-I', '-P', '-s'): pos += 1
-    if argv[pos:pos + 3] != ['-m', 'poise', 'tool-result']: raise ValueError('Different operation')
-    rest = argv[pos + 3:]
+    if entry is not None and argv[:len(entry['argv'])] == entry['argv']:
+        if Path(event['cwd']).resolve() != Path(entry['cwd']).resolve():
+            raise ValueError('Different public entry cwd')
+        rest = argv[len(entry['argv']):]
+    else:
+        if not argv or argv[0] != settings.raw['python']: raise ValueError('Different entry')
+        pos = 1
+        while pos < len(argv) and argv[pos] in ('-B', '-I', '-P', '-s'): pos += 1
+        if argv[pos:pos + 3] != ['-m', 'poise', 'tool-result']: raise ValueError('Different operation')
+        rest = argv[pos + 3:]
     if len(rest) % 2: raise ValueError('Invalid CLI arguments')
     arguments = {}
     for key, value in zip(rest[::2], rest[1::2]):
@@ -444,7 +449,7 @@ def service_delivery(event, owner, policy_path, settings):
     if isinstance(native, dict) and native['exit_code'] != (0 if claimed else 2):
         return None
     try:
-        request = _service_request(event, policy_path, settings)
+        request = _service_request(event, policy_path, settings, owner.policy.get('service_entry'))
     except (PoiseError, KeyError, TypeError, ValueError, OSError) as exc:
         if not claimed: return None
         raise ToolResultFailure('source_invalid', 'service', 'inspect:source') from exc

@@ -8,7 +8,7 @@ from pathlib import Path
 import stat
 
 from ..application.source_reader import SourceReader
-from ..modules.source_reader.domain import CONTEXT_RESET_REASONS, ReadLimits
+from ..modules.source_reader.domain import CONTEXT_RESET_REASONS, ReadLimits, select_text_range
 from ..common import PoiseError, encoded, digest
 from .locking import exclusive_lock
 from .goal_config import atomic_write, strict_json
@@ -77,12 +77,14 @@ class SourceFiles:
                 raise PoiseError('Source exceeds configured file byte bound')
             if b'\0' in data:
                 raise PoiseError('Binary source is not a UTF-8 document')
-            lines = data.decode('utf-8').splitlines(keepends=True)
-            if item['start'] > len(lines) or item['end'] > len(lines):
-                raise PoiseError('Requested range lies beyond end of file')
+            content = data.decode('utf-8')
+            try:
+                selected, _ = select_text_range(content, 'lines', item['start'], item['end'])
+            except ValueError as exc:
+                raise PoiseError('Requested range lies beyond end of file') from exc
             return {'path': str(path), 'sha256': hashlib.sha256(data).hexdigest(),
                     'start': item['start'], 'end': item['end'],
-                    'text': ''.join(lines[item['start']-1:item['end']])}
+                    'text': selected}
         except (OSError, UnicodeError, ValueError) as exc:
             raise PoiseError(f'Cannot read explicit source {path}: {exc}') from exc
 

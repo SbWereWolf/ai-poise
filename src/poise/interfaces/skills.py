@@ -8,6 +8,8 @@ from ..infrastructure.skill_catalog import load_skill_catalog
 from ..modules.foundation.errors import PoiseError
 from ..modules.skills.instructions import InstructionInputError
 from ..modules.skills.instruction_delivery import SCHEMA as DELIVERY_SCHEMA
+from ..modules.skills.instruction_delivery import PORTABLE_SCHEMA
+from ..modules.skills.portable_instructions import execute as deliver_selected
 from ..application.project_instructions import ProjectInstructions
 from ..infrastructure.project_instructions import FileInstructionSource
 
@@ -23,16 +25,30 @@ def execute(catalog_path, root, stream, output):
         result = InstructionInputError('invalid_request', 'request', 'provide:request').response()
         output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
         return 2
+    if request.get('operation') in ('deliver_selected', 'read_selected'):
+        result = deliver_selected(request)
+        output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
+        return (2 if result['status'] == 'rejected' else
+                1 if result['status'] == 'needs_inputs' else 0)
+    delivery = request.get('operation') == 'deliver'
+    bounded = delivery and ('budget' in request or 'continuation' in request)
+    for field, value in (('catalog', catalog_path), ('root', root)):
+        if value is None:
+            result = InstructionInputError('invalid_request', field, 'provide:' + field).response()
+            if delivery:
+                result['schema'] = PORTABLE_SCHEMA if bounded else DELIVERY_SCHEMA
+            output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
+            return 2
     if request.get('operation') in ('prepare', 'deliver'):
-        delivery = request['operation'] == 'deliver'
         try:
             service = ProjectInstructions(FileInstructionSource(catalog_path, root))
             result = service.deliver(request) if delivery else service.prepare(request)
-            code = 0 if result['status'] == 'ready' else 1
+            code = (2 if result['status'] == 'rejected' else
+                    1 if result['status'] == 'needs_inputs' else 0)
         except InstructionInputError as exc:
             result, code = exc.response(), 2
             if delivery:
-                result['schema'] = DELIVERY_SCHEMA
+                result['schema'] = PORTABLE_SCHEMA if bounded else DELIVERY_SCHEMA
         output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
         return code
     try:

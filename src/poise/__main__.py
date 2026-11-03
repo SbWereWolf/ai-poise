@@ -77,8 +77,8 @@ def parser():
     catalogue=sub.add_parser('catalogue',help='Batch install independent workflows or prepare typed tasks')
     catalogue.add_argument('--settings',type=Path,required=True)
     skills=sub.add_parser('skills',help='Read skill metadata or validate decomposition without a Task session')
-    skills.add_argument('--catalog',type=Path,required=True)
-    skills.add_argument('--root',type=Path,required=True)
+    skills.add_argument('--catalog',type=Path)
+    skills.add_argument('--root',type=Path)
     placement=sub.add_parser('placement',help='Determine and check declared result locations by project policy')
     for name in ('config', 'checkout', 'policy'):
         placement.add_argument('--'+name,type=Path,required=True,action=SingleArgument)

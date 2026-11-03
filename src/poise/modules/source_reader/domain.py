@@ -9,6 +9,26 @@ from ..foundation.validation import configuration_fields
 CONTEXT_RESET_REASONS=('startup','resume','compact','clear','fork','manual')
 
 
+def select_text_range(content, unit, start, end):
+    """Select exact UTF-8 text; admission and receipts remain caller-owned."""
+    if type(start) is not int or type(end) is not int or start > end:
+        raise ValueError('Invalid range boundaries')
+    if unit == 'lines':
+        lines = content.splitlines(keepends=True)
+        if start < 1 or end > len(lines):
+            raise ValueError('Requested range lies beyond end of file')
+        return ''.join(lines[start - 1:end]), start == 1 and end == len(lines)
+    if unit == 'bytes':
+        raw = content.encode('utf-8')
+        if start < 0 or end > len(raw):
+            raise ValueError('Requested range lies beyond end of file')
+        for offset in (start, end):
+            if offset not in (0, len(raw)) and raw[offset] & 0xC0 == 0x80:
+                raise ValueError('Range splits a UTF-8 codepoint')
+        return raw[start:end].decode('utf-8'), start == 0 and end == len(raw)
+    raise ValueError('Unsupported range unit')
+
+
 def exact(value, fields, label):
     if not isinstance(value, dict) or set(value) != set(fields):
         raise PoiseError(f'{label}: expected exactly {sorted(fields)}')

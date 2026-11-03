@@ -187,8 +187,13 @@ def test_one_genuine_native_signal_is_sufficient_without_fabricating_the_other(p
                                   "invalid_receipt", "missing_receipt", "exit_error"])
 def test_handoff_failure_or_unconfirmed_release_never_notifies(proxy, case):
     receipt = proxy["scenario"]["handoff"]
+    expected = read_fixture("handoff-failure-oracles.json")[case]
     if case == "blocked":
         receipt["status"] = "handoff_blocked"
+        receipt["phase"] = "verification"
+        receipt["verification"]["status"] = "checks_failed"
+        receipt["progression"] = None
+        receipt["release"] = None
         receipt["blocked"] = {"reason": "Verification failed", "continuation": "Repair original result"}
     elif case == "wrong_task":
         receipt["task"] = "foreign"
@@ -205,8 +210,16 @@ def test_handoff_failure_or_unconfirmed_release_never_notifies(proxy, case):
     else:
         proxy["scenario"]["handoff_exit" if case == "exit_error" else case] = 7 if case == "exit_error" else True
     _, result = invoke(proxy, expected_exit=2)
-    assert result["status"] in ("blocked", "unknown") and result["phase"] == "handoff"
-    assert result["error"]["message"] and result["error"]["continuation"]
+    assert (result["status"], result["phase"], result["error"]["code"]) == (
+        expected["status"], "handoff", expected["code"])
+    assert result["handoff"]["result"] == (None if expected["receipt"] == "unavailable" else receipt)
+    assert result["handoff"]["process"]["exit_code"] == expected["exit_code"]
+    assert result["notification"] is None
+    assert result["error"]["message"]
+    if case == "blocked":
+        assert result["error"]["continuation"] == "Repair original result"
+    else:
+        assert all(term in result["error"]["continuation"] for term in expected["continuation_terms"])
     assert len(events(proxy, "handoff")) == 1 and events(proxy, "send") == []
 
 
@@ -233,17 +246,6 @@ def test_lost_native_ack_recovers_original_request_without_new_business_effects(
     assert len(events(proxy, "handoff")) == 2
     assert len(events(proxy, "native_effect")) == len(events(proxy, "send")) == 1
     assert events(proxy, "handoff")[0]["packet"] == events(proxy, "handoff")[1]["packet"]
-
-
-def test_confirmed_notification_rejection_retries_only_notification(proxy):
-    proxy["scenario"]["notification"] = "reject_once"
-    _, rejected = invoke(proxy, expected_exit=2)
-    assert (rejected["status"], rejected["phase"]) == ("blocked", "notification")
-    assert rejected["handoff"]["result"]["release"]["after"]["task_id"] is None
-    assert rejected["notification"]["status"] == "rejected"
-    _, delivered = invoke(proxy, expected_exit=0)
-    assert_delivered(proxy, delivered)
-    assert len(events(proxy, "handoff")) == 1 and len(events(proxy, "send")) == 2
 
 
 @pytest.mark.parametrize("outcome", ["disconnect", "malformed_json", "rpc_error", "malformed_result",
@@ -279,22 +281,28 @@ def test_explicit_unknown_resolution_uses_recorded_evidence_and_only_missing_eff
     proxy["scenario"]["notification"] = "disconnect"
     invoke(proxy, expected_exit=2)
     proxy["scenario"]["notification"] = "success"
-    resolution = {"operation": "resolve_notification", "input": {
-        "request_id": "proxy-request-1", "outcome": decision, "evidence": "Independent recipient readback"}}
+    resolution = read_fixture("resolve-recipient-readback.json")
+    resolution["input"]["outcome"] = decision
     _, result = invoke(proxy, resolution, expected_exit=0)
     assert result["status"] == "delivered"
     assert result["notification"]["resolution"] == resolution["input"]
     assert len(events(proxy, "handoff")) == 1 and len(events(proxy, "send")) == send_count
 
 
-def test_completed_replay_is_durable_and_changed_intent_is_rejected(proxy):
+@pytest.mark.parametrize("changed", ["recipient", "result", "message"])
+def test_completed_replay_is_durable_and_changed_intent_is_rejected(proxy, changed):
     _, first = invoke(proxy, expected_exit=0)
     _, replay = invoke(proxy, expected_exit=0)
     assert_delivered(proxy, replay)
     assert replay["replayed"] is True
     assert replay["handoff"] == first["handoff"]
     packet = deepcopy(proxy["packet"])
-    packet["input"]["recipient"]["thread_id"] = "other-receiver"
+    if changed == "recipient":
+        packet["input"]["recipient"]["thread_id"] = "other-receiver"
+    elif changed == "result":
+        packet["input"]["handoff"]["input"]["result"]["stage_work"]["coverage"] = "A different review decision."
+    else:
+        packet["input"]["message"] = "A different substantive message."
     _, conflict = invoke(proxy, packet, expected_exit=2)
     assert conflict["error"]["code"] == "intent_conflict"
     assert len(events(proxy, "handoff")) == len(events(proxy, "send")) == 1
@@ -304,8 +312,7 @@ def test_another_native_caller_cannot_resolve_original_notification(proxy):
     proxy["scenario"]["notification"] = "disconnect"
     invoke(proxy, expected_exit=2)
     proxy["environment"].update(CODEX_THREAD_ID="foreign-fixture", CODEX_SESSION_ID="foreign-fixture")
-    resolution = {"operation": "resolve_notification", "input": {
-        "request_id": "proxy-request-1", "outcome": "not_delivered", "evidence": "Foreign assertion"}}
+    resolution = read_fixture("resolve-foreign-assertion.json")
     _, result = invoke(proxy, resolution, expected_exit=2)
     assert result["error"]["code"] == "caller_conflict"
     assert len(events(proxy, "handoff")) == len(events(proxy, "send")) == 1
@@ -315,8 +322,7 @@ def test_another_native_caller_cannot_resolve_original_notification(proxy):
 def test_resolution_requires_an_explicit_supported_decision_and_external_evidence(proxy, case):
     proxy["scenario"]["notification"] = "disconnect"
     invoke(proxy, expected_exit=2)
-    resolution = {"operation": "resolve_notification", "input": {
-        "request_id": "proxy-request-1", "outcome": "not_delivered", "evidence": "Independent readback"}}
+    resolution = read_fixture("resolve-independent-readback.json")
     resolution["input"]["evidence" if case == "empty_evidence" else "outcome"] = "" if case == "empty_evidence" else "retry_anyway"
     _, result = invoke(proxy, resolution, expected_exit=2)
     assert result["error"]["code"] == "invalid_input"

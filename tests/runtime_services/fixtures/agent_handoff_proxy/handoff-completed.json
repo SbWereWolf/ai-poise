@@ -5,16 +5,17 @@
   "phase": "complete",
   "verification": {
     "status": "verified",
-    "stage": "author",
+    "stage": "review",
     "verification_commit": "1111111111111111111111111111111111111111",
-    "verified_tree": "2222222222222222222222222222222222222222"
+    "verified_tree": "2222222222222222222222222222222222222222",
+    "stage_outcome": "clear"
   },
   "progression": {
     "status": "role_handoff_required",
-    "stage": "author",
-    "next_stage": "review",
-    "from_role": "executor",
-    "to_role": "reviewer",
+    "stage": "review",
+    "next_stage": "author",
+    "from_role": "reviewer",
+    "to_role": "executor",
     "progression": {
       "request_id": "progression-1",
       "target_stage": null,

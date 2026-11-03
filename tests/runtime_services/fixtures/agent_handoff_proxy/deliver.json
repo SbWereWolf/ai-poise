@@ -9,7 +9,7 @@
         "reason": "Transfer the explicitly supplied stage result.",
         "result": {
           "sections": {
-            "report": "Explicit stage result."
+            "report": "Независимый осмотр завершён. Проверены результат и доказательства; замечаний нет, результат принят для следующего этапа."
           },
           "artifact_paths": [],
           "commit_message": "Record the independently supplied stage result",
@@ -20,7 +20,11 @@
           },
           "trace": {},
           "method_additions": [],
-          "stage_work": {},
+          "stage_work": {
+            "coverage": "Проверены сохранность результата и независимое доказательство. Решение проверяющего: принять результат; подтверждённых находок нет.",
+            "findings": [],
+            "resolution_decisions": []
+          },
           "evidence_work": {
             "phase": "prepare",
             "arguments": [],
@@ -44,6 +48,6 @@
       "thread_id": "fixture-receiver",
       "host_id": "local"
     },
-    "message": "Передаю подготовленный результат на независимую проверку."
+    "message": "Передаю независимо проверенный результат для продолжения работы."
   }
 }

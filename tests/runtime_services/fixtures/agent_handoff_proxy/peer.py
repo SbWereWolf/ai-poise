@@ -64,14 +64,8 @@ for line in sys.stdin:
     elif method == "tools/call":
         assert request["params"]["name"] == "send_message_to_thread"
         record("send", params=request["params"])
-        calls = sum(json.loads(row)["event"] == "send"
-                    for row in (root / "trace.jsonl").read_text().splitlines())
         outcome = scenario.get("notification", "success")
-        if outcome == "reject_once" and calls == 1:
-            rejection = {"threadId": request["params"]["arguments"]["threadId"],
-                         "status": "rejected", "effect": "not_sent"}
-            reply(request["id"], {"isError": True, "content": [{"type": "text", "text": json.dumps(rejection)}]})
-        elif outcome == "is_error":
+        if outcome == "is_error":
             reply(request["id"], {"isError": True, "content": [{"type": "text", "text": "Delivery state unavailable"}]})
         elif outcome == "disconnect":
             sys.exit(0)

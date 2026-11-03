@@ -14,7 +14,8 @@ from .helpers import (DATA, PACKETS, append, arrange, assert_reason, client,
 
 @pytest.mark.parametrize('case', ['empty-text', 'wrong-text-type', 'empty-batch',
     'wrong-items-type', 'unknown-field', 'duplicate-name', 'missing-file',
-    'wrong-digest', 'too-large-file', 'too-many-items', 'invalid-second-item'])
+    'wrong-digest', 'too-large-file', 'too-many-items', 'invalid-second-item']
+    + [item['id'] for item in DATA['nested_invalid_cases']])
 def test_invalid_append_has_actionable_refusal_and_no_partial_effect(project, case):
     configure_case(project)
     owner, _ = arrange(project)
@@ -22,7 +23,20 @@ def test_invalid_append_has_actionable_refusal_and_no_partial_effect(project, ca
     item, _ = source(project)
     packet = deepcopy(PACKETS['append'])
     body = packet['input']; body['items'][0]['attachments'] = [item]
-    if case == 'empty-text': body['items'][0]['text'] = ' \n '
+    nested = next((item for item in DATA['nested_invalid_cases'] if item['id'] == case), None)
+    if nested is not None:
+        packet = deepcopy(PACKETS[nested['packet']])
+        if nested['packet'] == 'append':
+            packet['input']['items'][0]['attachments'] = [item]
+        parent = packet
+        for part in nested['path'][:-1]:
+            parent = parent[part]
+        key = nested['path'][-1]
+        if nested.get('remove'):
+            del parent[key]
+        else:
+            parent[key] = deepcopy(nested['value'])
+    elif case == 'empty-text': body['items'][0]['text'] = ' \n '
     elif case == 'wrong-text-type': body['items'][0]['text'] = 42
     elif case == 'empty-batch': body['items'] = []
     elif case == 'wrong-items-type': body['items'] = {}

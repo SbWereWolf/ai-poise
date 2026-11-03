@@ -10,14 +10,20 @@ from batch.helpers import request
 from poise.modules.foundation.errors import PoiseError
 from .helpers import (DATA, PACKETS, append, arrange, assert_comment, assert_reason,
                       client, configure_case, files, own_other_task, protected,
-                      read, read_bytes, source, subject)
+                      read, read_bytes, source, subject, saved_task_expectation,
+                      assert_saved_task, arrange_two_worktrees, worktree_snapshots)
 
 
 @pytest.mark.parametrize('state', ['newborn', 'available', 'active', 'verified', 'accepted'])
 def test_foreign_append_and_read_preserve_both_executions(project, state):
     configure_case(project)
     owner, ctx = arrange(project, state)
-    author = client(project); own_other_task(author)
+    author = client(project)
+    contexts = arrange_two_worktrees(project, owner, ctx, author) if state == 'active' else None
+    if contexts is None:
+        own_other_task(author)
+    physical_work = worktree_snapshots(contexts) if contexts else None
+    saved = saved_task_expectation(owner, state)
     observer = client(project, 'other-reader')
     before = protected(owner)
     attachment, expected = source(project)
@@ -35,7 +41,7 @@ def test_foreign_append_and_read_preserve_both_executions(project, state):
     assert page['status'] == 'read_only' and page['task_id'] == 'T1'
     assert set(page['task']) == set(DATA['task_fields'])
     assert page['task']['id'] == 'T1' and page['task']['status'] == state
-    assert page['task']['goal'] == DATA['goal']
+    assert_saved_task(page['task'], saved)
     assert page['comments'] == out['comments'] + later['comments']
     assert [c['text'] for c in page['comments']] == [
         DATA['initial_text'], DATA['later_text'], DATA['other_text']]
@@ -53,14 +59,17 @@ def test_foreign_append_and_read_preserve_both_executions(project, state):
         assert len(page['task']['results']) == 1
         assert page['task']['results'][0]['task'] == 'T1'
         assert page['task']['results'][0]['stage'] == 'work'
-        assert DATA['report'] in json.dumps(page['task']['content'], ensure_ascii=False)
-    assert read(client(project, 'fresh-reader'))['comments'] == page['comments']
+    fresh_page = read(client(project, 'fresh-reader'))
+    assert fresh_page['comments'] == page['comments']
+    assert_saved_task(fresh_page['task'], saved)
     from terminal_materials.helpers import cli
     exit_code, process_page = cli(project, PACKETS['read'])
     assert exit_code == 0, process_page
     assert process_page['comments'] == page['comments']
-    assert process_page['task']['status'] == state
+    assert_saved_task(process_page['task'], saved)
     assert protected(owner) == before
+    if contexts:
+        assert worktree_snapshots(contexts) == physical_work
 
 
 def test_typed_newborn_accepts_material_without_starting_a_stage(project):
@@ -68,8 +77,11 @@ def test_typed_newborn_accepts_material_without_starting_a_stage(project):
     owner, _ = arrange(project, typed=True)
     author = client(project)
     before = protected(owner)
+    saved = saved_task_expectation(owner, 'newborn', typed=True)
     out = append(author)
-    assert read(author)['comments'] == out['comments']
+    page = read(author)
+    assert page['comments'] == out['comments']
+    assert_saved_task(page['task'], saved)
     assert protected(owner) == before
     record = owner.runtime.task_queries.record('T1')
     assert record['status'] == 'newborn' and record['goal_type'] == 'development'
@@ -148,3 +160,33 @@ def test_exact_replay_and_conflicting_reuse_preserve_one_business_result(project
     assert_reason(error.value, 'conflict')
     assert read(author)['comments'] == out['comments']
     assert protected(owner) == before and files(project['material_root']) == stored
+
+
+@pytest.mark.parametrize('boundary', ['items', 'bytes'])
+def test_selected_inclusive_limits_accept_their_exact_boundary(project, boundary):
+    from conftest import write_json
+    configure_case(project)
+    limits = DATA['boundary_limits']
+    project['cfg']['batch']['max_items'] = limits['max_items']
+    project['cfg']['batch']['max_artifact_bytes'] = limits['max_artifact_bytes']
+    write_json(project['config_path'], project['cfg'])
+    owner, _ = arrange(project)
+    author = client(project)
+    before = protected(owner)
+    if boundary == 'items':
+        items = [{'text': DATA['later_text'], 'attachments': []}
+                 for _ in range(limits['max_items'])]
+        comments = append(author, items=items)['comments']
+        assert len(comments) == 3
+        assert [c['text'] for c in comments] == [DATA['later_text']] * 3
+        assert len({c['id'] for c in comments}) == 3
+        assert all(c['attachments'] == [] for c in comments)
+    else:
+        expected = bytes.fromhex(limits['payload_hex'])
+        assert len(expected) == 7
+        item, _ = source(project, content=expected)
+        comments = append(author, attachments=[item])['comments']
+        assert comments[0]['attachments'][0]['size'] == 7
+        assert read_bytes(author, comments[0]['attachments'][0]) == expected
+    assert read(author)['comments'] == comments
+    assert protected(owner) == before

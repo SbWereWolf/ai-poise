@@ -5,17 +5,24 @@ import pytest
 
 from batch.helpers import request
 from .helpers import (arrange, client, configure_case, finish_task,
-                      prepare_delivery, protected)
+                      prepare_delivery, protected, saved_task_expectation,
+                      arrange_two_worktrees, worktree_snapshots)
 
 
 @pytest.mark.parametrize('state', ['newborn', 'available', 'active', 'verified', 'accepted'])
 def test_state_arrangement_is_real_and_old_read_preserves_it(project, state):
     configure_case(project)
-    owner, _ = arrange(project, state)
+    owner, ctx = arrange(project, state)
+    contexts = arrange_two_worktrees(project, owner, ctx, client(project)) if state == 'active' else None
+    physical_work = worktree_snapshots(contexts) if contexts else None
+    saved = saved_task_expectation(owner, state)
+    assert saved['status'] == state
     assert owner.runtime.task_queries.record('T1')['status'] == state
     before = protected(owner)
     assert owner.invoke(request('show', {'queries': [{'id': 'task', 'kind': 'task'}]}))['status'] == 'read_only'
     assert protected(owner) == before
+    if contexts:
+        assert worktree_snapshots(contexts) == physical_work
 
 
 @pytest.mark.parametrize('member', [False, True], ids=['standalone', 'sprint'])
@@ -28,6 +35,7 @@ def test_real_terminal_fixture_retires_only_its_owned_resources(project, member,
     foreign.write_bytes(b'foreign task bytes\n')
     finish_task(project, owner, state)
     assert owner.runtime.task_queries.record('T1')['status'] == state
+    saved_task_expectation(owner, state)
     assert not root.exists() and not Path(ctx['worktree']).exists()
     assert destination.read_bytes() == b'customer result\n'
     assert foreign.read_bytes() == b'foreign task bytes\n'

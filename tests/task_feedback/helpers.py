@@ -11,7 +11,7 @@ import sqlite3
 import pytest
 
 from batch.helpers import configure, request
-from conftest import WorkPoise, bind_task_requirements, write_json
+from conftest import WorkPoise, bind_task_requirements, git, write_json
 from poise.application.work import WorkTools
 from poise.modules.accounting.clock import ClockObservation
 from poise.modules.foundation.errors import PoiseError
@@ -113,6 +113,7 @@ def arrange(project, state='newborn', *, member=False, identifier='T1', typed=Fa
         (worktree / 'src/fixture_result.py').write_text('RESULT = 47\n')
         result = deepcopy(ctx['result_template'])
         result['sections']['report'] = DATA['report']
+        result['sections']['intake'] = DATA['saved_intake']
         result['commit_message'] = 'Preserve the fixture work result'
         owner.invoke(request('verify', {'result': result, 'artifacts': []}))
         if state == 'accepted':
@@ -190,6 +191,8 @@ def protected(c):
         'workflow': 'SELECT task_id,data FROM task_workflows ORDER BY task_id',
         'submissions': 'SELECT seq,task_id,stage,iteration,digest,data FROM submissions ORDER BY seq',
         'results': 'SELECT task_id,submission_id,data FROM task_results ORDER BY task_id,submission_id',
+        'content_contracts': 'SELECT task_id,version,data FROM content_contracts ORDER BY task_id,version',
+        'section_layers': 'SELECT submission_id,task_id,section_id,content,content_state FROM section_layers ORDER BY task_id,submission_id,section_id',
         'evidence': 'SELECT id,task_id,stage,iteration,data FROM evidence ORDER BY id',
         'methods': 'SELECT task_id,method_id,version,data FROM task_methods ORDER BY task_id,method_id',
         'events': 'SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq',
@@ -235,3 +238,76 @@ def finish_task(project, owner, state):
     from terminal_materials.helpers import finish
     commit = owner.runtime.task_queries.record('T1')['last_report']['commit']
     return finish(project, owner, commit, state)
+
+
+def saved_task_expectation(c, state, *, typed=False):
+    """Independent SQL receipt bytes plus literal saved text, never the new producer."""
+    with closing(sqlite3.connect(database_path(c))) as db:
+        receipts = [json.loads(row[0]) for row in db.execute(
+            'SELECT data FROM task_results WHERE task_id=? ORDER BY submission_id', ('T1',))]
+        sections = dict(db.execute(
+            'SELECT section_id,content FROM section_layers WHERE task_id=? '
+            'ORDER BY submission_id,section_id', ('T1',)))
+    full_contract = state != 'newborn' or typed
+    texts = [DATA['source_context']] if full_contract else []
+    if state in ('verified', 'accepted', 'completed', 'cancelled'):
+        assert sections == {'intake': DATA['saved_intake'], 'report': DATA['report']}
+        assert len(receipts) == 1
+        assert receipts[0]['task'] == 'T1' and receipts[0]['stage'] == 'work'
+        assert receipts[0]['status'] == 'verified' and receipts[0]['checks'] == []
+        assert len(receipts[0]['commit']) == 40 and len(receipts[0]['verified_tree']) == 40
+        texts += [DATA['saved_intake'], DATA['report']]
+    else:
+        assert receipts == [] and sections == {}
+    return {'id': 'T1', 'status': state, 'goal': DATA['goal'],
+            'requirements': DATA['requirements'] if full_contract else [],
+            'definition_of_done': DATA['dod'] if full_contract else [],
+            'stage': None if state == 'newborn' else 'work',
+            'results': receipts, 'required_content_texts': texts}
+
+
+def assert_saved_task(actual, expected):
+    assert set(actual) == set(DATA['task_fields'])
+    for field in ('id', 'status', 'goal', 'requirements', 'definition_of_done', 'stage', 'results'):
+        assert actual[field] == expected[field], field
+    # Content retains the existing owner's representation. Require exact scalar
+    # values, not a report substring; the populated intake differs from template.
+    def strings(value):
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, dict):
+            return [s for item in value.values() for s in strings(item)]
+        if isinstance(value, list):
+            return [s for item in value for s in strings(item)]
+        return []
+    content = strings(actual['content'])
+    for text in expected['required_content_texts']:
+        assert text in content, f'Saved content missing: {text}'
+
+
+def arrange_two_worktrees(project, owner, context, author):
+    other = boot(author, contract(project, 'OTHER'))
+    contexts = {'executor': context, 'material-author': other}
+    for actor, ctx in contexts.items():
+        root = Path(ctx['worktree']); values = DATA['worktree_wip'][actor]
+        (root / 'src/double.py').write_bytes(values['tracked'].encode())
+        (root / 'src/staged.py').write_bytes(values['staged'].encode())
+        git(root, 'add', 'src/staged.py')
+        (root / 'notes.txt').write_bytes(values['untracked'].encode())
+    assert Path(context['worktree']) != Path(other['worktree'])
+    return contexts
+
+
+def worktree_snapshots(contexts):
+    result = {}
+    for actor, ctx in contexts.items():
+        root = Path(ctx['worktree'])
+        index = Path(git(root, 'rev-parse', '--path-format=absolute', '--git-path', 'index'))
+        values = {name: (root / name).read_bytes()
+                  for name in ('src/double.py', 'src/staged.py', 'notes.txt')}
+        literal = DATA['worktree_wip'][actor]
+        assert values == dict(zip(('src/double.py', 'src/staged.py', 'notes.txt'),
+                                 (literal[key].encode() for key in ('tracked', 'staged', 'untracked'))))
+        result[actor] = {'head': git(root, 'rev-parse', 'HEAD'),
+                        'index': index.read_bytes(), 'files': values}
+    return result

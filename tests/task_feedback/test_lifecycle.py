@@ -8,7 +8,8 @@ from poise.modules.foundation.errors import PoiseError
 from terminal_materials.helpers import cli, delivery_status
 from .helpers import (DATA, PACKETS, append, arrange, assert_reason, client,
                       configure_case, files, finish_task, prepare_delivery,
-                      protected, read, read_bytes, source)
+                      protected, read, read_bytes, source, saved_task_expectation,
+                      assert_saved_task)
 
 
 @pytest.mark.parametrize('member', [False, True], ids=['standalone', 'sprint'])
@@ -35,17 +36,19 @@ def test_original_material_is_readable_after_real_terminal_cleanup(project, memb
     physical = files(project['material_root'])
     assert expected in physical.values()
     assert b'temporary task service\n' not in physical.values()
+    saved = saved_task_expectation(owner, state)
     before = protected(owner)
     observer = client(project, 'after-cleanup')
     page = read(observer)
-    assert page['task']['status'] == state and page['task']['goal'] == DATA['goal']
+    assert_saved_task(page['task'], saved)
     assert page['comments'] == original
     assert len(page['task']['results']) == 1
     assert page['task']['results'][0]['task'] == 'T1'
     assert read_bytes(observer, original[0]['attachments'][0]) == expected
     exit_code, process_page = cli(project, PACKETS['read'])
     assert exit_code == 0, process_page
-    assert process_page['comments'] == original and process_page['task']['status'] == state
+    assert process_page['comments'] == original
+    assert_saved_task(process_page['task'], saved)
     bytes_packet = {**PACKETS['bytes'], 'input': {
         **PACKETS['bytes']['input'], 'attachment_id': original[0]['attachments'][0]['id']}}
     exit_code, process_bytes = cli(project, bytes_packet)
@@ -65,6 +68,7 @@ def test_terminal_refuses_new_append_and_restart_but_replays_saved_read(project,
     original = append(author, attachments=[item])['comments']
     root, _ = prepare_delivery(project, owner, ctx)
     finish_task(project, owner, state)
+    saved = saved_task_expectation(owner, state)
     before = protected(owner); physical = files(project['material_root'])
     with pytest.raises(PoiseError) as error:
         append(author, request_id='new-terminal-comment', text=DATA['later_text'])
@@ -76,7 +80,12 @@ def test_terminal_refuses_new_append_and_restart_but_replays_saved_read(project,
             'reason': 'Separate fixture continuation.', 'authorization': 'Fixture owner decision.'}))
     assert 'terminal' in str(error.value).lower() or 'терминаль' in str(error.value).lower()
     assert append(author, attachments=[item])['comments'] == original
-    assert read(author)['comments'] == original
+    page = read(author)
+    assert page['comments'] == original
+    assert_saved_task(page['task'], saved)
+    exit_code, process_page = cli(project, PACKETS['read'])
+    assert exit_code == 0, process_page
+    assert_saved_task(process_page['task'], saved)
     assert read_bytes(author, original[0]['attachments'][0]) == expected
     assert protected(owner) == before and files(project['material_root']) == physical
     assert not root.exists()
@@ -95,11 +104,12 @@ def test_fresh_cli_reads_exact_saved_task_and_bytes_without_acquiring_it(project
     author = client(project)
     item, expected = source(project)
     comments = append(author, attachments=[item])['comments']
+    saved = saved_task_expectation(owner, 'verified')
     before = protected(owner)
     exit_code, page = cli(project, PACKETS['read'])
     assert exit_code == 0, page
     assert page['comments'] == comments and page['task']['goal'] == DATA['goal']
-    assert page['task']['results'][0]['stage'] == 'work'
+    assert_saved_task(page['task'], saved)
     packet = {**PACKETS['bytes'], 'input': {
         **PACKETS['bytes']['input'], 'attachment_id': comments[0]['attachments'][0]['id']}}
     exit_code, value = cli(project, packet)

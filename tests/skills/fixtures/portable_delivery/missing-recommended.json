@@ -1,0 +1,5 @@
+{
+  "code": "missing_recommended_material",
+  "key": "rule:AGENTS.md:checkout:AGENTS.md",
+  "action": "restore:checkout:AGENTS.md"
+}

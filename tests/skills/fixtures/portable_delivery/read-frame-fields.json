@@ -1,0 +1,16 @@
+[
+  "schema",
+  "mode",
+  "status",
+  "project",
+  "checkout",
+  "instruction_root",
+  "context",
+  "stage",
+  "paths",
+  "material",
+  "sha256",
+  "range",
+  "content",
+  "complete_material"
+]

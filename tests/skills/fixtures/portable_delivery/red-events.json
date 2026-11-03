@@ -1,0 +1,27 @@
+{
+  "exit_code": 1,
+  "collection_errors": [],
+  "reports": [
+    {
+      "nodeid": "tests/skills/test_portable_instruction_delivery.py::test_bounded_file_entry_after_valid_unbounded_control",
+      "phase": "call",
+      "outcome": "failed",
+      "exception": "BudgetDeliveryMissing",
+      "code": null
+    },
+    {
+      "nodeid": "tests/skills/test_portable_instruction_delivery.py::test_bounded_file_entry_after_valid_unbounded_control",
+      "phase": "setup",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    },
+    {
+      "nodeid": "tests/skills/test_portable_instruction_delivery.py::test_bounded_file_entry_after_valid_unbounded_control",
+      "phase": "teardown",
+      "outcome": "passed",
+      "exception": null,
+      "code": null
+    }
+  ]
+}

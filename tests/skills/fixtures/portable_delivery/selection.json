@@ -1,0 +1,63 @@
+{
+  "schema": "poise-project-instructions-1",
+  "status": "ready",
+  "project": "alpha",
+  "checkout": "/consumer-alpha",
+  "instruction_root": "/consumer-alpha/instructions",
+  "policy_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "paths": [
+    "src/billing/invoice.py"
+  ],
+  "materials": [
+    {
+      "kind": "profile",
+      "id": "billing",
+      "root": "checkout",
+      "path": ".agents/profiles/billing.md",
+      "scopes": [
+        "src/billing/invoice.py"
+      ],
+      "required": true,
+      "reasons": [
+        "selected"
+      ],
+      "available": true,
+      "sha256": "1ff8c2168181c399ae42815370a7ea72881f4bad186951317377ded8305a01d0",
+      "content": "Domain owner: invoices.\n"
+    },
+    {
+      "kind": "rule",
+      "id": "AGENTS.md",
+      "root": "checkout",
+      "path": "AGENTS.md",
+      "scopes": [
+        "src/billing/invoice.py"
+      ],
+      "required": true,
+      "reasons": [
+        "selected"
+      ],
+      "available": true,
+      "sha256": "6f217a5eb316c4f402b83066aa96521c12367a986840596af371810619864211",
+      "content": "Правила\r\n日本語 café\r\nEND"
+    },
+    {
+      "kind": "tool",
+      "id": "skills",
+      "root": "instructions",
+      "path": ".agents/guides/skills.md",
+      "scopes": [
+        "src/billing/invoice.py"
+      ],
+      "required": true,
+      "reasons": [
+        "selected"
+      ],
+      "available": true,
+      "sha256": "50be0764055fc61765f8a4635cbc2fa988f375881652f170202d3f01fc581e7b",
+      "content": "# Skills\n[Detailed contract](skills-detail.md#prepare)\n"
+    }
+  ],
+  "diagnostics": [],
+  "delta": null
+}

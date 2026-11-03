@@ -39,7 +39,8 @@ class TaskMaterialRequest:
                     raise DomainError('items: provide a nonempty list within max_items')
                 for item in items:
                     exact(item, {'text', 'attachments'}, 'comment item')
-                    required_text(item['text'], 'comment text')
+                    if not isinstance(item['text'], str) or not item['text'].strip():
+                        raise DomainError('comment text: provide a nonempty text value')
                     attachments = item['attachments']
                     if not isinstance(attachments, list) or len(attachments) > max_items:
                         raise DomainError('attachments: provide a list within max_items')
@@ -105,9 +106,9 @@ def require_same_request(saved, intent):
 
 def task_material_view(header, content, results):
     metadata = header['metadata']
-    newborn = header['status'] == 'newborn'
-    contract = metadata['newborn']['draft'] if newborn else metadata['contract']
-    stage = None if newborn else metadata['workflow']['stages'][header['stage_index']]['id']
+    planning = 'newborn' in metadata
+    contract = metadata['newborn']['draft'] if planning else metadata['contract']
+    stage = None if planning else metadata['workflow']['stages'][header['stage_index']]['id']
     return {'id': header['id'], 'status': header['status'],
             'goal': contract.get('goal', metadata.get('goal', '')),
             'requirements': contract.get('requirements', []),

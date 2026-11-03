@@ -290,7 +290,7 @@ class TaskQueries:
             item['data'] = json.loads(item['data'])
         for item in content['trace_points']:
             item['data'] = json.loads(item['data'])
-        if header['status'] == 'newborn':
+        if 'newborn' in header['metadata']:
             content['draft'] = header['metadata']['newborn']['draft']
         task = task_material_view(header, content, [json.loads(value) for value in results])
         return {'status': 'read_only', 'task_id': task_id, 'task': task, 'comments': comments}

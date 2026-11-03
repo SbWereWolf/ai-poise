@@ -38,6 +38,7 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | Command | Purpose | Correct example |
 |---|---|---|
 | `work` | Execute one declarative Task/Sprint packet. | `bash "${native_launcher:?Exact path from native context}" < "$packet"` |
+| `handoff-proxy` | Deliver a prepared native result and notify the assigned chat in one call. | `"${poise[@]}" handoff-proxy --settings "$proxy_settings" < "$proxy_packet"` |
 | `result-view` | Read a saved bounded view without replay. | `"${poise[@]}" result-view --response "$response" --view expanded --output-chars 3000` |
 | `next` | List startable Tasks without claiming. | `"${poise[@]}" next --settings "$settings" --project "$project_id"` |
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
@@ -55,6 +56,32 @@ existing [partial-material
 handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
 save immutable materials through public artifacts, then ordinary release of the same Task.
 Do not invent resolution proposals or native stage completion before actual fixes.
+
+### Agent handoff proxy
+
+Use a selected supply containing `handoff-proxy`, the sender's genuine native
+identity and explicit operator settings for the selected project/native launcher
+and installed app MCP transport. Prepare the substantive native handoff packet,
+message and user-authorized recipient before invocation. Keep the operation's
+working state in the Task-owned material area through all required consumers.
+
+For explicitly selected source execution:
+
+```bash
+env PYTHONPATH="$poise_root/src:$poise_root" \
+  "$poise_python" -P -B -m poise handoff-proxy \
+  --settings "$proxy_settings" < "$proxy_packet"
+```
+
+`proxy_settings` and `proxy_packet` are absolute paths prepared through the
+[operator setup](../../../docs/operator/agent-handoff-proxy.md#подготовка-и-настройки)
+and [packet example](../../../docs/operator/agent-handoff-proxy.md#пакет-и-один-вызов).
+Use a host invocation that waits for the command's terminal result. The proxy owns
+native waiting, full-response reading and notification; preserve the received
+outcome. Native release retains an independent worktree. Unknown notification
+requires external evidence and the exact
+[resolution contract](../../../docs/operator/agent-handoff-proxy.md#продолжение-и-явное-подтверждение).
+Keep native acknowledgement, manual confirmation and independent review distinct.
 
 ### Project and workflow configuration
 

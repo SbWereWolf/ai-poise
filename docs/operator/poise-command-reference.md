@@ -40,6 +40,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | Команда | Аргументы | Назначение |
 |---|---|---|
 | `work` | CLI-аргументов нет; JSON stdin; выбранный `POISE_CONFIG` и родной контекст caller. | Task/Sprint, результаты этапов, проверки, передача роли и артефакты. |
+| `handoff-proxy` | Обязательный абсолютный `--settings PATH`; JSON stdin, настоящий native caller. | Полная техническая передача готового результата и уведомление назначенного чата одним вызовом. |
 | `result-view` | Обязательные `--response PATH --view brief\|expanded\|full --output-chars INT`. | Представление уже сохранённого полного ответа с явным бюджетом. |
 | `tool-result` | Обязательные абсолютный `--policy PATH` и `--audience agent\|machine`; JSON stdin. Для session route `--config PATH`/`--checkout PATH` необязательны парой; non-session project-bound route требует оба абсолютных пути. | Общий вывод/сохранённые expanded/full последнего run и прямые capture/read операции без обязательной Task. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
@@ -50,7 +51,20 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. Необязательные `--transport-policy PATH` и `--invocation ID` включают coordination подготовленного вызова. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
 | `checks-mcp` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH --transport-policy PATH`; JSON-RPC stdio. | Настроенные run/preview/cancel с ожиданием конечного результата и полным машинным ответом. |
 
+### Прокси передачи результата
+
+`handoff-proxy --settings PATH` читает `deliver` либо `resolve_notification`
+из stdin. Exit 0 подтверждает `delivered`; exit 2 сохраняет препятствие или
+неизвестный исход. Полные настройки, источник каждого обязательного значения и
+различие source/package запусков принадлежат
+[операторской подготовке](agent-handoff-proxy.md#подготовка-и-настройки).
+Готовый native packet, сообщение и получатель задаются до
+[одного вызова](agent-handoff-proxy.md#пакет-и-один-вызов);
+неизвестное уведомление продолжается по
+[явному подтверждению](agent-handoff-proxy.md#продолжение-и-явное-подтверждение).
+
 ### Результаты инструментов
+
 
 `tool-result` принимает capture/view/summary/lines/bytes/search/hook и
 [expanded/full последнего

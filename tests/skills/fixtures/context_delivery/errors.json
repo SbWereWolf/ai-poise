@@ -1,0 +1,65 @@
+{
+  "request": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "request",
+      "action": "provide:request"
+    }
+  },
+  "context": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "context",
+      "action": "provide:context"
+    }
+  },
+  "retained": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "retained",
+      "action": "provide:retained"
+    }
+  },
+  "stage": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "stage",
+      "action": "provide:stage"
+    }
+  },
+  "stage-skills": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "stage.skill_ids",
+      "action": "provide:stage.skill_ids"
+    }
+  },
+  "tool": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "tool",
+      "action": "provide:tool"
+    }
+  },
+  "previous": {
+    "schema": "poise-instruction-delivery-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_previous",
+      "field": "previous",
+      "action": "provide:previous"
+    }
+  }
+}

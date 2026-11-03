@@ -1,0 +1,13 @@
+{
+  "operation": "show",
+  "input": {
+    "queries": [
+      {
+        "id": "selected",
+        "kind": "task",
+        "task_id": "READ-ALPHA"
+      }
+    ]
+  },
+  "messages": []
+}

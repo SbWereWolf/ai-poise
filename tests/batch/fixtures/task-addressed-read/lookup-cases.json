@@ -1,0 +1,62 @@
+[
+  {
+    "needle": "READ-ALPHA",
+    "status": "found",
+    "match": "exact",
+    "id": "READ-ALPHA"
+  },
+  {
+    "needle": "BETA",
+    "status": "found",
+    "match": "substring",
+    "id": "READ-BETA"
+  },
+  {
+    "needle": "READ-",
+    "status": "ambiguous",
+    "ids": [
+      "READ-ALPHA",
+      "READ-ALPHA-CHILD",
+      "READ-BETA"
+    ]
+  },
+  {
+    "needle": "MISSING-ID",
+    "status": "not_found",
+    "ids": []
+  },
+  {
+    "needle": "read-alpha",
+    "status": "not_found",
+    "ids": []
+  },
+  {
+    "needle": " READ-ALPHA ",
+    "status": "not_found",
+    "ids": []
+  },
+  {
+    "needle": "%",
+    "status": "found",
+    "match": "substring",
+    "id": "LITERAL-%_[]*?-Q'1"
+  },
+  {
+    "needle": "_",
+    "status": "found",
+    "match": "substring",
+    "id": "LITERAL-%_[]*?-Q'1"
+  },
+  {
+    "needle": "[]*?",
+    "status": "found",
+    "match": "substring",
+    "id": "LITERAL-%_[]*?-Q'1"
+  },
+  {
+    "needle": "Q'1",
+    "status": "found",
+    "match": "substring",
+    "id": "LITERAL-%_[]*?-Q'1"
+  }
+]

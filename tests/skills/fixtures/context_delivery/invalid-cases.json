@@ -1,0 +1,326 @@
+[
+  {
+    "id": "missing-context",
+    "path": [
+      "context"
+    ],
+    "value": null,
+    "error": "request",
+    "previous": false,
+    "action": "remove"
+  },
+  {
+    "id": "unknown-field",
+    "path": [
+      "extra"
+    ],
+    "value": true,
+    "error": "request",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "empty-context",
+    "path": [
+      "context",
+      "id"
+    ],
+    "value": "",
+    "error": "context",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "boolean-generation",
+    "path": [
+      "context",
+      "generation"
+    ],
+    "value": true,
+    "error": "context",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "zero-generation",
+    "path": [
+      "context",
+      "generation"
+    ],
+    "value": 0,
+    "error": "context",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "unknown-reason",
+    "path": [
+      "context",
+      "reason"
+    ],
+    "value": "cached",
+    "error": "context",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "unknown-context-field",
+    "path": [
+      "context",
+      "extra"
+    ],
+    "value": true,
+    "error": "context",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "stage-not-object",
+    "path": [
+      "stage"
+    ],
+    "value": "implementation",
+    "error": "stage",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "empty-stage-id",
+    "path": [
+      "stage",
+      "id"
+    ],
+    "value": "",
+    "error": "stage",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "unknown-stage-field",
+    "path": [
+      "stage",
+      "extra"
+    ],
+    "value": true,
+    "error": "stage",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "skills-not-list",
+    "path": [
+      "stage",
+      "skill_ids"
+    ],
+    "value": "writing",
+    "error": "stage-skills",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "duplicate-skills",
+    "path": [
+      "stage",
+      "skill_ids"
+    ],
+    "value": [
+      "writing",
+      "writing"
+    ],
+    "error": "stage-skills",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "unknown-stage-skill",
+    "path": [
+      "stage",
+      "skill_ids"
+    ],
+    "value": [
+      "not-in-catalog"
+    ],
+    "error": "stage-skills",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "retained-not-list",
+    "path": [
+      "retained"
+    ],
+    "value": false,
+    "error": "retained",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "duplicate-retained",
+    "path": [
+      "retained"
+    ],
+    "value": [
+      "skill:core:instructions:.agents/skills/core/SKILL.md",
+      "skill:core:instructions:.agents/skills/core/SKILL.md"
+    ],
+    "error": "retained",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "unknown-retained-key",
+    "path": [
+      "retained"
+    ],
+    "value": [
+      "skill:unknown:instructions:.agents/skills/unknown/SKILL.md"
+    ],
+    "error": "retained",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "empty-tool-id",
+    "path": [
+      "tool",
+      "id"
+    ],
+    "value": "",
+    "error": "tool",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "unknown-tool-root",
+    "path": [
+      "tool",
+      "root"
+    ],
+    "value": "ambient",
+    "error": "tool",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "tool-path-type",
+    "path": [
+      "tool",
+      "path"
+    ],
+    "value": 7,
+    "error": "tool",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "tool-parent-path",
+    "path": [
+      "tool",
+      "path"
+    ],
+    "value": "../guide.md",
+    "error": "tool",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "unknown-tool-field",
+    "path": [
+      "tool",
+      "extra"
+    ],
+    "value": true,
+    "error": "tool",
+    "previous": false,
+    "action": "set"
+  },
+  {
+    "id": "previous-not-object",
+    "path": [
+      "previous"
+    ],
+    "value": [],
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "previous-wrong-schema",
+    "path": [
+      "previous",
+      "schema"
+    ],
+    "value": "delivery-unknown",
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "foreign-project",
+    "path": [
+      "previous",
+      "project"
+    ],
+    "value": "beta",
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "foreign-checkout",
+    "path": [
+      "previous",
+      "checkout"
+    ],
+    "value": "/another/checkout",
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "foreign-instruction-root",
+    "path": [
+      "previous",
+      "instruction_root"
+    ],
+    "value": "/another/root",
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "unknown-receipt-field",
+    "path": [
+      "previous",
+      "extra"
+    ],
+    "value": true,
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "bad-receipt-digest",
+    "path": [
+      "previous",
+      "materials",
+      0,
+      "sha256"
+    ],
+    "value": "bad",
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  },
+  {
+    "id": "receipt-materials-type",
+    "path": [
+      "previous",
+      "materials"
+    ],
+    "value": null,
+    "error": "previous",
+    "previous": true,
+    "action": "set"
+  }
+]

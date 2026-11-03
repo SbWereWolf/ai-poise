@@ -1230,14 +1230,7 @@ class TaskCommands:
 
     def content_context(self, task_id: str) -> dict:
         inputs = self.unit_of_work().capture(TaskReadSet((task_id,)))
-        task = inputs.task(task_id)
-        context = task.content_policy.describe(task.stage.stage_id, task.content_snapshot)
-        contract = task._require_stage_contracts().stage(task.stage.stage_id)
-        active = set(contract.entry_requirements + contract.exit_requirements)
-        return {
-            **context,
-            "due": [item for item in context["due"] if item["id"] in active],
-        }
+        return inputs.task(task_id).content_context()
 
     def mark_verified(self, task_id: str, actor: str, digest: str, report: dict,
                       artifacts: tuple[ArtifactFact, ...], *, packet_digest: str,

@@ -168,11 +168,16 @@ def parse_request(value, config):
             kind=query.get('kind')
             if not isinstance(kind,str) or kind not in shapes_q:
                 raise DomainError('Unknown batch query kind')
+            if kind == 'task' and 'task_id' in query:
+                shapes_q[kind] = shapes_q[kind] | {'task_id'}
             if kind == 'proof_file' and (set(query) != shapes_q[kind]
                     or query.get('representation') not in ('text', 'base64')
                     or not isinstance(query.get('argument_id'), str) or not query['argument_id'].strip()):
                 raise DomainError('proof_file_representation_invalid: Укажите argument_id и явную representation text или base64')
             exact(query,shapes_q[kind],'query')
+            if kind == 'task' and 'task_id' in query and (
+                    not isinstance(query['task_id'], str) or not query['task_id'].strip()):
+                raise DomainError('task_id: укажите непустую строку полного ID или фрагмента slug задачи')
             if kind == 'stage_criteria' and (not isinstance(query['stage_id'], str) or not query['stage_id'].strip()):
                 raise DomainError('stage_criteria requires a stage ID')
             if kind == 'ownership_recovery':

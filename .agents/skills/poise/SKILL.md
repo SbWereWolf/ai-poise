@@ -43,7 +43,7 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `next` | List startable Tasks without claiming. | `"${poise[@]}" next --settings "$settings" --project "$project_id"` |
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
 | `placement` | Prepare/check explicit working-result placement without requiring a Task. | `"${poise[@]}" placement --config "$project_json" --checkout "$checkout" --policy "$placement_policy" < "$packet"` |
-| `skills` | Read metadata, validate decomposition, or prepare file-scoped instructions without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+| `skills` | Read metadata, validate decomposition, prepare file-scoped instructions or deliver current-context materials without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
 | `checks` | Run/read configured named checks without a Task. | `"${poise[@]}" checks --config "$project_json" --checkout "$checkout" --policy "$checks_policy" --view expanded < "$packet"` |
 
 Named-check setup, exact operations, effective cwd/PATH, saved results and recovery
@@ -56,6 +56,17 @@ existing [partial-material
 handoff](../../../docs/workflows/local-handoff.md#незавершённые-материалы-исправления):
 save immutable materials through public artifacts, then ordinary release of the same Task.
 Do not invent resolution proposals or native stage completion before actual fixes.
+
+### Current-context instruction delivery
+
+Use `skills/deliver` for assigned stage skills, one explicitly selected tool guide
+and current-context reuse. A receipt alone proves no retained text; confirm keys
+only after receiving their complete bodies. Missing receipt or context loss uses
+full current delivery. Preserve full machine output and use the existing common
+delivery/error projection for agents. Keep native caller identity unchanged.
+Use the [short guide](../../references/skills-delivery.md) and the canonical
+[setup, packet and recovery
+contract](../../../docs/configuration/instruction-delivery.md#вызов-и-подготовка).
 
 ### Agent handoff proxy
 
@@ -111,7 +122,8 @@ Keep native acknowledgement, manual confirmation and independent review distinct
 
 ### Environment maintenance
 
-[Two-word entry and setup instructions](../../../docs/operator/maintenance-profile-v2.md#обычные-команды-start-app).
+[Two-word entry and setup
+instructions](../../../docs/operator/maintenance-profile-v2.md#обычные-команды-start-app).
 Use the installed `start-app` from the serviced checkout; the project supplies persistent JSON.
 
 | Command | Purpose |
@@ -123,13 +135,18 @@ Use the installed `start-app` from the serviced checkout; the project supplies p
 | `start-app run` | Execute the configured launch chain. |
 
 
-Use the [SDK2 instance/action setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
-and [Task-worktree configuration](../../../docs/operator/start-app-worktree-setup.md#подключение-установленного-инструмента).
-Use the [persistent ERP CLI dependency projection](../../../docs/operator/maintenance-profile-v2.md#дополнительные-cli-зависимости-erp)
+Use the [SDK2 instance/action
+setup](../../../docs/operator/maintenance-profile-v2.md#выбор-экземпляра-и-действия)
+and [Task-worktree
+configuration](../../../docs/operator/start-app-worktree-setup.md#подключение-установленного-инструмента).
+Use the [persistent ERP CLI dependency
+projection](../../../docs/operator/maintenance-profile-v2.md#дополнительные-cli-зависимости-erp)
 so fresh preparation includes the calculator's Composer dependencies.
 Deploy through the configured standalone tool; update every actual registered consumer through
-[the mandatory gate](../../../docs/operator/maintenance-profile-v2.md#согласованное-обновление-потребителей).
-For preserved legacy ERP settings use the [owner migration](../../../docs/operator/maintenance-profile-v2.md#сохранённые-настройки-erp)
+[the mandatory
+gate](../../../docs/operator/maintenance-profile-v2.md#согласованное-обновление-потребителей).
+For preserved legacy ERP settings use the [owner
+migration](../../../docs/operator/maintenance-profile-v2.md#сохранённые-настройки-erp)
 and obtain a fresh native preparation receipt afterward.
 
 Use the [own-instance
@@ -382,7 +399,8 @@ fabricated native receipt or Task completion.
 Users assign agents to roles. Perform both executor and reviewer stages only when the
 user assigned both; keep their work and decisions separate. Different workflow roles
 do not require different agent/session identities. Preserve actual provenance and claims.
-Follow the [canonical role-assignment rule](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
+Follow the [canonical role-assignment
+rule](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения).
 
 ## Start or resume work
 
@@ -665,7 +683,8 @@ publication authority. A publish stage opens only through the separately authori
 acceptance path.
 
 Continue the exact current verified result through its proved ownership history after an
-authorized ordinary release/acquire or authenticated historical ownership events. A lawful release/acquire may continue the next role with the same actor
+authorized ordinary release/acquire or authenticated historical ownership events. A lawful
+release/acquire may continue the next role with the same actor
 when the user assigned both roles; changing identity is not required.
 Keep the same progression intent and all source, ownership, unknown-outcome and review gates.
 Follow the canonical [verified-result
@@ -1116,9 +1135,11 @@ Native caller isolation: a session launcher is not caller identity. Use only the
 for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
 Never set these values to impersonate a stored binding or combine native identity with
 POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
-parent-only signals must not mutate the parent's Task. For a handoff to another assigned agent, the sender uses ordinary public release;
+parent-only signals must not mutate the parent's Task. For a handoff to another assigned agent, the
+sender uses ordinary public release;
 the receiver uses its own native launcher and bootstraps the exact Task. If the user assigned
-both roles to one agent, the same actor may resume after release. Preserve WIP and diagnose missing/conflicting signals instead of renaming
+both roles to one agent, the same actor may resume after release. Preserve WIP and diagnose
+missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
 
 ## Requirements provenance

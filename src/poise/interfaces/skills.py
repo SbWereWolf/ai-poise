@@ -7,6 +7,7 @@ from ..infrastructure.goal_config import strict_json
 from ..infrastructure.skill_catalog import load_skill_catalog
 from ..modules.foundation.errors import PoiseError
 from ..modules.skills.instructions import InstructionInputError
+from ..modules.skills.instruction_delivery import SCHEMA as DELIVERY_SCHEMA
 from ..application.project_instructions import ProjectInstructions
 from ..infrastructure.project_instructions import FileInstructionSource
 
@@ -22,12 +23,16 @@ def execute(catalog_path, root, stream, output):
         result = InstructionInputError('invalid_request', 'request', 'provide:request').response()
         output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
         return 2
-    if isinstance(request, dict) and request.get('operation') == 'prepare':
+    if request.get('operation') in ('prepare', 'deliver'):
+        delivery = request['operation'] == 'deliver'
         try:
-            result = ProjectInstructions(FileInstructionSource(catalog_path, root)).prepare(request)
+            service = ProjectInstructions(FileInstructionSource(catalog_path, root))
+            result = service.deliver(request) if delivery else service.prepare(request)
             code = 0 if result['status'] == 'ready' else 1
         except InstructionInputError as exc:
             result, code = exc.response(), 2
+            if delivery:
+                result['schema'] = DELIVERY_SCHEMA
         output.write(json.dumps(result, ensure_ascii=False, sort_keys=True) + '\n')
         return code
     try:

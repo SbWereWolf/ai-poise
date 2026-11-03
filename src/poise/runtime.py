@@ -2189,7 +2189,9 @@ class Poise:
         return {'status':'cancelled','task':data['id'],'worktree_preserved':True,
                 'cleanup':self.cleanup_tools.terminal_result(run)}
 
-    def show(self) -> dict:
+    def show(self, task_id: str | None = None) -> dict:
+        if task_id is not None:
+            return self.task_queries.read_addressed(task_id)
         data = self.store.current(self.session)
         if data is None:
             return {'status':'read_only','project':self.cfg['project'],'tasks':self.task_queries.summary()}

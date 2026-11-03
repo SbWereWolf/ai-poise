@@ -1,0 +1,31 @@
+{
+  "progress": {
+    "visits": {
+      "work": 2
+    },
+    "transitions": 0,
+    "outcome": null,
+    "stage_work": null
+  },
+  "feedback": {
+    "findings": [
+      {
+        "id": "F-A",
+        "subject": "Данные A.",
+        "description": "Проверить вывод A.",
+        "evidence": "Наблюдение A.",
+        "stage": "work",
+        "iteration": 2
+      }
+    ],
+    "resolutions": [],
+    "decisions": []
+  },
+  "registry": {
+    "revision": 0,
+    "history": [],
+    "requests": [],
+    "executable_obligations": []
+  },
+  "action_assessment": null
+}

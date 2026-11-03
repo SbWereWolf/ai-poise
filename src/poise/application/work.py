@@ -148,7 +148,7 @@ class WorkTools:
                        'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
             elif kind=='ownership_recovery':value=h.ownership.recovery_snapshot(query['task_ids'])
             elif kind=='ownership_conflicts':value=h.ownership.conflicts()
-            elif kind=='task':value=h.show()
+            elif kind=='task':value=h.show(query['task_id']) if 'task_id' in query else h.show()
             elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])
             elif kind=='task_cleanup':value=h.cleanup_tools.query(query['task_id'],query['request_id'])
             elif kind=='messages':value=self.interactions.summary(h.current_task())

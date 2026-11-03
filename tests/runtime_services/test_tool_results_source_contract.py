@@ -141,29 +141,27 @@ def test_latest_partial_cannot_return_older_complete_full_path(project, tmp_path
 
 @pytest.mark.parametrize('case,status,code', [
     ('missing', 'rejected', 'source_missing'),
-    ('pending', 'pending', None),
-    ('unknown-wire', 'rejected', 'unmapped_input')])
+    ('pending', 'stored', None),
+    ('unknown-wire', 'stored', None)])
 def test_native_missing_pending_and_unknown_are_not_complete(project, tmp_path, case, status, code):
     scene = SessionScenario(project, tmp_path)
-    # A real ready predecessor makes replacing last on pending observable.
     if case == 'pending':
         previous, _ = scene.stored(scene.input(key='ready-before-native-unavailable'))
         previous_id, previous_full, previous_expanded, last = scene.run_identity(previous)
-        ready_root = previous_full.parent.parent
+        published_root = previous_full.parent.parent
         full_name = scene.policy['session']['full']
         expanded_name = scene.policy['session']['expanded']
 
-    def ready_publications():
-        # Observe published pairs only, not private pending/staging bookkeeping.
+    def publications():
         return {str(folder): ((folder / full_name).read_bytes(),
                               (folder / expanded_name).read_bytes())
-                for folder in ready_root.iterdir()
+                for folder in published_root.iterdir()
                 if folder.is_dir() and not folder.name.startswith('.')
                 and (folder / full_name).is_file() and (folder / expanded_name).is_file()}
 
     if case == 'pending':
-        ready_before, last_before = ready_publications(), last.read_bytes()
-        assert str(previous_full.parent) in ready_before
+        published_before = publications()
+        assert str(previous_full.parent) in published_before
     response = literal('session-native-source-cases.json')['healthy']
     if case == 'pending':
         response = {'session_id': 43, 'output': 'still running'}
@@ -172,38 +170,68 @@ def test_native_missing_pending_and_unknown_are_not_complete(project, tmp_path, 
     request = scene.native(response, present=case != 'missing')
     before = scene.snapshot()
     exit_code, value = scene.direct(request)
-    assert value.get('status') == status, 'F08_UNKNOWN_NATIVE_SOURCE_ADMITTED'
-    if code:
-        assert exit_code == 2 and value['error']['code'] == code, 'F08_NATIVE_SOURCE_GUARD_MISSING'
-    else:
-        assert exit_code == 0 and value['capture']['state'] == 'unknown'
-        assert last.read_bytes() == last_before, 'F08_PENDING_REPLACED_READY_LAST'
-        assert ready_publications() == ready_before, 'F08_PENDING_PUBLISHED_READY_RUN'
-        assert scene.service('full')['run_id'] == previous_id
-        assert scene.service('expanded')['run_id'] == previous_id
-        terminal = literal('session-native-source-cases.json')['healthy']
-        callback = scene.native(terminal, key=request['event']['tool_use_id'])
-        assert callback['event']['session_id'] == request['event']['session_id']
-        assert callback['event']['tool_use_id'] == request['event']['tool_use_id']
-        terminal_code, completed = scene.direct(callback, audience='machine')
-        assert terminal_code == 0 and completed['capture']['state'] == 'complete'
-        assert completed['response'] == terminal, 'F08_PENDING_TERMINAL_ORIGINAL_CHANGED'
-        completed_id, full, expanded, completed_last = scene.run_identity(completed)
-        assert completed_id != previous_id and completed_last == last
-        assert json.loads(full.read_bytes()) == terminal
-        ready_after = ready_publications()
-        assert set(ready_after) - set(ready_before) == {str(full.parent)}, (
-            'F08_PENDING_TERMINAL_READY_PUBLICATION_COUNT', ready_after.keys())
-        assert {key: ready_after[key] for key in ready_before} == ready_before
-        assert scene.service('full')['run_id'] == completed_id
-        print(json.dumps({'boundary': 'pending-terminal-ready-publication',
-                          'session': callback['event']['session_id'],
-                          'tool_use_id': callback['event']['tool_use_id'],
-                          'previous_run_id': previous_id, 'terminal_run_id': completed_id,
-                          'ready_before': list(ready_before), 'ready_after': list(ready_after),
-                          'full_path': str(full), 'expanded_path': str(expanded)}))
-    if case != 'pending':
-        assert scene.snapshot() == before
+    assert value.get('status') == status, 'F08_RECEIVED_SNAPSHOT_NOT_PRESENTED'
+    if case == 'missing':
+        assert exit_code == 2 and value['error']['code'] == code
+        assert scene.snapshot() == before, 'F08_MISSING_SOURCE_PUBLISHED_A_RUN'
+        return
+
+    assert exit_code == 0 and value['exit_code'] is None
+    scene.bounded(scene.calls[-1]['stdout'])
+    assert value['preview'] and 'Bash' in value['preview']
+    observed_id, received_full, received_expanded, latest = scene.run_identity(value)
+    assert json.dumps(json.loads(received_full.read_bytes()), sort_keys=True) == json.dumps(
+        response, sort_keys=True), 'F08_RECEIVED_SOURCE_CHANGED'
+    if case == 'unknown-wire':
+        assert 'unknown' in value['preview'].casefold()
+        assert response[0] not in value['preview'], 'F08_UNKNOWN_RAW_ARRAY_LEAKED'
+        return
+
+    assert value['capture'] == {'state': 'unknown', 'reason': 'native_process_pending'}
+    assert 'pending' in value['preview'].casefold()
+    assert observed_id != previous_id and latest == last
+    pending_full_bytes = received_full.read_bytes()
+    pending_expanded_bytes = received_expanded.read_bytes()
+    after_pending = publications()
+    assert set(after_pending) - set(published_before) == {str(received_full.parent)}
+    assert {key: after_pending[key] for key in published_before} == published_before
+    full_code, full_refusal = scene.direct(
+        {'schema': 'poise-tool-result-request-1', 'operation': 'full'})
+    assert full_code == 2 and full_refusal['error']['code'] == 'source_incomplete'
+    assert 'full_path' not in full_refusal
+    pending_expanded = scene.service('expanded')
+    assert pending_expanded['run_id'] == observed_id
+    assert pending_expanded['capture'] == value['capture']
+
+    pending_last = last.read_bytes()
+    old_code, old_complete = scene.direct(
+        {'schema': 'poise-tool-result-request-1', 'operation': 'view',
+         'response_path': previous['response_path'], 'view': 'full'})
+    assert old_code == 0 and old_complete['full_path'] == str(previous_full)
+    assert last.read_bytes() == pending_last, 'F08_OLD_VIEW_REWOUND_LATEST'
+    before_repeat = scene.snapshot()
+    repeated_code, repeated = scene.direct(deepcopy(request), audience='machine')
+    assert repeated_code == 0 and repeated['run_id'] == observed_id
+    assert repeated['full_path'] == str(received_full)
+    assert scene.snapshot() == before_repeat, 'F08_PENDING_REPLAY_CHANGED_SOURCE'
+
+    terminal = literal('session-native-source-cases.json')['healthy']
+    callback = scene.native(terminal, key=request['event']['tool_use_id'])
+    for identity in ('session_id', 'turn_id', 'tool_use_id'):
+        assert callback['event'][identity] == request['event'][identity]
+    terminal_code, completed = scene.direct(callback, audience='machine')
+    assert terminal_code == 0 and completed['capture'] == {'state': 'complete', 'reason': None}
+    assert json.dumps(completed['response'], sort_keys=True) == json.dumps(terminal, sort_keys=True)
+    completed_id, full, expanded, completed_last = scene.run_identity(completed)
+    assert completed_id not in (previous_id, observed_id) and completed_last == last
+    assert json.dumps(json.loads(full.read_bytes()), sort_keys=True) == json.dumps(terminal, sort_keys=True)
+    after_terminal = publications()
+    assert set(after_terminal) - set(published_before) == {str(received_full.parent), str(full.parent)}
+    assert {key: after_terminal[key] for key in published_before} == published_before
+    assert received_full.read_bytes() == pending_full_bytes
+    assert received_expanded.read_bytes() == pending_expanded_bytes
+    assert scene.service('full')['run_id'] == completed_id
+    assert scene.service('expanded')['run_id'] == completed_id
 
 
 @pytest.mark.parametrize('case,expected', [('healthy', 'complete'), ('partial', 'partial')])

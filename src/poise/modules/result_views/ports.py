@@ -22,3 +22,11 @@ class StoredSource(Protocol):
 
 class ResultPlacement(Protocol):
     def prepare(self, paths: list[str]) -> None: ...
+
+
+class UnknownInputRegistry(Protocol):
+    def register(self, observation: dict) -> dict: ...
+
+
+class UnknownInputDispatcher(Protocol):
+    def submit(self, observation: dict) -> None: ...

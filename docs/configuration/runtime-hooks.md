@@ -46,6 +46,12 @@ association](tool-results.md#чтение-последнего-результа�
 остаются у следующих разделов этой инструкции; пример handler не является полным
 replacement install packet и не восполняет пропущенную definition.
 
+Контракты специализированного thread-профиля, generic fallback, pending-снимков
+и асинхронного реестра принадлежат
+[tool results](tool-results.md#неизвестный-формат-и-асинхронная-регистрация).
+[Переносимый компонент](tool-results.md#переносимый-компонент-и-независимый-потребитель)
+может иметь отдельную development revision; это не установка hooks у потребителя.
+
 Successful install/diagnose и isolated fixture не доказывают host delivery.
 Нужны настоящий PostToolUse receipt/input, full source/UUID/files, полученный
 моделью brief; для code mode — независимое сравнение полного original returned value

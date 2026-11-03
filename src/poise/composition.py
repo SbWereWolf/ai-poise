@@ -15,8 +15,15 @@ def tool_result_tools(bound, policy, environment, *, caller=None, resources=None
     from .infrastructure.session_establishment import direct_caller, harness_caller
     if 'session' in policy:
         caller = harness_caller(environment) if caller is None else caller
+        from .infrastructure.unknown_inputs import FileUnknownInputRegistry, CommandUnknownInputDispatcher
+        from pathlib import Path
+        settings = policy.get('unknown_inputs', {})
+        registry = FileUnknownInputRegistry(settings.get('registry_root',
+            str(Path(policy['session']['root']) / caller.key / 'unknown-inputs')),
+            policy['storage']['root'], policy['storage']['file_mode'])
         return ToolResults(policy, FileToolResultStore(bound, caller, policy, ResultPlacement.general(policy, resources)),
-                           lambda event: native_result(event, policy))
+                           lambda event: native_result(event, policy), unknown_registry=registry,
+                           unknown_dispatcher=CommandUnknownInputDispatcher(policy, registry, environment))
     if bound is None:
         from .modules.result_views.tool_results import reject
         reject('invalid_policy', 'session', 'correct:policy')

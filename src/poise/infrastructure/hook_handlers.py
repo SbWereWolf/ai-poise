@@ -149,9 +149,6 @@ class BuiltinHandlers:
                         'streams': {'stdout': None, 'stderr': None},
                         'capture': {'state': 'unknown', 'reason': 'native source not yet classified'},
                         'exit_code': None}, 'agent')
-                    if result['status'] == 'pending':
-                        return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
-                                'response': response, 'control': {'action': 'continue', 'reason': None}}, execution
                     text = result['preview']
             except ToolResultFailure as error:
                 native = event.get('tool_response')

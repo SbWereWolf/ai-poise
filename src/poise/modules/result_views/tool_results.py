@@ -58,6 +58,10 @@ def saved_result(value, address, scope, *, prepared=False):
                   'exit_code', 'streams', '_scope', '_fingerprint', '_response_source'}
         if prepared:
             fields |= {'run_id', 'full_path', 'expanded_path', 'last_path', '_prepared', '_published'}
+        if 'unknown_observation' in value:
+            fields.add('unknown_observation')
+            from .unknown_inputs import UnknownObservation
+            UnknownObservation(value['unknown_observation'])
         exact(value, fields)
         if (value['schema'] != 'poise-tool-result-1' or value['status'] != 'stored'
                 or value['response_path'] != address or value['_scope'] != scope): reject()
@@ -172,6 +176,11 @@ class ToolResultPolicy:
                     for view in ('brief', 'expanded'):
                         limits = config(parser[view], 'chars bytes')
                         if any(not integer(n, 1) for n in limits.values()): raise ValueError(view)
+                    if parser['format'] == 'mcp-thread-json':
+                        if parser['parser'] != 'mcp' or not integer(parser['content_index'], 0) or not integer(parser['expected_version'], 0):
+                            raise ValueError('Invalid thread profile')
+                        template_fields(parser['brief_template'], {'thread_id', 'status', 'turn_status'})
+                        template_fields(parser['expanded_template'], {'thread_id', 'status', 'turn_status', 'brief', 'message', 'has_more'})
                     if parser['format'] == 'mcp-checks-json':
                         if parser['parser'] != 'mcp':
                             raise ValueError('Invalid check result parser')
@@ -225,6 +234,13 @@ class ToolResultPolicy:
                         if not isinstance(item['command_pattern'], str):
                             raise ValueError('Invalid command pattern')
                         re.compile(item['command_pattern'])
+            if 'unknown_inputs' in raw:
+                item = raw['unknown_inputs']
+                exact(item, {'registry_root', 'registration_command', 'registration_cwd'})
+                if (any(not text(item[k]) or not item[k].startswith('/') for k in ('registry_root', 'registration_cwd'))
+                        or not isinstance(item['registration_command'], list) or not item['registration_command']
+                        or any(not text(a) for a in item['registration_command'])):
+                    raise ValueError('Invalid unknown input delivery')
             return cls(deepcopy(raw))
         except (DomainError, KeyError, TypeError, ValueError, re.error) as exc:
             raise ToolResultFailure('invalid_policy', 'policy', 'correct:policy') from exc
@@ -243,12 +259,18 @@ class ToolResultRequest:
             'capture': {'request_id', 'tool', 'response', 'streams', 'capture', 'exit_code'},
             'hook': {'request_id', 'event', 'streams', 'capture', 'exit_code'},
             'expanded': set(), 'full': set(),
+            'register_unknown': {'observation'},
             'view': {'response_path', 'view'}, 'summary': {'response_path', 'channel'},
             'lines': {'response_path', 'channel', 'from_line', 'to_line'},
             'bytes': {'response_path', 'channel', 'start', 'end'},
             'search': {'response_path', 'channel', 'pattern', 'context', 'max_matches'}}
         if not text(operation) or operation not in fields: reject()
         exact(value, base | fields[operation])
+        if operation == 'register_unknown':
+            from .unknown_inputs import UnknownObservation
+            UnknownObservation(value['observation'])
+            if 'session' not in policy: reject('invalid_policy', 'session', 'correct:policy')
+            return cls(deepcopy(value))
         if operation in ('expanded', 'full'):
             if 'session' not in policy: reject('invalid_policy', 'session', 'correct:policy')
             return cls(deepcopy(value))
@@ -332,7 +354,7 @@ def native_snapshot(event, policy, *, selected=None):
             reject('unmapped_input', 'exit_code', 'configure:input')
         exit_code = response['exit_code']
         output = response['output']
-    elif parser['format'] in ('records-json', 'mcp-content-json', 'mcp-checks-json'):
+    elif parser['format'] in ('records-json', 'mcp-content-json', 'mcp-checks-json', 'mcp-thread-json'):
         if not isinstance(response, dict) or not isinstance(response.get('content'), list):
             reject('unmapped_input', 'tool_response', 'configure:input')
     elif parser['format'] == 'work-json':
@@ -479,6 +501,9 @@ def prepare_views(record, sources, policy, *, selected_parser=None):
     """Select both forms once from the complete source at its canonical owner."""
     parser = (policy.get('parsers', {}).get(record['tool']['name'])
               if selected_parser is None else selected_parser)
+    if selected_parser is not None and parser.get('parser') == 'generic':
+        from .unknown_inputs import generic_views
+        return generic_views(record, parser['reason'], policy)
     if parser is None or parser.get('parser') not in ('bash', 'mcp', 'poise'):
         reject('unmapped_input', 'parser', 'configure:input')
     try:
@@ -502,7 +527,10 @@ def prepare_views(record, sources, policy, *, selected_parser=None):
                 raise ValueError('Missing summary')
             expanded = parser['expanded_template'].format(brief=brief, details=details)
         elif kind == 'mcp':
-            if parser['format'] == 'mcp-checks-json':
+            if parser['format'] == 'mcp-thread-json':
+                from .thread_views import thread_views
+                brief, expanded = thread_views(raw, parser)
+            elif parser['format'] == 'mcp-checks-json':
                 brief, expanded = mcp_checks_views(raw, parser)
             elif parser['format'] == 'mcp-content-json':
                 brief, expanded = mcp_content_views(raw, parser)

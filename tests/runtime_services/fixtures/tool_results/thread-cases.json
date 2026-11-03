@@ -1,0 +1,93 @@
+{
+  "completed": {
+    "wire": {
+      "schemaVersion": 1,
+      "thread": {
+        "id": "fixture-chat",
+        "kind": "codex",
+        "title": "Fixture",
+        "status": {
+          "type": "idle"
+        }
+      },
+      "page": {
+        "order": "newest_first",
+        "limit": 1,
+        "nextCursor": null,
+        "hasMore": false
+      },
+      "turns": [
+        {
+          "id": "fixture-turn",
+          "status": "completed",
+          "error": null,
+          "items": [
+            {
+              "type": "agentMessage",
+              "text": "Accepted. Next: tests.",
+              "phase": "final_answer"
+            },
+            {
+              "type": "commandExecution",
+              "command": "RAW_ONLY_THREAD_COMMAND",
+              "status": "completed"
+            }
+          ]
+        }
+      ]
+    },
+    "brief": "Chat fixture-chat: idle; last completed",
+    "expanded": "Chat fixture-chat: idle; last completed\nLast: Accepted. Next: tests.\nMore: false"
+  },
+  "failed": {
+    "wire": {
+      "schemaVersion": 1,
+      "thread": {
+        "id": "fixture-chat",
+        "kind": "codex",
+        "status": {
+          "type": "idle"
+        }
+      },
+      "page": {
+        "order": "newest_first",
+        "limit": 1,
+        "nextCursor": null,
+        "hasMore": false
+      },
+      "turns": [
+        {
+          "id": "fixture-turn",
+          "status": "failed",
+          "error": {
+            "message": "fixture failure"
+          },
+          "items": []
+        }
+      ]
+    },
+    "brief": "Chat fixture-chat: idle; last failed",
+    "expanded": "Chat fixture-chat: idle; last failed\nLast: fixture failure\nMore: false"
+  },
+  "empty-page": {
+    "wire": {
+      "schemaVersion": 1,
+      "thread": {
+        "id": "fixture-chat",
+        "kind": "codex",
+        "status": {
+          "type": "active"
+        }
+      },
+      "page": {
+        "order": "newest_first",
+        "limit": 1,
+        "nextCursor": "fixture-cursor",
+        "hasMore": true
+      },
+      "turns": []
+    },
+    "brief": "Chat fixture-chat: active; last none",
+    "expanded": "Chat fixture-chat: active; last none\nLast: \nMore: true"
+  }
+}

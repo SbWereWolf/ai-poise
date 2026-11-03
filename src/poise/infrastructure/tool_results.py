@@ -24,9 +24,30 @@ def digest(raw):
 
 def native_result(event, policy):
     """Decode only the selected actual wire; never invent missing process streams."""
-    selected = select_parser(event, policy)
-    result = native_snapshot(event, policy, selected=selected)
-    if result['pending']: return result
+    from ..modules.result_views.unknown_inputs import generic_profile
+    try:
+        selected = select_parser(event, policy)
+    except ToolResultFailure as error:
+        if error.code != 'unmapped_input': raise
+        known = event['tool_name'] in policy.get('parsers', {}) or any(
+            rule['tool_name'] == event['tool_name'] for rule in policy.get('selection', []))
+        selected = ('generic', generic_profile('unknown_format' if known else 'unknown_tool'))
+    if selected[1]['parser'] == 'generic':
+        result = None
+    else:
+        try:
+            result = native_snapshot(event, policy, selected=selected)
+        except ToolResultFailure as error:
+            if error.code != 'unmapped_input': raise
+            selected = ('generic', generic_profile('unknown_format')); result = None
+    if result is None or result.get('pending'):
+        pending = result is not None and result.get('pending')
+        raw = deepcopy(event['tool_response'])
+        result = {'pending': bool(pending), 'tool': {'name': event['tool_name'],
+            'kind': 'bash' if event['tool_name'] == 'Bash' else 'mcp' if event['tool_name'].startswith('mcp__') else 'generic'},
+            'response': raw, 'capture': {'state': 'unknown', 'reason': 'native_process_pending'} if pending else {'state': 'complete', 'reason': None},
+            'exit_code': raw.get('exit_code') if isinstance(raw, dict) and type(raw.get('exit_code')) is int else None}
+        if pending: selected = ('generic', generic_profile('pending'))
     _, parser = selected
     if parser['format'] in ('saved-work-json', 'saved-work-text'):
         try:

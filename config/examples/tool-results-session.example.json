@@ -187,6 +187,23 @@
         "bytes": 2048
       },
       "overflow": "reject"
+    },
+    "mcp__example__read_thread": {
+      "parser": "mcp",
+      "format": "mcp-thread-json",
+      "content_index": 0,
+      "expected_version": 1,
+      "brief_template": "Chat {thread_id}: {status}; last {turn_status}",
+      "expanded_template": "{brief}\nLast: {message}\nMore: {has_more}",
+      "brief": {
+        "chars": 128,
+        "bytes": 256
+      },
+      "expanded": {
+        "chars": 512,
+        "bytes": 1024
+      },
+      "overflow": "reject"
     }
   },
   "selection": [
@@ -215,6 +232,13 @@
       "id": "declared-mcp-projects",
       "tool_name": "mcp__example__projects",
       "profile": "mcp__example__projects",
+      "priority": 10,
+      "command_pattern": null
+    },
+    {
+      "id": "declared-mcp-thread",
+      "tool_name": "mcp__example__read_thread",
+      "profile": "mcp__example__read_thread",
       "priority": 10,
       "command_pattern": null
     }

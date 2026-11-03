@@ -1,0 +1,17 @@
+{
+  "parser": "mcp",
+  "format": "mcp-thread-json",
+  "content_index": 0,
+  "expected_version": 1,
+  "brief_template": "Chat {thread_id}: {status}; last {turn_status}",
+  "expanded_template": "{brief}\nLast: {message}\nMore: {has_more}",
+  "brief": {
+    "chars": 128,
+    "bytes": 256
+  },
+  "expanded": {
+    "chars": 512,
+    "bytes": 1024
+  },
+  "overflow": "reject"
+}

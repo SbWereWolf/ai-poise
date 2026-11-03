@@ -1,0 +1,32 @@
+{
+  "unknown-tool": {
+    "schema": "poise-tool-result-unknown-1",
+    "tool_name": "mcp__fixture__opaque",
+    "format": "json-object",
+    "reason": "unknown_tool",
+    "policy_version": "test-1",
+    "session_id": "isolated-output-session",
+    "turn_id": "isolated-output-turn",
+    "tool_use_id": "universal-unknown-a",
+    "request_id": "universal-unknown-a",
+    "full_source": {
+      "path": "@FULL@",
+      "sha256": "@SHA256@"
+    }
+  },
+  "unknown-format": {
+    "schema": "poise-tool-result-unknown-1",
+    "tool_name": "Bash",
+    "format": "json-object",
+    "reason": "unknown_format",
+    "policy_version": "test-1",
+    "session_id": "isolated-output-session",
+    "turn_id": "isolated-output-turn",
+    "tool_use_id": "universal-format-a",
+    "request_id": "universal-format-a",
+    "full_source": {
+      "path": "@FULL@",
+      "sha256": "@SHA256@"
+    }
+  }
+}

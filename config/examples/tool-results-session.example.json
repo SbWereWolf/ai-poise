@@ -208,6 +208,14 @@
   },
   "selection": [
     {
+      "id": "explicit-file-read",
+      "tool_name": "Bash",
+      "profile": "Bash",
+      "priority": 40,
+      "command_pattern": "@FILE_READ_COMMAND_REGEX@",
+      "file_read": true
+    },
+    {
       "id": "ordinary-poise",
       "tool_name": "Bash",
       "profile": "Poise",

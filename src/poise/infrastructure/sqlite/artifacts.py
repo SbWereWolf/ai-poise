@@ -124,6 +124,19 @@ class SqliteArtifactRepository:
         self.db.execute('INSERT OR IGNORE INTO artifacts(id,owner,scope,path,digest) VALUES(?,?,?,?,?)',
                         (item['id'],item['owner'],item['scope'],item['path'],item['digest']))
 
+    def record(self, artifact_id):
+        row = self.db.execute('SELECT id,owner,scope,path,digest FROM artifacts WHERE id=?',
+                              (artifact_id,)).fetchone()
+        return None if row is None else dict(row)
+
+    def register_materials(self, records):
+        """Permanent user attachments are registered, without becoming stage proofs."""
+        for item in records:
+            old = self.record(item['id'])
+            if old is not None and any(old[key] != item[key] for key in old):
+                raise PoiseError('Material artifact identity conflict; retry the original request')
+            self._register(item)
+
     def _link_sprint(self, item):
         self.db.execute('INSERT OR IGNORE INTO sprint_artifacts(sprint_id,artifact_id) VALUES(?,?)',
                         (item['owner'],item['id']))

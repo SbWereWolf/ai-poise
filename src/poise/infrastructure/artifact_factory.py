@@ -107,6 +107,35 @@ class FileArtifactFactory:
     _without_links = staticmethod(BinaryFilePublisher.without_links)
     _read_registered = staticmethod(BinaryFilePublisher.read)
 
+    def _material_path(self, record, owner):
+        scope = record['scope']
+        if scope not in self.roots or record['owner'] != owner:
+            raise PoiseError('Registered material owner mismatch; select its owning Task')
+        path = Path(record['path'])
+        try:
+            name = relative(path.relative_to(self.roots[scope]).as_posix())
+        except ValueError as exc:
+            raise PoiseError('Registered material leaves configured root; restore its original placement') from exc
+        if (not path.is_absolute() or str(path) != record['path']
+                or artifact_identity(scope, owner, name) != record['id']):
+            raise PoiseError('Registered material identity mismatch; restore its original placement')
+        return self._observe_destination(scope, name, directory=False)
+
+    def read_material(self, record, owner):
+        """Read the exact registered binary object without clipping or rebinding."""
+        path = self._material_path(record, owner)
+        content = io.BytesIO()
+        if self._read_registered(path, 'Registered material', content) != record['digest']:
+            raise PoiseError('Registered material digest mismatch; restore original bytes')
+        return content.getvalue()
+
+    def discard_unregistered(self, record, owner):
+        """Caller proves absent registry linkage; this owner confines compensation."""
+        path = self._material_path(record, owner)
+        if path.exists():
+            self.read_material(record, owner)
+            path.unlink()
+
     def _recovery_destination(self, scope, name):
         # Registry-relative names include handoffs/, artifacts/, etc.; unlike
         # new authored text, they must not receive an artifact-directory prefix.

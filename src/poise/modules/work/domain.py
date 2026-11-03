@@ -43,7 +43,10 @@ def status_filter(value, allowed, name):
 
 def is_observation(request):
     """A validated query without a reported-message ingestion intention."""
-    return request['operation'] == 'show' and not request['messages']
+    query = request['operation'] == 'show' or (
+        request['operation'] == 'task_feedback'
+        and request['input']['action'] in ('read', 'read_attachment'))
+    return query and not request['messages']
 
 
 def parse_request(value, config):
@@ -58,7 +61,7 @@ def parse_request(value, config):
             'recover_missing_worktree':{'task_id','reason'},
             'recover_ownership':{'request_id','task_ids','expected_snapshot','task_claims','worktree_bindings','reason','authorization'},
             'recover_artifacts':{'request_id','task_id','expected_version','artifact_ids','source_roots','reason','authorization'},
-            'artifact_drafts':None,
+            'artifact_drafts':None,'task_feedback':None,
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},
             'initialize_stage_contracts':{
@@ -110,7 +113,7 @@ def parse_request(value, config):
     if op == 'handoff':
         from ..tasks.handoff import validate_handoff_input
         validate_handoff_input(value['input'])
-    elif op not in ('task','sprint','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
+    elif op not in ('task','sprint','integrate','artifact_drafts','delivery','task_feedback'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise collection_error('messages requires a bounded list')
@@ -139,6 +142,9 @@ def parse_request(value, config):
     if op=='recover_artifacts':
         from ..artifact_factory.domain import ArtifactRecoveryIntent
         ArtifactRecoveryIntent.parse(value['input'],config['max_items'])
+    if op=='task_feedback':
+        from ..tasks.materials import TaskMaterialRequest
+        TaskMaterialRequest.parse(value['input'], config['max_items'])
     if op=='artifact_drafts':
         from ..artifact_factory.domain import ArtifactDraftIntent
         ArtifactDraftIntent.parse(value['input'],config['max_items'])

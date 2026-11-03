@@ -46,6 +46,7 @@ class WorkRuntime(Protocol):
     telemetry: Any
     cleanup_tools:Any
     delivery_tools:Any
+    task_materials:Any
     integration_tools:Any
     sprint_tools:SprintWorkPort
     task_queries:TaskOverviewPort

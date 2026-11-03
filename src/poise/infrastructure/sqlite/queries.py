@@ -227,10 +227,7 @@ class TaskQueries:
             captured = {'schema': 'poise-terminal-inspection-1', 'task': task_id,
                     'status': row['status'], 'version': row['version'],
                     'metadata': row['metadata'], 'result_template': None,
-                    'content': {
-                        'contracts': rows('SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version'),
-                        'sections': rows('SELECT submission_id,section_id,content,content_state FROM section_layers WHERE task_id=? ORDER BY submission_id,section_id'),
-                        'trace_points': rows('SELECT submission_id,route_id,point_id,data FROM trace_point_layers WHERE task_id=? ORDER BY submission_id,route_id,point_id')},
+                    'content': self._material_content(db, task_id),
                     'evidence': {
                         'records': [dict(r) for r in db.execute('SELECT data,stage,iteration FROM evidence WHERE task_id=? ORDER BY id', (task_id,))],
                         'proof': objects('SELECT data FROM task_proofs WHERE task_id=?'),
@@ -248,6 +245,70 @@ class TaskQueries:
         for key in ('history', 'execution', 'workflow'):
             captured[key] = [json.loads(v) for v in captured[key]]
         return captured
+
+    @staticmethod
+    def _material_content(db, task_id):
+        return {
+            'contracts': [dict(r) for r in db.execute(
+                'SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version',
+                (task_id,))],
+            'sections': [dict(r) for r in db.execute(
+                'SELECT submission_id,section_id,content,content_state FROM section_layers '
+                'WHERE task_id=? ORDER BY submission_id,section_id', (task_id,))],
+            'trace_points': [dict(r) for r in db.execute(
+                'SELECT submission_id,route_id,point_id,data FROM trace_point_layers '
+                'WHERE task_id=? ORDER BY submission_id,route_id,point_id', (task_id,))],
+        }
+
+    @staticmethod
+    def _material_header(db, task_id):
+        row = db.execute('SELECT id,status,stage_index,metadata FROM tasks WHERE id=?',
+                         (task_id,)).fetchone()
+        if row is None:
+            raise PoiseError('Task not found; select a registered Task or create a new Task')
+        return dict(row)
+
+    def materials_request(self, task_id, request_id):
+        from .task_materials import SqliteTaskMaterialsRepository
+        with self.database.read_transaction() as db:
+            header = self._material_header(db, task_id)
+            saved = SqliteTaskMaterialsRepository(db).request(task_id, request_id)
+        return header['status'], saved
+
+    def materials_view(self, task_id):
+        from .task_materials import SqliteTaskMaterialsRepository
+        from ...modules.tasks.materials import task_material_view
+        with self.database.read_transaction() as db:
+            header = self._material_header(db, task_id)
+            content = self._material_content(db, task_id)
+            results = tuple(row[0] for row in db.execute(
+                'SELECT data FROM task_results WHERE task_id=? ORDER BY submission_id',
+                (task_id,)))
+            comments = SqliteTaskMaterialsRepository(db).comments(task_id)
+        header['metadata'] = json.loads(header['metadata'])
+        for item in content['contracts']:
+            item['data'] = json.loads(item['data'])
+        for item in content['trace_points']:
+            item['data'] = json.loads(item['data'])
+        if header['status'] == 'newborn':
+            content['draft'] = header['metadata']['newborn']['draft']
+        task = task_material_view(header, content, [json.loads(value) for value in results])
+        return {'status': 'read_only', 'task_id': task_id, 'task': task, 'comments': comments}
+
+    def material_attachment(self, task_id, attachment_id):
+        from .task_materials import SqliteTaskMaterialsRepository
+        from .artifacts import SqliteArtifactRepository
+        with self.database.read_transaction() as db:
+            self._material_header(db, task_id)
+            selected = next((item for comment in SqliteTaskMaterialsRepository(db).comments(task_id)
+                             for item in comment['attachments'] if item['id'] == attachment_id), None)
+            if selected is None:
+                raise PoiseError('Attachment not found or does not belong to Task; read its comments and select an attachment')
+            record = SqliteArtifactRepository(db).record(attachment_id)
+        if (record is None or record['owner'] != task_id or record['scope'] != 'task'
+                or record['digest'] != selected['digest']):
+            raise PoiseError('Attachment registry identity changed; restore its original registered material')
+        return selected, record
 
     def history(self, task_id: str) -> list[dict]:
         with self.database.read_transaction() as db:

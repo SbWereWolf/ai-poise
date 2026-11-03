@@ -4,6 +4,9 @@ from ..modules.skills.instructions import (
     InstructionPolicy, parse_prepare_request, prepare_paths, select_materials,
     validate_previous, public_result,
 )
+from ..modules.skills.instruction_delivery import (
+    delivery_result, parse_delivery_request, select_delivery_materials,
+)
 
 
 class ProjectInstructions:
@@ -11,7 +14,16 @@ class ProjectInstructions:
         self.source = source
 
     def prepare(self, request):
-        request = parse_prepare_request(request)
+        return self._observe(parse_prepare_request(request), None, None)
+
+    def deliver(self, request):
+        request = parse_delivery_request(request)
+        preparation = {'operation': 'prepare', 'previous': None,
+                       **{key: request[key] for key in ('project_config', 'checkout', 'policy', 'paths')}}
+        observation = self._observe(preparation, request['stage'], request['tool'])
+        return delivery_result(observation, request)
+
+    def _observe(self, request, stage, tool):
         context = self.source.project_context(request['project_config'], request['checkout'])
         document, digest = self.source.policy_document(request['policy'])
         catalog = self.source.catalogue_metadata()
@@ -20,5 +32,7 @@ class ProjectInstructions:
         validate_previous(request['previous'], context)
         rules = self.source.existing_rule_paths(context['checkout'], paths)
         specs = select_materials(policy, catalog, paths, rules)
+        if stage is not None:
+            specs = select_delivery_materials(specs, catalog, stage, paths, tool)
         materials = self.source.observe_materials(context, specs)
         return public_result(context, digest, paths, materials, request['previous'])

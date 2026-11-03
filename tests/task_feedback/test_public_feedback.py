@@ -166,20 +166,22 @@ def test_exact_replay_and_conflicting_reuse_preserve_one_business_result(project
 def test_selected_inclusive_limits_accept_their_exact_boundary(project, boundary):
     from conftest import write_json
     configure_case(project)
+    owner, _ = arrange(project)
     limits = DATA['boundary_limits']
+    # Prepare the Task with its ordinary fixture settings. Four is the smallest
+    # selected limit that admits the append input object's own four fields.
     project['cfg']['batch']['max_items'] = limits['max_items']
     project['cfg']['batch']['max_artifact_bytes'] = limits['max_artifact_bytes']
     write_json(project['config_path'], project['cfg'])
-    owner, _ = arrange(project)
     author = client(project)
     before = protected(owner)
     if boundary == 'items':
         items = [{'text': DATA['later_text'], 'attachments': []}
                  for _ in range(limits['max_items'])]
         comments = append(author, items=items)['comments']
-        assert len(comments) == 3
-        assert [c['text'] for c in comments] == [DATA['later_text']] * 3
-        assert len({c['id'] for c in comments}) == 3
+        assert len(comments) == 4
+        assert [c['text'] for c in comments] == [DATA['later_text']] * 4
+        assert len({c['id'] for c in comments}) == 4
         assert all(c['attachments'] == [] for c in comments)
     else:
         expected = bytes.fromhex(limits['payload_hex'])

@@ -124,7 +124,7 @@
   },
   "saved_intake": "Сохранённое дополнение к исходным сведениям после исполнения.",
   "boundary_limits": {
-    "max_items": 3,
+    "max_items": 4,
     "max_artifact_bytes": 7,
     "payload_hex": "00ff4142430a5a"
   },

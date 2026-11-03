@@ -238,6 +238,10 @@ def bounded_delivery_result(observation, request):
     current = frame([], remaining)
     if len(canonical_bytes(current)) > limit:
         raise InstructionInputError('budget_too_small', 'budget', 'increase:budget')
+    complete = frame([record for record in pending if record['available']],
+                     [row for row in remaining if row['reason'] == 'unavailable'])
+    if len(canonical_bytes(complete)) <= limit:
+        return portable_result(observation, request, complete, base['receipt'])
     for record in pending:
         if not record['available']:
             continue

@@ -1,0 +1,24 @@
+{
+  "schema": "poise-instruction-delivery-1",
+  "status": "needs_inputs",
+  "observation": {
+    "content": "MACHINE_FULL_SOURCE"
+  },
+  "delivery": {
+    "materials": [
+      {
+        "id": "billing",
+        "available": false,
+        "content": null
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "missing_required_material",
+        "key": "skill:billing:instructions:.agents/skills/billing/SKILL.md",
+        "action": "restore:instructions:.agents/skills/billing/SKILL.md"
+      }
+    ]
+  },
+  "receipt": null
+}

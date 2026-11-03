@@ -85,7 +85,9 @@ def consumer(project, tmp_path):
     scene.policy['parsers'] = {'Instructions': {
         'parser': 'poise', 'format': 'work-json',
         'brief_template': 'Instructions: {status}', 'expanded_template': '{brief}',
-        'expanded_fields': [{'path': ['delivery'], 'required': True,
+        'expanded_fields': [{'path': ['delivery'], 'required': False,
+                             'format': 'json', 'template': '{value}'},
+                            {'path': ['error'], 'required': False,
                              'format': 'json', 'template': '{value}'}],
         'expanded_separator': '\n', 'brief': {'chars': 128, 'bytes': 256},
         'expanded': {'chars': 32000, 'bytes': 64000}, 'overflow': 'reject',
@@ -95,18 +97,21 @@ def consumer(project, tmp_path):
     return scene
 
 
-def receive(scene, value, key):
+def receive(scene, value, key, *, exit_code=0):
     """Actual machine capture followed by the common agent expanded-view CLI."""
     scene.out.write_text(json.dumps(value, ensure_ascii=False) + '\n')
     scene.err.write_bytes(b'')
     request = scene.request(request_id=key, tool={'kind': 'generic', 'name': 'Instructions'},
-                            response=value, exit_code=0)
+                            response=value, exit_code=exit_code)
     stored, saved = scene.capture(request, audience='machine')
     assert stored['response'] == value == saved['response']
+    assert stored['exit_code'] == exit_code
     assert Path(stored['streams']['stdout']['path']).read_bytes() == scene.out.read_bytes()
     view = scene.success(scene.request('view.template.json', view='expanded'))
-    assert view['preview'].startswith('Instructions: ready\n')
-    assert json.loads(view['preview'].split('\n', 1)[1]) == value['delivery']
+    assert view['exit_code'] == exit_code
+    assert view['preview'].startswith('Instructions: ' + value['status'] + '\n')
+    expected = value['delivery'] if 'delivery' in value else value['error']
+    assert json.loads(view['preview'].split('\n', 1)[1]) == expected
     return view, stored
 
 
@@ -176,18 +181,25 @@ def test_current_context_and_scope_changes_refresh_instead_of_refusing(delivery,
     else:
         request['paths'] = ['src/billing/invoice.py', 'docs/guide.md']
     value = successful(delivery, request)
-    assert value['delivery']['reused'] == []
-    assert value['delivery']['materials'] == value['observation']['materials']
-    by_id = {m['id']: m for m in value['delivery']['materials']}
-    assert by_id['core']['content'] == literal('initial-materials.json')[5]['content']
+    expected = literal('initial-materials.json')
     if change == 'stage':
-        assert by_id['writing']['reasons'] == ['stage:code-inspection']
+        expected[6]['reasons'] = ['stage:code-inspection']
     if change == 'paths':
-        assert by_id['docs/AGENTS.md']['content'] == body('docs-rules').decode()
-        assert by_id['writing']['reasons'] == ['profile:writing:baseline', 'stage:implementation']
+        expected = literal('paths-materials.json')
+    assert_partition(value, expected, [])
+    assert value['delivery']['context'] == request['context']
+    assert value['delivery']['stage'] == request['stage']
+    assert value['delivery']['paths'] == sorted(request['paths'])
+    expected_receipt = fill(literal('receipt.json'), delivery)
+    expected_receipt.update(context={k: request['context'][k] for k in ('id', 'generation')},
+                            stage=request['stage'], paths=sorted(request['paths']))
+    if change == 'paths':
+        expected_receipt['materials'] = [{k: m[k] for k in ('kind', 'id', 'root', 'path', 'sha256')}
+                                        for m in literal('paths-materials.json')]
+    assert value['receipt'] == expected_receipt
     if change in ('resume', 'compaction'):
         view, _ = receive(consumer(project, tmp_path), value, change)
-        assert json.loads(view['preview'].split('\n', 1)[1])['materials'] == value['observation']['materials']
+        assert json.loads(view['preview'].split('\n', 1)[1])['materials'] == expected
 
 
 def test_changed_version_delivers_only_its_current_body(delivery):
@@ -203,7 +215,7 @@ def test_changed_version_delivers_only_its_current_body(delivery):
 
 
 @pytest.mark.parametrize('name,required', [('billing', True), ('audit', False), ('writing', True)])
-def test_missing_material_is_not_reused_and_recovery_delivers_it(delivery, name, required):
+def test_missing_material_is_not_reused_and_recovery_delivers_it(delivery, project, tmp_path, name, required):
     first = successful(delivery, packet(delivery))
     path = delivery.checkout / f'.agents/skills/{name}/SKILL.md'
     original = path.read_bytes()
@@ -212,17 +224,27 @@ def test_missing_material_is_not_reused_and_recovery_delivers_it(delivery, name,
     code, value = invoke(delivery, request)
     assert code == (1 if required else 0)
     assert value['status'] == ('needs_inputs' if required else 'ready')
-    missing = value['delivery']['materials']
-    assert len(missing) == 1 and missing[0]['id'] == name
-    assert missing[0]['available'] is False and missing[0]['content'] is None
-    assert missing[0]['sha256'] is None and missing[0]['required'] is required
+    records = literal('initial-materials.json')
+    missing = next(m for m in records if m['id'] == name)
+    missing.update(available=False, content=None, sha256=None)
+    surviving = [m for m in literal('initial-materials.json') if m['id'] != name]
+    assert_partition(value, [missing], surviving)
     expected = literal('missing.json')[name]
     assert value['delivery']['diagnostics'] == value['observation']['diagnostics'] == expected
-    assert name not in [m['id'] for m in value['receipt']['materials']]
+    expected_receipt = fill(literal('receipt.json'), delivery)
+    expected_receipt['materials'] = [m for m in expected_receipt['materials'] if m['id'] != name]
+    assert value['receipt'] == expected_receipt
+    if name == 'billing':
+        view, machine = receive(consumer(project, tmp_path), value, 'needs-inputs', exit_code=1)
+        visible = json.loads(view['preview'].split('\n', 1)[1])
+        assert visible['diagnostics'] == literal('missing.json')['billing']
+        assert visible['materials'] == [missing]
+        assert machine['response'] == value
     path.write_bytes(original)
     retained = [key for key in literal('retained.json') if not key.startswith(f'skill:{name}:')]
     recovered = successful(delivery, packet(delivery, value['receipt'], retained))
-    assert recovered['delivery']['materials'] == [m for m in literal('initial-materials.json') if m['id'] == name]
+    assert_partition(recovered, [m for m in literal('initial-materials.json') if m['id'] == name], surviving)
+    assert recovered['receipt'] == fill(literal('receipt.json'), delivery)
 
 
 def test_missing_tool_guide_is_an_addressed_required_input(delivery):
@@ -234,7 +256,7 @@ def test_missing_tool_guide_is_an_addressed_required_input(delivery):
 
 
 @pytest.mark.parametrize('case', literal('invalid-cases.json'), ids=lambda case: case['id'])
-def test_malformed_inputs_have_exact_actionable_errors(delivery, case):
+def test_malformed_inputs_have_exact_actionable_errors(delivery, project, tmp_path, case):
     request = packet(delivery)
     if case['previous']:
         request = packet(delivery, fill(literal('receipt.json'), delivery), literal('retained.json'))
@@ -248,6 +270,10 @@ def test_malformed_inputs_have_exact_actionable_errors(delivery, case):
     code, value = invoke(delivery, request)
     assert code == 2
     assert value == literal('errors.json')[case['error']]
+    if case['id'] == 'boolean-generation':
+        view, machine = receive(consumer(project, tmp_path), value, 'rejected', exit_code=2)
+        assert json.loads(view['preview'].split('\n', 1)[1]) == literal('errors.json')['context']['error']
+        assert machine['response'] == literal('errors.json')['context']
 
 
 def test_common_consumer_overflow_refuses_without_claiming_delivery(delivery, project, tmp_path):
@@ -280,3 +306,17 @@ def test_empty_stage_selection_and_no_tool_preserve_file_instructions(delivery):
     request['tool'] = None
     value = successful(delivery, request)
     assert_partition(value, old_fixture('billing-expected.json'), [])
+
+
+def test_existing_consumer_preserves_declared_error_and_producer_exit(project, tmp_path):
+    value = literal('errors.json')['context']
+    view, machine = receive(consumer(project, tmp_path), value, 'rejected-guard', exit_code=2)
+    assert json.loads(view['preview'].split('\n', 1)[1]) == literal('errors.json')['context']['error']
+    assert machine['response'] == literal('errors.json')['context']
+
+
+def test_existing_consumer_preserves_missing_input_and_producer_exit(project, tmp_path):
+    value = literal('consumer-needs-inputs.json')
+    view, machine = receive(consumer(project, tmp_path), value, 'missing-guard', exit_code=1)
+    assert json.loads(view['preview'].split('\n', 1)[1]) == literal('consumer-needs-inputs.json')['delivery']
+    assert machine['response'] == literal('consumer-needs-inputs.json')

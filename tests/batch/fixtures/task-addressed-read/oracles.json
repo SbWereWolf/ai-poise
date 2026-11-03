@@ -1,0 +1,137 @@
+{
+  "active": {
+    "id": "READ-ALPHA",
+    "goal": "Адресат A.",
+    "status": "active",
+    "version": 17,
+    "claimed_by": "owner-alpha",
+    "sprint_id": null,
+    "worktree": "/fixture/read-alpha",
+    "branch": "tasks/READ-ALPHA",
+    "base": "1111111111111111111111111111111111111111",
+    "requirements": [
+      "Требование A."
+    ],
+    "definition_of_done": [
+      "Результат A."
+    ]
+  },
+  "stage": {
+    "id": "work",
+    "iteration": 2,
+    "role": "executor",
+    "purpose": "execution",
+    "instruction": "Изучить данные A.",
+    "allowed_paths": [
+      "src/alpha/**"
+    ],
+    "criteria": {
+      "requirements": [
+        "Критерий A."
+      ],
+      "definition_of_ready": [
+        "Вход A."
+      ],
+      "definition_of_done": [
+        "Выход A."
+      ]
+    },
+    "skills": [
+      "task-domain"
+    ]
+  },
+  "content": {
+    "sections": [
+      {
+        "id": "notes",
+        "template": "Наблюдения A.",
+        "writable": true
+      }
+    ],
+    "routes": [],
+    "due": [],
+    "trace": {},
+    "sections_current": {
+      "notes": "Материал A."
+    }
+  },
+  "feedback": {
+    "findings": [
+      {
+        "id": "F-A",
+        "subject": "Данные A.",
+        "description": "Проверить вывод A.",
+        "evidence": "Наблюдение A.",
+        "stage": "work",
+        "iteration": 2
+      }
+    ],
+    "resolutions": [],
+    "decisions": []
+  },
+  "ambiguous": [
+    {
+      "id": "READ-ALPHA",
+      "goal": "Адресат A.",
+      "status": "active"
+    },
+    {
+      "id": "READ-ALPHA-CHILD",
+      "goal": "Дочерняя запись.",
+      "status": "active"
+    },
+    {
+      "id": "READ-BETA",
+      "goal": "Адресат B.",
+      "status": "active"
+    }
+  ],
+  "ambiguous_action": "Уточните фрагмент или укажите полный ID найденной задачи",
+  "not_found_action": "Проверьте обозначение задачи и укажите полный ID или другой фрагмент",
+  "coherent_after": [
+    {
+      "id": "COHERENT-A",
+      "goal": "После записи A.",
+      "status": "active"
+    },
+    {
+      "id": "COHERENT-B",
+      "goal": "После записи B.",
+      "status": "active"
+    }
+  ],
+  "beta": {
+    "id": "READ-BETA",
+    "goal": "Адресат B.",
+    "requirements": [
+      "Требование B."
+    ],
+    "definition_of_done": [
+      "Результат B."
+    ]
+  },
+  "beta_stage": {
+    "id": "beta_step",
+    "iteration": 2,
+    "role": "executor",
+    "purpose": "execution",
+    "instruction": "Изучить данные B.",
+    "allowed_paths": [
+      "src/beta/**"
+    ],
+    "criteria": {
+      "requirements": [
+        "Критерий B."
+      ],
+      "definition_of_ready": [
+        "Вход B."
+      ],
+      "definition_of_done": [
+        "Выход B."
+      ]
+    },
+    "skills": [
+      "workflow"
+    ]
+  }
+}

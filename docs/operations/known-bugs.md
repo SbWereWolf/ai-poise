@@ -43,6 +43,31 @@
 RV2-01 снято из области: его нет среди активных багов. Требования `support`, отдельной
 cache-lock подсистемы и защиты от намеренной подмены исходников не возвращаются.
 
+## POISE-OP-PUBLIC-READ-GUARD-DRIFT-001 — расхождение baseline проверок чтения
+
+**Task:** `POISE-OP-PUBLIC-READ-GUARD-DRIFT-001`; зарегистрирован и освобождён
+черновик исправления. Выполнение исправления не разрешено.
+
+Независимо воспроизведены шесть прежних падений в двух модулях:
+
+- `tests/tasks/test_public_query_contracts.py`: `test_active_evidence_dto` и
+  `test_public_hook_selects_a_once` в `PublicQueryContracts` используют устаревший
+  оракул нынешнего тела/ревизии для исторических arguments;
+  `test_accounting_nonblocking_snapshot_dto` в том же классе смешивает
+  accounting-only проекцию с полным snapshot в fixture/ожидании нижнего владельца.
+- `tests/batch/test_public_read_transactions.py`:
+  `test_read_does_not_create_absent_requirements_store` и
+  `test_unsupported_requirements_observation_preserves_other_store_state[1]`,
+  `[99]` требуют допуска неиспользуемого реестра требований. Текущий `show`
+  этот реестр не читает; расхождение договора/ожиданий подтверждено, общая
+  политика для этого случая ещё не согласована.
+
+Полные наблюдения, воспроизведение и JUnit сохранены в release intent указанной
+Task. В проверке `POISE-OP-TASK-READ-BY-ID-001` согласовано исключение только этих
+шести неизменённых baseline-случаев. Оно не означает исправления, прохождения
+полного набора или общей политики исключений. Для evidence действует
+[различие нынешнего файла и исторического arguments](../workflows/evidence.md#чтение-нынешнего-содержимого).
+
 ## POISE-NPM-PREPARATION-LOCK-001 — подготовка оставляет npm lock в исходниках
 
 **Task:** `POISE-NPM-PREPARATION-LOCK-001`; зарегистрирован отдельный черновик.

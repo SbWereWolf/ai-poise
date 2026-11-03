@@ -1,0 +1,10 @@
+{
+  "worktree": "/fixture/read-alpha",
+  "branch": "tasks/READ-ALPHA",
+  "base": "1111111111111111111111111111111111111111",
+  "attempts": 0,
+  "publication": null,
+  "pending": null,
+  "entry_tree": "2222222222222222222222222222222222222222",
+  "last_report": null
+}

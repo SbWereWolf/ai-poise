@@ -1,0 +1,8 @@
+{
+  "operation": "resolve_notification",
+  "input": {
+    "request_id": "proxy-request-1",
+    "outcome": "not_delivered",
+    "evidence": "Independent recipient readback"
+  }
+}

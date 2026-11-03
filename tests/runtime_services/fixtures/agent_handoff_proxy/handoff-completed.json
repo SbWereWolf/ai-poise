@@ -1,0 +1,43 @@
+{
+  "status": "handoff_completed",
+  "task": "T1",
+  "request_id": "proxy-request-1",
+  "phase": "complete",
+  "verification": {
+    "status": "verified",
+    "stage": "review",
+    "verification_commit": "1111111111111111111111111111111111111111",
+    "verified_tree": "2222222222222222222222222222222222222222",
+    "stage_outcome": "clear"
+  },
+  "progression": {
+    "status": "role_handoff_required",
+    "stage": "review",
+    "next_stage": "author",
+    "from_role": "reviewer",
+    "to_role": "executor",
+    "progression": {
+      "request_id": "progression-1",
+      "target_stage": null,
+      "status": "active"
+    }
+  },
+  "release": {
+    "status": "ownership_released",
+    "task": "T1",
+    "request_id": "release-1",
+    "replayed": false,
+    "before": {
+      "actor": "fixture-native",
+      "task_id": "T1",
+      "worktree_task_id": "T1"
+    },
+    "after": {
+      "actor": "fixture-native",
+      "task_id": null,
+      "worktree_task_id": null
+    }
+  },
+  "blocked": null,
+  "replayed": false
+}

@@ -76,6 +76,13 @@ class Scenario:
         request['edits'][0]['value'] = name
         created = project_tools(settings).apply(request)
         self.config = Path(created['config_path'])
+        # General instruction reads consume the explicit harness profile; the
+        # full Task configuration remains the setup owner's separate input.
+        from tests.hook_transport.helpers import harness_profile
+        self.config = harness_profile({
+            'root': self.config.parent, 'config_path': self.config,
+            'cfg': json.loads(self.config.read_text()), 'app': self.checkout,
+        }, self.root, task_adapter=False)
         self.calls = []
 
     def write(self, path, data):

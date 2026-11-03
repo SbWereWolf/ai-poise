@@ -288,6 +288,11 @@ placement](docs/governance/development-rules.md#размещение-task-worktr
 files; the agent does
 not register them manually.
 
+Without a dedicated worktree, verify the actual configured primary checkout,
+including pre-existing changes regardless of authorship. Select checks by Task
+requirements and actual impact; preserve other agents' work and ownership. Follow
+[checkout verification](docs/governance/development-rules.md#проверка-фактического-checkout).
+
 The user assigns roles to agents. An agent may perform both executor and reviewer
 roles only when the user assigns both; keep their stage work and decisions separate.
 Different roles do not require different agent/session identities. Tool access does

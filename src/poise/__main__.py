@@ -21,6 +21,8 @@ class SingleArgument(argparse.Action):
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
+    agent_handoff=sub.add_parser('handoff-proxy',help='Передать готовый результат и уведомить назначенного напарника')
+    agent_handoff.add_argument('--settings',type=Path,required=True,action=SingleArgument)
     telemetry=sub.add_parser('telemetry',help='Чтение метрик агента и повторная доставка телеметрии')
     for name in ('config', 'checkout', 'policy'):
         telemetry.add_argument('--'+name,type=Path,required=True,action=SingleArgument)
@@ -122,6 +124,9 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='handoff-proxy':
+        from .interfaces.agent_handoff import execute
+        return execute(args.settings,sys.stdin.buffer,sys.stdout)
     if args.command=='telemetry':
         from .interfaces.agent_metrics import execute
         return execute(args.config,args.checkout,args.policy,args.audience,sys.stdin.buffer,sys.stdout)

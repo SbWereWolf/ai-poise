@@ -1,0 +1,27 @@
+{
+  "schema": "task-delivery-1",
+  "revision": 1,
+  "task": "RETIRED-TARGET",
+  "status": "delivery_complete",
+  "agreement": {
+    "action": "agree",
+    "request_id": "fixture-retirement",
+    "task_id": "RETIRED-TARGET",
+    "expected_version": 17,
+    "authorization": "Fixture-owned historical no-result.",
+    "declaration": {
+      "disposition": "no_result",
+      "outputs": []
+    }
+  },
+  "intent_digest": "ba839502aa8a965381e85b1fc64908dc5a1b6fad79b0c4ee7564f6d4f707992e",
+  "root": "/fixture/retired-task-root",
+  "root_identity": [
+    1,
+    1
+  ],
+  "epoch": 0,
+  "confirmed": [],
+  "retirement_started": true,
+  "retired_artifacts": []
+}

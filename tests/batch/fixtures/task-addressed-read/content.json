@@ -1,0 +1,21 @@
+{
+  "goal": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "task": {
+    "sections": [
+      {
+        "id": "notes",
+        "template": "Наблюдения A.",
+        "write_stages": [
+          "work"
+        ],
+        "normalization": "strip"
+      }
+    ],
+    "routes": [],
+    "requirements": []
+  }
+}

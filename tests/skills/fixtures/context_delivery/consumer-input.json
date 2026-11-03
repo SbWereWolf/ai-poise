@@ -1,0 +1,13 @@
+{
+  "schema": "poise-instruction-delivery-1",
+  "status": "ready",
+  "observation": {
+    "content": "MACHINE_FULL_SOURCE"
+  },
+  "delivery": {
+    "materials": [
+      "AGENT_BODY"
+    ]
+  },
+  "receipt": null
+}

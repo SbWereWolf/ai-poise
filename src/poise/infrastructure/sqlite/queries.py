@@ -102,6 +102,10 @@ class TaskQueries:
             capture = capture_record_in(db, task_id)
         return self.project_record(capture)
 
+    def read_addressed(self, selector: str) -> dict:
+        from .task_reading import read_addressed
+        return read_addressed(self.database, selector, self.project_record)
+
     @staticmethod
     def _project_check_registry(methods, metadata, workflow):
         from .task_snapshot import restore_registry

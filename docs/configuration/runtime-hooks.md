@@ -31,7 +31,10 @@ Command-intake сохраняет собственную Bash границу; о
 [строковый native-вход](tool-results.md#строковый-native-вход). Объектный транспорт
 с `output`/integer `exit_code` выбирает прежние структурированные профили явно.
 
-Handler сначала проверяет настоящую [service
+Handler сначала применяет явное исключение [чтения
+файлов](tool-results.md#чтение-файлов-и-граница-ответственности).
+Выбранное чтение сохраняет накопленный response и управление остальных handlers
+без parser/storage I/O. Для обычного вывода handler проверяет настоящую [service
 association](tool-results.md#чтение-последнего-результата).
 Иначе один selected profile определяет native source/snapshot/подготовку форм;
 полный original event/машинный результат сохраняется. Prepared brief добавляется
@@ -52,12 +55,13 @@ replacement install packet и не восполняет пропущенную d
 [Переносимый компонент](tool-results.md#переносимый-компонент-и-независимый-потребитель)
 может иметь отдельную development revision; это не установка hooks у потребителя.
 
-Successful install/diagnose и isolated fixture не доказывают host delivery.
-Нужны настоящий PostToolUse receipt/input, full source/UUID/files, полученный
-моделью brief; для code mode — независимое сравнение полного original returned value
-до model presentation и проверка saved services/last. До этих наблюдений установленная
-доставка остаётся неподтверждённой. [Поддержка host-протокола](https://learn.chatgpt.com/docs/hooks)
-не гарантирует наличие полного upstream source или покрытие каждого hosted инструмента.
+Проверка установки охватывает наш API и настроенную цепочку: полный программный
+ответ, краткую форму обычного вывода и неизменённое запрошенное содержимое файла.
+Правила reader задаются по фактическим полным командам вместе с обычными маршрутами;
+неизвестный обычный вывод сохраняет generic-обработку. Сохраняйте foreign groups,
+PreToolUse и остальные handlers при revisioned install/reconfigure. Проверка
+финального входа OpenAI или понимания данных моделью не является условием поставки.
+Охват ограничен событиями, переданными host в этот hook, и доступным upstream source.
 
 ## Доставка launcher при старте
 

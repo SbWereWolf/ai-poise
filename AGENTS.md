@@ -89,13 +89,15 @@ Task execution; design only the imminent stage immediately before doing it. Foll
 Do not expand the goal or a closed requirements list. Revise closed requirements only
 through an agreed restart; all Task conditions except the goal may then change with
 justified current need/risk. Use the actual operating context, not speculative scale;
-follow [requirement boundaries](docs/governance/development-rules.md#закрытый-список-требований-и-обоснование-пересмотра).
+follow [requirement
+boundaries](docs/governance/development-rules.md#закрытый-список-требований-и-обоснование-пересмотра).
 During remediation search only your changed repair code for defects caused by those
 changes. Send at most one consolidated executor observation message per stage,
 including rework; only the reviewer recognizes findings. Preserve complete mandatory
 check results. Reviewers check Task obligations plus application/system development
 rules, AI-agent rules and application/system instructions within the actual scope.
-Follow [paired correction boundaries](docs/workflows/evidence-based-review.md#границы-исправлений-и-наблюдений-исполнителя)
+Follow [paired correction
+boundaries](docs/workflows/evidence-based-review.md#границы-исправлений-и-наблюдений-исполнителя)
 and [review duties](docs/workflows/evidence-based-review.md#обязанности-проверяющего).
 Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
@@ -179,6 +181,12 @@ consumed by code
 of another tool preserves complete stdout, stderr and structured fields regardless of display
 limits. Agent
 presentation uses one common owner and configured parser; do not add internal per-tool clipping.
+Requested code, tests, rules and documentation files are returned whole or in the
+requested range by their reader; ordinary tool-output shortening does not apply.
+Keep reader-owned admission limits and refusals. Verify our API/hook contract,
+without OpenAI final-request, server-delivery or model-comprehension proof gates.
+Follow the [file-reading
+boundary](docs/configuration/tool-results.md#чтение-файлов-и-граница-ответственности).
 Treat preview only
 as display: use full output for machine parsing and decisions via existing saved files or read-only
 tools; never
@@ -197,9 +205,11 @@ and necessary attachments in that Task. Keep only a concise active known-bug
 summary with its Task ID in versioned documentation. Do not create external permanent
 operation journals or completed-work archives. Retire completed Task/session working
 materials after delivery; separate archives require explicit user authority. Follow
-[Task-owned incident materials](docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
+[Task-owned incident
+materials](docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
 Deliver accepted common recording-rule changes immediately under the
-[direct-master scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила).
+[direct-master
+scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила).
 Make Poise operations atomic and idempotent. Repeating the same request and inputs preserves the
 same business
 result without duplicate effects. Refusals identify a concrete obstacle and an executable
@@ -250,7 +260,8 @@ Use the smallest sufficient proof for each requirement; reuse valid evidence and
 justify additions by an uncovered obligation, changed impact or concrete current risk.
 Keep plans/results in their existing owner and link instead of duplicating them.
 Reviewers reject unjustified work; deliver once obligations and findings are satisfied.
-Follow [verification and reporting sufficiency](docs/workflows/task-execution-contract.md#достаточность-проверок-и-оформления).
+Follow [verification and reporting
+sufficiency](docs/workflows/task-execution-contract.md#достаточность-проверок-и-оформления).
 
 ## Start and finish work
 
@@ -519,6 +530,12 @@ Keep this English projection and its Russian source consistent in the same chang
   your own pending
   assignments is required. See [direct role
   handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+- After confirmed notification, end the turn when no own assigned work is actionable.
+  Preserve the expected counterpart decision and next action; an incoming result message resumes
+  the assignment. Waiting for that reply does not require model calls, timers or background polling.
+  A send receipt confirms submission, not recipient completion. Recover notification errors against
+  the saved result, and finish already-started own operations. Follow
+  [ending the turn after handoff](docs/workflows/local-handoff.md#завершение-хода-после-передачи).
 - Inspect Git state before the first write. Preserve unrelated changes. If a modified or untracked
   path's ownership is
   unclear, obtain an explicit user decision before altering it. Never reset, restore, stage or

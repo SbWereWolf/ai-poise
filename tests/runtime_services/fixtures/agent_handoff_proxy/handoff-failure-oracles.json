@@ -1,0 +1,109 @@
+{
+  "blocked": {
+    "status": "blocked",
+    "code": "handoff_blocked",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": []
+  },
+  "wrong_task": {
+    "status": "unknown",
+    "code": "handoff_receipt_mismatch",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "show",
+      "T1"
+    ]
+  },
+  "wrong_request": {
+    "status": "unknown",
+    "code": "handoff_receipt_mismatch",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "show",
+      "T1"
+    ]
+  },
+  "claimed_task": {
+    "status": "blocked",
+    "code": "handoff_not_released",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "release",
+      "T1"
+    ]
+  },
+  "claimed_tree": {
+    "status": "blocked",
+    "code": "handoff_not_released",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "release",
+      "T1"
+    ]
+  },
+  "unverified": {
+    "status": "blocked",
+    "code": "handoff_not_verified",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "rework",
+      "T1"
+    ]
+  },
+  "unreleased": {
+    "status": "blocked",
+    "code": "handoff_not_released",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "release",
+      "T1"
+    ]
+  },
+  "release_other_task": {
+    "status": "unknown",
+    "code": "handoff_receipt_mismatch",
+    "receipt": "available",
+    "exit_code": 0,
+    "continuation_terms": [
+      "show",
+      "T1"
+    ]
+  },
+  "invalid_receipt": {
+    "status": "unknown",
+    "code": "handoff_unconfirmed",
+    "receipt": "unavailable",
+    "exit_code": 0,
+    "continuation_terms": [
+      "handoff",
+      "proxy-request-1"
+    ]
+  },
+  "missing_receipt": {
+    "status": "unknown",
+    "code": "handoff_unconfirmed",
+    "receipt": "unavailable",
+    "exit_code": 0,
+    "continuation_terms": [
+      "handoff",
+      "proxy-request-1"
+    ]
+  },
+  "exit_error": {
+    "status": "unknown",
+    "code": "handoff_process_failed",
+    "receipt": "available",
+    "exit_code": 7,
+    "continuation_terms": [
+      "handoff",
+      "proxy-request-1"
+    ]
+  }
+}

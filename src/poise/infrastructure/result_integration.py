@@ -11,7 +11,7 @@ import shutil
 import stat
 import uuid
 
-from ..common import descendant, digest, file_digest
+from ..common import descendant, digest, file_digest, worktree_root
 from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import (
@@ -1022,7 +1022,8 @@ class RuntimeResultIntegration:
                 or not run.task_branch
                 or self._short_branch(run.task_branch) == self._short_branch(self._target_ref())):
             raise PoiseError('Cleanup worktree/branch identity changed')
-        expected_tree = self.h.state / self.h.paths['worktrees'] / run.intent.task_id
+        root = worktree_root(self.h.state, self.h.cfg)
+        expected_tree = root / run.intent.task_id
         expected_backup = self._temporary_backup_directory(run.intent.task_id, run.intent.request_id)
         if (Path(run.task_worktree) != expected_tree
                 or run.temporary_backup_directory != expected_backup):
@@ -1031,7 +1032,7 @@ class RuntimeResultIntegration:
         if (not self._contains(repository, run.target_after, current)
                 or not self._contains(repository, run.accepted_commit, current)):
             raise PoiseError('Publication is not contained in the current target')
-        self._require_absent_cleanup_path(run.task_worktree, self.h.state, 'Worktree')
+        self._require_absent_cleanup_path(run.task_worktree, root, 'Worktree')
         self._require_absent_cleanup_path(run.temporary_backup_directory, self.h.state, 'Backup')
         # Do not infer ref absence from an arbitrary failed Git command.
         branch_ref = 'refs/heads/' + self._short_branch(run.task_branch)

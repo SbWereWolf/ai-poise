@@ -384,3 +384,57 @@ def test_unknown_field_and_foreign_receipt_are_rejected(entry):
     packet['previous'] = literal('receipt.json')
     packet['previous']['project'] = 'foreign-consumer'
     rejected(packet, 'previous', entry)
+
+
+def test_ordinary_continuation_delivers_exact_second_page_after_confirmation(entry):
+    packet = request()
+    bodies = literal('ordinary-page-bodies.json')
+    expected = literal('complete-frame.json')
+    for index in (0, 1):
+        replace_body(packet, index, bodies[index])
+        expected['materials'][index].update(
+            content=bodies[index], sha256=hashlib.sha256(bodies[index].encode()).hexdigest(),
+        )
+    packet['budget']['max_bytes'] = 6000
+    assert len(canonical(expected)) > 6000
+    full_records = deepcopy(expected['materials'])
+    # Establish that this is ordinary pagination, independently of the
+    # existing route for a source too large for a complete delivery frame.
+    for index in (0, 1):
+        single = deepcopy(packet)
+        single['selection']['materials'] = [single['selection']['materials'][index]]
+        alone = successful(single, entry)
+        assert alone['status'] == 'complete'
+        assert alone['delivery']['materials'] == [full_records[index]]
+        assert alone['delivery']['remaining'] == []
+    first = successful(packet, entry)
+    assert first['status'] == 'partial'
+    assert first['delivery']['materials'] == [full_records[0], full_records[2]]
+    assert first['delivery']['reused'] == []
+    left, = first['delivery']['remaining']
+    assert left['key'] == literal('keys.json')[1]
+    assert left['reason'] == 'budget' and left['required'] is True
+    assert left['sha256'] == full_records[1]['sha256']
+    assert isinstance(first['delivery']['continuation'], str)
+    assert first['delivery']['continuation']
+    keys = literal('keys.json')
+    continued = continuation_request(first, packet, [keys[0], keys[2]])
+    continued['continuation'] = first['delivery']['continuation']
+    second = successful(continued, entry)
+    expected['context'] = deepcopy(continued['context'])
+    expected['materials'] = [full_records[1]]
+    expected['reused'] = [
+        {k: v for k, v in full_records[i].items() if k != 'content'} for i in (0, 2)
+    ]
+    assert second['status'] == 'complete'
+    assert second['delivery'] == expected
+    assert second['receipt'] == first['receipt']
+
+
+@pytest.mark.parametrize('generation', [True, 0])
+def test_normalized_generation_rejects_bool_and_zero_with_confirmed_history(entry, generation):
+    packet = request()
+    packet['previous'] = literal('receipt.json')
+    packet['retained'] = literal('keys.json')
+    packet['context'].update(generation=generation, reason='continue')
+    rejected(packet, 'context', entry)

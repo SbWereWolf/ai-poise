@@ -1150,6 +1150,22 @@ contract](../../../docs/workflows/sprints.md#локальная-доработк
 A newborn Task has no route entry before goal_type selection; selecting the type
 materializes its configured draft, without starting execution before ready.
 
+## Task comments and original attachments
+
+Use `task_feedback` through the selected project's ordinary Work entry to append
+comments/files or read a Task by its canonical ID. Its actions are `append`,
+`read`, and `read_attachment`; use the exact [public packet contract](../../../docs/workflows/batch-work.md#комментарии-и-исходные-вложения-task).
+This does not select an execution Task, acquire its claim, or require bootstrap.
+The caller may keep working on another Task; source attachments are separate from
+review feedback and stage proofs.
+
+Require explicit [managed storage setup](../../../docs/configuration/project-setup.md#постоянные-материалы-комментариев-task).
+Keep intake files until append succeeds, then use returned attachment IDs.
+Retry the original packet after partial publication; completed replay preserves
+its original author/time/IDs. Terminal Tasks are readable and immutable for new
+work. Their permanent comments/files survive ordinary Task-root retirement;
+read full bytes through the common saved-output owner, not an agent preview.
+
 ## Terminal inspection
 
 Select a completed or cancelled Task by its canonical ID to obtain the

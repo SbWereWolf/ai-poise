@@ -135,12 +135,18 @@ class BuiltinHandlers:
                                   options, resources)
         elif name == 'tool-result':
             from ..composition import tool_result_tools
-            from ..modules.result_views.tool_results import ToolResultPolicy, ToolResultFailure, encoded
+            from ..modules.result_views.tool_results import (
+                ToolResultPolicy, ToolResultFailure, encoded, file_read_scope,
+            )
             from .tool_results import service_delivery
             policy = ToolResultPolicy.parse(strict_json(resources[options['policy_path']])).data
-            caller = CallerIdentity.harness('native', self.binding['external_session'])
-            owner = tool_result_tools(None, policy, {}, caller=caller, resources=resources)
             try:
+                if file_read_scope(event, policy):
+                    return {'schema': 'poise-hook-handler-result-1',
+                            'invocation_id': packet['invocation_id'], 'response': response,
+                            'control': {'action': 'continue', 'reason': None}}, execution
+                caller = CallerIdentity.harness('native', self.binding['external_session'])
+                owner = tool_result_tools(None, policy, {}, caller=caller, resources=resources)
                 text = service_delivery(event, owner, options['policy_path'], self.service.settings)
                 if text is None:
                     native = parse_native_event(event, self.definition)

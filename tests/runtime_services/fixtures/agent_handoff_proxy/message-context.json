@@ -1,0 +1,20 @@
+{
+  "project": "fixture-project",
+  "task": "T1",
+  "request_id": "proxy-request-1",
+  "response_path": "REPLACED_BY_TEST",
+  "commit": "1111111111111111111111111111111111111111",
+  "tree": "2222222222222222222222222222222222222222",
+  "progression": {
+    "status": "role_handoff_required",
+    "stage": "review",
+    "next_stage": "author",
+    "from_role": "reviewer",
+    "to_role": "executor",
+    "progression": {
+      "request_id": "progression-1",
+      "target_stage": null,
+      "status": "active"
+    }
+  }
+}

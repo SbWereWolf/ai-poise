@@ -225,6 +225,8 @@ class ToolResultPolicy:
                 ids = set()
                 for rule in rules:
                     item = config(rule, 'id tool_name profile priority command_pattern')
+                    if 'file_read' in rule and type(rule['file_read']) is not bool:
+                        raise ValueError('File-read applicability requires a boolean')
                     if (not text(item['id']) or item['id'] in ids or not text(item['tool_name'])
                             or not text(item['profile']) or item['profile'] not in raw['parsers']
                             or not integer(item['priority'], 0)):
@@ -317,6 +319,26 @@ def select_parser(event, policy):
         if name not in policy['parsers']:
             reject('unmapped_input', 'tool_name', 'configure:input')
         return name, policy['parsers'][name]
+    rule = _selection_rule(event, policy)
+    profile = rule['profile']
+    return profile, policy['parsers'][profile]
+
+
+def file_read_scope(event, policy):
+    """Recognize an explicit winning reader route before output processing."""
+    if not any(rule.get('file_read') is True for rule in policy.get('selection', [])):
+        return False
+    try:
+        rule = _selection_rule(event, policy)
+    except ToolResultFailure as error:
+        if error.code == 'unmapped_input':
+            return False
+        raise
+    return rule.get('file_read', False) is True
+
+
+def _selection_rule(event, policy):
+    name = event['tool_name']
     rules = [r for r in policy['selection'] if r['tool_name'] == name]
     command = event.get('tool_input', {}).get('command') if isinstance(event.get('tool_input'), dict) else None
     if any(r['command_pattern'] is not None for r in rules) and not isinstance(command, str):
@@ -329,8 +351,7 @@ def select_parser(event, policy):
     winners = [r for r in matches if r['priority'] == priority]
     if len(winners) != 1:
         reject('ambiguous_parser', 'selection', 'configure:input')
-    profile = winners[0]['profile']
-    return profile, policy['parsers'][profile]
+    return winners[0]
 
 
 def native_snapshot(event, policy, *, selected=None):

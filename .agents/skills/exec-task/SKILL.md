@@ -175,6 +175,12 @@ Before executing each logical stage, design only that imminent stage's goal, res
    overview](../../../docs/configuration/project-setup.md#доступные-задачи-во-всех-проектах) for
    discovery; it is not an
    atomic selection/claim substitute and does not resume already-started Tasks.
+   After confirmed notification, end the turn when no own assigned work is actionable. Preserve
+   the expected counterpart result and next action; resume on its incoming message. Waiting for
+   that reply does not require model calls, timers or background polling. A send receipt confirms
+   submission, not recipient completion. Recover notification errors against the saved result and
+   finish own already-started operations. Follow [ending the turn after
+   handoff](../../../docs/workflows/local-handoff.md#завершение-хода-после-передачи).
 
 ## Output
 

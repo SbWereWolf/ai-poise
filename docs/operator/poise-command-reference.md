@@ -46,7 +46,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
 | `source-index` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin; необязательный `--handler`. | [Поиск и обновление индекса выбранной копии](../configuration/source-index.md#запросы-и-первоначальный-индекс), Git callback и optional sync handler без обязательной Task. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
-| `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
+| `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции, prepare по файлам и [deliver в текущий контекст](../configuration/instruction-delivery.md#вызов-и-подготовка) без Task. |
 | `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. Необязательные `--transport-policy PATH` и `--invocation ID` включают coordination подготовленного вызова. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
 | `checks-mcp` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH --transport-policy PATH`; JSON-RPC stdio. | Настроенные run/preview/cancel с ожиданием конечного результата и полным машинным ответом. |
 
@@ -89,7 +89,8 @@ session route, не project-bound policy без session. Сам CLI получа
 `checks_transport_policy` — отдельная заполненная policy транспорта. Имена tools,
 версии протокола, run/preview/cancel arguments, ограничения, собственный invocation,
 результаты и восстановление описаны в
-[каноническом справочнике MCP](../configuration/named-project-checks.md#mcp-stdio-настройка-и-вызов).
+[каноническом справочнике
+MCP](../configuration/named-project-checks.md#mcp-stdio-настройка-и-вызов).
 Обычный `checks` сохраняет полный named-check договор. При явном
 `--transport-policy` он использует ту же coordination; `--invocation` потребляет
 настоящую подготовленную Pre-ссылку соответствующего запроса и требует
@@ -257,7 +258,8 @@ operation-профиля](maintenance-profile-v2.md#развёртывание-�
 [Настройка рабочих деревьев](start-app-worktree-setup.md#подключение-установленного-инструмента)
 выбирает standalone SDK2. Полный [профиль ERP](maintenance-profile-v2.md#профиль-erp)
 и [обновление всех потребителей](maintenance-profile-v2.md#согласованное-обновление-потребителей)
-имеют собственные явные конфиги. Каждая операция исполняет одну выбранную цепочку. `adjust` ниже выбирает ERP
+имеют собственные явные конфиги. Каждая операция исполняет одну выбранную цепочку. `adjust` ниже
+выбирает ERP
 `erp_profile`/`erp_repository`, где операция объявлена; собственный Poise app
 содержит `infra`, `deps`, `check`, `run`:
 

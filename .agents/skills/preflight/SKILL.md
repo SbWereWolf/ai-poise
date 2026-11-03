@@ -5,14 +5,16 @@ description: Check the selected environment and obtain only applicable project i
 
 # Prepare the authorized work
 
-Follow the [preparation sequence](../../../docs/configuration/development-routing.md#подготовка-перед-выполнением)
+Follow the [preparation
+sequence](../../../docs/configuration/development-routing.md#подготовка-перед-выполнением)
 and current session launcher. This skill composes existing owners; it does not
 create another router, requirement register or Task lifecycle. Goal registration
 does not require execution preparation.
 
 1. Confirm existing authority, selected project/checkout, current operation,
    owned paths, prerequisites and delivery route. Reuse verified unchanged facts.
-2. Consume the session's [saved readiness summary](../../../docs/configuration/runtime-hooks.md#сводка-готовности-сессии).
+2. Consume the session's [saved readiness
+   summary](../../../docs/configuration/runtime-hooks.md#сводка-готовности-сессии).
    Ordinary reading does not rerun probes; request refresh when a changed condition
    or an explicit need justifies it. Separate required failures from optional tools.
 3. When scoped instruction selection is needed, use the existing public
@@ -30,3 +32,10 @@ does not require execution preparation.
 Keep installation settings outside Git and version only their examples. Do not
 copy ERP's preflight.sh, profile paths or session-policy names, invent missing
 manifest fields, preload all skills, or repeat unchanged setup after compaction.
+
+For assigned stage skills, one selected guide and availability-aware delivery use
+[skills/deliver](../../../docs/configuration/instruction-delivery.md#вызов-и-подготовка)
+with the explicit general project profile. Its receipt is distinct from prepare's
+comparison response. Confirm retained keys only for complete texts available in
+the current context; use full refresh after resume/compaction or unknown availability.
+Keep full machine observations and the existing common agent delivery/error view.

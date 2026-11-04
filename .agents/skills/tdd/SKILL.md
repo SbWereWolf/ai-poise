@@ -21,6 +21,15 @@ impact on test/oracle quality in the final answer; escalate actual blockers when
 
 ## Procedure
 
+For every affected scenario branch, separate domain invariants from the observable
+outcome form and justify new and retained assertions against the current contract.
+Record conditions, expected outcomes and meaningful execution boundaries/effects in
+the existing test plan. Compare relevant implementation with that contract; do not
+derive the oracle from observed output or automatically preserve an old assertion.
+Follow [oracle
+design](../../../docs/governance/verification-plan-checklist.md#предметные-инварианты-и-ожидаемые-результаты)
+and its existing independent review, without another stage, approval or required file.
+
 1. Identify what observation would disprove the required outcome. Choose the smallest standard test that can actually observe it: unit for isolated behavior, integration for real wiring/persistence, external entry-point/browser for externally visible interaction, architecture checks for dependency contracts. Raise the level when a lower test cannot observe the requirement; excessive mocks cannot substitute for the owner.
 2. Prepare exact, independent expectations and a transparent test arrangement. The production algorithm, constants, enums, factories or serializer must not generate the oracle. Keep C029 declared subject/allowlist boundaries honest; never widen an allowlist or baseline merely to make a guard pass.
 3. Obtain RED for the intended missing behavior. Wrong worktree, import/dependency failure, unavailable service, syntax error and unrelated failures do not demonstrate that behavior. Preserve exact command, source/runtime identity and failure evidence; diagnose infrastructure separately.

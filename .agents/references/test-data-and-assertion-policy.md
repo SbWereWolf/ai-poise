@@ -4,8 +4,12 @@
 
 Tests remain sensitive to accepted behavior, declared interfaces, persisted values, messages,
 transitions and safe serialized representations. Do not weaken assertions to reduce maintenance. A
-behavior-preserving refactor keeps semantic tests green; a structural assertion changes only with an
-explicitly accepted contract change recorded through the existing Task owner.
+behavior-preserving refactor keeps semantic tests green. A change to an accepted assertion follows
+the existing test-revision route, justified by the current contract or an explicitly accepted
+contract change recorded through the existing Task owner. Distinguish domain invariants from
+their observable representation and revalidate affected retained assertions under
+[oracle
+design](../../docs/governance/verification-plan-checklist.md#предметные-инварианты-и-ожидаемые-результаты).
 
 Expected values are literals or test-owned constants/data, never derived from the production
 algorithm, constants, enum values, factory, configuration provider, serializer or helper also being

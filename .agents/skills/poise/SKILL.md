@@ -91,7 +91,8 @@ Use a host invocation that waits for the command's terminal result. The proxy ow
 native waiting, full-response reading and notification; preserve the received
 outcome. Native release retains an independent worktree. Unknown notification
 requires external evidence and the exact
-[resolution contract](../../../docs/operator/agent-handoff-proxy.md#продолжение-и-явное-подтверждение).
+[resolution
+contract](../../../docs/operator/agent-handoff-proxy.md#продолжение-и-явное-подтверждение).
 Keep native acknowledgement, manual confirmation and independent review distinct.
 
 ### Project and workflow configuration
@@ -973,7 +974,8 @@ that dependency and next action, then end the turn. Resume on the incoming resul
 do not wait through model calls, timers or background polling. A send receipt confirms submission,
 not recipient completion. Recover notification errors against the same saved result.
 Duplicate notifications do not require repeating completed work. Follow
-[ending the turn after handoff](../../../docs/workflows/local-handoff.md#завершение-хода-после-передачи).
+[ending the turn after
+handoff](../../../docs/workflows/local-handoff.md#завершение-хода-после-передачи).
 
 Scoped export/import is removed. Continue the same Task and working area through ordinary
 release/bootstrap; do not merge task databases or copy work materials between participants.
@@ -1175,12 +1177,14 @@ materializes its configured draft, without starting execution before ready.
 
 Use `task_feedback` through the selected project's ordinary Work entry to append
 comments/files or read a Task by its canonical ID. Its actions are `append`,
-`read`, and `read_attachment`; use the exact [public packet contract](../../../docs/workflows/batch-work.md#комментарии-и-исходные-вложения-task).
+`read`, and `read_attachment`; use the exact [public packet
+contract](../../../docs/workflows/batch-work.md#комментарии-и-исходные-вложения-task).
 This does not select an execution Task, acquire its claim, or require bootstrap.
 The caller may keep working on another Task; source attachments are separate from
 review feedback and stage proofs.
 
-Require explicit [managed storage setup](../../../docs/configuration/project-setup.md#постоянные-материалы-комментариев-task).
+Require explicit [managed storage
+setup](../../../docs/configuration/project-setup.md#постоянные-материалы-комментариев-task).
 Keep intake files until append succeeds, then use returned attachment IDs.
 Retry the original packet after partial publication; completed replay preserves
 its original author/time/IDs. Terminal Tasks are readable and immutable for new
@@ -1262,7 +1266,11 @@ and [failure/retry contract](../../../docs/configuration/result-placement.md#о�
 
 ## General project-file reading
 
-Use installed `poise content-read` for complete or bounded project-file content without a Task.
+Use installed `poise content-read` for addressed project-file chunks without a Task.
+Keep agent reads within configured limits and continue with the next addressed chunk;
+complete admitted source data remains available for programmatic consumers. Follow the
+[file-reading
+boundary](../../../docs/configuration/tool-results.md#чтение-файлов-и-граница-ответственности).
 Select absolute config, registered checkout and operator-owned policy, plus explicit `--format
 json` or `--format text`; preserve genuine caller identity and native admission. Send the reader
 operation packet directly, not a Work envelope. Follow the canonical

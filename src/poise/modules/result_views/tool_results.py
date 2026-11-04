@@ -332,19 +332,6 @@ def select_parser(event, policy):
     return profile, policy['parsers'][profile]
 
 
-def file_read_scope(event, policy):
-    """Recognize an explicit winning reader route before output processing."""
-    if not any(rule.get('file_read') is True for rule in policy.get('selection', [])):
-        return False
-    try:
-        rule = _selection_rule(event, policy)
-    except ToolResultFailure as error:
-        if error.code == 'unmapped_input':
-            return False
-        raise
-    return rule.get('file_read', False) is True
-
-
 def _selection_rule(event, policy):
     name = event['tool_name']
     rules = [r for r in policy['selection'] if r['tool_name'] == name]

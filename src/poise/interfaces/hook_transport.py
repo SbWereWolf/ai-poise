@@ -27,7 +27,11 @@ def _write(service,result,output):
 
 def _write_native(service,result,definition_path,output):
     cfg=service.settings.raw
-    if 'systemMessage' in result and 'hookSpecificOutput' in result:
+    if result.get('continue') is False:
+        text=utf8_json_text(result,separators=(',',':'))+'\n'
+        if len(text)>cfg['output_chars']:
+            raise PoiseError('Configured hook context cannot fit output limit')
+    elif 'systemMessage' in result and 'hookSpecificOutput' in result:
         path=_save_response(service,result)
         definition = service.definition(definition_path).data
         notice=(definition['transport']['unknown_outcome_message']

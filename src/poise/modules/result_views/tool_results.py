@@ -574,7 +574,8 @@ def prepare_views(record, sources, policy, *, selected_parser=None):
 
 
 def navigation(record, mode=None):
-    result = {'status': 'stored', 'response_path': record['response_path']}
+    result = {'status': 'stored'}
+    if mode == 'full': result['response_path'] = record['response_path']
     if mode is not None: result['view'] = mode
     result.update(capture=record['capture'], exit_code=record['exit_code'])
     return result
@@ -587,6 +588,18 @@ def fits(value, policy):
 
 def require_budget(value, policy):
     if not fits(value, policy): reject('budget_too_small', 'display', 'increase:budget')
+
+
+def native_hook_feedback(response, text, policy, output_chars, exit_code):
+    """Budget the actual replacement packet, retaining the producer's outcome."""
+    policy = {**policy, 'display': {**policy['display'],
+              'output_chars': min(output_chars, policy['display']['output_chars'])}}
+    result = {**response, 'continue': False, 'stopReason': text}
+    if fits(result, policy): return result
+    failure = ToolResultFailure('budget_too_small', 'display', 'increase:budget')
+    result = {**response, 'continue': False, 'stopReason': encoded(failure.result(exit_code))}
+    require_budget(result, policy)
+    return result
 
 
 def head_tail(value, limit):
@@ -671,8 +684,7 @@ def hook_navigation(record, policy):
     if policy['hook']['mode'] == 'audit':
         return {**result, 'action': 'would_replace'}
     return {**result, 'action': 'enforced', 'protocol': {
-        'continue': False, 'stopReason': 'Полный результат сохранён по указанному адресу.',
-        'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': record['response_path']}}}
+        'continue': False, 'stopReason': ''}}
 
 
 def hook_presentation(record, sources, policy):
@@ -692,7 +704,7 @@ def hook_presentation(record, sources, policy):
     def render(text, clipped):
         value = hook_navigation(record, policy)
         if shortened or clipped: value['truncated'] = True
-        value['protocol']['hookSpecificOutput']['additionalContext'] = record['response_path'] + ('\n'+text if text else '')
+        value['protocol']['stopReason'] = text
         return value
     return bounded_text(excerpt, policy, limit, render, contiguous=False)
 

@@ -28,7 +28,7 @@ def test_documented_tool_result_examples(project, tmp_path, case):
     assert saved['response'] == request['response']
     before = s.snapshot()
     view = s.success(s.request('view.template.json'))
-    assert view['response_path'] == str(s.response_path)
+    assert 'response_path' not in view
     for template in ('read.template.json', 'search.template.json'):
         selected = s.request(template)
         if case == 'structured':

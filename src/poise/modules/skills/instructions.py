@@ -206,6 +206,46 @@ def status_for(materials):
     return 'needs_inputs' if any(m['required'] and not m['available'] for m in materials) else 'ready'
 
 
+def validate_material_records(materials, paths, *, allow_tools=False):
+    """Validate complete canonical source records, without reading their paths."""
+    kinds = ('rule', 'profile', 'skill', 'tool') if allow_tools else ('rule', 'profile', 'skill')
+    if not (isinstance(materials, list)):
+        raise ValueError('Invalid material observation')
+    keys, order = set(), []
+    for m in materials:
+        if not (isinstance(m, dict) and set(m) == MATERIAL_FIELDS):
+            raise ValueError('Invalid material observation')
+        if not (m['kind'] in kinds and text(m['id']) and ':' not in m['id']):
+            raise ValueError('Invalid material observation')
+        roots = ('checkout', 'instructions') if m['kind'] == 'tool' else (
+            ('instructions',) if m['kind'] == 'skill' else ('checkout',))
+        if not (m['root'] in roots):
+            raise ValueError('Invalid material observation')
+        if not (relative_file(m['path']) and type(m['required']) is bool and type(m['available']) is bool):
+            raise ValueError('Invalid material observation')
+        if not (strings(m['scopes']) and m['scopes'] and m['scopes'] == sorted(m['scopes'])):
+            raise ValueError('Invalid material observation')
+        if not (set(m['scopes']) <= set(paths)):
+            raise ValueError('Invalid material observation')
+        if not (strings(m['reasons']) and m['reasons'] and m['reasons'] == sorted(m['reasons'])):
+            raise ValueError('Invalid material observation')
+        if m['available']:
+            if not (isinstance(m['content'], str)):
+                raise ValueError('Invalid material observation')
+            if not (m['sha256'] == hashlib.sha256(m['content'].encode('utf-8')).hexdigest()):
+                raise ValueError('Invalid material observation')
+        else:
+            if not (m['content'] is None and m['sha256'] is None):
+                raise ValueError('Invalid material observation')
+        key = material_key(m)
+        if not (key not in keys):
+            raise ValueError('Invalid material observation')
+        keys.add(key)
+        order.append((m['kind'], m['id'], m['root'], m['path']))
+    if not (order == sorted(order)):
+        raise ValueError('Invalid material observation')
+
+
 def validate_previous(previous, context):
     if previous is None:
         return
@@ -222,39 +262,7 @@ def validate_previous(previous, context):
         paths = prepare_paths(previous['paths'])
         if not (paths == previous['paths']):
             raise ValueError('Invalid previous observation')
-        if not (isinstance(previous['materials'], list)):
-            raise ValueError('Invalid previous observation')
-        keys, order = set(), []
-        for m in previous['materials']:
-            if not (isinstance(m, dict) and set(m) == MATERIAL_FIELDS):
-                raise ValueError('Invalid previous observation')
-            if not (m['kind'] in ('rule', 'profile', 'skill') and text(m['id']) and ':' not in m['id']):
-                raise ValueError('Invalid previous observation')
-            if not (m['root'] == ('instructions' if m['kind'] == 'skill' else 'checkout')):
-                raise ValueError('Invalid previous observation')
-            if not (relative_file(m['path']) and type(m['required']) is bool and type(m['available']) is bool):
-                raise ValueError('Invalid previous observation')
-            if not (strings(m['scopes']) and m['scopes'] and m['scopes'] == sorted(m['scopes'])):
-                raise ValueError('Invalid previous observation')
-            if not (set(m['scopes']) <= set(paths)):
-                raise ValueError('Invalid previous observation')
-            if not (strings(m['reasons']) and m['reasons'] and m['reasons'] == sorted(m['reasons'])):
-                raise ValueError('Invalid previous observation')
-            if m['available']:
-                if not (isinstance(m['content'], str)):
-                    raise ValueError('Invalid previous observation')
-                if not (m['sha256'] == hashlib.sha256(m['content'].encode('utf-8')).hexdigest()):
-                    raise ValueError('Invalid previous observation')
-            else:
-                if not (m['content'] is None and m['sha256'] is None):
-                    raise ValueError('Invalid previous observation')
-            key = material_key(m)
-            if not (key not in keys):
-                raise ValueError('Invalid previous observation')
-            keys.add(key)
-            order.append((m['kind'], m['id'], m['root'], m['path']))
-        if not (order == sorted(order)):
-            raise ValueError('Invalid previous observation')
+        validate_material_records(previous['materials'], paths)
         if not (previous['diagnostics'] == diagnostics_for(previous['materials'])):
             raise ValueError('Invalid previous observation')
         if not (previous['status'] == status_for(previous['materials'])):

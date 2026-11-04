@@ -1,0 +1,20 @@
+{
+  "red": [
+    "tests/skills/test_portable_instruction_delivery.py::test_bounded_file_entry_after_valid_unbounded_control"
+  ],
+  "behavior": [
+    "tests/skills/test_portable_instruction_delivery.py"
+  ],
+  "package": [
+    "tests/skills/test_installed_instruction_delivery.py"
+  ],
+  "guard": [
+    "tests/skills/test_portable_delivery_oracles.py",
+    "tests/skills/test_context_instruction_delivery.py",
+    "tests/skills/test_general_instruction_delivery.py"
+  ],
+  "regression": [
+    "tests/skills/test_context_instruction_delivery.py",
+    "tests/skills/test_general_instruction_delivery.py"
+  ]
+}

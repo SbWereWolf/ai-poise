@@ -1,0 +1,137 @@
+{
+  "request": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "request",
+      "action": "provide:request"
+    }
+  },
+  "schema": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "schema",
+      "action": "provide:schema"
+    }
+  },
+  "context": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "context",
+      "action": "provide:context"
+    }
+  },
+  "stage": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "stage",
+      "action": "provide:stage"
+    }
+  },
+  "retained": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "retained",
+      "action": "provide:retained"
+    }
+  },
+  "budget": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "budget",
+      "action": "provide:budget"
+    }
+  },
+  "continuation": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "continuation",
+      "action": "provide:continuation"
+    }
+  },
+  "selection": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_selection",
+      "field": "selection",
+      "action": "provide:selection"
+    }
+  },
+  "previous": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_previous",
+      "field": "previous",
+      "action": "provide:previous"
+    }
+  },
+  "stale-continuation": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "stale_continuation",
+      "field": "continuation",
+      "action": "refresh:delivery"
+    }
+  },
+  "stale-address": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "stale_address",
+      "field": "address",
+      "action": "refresh:delivery"
+    }
+  },
+  "small-budget": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "budget_too_small",
+      "field": "budget",
+      "action": "increase:budget"
+    }
+  },
+  "small-range": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "budget_too_small",
+      "field": "range",
+      "action": "choose:range"
+    }
+  },
+  "range": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_range",
+      "field": "range",
+      "action": "choose:range"
+    }
+  },
+  "address": {
+    "schema": "poise-portable-instruction-result-1",
+    "status": "rejected",
+    "error": {
+      "code": "invalid_request",
+      "field": "address",
+      "action": "provide:address"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "operation": "deliver",
+  "project_config": "$CONFIG",
+  "checkout": "$CHECKOUT",
+  "policy": "$POLICY",
+  "paths": [
+    "src/billing/invoice.py"
+  ],
+  "stage": {
+    "id": "implementation",
+    "skill_ids": []
+  },
+  "context": {
+    "id": "context-installed",
+    "generation": 1,
+    "reason": "initial"
+  },
+  "previous": null,
+  "retained": [],
+  "tool": null,
+  "budget": {
+    "max_bytes": 65536
+  },
+  "continuation": null
+}

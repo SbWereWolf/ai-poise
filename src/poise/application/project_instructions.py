@@ -5,8 +5,9 @@ from ..modules.skills.instructions import (
     validate_previous, public_result,
 )
 from ..modules.skills.instruction_delivery import (
-    delivery_result, parse_delivery_request, select_delivery_materials,
+    delivery_result, parse_bounded_delivery_request, parse_delivery_request, select_delivery_materials,
 )
+from ..modules.skills.portable_instructions import REQUEST_SCHEMA, execute
 
 
 class ProjectInstructions:
@@ -17,10 +18,18 @@ class ProjectInstructions:
         return self._observe(parse_prepare_request(request), None, None)
 
     def deliver(self, request):
-        request = parse_delivery_request(request)
+        bounded = isinstance(request, dict) and ('budget' in request or 'continuation' in request)
+        request = (parse_bounded_delivery_request(request) if bounded else
+                   parse_delivery_request(request))
         preparation = {'operation': 'prepare', 'previous': None,
                        **{key: request[key] for key in ('project_config', 'checkout', 'policy', 'paths')}}
         observation = self._observe(preparation, request['stage'], request['tool'])
+        if bounded:
+            return execute({
+                'schema': REQUEST_SCHEMA, 'operation': 'deliver_selected', 'selection': observation,
+                **{key: request[key] for key in (
+                    'context', 'stage', 'previous', 'retained', 'budget', 'continuation')},
+            })
         return delivery_result(observation, request)
 
     def _observe(self, request, stage, tool):

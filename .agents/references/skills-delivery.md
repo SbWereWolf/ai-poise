@@ -1,7 +1,13 @@
 # Instruction delivery
 
-Use `skills --catalog PATH --root PATH` with `operation: deliver`, explicit project,
-files, stage and context. Confirm retained keys only after receiving their complete
-texts. Preserve full machine results through the common consumer.
+For file selection, use `skills --catalog PATH --root PATH` with `operation: deliver`,
+explicit project, files, stage and context. Add explicit budget/continuation for bounded
+delivery. For an existing selection, use `poise.instructions.execute` or skills JSON
+`deliver_selected`/`read_selected` without catalogue/root flags. Supply truthful context;
+confirm retained keys only after their complete texts are currently available. Continue
+pending pages or read issued addresses with admitted ranges. Preserve full machine results.
 
-[Contract and examples](../../docs/configuration/instruction-delivery.md#вызов-и-подготовка)
+[Setup](../../docs/configuration/instruction-delivery.md#установка-выбранной-поставки) ·
+[API](../../docs/configuration/instruction-delivery.md#переносимый-python-api) ·
+[Pages](../../docs/configuration/instruction-delivery.md#доставка-с-бюджетом) ·
+[Reads](../../docs/configuration/instruction-delivery.md#адресное-чтение)

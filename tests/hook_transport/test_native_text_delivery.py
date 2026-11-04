@@ -45,7 +45,7 @@ def test_actual_shaped_text_reaches_real_dispatcher_and_delivers_prepared_brief(
                       'delivery': delivery, 'response': response}, ensure_ascii=False))
     assert response['hookSpecificOutput']['additionalContext'] == expected['brief'], (
         'NATIVE_TEXT_HOOK_BRIEF_NOT_DELIVERED', response)
-    assert response['continue'] is False
+    assert response.get('continue') is not False
     assert prepared.inputs == [expected['raw']], 'NATIVE_TEXT_NOT_PREPARED_EXACTLY_ONCE'
     answer = scene.service('full')
     assert Path(answer['full_path']).read_bytes() == expected['raw'].encode()
@@ -82,7 +82,7 @@ def test_actual_text_service_response_crosses_hook_without_new_capture(project, 
         delivered = chain.invoke(service_event, event_name='PostToolUse')
         actual = service['text'] if operation == 'expanded' else service['full_path']
         assert delivered['hookSpecificOutput']['additionalContext'] == actual
-        assert delivered['continue'] is False and service_event == original
+        assert delivered.get('continue') is not False and service_event == original
         assert chain.delivery()[1]['event']['tool_response'] == actual_cli['stdout']
         assert calls.inputs == [expected['raw']], 'NATIVE_TEXT_SERVICE_REPARSED_OR_RECAPTURED'
         assert scene.snapshot() == before, 'NATIVE_TEXT_SERVICE_REPLACED_LAST_OR_RUN_FILES'
@@ -225,7 +225,7 @@ def test_partial_full_refusal_crosses_hook_without_recapture(project, tmp_path):
         assert json.loads(context) == expected_refusal
         assert len(context) <= scene.policy['display']['output_chars']
         assert len(context.encode()) <= scene.policy['display']['output_bytes']
-        assert response['continue'] is False and refusal_event == original
+        assert response.get('continue') is not False and refusal_event == original
 
 
 def test_ordinary_bash_rejection_json_remains_an_ordinary_result(project, tmp_path):
@@ -254,7 +254,7 @@ def test_ordinary_bash_rejection_json_remains_an_ordinary_result(project, tmp_pa
         assert chain.delivery()[1]['event']['tool_response'] == producer.stdout.decode()
         assert response['hookSpecificOutput']['additionalContext'] == (
             'Bash: output received; exit unavailable')
-        assert response['continue'] is False and event == original
+        assert response.get('continue') is not False and event == original
         assert prepared.inputs == [healthy['raw'], producer.stdout.decode()]
         current = scene.service('full')
         assert current['run_id'] != previous['run_id']

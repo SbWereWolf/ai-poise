@@ -33,7 +33,7 @@ def test_actual_callback_brief_expanded_full_share_one_real_result(case, status,
     case.cleanup_callbacks.append(chain.finish)
     delivered, _ = native(case, chain, 'PostToolUse', tool, case.arguments(), response=envelope)
     expected = literal('output-expectations.json')[status]
-    assert delivered['continue'] is False
+    assert delivered.get('continue') is not False
     assert delivered['hookSpecificOutput']['additionalContext'] == expected['brief']
     expanded, full = scene.service('expanded'), scene.service('full')
     assert expanded['text'] == expected['expanded']

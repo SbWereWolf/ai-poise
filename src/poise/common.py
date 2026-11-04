@@ -233,6 +233,8 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
             cfg['paths'][key], f'paths.{key}',
             nonblank=key in {'state', 'database', 'lock'} | requirements_paths,
         )
+    if 'task_materials' in cfg['paths']:
+        _require_config_path(cfg['paths']['task_materials'], 'paths.task_materials', nonblank=True)
     _validated_limits(cfg['limits'])
     configuration_fields(cfg['git'], {'repository','base_ref','remote','branch_template','commit_pattern',
                            'author_name','author_email','push_required'}, 'git')

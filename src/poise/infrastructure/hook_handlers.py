@@ -161,11 +161,11 @@ class BuiltinHandlers:
                 code = native.get('exit_code') if isinstance(native, dict) else None
                 code = code if type(code) is int else None
                 response = append_context(response, event['hook_event_name'], encoded(error.result(code)))
-                response['continue'] = False
                 return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
-                        'response': response, 'control': {'action': 'stop', 'reason': str(error)}}, execution
+                        'response': response, 'control': {'action': 'continue', 'reason': None}}, execution
+            if policy['hook']['mode'] == 'enforce':
+                text = 'tool-result: native shortening unsupported; original result preserved.'
             response = append_context(response, event['hook_event_name'], text)
-            response['continue'] = False
         elif name == 'lifecycle-consumer':
             from .hook_lifecycle import consumer_options, prepare, deliver
             consumer = consumer_options(options['consumer'])

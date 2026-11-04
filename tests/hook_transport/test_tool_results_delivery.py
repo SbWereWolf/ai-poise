@@ -33,7 +33,7 @@ def test_output_rejection_crosses_real_hook_boundary(project, tmp_path, case):
     predecessor = scene.native(healthy['response'], key='healthy-before-error', tool=healthy['tool']['name'])['event']
     predecessor['session_id'] = chain.session
     first = chain.invoke(predecessor, event_name='PostToolUse')
-    assert first['continue'] is False and first['hookSpecificOutput']['additionalContext'] == healthy['brief']
+    assert first.get('continue') is not False and first['hookSpecificOutput']['additionalContext'] == healthy['brief']
     previous = scene.service('full')
     assert scene.service('expanded')['text'] == healthy['expanded']
     before = scene.snapshot()
@@ -62,7 +62,7 @@ def test_output_rejection_crosses_real_hook_boundary(project, tmp_path, case):
     assert len(calls.inputs) == (0 if case == 'source' else 1), 'F08_ERROR_SUBJECT_NOT_REACHED'
     print(json.dumps({'boundary': 'actual-typed-hook-rejection', 'case': case,
                       'event': original, 'actual': actual, 'delivery': delivery}, ensure_ascii=False))
-    assert actual.get('continue') is False, 'F08_HOOK_ERROR_NOT_DELIVERED'
+    assert actual.get('continue') is not False, 'F08_HOOK_ERROR_NOT_DELIVERED'
     text = actual['hookSpecificOutput']['additionalContext']
     assert len(text) <= scene.policy['display']['output_chars']
     assert len(text.encode()) <= scene.policy['display']['output_bytes']
@@ -76,11 +76,11 @@ def test_output_rejection_crosses_real_hook_boundary(project, tmp_path, case):
         assert 'FULL_ONLY_F08' not in text
         assert scene.snapshot() == before, 'F08_HOOK_FAILURE_PUBLISHED_OR_REPLACED_LAST'
         assert scene.service('full')['run_id'] == previous['run_id']
-        assert [row['label'] for row in chain.order()] == ['before', 'after', 'before']
+        assert [row['label'] for row in chain.order()] == ['before', 'after', 'before', 'after']
         output = next(row for row in delivery['invocations']
                       if row['configuration']['handler_id'] == 'tool-result')
-        assert output['result']['control']['action'] == 'stop'
-        assert output['result']['control']['reason']
+        assert output['result']['control']['action'] == 'continue'
+        assert output['result']['control']['reason'] is None
 
 
 @pytest.mark.parametrize('case', ['bash-success', 'bash-failure', 'mcp'])
@@ -95,7 +95,7 @@ def test_isolated_post_tool_use_delivers_prepared_brief_and_full_source(project,
     original = deepcopy(event)
     result = chain.invoke(event, event_name='PostToolUse')
     assert event == original, 'F08_HOOK_CHANGED_ORIGINAL_EVENT'
-    assert result['continue'] is False
+    assert result.get('continue') is not False
     assert result['hookSpecificOutput'] == {'hookEventName': 'PostToolUse',
                                             'additionalContext': data['brief']}
     assert 'FULL_ONLY_F08' not in json.dumps(result)
@@ -167,7 +167,7 @@ def test_ordinary_poise_saved_response_enters_same_hook_path(project, tmp_path):
         event = scene.native(native_response)['event']
         event['session_id'] = chain.session
         result = chain.invoke(event, event_name='PostToolUse')
-        assert result['continue'] is False
+        assert result.get('continue') is not False
         assert result['hookSpecificOutput']['additionalContext'] == 'Poise: verified'
         full = scene.service('full')
         assert json.loads(Path(full['full_path']).read_bytes()) == source
@@ -243,7 +243,7 @@ def test_actual_service_result_crosses_hook_without_capture(project, tmp_path, o
             assert service_event == original
             assert chain.delivery()[1]['event']['tool_response'] == original['tool_response']
             expected = answer['text'] if operation == 'expanded' else answer['full_path']
-            assert delivered['continue'] is False
+            assert delivered.get('continue') is not False
             assert delivered['hookSpecificOutput']['additionalContext'] == expected, (
                 'F08_SERVICE_DELIVERY_CHANGED_SAVED_CONTENT', delivered)
             assert last.read_bytes() == last_before, 'F08_SERVICE_HOOK_REPLACED_LAST'
@@ -293,7 +293,7 @@ def test_output_keeps_real_bash_intake_coverage(project, tmp_path):
                      if row['event']['hook_event_name'] == 'PostToolUse')
     assert delivered['event']['tool_input']['command'] == before['tool_input']['command']
     assert delivered['event']['tool_response'] == {'output': actual['stdout'], 'exit_code': 0}
-    assert delivered['response']['continue'] is False
+    assert delivered['response'].get('continue') is not False
     coverage = observed['coverage_before']
     document, = [row for row in coverage['details']['documents']
                  if row['path'] == 'docs/sample.txt']

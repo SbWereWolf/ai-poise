@@ -1,0 +1,497 @@
+{
+  "goal": "Сохранить комментарии и пользовательские материалы задачи.",
+  "requirements": [
+    "Материалы доступны другому участнику."
+  ],
+  "dod": [
+    "Сохранённые байты совпадают с исходными."
+  ],
+  "report": "Проверяемый сохранённый результат первой фазы.",
+  "final_report": "Проверяемый окончательный результат задачи.",
+  "source_context": "Сохранённые исходные сведения задачи.",
+  "initial_text": "  Исходные материалы\nКомментарий автора.  ",
+  "later_text": "Последующий комментарий участника.",
+  "other_text": "Самостоятельный материал другой задачи.",
+  "timestamp": "2026-11-03T12:00:00+00:00",
+  "payloads": [
+    {
+      "name": "данные.txt",
+      "hex": "d09fd180d0b8d0b2d0b5d1820a"
+    },
+    {
+      "name": "binary.bin",
+      "hex": "00ff80fe0d0a414200"
+    },
+    {
+      "name": "empty.bin",
+      "hex": ""
+    }
+  ],
+  "task_fields": [
+    "id",
+    "status",
+    "goal",
+    "requirements",
+    "definition_of_done",
+    "stage",
+    "content",
+    "results"
+  ],
+  "comment_fields": [
+    "id",
+    "text",
+    "author",
+    "created_at",
+    "attachments"
+  ],
+  "attachment_fields": [
+    "id",
+    "name",
+    "digest",
+    "size"
+  ],
+  "append_fields": [
+    "status",
+    "task_id",
+    "request_id",
+    "comments"
+  ],
+  "read_fields": [
+    "status",
+    "task_id",
+    "task",
+    "comments"
+  ],
+  "bytes_fields": [
+    "status",
+    "task_id",
+    "attachment_id",
+    "name",
+    "digest",
+    "size",
+    "encoding",
+    "data"
+  ],
+  "failure_patterns": {
+    "terminal": "terminal|completed|cancelled|терминаль|заверш|отмен",
+    "missing_task": "Task.*(not found|not registered)|task.*(not found|not registered)|задач.*(найден|зарегистр)",
+    "missing_attachment": "[Aa]ttachment.*(not found|belong)|вложен.*(найден|принадлеж)",
+    "conflict": "[Cc]onflict|конфликт|different.*request|request.*different",
+    "invalid": "required|invalid|nonempty|empty|unique|duplicate|limit|max_|digest|size|file|text|items|attachments|name|missing|path|некоррект|пуст|повтор|файл|превыш|размер|action|field|source|kind|author|created_at|object|list|absolute|comment",
+    "configuration": "task_materials"
+  },
+  "invalid_case_patterns": {
+    "empty-text": "text|текст",
+    "wrong-text-type": "text|текст",
+    "empty-batch": "items|batch|пакет",
+    "wrong-items-type": "items|batch|пакет",
+    "unknown-field": "surprise|unknown|required fields|неизвестн",
+    "duplicate-name": "duplicate|unique|name|повтор|им[её]н",
+    "missing-file": "missing|not.*(?:found|exist)|file.*(?:unreadable|unavailable)|файл.*(?:отсут|найден)",
+    "wrong-digest": "digest|checksum|контрольн",
+    "too-large-file": "max_artifact_bytes|size|large|размер",
+    "too-many-items": "max_items|limit|many|колич|лимит",
+    "invalid-second-item": "text|текст",
+    "append-missing-action": "action|required|fields",
+    "read-missing-action": "action|required|fields",
+    "bytes-missing-action": "action|required|fields",
+    "append-missing-task_id": "task_id|required|fields",
+    "append-missing-request_id": "request_id|required|fields",
+    "append-missing-items": "items|required|fields",
+    "read-missing-task": "task_id|required|fields",
+    "bytes-missing-task_id": "task_id|required|fields",
+    "bytes-missing-attachment_id": "attachment_id|required|fields",
+    "comment-missing-text": "text|required|fields",
+    "comment-missing-attachments": "attachments|required|fields",
+    "attachment-missing-name": "name|required|fields",
+    "attachment-missing-source": "source|required|fields",
+    "source-missing-kind": "kind|required|fields",
+    "source-missing-path": "path|required|fields",
+    "source-missing-digest": "digest|required|fields",
+    "read-unknown-field": "fields|required|unexpected|surprise|unknown.*field",
+    "bytes-unknown-field": "fields|required|unexpected|surprise|unknown.*field",
+    "nonobject-comment": "comment|item|object|объект",
+    "nonlist-attachments": "attachments|list|вложен|спис",
+    "nonobject-attachment": "attachment|object|вложен|объект",
+    "nonobject-source": "source|object|источник|объект",
+    "empty-name": "name|им[её]н",
+    "unsupported-source-kind": "kind|source",
+    "relative-source-path": "absolute|абсолют",
+    "malformed-source-digest": "digest|checksum|контрольн",
+    "forged-comment-id": "id|fields|required|unknown",
+    "forged-comment-author": "author|fields|required|unknown",
+    "forged-comment-created_at": "created_at|fields|required|unknown"
+  },
+  "saved_intake": "Сохранённое дополнение к исходным сведениям после исполнения.",
+  "boundary_limits": {
+    "max_items": 4,
+    "max_artifact_bytes": 7,
+    "payload_hex": "00ff4142430a5a"
+  },
+  "worktree_wip": {
+    "executor": {
+      "tracked": "executor draft\n",
+      "staged": "executor staged\n",
+      "untracked": "executor untracked\n"
+    },
+    "material-author": {
+      "tracked": "author draft\n",
+      "staged": "author staged\n",
+      "untracked": "author untracked\n"
+    }
+  },
+  "nested_invalid_cases": [
+    {
+      "id": "append-missing-action",
+      "packet": "append",
+      "path": [
+        "input",
+        "action"
+      ],
+      "remove": true,
+      "pattern": "action|required|fields"
+    },
+    {
+      "id": "read-missing-action",
+      "packet": "read",
+      "path": [
+        "input",
+        "action"
+      ],
+      "remove": true,
+      "pattern": "action|required|fields"
+    },
+    {
+      "id": "bytes-missing-action",
+      "packet": "bytes",
+      "path": [
+        "input",
+        "action"
+      ],
+      "remove": true,
+      "pattern": "action|required|fields"
+    },
+    {
+      "id": "append-missing-task_id",
+      "packet": "append",
+      "path": [
+        "input",
+        "task_id"
+      ],
+      "remove": true,
+      "pattern": "task_id|required|fields"
+    },
+    {
+      "id": "append-missing-request_id",
+      "packet": "append",
+      "path": [
+        "input",
+        "request_id"
+      ],
+      "remove": true,
+      "pattern": "request_id|required|fields"
+    },
+    {
+      "id": "append-missing-items",
+      "packet": "append",
+      "path": [
+        "input",
+        "items"
+      ],
+      "remove": true,
+      "pattern": "items|required|fields"
+    },
+    {
+      "id": "read-missing-task",
+      "packet": "read",
+      "path": [
+        "input",
+        "task_id"
+      ],
+      "remove": true,
+      "pattern": "task_id|required|fields"
+    },
+    {
+      "id": "bytes-missing-task_id",
+      "packet": "bytes",
+      "path": [
+        "input",
+        "task_id"
+      ],
+      "remove": true,
+      "pattern": "task_id|required|fields"
+    },
+    {
+      "id": "bytes-missing-attachment_id",
+      "packet": "bytes",
+      "path": [
+        "input",
+        "attachment_id"
+      ],
+      "remove": true,
+      "pattern": "attachment_id|required|fields"
+    },
+    {
+      "id": "comment-missing-text",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "text"
+      ],
+      "remove": true,
+      "pattern": "text|required|fields"
+    },
+    {
+      "id": "comment-missing-attachments",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments"
+      ],
+      "remove": true,
+      "pattern": "attachments|required|fields"
+    },
+    {
+      "id": "attachment-missing-name",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "name"
+      ],
+      "remove": true,
+      "pattern": "name|required|fields"
+    },
+    {
+      "id": "attachment-missing-source",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source"
+      ],
+      "remove": true,
+      "pattern": "source|required|fields"
+    },
+    {
+      "id": "source-missing-kind",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source",
+        "kind"
+      ],
+      "remove": true,
+      "pattern": "kind|required|fields"
+    },
+    {
+      "id": "source-missing-path",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source",
+        "path"
+      ],
+      "remove": true,
+      "pattern": "path|required|fields"
+    },
+    {
+      "id": "source-missing-digest",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source",
+        "digest"
+      ],
+      "remove": true,
+      "pattern": "digest|required|fields"
+    },
+    {
+      "id": "read-unknown-field",
+      "packet": "read",
+      "path": [
+        "input",
+        "surprise"
+      ],
+      "value": true,
+      "pattern": "fields|required|unexpected|surprise|unknown.*field"
+    },
+    {
+      "id": "bytes-unknown-field",
+      "packet": "bytes",
+      "path": [
+        "input",
+        "surprise"
+      ],
+      "value": true,
+      "pattern": "fields|required|unexpected|surprise|unknown.*field"
+    },
+    {
+      "id": "nonobject-comment",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0
+      ],
+      "value": 42,
+      "pattern": "comment|item|object|объект"
+    },
+    {
+      "id": "nonlist-attachments",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments"
+      ],
+      "value": {},
+      "pattern": "attachments|list|вложен|спис"
+    },
+    {
+      "id": "nonobject-attachment",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0
+      ],
+      "value": 42,
+      "pattern": "attachment|object|вложен|объект"
+    },
+    {
+      "id": "nonobject-source",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source"
+      ],
+      "value": 42,
+      "pattern": "source|object|источник|объект"
+    },
+    {
+      "id": "empty-name",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "name"
+      ],
+      "value": "",
+      "pattern": "name|им[её]н"
+    },
+    {
+      "id": "unsupported-source-kind",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source",
+        "kind"
+      ],
+      "value": "text",
+      "pattern": "kind|source"
+    },
+    {
+      "id": "relative-source-path",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source",
+        "path"
+      ],
+      "value": "intake/binary.bin",
+      "pattern": "absolute|абсолют"
+    },
+    {
+      "id": "malformed-source-digest",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "attachments",
+        0,
+        "source",
+        "digest"
+      ],
+      "value": "not-sha256",
+      "pattern": "digest|checksum|контрольн"
+    },
+    {
+      "id": "forged-comment-id",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "id"
+      ],
+      "value": "forged-comment",
+      "pattern": "id|fields|required|unknown"
+    },
+    {
+      "id": "forged-comment-author",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "author"
+      ],
+      "value": "executor",
+      "pattern": "author|fields|required|unknown"
+    },
+    {
+      "id": "forged-comment-created_at",
+      "packet": "append",
+      "path": [
+        "input",
+        "items",
+        0,
+        "created_at"
+      ],
+      "value": "2000-01-01T00:00:00+00:00",
+      "pattern": "created_at|fields|required|unknown"
+    }
+  ]
+}

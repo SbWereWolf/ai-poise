@@ -607,10 +607,11 @@ class FileProjectConfigUpdate:
                 raise PoiseError("manifest edit requires path and value")
             path = path_key(item["path"])
             if path[0] in {"paths", "workflows", "project", "schema"} and not (
-                    workspace and path == ('paths', 'worktrees')):
+                    (workspace and path == ('paths', 'worktrees'))
+                    or path == ('paths', 'task_materials')):
                 raise PoiseError(f"Manifest field {path[0]} has a dedicated owner")
             # Named optional C004 capability, not permission to create arbitrary fields.
-            if path not in (("development_routing",), ("source_reader",), ("telemetry_delivery",), ("task_planning",), ("task_ids",)):
+            if path not in (("paths", "task_materials"), ("development_routing",), ("source_reader",), ("telemetry_delivery",), ("task_planning",), ("task_ids",)):
                 field_at(config, path)
             if any(path[:len(old)] == old or old[:len(path)] == path for old in changed):
                 raise PoiseError("Conflicting manifest edits")

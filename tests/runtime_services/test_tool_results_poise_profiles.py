@@ -195,7 +195,7 @@ def test_one_policy_mixed_native_outputs(project, tmp_path, real_poise_sources, 
         assert delivery['event']['tool_response'] == source['response'] and event == original
         trace('F08_REAL_POISE_MIX', 'actual_mixed_delivery', case=name, order=order,
               native_input=original, delivery=delivery, actual_return=delivered)
-        assert delivered.get('continue') is False
+        assert delivered.get('continue') is not False
         assert delivered['hookSpecificOutput']['additionalContext'] == expected[name]['brief'], (
             'F08_MIXED_POISE_SOURCE_NOT_SELECTED', name, delivered)
         actual_source = source['body'] if name in real_poise_sources else source['response']
@@ -226,7 +226,7 @@ def test_selection_policy_keeps_actual_service_delivery(project, tmp_path):
     event = scene.native(source['response'], key='before-service')['event']
     event['session_id'] = chain.session
     event['tool_input']['command'] = source['command']
-    assert chain.invoke(event, event_name='PostToolUse')['continue'] is False
+    assert chain.invoke(event, event_name='PostToolUse').get('continue') is not False
     before = scene.snapshot()
     for operation in ('expanded', 'full'):
         answer = scene.service(operation)
@@ -238,7 +238,7 @@ def test_selection_policy_keeps_actual_service_delivery(project, tmp_path):
         with ParserCalls(prepare_owner()) as calls:
             delivered = chain.invoke(service, event_name='PostToolUse')
         assert calls.inputs == [] and scene.snapshot() == before
-        assert delivered['continue'] is False
+        assert delivered.get('continue') is not False
         assert delivered['hookSpecificOutput']['additionalContext'] == (
             answer['text'] if operation == 'expanded' else answer['full_path'])
         assert chain.delivery()[1]['event']['tool_response'] == service['tool_response']

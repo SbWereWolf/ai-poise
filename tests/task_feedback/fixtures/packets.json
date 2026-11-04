@@ -1,0 +1,34 @@
+{
+  "append": {
+    "operation": "task_feedback",
+    "input": {
+      "action": "append",
+      "task_id": "T1",
+      "request_id": "source-1",
+      "items": [
+        {
+          "text": "  Исходные материалы\nКомментарий автора.  ",
+          "attachments": []
+        }
+      ]
+    },
+    "messages": []
+  },
+  "read": {
+    "operation": "task_feedback",
+    "input": {
+      "action": "read",
+      "task_id": "T1"
+    },
+    "messages": []
+  },
+  "bytes": {
+    "operation": "task_feedback",
+    "input": {
+      "action": "read_attachment",
+      "task_id": "T1",
+      "attachment_id": "replace-from-result"
+    },
+    "messages": []
+  }
+}

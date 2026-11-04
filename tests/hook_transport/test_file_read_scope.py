@@ -118,11 +118,11 @@ def test_actual_file_reader_return_is_outside_ordinary_output_shortening(project
         assert '\r\n' in expected and not expected.endswith('\n')
 
 
-def test_same_reader_payload_on_an_ordinary_command_is_bounded_and_saved(project, tmp_path):
+def test_same_reader_payload_on_an_ordinary_command_is_observed_and_saved(project, tmp_path):
     chain, output, body, _, _ = setup_reader_return(project, tmp_path, 'complete')
     event = native_event(chain, output, body, 'fixture ordinary', key='ordinary-file-shaped-output')
     response = chain.invoke(event, event_name='PostToolUse')
-    assert response['continue'] is False
+    assert response.get('continue') is not False
     assert response['hookSpecificOutput']['additionalContext'] == ORDINARY_BRIEF
     saved = output.service('full')
     assert Path(saved['full_path']).read_bytes() == body.encode()
@@ -138,7 +138,7 @@ def test_file_read_scope_uses_the_existing_winning_rule(project, tmp_path, prior
     configure_chain(chain, output)
     event = native_event(chain, output, 'file contents\n', READER_COMMAND)
     response = chain.invoke(event, event_name='PostToolUse')
-    assert response['continue'] is False
+    assert response.get('continue') is not False
     text = response['hookSpecificOutput']['additionalContext']
     if ambiguous:
         value = json.loads(text)

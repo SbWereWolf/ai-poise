@@ -441,6 +441,89 @@ trust не выполняются; readiness remote равен `not_required`.
 в текущем generic editor имеет
 [известное ограничение](../operations/known-bugs.md#poise-project-optional-section-first-add-001).
 
+### Постоянные материалы комментариев Task
+
+Для [task_feedback](../workflows/batch-work.md#комментарии-и-исходные-вложения-task)
+явно задайте `paths.task_materials` через существующий `project-config-update-1`.
+Это именованное optional поле: допускается его первое добавление в действующий
+manifest. Остальные поля `paths` сохраняют своих владельцев. Старые операции
+работают без новой настройки; новый API при её отсутствии сообщает конкретную
+необходимость настройки, корень по умолчанию не выбирается.
+
+| Опция | Значение и источник |
+|---|---|
+| `paths.task_materials` | Непустая после `strip` строка пути без NUL. Относительная — от настроенного `paths.state`, абсолютная — точно. Например, `user-materials` внутри state либо выбранный постоянный абсолютный каталог. |
+| Выбор места | Постоянные данные установки вне Git и удаляемых Task-root/worktree/session областей. Выберите доступное обслуживающему процессу место и сохраняйте его вместе с Task DB. |
+| Смена места | Публикация строки не переносит сохранённые байты. Для действующих материалов сохраняйте прежний доступный корень; перенос выполняется отдельно согласованным владельцем с проверкой данных. Автоматического переноса этот writer не добавляет. |
+
+Выберите Python поставки с реализованной возможностью, абсолютный `project_json`
+существующего проекта и `settings` его project-setup owner. Настройка не требует
+claim текущей Task. `expected_revision` относится к полному текущему manifest
+и всем его workflow snapshots. Подходит revision предыдущего owner result,
+если это состояние фактически сохранилось. Для явного read-only наблюдения
+оператор может использовать те же установленные `load_config`/`digest`:
+сохраните следующий генератор в рабочий `prepare_task_materials.py` вне Git.
+Он получает абсолютный config path и выбранное значение root двумя argv и
+выводит полный пакет, не редактируя manifest.
+
+```python
+import json
+import sys
+from poise.common import digest, load_config
+
+config_path, materials_root = sys.argv[1:3]
+_, config, workflows = load_config(config_path)
+print(json.dumps({
+    "schema": "project-config-update-1",
+    "request_id": "task-materials-setup-1",
+    "config_path": config_path,
+    "expected_revision": digest({"config": config, "workflows": workflows}),
+    "manifest_edits": [{"path": ["paths", "task_materials"], "value": materials_root}],
+    "workflow_updates": [],
+    "state_relocation": None,
+    "probe_repository": False,
+    "receipt_path": "operations/task-materials-setup-1.json"
+}, ensure_ascii=False))
+```
+
+Задайте `poise_python`, `generator`, `project_json`, `materials_root`, `packet`
+и `settings` фактическими путями/значениями выбранной установки.
+`generator` — сохранённый выше файл, `packet` — новый рабочий JSON-файл вне Git.
+Для root допустимы обе описанные формы. Полный запрос сохраните до публикации:
+
+```bash
+"${poise_python:?Select installed Python}" -I -B "${generator:?Select saved generator}" \
+  "${project_json:?Select absolute manifest}" "${materials_root:?Select permanent root}" > "${packet:?Select packet file}"
+"$poise_python" -I -B -m poise project-config --settings "${settings:?Select project setup settings}" < "$packet"
+```
+
+Для проверки явно выбранного исходника, отдельно от установленного пакета,
+задайте абсолютный `poise_root` этой копии. Используйте подготовленный Python
+с её зависимостями и явный source launch; `-I` в этом варианте заменяется `-P`:
+
+```bash
+env PYTHONPATH="${poise_root:?Select explicit Poise source}/src:$poise_root" \
+  "$poise_python" -P -B "$generator" "$project_json" "$materials_root" > "$packet"
+env PYTHONPATH="$poise_root/src:$poise_root" \
+  "$poise_python" -P -B -m poise project-config --settings "$settings" < "$packet"
+```
+
+Проверка исходника не переключает установленную поставку; для обычной установки
+выбирайте первый вариант с обновлённым пакетом. Сохраняйте полный ответ команды.
+
+После успешного `status: updated` прочитайте фактический manifest и полный receipt:
+добавлена выбранная строка, прочие значения/workflows сохранены, результат содержит
+прежнюю/новую revision и расположение receipt. Точный повтор выполняйте сохранённым
+пакетом, не вычисляя ему заново revision: он возвращает прежний результат с
+`replayed: true`. При прерывании продолжайте тем же пакетом через этого владельца;
+конфликт требует сверки реального состояния до нового намерения.
+
+Опция не создаёт файлы комментария при публикации manifest. Публикацию байтов
+при append, их непрозрачные пути/IDs и продолжение после прерывания обслуживает
+[владелец материалов](../architecture/storage-lifecycle.md#материалы-комментариев-task).
+Рабочая публикация этой опции и обновление установленного потребителя — отдельные
+проверяемые действия, пример сам по себе их не выполняет.
+
 ### Общий профиль команд и сессии
 
 Общие возможности Poise выбирают профиль `poise-harness-project-1`. Они читают его

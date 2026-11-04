@@ -144,6 +144,10 @@ class Poise:
             repository_tree,
             requirements_gate,
         )
+        from .composition import task_materials_tools
+        self.task_materials = task_materials_tools(
+            self.store, self.task_queries, self.state, self.paths,
+            self.cfg['project'], self.cfg['batch'], self.session, clock)
         from .application.ownership import BoundOwnership, OwnershipCommands
         from .modules.ownership.domain import UnobservedSessionLiveness
         ownership_commands = OwnershipCommands(

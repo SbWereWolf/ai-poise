@@ -7,6 +7,7 @@ from .accounting import SqliteAccountingCycles
 from .work_packets import SqliteWorkPacketRepository
 from .artifacts import SqliteArtifactRepository
 from .task_delivery import SqliteTaskDeliveryRepository
+from .task_materials import SqliteTaskMaterialsRepository
 from .integration_scopes import SqliteIntegrationScopeRepository
 from .worktree_preparation import SqlitePreparationRepository
 from .stage_result_handoff import SqliteHandoffRepository
@@ -235,6 +236,7 @@ class SqliteUnitOfWork:
         self.work_packets = SqliteWorkPacketRepository(connection)
         self.artifacts = SqliteArtifactRepository(connection)
         self.task_delivery = SqliteTaskDeliveryRepository(connection)
+        self.task_materials = SqliteTaskMaterialsRepository(connection)
         self.integration_scopes = SqliteIntegrationScopeRepository(connection)
         self.preparation = SqlitePreparationRepository(connection)
         self.handoffs = SqliteHandoffRepository(connection)

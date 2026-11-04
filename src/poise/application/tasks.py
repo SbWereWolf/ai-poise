@@ -9,6 +9,7 @@ from ..modules.tasks.domain import (
     TaskStageContracts,
     TaskState,
     TaskStatus,
+    is_terminal_task_status,
 )
 from ..modules.workflow.domain import RouteDefinition
 from ..modules.tasks.ports import RepositoryTreeReader, TaskUnitOfWork, TaskReadSet
@@ -586,6 +587,8 @@ class TaskCommands:
             return replay.result()
         inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,), actors=(actor,),
             review_unsubmitted_ids=(task_id,), family_execution_ids=(task_id,), history_ids=(task_id,)))
+        if is_terminal_task_status(inputs.state(task_id).status):
+            raise DomainError('Task is terminal and immutable; read its history or create a new Task')
         with self.unit_of_work() as uow:
             ownership = uow.ownership.preflight(actor, task_id)
         if inputs.state(task_id).status == 'newborn':

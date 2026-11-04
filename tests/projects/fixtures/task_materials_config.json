@@ -1,0 +1,15 @@
+{
+  "path": ["paths", "task_materials"],
+  "value": "user-materials",
+  "invalid": [
+    {"id": "null", "value": null},
+    {"id": "integer", "value": 7},
+    {"id": "empty", "value": ""},
+    {"id": "blank", "value": " \t "},
+    {"id": "nul", "value": "user\u0000materials"}
+  ],
+  "protected": [
+    {"id": "existing-state", "path": ["paths", "state"], "value": "other-state"},
+    {"id": "unknown-path", "path": ["paths", "invented_materials"], "value": "other-materials"}
+  ]
+}

@@ -138,6 +138,14 @@ def task_tools(store, repository_tree, requirements_gate):
     return TaskCommands(store.unit_of_work, repository_tree, requirements_gate), store.queries
 
 
+def task_materials_tools(store, queries, state, paths, project, config, actor, clock):
+    """Permanent user materials use the existing Task store and authentic caller."""
+    from .application.task_materials import TaskMaterialCommands
+    from .infrastructure.task_materials import FileTaskMaterials
+    return TaskMaterialCommands(store.unit_of_work, queries,
+        FileTaskMaterials(state, paths, project, config), actor, clock, config['max_items'])
+
+
 def placement_tools(bound, policy_path, environ):
     import hashlib
     from pathlib import Path

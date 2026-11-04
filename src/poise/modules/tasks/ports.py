@@ -1,5 +1,6 @@
 from __future__ import annotations
 from ..inspection.domain import FeedbackBook
+from .material_ports import TaskMaterialsRepository
 from typing import Protocol
 from dataclasses import dataclass
 from ..sprints.ports import SprintRepository, SprintInputs
@@ -233,6 +234,8 @@ class WorkPacketRepository(Protocol):
 
 
 class ArtifactLinkRepository(Protocol):
+    def register_materials(self, records: list[dict]) -> None: ...
+    def record(self, artifact_id: str) -> dict | None: ...
     def records(self, task_id: str) -> list[dict]: ...
     def link_reused(self, task_id: str, artifacts: list[dict]) -> None: ...
     def link_task(self, task_id: str, artifacts: list[dict]) -> None: ...
@@ -294,6 +297,7 @@ class TaskUnitOfWork(Protocol):
     ownership: object
     work_packets: WorkPacketRepository
     artifacts: ArtifactLinkRepository
+    task_materials: TaskMaterialsRepository
     integration_scopes: IntegrationScopeRepository
     def __enter__(self) -> TaskUnitOfWork: ...
     def __exit__(self, exc_type, exc, traceback) -> bool: ...

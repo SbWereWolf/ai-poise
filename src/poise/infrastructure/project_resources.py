@@ -25,24 +25,23 @@ class ProjectRuntimeFence:
         self._validate()
 
     def _configuration(self):
+        if self.hook_settings is not None:
+            from .harness_config import load_harness_config
+            try:
+                return load_harness_config(self.config_path)
+            except PoiseError as exc:
+                raise PoiseError(
+                    f'Invalid hook project_config {self.config_path}: {exc}. '
+                    'Recovery: select a registered poise-harness-project-1 general profile '
+                    f'through the configuration owner for {self.hook_settings.path}, '
+                    'or restore that general profile; retain the Task manifest as its '
+                    'task_adapter input.'
+                ) from exc
         config = read_document(self.config_path)
         if config.get('schema') == 'poise-harness-project-1':
             from .harness_config import load_harness_config
             return load_harness_config(self.config_path)
-        if self.hook_settings is None:
-            return load_config(self.config_path)
-        # Binding a native entry uses transport authority, not Task workflows.
-        from ..modules.foundation.validation import configuration_fields, nonempty
-        nonempty(config.get('project'), 'hook project')
-        paths = config.get('paths')
-        if not isinstance(paths, dict) or 'state' not in paths:
-            raise PoiseError('Hook project requires explicit paths.state')
-        batch = configuration_fields(config.get('batch'), {'message_source'}, 'hook project.batch')
-        source = configuration_fields(batch['message_source'], {'id', 'mode'},
-                                      'hook project.batch.message_source')
-        for field in ('id', 'mode'):
-            nonempty(source[field], 'hook project.batch.message_source.' + field)
-        return self.config_path.parent, config, None
+        return load_config(self.config_path)
 
     def hook_manifest(self):
         if self.hook_settings is None:

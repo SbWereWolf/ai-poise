@@ -173,8 +173,8 @@ def assert_agent_view_while_registration_is_gated(scene, machine, request):
     assert agent['exit_code'] == machine['exit_code'] == request['exit_code']
     assert agent['capture'] == machine['capture']
     assert agent['run_id'] == machine['run_id']
-    assert agent['response_path'] == machine['response_path']
-    assert agent['full_path'] == str(full) and full.read_bytes() == before
+    assert not {'response_path', 'full_path', 'expanded_path', 'last_path'} & agent.keys()
+    assert machine['full_path'] == str(full) and full.read_bytes() == before
     return agent
 
 

@@ -550,7 +550,7 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
     # provenance is arranged here: it cannot prove whether execution started.
     source = json.loads(fixture("historical-owner-sources.json")["unstarted"]["task"][0][7])
     database, packet, workflow_path = historical_project(
-        project, workflow_source=source["workflow"], contract_source=source["contract"],
+        project, workflow_source=source["process"], contract_source=source["contract"],
     )
     for resource in packet["mapping"]:
         resource["stages"][0]["criteria_authority"]["propose"] = ["implementation"]

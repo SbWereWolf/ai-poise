@@ -212,8 +212,7 @@
       "tool_name": "Bash",
       "profile": "Bash",
       "priority": 40,
-      "command_pattern": "@FILE_READ_COMMAND_REGEX@",
-      "file_read": true
+      "command_pattern": "@FILE_READ_COMMAND_REGEX@"
     },
     {
       "id": "ordinary-poise",

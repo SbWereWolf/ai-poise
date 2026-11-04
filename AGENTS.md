@@ -181,9 +181,10 @@ consumed by code
 of another tool preserves complete stdout, stderr and structured fields regardless of display
 limits. Agent
 presentation uses one common owner and configured parser; do not add internal per-tool clipping.
-Requested code, tests, rules and documentation files are returned whole or in the
-requested range by their reader; ordinary tool-output shortening does not apply.
-Keep reader-owned admission limits and refusals. Verify our API/hook contract,
+Requested code, tests, rules and documentation files reach agents in bounded
+chunks under the configured limits, including direct file-reading commands.
+Use addressed reads of subsequent chunks; preserve complete admitted sources
+for code consumers and reader-owned admission limits and refusals. Verify our API/hook contract,
 without OpenAI final-request, server-delivery or model-comprehension proof gates.
 Follow the [file-reading
 boundary](docs/configuration/tool-results.md#чтение-файлов-и-граница-ответственности).

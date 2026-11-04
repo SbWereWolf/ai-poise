@@ -161,6 +161,20 @@ writes и используйте только `poise backup restore --config PRO
 
 ## Миграция типов и критериев этапов
 
+Исторические тестовые снимки в `fixtures/stage-criteria/historical-owner-sources.json`
+сохраняют поле metadata `process`. Проверки схемы `task-stage-criteria-migration-1`
+явно привязывают копию этой metadata к полю `workflow` во временной тестовой БД
+до исходного снимка состояния и резервной копии. Содержимое графа и исходный файл
+исторических снимков сохраняются; это подготовка тестового окружения.
+
+В тестовом окружении [historical_project](../tests/migrations/stage_criteria_helpers.py)
+создаёт текущие `criteria-editor.json` с полем `workflows` и `criteria-catalogue.json`
+со схемой `workflow-catalogue-1` из исторических фикстур. Сценарий `resume_target_binding`
+в [проверке восстановления](../tests/migrations/test_stage_criteria_migration.py)
+копирует эти подготовленные настройки в альтернативные редактор и каталог и меняет
+целевые привязки. Проверки сопоставляют точные байты конкурентного автора, сохранность
+состояния и идентичность результата при повторе и завершении восстановления.
+
 Для сохранённых задач старой установки, где определение процесса записано
 в поле metadata `process`, явно выберите схему
 `task-stage-criteria-process-migration-1`. Она использует тот же публичный

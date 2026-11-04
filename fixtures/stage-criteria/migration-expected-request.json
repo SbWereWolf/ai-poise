@@ -1,0 +1,8 @@
+{
+  "schema": "task-stage-criteria-migration-1",
+  "request_id": "migrate-fixture-criteria",
+  "backup_name": "criteria-fixture.sqlite",
+  "mapping_document": "[{\"expected_revision\":\"fixture-observed-revision\",\"goal_type\":\"development\",\"kind\":\"workflow_definition\",\"stages\":[{\"criteria_authority\":{\"decide\":[],\"propose\":[]},\"purpose\":\"execution\",\"stage_id\":\"build\"}]}]",
+  "authorization": "Apply the reviewed fixture-only stage classification.",
+  "digest": "49af1c8d6013817760e49768d922984d0a7064c759fd010cf64cf8f5ce49b18c"
+}

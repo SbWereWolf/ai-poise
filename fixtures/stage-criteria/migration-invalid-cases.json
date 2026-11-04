@@ -1,0 +1,26 @@
+[
+  {
+    "name": "legacy_inventory_field",
+    "error": "stage criteria migration request: требуется точный набор полей; отсутствуют []; неизвестные поля ['expected_inventory_digest']"
+  },
+  {
+    "name": "unknown_field",
+    "error": "stage criteria migration request: требуется точный набор полей; отсутствуют []; неизвестные поля ['phase']"
+  },
+  {
+    "name": "empty_mapping",
+    "error": "Migration requires a nonempty mapping"
+  },
+  {
+    "name": "duplicate_resource",
+    "error": "Duplicate migration resource"
+  },
+  {
+    "name": "empty_authorization",
+    "error": "migration.authorization: требуется непустая строка"
+  },
+  {
+    "name": "unknown_resource_kind",
+    "error": "Unknown migration resource kind"
+  }
+]

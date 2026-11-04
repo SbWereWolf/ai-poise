@@ -99,6 +99,14 @@ rules, AI-agent rules and application/system instructions within the actual scop
 Follow [paired correction
 boundaries](docs/workflows/evidence-based-review.md#границы-исправлений-и-наблюдений-исполнителя)
 and [review duties](docs/workflows/evidence-based-review.md#обязанности-проверяющего).
+In test design, separate domain invariants from observable outcome representations and
+justify affected expectations against the current contract. Reviewers independently
+derive the expected branch outcome before accepting the author's oracle. Apply
+[oracle
+design](docs/governance/verification-plan-checklist.md#предметные-инварианты-и-ожидаемые-результаты)
+and [independent expectation
+review](docs/workflows/evidence-based-review.md#независимая-проверка-ожиданий)
+within existing stages, without another approval step.
 Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
 [paired-stage

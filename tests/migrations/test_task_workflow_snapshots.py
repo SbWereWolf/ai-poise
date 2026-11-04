@@ -266,9 +266,13 @@ def test_domain_plans_only_missing_field_for_exact_batch():
     assert all(set(item.workflow) == {"goal_type", "route", "worktree_required"} for item in plan.updates)
 
 
-def test_migration_preserves_task_state_and_replays_receipt(project):
+@pytest.mark.parametrize('with_materials', [False, True])
+def test_migration_preserves_task_state_and_replays_receipt(project, with_materials):
     from poise.modules.tasks.workflow_migration import MigrationRequest
 
+    if with_materials:
+        project['cfg']['paths']['task_materials'] = 'user-materials'
+        write_json(project['config_path'], project['cfg'])
     database, expected_metadata = _seed_legacy_tasks(project)
     backup = backup_commands(project).create()
     backup_path = backup_directory(project) / backup["name"]

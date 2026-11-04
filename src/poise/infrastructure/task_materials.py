@@ -17,11 +17,14 @@ class FileTaskMaterials:
         if 'task_materials' not in self.paths:
             raise PoiseError('paths.task_materials is required; configure an explicit permanent material root')
 
-    def _factory(self, task_id):
+    def project_root(self):
         self.require_configured()
         root = configured_storage_path(self.state, self.paths['task_materials'])
+        return root / hashlib.sha256(self.project.encode('utf-8')).hexdigest()
+
+    def _factory(self, task_id):
         namespace = lambda text: hashlib.sha256(text.encode('utf-8')).hexdigest()
-        return FileArtifactFactory({'task': root / namespace(self.project) / namespace(task_id)},
+        return FileArtifactFactory({'task': self.project_root() / namespace(task_id)},
                                    self.config)
 
     def prepare(self, intent):

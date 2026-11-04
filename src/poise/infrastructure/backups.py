@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 import os
 from pathlib import Path
+import shutil
 import sqlite3
 import stat
 import tempfile
+import zipfile
+import zlib
 
 from ..common import configured_root, descendant, read_json
 from ..modules.backups.domain import BackupCopy, BackupEntry
 from ..modules.foundation.errors import PoiseError
+from .task_materials import FileTaskMaterials
 
 
 def _read_only_uri(path: Path) -> str:
@@ -58,10 +62,15 @@ class LocalTaskDatabaseBackups:
         except (KeyError, TypeError) as exc:
             raise PoiseError(f"Incomplete project manifest for Task DB backup: {exc}") from exc
         self.directory = self.database.parent / "backups"
+        self.materials = (
+            FileTaskMaterials(state, paths, config['project'], config).project_root()
+            if 'task_materials' in paths else None
+        )
 
     @property
-    def database_name(self) -> str:
-        return self.database.name
+    def filename_source(self) -> str:
+        """Filename seed for the explicitly configured snapshot representation."""
+        return self.database.with_suffix('.zip').name if self.materials is not None else self.database.name
 
     def list_entries(self) -> tuple[BackupEntry, ...]:
         if not self.directory.exists():
@@ -80,6 +89,8 @@ class LocalTaskDatabaseBackups:
         return tuple(sorted(entries, key=lambda item: item.name))
 
     def create_copy(self, name: str) -> BackupCopy:
+        if self.materials is not None:
+            return self._create_bundle(name)
         destination = self.directory / name
         temporary = None
         try:
@@ -98,11 +109,7 @@ class LocalTaskDatabaseBackups:
                 delete=False,
             ) as stream:
                 temporary = Path(stream.name)
-            with closing(sqlite3.connect(_read_only_uri(self.database), uri=True)) as source:
-                with closing(sqlite3.connect(temporary)) as target:
-                    source.backup(target)
-                    target.commit()
-            _integrity(temporary)
+            self._snapshot(self.database, temporary)
             _sync_file(temporary)
             backup_size = temporary.stat().st_size
             os.replace(temporary, destination)
@@ -126,9 +133,8 @@ class LocalTaskDatabaseBackups:
                 except OSError:
                     pass
 
-    def restore_copy(self, name: str) -> None:
+    def _selected(self, name: str) -> Path:
         selected = self.directory / name
-        temporary = None
         try:
             if _is_pending_name(name):
                 raise PoiseError(f"Backup name belongs to an internal pending file: {name}")
@@ -142,10 +148,17 @@ class LocalTaskDatabaseBackups:
                 raise PoiseError(f"Backup is missing or not found: {name}")
             if not os.access(selected, os.R_OK):
                 raise PoiseError(f"Cannot read backup; check file permission: {name}")
-            _integrity(selected)
-            if self.database.is_symlink() or not self.database.is_file():
+            return selected
+        except OSError as exc:
+            raise PoiseError(f"Cannot read backup {name}; check its permissions and retry: {exc}") from exc
+
+    @contextmanager
+    def _staged_database(self, source):
+        temporary = None
+        try:
+            if self.database.is_symlink() or (self.database.exists() and not self.database.is_file()):
                 raise PoiseError(f"Configured live Task DB is missing or not a regular file: {self.database}")
-            mode = stat.S_IMODE(self.database.stat().st_mode)
+            mode = stat.S_IMODE((self.database if self.database.exists() else source).stat().st_mode)
             with tempfile.NamedTemporaryFile(
                 dir=self.database.parent,
                 prefix=f".{self.database.name}.restore-",
@@ -153,29 +166,197 @@ class LocalTaskDatabaseBackups:
                 delete=False,
             ) as stream:
                 temporary = Path(stream.name)
-            with closing(sqlite3.connect(_read_only_uri(selected), uri=True)) as source:
-                with closing(sqlite3.connect(temporary)) as target:
-                    source.backup(target)
-                    target.commit()
-            _integrity(temporary)
+            self._snapshot(source, temporary)
             temporary.chmod(mode)
             _sync_file(temporary)
-            os.replace(temporary, self.database)
-            temporary = None
-            try:
-                _sync_directory(self.database.parent)
-            except OSError as exc:
-                raise PoiseError(
-                    f"Live Task DB was replaced from {name}, but directory sync failed; "
-                    f"keep writers stopped and run SQLite PRAGMA integrity_check before retrying: {exc}"
-                ) from exc
-        except PoiseError:
-            raise
-        except (OSError, sqlite3.Error) as exc:
-            raise PoiseError(f"Cannot restore SQLite backup {name}: {exc}") from exc
+            yield temporary
         finally:
             if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    @staticmethod
+    def _snapshot(source, destination):
+        with closing(sqlite3.connect(_read_only_uri(source), uri=True)) as source_db:
+            with closing(sqlite3.connect(destination)) as target:
+                source_db.backup(target)
+                target.commit()
+        _integrity(destination)
+
+    def _create_bundle(self, name):
+        published = False
+        pending = None
+        try:
+            if self.database.is_symlink() or not self.database.is_file():
+                raise PoiseError(f"Configured live Task DB is missing or not a regular file: {self.database}")
+            live_size = self.database.stat().st_size
+            self.directory.mkdir(parents=True, exist_ok=True)
+            if self.directory.is_symlink() or not self.directory.is_dir():
+                raise PoiseError('Backup directory must be a regular directory')
+            destination = self.directory / name
+            if destination.exists() or destination.is_symlink():
+                raise PoiseError(f'Backup already exists; filename collision: {name}')
+            with tempfile.TemporaryDirectory(dir=self.directory, prefix=f'.{name}.', suffix='.pending') as pending:
+                stage = Path(pending)
+                self._snapshot(self.database, stage / 'task.sqlite')
+                archive = stage / 'bundle.zip'
+                with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as bundle:
+                    bundle.write(stage / 'task.sqlite', 'task.sqlite')
+                    bundle.writestr('task-materials/', b'')
+                    try:
+                        material_stat = self.materials.stat()
+                    except FileNotFoundError:
+                        pass  # An unused configured namespace has an explicit empty snapshot.
+                    else:
+                        if not stat.S_ISDIR(material_stat.st_mode):
+                            raise PoiseError('Task material namespace must be a directory; correct the source and retry')
+                        def fail_walk(error):
+                            raise error
+                        for directory, folders, files in os.walk(self.materials, onerror=fail_walk):
+                            relative = Path(directory).relative_to(self.materials)
+                            for folder in sorted(folders):
+                                bundle.writestr(f'task-materials/{(relative / folder).as_posix()}/', b'')
+                            for filename in sorted(files):
+                                path = Path(directory) / filename
+                                entry = 'task-materials/' + path.relative_to(self.materials).as_posix()
+                                with path.open('rb') as source, bundle.open(entry, 'w') as target:
+                                    shutil.copyfileobj(source, target)
+                _sync_file(archive)
+                size = archive.stat().st_size
+                os.replace(archive, destination)
+                published = True
                 try:
-                    temporary.unlink(missing_ok=True)
-                except OSError:
-                    pass
+                    _sync_directory(self.directory)
+                except OSError as exc:
+                    raise PoiseError(
+                        f'Backup was published as {name}, but directory sync failed; '
+                        f'keep writers stopped and verify it with backup restore before retrying: {exc}'
+                    ) from exc
+            return BackupCopy(name, live_size, size)
+        except (OSError, sqlite3.Error, zipfile.BadZipFile) as exc:
+            if published:
+                raise PoiseError(
+                    f'Backup was published as {name}, but temporary cleanup failed; '
+                    f'keep writers stopped and remove {pending} before retrying: {exc}'
+                ) from exc
+            raise PoiseError(f'Cannot create Task DB/material backup; correct the source and retry: {exc}') from exc
+
+    @contextmanager
+    def _unpacked_bundle(self, name):
+        selected = self._selected(name)
+        with tempfile.TemporaryDirectory(dir=self.database.parent, prefix='.backup-read-', suffix='.pending') as pending:
+            stage = Path(pending)
+            try:
+                with zipfile.ZipFile(selected) as bundle:
+                    names = bundle.namelist()
+                    if len(names) != len(set(names)) or 'task.sqlite' not in names or 'task-materials/' not in names:
+                        raise PoiseError('Incomplete Task backup ZIP; select a copy containing DB and materials')
+                    for item in bundle.infolist():
+                        if item.filename != 'task.sqlite' and not item.filename.startswith('task-materials/'):
+                            raise PoiseError('Unexpected Task backup ZIP entry; select a complete native backup')
+                        relative = item.filename.rstrip('/')
+                        if '\\' in relative or any(part in ('', '.', '..') for part in relative.split('/')):
+                            raise PoiseError('Invalid relative Task backup ZIP entry; select a complete native backup')
+                        destination = descendant(stage, relative)
+                        if item.is_dir():
+                            destination.mkdir(parents=True, exist_ok=True)
+                        else:
+                            destination.parent.mkdir(parents=True, exist_ok=True)
+                            with bundle.open(item) as source, destination.open('wb') as target:
+                                shutil.copyfileobj(source, target)
+                if not (stage / 'task-materials').is_dir():
+                    raise PoiseError('Task backup materials entry must be a directory; select a complete copy')
+                _integrity(stage / 'task.sqlite')
+            except (OSError, sqlite3.Error, zipfile.BadZipFile, zlib.error, RuntimeError, EOFError) as exc:
+                raise PoiseError(f'Cannot read Task backup ZIP {name}; select a complete readable copy: {exc}') from exc
+            yield stage
+
+    @contextmanager
+    def database_copy(self, name):
+        """Read a verified DB from the same snapshot format used by restore."""
+        if self.materials is None:
+            selected = self._selected(name)
+            _integrity(selected)
+            yield selected
+        else:
+            with self._unpacked_bundle(name) as stage:
+                yield stage / 'task.sqlite'
+
+    def _install_bundle(self, stage):
+        self.materials.parent.mkdir(parents=True, exist_ok=True)
+        pending = Path(tempfile.mkdtemp(dir=self.materials.parent, prefix='.task-materials.restore-', suffix='.pending'))
+        old_moved = new_installed = committed = retain_previous = False
+        try:
+            shutil.copytree(stage / 'task-materials', pending / 'new')
+            for directory, _, files in os.walk(pending / 'new', topdown=False):
+                for filename in files:
+                    _sync_file(Path(directory) / filename)
+                _sync_directory(Path(directory))
+            with self._staged_database(stage / 'task.sqlite') as database:
+                if self.materials.exists():
+                    os.replace(self.materials, pending / 'previous')
+                    old_moved = True
+                os.replace(pending / 'new', self.materials)
+                new_installed = True
+                _sync_directory(self.materials.parent)
+                os.replace(database, self.database)
+                committed = True
+                _sync_directory(self.database.parent)
+        except OSError as exc:
+            if committed:
+                raise PoiseError(
+                    f'Task DB and materials are installed, but sync/cleanup failed; keep writers stopped, '
+                    f'check SQLite integrity and attachment reads, then remove {pending}: {exc}'
+                ) from exc
+            try:
+                if new_installed:
+                    shutil.rmtree(self.materials)
+                if old_moved:
+                    os.replace(pending / 'previous', self.materials)
+            except OSError as rollback:
+                retain_previous = True
+                recovery = (
+                    f'replace {self.materials} with the original namespace from {pending / "previous"}'
+                    if old_moved else f'remove {self.materials} to restore its previous absence'
+                )
+                raise PoiseError(
+                    f'Task DB was not replaced; materials rollback failed. Keep writers stopped; '
+                    f'{recovery}, '
+                    f'then retry backup restore. Install error: {exc}; rollback error: {rollback}'
+                ) from rollback
+            raise
+        finally:
+            if not retain_previous:
+                try:
+                    shutil.rmtree(pending)
+                except OSError as exc:
+                    state = 'installed' if committed else 'unchanged'
+                    raise PoiseError(
+                        f'Task DB/material targets are {state}, but temporary cleanup failed; '
+                        f'keep writers stopped and remove {pending} before retrying: {exc}'
+                    ) from exc
+
+    def restore_copy(self, name: str) -> None:
+        installed = False
+        try:
+            if self.materials is not None:
+                with self._unpacked_bundle(name) as stage:
+                    self._install_bundle(stage)
+                    installed = True
+            else:
+                with self.database_copy(name) as source, self._staged_database(source) as database:
+                    os.replace(database, self.database)
+                    try:
+                        _sync_directory(self.database.parent)
+                    except OSError as exc:
+                        raise PoiseError(
+                            f'Live Task DB was replaced from {name}, but directory sync failed; '
+                            f'keep writers stopped and run SQLite PRAGMA integrity_check before retrying: {exc}'
+                        ) from exc
+        except (OSError, sqlite3.Error) as exc:
+            if installed:
+                raise PoiseError(
+                    f'Task DB and materials are installed, but read-stage cleanup failed; '
+                    f'keep writers stopped, check SQLite integrity/attachment reads and remove '
+                    f'the reported temporary path: {exc}'
+                ) from exc
+            raise PoiseError(f'Cannot restore backup {name}; keep writers stopped, correct the error and retry: {exc}') from exc

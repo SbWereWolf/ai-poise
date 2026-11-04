@@ -16,6 +16,7 @@ from ..modules.tasks.workflow_migration import (
     STAGE_CONTRACT_RECOVERY_SCHEMAS,
 )
 from .locking import exclusive_lock
+from .backups import LocalTaskDatabaseBackups
 
 
 def _read_only_uri(path: Path) -> str:
@@ -94,7 +95,9 @@ class SqliteTaskWorkflowMigration:
 
         try:
             with exclusive_lock(lock, wait, poll):
-                with closing(sqlite3.connect(_read_only_uri(backup), uri=True)) as backup_db:
+                with LocalTaskDatabaseBackups(self.config_path).database_copy(request.backup_name) as source, closing(
+                    sqlite3.connect(_read_only_uri(source), uri=True)
+                ) as backup_db:
                     if backup_db.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                         raise PoiseError(f"Named Task DB backup failed integrity_check: {request.backup_name}")
                     backup_snapshot = _database_snapshot(backup_db)

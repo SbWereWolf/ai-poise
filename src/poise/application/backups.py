@@ -19,7 +19,7 @@ class BackupCommands:
         ]
 
     def create(self) -> dict:
-        name = generated_backup_name(self.backups.database_name, self.clock())
+        name = generated_backup_name(self.backups.filename_source, self.clock())
         copy = self.backups.create_copy(name)
         return {
             "success": True,

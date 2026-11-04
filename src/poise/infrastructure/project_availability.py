@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import sqlite3
 
-from ..application.tasks import require_start_execution
+from ..modules.tasks.start_admission import require_start_execution
 from ..artifacts import inspect_paths
 from ..common import configured_root, descendant, load_config
 from ..modules.content_requirements.domain import ArtifactFact
@@ -16,6 +16,7 @@ from .sqlite.database import SCHEMA_VERSION
 from .sqlite.readonly import readonly_snapshot
 from .sqlite.sprints import SqliteSprintRepository
 from .sqlite.tasks import SqliteTaskRepository
+from .sqlite.start_admission import capture_start_migrations
 from .task_paths import sprint_root, task_root
 
 
@@ -69,13 +70,14 @@ class ReadOnlyProjectAvailability:
                 sprints[sid] = (None if record is None else record[0], SqliteSprintRepository.capture_facts(db, sid))
             execution = db.execute('SELECT data FROM task_execution WHERE task_id=?', (tid,)).fetchone()
             candidates.append((tid, row['metadata'], capture_task(db, tid),
-                None if execution is None else execution[0], artifacts.records(tid)))
+                None if execution is None else execution[0], artifacts.records(tid),
+                capture_start_migrations(db, json.loads(row['metadata']))))
         return (tuple(candidates), sprints), state
 
     def _project(self, capture, project, cfg, state):
         candidates, sprint_rows = capture
         eligibility, result = {}, []
-        for tid, raw_metadata, raw_task, raw_execution, records in candidates:
+        for tid, raw_metadata, raw_task, raw_execution, records, migrations in candidates:
             metadata = json.loads(raw_metadata)
             sid = metadata['sprint_id']
             if sid is not None:
@@ -88,11 +90,12 @@ class ReadOnlyProjectAvailability:
                         SqliteSprintRepository.restore_facts(record, facts))['eligible']
                 if tid not in eligibility[sid]:
                     continue
-            if raw_execution is not None:
-                try:
-                    require_start_execution(json.loads(raw_execution))
-                except DomainError:
-                    continue
+            try:
+                require_start_execution(tid, metadata,
+                    None if raw_execution is None else json.loads(raw_execution),
+                    tuple(json.loads(raw) for raw in migrations))
+            except DomainError:
+                continue
             task = raw_task.restore()
             facts = self._artifact_facts(records, tid, sid, cfg, state)
             if task.can_start(facts):

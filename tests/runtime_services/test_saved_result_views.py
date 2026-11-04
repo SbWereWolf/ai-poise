@@ -18,6 +18,7 @@ from poise.modules.result_views.domain import bounded_envelope
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).with_name('fixtures') / 'history_15_boundary.json'
 TWO_TASKS = Path(__file__).with_name('fixtures') / 'history_two_tasks.json'
+TASK_QUERIES = Path(__file__).with_name('fixtures') / 'task_query_work_views.json'
 
 
 def invoke(path, mode, budget=2200):
@@ -278,3 +279,104 @@ def test_summary_and_detail_drop_boundaries(tmp_path, boundary):
     else:
         assert value == complete
     assert_selected_source_records(payload, value)
+
+
+def task_query_case(name):
+    return json.loads(TASK_QUERIES.read_text())[name]
+
+
+def task_query_view(path, payload, mode, budget=2200):
+    original = deepcopy(payload)
+    before = path.read_bytes()
+    files = sorted(str(p) for p in path.parent.rglob('*'))
+    if mode == 'adapter':
+        text = bounded_envelope(payload, path, budget, {}, {}, [])
+        assert text.endswith('\n') and len(text) <= budget
+        value = json.loads(text)
+    else:
+        value = observation(path, mode, budget)
+    assert value['status'] == 'read_only' and value['response_path'] == str(path)
+    assert payload == original and path.read_bytes() == before
+    assert sorted(str(p) for p in path.parent.rglob('*')) == files
+    return value
+
+
+@pytest.mark.parametrize('case', ['newborn', 'active', 'ambiguous', 'missing'])
+@pytest.mark.parametrize('mode', ['brief', 'adapter'])
+def test_task_query_card_is_useful_without_another_read(tmp_path, case, mode):
+    fixture = task_query_case(case)
+    payload = fixture['input']
+    path = saved(tmp_path, payload)
+    value = task_query_view(path, payload, mode)
+    assert value.get('details', {}).get('results') == fixture['cards'], (
+        'TASK_QUERY_CARD_MISSING_OR_INCOMPLETE')
+    assert value['summary']['results'] == {'total': 1, 'shown': 1, 'omitted': 0}
+
+
+@pytest.mark.parametrize('case', ['newborn', 'active'])
+def test_task_query_expanded_falls_back_to_compact_card(tmp_path, case):
+    fixture = task_query_case(case)
+    payload = fixture['input']
+    assert len(json.dumps(payload, ensure_ascii=False, separators=(',', ':'))) > 2200
+    path = saved(tmp_path, payload)
+    value = task_query_view(path, payload, 'expanded')
+    assert value.get('details', {}).get('results') == fixture['cards'], (
+        'TASK_QUERY_EXPANDED_FALLBACK_MISSING')
+    assert value['summary']['results'] == {'total': 1, 'shown': 1, 'omitted': 0}
+
+
+@pytest.mark.parametrize('case', ['newborn', 'active'])
+def test_task_query_expanded_keeps_full_item_when_it_fits(tmp_path, case):
+    payload = task_query_case(case)['input']
+    path = saved(tmp_path, payload)
+    value = task_query_view(path, payload, 'expanded', 20000)
+    assert value['details']['results'] == payload['results']
+    assert value['summary']['results'] == {'total': 1, 'shown': 1, 'omitted': 0}
+
+
+@pytest.mark.parametrize('mode', ['brief', 'adapter'])
+def test_task_query_mixed_rows_keep_correlation_and_omission_counts(tmp_path, mode):
+    fixture = task_query_case('mixed')
+    payload = fixture['input']
+    path = saved(tmp_path, payload)
+    value = task_query_view(path, payload, mode)
+    assert value.get('details', {}).get('results') == fixture['cards'], (
+        'TASK_QUERY_MIXED_CARDS_MISSING')
+    assert value['summary']['results'] == {'total': 3, 'shown': 2, 'omitted': 1}
+
+
+@pytest.mark.parametrize('mode', ['brief', 'adapter', 'expanded'])
+@pytest.mark.parametrize('delta', [-1, 0])
+def test_task_query_card_admission_counts_exact_json_and_final_lf(tmp_path, mode, delta):
+    fixture = task_query_case('newborn')
+    payload = fixture['input']
+    path = saved(tmp_path, payload)
+    complete = {'status': 'read_only', 'response_path': str(path),
+                'summary': {'results': {'total': 1, 'shown': 1, 'omitted': 0}},
+                'details': {'results': fixture['cards']}}
+    if mode != 'adapter':
+        complete['view'] = mode
+    budget = len(json.dumps(complete, ensure_ascii=False, separators=(',', ':')) + '\n') + delta
+    value = task_query_view(path, payload, mode, budget)
+    if delta == 0:
+        assert value == complete, 'TASK_QUERY_ATOMIC_ROW_ADMISSION_MISSING'
+    else:
+        assert not value.get('details', {}).get('results')
+        assert value['summary']['results'] == {'total': 1, 'shown': 0, 'omitted': 1}
+
+
+@pytest.mark.parametrize('mode', ['brief', 'adapter'])
+def test_task_query_does_not_relabel_non_task_lookup(tmp_path, mode):
+    payload = task_query_case('non_task')['input']
+    path = saved(tmp_path, payload)
+    value = task_query_view(path, payload, mode)
+    assert not value.get('details', {}).get('results')
+    assert value['summary']['results'] == {'total': 1, 'shown': 0, 'omitted': 1}
+
+
+def test_task_query_full_view_preserves_complete_source_navigation(tmp_path):
+    payload = task_query_case('newborn')['input']
+    path = saved(tmp_path, payload)
+    value = task_query_view(path, payload, 'full')
+    assert value == {'status': 'read_only', 'response_path': str(path), 'view': 'full'}
+    assert json.loads(path.read_bytes()) == payload

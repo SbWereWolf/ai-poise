@@ -1,0 +1,495 @@
+{
+  "newborn": {
+    "input": {
+      "status": "read_only",
+      "results": [
+        {
+          "id": "lookup",
+          "value": {
+            "status": "found",
+            "query": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+            "match": "exact",
+            "context": {
+              "id": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+              "goal": "An ERP agent can inspect an explicitly identified Task and obtain sufficient authoritative current stage context through the configured public task-management interface without acquiring ownership, reading an unrelated global overview or guessing query semantics.",
+              "status": "newborn",
+              "claimed_by": null,
+              "sprint_id": null,
+              "worktree": null,
+              "branch": null,
+              "base": null,
+              "history": [
+                {
+                  "event": "created_newborn",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_acquired",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "newborn_edited",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                }
+              ],
+              "stage": null,
+              "revision": 5,
+              "draft": {
+                "definition_of_done": [
+                  "A focused integration scenario obtains the exact Task and sufficient current context without an ownership mutation or broad overview and independently checks required contract fields against the provider result.",
+                  "Documented examples have independently checked literal argv, mandatory arguments and operation-appropriate links for the selected provider interface; provider query semantics and the shared harness view implementation are reused."
+                ],
+                "goal": "An ERP agent can inspect an explicitly identified Task and obtain sufficient authoritative current stage context through the configured public task-management interface without acquiring ownership, reading an unrelated global overview or guessing query semantics.",
+                "requirements": [
+                  "The existing ERP proxy command is extended only to forward the authorized public Poise Task-code/current-context operation and adapt its response. Poise implements the read-only lookup semantics; ERP does not implement its own lookup and does not use bootstrap as a read workaround.",
+                  "Task code, correlation query ID and caller identity remain distinct; missing or ambiguous selection produces explicit diagnostics rather than ID rewriting or silent fallback to a global list.",
+                  "The selected context preserves current Task identity/version, stage, scope, criteria, template, evidence obligations and continuation supplied by the authoritative owner; a summary card is not represented as the complete stage contract.",
+                  "ERP instructions, examples and semantic reference links provide the exact configured read-only invocation and distinguish it from intentional ownership acquisition and genuine work discovery; no direct lifecycle-database query substitutes for the public API.",
+                  "The same proxy-only boundary applies to every ERP workflow for Tasks, requirements and lifecycle operations: use the public Poise tools, preserve native identity and ownership, and introduce no local domain engine, direct lifecycle-database SQL, second storage or duplicate implementation. Portable provider work is consumed through its declared public integration surface."
+                ]
+              },
+              "ready": false,
+              "goal_type": null,
+              "route_entry": null,
+              "workflow": null
+            }
+          }
+        }
+      ]
+    },
+    "cards": [
+      {
+        "id": "lookup",
+        "value": {
+          "status": "found",
+          "query": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+          "match": "exact",
+          "context": {
+            "id": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+            "status": "newborn",
+            "revision": 5,
+            "stage": null
+          }
+        }
+      }
+    ]
+  },
+  "active": {
+    "input": {
+      "status": "read_only",
+      "results": [
+        {
+          "id": "lookup",
+          "value": {
+            "status": "found",
+            "query": "TASK-ACTIVE",
+            "match": "substring",
+            "context": {
+              "id": "TASK-ACTIVE",
+              "goal": "An ERP agent can inspect an explicitly identified Task and obtain sufficient authoritative current stage context through the configured public task-management interface without acquiring ownership, reading an unrelated global overview or guessing query semantics.",
+              "status": "available",
+              "claimed_by": null,
+              "sprint_id": null,
+              "worktree": null,
+              "branch": null,
+              "base": null,
+              "history": [
+                {
+                  "event": "created_newborn",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_acquired",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "newborn_edited",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                }
+              ],
+              "stage": {
+                "id": "implementation",
+                "iteration": 1,
+                "role": "executor",
+                "purpose": "mutation",
+                "instruction": "Full stage instructions remain in the saved source",
+                "allowed_paths": [
+                  "src/**"
+                ],
+                "criteria": {
+                  "requirements": [
+                    "Task-owned stage criteria"
+                  ]
+                },
+                "skills": [
+                  "poise-development"
+                ]
+              },
+              "version": 9,
+              "requirements": [
+                "The existing ERP proxy command is extended only to forward the authorized public Poise Task-code/current-context operation and adapt its response. Poise implements the read-only lookup semantics; ERP does not implement its own lookup and does not use bootstrap as a read workaround.",
+                "Task code, correlation query ID and caller identity remain distinct; missing or ambiguous selection produces explicit diagnostics rather than ID rewriting or silent fallback to a global list.",
+                "The selected context preserves current Task identity/version, stage, scope, criteria, template, evidence obligations and continuation supplied by the authoritative owner; a summary card is not represented as the complete stage contract.",
+                "ERP instructions, examples and semantic reference links provide the exact configured read-only invocation and distinguish it from intentional ownership acquisition and genuine work discovery; no direct lifecycle-database query substitutes for the public API.",
+                "The same proxy-only boundary applies to every ERP workflow for Tasks, requirements and lifecycle operations: use the public Poise tools, preserve native identity and ownership, and introduce no local domain engine, direct lifecycle-database SQL, second storage or duplicate implementation. Portable provider work is consumed through its declared public integration surface."
+              ],
+              "definition_of_done": [
+                "A focused integration scenario obtains the exact Task and sufficient current context without an ownership mutation or broad overview and independently checks required contract fields against the provider result.",
+                "Documented examples have independently checked literal argv, mandatory arguments and operation-appropriate links for the selected provider interface; provider query semantics and the shared harness view implementation are reused."
+              ],
+              "content": {
+                "source_workflow_snapshot": null
+              },
+              "feedback": {
+                "findings": []
+              },
+              "pending": null
+            }
+          }
+        }
+      ]
+    },
+    "cards": [
+      {
+        "id": "lookup",
+        "value": {
+          "status": "found",
+          "query": "TASK-ACTIVE",
+          "match": "substring",
+          "context": {
+            "id": "TASK-ACTIVE",
+            "status": "available",
+            "version": 9,
+            "stage": {
+              "id": "implementation"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "ambiguous": {
+    "input": {
+      "status": "read_only",
+      "results": [
+        {
+          "id": "choice",
+          "value": {
+            "status": "ambiguous",
+            "query": "TASK-",
+            "matches": [
+              {
+                "id": "TASK-A",
+                "status": "newborn",
+                "goal": "Первая тестовая цель"
+              },
+              {
+                "id": "TASK-B",
+                "status": "available",
+                "goal": "Вторая тестовая цель"
+              }
+            ],
+            "next_action": "Уточните фрагмент или укажите полный ID найденной задачи"
+          }
+        }
+      ]
+    },
+    "cards": [
+      {
+        "id": "choice",
+        "value": {
+          "status": "ambiguous",
+          "query": "TASK-",
+          "matches": [
+            {
+              "id": "TASK-A",
+              "status": "newborn",
+              "goal": "Первая тестовая цель"
+            },
+            {
+              "id": "TASK-B",
+              "status": "available",
+              "goal": "Вторая тестовая цель"
+            }
+          ],
+          "next_action": "Уточните фрагмент или укажите полный ID найденной задачи"
+        }
+      }
+    ]
+  },
+  "missing": {
+    "input": {
+      "status": "read_only",
+      "results": [
+        {
+          "id": "absent",
+          "value": {
+            "status": "not_found",
+            "query": "MISSING",
+            "matches": [],
+            "next_action": "Проверьте обозначение задачи и укажите полный ID или другой фрагмент"
+          }
+        }
+      ]
+    },
+    "cards": [
+      {
+        "id": "absent",
+        "value": {
+          "status": "not_found",
+          "query": "MISSING",
+          "matches": [],
+          "next_action": "Проверьте обозначение задачи и укажите полный ID или другой фрагмент"
+        }
+      }
+    ]
+  },
+  "mixed": {
+    "input": {
+      "status": "read_only",
+      "results": [
+        {
+          "id": "first-query",
+          "value": {
+            "status": "found",
+            "query": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+            "match": "exact",
+            "context": {
+              "id": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+              "goal": "An ERP agent can inspect an explicitly identified Task and obtain sufficient authoritative current stage context through the configured public task-management interface without acquiring ownership, reading an unrelated global overview or guessing query semantics.",
+              "status": "newborn",
+              "claimed_by": null,
+              "sprint_id": null,
+              "worktree": null,
+              "branch": null,
+              "base": null,
+              "history": [
+                {
+                  "event": "created_newborn",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_acquired",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "newborn_edited",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                }
+              ],
+              "stage": null,
+              "revision": 5,
+              "draft": {
+                "definition_of_done": [
+                  "A focused integration scenario obtains the exact Task and sufficient current context without an ownership mutation or broad overview and independently checks required contract fields against the provider result.",
+                  "Documented examples have independently checked literal argv, mandatory arguments and operation-appropriate links for the selected provider interface; provider query semantics and the shared harness view implementation are reused."
+                ],
+                "goal": "An ERP agent can inspect an explicitly identified Task and obtain sufficient authoritative current stage context through the configured public task-management interface without acquiring ownership, reading an unrelated global overview or guessing query semantics.",
+                "requirements": [
+                  "The existing ERP proxy command is extended only to forward the authorized public Poise Task-code/current-context operation and adapt its response. Poise implements the read-only lookup semantics; ERP does not implement its own lookup and does not use bootstrap as a read workaround.",
+                  "Task code, correlation query ID and caller identity remain distinct; missing or ambiguous selection produces explicit diagnostics rather than ID rewriting or silent fallback to a global list.",
+                  "The selected context preserves current Task identity/version, stage, scope, criteria, template, evidence obligations and continuation supplied by the authoritative owner; a summary card is not represented as the complete stage contract.",
+                  "ERP instructions, examples and semantic reference links provide the exact configured read-only invocation and distinguish it from intentional ownership acquisition and genuine work discovery; no direct lifecycle-database query substitutes for the public API.",
+                  "The same proxy-only boundary applies to every ERP workflow for Tasks, requirements and lifecycle operations: use the public Poise tools, preserve native identity and ownership, and introduce no local domain engine, direct lifecycle-database SQL, second storage or duplicate implementation. Portable provider work is consumed through its declared public integration surface."
+                ]
+              },
+              "ready": false,
+              "goal_type": null,
+              "route_entry": null,
+              "workflow": null
+            }
+          }
+        },
+        {
+          "id": "document",
+          "value": {
+            "status": "found",
+            "query": "file",
+            "match": "exact",
+            "context": {
+              "id": "FILE-A",
+              "status": "ready",
+              "version": 2,
+              "stage": "text"
+            }
+          }
+        },
+        {
+          "id": "second-query",
+          "value": {
+            "status": "found",
+            "query": "TASK-ACTIVE",
+            "match": "substring",
+            "context": {
+              "id": "TASK-ACTIVE",
+              "goal": "An ERP agent can inspect an explicitly identified Task and obtain sufficient authoritative current stage context through the configured public task-management interface without acquiring ownership, reading an unrelated global overview or guessing query semantics.",
+              "status": "available",
+              "claimed_by": null,
+              "sprint_id": null,
+              "worktree": null,
+              "branch": null,
+              "base": null,
+              "history": [
+                {
+                  "event": "created_newborn",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_acquired",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "newborn_edited",
+                  "iteration": 1,
+                  "stage": "newborn"
+                },
+                {
+                  "event": "ownership_released",
+                  "iteration": 1,
+                  "stage": "newborn"
+                }
+              ],
+              "stage": {
+                "id": "implementation",
+                "iteration": 1,
+                "role": "executor",
+                "purpose": "mutation",
+                "instruction": "Full stage instructions remain in the saved source",
+                "allowed_paths": [
+                  "src/**"
+                ],
+                "criteria": {
+                  "requirements": [
+                    "Task-owned stage criteria"
+                  ]
+                },
+                "skills": [
+                  "poise-development"
+                ]
+              },
+              "version": 9,
+              "requirements": [
+                "The existing ERP proxy command is extended only to forward the authorized public Poise Task-code/current-context operation and adapt its response. Poise implements the read-only lookup semantics; ERP does not implement its own lookup and does not use bootstrap as a read workaround.",
+                "Task code, correlation query ID and caller identity remain distinct; missing or ambiguous selection produces explicit diagnostics rather than ID rewriting or silent fallback to a global list.",
+                "The selected context preserves current Task identity/version, stage, scope, criteria, template, evidence obligations and continuation supplied by the authoritative owner; a summary card is not represented as the complete stage contract.",
+                "ERP instructions, examples and semantic reference links provide the exact configured read-only invocation and distinguish it from intentional ownership acquisition and genuine work discovery; no direct lifecycle-database query substitutes for the public API.",
+                "The same proxy-only boundary applies to every ERP workflow for Tasks, requirements and lifecycle operations: use the public Poise tools, preserve native identity and ownership, and introduce no local domain engine, direct lifecycle-database SQL, second storage or duplicate implementation. Portable provider work is consumed through its declared public integration surface."
+              ],
+              "definition_of_done": [
+                "A focused integration scenario obtains the exact Task and sufficient current context without an ownership mutation or broad overview and independently checks required contract fields against the provider result.",
+                "Documented examples have independently checked literal argv, mandatory arguments and operation-appropriate links for the selected provider interface; provider query semantics and the shared harness view implementation are reused."
+              ],
+              "content": {
+                "source_workflow_snapshot": null
+              },
+              "feedback": {
+                "findings": []
+              },
+              "pending": null
+            }
+          }
+        }
+      ]
+    },
+    "cards": [
+      {
+        "id": "first-query",
+        "value": {
+          "status": "found",
+          "query": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+          "match": "exact",
+          "context": {
+            "id": "ERP-TASK-DIRECT-READ-ADOPTION-001",
+            "status": "newborn",
+            "revision": 5,
+            "stage": null
+          }
+        }
+      },
+      {
+        "id": "second-query",
+        "value": {
+          "status": "found",
+          "query": "TASK-ACTIVE",
+          "match": "substring",
+          "context": {
+            "id": "TASK-ACTIVE",
+            "status": "available",
+            "version": 9,
+            "stage": {
+              "id": "implementation"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "non_task": {
+    "input": {
+      "status": "read_only",
+      "results": [
+        {
+          "id": "document",
+          "value": {
+            "status": "found",
+            "query": "file",
+            "match": "exact",
+            "context": {
+              "id": "FILE-A",
+              "status": "ready",
+              "version": 2,
+              "stage": "text"
+            }
+          }
+        }
+      ]
+    },
+    "cards": []
+  }
+}

@@ -64,6 +64,49 @@ def _historical_records(result):
     return list(records.values())
 
 
+def _task_query_card(row):
+    """Project the declared addressed Task result, without querying its owner."""
+    if not isinstance(row, dict) or not isinstance(row.get('id'), str):
+        return None
+    value = row.get('value')
+    if not isinstance(value, dict) or not isinstance(value.get('query'), str):
+        return None
+    status = value.get('status')
+    if status == 'found':
+        context = value.get('context')
+        if (value.get('match') not in ('exact', 'substring')
+                or not isinstance(context, dict)
+                or not all(isinstance(context.get(key), str) for key in ('id', 'status'))
+                or 'stage' not in context):
+            return None
+        counters = [key for key in ('revision', 'version') if key in context]
+        if len(counters) != 1 or type(context[counters[0]]) is not int:
+            return None
+        stage = context['stage']
+        if stage is not None:
+            if not isinstance(stage, dict) or not isinstance(stage.get('id'), str):
+                return None
+            stage = {'id': stage['id']}
+        selected = {key: context[key] for key in ('id', 'status', *counters)}
+        selected['stage'] = stage
+        compact = {key: value[key] for key in ('status', 'query', 'match')}
+        compact['context'] = selected
+    elif status in ('ambiguous', 'not_found'):
+        matches = value.get('matches')
+        if (not isinstance(matches, list) or not isinstance(value.get('next_action'), str)
+                or any(not isinstance(item, dict) or not all(
+                    isinstance(item.get(key), str) for key in ('id', 'status', 'goal'))
+                    for item in matches)
+                or (status == 'not_found' and matches)
+                or (status == 'ambiguous' and len(matches) < 2)):
+            return None
+        compact = {key: deepcopy(value[key])
+                   for key in ('status', 'query', 'matches', 'next_action')}
+    else:
+        return None
+    return {'id': row['id'], 'value': compact}
+
+
 def result_view(result, response_path, budget, mode, *, metadata=None,
                 collections=None, command_views=()):
     """Pure, source-derived projection. Full always means file navigation."""
@@ -107,19 +150,19 @@ def result_view(result, response_path, budget, mode, *, metadata=None,
             # Counts and details are atomic; do not imply completeness without counts.
             summary = {}
 
-    if mode == 'expanded' and summary:
-        def admit(field, details, shown):
-            nonlocal view
-            counts = {**view['summary'], field: {
-                **view['summary'][field], 'shown': shown,
-                'omitted': view['summary'][field]['total'] - shown}}
-            candidate = {**view, 'summary': counts,
-                         'details': {**view.get('details', {}), field: details}}
-            if len(_envelope_text(candidate)) > budget:
-                return False
-            view = candidate
-            return True
+    def admit(field, details, shown):
+        nonlocal view
+        counts = {**view['summary'], field: {
+            **view['summary'][field], 'shown': shown,
+            'omitted': view['summary'][field]['total'] - shown}}
+        candidate = {**view, 'summary': counts,
+                     'details': {**view.get('details', {}), field: details}}
+        if len(_envelope_text(candidate)) > budget:
+            return False
+        view = candidate
+        return True
 
+    if mode == 'expanded' and summary:
         groups = []
         shown = 0
         for task, row in history:
@@ -138,8 +181,20 @@ def result_view(result, response_path, budget, mode, *, metadata=None,
             selected = []
             for item in items:
                 if not admit(field, [*selected, item], len(selected) + 1):
-                    break
+                    item = _task_query_card(item) if field == 'results' else None
+                    if item is None or not admit(field, [*selected, item], len(selected) + 1):
+                        break
                 selected.append(item)
+
+    if mode in ('brief', 'adapter') and 'results' in summary:
+        selected = []
+        for item in other['results']:
+            card = _task_query_card(item)
+            if card is None:
+                continue
+            if not admit('results', [*selected, card], len(selected) + 1):
+                break
+            selected.append(card)
 
     if mode == 'expanded' and (not has_collections or summary):
         # Non-history tools use the same owner: show whole useful source fields

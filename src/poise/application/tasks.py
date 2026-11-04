@@ -226,13 +226,6 @@ class SubmissionReceipt:
     registry_change: dict | None = None
 
 
-def require_start_execution(execution):
-    """One execution prerequisite for start and read-only discovery."""
-    if execution is not None:
-        if execution['pending'] is not None:
-            raise DomainError('Restarted Task execution recovery is still pending')
-
-
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
     def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader,
@@ -1107,12 +1100,14 @@ class TaskCommands:
         from ..modules.tasks.ports import TaskSourcesChanged
         facade = self.unit_of_work()
         inputs = facade.capture(TaskReadSet((task_id,), execution_ids=(task_id,),
-            actors=(actor,), related_sprints=True, family_ids=(task_id,)))
+            actors=(actor,), related_sprints=True, family_ids=(task_id,),
+            start_admission_ids=(task_id,)))
         require_sprint_execution(inputs, task_id)
         task = inputs.task(task_id)
         duplicate = require_duplicate_start(inputs, task_id, actor,
             force_duplicate_start=force_duplicate_start)
         saved_execution = inputs.execution(task_id)
+        inputs.require_start_execution(task_id)
         has_execution = saved_execution is not None
         if not has_execution and duplicate is not None and duplicate['reason'] == 'local_repair':
             if self.repository_tree is None or not self.repository_tree.contains_commit(
@@ -1124,7 +1119,6 @@ class TaskCommands:
         execution_data = execution
         if has_execution:
             current, execution_version = saved_execution
-            require_start_execution(current)
             before = inputs.ownership(actor)
             with self.unit_of_work() as uow:
                 target = uow.ownership.preflight(actor, task_id)

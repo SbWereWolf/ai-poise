@@ -50,6 +50,15 @@ limits rather than inferring correctness from a skill name or acknowledgement.
 
 ## Procedure
 
+During existing test-design and test reviews, independently derive the affected
+branch's expected outcome from its conditions and current requirement/contract,
+then compare it with the author's oracle and relevant implementation. Check sources,
+meaningful execution boundaries and effects for both new and retained assertions;
+agreement between old tests, the author's plan and current code is not sufficient.
+Follow [independent expectation
+review](../../../docs/workflows/evidence-based-review.md#независимая-проверка-ожиданий)
+within this review, without another stage, approval step or required file.
+
 1. Confirm the inspected revision and reviewer ownership. Keep the inspection read-only. Mechanical receipts, task completeness and the executor's self-review are evidence inputs, not proof of correctness.
 2. Compare the actual scope and changed paths with requirements and applicable area/skill selection. Batch known reads; expand investigation through real callers, consumers, contracts, persistence, and failure paths without expanding write scope.
 3. Trace important behavior [forward and backward](../../references/data-flow-review.md). Identify the owner of every invariant, normalization, authorization decision, transaction and side effect; inspect reuse/extraction decisions and in-scope duplicates.

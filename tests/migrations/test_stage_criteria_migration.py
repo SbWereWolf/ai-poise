@@ -811,11 +811,25 @@ def test_historical_migration_schemas_keep_their_exact_request_contract(schema, 
         MigrationRequest.parse(changed)
 
 
-@pytest.mark.parametrize("case", [
-    "completed_same_intent", "absent_completed", "foreign_completion", "workflow_only",
-    "conflicting_completions", "candidate_drift", "pending",
+def _migration_admission_snapshot(database):
+    observed = snapshot(database)
+    with sqlite3.connect(database) as connection:
+        observed["worktree_claims"] = connection.execute(
+            "SELECT id,task_id FROM sessions WHERE task_id IS NOT NULL ORDER BY id",
+        ).fetchall()
+    return observed
+
+
+@pytest.mark.parametrize("entrypoint", ["next", "bootstrap"])
+@pytest.mark.parametrize("case,retained_execution", [
+    ("completed_same_intent", True), ("absent_completed", True),
+    ("foreign_completion", True), ("workflow_only", True),
+    ("conflicting_completions", True), ("candidate_drift", True), ("pending", True),
+    ("completed_same_intent", False), ("absent_completed", False),
 ])
-def test_migrated_available_task_requires_completed_same_intent_evidence(project, case):
+def test_migrated_available_task_requires_completed_same_intent_evidence(
+    project, case, retained_execution, entrypoint,
+):
     from poise.composition import project_tools
     from tests.projects.helpers import setup_case
 
@@ -826,8 +840,14 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
             ).fetchall()
         return publication_rows(project), digests
 
-    database, packet, workflow_path = historical_project(project)
-    original = snapshot(database)
+    database, packet, workflow_path = historical_project(project, create_backup=retained_execution)
+    if not retained_execution:
+        from tests.backups.helpers import backup_commands
+
+        with sqlite3.connect(database) as connection:
+            assert connection.execute("DELETE FROM task_execution WHERE task_id=?", ("T1",)).rowcount == 1
+        packet["backup_name"] = backup_commands(project).create()["name"]
+    original = _migration_admission_snapshot(database)
     migrated = invoke_cli(project, packet)
     assert migrated.returncode == 0, (migrated.stdout, migrated.stderr)
     receipt = json.loads(migrated.stdout)
@@ -874,25 +894,43 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
             connection.execute("UPDATE task_execution SET data=? WHERE task_id=?", (json.dumps(execution), "T1"))
 
     tools = WorkTools(WorkPoise(project["config_path"], "completed-migration-start"))
-    before, owner, published = snapshot(database), owner_records(), workflow_path.read_bytes()
+    before, owner, published = _migration_admission_snapshot(database), owner_records(), workflow_path.read_bytes()
     files = {path: path.read_bytes() for path in (
         project["config_path"], settings, project["root"] / "criteria-editor.json",
         project["root"] / "criteria-catalogue.json", project["root"] / "state/project-registry.json",
     )}
-    listed = project_tools(settings).next("demo")
-    assert snapshot(database) == before
-    assert owner_records() == owner
-    assert workflow_path.read_bytes() == published
-    assert all(path.read_bytes() == content for path, content in files.items())
-    identities = [(item["project"], item["task"]) for item in listed["tasks"]]
+    worktree = (project["root"] / project["cfg"]["paths"]["state"]
+                / project["cfg"]["paths"]["worktrees"] / "T1")
+    assert not worktree.exists()
+    if entrypoint == "next":
+        listed = project_tools(settings).next("demo")
+        assert _migration_admission_snapshot(database) == before
+        assert owner_records() == owner
+        assert workflow_path.read_bytes() == published
+        assert all(path.read_bytes() == content for path, content in files.items())
+        assert not worktree.exists()
+        assert listed["status"] == "listed" and listed["errors"] == []
+        identities = [(item["project"], item["task"]) for item in listed["tasks"]]
+        if case == "completed_same_intent":
+            assert identities.count(("demo", "T1")) == 1
+            assert len(identities) == len(set(identities))
+        else:
+            assert ("demo", "T1") not in identities
+        return
+
+    # This entry point never depends on a preceding next assertion.
     bootstrap = request("bootstrap", {
         "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
     })
     if case != "completed_same_intent":
-        assert ("demo", "T1") not in identities
-        with pytest.raises(PoiseError):
+        with pytest.raises(PoiseError) as refused:
             tools.invoke(bootstrap)
-        after = snapshot(database)
+        if case == "pending":
+            assert "pending" in str(refused.value).lower()
+        else:
+            reason = str(refused.value).lower()
+            assert "migration" in reason and "complete" in reason and "intent" in reason
+        after = _migration_admission_snapshot(database)
         for table in before:
             if table != "journal":
                 assert after[table] == before[table], table
@@ -900,13 +938,9 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
         assert [row for row in after["journal"] if row[4] == "task_stage_criteria_migration"] == [
             row for row in before["journal"] if row[4] == "task_stage_criteria_migration"
         ]
+        assert not worktree.exists()
     else:
-        # Invoke even when discovery wrongly excluded T1, to expose the actual
-        # retained-execution admission failure rather than only an empty list.
         context = tools.invoke(bootstrap)
-        assert listed["status"] == "listed" and listed["errors"] == []
-        assert identities.count(("demo", "T1")) == 1
-        assert len(identities) == len(set(identities))
         assert context["task"] == "T1" and context["status"] == "active"
         assert_original_stage_digests(tools, json.loads(original["tasks"][0][7]), receipt["receipt"])
         criterion = show(tools, "implementation")
@@ -915,7 +949,7 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
         assert criterion["source"]["kind"] == "historical"
         assert criterion["source"]["migration_receipt"] == receipt["receipt"]
         assert criterion["proposals"] == []
-        after = snapshot(database)
+        after = _migration_admission_snapshot(database)
         assert after["tasks"][1] == before["tasks"][1]
         for table in ("submissions", "evidence", "proofs", "content", "methods"):
             assert after[table] == before[table], table
@@ -926,6 +960,50 @@ def test_migrated_available_task_requires_completed_same_intent_evidence(project
     assert owner_records() == owner
     assert workflow_path.read_bytes() == published
     assert all(path.read_bytes() == content for path, content in files.items())
+
+
+def test_migrated_task_rechecks_completion_after_discovery(project):
+    from poise.composition import project_tools
+    from tests.projects.helpers import setup_case
+
+    database, packet, workflow_path = historical_project(project)
+    migrated = invoke_cli(project, packet)
+    assert migrated.returncode == 0, (migrated.stdout, migrated.stderr)
+    settings, _, _ = setup_case(project)
+    write_json(project["root"] / "state/project-registry.json", fixture("boundary-project-registry.json"))
+    listed = project_tools(settings).next("demo")
+    assert ("demo", "T1") in [(item["project"], item["task"]) for item in listed["tasks"]]
+    with sqlite3.connect(database) as connection:
+        completed = [seq for seq, raw in connection.execute(
+            "SELECT seq,data FROM journal WHERE event=? ORDER BY seq", ("task_stage_criteria_migration",),
+        ) if json.loads(raw)["phase"] == "completed"]
+        assert len(completed) == 1
+        connection.execute("DELETE FROM journal WHERE seq=?", (completed[0],))
+    tools = WorkTools(WorkPoise(project["config_path"], "changed-completion-start"))
+    before, owner = _migration_admission_snapshot(database), publication_rows(project)
+    files = {path: path.read_bytes() for path in (
+        project["config_path"], settings, workflow_path, project["root"] / "criteria-editor.json",
+        project["root"] / "criteria-catalogue.json", project["root"] / "state/project-registry.json",
+    )}
+    worktree = (project["root"] / project["cfg"]["paths"]["state"]
+                / project["cfg"]["paths"]["worktrees"] / "T1")
+    assert not worktree.exists()
+    with pytest.raises(PoiseError) as refused:
+        tools.invoke(request("bootstrap", {
+            "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
+        }))
+    reason = str(refused.value).lower()
+    assert "migration" in reason and "complete" in reason and "intent" in reason
+    after = _migration_admission_snapshot(database)
+    for table in before:
+        if table != "journal":
+            assert after[table] == before[table], table
+    assert [row for row in after["journal"] if row[4] == "task_stage_criteria_migration"] == [
+        row for row in before["journal"] if row[4] == "task_stage_criteria_migration"
+    ]
+    assert publication_rows(project) == owner
+    assert all(path.read_bytes() == content for path, content in files.items())
+    assert not worktree.exists()
 
 
 def test_migrated_available_task_rechecks_current_claim_after_discovery(project):
@@ -1276,3 +1354,39 @@ def test_execution_owner_updates_current_fields_and_preserves_opaque_json_types(
     else:
         assert actual["opaque_review_value"] == {"items": [1]}
         assert type(actual["opaque_review_value"]["items"][0]) is int
+
+
+def test_initial_task_is_listed_without_writes_and_starts_without_migration(project):
+    from poise.composition import project_tools
+
+    runtime = WorkPoise(project["config_path"], "initial-admission-guard")
+    runtime.task_commands.create(
+        project["task"], runtime.session, runtime.workflows["development"], [],
+        {"config_hash": runtime.config_hash}, None, runtime.cfg.get("task_ids"),
+        runtime._creation_base(), runtime.cfg["task_decomposition"],
+    )
+    tools = WorkTools(runtime)
+    settings = Path(project["cfg"]["runtime_resources"]["project_setup"])
+    registry = settings.parent / json.loads(settings.read_text())["registry"]
+    workflow = project["root"] / project["cfg"]["workflows"]["development"]
+    before = _migration_admission_snapshot(
+        project["root"] / project["cfg"]["paths"]["state"] / project["cfg"]["paths"]["database"],
+    )
+    metadata = json.loads(before["tasks"][0][7])
+    assert {stage["source"]["kind"] for stage in metadata["stage_criteria"]["stages"].values()} == {"initial"}
+    assert [row for row in before["journal"] if row[4] == "task_stage_criteria_migration"] == []
+    files = {path: path.read_bytes() for path in (project["config_path"], settings, registry, workflow)}
+    listed = project_tools(settings).next("demo")
+    assert listed["status"] == "listed" and listed["errors"] == []
+    assert [(item["project"], item["task"]) for item in listed["tasks"]] == [("demo", "T1")]
+    assert project_tools(settings).next("demo") == listed
+    after = _migration_admission_snapshot(
+        project["root"] / project["cfg"]["paths"]["state"] / project["cfg"]["paths"]["database"],
+    )
+    assert after == before
+    assert all(path.read_bytes() == content for path, content in files.items())
+    context = tools.invoke(request("bootstrap", {
+        "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert context["task"] == "T1" and context["status"] == "active"
+    assert context["worktree"] and Path(context["worktree"]).is_dir()

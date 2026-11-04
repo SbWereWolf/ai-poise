@@ -4,6 +4,8 @@
 настройки, входной JSON и права на соответствующую операцию. Описание команды
 само по себе не разрешает публикацию, интеграцию, восстановление или миграцию.
 
+Уточнение доставки инструкций: **2026-11-04**.
+
 ## Запуск и общие аргументы
 
 Используйте установленный Python выбранной поставки:
@@ -52,7 +54,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
 | `source-index` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin; необязательный `--handler`. | [Поиск и обновление индекса выбранной копии](../configuration/source-index.md#запросы-и-первоначальный-индекс), Git callback и optional sync handler без обязательной Task. |
 | `placement` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH`; JSON stdin. | Выбор, закрепление и проверка места рабочих результатов по политике проекта. |
-| `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции, prepare по файлам и [deliver в текущий контекст](../configuration/instruction-delivery.md#вызов-и-подготовка) без Task. |
+| `skills` | JSON stdin. `--catalog PATH --root PATH` обязательны для файлового выбора и операций каталога; `deliver_selected`/`read_selected` получают готовое наблюдение без этих опций. | Метаданные, проверка декомпозиции, prepare, [доставка с бюджетом](../configuration/instruction-delivery.md#доставка-с-бюджетом) и [переносимый интерфейс](../configuration/instruction-delivery.md#переносимый-python-api) без Task. |
 | `checks` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH` и явный `--view brief\|expanded\|full`; JSON stdin. Необязательные `--transport-policy PATH` и `--invocation ID` включают coordination подготовленного вызова. | Именованные проверки, пакеты, наборы, чтение результата, калибровка и impact без Task. |
 | `checks-mcp` | Обязательные абсолютные `--config PATH --checkout PATH --policy PATH --transport-policy PATH`; JSON-RPC stdio. | Настроенные run/preview/cancel с ожиданием конечного результата и полным машинным ответом. |
 

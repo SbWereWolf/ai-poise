@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-10-20**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-11-04**. Срез **POISE-DDD-04B**.
 
 ## Явные результаты инструментов
 
@@ -887,7 +887,7 @@ Cleanup state хранится в существующем Task execution snapsh
 
 ## Метаданные skills (C005.1)
 
-Обновлено: 2026-09-15. `modules/skills` владеет неизменяемыми дескрипторами навыков.
+Обновлено: 2026-11-04. `modules/skills` владеет неизменяемыми дескрипторами навыков.
 В metadata режимах infrastructure проверяет явно выбранный каталог и пути;
 получение тел выбранных инструкций принадлежит отдельному prepare.
 Task/Sprint продолжают владеть готовностью и жизненным циклом; чистый владелец
@@ -899,6 +899,10 @@ FocusedDecomposition потребляет классификацию, а не п
 | Владелец | Ответственность |
 |---|---|
 | modules/skills/instructions | Чистые policy, profile matching, scopes/reasons, identity, availability diagnostics и delta. |
+| modules/skills/instruction_delivery | Общие context/receipt/retained semantics, полные кадры с бюджетом, continuation и source-bound адресное чтение. |
+| modules/skills/portable_instructions | Чистая проверка нормализованного запроса/наблюдения и диспетчеризация к общему владельцу доставки. |
+| poise.instructions | Стабильный Python-вход execute без Task, конфигурационного или filesystem bootstrap. |
+| modules/source_reader/domain.select_text_range | Точный выбор строк/UTF-8 bytes из уже полученного текста; используется также SourceFiles. |
 | modules/skills/instruction_ports | InstructionSource: узкий порт наблюдения контекста и материалов. |
 | application/ProjectInstructions | Композиция request → project context → policy/catalogue → paths/previous → selection → observation → result. |
 | infrastructure/FileInstructionSource | Read-only manifest/Git binding, metadata, exact ancestor discovery и UTF-8 byte observation. |
@@ -916,8 +920,13 @@ ai-assistant/agent/effective-policy-manifest.py. Повторно использ
 OrderedValues/ReasonMap, universal/profile selection, ancestor rules и file_delta;
 адаптации ограничены явными file scopes, обязательностью, identity и шестью
 сравниваемыми полями. ERP runtime/Task policy не перенесены.
-Действующий load_config читает полный project manifest; отсутствие Task API/DB
-в этом потоке не означает полного удаления Task plugins.
+Специализированный DevelopmentRouting сохраняет свой project manifest. Общий файловый
+маршрут получает привязку через FileInstructionSource и общий профиль; нормализованный
+маршрут принимает уже выбранное наблюдение. Оба используют одного владельца доставки.
+SourceFiles сохраняет filesystem-допуск, исходный hash и receipt storage; общий чистый
+выбор диапазона не создаёт нового reader/store. Доставка формирует семантический кадр,
+а полное machine-сохранение и отображение остаются у tool-result. Подробный договор:
+[доставка инструкций](../configuration/instruction-delivery.md#переносимый-python-api).
 Автоматическая nativehook интеграция и доказательство применения инструкций моделью
 не реализованы. Операторский договор:
 [подготовка инструкций по

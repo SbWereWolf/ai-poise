@@ -697,6 +697,11 @@ def hook_presentation(record, sources, policy):
             if shortened or clipped: value['truncated'] = True
             return value
         return bounded_text(excerpt, policy, limit, render, contiguous=False)
+    if selection == 'binary':
+        outcome = str(record['exit_code']) if record['exit_code'] is not None else 'unavailable'
+        result['protocol']['stopReason'] = 'binary output; exit ' + outcome
+        require_budget(result, policy)
+        return result
     raw = response_text(record['response'])
     hook = policy['hook']
     if len(raw.encode()) <= hook['max_response_bytes'] and len(raw.splitlines()) <= hook['max_response_lines']:

@@ -550,7 +550,7 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
     # provenance is arranged here: it cannot prove whether execution started.
     source = json.loads(fixture("historical-owner-sources.json")["unstarted"]["task"][0][7])
     database, packet, workflow_path = historical_project(
-        project, workflow_source=source["workflow"], contract_source=source["contract"],
+        project, workflow_source=source["process"], contract_source=source["contract"],
     )
     for resource in packet["mapping"]:
         resource["stages"][0]["criteria_authority"]["propose"] = ["implementation"]
@@ -962,11 +962,12 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
         alternate = project["root"] / "config/workflows/writer-development.json"
         write_json(alternate, json.loads(workflow_path.read_bytes()))
         alternate_editor = project["root"] / "writer-editor.json"
-        editor = fixture("migration-editor.json")
+        # Clone current settings prepared from the historical fixtures.
+        editor = json.loads((project["root"] / "criteria-editor.json").read_bytes())
         editor["workflows"]["development"] = "config/workflows/writer-development.json"
         write_json(alternate_editor, editor)
         alternate_catalogue = project["root"] / "writer-catalogue.json"
-        catalogue = fixture("migration-catalogue.json")
+        catalogue = json.loads((project["root"] / "criteria-catalogue.json").read_bytes())
         catalogue["editor"] = "writer-editor.json"
         write_json(alternate_catalogue, catalogue)
         manifest = json.loads(original_manifest)

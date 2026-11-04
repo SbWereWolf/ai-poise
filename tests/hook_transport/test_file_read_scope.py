@@ -1,4 +1,4 @@
-"""File data stays with its reader; ordinary output uses the common formatter.
+"""File results use common presentation with addressed source continuation.
 
 Public readers and public native dispatcher run in one declared isolated episode.
 No fixture callback is claimed to be an actual desktop/model-input observation.
@@ -48,6 +48,7 @@ def native_event(chain, output, body, command, key='file-result'):
 
 def setup_reader_return(project, tmp_path, selection):
     chain, output = output_scene(project, tmp_path)
+    output.policy['inspection']['max_excerpt_bytes'] = 8
     parent = tmp_path / 'reader-client'
     parent.mkdir()
     selected = {**project, 'cfg': chain.general.profile, 'config_path': chain.general.path}
@@ -99,17 +100,48 @@ def setup_reader_return(project, tmp_path, selection):
 
 
 @pytest.mark.parametrize('selection', ['complete', 'range'])
-def test_actual_file_reader_return_is_outside_ordinary_output_shortening(project, tmp_path, selection):
+def test_file_reader_uses_common_capture_and_addressed_chunks(project, tmp_path, selection):
     chain, output, body, command, expected = setup_reader_return(project, tmp_path, selection)
     event = native_event(chain, output, body, command)
     original = deepcopy(event)
-    before = output.snapshot()
     with ParserCalls(prepare_owner()) as prepared:
         response = chain.invoke(event, event_name='PostToolUse')
-    assert response.get('continue') is not False, 'FILE_READ_WAS_REPLACED_AS_TOOL_OUTPUT'
-    assert 'additionalContext' not in response.get('hookSpecificOutput', {}), 'FILE_READ_WAS_SUMMARIZED'
-    assert prepared.inputs == [], 'FILE_READ_ENTERED_OUTPUT_PARSER'
-    assert output.snapshot() == before, 'FILE_READ_CREATED_DUPLICATE_TOOL_CAPTURE'
+    assert prepared.inputs == [body], 'FILE_READ_BYPASSED_COMMON_PARSER'
+    assert response.get('continue') is not False, 'FILE_PRESENTATION_STOPPED_EXECUTION'
+    preview = response['hookSpecificOutput']['additionalContext']
+    assert preview == ORDINARY_BRIEF
+    assert len(preview) <= 1800 and len(preview.encode()) <= 2400
+    saved = output.service('full')
+    assert Path(saved['full_path']).read_bytes() == body.encode()
+    address = str(Path(saved['full_path']).parent / 'result.json')
+    machine = output.success({'schema': 'poise-tool-result-request-1',
+                             'operation': 'view', 'response_path': address,
+                             'view': 'full'}, 'machine')
+    assert machine['response'] == body
+    assert machine['streams'] == {'stdout': None, 'stderr': None}
+    captured = output.snapshot()
+    header, _, _ = body.partition('\n')
+    offset = len(header.encode()) + 1
+    content = expected.encode()
+    first_expected = content[:8].decode('utf-8', 'ignore')
+    next_offset = offset + len(first_expected.encode())
+    second_expected = content[len(first_expected.encode()):len(first_expected.encode()) + 8].decode(
+        'utf-8', 'ignore')
+    first = output.success({'schema': 'poise-tool-result-request-1', 'operation': 'bytes',
+                            'response_path': address, 'channel': 'response',
+                            'start': offset, 'end': len(body.encode())})
+    assert first['text'] == first_expected and first['truncated'] is True
+    assert first['returned_bytes'] == [offset, next_offset]
+    second = output.success({'schema': 'poise-tool-result-request-1', 'operation': 'bytes',
+                             'response_path': address, 'channel': 'response',
+                             'start': first['returned_bytes'][1], 'end': len(body.encode())})
+    assert second['text'] == second_expected
+    assert second['returned_bytes'] == [next_offset, next_offset + len(second_expected.encode())]
+    assert first['text'] + second['text'] == content[:len(
+        (first_expected + second_expected).encode())].decode()
+    assert first['response_path'] == second['response_path'] == address
+    assert first['total_bytes'] == second['total_bytes'] == len(body.encode())
+    assert output.snapshot() == captured, 'CHUNK_READ_RECAPTURED_OR_CHANGED_SOURCE'
     _, delivery = chain.delivery()
     assert delivery['event']['tool_response'] == body and event == original
     assert delivery['event_receipt']['event'] == 'PostToolUse'
@@ -156,7 +188,8 @@ def test_file_scope_keeps_foreign_handler_order_context_and_control(project, tmp
                     after=[chain.command('after', action=after_action), chain.command('tail')])
     event = native_event(chain, output, 'file contents\r\nlast', READER_COMMAND)
     response = chain.invoke(event, event_name='PostToolUse')
-    assert 'additionalContext' not in response.get('hookSpecificOutput', {}), 'FILE_SCOPE_ADDED_OUTPUT_REPLACEMENT'
+    assert response.get('hookSpecificOutput', {}).get('additionalContext') == ORDINARY_BRIEF, (
+        'FILE_CHAIN_BYPASSED_COMMON_PRESENTATION')
     labels = ['before', 'after'] if after_action == 'stop' else ['before', 'after', 'tail']
     assert response['systemMessage'] == 'seed|' + '|'.join(labels)
     assert [row['label'] for row in chain.order()] == labels

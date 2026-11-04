@@ -205,7 +205,7 @@ def historical_state_variants(project):
     """Bind frozen real-owner snapshots to three independent test-owned identities."""
     fixtures = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
     sources = json.loads((fixtures / "historical-owner-sources.json").read_text())
-    workflow = json.loads(sources["unstarted"]["task"][0][7])["workflow"]
+    workflow = json.loads(sources["unstarted"]["task"][0][7])["process"]
     database, packet, path = historical_project(project, workflow_source=workflow, create_backup=False)
     mapped = []
     with sqlite3.connect(database) as connection:
@@ -218,6 +218,8 @@ def historical_state_variants(project):
             source = sources[state]
             old = source["task"][0]
             metadata = json.loads(old[7])
+            # Bind the frozen historical graph to the current test database schema.
+            metadata["workflow"] = metadata.pop("process")
             metadata["contract"]["id"] = task_id
             metadata["requirements_snapshot"] = deepcopy(project["task"]["requirements_snapshot"])
             metadata["requirements_agreement"] = deepcopy(project["task"]["requirements_agreement"])

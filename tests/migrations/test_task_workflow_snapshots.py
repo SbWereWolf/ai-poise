@@ -397,18 +397,21 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
     from poise.application.work import WorkTools
     from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
     from poise.modules.foundation.errors import PoiseError
-    from tests.batch.helpers import request
+    from conftest import add_test
+    from tests.batch.helpers import request, result as stage_result
 
     workflows = _configured_workflows(project)
     owner = WorkTools(WorkPoise(project["config_path"], "owner-session-0063"))
     task = deepcopy(project["task"])
     task["id"] = "0063"
-    owner.invoke(
+    context = owner.invoke(
         request(
             "bootstrap",
             {"task": task, "decision": None, "feedback": None, "rework_stage": None},
         )
     )
+    add_test(context["worktree"])
+    handoff_result = stage_result(context, "Передать результат после миграции workflow.")
     database = _database(project)
     with sqlite3.connect(database) as connection:
         raw = connection.execute("SELECT metadata FROM tasks WHERE id='0063'").fetchone()[0]
@@ -444,19 +447,24 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
             )
 
     legacy_owner = WorkTools(WorkPoise(project["config_path"], "owner-session-0063"))
-    with pytest.raises(PoiseError, match="worktree_required"):
-        legacy_owner.invoke(
-            request(
-                "handoff",
-                {
-                    "request_id": "legacy-0063-before-migration",
-                    "reason": "reproduce the public release deadlock",
-                    "result": None,
-                    "commit_message": None,
-                    "artifact_paths": [],
-                },
-            )
+    before_handoff = legacy_owner.invoke(
+        request(
+            "handoff",
+            {
+                "request_id": "legacy-0063-before-migration",
+                "reason": "reproduce the public release deadlock",
+                "task_id": "0063",
+                "result": handoff_result,
+                "artifacts": [],
+            },
         )
+    )
+    assert before_handoff["status"] == "handoff_blocked"
+    assert before_handoff["phase"] == "progression"
+    assert "worktree_required" in before_handoff["blocked"]["reason"]
+    assert before_handoff["verification"]["status"] == "verified"
+    assert before_handoff["release"] is None
+    assert legacy_owner.runtime.task_queries.record("0063")["claimed_by"] == "owner-session-0063"
     backup = backup_commands(project).create()
     before = _snapshot(database)
 
@@ -501,14 +509,20 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
             {
                 "request_id": "legacy-0063-after-migration",
                 "reason": "prove the public release path is restored",
-                "result": None,
-                "commit_message": None,
-                "artifact_paths": [],
+                "task_id": "0063",
+                "result": handoff_result,
+                "artifacts": [],
+                # Stop at the next fixture stage after verification and release.
+                "target_stage": "test_review",
             },
         )
     )
-    assert handed_off["status"] == "handed_off"
+    assert handed_off["status"] == "handoff_completed"
     assert handed_off["task"] == "0063"
+    assert handed_off["verification"]["status"] == "verified"
+    assert handed_off["release"]["status"] == "ownership_released"
+    assert handed_off["release"]["before"]["task_id"] == "0063"
+    assert handed_off["release"]["after"]["task_id"] is None
     assert migrated_owner.runtime.task_queries.record("0063")["claimed_by"] is None
 
     backup_commands(project).restore(backup["name"])

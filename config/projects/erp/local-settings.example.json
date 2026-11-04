@@ -99,6 +99,11 @@
           "validator": "filesystem-disk"
         },
         {
+          "name": "EXCEL_IMPORT_OUTBOX_INTERVAL_SECONDS",
+          "required": true,
+          "validator": "positive-integer"
+        },
+        {
           "name": "PLANNING_WORKSPACE_QUEUE_CONNECTION",
           "required": true,
           "validator": "non-empty-string"

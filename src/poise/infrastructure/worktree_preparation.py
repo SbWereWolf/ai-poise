@@ -38,10 +38,24 @@ class PreparationConfiguration:
                 raise ValueError('inputs: требуются source и destination')
         return cls(command, path, coordinates)
 
-    def render(self):
+    def _render_values(self):
         values = {**self.command.raw['parameters'], **self.coordinates}
         catalog = Template(self.command.raw['catalog_dir']).substitute(values)
         values['catalog_dir'] = catalog
+        return values
+
+    def _render_commands(self, names, values):
+        selected = {**self.command.raw, 'commands': {
+            name: self.command.raw['commands'][name] for name in names
+        }}
+        return CommandConfiguration.from_mapping(selected).rendered_commands(values=values)
+
+    def render_retirement(self, integration_request_id):
+        values = {**self._render_values(), 'integration_request_id': integration_request_id}
+        return self._render_commands(['retire'], values)['retire']
+
+    def render(self):
+        values = self._render_values()
 
         def leaves(value):
             if isinstance(value, str):
@@ -53,7 +67,8 @@ class PreparationConfiguration:
             return value
 
         return {'inputs': leaves(self.command.raw['inputs']),
-                'commands': self.command.rendered_commands(catalog, values=values),
+                'commands': self._render_commands(
+                    [name for name in self.command.raw['commands'] if name != 'retire'], values),
                 'options': leaves(self.command.handler_options),
                 'operations': self.command.raw['operations'],
                 'handler': self.command.handler_selector}

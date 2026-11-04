@@ -109,7 +109,7 @@ def test_pending_source_is_saved_and_presented_without_claiming_completion(proje
     require_stored(code, agent, 'PENDING_RESULT_HAS_NO_BOUNDED_VIEW')
     assert agent['capture'] == value['capture'] and agent['exit_code'] is None
     assert 'pending' in agent['preview'].casefold() and 'RAW_ONLY_' not in agent['preview']
-    assert Path(agent['full_path']) == full
+    assert Path(value['full_path']) == full and 'full_path' not in agent
 
 
 def async_cli(scene, request):
@@ -173,8 +173,8 @@ def assert_agent_view_while_registration_is_gated(scene, machine, request):
     assert agent['exit_code'] == machine['exit_code'] == request['exit_code']
     assert agent['capture'] == machine['capture']
     assert agent['run_id'] == machine['run_id']
-    assert agent['response_path'] == machine['response_path']
-    assert agent['full_path'] == str(full) and full.read_bytes() == before
+    assert not {'response_path', 'full_path', 'expanded_path', 'last_path'} & agent.keys()
+    assert machine['full_path'] == str(full) and full.read_bytes() == before
     return agent
 
 

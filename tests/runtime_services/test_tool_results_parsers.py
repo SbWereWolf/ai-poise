@@ -50,7 +50,7 @@ def test_separate_channel_public_consumer_keeps_literal_pair(project, tmp_path, 
     _, full, expanded_path, _ = scene.run_identity(actual)
     assert expanded_path.read_bytes() == data['expanded'].encode()
     assert json.loads(full.read_bytes()) == fixture['record']['response']
-    saved = json.loads(Path(actual['response_path']).read_bytes())
+    saved = scene.owner().store.latest()
     for channel in ('stdout', 'stderr'):
         expected = data[channel].encode()
         assert Path(saved['streams'][channel]['path']).read_bytes() == expected

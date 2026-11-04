@@ -17,6 +17,65 @@ from tests.runtime_services.session_tool_results_support import (
 from tests.runtime_services.tool_results_support import FIXTURES, literal, write_json
 
 
+@pytest.mark.parametrize('case', ['bash-success', 'bash-failure', 'mcp'])
+def test_default_agent_brief_hides_saved_navigation_but_explicit_views_reuse_source(
+        project, tmp_path, case):
+    scene = SessionScenario(project, tmp_path)
+    request = scene.input(case)
+    before_request = json.dumps(request, ensure_ascii=False)
+    code, agent = scene.direct(request)
+    assert code == 0 and agent['preview'] == cases()[case]['brief']
+    assert agent['exit_code'] == cases()[case]['exit_code']
+    full = scene.service('full')
+    before = scene.snapshot()
+    expanded = scene.service('expanded')
+    assert expanded['text'] == cases()[case]['expanded']
+    assert full['run_id'] == expanded['run_id'] == scene.service('full')['run_id']
+    assert scene.snapshot() == before
+    assert json.loads(Path(full['full_path']).read_bytes()) == request['response']
+    assert json.dumps(request, ensure_ascii=False) == before_request
+    assert not {'response_path', 'full_path', 'expanded_path', 'last_path'} & agent.keys(), (
+        'DEFAULT_AGENT_NAVIGATION_LEAK', agent)
+    assert str(scene.root) not in json.dumps(agent)
+
+
+def test_pending_agent_brief_preserves_unknown_outcome_without_saved_navigation(project, tmp_path):
+    from tests.runtime_services.test_tool_results_universal import request_for
+    scene = SessionScenario(project, tmp_path)
+    request = request_for(scene, 'pending')
+    code, machine = scene.direct(request, 'machine')
+    assert code == 0 and machine['response'] == request['event']['tool_response']
+    before = scene.snapshot()
+    code, agent = scene.direct({'schema': 'poise-tool-result-request-1', 'operation': 'view',
+                               'response_path': machine['response_path'], 'view': 'brief'})
+    assert code == 0 and agent['capture'] == {'state': 'unknown', 'reason': 'native_process_pending'}
+    assert agent['exit_code'] is None and 'pending' in agent['preview'].casefold()
+    assert scene.snapshot() == before
+    code, full = scene.direct({'schema': 'poise-tool-result-request-1', 'operation': 'full'})
+    assert code == 2 and full['error']['code'] == 'source_incomplete'
+    assert not {'response_path', 'full_path', 'expanded_path', 'last_path'} & agent.keys(), (
+        'DEFAULT_PENDING_NAVIGATION_LEAK', agent)
+
+
+@pytest.mark.parametrize('chars,expected_code', [(500, 0), (140, 2)])
+def test_default_agent_budget_counts_escaped_envelope_without_navigation(
+        project, tmp_path, chars, expected_code):
+    scene = SessionScenario(project, tmp_path)
+    scene.policy['display'].update(output_chars=chars, output_bytes=chars * 2)
+    scene.save_policy()
+    request = scene.input()
+    request['response']['output'] = 'RESULT: ' + '"\\' * 20 + '\n'
+    code, agent = scene.direct(request)
+    assert code == expected_code, 'DEFAULT_BRIEF_BUDGET_COUNTS_UNREQUESTED_NAVIGATION'
+    wire = scene.calls[-1]['stdout']
+    assert len(wire) <= chars and len(wire.encode()) <= chars * 2
+    assert str(scene.root) not in wire and 'response_path' not in wire
+    if code == 0:
+        assert agent['preview'] == 'Bash: exit 0; ' + '"\\' * 20
+    else:
+        assert agent['status'] == 'rejected' and agent['error']['code'] == 'budget_too_small'
+
+
 def test_two_tools_publish_distinct_uuid_files_and_last(project, tmp_path):
     scene = SessionScenario(project, tmp_path)
     first, _ = scene.stored(scene.input())
@@ -100,7 +159,19 @@ def test_general_output_cli_needs_no_project_or_checkout(tmp_path):
     assert cp.returncode == 0 and cp.stderr == b'', ('F08_PROJECTLESS_UNEXPECTED_ERROR', cp)
     value = json.loads(cp.stdout)
     assert value['preview'] == 'Bash: exit 0; 2 records'
-    assert Path(value['full_path']).is_file()
+    before = snapshot(root)
+    full_request = {'schema': 'poise-tool-result-request-1', 'operation': 'full'}
+    full = subprocess.run(argv, input=json.dumps(full_request).encode(), env=env,
+                          cwd=tmp_path, capture_output=True, check=False)
+    assert full.returncode == 0 and full.stderr == b''
+    saved = json.loads(full.stdout)
+    assert saved['status'] == 'full' and Path(saved['full_path']).is_file()
+    assert json.loads(Path(saved['full_path']).read_bytes()) == request['response']
+    last = list(root.rglob(policy['session']['last']))
+    assert len(last) == 1 and json.loads(last[0].read_bytes()) == {'uuid': saved['run_id']}
+    assert snapshot(root) == before, 'PROJECTLESS_FULL_READ_REPLAYED_OR_OVERWROTE_CAPTURE'
+    assert not {'response_path', 'full_path', 'expanded_path', 'last_path'} & value.keys(), (
+        'PROJECTLESS_DEFAULT_NAVIGATION_LEAK', value)
     assert not (tmp_path / '.git').exists()
     assert not (tmp_path / 'project.json').exists()
 
@@ -222,17 +293,22 @@ def test_retrieval_never_reparses_or_recaptures_and_ordinary_poise_still_does(pr
     request['response']['output'] = actual_process.stdout.decode()
     with ParserCalls(prepare) as calls:
         stored = owner.execute(request, 'agent')
+        assert stored['preview'] == cases()['bash-success']['brief']
+        stored_run = owner.execute({'schema': 'poise-tool-result-request-1',
+                                    'operation': 'full'}, 'agent')['run_id']
         before = scene.snapshot()
         for operation in ('expanded', 'full', 'expanded'):
             answer = owner.execute({'schema': 'poise-tool-result-request-1',
                                     'operation': operation}, 'agent')
-            assert answer['run_id'] == stored['run_id']
+            assert answer['run_id'] == stored_run
         assert scene.snapshot() == before
         assert len(calls.inputs) == 1, 'F08_SERVICE_REPARSED_OR_CAPTURED'
         assert scene.producer_count.read_text() == '1'
         ordinary = owner.execute(scene.input('poise', key='ordinary-poise-tool'), 'agent')
         assert len(calls.inputs) == 2
-        assert ordinary['run_id'] != stored['run_id']
+        assert ordinary['preview'] == cases()['poise']['brief']
+        assert owner.execute({'schema': 'poise-tool-result-request-1',
+                              'operation': 'full'}, 'agent')['run_id'] != stored_run
     assert scene.producer_count.read_text() == '1'
     assert calls.inputs == [request['response'], cases()['poise']['response']]
 

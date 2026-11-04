@@ -88,7 +88,9 @@ def test_installed_tool_result_consumer(project, tmp_path):
         try:
             _, saved = s.capture(req, 'machine')
             shown = s.success(s.request('view.template.json'))
-            assert shown['response_path'] == str(s.response_path)
+            assert 'response_path' not in shown
+            full = s.success(s.request('view.template.json', view='full'))
+            assert full['response_path'] == str(s.response_path)
             assert saved['response'] == expected
             if kind == 'mcp':
                 oracle = literal('mcp-reader-expected.json')

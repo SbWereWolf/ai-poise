@@ -95,9 +95,11 @@ class ToolResults:
         if audience == 'machine' and operation in ('capture', 'hook', 'view'): return record
         if operation in ('capture', 'hook', 'view'):
             result = navigation(record, request.get('view'))
-            result.update({k: record[k] for k in ('run_id', 'full_path', 'expanded_path', 'last_path')})
+            result['run_id'] = record['run_id']
             mode = request.get('view', 'brief')
-            if mode != 'full':
+            if mode == 'full':
+                result['full_path'] = record['full_path']
+            else:
                 result['preview'] = (record['_prepared']['brief'] if mode == 'brief'
                                      else self.store.expanded(record))
             require_budget(result, self.policy)
@@ -119,7 +121,7 @@ class ToolResults:
                 record, sources['response'], request, selected_parser['reason'], self.policy).data
         if audience == 'agent':
             candidate = navigation(record)
-            candidate.update({k: record[k] for k in ('run_id', 'full_path', 'expanded_path', 'last_path')})
+            candidate['run_id'] = record['run_id']
             candidate['preview'] = pair['brief']
             require_budget(candidate, self.policy)
         return pair

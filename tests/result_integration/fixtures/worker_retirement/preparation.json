@@ -1,0 +1,11 @@
+{
+  "parameters": {},
+  "catalog_dir": "${owner_root}/catalog",
+  "inputs": [],
+  "operations": ["prepare"],
+  "commands": {
+    "prepare": ["${python}", "${fixture}", "prepare", "${owner_root}", "${worktree}", "${task_id}", "${project_id}", "${task_root}", "${base}"],
+    "retire": ["${python}", "${fixture}", "retire", "${owner_root}", "${worktree}", "${task_id}", "${project_id}", "${task_root}", "${base}", "${integration_request_id}"]
+  },
+  "handler": {"callable": "retirement_handler:accept", "options": {}}
+}

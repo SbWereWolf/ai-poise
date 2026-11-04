@@ -20,6 +20,7 @@ from ..modules.result_integration.domain import (
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 from .locking import exclusive_lock
 from .task_cleanup import RuntimeTaskResourceCleanup
+from .worktree_retirement import ConfiguredWorktreeRetirement
 from .task_paths import task_root
 from .git_transport import run_git_receipt
 
@@ -30,6 +31,7 @@ class RuntimeResultIntegration:
     def __init__(self, runtime):
         self.h = runtime
         self.cleanup = RuntimeTaskResourceCleanup(runtime)
+        self.retirement = ConfiguredWorktreeRetirement(runtime)
 
     def _target_ref(self):
         return IntegrationPublicationTarget.target_ref_for(self.h.cfg["git"]["base_ref"])
@@ -887,6 +889,16 @@ class RuntimeResultIntegration:
     def _cleanup(self, run, repository):
         return self._cleanup_material_scope(run, repository)
 
+    def _retire_runtime(self, record, run):
+        if run.runtime_retirement_confirmed:
+            return run, True
+        receipt = self.retirement.retire(record, run.intent.request_id)
+        if receipt is None:
+            return run, True
+        confirmed = run.record_runtime_retirement(receipt)
+        self._save(run.intent.task_id, confirmed, run.version)
+        return confirmed, confirmed.runtime_retirement_confirmed
+
     def _cleanup_material_scope(self, run, repository):
         if run.phase != "cleanup_pending":
             return run
@@ -935,6 +947,10 @@ class RuntimeResultIntegration:
             )
             self._save(run.intent.task_id, blocked, run.version)
             return blocked
+        record = self.h.task_queries.record(run.intent.task_id)
+        run, retired = self._retire_runtime(record, run)
+        if not retired:
+            return run
         for resource in task_cleanup.resources:
             component = {
                 "worktree": "task_worktree",

@@ -47,9 +47,10 @@ def test_bounded_excerpt_keeps_head_and_real_tail(project, tmp_path, unit, case)
     assert Path(saved['streams']['stdout']['path']).read_bytes() == raw
     if case.endswith('global'):
         base = s.fill(data[(mode + '_base') if mode else 'ordinary_base'])
-        base.update(response_path=str(s.response_path), exit_code=selected['exit_code'])
+        base.pop('response_path', None)
+        base.update(exit_code=selected['exit_code'])
         if mode == 'enforce':
-            base['protocol']['hookSpecificOutput']['additionalContext'] = str(s.response_path) + '\n' + data['budget_preview']
+            base['protocol'] = {'continue': False, 'stopReason': data['budget_preview']}
         else:
             base.update(selection=selected['selection'], preview=data['budget_preview'])
         encoded = wire(base)
@@ -61,9 +62,8 @@ def test_bounded_excerpt_keeps_head_and_real_tail(project, tmp_path, unit, case)
         value = s.success(request)
         if mode == 'enforce':
             assert value['action'] == 'enforced' and value['protocol']['continue'] is False
-            context = value['protocol']['hookSpecificOutput']['additionalContext']
-            address, preview = context.split('\n', 1)
-            assert address == str(s.response_path)
+            preview = value['protocol']['stopReason']
+            assert str(s.response_path) not in json.dumps(value)
         else:
             assert value['selection'] == selected['selection']
             preview = value['preview']
@@ -134,7 +134,7 @@ def test_byte_line_and_utf8_boundaries(project, tmp_path, case):
     if case == 'long-unicode-line':
         assert len(value['preview'].encode()) <= 64
     assert Path(saved['streams']['stdout']['path']).read_bytes() == raw
-    assert str(s.response_path) == value['response_path']
+    assert 'response_path' not in value
 
 
 @pytest.mark.parametrize('kind', ['nul', 'invalid-utf8'])
@@ -150,6 +150,34 @@ def test_binary_view_preserves_raw(project, tmp_path, kind):
     assert '\x00' not in value.get('preview', '')
 
 
+@pytest.mark.parametrize('exit_code,brief', [
+    (7, 'binary output; exit 7'), (None, 'binary output; exit unavailable')])
+def test_enforce_binary_brief_preserves_source_and_outcome(project, tmp_path, exit_code, brief):
+    s = Scenario(project, tmp_path)
+    s.policy['hook']['mode'] = 'enforce'
+    s.save_policy()
+    raw = (FIXTURES / 'binary.bin').read_bytes()
+    s.out.write_bytes(raw)
+    s.err.write_bytes(b'')
+    request = s.request('hook.template.json', exit_code=exit_code)
+    request['event']['tool_response']['output'] = '\x00' * 1024
+    original = wire(request)
+    shown = s.success(request)
+    path = s.owner().store.address(request['request_id'])
+    before = s.snapshot()
+    machine = s.success({'schema': 'poise-tool-result-request-1', 'operation': 'view',
+                         'response_path': path, 'view': 'full'}, 'machine')
+    assert machine['response'] == request['event']['tool_response']
+    assert machine['capture'] == {'state': 'complete', 'reason': None}
+    assert machine['exit_code'] == shown['exit_code'] == exit_code
+    assert machine['streams']['stdout']['binary'] is True
+    assert Path(machine['streams']['stdout']['path']).read_bytes() == raw
+    assert wire(request) == original and s.snapshot() == before
+    assert shown['protocol'] == {'continue': False, 'stopReason': brief}, 'ENFORCE_BINARY_BRIEF_EMPTY'
+    assert 'response_path' not in shown and path not in json.dumps(shown)
+    assert '\x00' not in shown['protocol']['stopReason'] and '\ufffd' not in shown['protocol']['stopReason']
+
+
 @pytest.mark.parametrize('mode', ['brief', 'expanded', 'full'])
 def test_three_views_preserve_source(project, tmp_path, mode):
     s = Scenario(project, tmp_path)
@@ -158,7 +186,7 @@ def test_three_views_preserve_source(project, tmp_path, mode):
     before = s.snapshot()
     value = s.success(s.request('view.template.json', view=mode))
     assert value['view'] == mode
-    assert value['response_path'] == str(s.response_path)
+    assert ('response_path' in value) is (mode == 'full')
     assert value['capture'] == {'state': 'complete', 'reason': None}
     if mode == 'full':
         assert set(value) == {'status', 'response_path', 'view', 'capture', 'exit_code'}

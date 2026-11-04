@@ -123,7 +123,11 @@ def invoke_cli(project, packet):
     )
 
 
-def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preserves_data(project):
+@pytest.mark.parametrize('with_materials', [False, True])
+def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preserves_data(project, with_materials):
+    if with_materials:
+        project['cfg']['paths']['task_materials'] = 'user-materials'
+        write_json(project['config_path'], project['cfg'])
     database, packet, workflow_path = historical_project(project)
     before = snapshot(database)
     original_workflow = json.loads(workflow_path.read_text(encoding="utf-8"))

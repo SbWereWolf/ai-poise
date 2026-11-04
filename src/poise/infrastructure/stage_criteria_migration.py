@@ -16,6 +16,7 @@ from ..modules.tasks.stage_criteria import StageCriteriaBook
 from .catalogue import FileCatalogue
 from .goal_config import FileGoalConfigRepository
 from .locking import exclusive_lock
+from .backups import LocalTaskDatabaseBackups
 from .stage_criteria_history import canonical, identity, workflow_candidate, task_candidate
 from .stage_criteria_drafts import draft_candidate
 from .task_workflow_migration import _database_snapshot, _read_only_uri
@@ -386,7 +387,9 @@ def migrate_stage_criteria(adapter, request):
                 locks.enter_context(adapter.project_publication.stage_criteria_lock())
             locks.enter_context(exclusive_lock(lock, config['limits']['lock_seconds'],
                                                 config['limits']['lock_poll_seconds']))
-            with closing(sqlite3.connect(_read_only_uri(backup), uri=True)) as source:
+            with LocalTaskDatabaseBackups(adapter.config_path).database_copy(request.backup_name) as copy, closing(
+                sqlite3.connect(_read_only_uri(copy), uri=True)
+            ) as source:
                 if source.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
                     raise PoiseError('Named migration backup failed integrity_check')
                 backup_snapshot = _snapshot(source)

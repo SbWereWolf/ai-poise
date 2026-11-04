@@ -14,7 +14,11 @@ HELP = """poise backup commands:
   poise backup restore --config PROJECT_JSON BACKUP_NAME
   poise backup help
 
-Запускайте create и restore только когда ни один агент или процесс не пишет Task DB.
+При настроенном paths.task_materials копия ZIP содержит Task DB и материалы проекта.
+Без paths.task_materials создаётся SQLite-копия Task DB.
+Запускайте create и restore после остановки всех писателей БД и материалов:
+ни один агент или процесс не пишет Task DB, все соединения с БД закрыты.
+restore создаёт целевой файл БД, если он отсутствует.
 """
 
 

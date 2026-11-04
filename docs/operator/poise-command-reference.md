@@ -48,7 +48,8 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 [operation task_feedback](../workflows/batch-work.md#комментарии-и-исходные-вложения-task)
 в том же `work` с явным Task ID. Эта операция не требует выбора Task через
 bootstrap или захвата её исполнения; `show` текущей Task сохраняет прежний смысл.
-Предварительно включите [постоянное хранение](../configuration/project-setup.md#постоянные-материалы-комментариев-task)
+Предварительно включите [постоянное
+хранение](../configuration/project-setup.md#постоянные-материалы-комментариев-task)
 через существующий project-config owner.
 
 | Команда | Аргументы | Назначение |
@@ -400,15 +401,15 @@ bash "$stride_entry" --poise-root "$poise_root" --project "$project_id" \
 
 Эти операции выполняются по отдельному операторскому поручению.
 Для backup create/restore и миграций подготовьте согласованное окно остановленных
-writers по процедуре владельца.
+writers БД и материалов комментариев, закройте соединения с БД по процедуре владельца.
 
 | Команда | Аргументы | Назначение |
 |---|---|---|
 | `local-assets` | `--manifest PATH`; JSON stdin. | Восстановление объявленных локальных файлов из явного snapshot. |
 | `backup help` | Аргументов нет. | Справка и требования операторского окна. |
 | `backup list` | `--config PATH`. | Список имеющихся копий Task DB. |
-| `backup create` | `--config PATH`. | Создание копии Task DB. |
-| `backup restore` | `--config PATH NAME`. | Восстановление явно названной копии. |
+| `backup create` | `--config PATH`. | Копия Task DB и материалов проекта в ZIP при настроенном `paths.task_materials`; иначе SQLite. |
+| `backup restore` | `--config PATH NAME`. | Совместное восстановление названного комплекта, включая отсутствующий целевой файл БД. |
 | `route-migrate` | `--config PATH`; без stdin. | Явная миграция снятых ограничений route. |
 | `task-workflow-migrate` | `--config PATH`, необязательный `--project-settings PATH`; JSON stdin. | Явная миграция выбранных workflow snapshots. |
 
@@ -428,6 +429,10 @@ writers по процедуре владельца.
 реальное имя из backup list. `--project-settings` применяется к
 `task-stage-criteria-migration-1` для выбора владельца публикации
 `project-setup-settings-1`; эта опция не расширяет полномочия на другие задачи.
+
+Для backup сохраняйте исходные пути и выбранный проект в конфигурации. В общем корне
+`paths.task_materials` восстанавливается только namespace этого проекта. Форматы, проверки
+и действия при ошибке установки описаны в [руководстве backup](../task-db-backups.md).
 
 Владельцы: [локальные файлы](../configuration/local-assets.md#восстановление-и-результаты),
 [условие резервного копирования](../task-db-backups.md#обязательное-условие),

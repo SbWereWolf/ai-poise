@@ -962,11 +962,12 @@ def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_r
         alternate = project["root"] / "config/workflows/writer-development.json"
         write_json(alternate, json.loads(workflow_path.read_bytes()))
         alternate_editor = project["root"] / "writer-editor.json"
-        editor = fixture("migration-editor.json")
+        # Clone current settings prepared from the historical fixtures.
+        editor = json.loads((project["root"] / "criteria-editor.json").read_bytes())
         editor["workflows"]["development"] = "config/workflows/writer-development.json"
         write_json(alternate_editor, editor)
         alternate_catalogue = project["root"] / "writer-catalogue.json"
-        catalogue = fixture("migration-catalogue.json")
+        catalogue = json.loads((project["root"] / "criteria-catalogue.json").read_bytes())
         catalogue["editor"] = "writer-editor.json"
         write_json(alternate_catalogue, catalogue)
         manifest = json.loads(original_manifest)

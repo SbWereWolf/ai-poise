@@ -441,6 +441,21 @@ availability и дополнительные проверки, `run` — тол�
 сохраняются. Исполняемый consumer получает выбранный SDK из quoted literal
 `ERP_ENVIRONMENT_PYTHON_BIN` в `runtime.env`; путь с пробелами передаётся целиком.
 Общий environment и согласованные адреса/порты заполняются явно до запуска.
+
+Для нового ERP worktree настройка интервала Excel-import outbox должна пройти
+всю цепочку подготовки. В `config/projects/erp/local-settings.example.json` и
+в Planning-списке переменных `config/worktree-preparation/erp-profile.example.json`
+объявите `EXCEL_IMPORT_OUTBOX_INTERVAL_SECONDS` как обязательный
+`positive-integer`. Сохраните эту декларацию в выбранной операторской копии
+профиля. Во входном env выбранного профиля задайте
+`EXCEL_IMPORT_OUTBOX_INTERVAL_SECONDS=5` до подготовки зависимостей. Проверяйте
+именно источник, указанный рабочей конфигурацией; при использовании
+`operator_source/erp-environment.example.env` заполните его тем же значением.
+После генерации проверьте декларацию в
+`platform-infrastructure/config/dev/local-development.settings.json`, значение
+в `planning-workspace/.env` и успешный `artisan package:discover` штатного
+шага подготовки зависимостей. Значение является явной конфигурацией локального
+экземпляра.
 Для параллельной проверки выберите свободные собственные порты и обновите все
 связанные URLs; работающие экземпляры не требуется останавливать.
 

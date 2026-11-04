@@ -122,6 +122,12 @@ class Scenario:
         assert len(text) <= self.policy['display']['output_chars']
         assert len(text.encode()) <= self.policy['display']['output_bytes']
 
+    def owner(self):
+        from poise.composition import tool_result_tools
+        from poise.infrastructure.project_binding import read_project_checkout
+        return tool_result_tools(read_project_checkout(self.config, self.checkout),
+                                 self.policy, self.env)
+
     def capture(self, request=None, audience='agent'):
         request = self.request() if request is None else request
         value = self.success(request, audience)
@@ -129,7 +135,12 @@ class Scenario:
         assert value['capture'] == request['capture']
         assert type(value['exit_code']) is type(request['exit_code'])
         assert value['exit_code'] == request['exit_code']
-        self.response_path = Path(value['response_path'])
+        if audience == 'machine':
+            self.response_path = Path(value['response_path'])
+        else:
+            # Inspect the actual store's existing identity without replaying
+            # capture or adding private navigation to the agent response.
+            self.response_path = Path(self.owner().store.address(request['request_id']))
         assert self.response_path.is_relative_to(self.root)
         assert self.response_path.is_file()
         saved = json.loads(self.response_path.read_bytes())

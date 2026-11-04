@@ -81,6 +81,10 @@ class SessionScenario(Scenario):
         observed = value.get('run_id')
         assert isinstance(observed, str), 'F08_SESSION_RUN_UUID_MISSING'
         assert str(UUID(observed)) == observed, 'F08_SESSION_RUN_UUID_INVALID'
+        if 'full_path' not in value:
+            # Retained internal layout is a storage assertion, not agent output.
+            value = self.owner().store.latest()
+            assert value['run_id'] == observed
         path = Path(value['full_path'])
         assert observed in path.parent.name, 'F08_RUN_DIRECTORY_HAS_NO_UUID'
         assert path.is_absolute() and path.is_relative_to(self.root)

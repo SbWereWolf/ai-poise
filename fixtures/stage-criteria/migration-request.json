@@ -4,7 +4,7 @@
   "backup_name": "criteria-fixture.sqlite",
   "mapping": [
     {
-      "kind": "process_definition",
+      "kind": "workflow_definition",
       "goal_type": "development",
       "expected_revision": "fixture-observed-revision",
       "stages": [

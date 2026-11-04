@@ -4,7 +4,7 @@
   "receipt": "fixture-complete-receipt",
   "resources": [
     {
-      "kind": "process_definition",
+      "kind": "workflow_definition",
       "goal_type": "development",
       "old_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "new_digest": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",

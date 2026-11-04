@@ -1,6 +1,7 @@
 """Independent new-wire/CLI contracts, not a replacement migration engine."""
 
 from copy import deepcopy
+from dataclasses import replace
 import io
 import json
 import os
@@ -8,10 +9,11 @@ from pathlib import Path
 import sqlite3
 import subprocess
 import sys
+import traceback
 
 import pytest
 
-from poise.application.task_workflow_migration import TaskWorkflowMigrationCommands
+from poise.application.task_workflow_migration import MigrationRequest, TaskWorkflowMigrationCommands
 from poise.interfaces import task_workflow_migration
 from poise.modules.foundation.errors import PoiseError
 from conftest import write_json
@@ -65,22 +67,23 @@ class RecordingPort:
 
 def test_new_single_apply_request_reaches_existing_migration_port():
     packet = fixture("migration-request.json")
+    original = deepcopy(packet)
     expected = fixture("migration-success-response.json")
+    expected_request = fixture("migration-expected-request.json")
     port = RecordingPort(expected)
     observed = TaskWorkflowMigrationCommands(port).migrate(packet)
-    assert observed == expected
     assert len(port.requests) == 1
-    assert port.requests[0].schema == "task-stage-criteria-migration-1"
-    assert port.requests[0].request_id == "migrate-fixture-criteria"
-    assert packet == fixture("migration-request.json")
+    assert vars(port.requests[0]) == expected_request, "FORWARDED_REQUEST_MISMATCH"
+    assert port.requests[0].mapping == json.loads(expected_request["mapping_document"])
+    assert observed == expected, "MIGRATION_SUCCESS_RESPONSE_MISMATCH"
+    assert packet == original == fixture("migration-request.json"), "MIGRATION_INPUT_CHANGED"
 
 
-@pytest.mark.parametrize("fault", [
-    "removed_inventory", "unknown_field", "empty_mapping", "duplicate_resource", "empty_authorization",
-])
-def test_invalid_mapping_is_rejected_before_port_dispatch(fault):
+@pytest.mark.parametrize("case", fixture("migration-invalid-cases.json"), ids=lambda case: case["name"])
+def test_invalid_mapping_is_rejected_before_port_dispatch(case):
     packet = fixture("migration-request.json")
-    if fault == "removed_inventory":
+    fault = case["name"]
+    if fault == "legacy_inventory_field":
         packet["expected_inventory_digest"] = "0" * 64
     elif fault == "unknown_field":
         packet["phase"] = "prepare"
@@ -88,29 +91,91 @@ def test_invalid_mapping_is_rejected_before_port_dispatch(fault):
         packet["mapping"] = []
     elif fault == "duplicate_resource":
         packet["mapping"].append(deepcopy(packet["mapping"][0]))
-    else:
+    elif fault == "empty_authorization":
         packet["authorization"] = ""
+    else:
+        assert fault == "unknown_resource_kind"
+        packet["mapping"][0]["kind"] = "process_definition"
     port = RecordingPort({})
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError) as failure:
         TaskWorkflowMigrationCommands(port).migrate(packet)
+    assert str(failure.value) == case["error"]
     assert port.requests == []
 
 
 def test_cli_partial_publication_returns_exact_recovery_envelope_and_exit_two(monkeypatch, tmp_path):
     expected = fixture("migration-recovery-response.json")
+    expected_request = fixture("migration-expected-request.json")
     port = RecordingPort(expected)
-    monkeypatch.setattr(task_workflow_migration, "task_workflow_migration_tools", lambda path: port)
+    monkeypatch.setattr(task_workflow_migration, "task_workflow_migration_tools",
+                        lambda path: TaskWorkflowMigrationCommands(port))
     output = io.StringIO()
+    request_bytes = json.dumps(fixture("migration-request.json")).encode("utf-8")
+    stream = io.BytesIO(request_bytes)
     code = task_workflow_migration.execute(
         tmp_path / "project.json",
-        io.BytesIO(json.dumps(fixture("migration-request.json")).encode("utf-8")),
+        stream,
         output,
     )
-    assert json.loads(output.getvalue()) == expected
+    assert json.loads(output.getvalue()) == expected, "MIGRATION_RECOVERY_RESPONSE_MISMATCH"
     assert code == 2
     assert len(port.requests) == 1
+    assert vars(port.requests[0]) == expected_request, "FORWARDED_REQUEST_MISMATCH"
+    assert port.requests[0].mapping == json.loads(expected_request["mapping_document"])
+    assert stream.getvalue() == request_bytes, "MIGRATION_INPUT_CHANGED"
     assert "phase" not in json.loads(output.getvalue())
     assert "prepared" not in output.getvalue()
+
+
+def test_request_oracle_sensitivity_to_corrupted_backup_name(monkeypatch):
+    descriptor = MigrationRequest.__dict__["parse"]
+    parse = MigrationRequest.parse
+    with monkeypatch.context() as patch:
+        patch.setattr(MigrationRequest, "parse", staticmethod(
+            lambda packet: replace(parse(packet), backup_name="corrupted.sqlite")
+        ))
+        with pytest.raises(AssertionError, match="FORWARDED_REQUEST_MISMATCH") as failure:
+            test_new_single_apply_request_reaches_existing_migration_port()
+        print("".join(traceback.format_exception(failure.value)))
+        print("SENSITIVITY_REQUEST_DETECTED")
+    assert MigrationRequest.__dict__["parse"] is descriptor
+    print("SENSITIVITY_RESTORED")
+
+
+def test_success_response_oracle_sensitivity_to_corrupted_receipt(monkeypatch):
+    migrate = TaskWorkflowMigrationCommands.migrate
+
+    def corrupt_receipt(commands, packet):
+        response = migrate(commands, packet)
+        response["receipt"] = "corrupted-receipt"
+        return response
+
+    with monkeypatch.context() as patch:
+        patch.setattr(TaskWorkflowMigrationCommands, "migrate", corrupt_receipt)
+        with pytest.raises(AssertionError, match="MIGRATION_SUCCESS_RESPONSE_MISMATCH") as failure:
+            test_new_single_apply_request_reaches_existing_migration_port()
+        print("".join(traceback.format_exception(failure.value)))
+        print("SENSITIVITY_SUCCESS_RESPONSE_DETECTED")
+    assert TaskWorkflowMigrationCommands.migrate is migrate
+    print("SENSITIVITY_RESTORED")
+
+
+def test_recovery_response_oracle_sensitivity_to_corrupted_receipt(monkeypatch, tmp_path):
+    migrate = TaskWorkflowMigrationCommands.migrate
+
+    def corrupt_receipt(commands, packet):
+        response = migrate(commands, packet)
+        response["receipt"] = "corrupted-receipt"
+        return response
+
+    with monkeypatch.context() as patch:
+        patch.setattr(TaskWorkflowMigrationCommands, "migrate", corrupt_receipt)
+        with pytest.raises(AssertionError, match="MIGRATION_RECOVERY_RESPONSE_MISMATCH") as failure:
+            test_cli_partial_publication_returns_exact_recovery_envelope_and_exit_two(patch, tmp_path)
+        print("".join(traceback.format_exception(failure.value)))
+        print("SENSITIVITY_RECOVERY_RESPONSE_DETECTED")
+    assert TaskWorkflowMigrationCommands.migrate is migrate
+    print("SENSITIVITY_RESTORED")
 
 
 def invoke_cli(project, packet):

@@ -14,6 +14,12 @@ Link authoritative current sources instead of copying whole specifications.
 
 ## Transfer
 
+Complete the owner's handoff and confirm its actual outcome before sending the assigned
+counterpart a short "Handoff is ready" notice. Link the saved result and handoff receipt,
+identify the exact revision and the receiver's next action. The notice alone is not a
+handoff. Do not announce readiness for an unconfirmed transfer. A configured proxy may
+combine transfer and notification; verify both outcomes. Preserve explicit messaging limits.
+
 For a ready stage result, submit public handoff with the complete current result template,
 original artifact intents, task_id, stable request_id and reason. Omit target_stage for
 maximum progression or name the intended entry stage. Read the full verification,

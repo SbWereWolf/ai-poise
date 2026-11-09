@@ -1,0 +1,22 @@
+{
+  "operations": {
+    "infra": "infra.json",
+    "deps": "deps.json",
+    "check": "check.json",
+    "run": "run.json"
+  },
+  "interpreters": {
+    "resource": {
+      "module": "poise_environment.result_interpreters",
+      "attribute": "maintenance_result"
+    },
+    "exit": {
+      "module": "poise_environment.result_interpreters",
+      "attribute": "exit_result"
+    },
+    "project-list": {
+      "module": "poise_environment.result_interpreters",
+      "attribute": "project_list_result"
+    }
+  }
+}

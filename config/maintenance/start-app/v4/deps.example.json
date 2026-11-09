@@ -1,0 +1,316 @@
+{
+  "requirements": [
+    {
+      "id": "python-runtime",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.python_runtime",
+            "--minimum",
+            "${python_minimum}",
+            "--maximum",
+            "${python_maximum}",
+            "--requirement-id",
+            "python-runtime",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.python_runtime",
+                "--minimum",
+                "${python_minimum}",
+                "--maximum",
+                "${python_maximum}",
+                "--requirement-id",
+                "python-runtime",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "git-executable",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.git_executable",
+            "--git",
+            "${git}",
+            "--requirement-id",
+            "git-executable",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.git_executable",
+                "--git",
+                "${git}",
+                "--requirement-id",
+                "git-executable",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "poise-python-dependencies",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-P",
+            "-s",
+            "-B",
+            "-m",
+            "pip",
+            "install",
+            "--no-index",
+            "--find-links",
+            "${wheelhouse}",
+            "--target",
+            "${dependency_target}",
+            "psutil"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "-P",
+                "-s",
+                "-B",
+                "-c",
+                "import psutil; assert psutil.Process().pid > 0"
+              ],
+              "cwd": "${repository}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "availability": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "-P",
+                "-s",
+                "-B",
+                "-c",
+                "import psutil; assert psutil.Process().pid > 0"
+              ],
+              "cwd": "${repository}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

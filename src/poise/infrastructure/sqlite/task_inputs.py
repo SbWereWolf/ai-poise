@@ -80,6 +80,7 @@ class SqliteTaskInputs:
     materials: dict
     cycles: dict
     handoffs: dict
+    start_migrations: dict
 
     def handoff(self, request_id):
         from ...modules.tasks.handoff import StageHandoffState
@@ -190,6 +191,13 @@ class SqliteTaskInputs:
             raise PoiseError('Нет execution state задачи')
         return value
 
+    def require_start_execution(self, task_id):
+        from ...modules.tasks.start_admission import require_start_execution
+        execution = self.execution(task_id)
+        require_start_execution(task_id, json.loads(self.tasks[task_id].header['metadata']),
+            None if execution is None else execution[0],
+            tuple(json.loads(raw) for raw in self.start_migrations[task_id]))
+
     def review_identity(self, task_id, *, include_unsubmitted=False):
         return self.reviews[(task_id, True) if include_unsubmitted else task_id].restore()
 
@@ -256,6 +264,7 @@ class SqliteTaskInputs:
 
 
 def capture_inputs(db, read_set):
+    from .start_admission import capture_start_migrations
     from .stage_result_handoff import SqliteHandoffRepository
     from .task_allocation import capture_allocations
     from .task_verification import capture_verification
@@ -269,12 +278,14 @@ def capture_inputs(db, read_set):
     families = {task_id: capture_duplicate_family(db, task_id)
                 for task_id in set(read_set.family_ids) | set(read_set.family_execution_ids) | set(read_set.family_contract_ids)}
     execution_ids = set(read_set.execution_ids)
+    execution_ids.update(read_set.start_admission_ids)
     for task_id in read_set.family_execution_ids:
         family = families[task_id]
         if family is not None:
             execution_ids.update(row['id'] for row in family[2] if row['status'] == 'completed')
     actors = {}
     ids = set(read_set.task_ids)
+    ids.update(read_set.start_admission_ids)
     ids.update(task_id if families[task_id] is None else families[task_id][0]
                for task_id in read_set.family_contract_ids)
     for actor in read_set.actors:
@@ -323,7 +334,9 @@ def capture_inputs(db, read_set):
         {task_id: capture_history(db, task_id) for task_id in read_set.history_ids}, eligibility,
         {task_id: tuple(SqliteArtifactRepository(db).records(task_id)) for task_id in read_set.material_ids},
         {pair: SqliteAccountingCycles.capture_release(db, *pair) for pair in read_set.cycle_releases},
-        {request: SqliteHandoffRepository(db).capture(request) for request in read_set.handoff_requests})
+        {request: SqliteHandoffRepository(db).capture(request) for request in read_set.handoff_requests},
+        {task_id: capture_start_migrations(db, json.loads(tasks[task_id].header['metadata']))
+         for task_id in read_set.start_admission_ids})
 
 
 def require_inputs(db, inputs):

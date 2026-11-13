@@ -1,0 +1,47 @@
+{
+  "applications": [
+    {
+      "id": "selected-poise-cli",
+      "commands": [
+        {
+          "argv": [
+            "${maintenance_python}",
+            "-I",
+            "-B",
+            "-m",
+            "environment_maintenance.running.console",
+            "--stdout-log",
+            "${console_log_directory}/selected-poise-cli.stdout",
+            "--stderr-log",
+            "${console_log_directory}/selected-poise-cli.stderr",
+            "--",
+            "${python}",
+            "-P",
+            "-s",
+            "-B",
+            "-m",
+            "poise",
+            "project",
+            "list",
+            "--settings",
+            "${profile_root}/setup.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

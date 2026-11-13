@@ -1,0 +1,41 @@
+{
+  "requirements": [
+    {
+      "id": "configured-project-adjustment",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-c",
+            "exec \"$$@\" < \"$$POISE_ADJUST_REQUEST\"",
+            "poise-adjust",
+            "${python}",
+            "-P",
+            "-s",
+            "-B",
+            "-m",
+            "poise",
+            "project-config",
+            "--settings",
+            "${profile_root}/setup.json"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_ADJUST_REQUEST": "${adjust_request}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

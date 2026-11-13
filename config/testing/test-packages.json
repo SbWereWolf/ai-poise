@@ -153,6 +153,8 @@
           "src/poise/application/tasks.py",
           "src/poise/modules/tasks/**/*.py",
           "src/poise/infrastructure/sqlite/tasks.py",
+          "src/poise/infrastructure/requirements_registry.py",
+          "src/poise/modules/requirements_registry/**/*.py",
           "src/poise/application/duplicate_tasks.py",
           "src/poise/infrastructure/sqlite/duplicate_tasks.py",
           "tests/sprints/helpers.py",
@@ -164,7 +166,8 @@
         ],
         "fixtures": [
           "tests/conftest.py",
-          "tests/tasks/fixtures/*.json"
+          "tests/tasks/fixtures/*.json",
+          "tests/requirements_registry/fixtures/initial_ready_contract.json"
         ]
       }
     },

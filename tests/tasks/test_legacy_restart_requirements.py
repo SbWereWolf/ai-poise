@@ -7,6 +7,7 @@ from copy import deepcopy
 from io import StringIO
 from pathlib import Path
 import os
+import sqlite3
 import sys
 
 import pytest
@@ -497,14 +498,12 @@ def test_registry_change_during_preflight_rejects_without_task_mutation(project,
 
     def interleave_registry_change(*args, **kwargs):
         prepared = original_prepare(*args, **kwargs)
-        client.runtime.requirements_commands.apply({
-            "request_id": "concurrent-registry-change",
-            "expected_revision": 1,
-            "operations": [{"kind": "put_requirement", "requirement": {
-                "id": "FIXTURE-SYSTEM", "level": "system", "status": "obsolete",
-                "text": "Concurrent live change invalidates the new snapshot.",
-            }}],
-        })
+        # Arrange independent registry drift in the isolated fixture database.
+        with sqlite3.connect(client.runtime.requirements_store.database) as database:
+            database.execute(
+                'UPDATE requirements SET status=?,text=? WHERE id=?',
+                ('obsolete', 'Concurrent live change invalidates the new snapshot.', 'FIXTURE-SYSTEM'))
+            database.execute('UPDATE requirements_meta SET revision=?', (2,))
         after_registry_change.append(_observable_state(client, task_id))
         return prepared
 

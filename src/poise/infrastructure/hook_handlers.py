@@ -136,10 +136,13 @@ class BuiltinHandlers:
         elif name == 'tool-result':
             from ..composition import tool_result_tools
             from ..modules.result_views.tool_results import (
-                ToolResultPolicy, ToolResultFailure, encoded,
+                ToolResultPolicy, ToolResultFailure, encoded, native_hook_feedback,
             )
             from .tool_results import service_delivery
             policy = ToolResultPolicy.parse(strict_json(resources[options['policy_path']])).data
+            native = event.get('tool_response')
+            code = native.get('exit_code') if isinstance(native, dict) else None
+            code = code if type(code) is int else None
             try:
                 caller = CallerIdentity.harness('native', self.binding['external_session'])
                 owner = tool_result_tools(None, policy, {}, caller=caller, resources=resources)
@@ -153,15 +156,12 @@ class BuiltinHandlers:
                         'exit_code': None}, 'agent')
                     text = result['preview']
             except ToolResultFailure as error:
-                native = event.get('tool_response')
-                code = native.get('exit_code') if isinstance(native, dict) else None
-                code = code if type(code) is int else None
-                response = append_context(response, event['hook_event_name'], encoded(error.result(code)))
-                return {'schema': 'poise-hook-handler-result-1', 'invocation_id': packet['invocation_id'],
-                        'response': response, 'control': {'action': 'continue', 'reason': None}}, execution
+                text = encoded(error.result(code))
             if policy['hook']['mode'] == 'enforce':
-                text = 'tool-result: native shortening unsupported; original result preserved.'
-            response = append_context(response, event['hook_event_name'], text)
+                response = native_hook_feedback(response, text, policy,
+                                                self.service.settings.raw['output_chars'], code)
+            else:
+                response = append_context(response, event['hook_event_name'], text)
         elif name == 'lifecycle-consumer':
             from .hook_lifecycle import consumer_options, prepare, deliver
             consumer = consumer_options(options['consumer'])

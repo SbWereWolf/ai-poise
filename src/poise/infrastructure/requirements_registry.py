@@ -140,7 +140,7 @@ class SqliteRegistrySnapshotProvider:
                 tuple(sorted((r['system'], r['application']) for r in expected['links'])))
 
     def require_same(self, expected):
-        with self.store._preparation() as db:
+        with self.store._transaction() as db:
             actual = (tuple(tuple(r) for r in db.execute(
                 'SELECT id,level,status,text FROM requirements ORDER BY id')),
                 tuple(tuple(r) for r in db.execute('SELECT system_id,application_id '

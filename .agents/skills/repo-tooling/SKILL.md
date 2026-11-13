@@ -7,6 +7,12 @@ metadata:
 
 # Repository tooling
 
+For `tool-result`, default agent output is brief only, without generated saved-output
+navigation. Use the existing owner's explicit expanded/full reads; preserve complete
+machine results and producer outcomes. Native enforce budgets the serialized feedback,
+including escaping and framing. See [the canonical display
+contract](../../../docs/configuration/tool-results.md#представления-и-программный-потребитель).
+
 ## Inputs
 
 For command classification, bounded document intake or its hook configuration,
@@ -81,7 +87,8 @@ for explicit roots, policy, refresh and readiness.
 The implemented tool contract and focused tests, exact input/result/exit/error behavior,
 replay/recovery evidence, source/runtime identity and bounded diagnostic links in the existing
 Task/evidence/artifact owners. Link remaining external capabilities, not invented successes.
-Transfer via ordinary public release; this skill does not authorize acceptance, master integration or
+Transfer via ordinary public release; this skill does not authorize acceptance, master integration
+or
 publication.
 
 ## Working-result placement
@@ -114,12 +121,15 @@ and integration authority do not follow from it.
 ### Explicit ordinary-read event adapter
 
 Compose the existing HookService and shared document-intake owners; keep
-[full configuration and installed examples](../../../docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд)
+[full configuration and installed
+examples](../../../docs/configuration/project-file-reading.md#подключение-учёта-обычных-команд)
 at their canonical operator owner. Use actual revision/immutable admission before genuine
 Start and preserve the configured project/checkout/native caller. Keep
-[proved source projection and cwd](../../../docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог),
+[proved source projection and
+cwd](../../../docs/configuration/project-file-reading.md#поддержанные-запросы-и-рабочий-каталог),
 [metadata-only coverage](../../../docs/configuration/project-file-reading.md#сводка-покрытия)
-and [pending/settlement/recovery](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
+and
+[pending/settlement/recovery](../../../docs/workflows/file-intake-lifecycle.md#ожидание-и-завершение-обычного-чтения)
 with their current owners. Preserve complete machine results and truthful pre-refusal versus
 post-accounting warnings; do not introduce a second ledger, runner, native identity or lifecycle.
 Check installed-consumer claims independently from actual host event delivery.

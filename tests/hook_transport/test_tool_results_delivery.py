@@ -18,6 +18,127 @@ from tests.hook_transport.session_output_support import (
 from tests.runtime_services.session_tool_results_support import ParserCalls, cases, prepare_owner
 
 
+@pytest.mark.parametrize('case', ['bash-success', 'bash-failure', 'mcp', 'unicode-nul'])
+def test_enforce_serialized_feedback_contains_only_brief(project, tmp_path, case):
+    from poise.interfaces.hook_transport import _write_native
+    from tests.runtime_services.native_wire_support import select_text, wire_case
+    chain = Chain(project, tmp_path, 'ENFORCE_BRIEF_ONLY')
+    scene = scene_for_chain(chain, project, tmp_path)
+    scene.policy['hook']['mode'] = 'enforce'
+    scene.save_policy()
+    if case == 'unicode-nul':
+        select_text(scene)
+        data = wire_case(case)
+        source, brief, expanded, tool = data['raw'], data['brief'], data['expanded'], 'Bash'
+    else:
+        data = cases()[case]
+        source, brief, expanded = data['response'], data['brief'], data['expanded']
+        tool = data['tool']['name']
+    source = deepcopy(source)
+    if isinstance(source, str):
+        source += 'FULL_ONLY_PADDING\n' * 256
+    else:
+        source['full_only_padding'] = 'FULL_ONLY_PADDING\n' * 256
+    configure_chain(chain, scene, matcher='Bash|mcp__fixture__query',
+                    after=[chain.command('after')])
+    event = scene.native(source, tool=tool)['event']
+    event['session_id'] = chain.session
+    event['transcript_path'] = None
+    original = deepcopy(event)
+    with ParserCalls(prepare_owner()) as calls:
+        response = chain.invoke(event, event_name='PostToolUse')
+        output = io.StringIO()
+        _write_native(chain.service, response, chain.installation['definition_path'], output)
+        wire = output.getvalue()
+        actual = json.loads(wire)
+        full = scene.service('full')
+        before = scene.snapshot()
+        detail = scene.service('expanded')
+        again = scene.service('full')
+    assert len(calls.inputs) == 1, 'ENFORCE_REPLAYED_PRODUCER_OR_RECAPTURED_VIEW'
+    assert detail['text'] == expanded and detail['run_id'] == full['run_id'] == again['run_id']
+    assert scene.snapshot() == before, 'ENFORCE_VIEW_CHANGED_ORIGINAL_RESULT'
+    saved = Path(full['full_path']).read_bytes()
+    assert (saved == source.encode() if isinstance(source, str) else json.loads(saved) == source)
+    assert event == original and chain.delivery()[1]['event'] == original
+    assert [row['label'] for row in chain.order()] == ['after']
+    assert actual.get('continue') is False, 'ENFORCE_FEEDBACK_NOT_REPLACING_RAW_RESULT'
+    assert actual['stopReason'] == brief, 'ENFORCE_FEEDBACK_LOST_USEFUL_BRIEF'
+    assert actual.get('hookSpecificOutput', {}).get('additionalContext', '') in ('', brief)
+    assert 'FULL_ONLY' not in wire and str(scene.root) not in wire
+    assert full['full_path'] not in wire and 'response_path' not in wire
+    assert len(wire) <= scene.policy['display']['output_chars']
+    assert len(wire.encode()) <= scene.policy['display']['output_bytes']
+
+
+def test_enforce_native_budget_counts_escaped_feedback_and_framing(project, tmp_path):
+    from poise.infrastructure.hook_transport import HookService
+    from poise.interfaces.hook_transport import _write_native
+    chain = Chain(project, tmp_path, 'ENFORCE_NATIVE_WIRE_BUDGET')
+    scene = scene_for_chain(chain, project, tmp_path)
+    scene.policy['hook']['mode'] = 'enforce'
+    scene.policy['display'].update(output_chars=10000, output_bytes=20000)
+    scene.policy['parsers']['Bash']['brief'].update(chars=512, bytes=1024)
+    scene.save_policy()
+    configure_chain(chain, scene, after=[chain.command('after')])
+    # Test-owned native transport limit is tighter than the prepared-view limit.
+    # A correct brief envelope can fit the latter and still overflow the former.
+    settings = json.loads(chain.general.settings_path.read_bytes())
+    settings['output_chars'] = 500
+    write(chain.general.settings_path, settings)
+    chain.service = HookService(chain.general.settings_path)
+    brief = 'Bash: exit 7; ' + '"\\' * 150
+    mandatory = json.dumps({'continue': False, 'stopReason': brief},
+                           ensure_ascii=False, separators=(',', ':')) + '\n'
+    assert len(brief) <= 500 < len(mandatory)
+    source = deepcopy(cases()['bash-failure']['response'])
+    source['output'] = 'RESULT: ' + '"\\' * 150 + '\n'
+    event = scene.native(source)['event']
+    event['session_id'] = chain.session
+    original = deepcopy(event)
+    response = chain.invoke(event, event_name='PostToolUse')
+    output = io.StringIO()
+    _write_native(chain.service, response, chain.installation['definition_path'], output)
+    wire = output.getvalue()
+    actual = json.loads(wire)
+    assert event == original and chain.delivery()[1]['event']['tool_response'] == source
+    full = scene.service('full')
+    assert json.loads(Path(full['full_path']).read_bytes()) == source
+    assert [row['label'] for row in chain.order()] == ['after']
+    assert wire.endswith('\n') and len(wire) <= 500
+    assert len(wire.encode()) <= scene.policy['display']['output_bytes']
+    assert actual.get('continue') is False, 'ENFORCE_NATIVE_BUDGET_HAS_NO_BOUNDED_REPLACEMENT'
+    refusal = json.loads(actual['stopReason'])
+    assert refusal['status'] == 'rejected' and refusal['exit_code'] == 7
+    assert refusal['error']['code'] == 'budget_too_small'
+    assert str(scene.root) not in wire and 'response_path' not in wire
+
+
+def test_enforce_projection_failure_preserves_producer_failure(project, tmp_path):
+    from poise.interfaces.hook_transport import _write_native
+    chain = Chain(project, tmp_path, 'ENFORCE_PROJECTION_REFUSAL')
+    scene = scene_for_chain(chain, project, tmp_path)
+    scene.policy['hook']['mode'] = 'enforce'
+    scene.save_policy()
+    configure_chain(chain, scene, after=[chain.command('after')])
+    source = deepcopy(cases()['bash-failure']['response'])
+    source['output'] = 'RESULT: ' + 'x' * 129
+    event = scene.native(source)['event']
+    event['session_id'] = chain.session
+    response = chain.invoke(event, event_name='PostToolUse')
+    output = io.StringIO()
+    _write_native(chain.service, response, chain.installation['definition_path'], output)
+    wire = output.getvalue()
+    actual = json.loads(wire)
+    assert chain.delivery()[1]['event']['tool_response'] == source
+    assert [row['label'] for row in chain.order()] == ['after']
+    assert actual.get('continue') is False, 'ENFORCE_REFUSAL_LEAVES_RAW_RESULT_VISIBLE'
+    refusal = json.loads(actual['stopReason'])
+    assert refusal['status'] == 'rejected' and refusal['exit_code'] == 7
+    assert refusal['error']['code'] == 'budget_too_small'
+    assert str(scene.root) not in wire and 'response_path' not in wire
+
+
 @pytest.mark.parametrize('case', ['parser', 'budget', 'source', 'healthy'])
 def test_output_rejection_crosses_real_hook_boundary(project, tmp_path, case):
     from tests.runtime_services.tool_results_support import literal

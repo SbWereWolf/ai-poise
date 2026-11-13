@@ -130,7 +130,8 @@ def test_controlled_bash_hook_uses_common_owner(project, tmp_path, mode, size):
     hook['event']['tool_response'] = response
     result = s.success(hook)
     # Both actual public routes must normalize to the same saved owned result.
-    assert result['response_path'] == plain['response_path']
+    assert 'response_path' not in result
+    assert s.owner().store.address(hook['request_id']) == plain['response_path']
     assert s.snapshot() == before
     assert json.loads(s.response_path.read_bytes())['response'] == response
     assert Path(saved['streams']['stdout']['path']).read_bytes() == s.out.read_bytes()
@@ -140,8 +141,7 @@ def test_controlled_bash_hook_uses_common_owner(project, tmp_path, mode, size):
         assert result['action'] == 'enforced'
         assert result['protocol']['continue'] is False
         assert isinstance(result['protocol']['stopReason'], str) and result['protocol']['stopReason']
-        assert result['protocol']['hookSpecificOutput']['hookEventName'] == 'PostToolUse'
-        assert str(s.response_path) in result['protocol']['hookSpecificOutput']['additionalContext']
+        assert str(s.response_path) not in json.dumps(result)
     assert s.producer_count.read_text() == '1'
 
 
@@ -159,7 +159,7 @@ def test_hook_first_capture_preserves_complete_new_event(project, tmp_path, mode
     hook['event']['tool_response'] = response
     assert s.snapshot() == {} and list(s.root.iterdir()) == []
     result = s.success(hook)
-    s.response_path = Path(result['response_path'])
+    s.response_path = Path(s.owner().store.address(hook['request_id']))
     assert s.response_path.is_relative_to(s.root) and s.response_path.is_file()
     saved = json.loads(s.response_path.read_bytes())
     assert wire(saved['response']) == wire(hook['event']['tool_response'])
@@ -174,9 +174,8 @@ def test_hook_first_capture_preserves_complete_new_event(project, tmp_path, mode
         assert result['action'] == 'enforced'
         assert result['protocol']['continue'] is False
         assert result['protocol']['stopReason']
-        assert result['protocol']['hookSpecificOutput']['hookEventName'] == 'PostToolUse'
-        assert str(s.response_path) in result['protocol']['hookSpecificOutput']['additionalContext']
+        assert str(s.response_path) not in json.dumps(result)
     before = s.snapshot()
     ordinary, _ = s.capture(s.request(request_id='unseen-hook-first', response=response), 'machine')
-    assert ordinary['response_path'] == result['response_path']
+    assert ordinary['response_path'] == str(s.response_path) and 'response_path' not in result
     assert s.snapshot() == before and s.producer_count.read_text() == '1'

@@ -542,6 +542,31 @@ class IntegrationRun:
             publication=publication, target_after=self.integration_head, failure=None,
         )
 
+    @property
+    def runtime_retirement_confirmed(self):
+        return any(item.get('event') == 'runtime_retirement_completed' for item in self.history)
+
+    def record_runtime_retirement(self, receipt):
+        if self.phase != 'cleanup_pending':
+            raise DomainError('Runtime retirement requires confirmed publication')
+        confirmed = (
+            receipt.get('actual_exit_code') == 0
+            and receipt.get('timed_out') is False
+            and receipt.get('cancelled') is False
+            and receipt.get('capture_complete') is True
+            and receipt.get('error') is None
+        )
+        if not confirmed:
+            return self.cleanup_blocked('task_worktree', {
+                **receipt, 'reason': 'runtime_retirement_failed',
+                'recovery': 'Устраните причину у объявленного владельца runtime или в его настройке '
+                            'и повторите тот же исходный запрос integrate.',
+            })
+        return self._step(
+            'cleanup_pending', 'cleanup_pending', 'runtime_retirement_completed',
+            details={'receipt': receipt},
+        )
+
     def cleanup_blocked(self, component, receipt):
         if self.phase != "cleanup_pending" or component not in self.cleanup:
             raise DomainError("Cleanup blockage does not match the integration state")

@@ -1,0 +1,142 @@
+{
+  "parameters": {
+    "python": "${python}",
+    "env_executable": "${env_executable}",
+    "runtime_module_path": "${runtime_module_path}",
+    "tool_config": "${profile_root}/app.json",
+    "parameters_file": "${profile_root}/parameters.json"
+  },
+  "commands": {
+    "infra": [
+      "$${env_executable}",
+      "PYTHONPATH=$${runtime_module_path}",
+      "$${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "infra",
+      "--config",
+      "$${tool_config}",
+      "--parameters",
+      "$${parameters_file}",
+      "--base-dir",
+      "$${base_dir}",
+      "--requirements",
+      "all"
+    ],
+    "deps": [
+      "$${env_executable}",
+      "PYTHONPATH=$${runtime_module_path}",
+      "$${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "deps",
+      "--config",
+      "$${tool_config}",
+      "--parameters",
+      "$${parameters_file}",
+      "--base-dir",
+      "$${base_dir}",
+      "--requirements",
+      "all"
+    ],
+    "check": [
+      "$${env_executable}",
+      "PYTHONPATH=$${runtime_module_path}",
+      "$${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--config",
+      "$${tool_config}",
+      "--parameters",
+      "$${parameters_file}",
+      "--base-dir",
+      "$${base_dir}"
+    ],
+    "run": [
+      "$${env_executable}",
+      "PYTHONPATH=$${runtime_module_path}",
+      "$${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "run",
+      "--config",
+      "$${tool_config}",
+      "--parameters",
+      "$${parameters_file}",
+      "--base-dir",
+      "$${base_dir}"
+    ],
+    "repair": [
+      "$${env_executable}",
+      "PYTHONPATH=$${runtime_module_path}",
+      "$${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "infra",
+      "--config",
+      "$${tool_config}",
+      "--parameters",
+      "$${parameters_file}",
+      "--base-dir",
+      "$${base_dir}",
+      "--requirements",
+      "all"
+    ],
+    "verify": [
+      "$${env_executable}",
+      "PYTHONPATH=$${runtime_module_path}",
+      "$${python}",
+      "-P",
+      "-s",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--config",
+      "$${tool_config}",
+      "--parameters",
+      "$${parameters_file}",
+      "--base-dir",
+      "$${base_dir}"
+    ]
+  },
+  "handler": {
+    "callable": "apps.bootstrap.environment_result:handle",
+    "options": {
+      "schema": null,
+      "status_exit_codes": {
+        "succeeded": 0,
+        "failed": 1
+      },
+      "success_statuses": [
+        "succeeded"
+      ],
+      "repairable_statuses": [
+        "failed"
+      ],
+      "repair_operations": [
+        "infra",
+        "deps"
+      ],
+      "repair_command": "repair",
+      "verification_command": "verify",
+      "failure_exit_code": 4
+    }
+  }
+}

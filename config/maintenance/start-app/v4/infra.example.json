@@ -1,0 +1,1430 @@
+{
+  "requirements": [
+    {
+      "id": "target-repository",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.repository",
+            "--repository",
+            "${repository}",
+            "--base-ref",
+            "${base_ref}",
+            "--git",
+            "${git}",
+            "--requirement-id",
+            "target-repository",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.repository",
+                "--repository",
+                "${repository}",
+                "--base-ref",
+                "${base_ref}",
+                "--git",
+                "${git}",
+                "--requirement-id",
+                "target-repository",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "state-root",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${state_root}",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "state-root",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${state_root}",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "state-root",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "runtime-directory",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${state_root}/runtime",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "runtime-directory",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${state_root}/runtime",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "runtime-directory",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "task-directory",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${state_root}/standalone",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "task-directory",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${state_root}/standalone",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "task-directory",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sprint-directory",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${state_root}/sprints",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "sprint-directory",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${state_root}/sprints",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "sprint-directory",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "worktree-directory",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${worktree_root}",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "worktree-directory",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${worktree_root}",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "worktree-directory",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "requirements-directory",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${state_root}/database",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "requirements-directory",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${state_root}/database",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "requirements-directory",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "telemetry-directory",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.directory",
+            "--path",
+            "${state_root}/telemetry",
+            "--permissions",
+            "${directory_mode}",
+            "--requirement-id",
+            "telemetry-directory",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.directory",
+                "--path",
+                "${state_root}/telemetry",
+                "--permissions",
+                "${directory_mode}",
+                "--requirement-id",
+                "telemetry-directory",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "poise-project-config",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.project_config",
+            "--config",
+            "${profile_root}/selected-project/project.json",
+            "--settings",
+            "${profile_root}/setup.json",
+            "--edits",
+            "${profile_root}/project-edits.json",
+            "--destination",
+            "selected-project",
+            "--template",
+            "${template_id}",
+            "--requirement-id",
+            "poise-project-config",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.project_config",
+                "--config",
+                "${profile_root}/selected-project/project.json",
+                "--settings",
+                "${profile_root}/setup.json",
+                "--edits",
+                "${profile_root}/project-edits.json",
+                "--destination",
+                "selected-project",
+                "--template",
+                "${template_id}",
+                "--requirement-id",
+                "poise-project-config",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "poise-task-database",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${task_database_lock_executable}",
+            "--exclusive",
+            "--timeout",
+            "${task_database_lock_wait_seconds}",
+            "${task_database_lock}",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.task_database",
+            "--config",
+            "${profile_root}/selected-project/project.json",
+            "--state-root",
+            "${state_root}",
+            "--requirement-id",
+            "poise-task-database",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${task_database_lock_executable}",
+                "--exclusive",
+                "--timeout",
+                "${task_database_lock_wait_seconds}",
+                "${task_database_lock}",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.task_database",
+                "--config",
+                "${profile_root}/selected-project/project.json",
+                "--state-root",
+                "${state_root}",
+                "--requirement-id",
+                "poise-task-database",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "requirements-migration-tools",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-P",
+            "-s",
+            "-B",
+            "-m",
+            "pip",
+            "install",
+            "--no-index",
+            "--find-links",
+            "${wheelhouse}",
+            "--target",
+            "${dependency_target}",
+            "yoyo-migrations==9.0.0",
+            "sqlparse==0.6.0"
+          ],
+          "cwd": "${repository}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "-P",
+                "-s",
+                "-B",
+                "-c",
+                "import sqlparse, yoyo, sys; from pathlib import Path; target = Path(sys.argv[1]).resolve(); assert all(Path(module.__file__).resolve().is_relative_to(target) for module in (sqlparse, yoyo)); print(\"migration tools available in serviced target\")",
+                "${dependency_target}"
+              ],
+              "cwd": "${repository}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "poise-requirements-database",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.requirements_database",
+            "--config",
+            "${profile_root}/selected-project/project.json",
+            "--state-root",
+            "${state_root}",
+            "--requirement-id",
+            "poise-requirements-database",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.requirements_database",
+                "--config",
+                "${profile_root}/selected-project/project.json",
+                "--state-root",
+                "${state_root}",
+                "--requirement-id",
+                "poise-requirements-database",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "poise-telemetry-database",
+      "commands": [
+        {
+          "argv": [
+            "${bash}",
+            "-o",
+            "pipefail",
+            "-c",
+            "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+            "poise-result",
+            "${python}",
+            "-B",
+            "-m",
+            "poise_environment.repairs.telemetry_database",
+            "--config",
+            "${profile_root}/selected-project/project.json",
+            "--state-root",
+            "${state_root}",
+            "--requirement-id",
+            "poise-telemetry-database",
+            "--action",
+            "install",
+            "--schema",
+            "poise/maintenance-action/v2",
+            "--recommendations",
+            "${profile_root}/recommendations.json"
+          ],
+          "cwd": "${profile_root}",
+          "env": {
+            "PYTHONPATH": "${runtime_module_path}",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": "C.UTF-8",
+            "POISE_JQ": "${jq}",
+            "POISE_RESULT_FILTER": "${resource_result_filter}",
+            "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+            "POISE_RESULT_FIELD": "outcome",
+            "POISE_RESULT_EXPECTED": "completed"
+          },
+          "interpreter": {
+            "name": "resource",
+            "options": {
+              "accept": [
+                0
+              ],
+              "schema": "poise/maintenance-action/v2",
+              "field": "outcome",
+              "values": [
+                "completed"
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${bash}",
+                "-o",
+                "pipefail",
+                "-c",
+                "\"$$@\" | \"$$POISE_JQ\" --raw-input --slurp --join-output \"$$POISE_RESULT_FILTER\"",
+                "poise-result",
+                "${python}",
+                "-B",
+                "-m",
+                "poise_environment.repairs.telemetry_database",
+                "--config",
+                "${profile_root}/selected-project/project.json",
+                "--state-root",
+                "${state_root}",
+                "--requirement-id",
+                "poise-telemetry-database",
+                "--action",
+                "check",
+                "--schema",
+                "poise/maintenance-action/v2",
+                "--recommendations",
+                "${profile_root}/recommendations.json"
+              ],
+              "cwd": "${profile_root}",
+              "env": {
+                "PYTHONPATH": "${runtime_module_path}",
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "LANG": "C.UTF-8",
+                "POISE_JQ": "${jq}",
+                "POISE_RESULT_FILTER": "${resource_result_filter}",
+                "POISE_RESULT_SCHEMA": "poise/maintenance-action/v2",
+                "POISE_RESULT_FIELD": "state",
+                "POISE_RESULT_EXPECTED": "satisfied"
+              },
+              "interpreter": {
+                "name": "resource",
+                "options": {
+                  "accept": [
+                    0
+                  ],
+                  "schema": "poise/maintenance-action/v2",
+                  "field": "state",
+                  "values": [
+                    "satisfied"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

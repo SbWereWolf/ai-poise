@@ -304,7 +304,9 @@ EOF до ответа инструмента сохраняется как не�
 
 Выполняйте три блока по порядку из корня поставки. Выберите абсолютный
 `POISE_PYTHON` CPython 3.13 и существующий `POISE_EXAMPLE_PARENT` для рабочих
-материалов. Пример сохраняет конфиги, полные ответы и результаты в отдельной
+материалов; родительский путь может быть абсолютным или относительным. Помощник
+приводит рабочий каталог примера к абсолютному пути до создания запросов.
+Пример сохраняет конфиги, полные ответы и результаты в отдельной
 директории; его `client.py` — локальный помощник примера, не часть API.
 
 ```bash
@@ -318,7 +320,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-ROOT = Path(os.environ['POISE_EXAMPLE'])
+ROOT = Path(os.environ['POISE_EXAMPLE']).resolve()
 APP = Path.cwd() / 'apps/poise'
 ENV = dict(os.environ)
 # This isolated generated caller belongs only to example child processes.

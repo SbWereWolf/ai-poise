@@ -1,5 +1,11 @@
 In Russian for humans, in English for AI
 
+Use full, meaningful names for stages, activities, requirements, criteria and results
+in human-facing messages instead of short code designations. Preserve required
+technical identifiers in machine-facing records; when needed for an exact reference
+in a human-facing message, accompany them with the full meaningful name. Follow
+[meaningful names in communication](docs/governance/development-rules.md#осмысленные-названия-в-общении).
+
 ## Shared Task execution rules
 
 Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение).

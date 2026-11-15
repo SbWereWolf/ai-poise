@@ -98,12 +98,22 @@ def parser():
     backup=sub.add_parser('backup',help='Task DB backup list, create, restore and help')
     actions=backup.add_subparsers(dest='backup_action',required=True)
     actions.add_parser('help',help='Show backup commands and the exclusive-operator requirement')
-    for name in ('list','create'):
+    for name in ('list','create','prune'):
         command=actions.add_parser(name)
         command.add_argument('--config',type=Path,required=True)
     restore=actions.add_parser('restore')
     restore.add_argument('--config',type=Path,required=True)
     restore.add_argument('backup_name')
+    remove=actions.add_parser('remove')
+    remove.add_argument('--config',type=Path,required=True)
+    remove.add_argument('backup_name')
+    retain=actions.add_parser('retain')
+    retain.add_argument('--config',type=Path,required=True)
+    retain.add_argument('backup_name')
+    retain.add_argument('--until',required=True)
+    retain.add_argument('--authorization-ref',required=True)
+    retain.add_argument('--expected-digest',required=True)
+    retain.add_argument('--request-id',required=True)
     migration=sub.add_parser('route-migrate',help='Remove retired route count limits from one project')
     migration.add_argument('--config',type=Path,required=True)
     task_workflow_migration=sub.add_parser(
@@ -212,6 +222,7 @@ def main():
             getattr(args,'config',None),
             getattr(args,'backup_name',None),
             sys.stdout,
+            retention=vars(args) if args.backup_action=='retain' else None,
         )
     if args.command=='route-migrate':
         from .interfaces.route_migration import execute

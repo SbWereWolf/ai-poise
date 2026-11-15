@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import stat
 from pathlib import Path, PurePosixPath
 import sys
@@ -80,9 +81,10 @@ class AiPoiseTestPackageCache:
     ):
         self.checkout=checkout.resolve()
         self.packages=AiPoiseTestPackages.load(catalog)
-        # Membership validation also establishes that this is an AI-poise checkout.
+        # Establish checkout identity without requiring an unrelated first package.
+        # Exact selected membership is validated by fingerprint before execution.
         if self.packages.package_ids:
-            self.packages.membership(self.checkout,self.packages.package_ids[0])
+            self.packages._assert_ai_poise_checkout(self.checkout)
         self.runner=RegisteredCheckRunner() if runner is None else runner
         self.cache=self.checkout/'.poise-test-cache'
 
@@ -241,6 +243,7 @@ class AiPoiseTestPackageCache:
             timeout_seconds,stdout,stderr,
         )
         cases,junit_error=_terminal_junit(junit)
+        cleanup = self._cleanup_pytest(run_id, result.get('termination'))
         passed=(
             result.get('capture_complete', True) is True
             and result['actual_exit_code']==0
@@ -248,6 +251,7 @@ class AiPoiseTestPackageCache:
             and not result['cancelled']
             and junit_error is None
             and all(case['outcome'] in ('passed','skipped') for case in cases)
+            and cleanup['status'] in ('removed', 'already_absent')
         )
         primary_evidence = None
         evidence_error = None
@@ -272,6 +276,8 @@ class AiPoiseTestPackageCache:
             'actual_exit_code':result['actual_exit_code'],
             'timed_out':result['timed_out'],
             'cancelled':result['cancelled'],
+            'termination':result.get('termination'),
+            'temporary_cleanup':cleanup,
             'capture_complete':result.get('capture_complete', True),
             'primary_evidence':primary_evidence,
             'evidence_error':evidence_error,
@@ -304,3 +310,44 @@ class AiPoiseTestPackageCache:
         else:
             evidence['cache_record']=None
         return evidence
+
+    def _cleanup_pytest(self, run_id, termination):
+        relative = f'.poise-test-cache/evidence/{run_id}/pytest'
+        path = self.checkout / relative
+        if (not isinstance(termination, dict)
+                or termination.get('schema') != 'run-termination-1'
+                or termination.get('child_reaped') is not True
+                or termination.get('process_group_stopped') is not True):
+            return {'status': 'blocked', 'path': relative,
+                    'reason': 'Writer termination is unresolved',
+                    'continuation': 'Ask the owning run/Task outcome owner to reconcile actual '
+                                    'writer termination; preserve this subtree until confirmed.'}
+        try:
+            if not path.exists():
+                return {'status': 'already_absent', 'path': relative}
+            shutil.rmtree(path)
+            return {'status': 'removed', 'path': relative}
+        except OSError as exc:
+            return {'status': 'failed', 'path': relative, 'reason': str(exc),
+                    'continuation': f'Correct the reported filesystem obstacle, then repeat '
+                                    f'--root {self.checkout} --cleanup-run {run_id}.'}
+
+    def cleanup_run(self, run_id: str) -> dict:
+        try:
+            if str(uuid.UUID(run_id)) != run_id:
+                raise ValueError('noncanonical UUID')
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise PoiseError('Cleanup requires one canonical existing run UUID') from exc
+        relative = f'.poise-test-cache/evidence/{run_id}/result.json'
+        try:
+            path = self._checked_file(relative)
+            saved = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError) as exc:
+            raise PoiseError(f'Cannot read the exact run outcome {run_id}: {exc}') from exc
+        if saved.get('schema') != _CACHE_SCHEMA or saved.get('run_id') != run_id:
+            raise PoiseError(f'Run outcome identity mismatch: {run_id}')
+        cleanup = self._cleanup_pytest(run_id, saved.get('termination'))
+        if cleanup['status'] == 'blocked':
+            raise PoiseError(f"Run {run_id}: {cleanup['reason']}; {cleanup['continuation']}")
+        # Never rewrite immutable result/record bytes when retiring working data.
+        return {'run_id': run_id, 'success': cleanup['status'] != 'failed', **cleanup}

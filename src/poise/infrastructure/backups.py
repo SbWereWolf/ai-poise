@@ -3,6 +3,8 @@ from __future__ import annotations
 from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 import os
+import hashlib
+import json
 from pathlib import Path
 import shutil
 import sqlite3
@@ -15,6 +17,7 @@ from ..common import configured_root, descendant, read_json
 from ..modules.backups.domain import BackupCopy, BackupEntry
 from ..modules.foundation.errors import PoiseError
 from .task_materials import FileTaskMaterials
+from .locking import blocking_directory_lock
 
 
 def _read_only_uri(path: Path) -> str:
@@ -55,6 +58,7 @@ class LocalTaskDatabaseBackups:
     def __init__(self, config_path: Path):
         path = Path(config_path).resolve()
         root, config = path.parent, read_json(path)
+        self.project_identity = config['project']
         try:
             paths = config["paths"]
             state = configured_root(root, paths["state"])
@@ -80,7 +84,8 @@ class LocalTaskDatabaseBackups:
         entries = []
         try:
             for path in self.directory.iterdir():
-                if _is_pending_name(path.name) or path.is_symlink() or not path.is_file():
+                if (_is_pending_name(path.name) or path.name.endswith('.retention.json')
+                        or path.is_symlink() or not path.is_file()):
                     continue
                 created_at = datetime.fromtimestamp(path.stat().st_ctime, timezone.utc).isoformat()
                 entries.append(BackupEntry(path.name, created_at))
@@ -89,6 +94,14 @@ class LocalTaskDatabaseBackups:
         return tuple(sorted(entries, key=lambda item: item.name))
 
     def create_copy(self, name: str) -> BackupCopy:
+        try:
+            self.directory.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise PoiseError(f'Cannot prepare backup resource: {exc}') from exc
+        with self.locked():
+            return self._create_copy(name)
+
+    def _create_copy(self, name: str) -> BackupCopy:
         if self.materials is not None:
             return self._create_bundle(name)
         destination = self.directory / name
@@ -136,7 +149,7 @@ class LocalTaskDatabaseBackups:
     def _selected(self, name: str) -> Path:
         selected = self.directory / name
         try:
-            if _is_pending_name(name):
+            if _is_pending_name(name) or name.endswith('.retention.json'):
                 raise PoiseError(f"Backup name belongs to an internal pending file: {name}")
             if self.directory.is_symlink() or not self.directory.is_dir():
                 raise PoiseError(
@@ -336,6 +349,10 @@ class LocalTaskDatabaseBackups:
                     ) from exc
 
     def restore_copy(self, name: str) -> None:
+        with self.locked():
+            self._restore_copy(name)
+
+    def _restore_copy(self, name: str) -> None:
         installed = False
         try:
             if self.materials is not None:
@@ -360,3 +377,83 @@ class LocalTaskDatabaseBackups:
                     f'the reported temporary path: {exc}'
                 ) from exc
             raise PoiseError(f'Cannot restore backup {name}; keep writers stopped, correct the error and retry: {exc}') from exc
+
+    @contextmanager
+    def locked(self):
+        if not self.directory.exists():
+            yield
+            return
+        try:
+            with blocking_directory_lock(self.directory):
+                yield
+        except OSError as exc:
+            raise PoiseError(f'Backup resource operation failed; correct the reported '
+                             f'filesystem obstacle and retry the exact operation: {exc}') from exc
+
+    def operator_identity(self):
+        return f'uid:{os.getuid()}'
+
+    def archive_exists(self, name):
+        return (self.directory / name).is_file()
+
+    def archive_digest(self, name):
+        path = self._selected(name)
+        digest = hashlib.sha256()
+        with path.open('rb') as source:
+            while chunk := source.read(65536):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    def delete_archive(self, name):
+        path = self.directory / name
+        if not path.exists():
+            return False
+        self._selected(name).unlink()
+        _sync_directory(self.directory)
+        return True
+
+    def _grant_path(self, name, pending=False):
+        return self.directory / (f'.{name}.retention.json.pending' if pending else f'{name}.retention.json')
+
+    def grant_names(self):
+        if not self.directory.exists():
+            return ()
+        return tuple(sorted(path.name[:-len('.retention.json')]
+                            for path in self.directory.glob('*.retention.json')))
+
+    def grant_state(self, name):
+        final, pending = self._grant_path(name), self._grant_path(name, True)
+        if pending.exists():
+            return None, True
+        if not final.exists():
+            return None, False
+        try:
+            return json.loads(final.read_text(encoding='utf-8')), False
+        except (OSError, ValueError) as exc:
+            raise PoiseError(f'Cannot read retention metadata for {name}: {exc}') from exc
+
+    def publish_grant(self, name, grant):
+        final, pending = self._grant_path(name), self._grant_path(name, True)
+        try:
+            for path in (final, pending):
+                if path.exists() and json.loads(path.read_text(encoding='utf-8')) != grant:
+                    raise PoiseError(f'Retention request conflict for {name}; reconcile exact pending/active decision')
+            if final.exists():
+                _sync_directory(self.directory)
+                return
+            if not pending.exists():
+                with pending.open('x', encoding='utf-8') as stream:
+                    json.dump(grant, stream, sort_keys=True, ensure_ascii=False)
+                    stream.write('\n')
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                _sync_directory(self.directory)
+            os.replace(pending, final)
+            _sync_directory(self.directory)
+        except (OSError, ValueError) as exc:
+            raise PoiseError(f'Retention publication interrupted for {name}; preserve pending state and '
+                             f'resume the same request: {exc}') from exc
+
+    def delete_grant(self, name):
+        self._grant_path(name).unlink(missing_ok=True)
+        _sync_directory(self.directory)

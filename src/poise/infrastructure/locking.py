@@ -1,10 +1,23 @@
 """One bounded Linux lock primitive shared by task and configuration stores."""
 import fcntl
 import math
+import os
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from ..modules.foundation.errors import LockUnavailable, PoiseError
+
+
+@contextmanager
+def blocking_directory_lock(path: Path):
+    """Serialize an existing directory resource without a persistent lock file."""
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
 
 
 @contextmanager

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check project backup expiry every fifteen minutes
+
+[Timer]
+OnCalendar=*:0/15
+OnBootSec=1min
+Persistent=true
+Unit=backup-retention.service
+
+[Install]
+WantedBy=timers.target

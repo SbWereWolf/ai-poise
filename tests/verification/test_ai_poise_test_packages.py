@@ -12,6 +12,17 @@ ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / 'config/testing/test-packages.json'
 
 
+def materialize_package_checkout(destination, package_id):
+    members = AiPoiseTestPackages.load(CATALOG).membership(ROOT, package_id)['members']
+    admitted = tuple(sorted({'pyproject.toml', CATALOG.relative_to(ROOT).as_posix()} | {
+        relative for group in members.values() for relative in group
+    }))
+    for relative in admitted:
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative, target)
+
+
 def test_catalog_enumerates_deterministic_ai_poise_membership():
     packages = AiPoiseTestPackages.load(CATALOG)
     first = packages.enumerate(ROOT)
@@ -28,7 +39,7 @@ def test_catalog_enumerates_deterministic_ai_poise_membership():
 
 def test_membership_is_relative_to_supplied_ai_poise_checkout(tmp_path):
     checkout = tmp_path / 'moved-anywhere'
-    shutil.copytree(ROOT, checkout, ignore=shutil.ignore_patterns('.git', '__pycache__', '.pytest_cache'))
+    materialize_package_checkout(checkout, 'verification-runner')
     packages = AiPoiseTestPackages.load(CATALOG)
     original = packages.membership(ROOT, 'verification-runner')
     moved = packages.membership(checkout, 'verification-runner')
@@ -73,8 +84,7 @@ def test_runtime_services_check_attempts_tracks_local_bytes(tmp_path):
     assert impact['unmapped_paths'] == []
 
     checkout = tmp_path / 'owned-checkout'
-    shutil.copytree(ROOT, checkout, ignore=shutil.ignore_patterns(
-        '.git', '__pycache__', '.pytest_cache', '.poise-test-cache'))
+    materialize_package_checkout(checkout, 'runtime-services')
     local = AiPoiseTestPackageCache(checkout, checkout / 'config/testing/test-packages.json')
     other = AiPoiseTestPackageCache(ROOT, CATALOG)
     before = local.fingerprint('runtime-services')['input_fingerprint']

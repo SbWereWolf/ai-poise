@@ -1,0 +1,6 @@
+[Unit]
+Description=Remove expired project backup copies through their owner
+
+[Service]
+Type=oneshot
+ExecStart=@POISE_COMMAND@ backup prune --config @PROJECT_CONFIG@

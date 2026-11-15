@@ -105,7 +105,8 @@
           "tools/run_test_packages.py",
           "tools/run_ai_poise_test_package.py",
           "tests/runner/helpers.py",
-          "tools/check_architecture.py"
+          "tools/check_architecture.py",
+          "tests/verification/disk_retention_support.py"
         ],
         "tests": [
           "tests/runner/test_*.py",
@@ -115,7 +116,10 @@
         "fixtures": [
           "tests/conftest.py",
           "tests/hook_transport/helpers.py",
-          "config/testing/architecture-boundaries.json"
+          "config/testing/architecture-boundaries.json",
+          "tests/fixtures/disk_retention/catalog.json",
+          "tests/fixtures/disk_retention/terminal.json",
+          "tests/fixtures/disk_retention/terminal.xml"
         ]
       }
     },

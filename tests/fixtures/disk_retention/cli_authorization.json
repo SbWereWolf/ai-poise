@@ -1,0 +1,8 @@
+{
+  "role": "user",
+  "project": "demo",
+  "backup_name": "@BACKUP@",
+  "sha256": "@SHA256@",
+  "valid_until": "@UNTIL@",
+  "text": "Preserve only this exact test-owned backup until its finite stated deadline."
+}

@@ -79,8 +79,16 @@ def consumer_grant(archive, **overrides):
     return sidecar
 
 
-def assert_protected_archive(archive):
+def assert_protected_archive(archive, expected_bytes):
     assert archive.exists(), 'authorized backup was removed by age-only cleanup'
+    assert archive.read_bytes() == expected_bytes, 'authorized backup payload was changed'
+
+
+def assert_unbound_archive_rejected(archive, expected_bytes, result):
+    assert result['success'] is False, 'archive bytes were not bound to the intact grant'
+    assert_protected_archive(archive, expected_bytes)
+    assert any(item['name'] == archive.name and item.get('continuation')
+               for item in result['rejected']), 'binding refusal lacks addressed continuation'
 
 
 def assert_fixed_deadline(sidecar):
@@ -132,6 +140,7 @@ def test_consumer_distinguishes_equally_old_ordinary_and_authorized_copies(tmp_p
     archive = directory / OLD_B
     database(archive, 'protected')
     sidecar = consumer_grant(archive)
+    protected_bytes = archive.read_bytes()
     before = live.read_bytes()
     result = required(commands, 'prune')()
     assert result['success'] is True
@@ -139,7 +148,7 @@ def test_consumer_distinguishes_equally_old_ordinary_and_authorized_copies(tmp_p
     assert archive.exists() is keep
     assert sidecar.exists() is keep
     if keep:
-        assert_protected_archive(archive)
+        assert_protected_archive(archive, protected_bytes)
         assert any(item['name'] == OLD_B and item['reason'] == 'retained_by_user_decision'
                    for item in result['retained'])
     assert_live(live, material, before)
@@ -178,6 +187,7 @@ def test_remove_is_exact_idempotent_and_protects_active_grant(tmp_path):
     database(ordinary, 'ordinary')
     database(protected, 'needed')
     consumer_grant(protected)
+    protected_bytes = protected.read_bytes()
     before = live.read_bytes()
     remove = required(commands, 'remove')
     assert remove(OLD_A)['success'] is True
@@ -185,7 +195,7 @@ def test_remove_is_exact_idempotent_and_protects_active_grant(tmp_path):
     assert remove(OLD_A)['success'] is True
     with pytest.raises(PoiseError, match='retention|decision|protect'):
         remove(OLD_B)
-    assert protected.exists()
+    assert_protected_archive(protected, protected_bytes)
     assert_live(live, material, before)
 
 
@@ -260,21 +270,26 @@ def test_retain_producer_persists_fixed_binding_and_exact_retry_never_extends(tm
     archive = tmp_path / 'backups' / OLD_B
     database(archive, 'needed')
     decision = admitted_decision(archive)
+    archive_bytes = archive.read_bytes()
+    archive_digest = hashlib.sha256(archive_bytes).hexdigest()
     before = live.read_bytes()
     retain(commands, archive, decision)
+    assert_protected_archive(archive, archive_bytes)
     sidecar = archive.with_name(archive.name + '.retention.json')
     persisted = sidecar.read_bytes()
     binding = json.loads(persisted)
     assert binding['backup_name'] == OLD_B
-    assert binding['sha256'] == hashlib.sha256(archive.read_bytes()).hexdigest()
+    assert binding['sha256'] == archive_digest
     assert_fixed_deadline(sidecar)
     later = BackupCommands(LocalTaskDatabaseBackups(config), clock=lambda: NOW + timedelta(hours=1))
     retain(later, archive, decision)
+    assert_protected_archive(archive, archive_bytes)
     assert_fixed_deadline(sidecar)
     assert sidecar.read_bytes() == persisted
     with pytest.raises(PoiseError, match='conflict|request|decision|deadline'):
         retain(later, archive, decision, until=DEADLINE + timedelta(hours=1))
     assert sidecar.read_bytes() == persisted
+    assert_protected_archive(archive, archive_bytes)
     assert_live(live, material, before)
 
 
@@ -284,21 +299,65 @@ def test_authority_oracles_reject_age_only_deletion_and_retry_extension_and_rest
     database(archive, 'protected')
     sidecar = consumer_grant(archive)
     original_archive, original_grant = archive.read_bytes(), sidecar.read_bytes()
-    assert_protected_archive(archive)
+    assert_protected_archive(archive, original_archive)
     assert_fixed_deadline(sidecar)
     archive.unlink()
     with pytest.raises(AssertionError, match='age-only cleanup'):
-        assert_protected_archive(archive)
+        assert_protected_archive(archive, original_archive)
     archive.write_bytes(original_archive)
+    for wrong_payload in (b'', b'changed but still present'):
+        archive.write_bytes(wrong_payload)
+        with pytest.raises(AssertionError, match='payload was changed'):
+            assert_protected_archive(archive, original_archive)
+        archive.write_bytes(original_archive)
+        assert_protected_archive(archive, original_archive)
     wrong = json.loads(original_grant)
     wrong['valid_until'] = '2026-11-16T01:00:00+00:00'
     sidecar.write_text(json.dumps(wrong))
     with pytest.raises(AssertionError, match='extended'):
         assert_fixed_deadline(sidecar)
     sidecar.write_bytes(original_grant)
-    assert_protected_archive(archive)
+    assert_protected_archive(archive, original_archive)
     assert_fixed_deadline(sidecar)
     assert archive.read_bytes() == original_archive and sidecar.read_bytes() == original_grant
+
+
+def test_intact_grant_does_not_authorize_changed_archive_bytes(tmp_path):
+    _, live, material, commands = arrange(tmp_path)
+    archive = tmp_path / 'backups' / OLD_B
+    database(archive, 'original admitted bytes')
+    sidecar = consumer_grant(archive)
+    grant_bytes = sidecar.read_bytes()
+    replacement = tmp_path / 'replacement.sqlite'
+    database(replacement, 'different valid database')
+    archive.write_bytes(replacement.read_bytes())
+    current_bytes = archive.read_bytes()
+    assert hashlib.sha256(current_bytes).hexdigest() != json.loads(grant_bytes)['sha256']
+    live_bytes = live.read_bytes()
+    result = required(commands, 'prune')()
+    assert_unbound_archive_rejected(archive, current_bytes, result)
+    assert sidecar.read_bytes() == grant_bytes  # metadata and its input checksum were never edited
+    assert_live(live, material, live_bytes)
+
+
+def test_binding_oracle_rejects_metadata_only_consumer_and_restores_control(tmp_path):
+    _, _, _, _ = arrange(tmp_path)
+    archive = tmp_path / 'backups' / OLD_B
+    database(archive, 'admitted')
+    sidecar = consumer_grant(archive)
+    grant_bytes, original = sidecar.read_bytes(), archive.read_bytes()
+    replacement = tmp_path / 'replacement.sqlite'
+    database(replacement, 'changed valid SQLite')
+    archive.write_bytes(replacement.read_bytes())
+    current = archive.read_bytes()
+    wrong = {'success': True, 'rejected': []}  # intact metadata accepted without checking its archive
+    with pytest.raises(AssertionError, match='not bound'):
+        assert_unbound_archive_rejected(archive, current, wrong)
+    corrected_observation = json.loads((FIXTURES / 'binding_rejection.json').read_text())
+    corrected_observation['rejected'][0]['name'] = OLD_B
+    assert_unbound_archive_rejected(archive, current, corrected_observation)
+    archive.write_bytes(original)
+    assert archive.read_bytes() == original and sidecar.read_bytes() == grant_bytes
 
 
 @pytest.mark.parametrize('kind', ['missing', 'agent-only', 'wrong-project',

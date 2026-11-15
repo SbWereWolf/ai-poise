@@ -1,0 +1,26 @@
+{
+  "binary_hex": "4142ff0a0043",
+  "unicode_hex": "41e282ac420a",
+  "ranges": [
+    {"id":"binary-all","fixture":"binary","start":0,"count":6,"actual":6,"base64":"QUL/CgBD","next":null,"eof":true},
+    {"id":"binary-middle","fixture":"binary","start":1,"count":3,"actual":3,"base64":"Qv8K","next":4,"eof":false},
+    {"id":"binary-nul","fixture":"binary","start":4,"count":1,"actual":1,"base64":"AA==","next":5,"eof":false},
+    {"id":"binary-suffix","fixture":"binary","start":5,"count":4,"actual":1,"base64":"Qw==","next":null,"eof":true},
+    {"id":"binary-eof","fixture":"binary","start":6,"count":1,"actual":0,"base64":"","next":null,"eof":true},
+    {"id":"unicode-fragment","fixture":"unicode","start":2,"count":2,"actual":2,"base64":"gqw=","next":4,"eof":false},
+    {"id":"unicode-single-byte","fixture":"unicode","start":2,"count":1,"actual":1,"base64":"gg==","next":3,"eof":false},
+    {"id":"empty","fixture":"empty","start":0,"count":1,"actual":0,"base64":"","next":null,"eof":true}
+  ],
+  "base_config": {
+    "schema":"stride-poise-config/v1",
+    "installation_id":"output-fixture",
+    "session_store":"absent/sessions.sqlite",
+    "caller":{"mode":"native"},
+    "roles":["author","reviewer"],
+    "limits":{"packet_bytes":65536,"sqlite_timeout_seconds":0},
+    "output":{"schema":"poise-output-config/v1","limits":{"max_items":8,"max_total_range_bytes":64,"max_response_bytes":65536}}
+  },
+  "literal_shortened_base64":"QUI=",
+  "literal_producer_stdout_base64":"T1VUCg==",
+  "literal_producer_stderr_base64":"RVJSCg=="
+}

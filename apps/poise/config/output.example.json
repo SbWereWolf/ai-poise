@@ -1,0 +1,24 @@
+{
+  "schema": "stride-poise-config/v1",
+  "installation_id": "output-example",
+  "session_store": "unused-state/sessions.sqlite",
+  "caller": {
+    "mode": "native"
+  },
+  "roles": [
+    "author",
+    "reviewer"
+  ],
+  "limits": {
+    "packet_bytes": 65536,
+    "sqlite_timeout_seconds": 0
+  },
+  "output": {
+    "schema": "poise-output-config/v1",
+    "limits": {
+      "max_items": 8,
+      "max_total_range_bytes": 65536,
+      "max_response_bytes": 131072
+    }
+  }
+}

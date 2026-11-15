@@ -31,6 +31,9 @@ from application.commands import CommandOperations
 from infrastructure.command_files import CommandFiles, configured_settings as command_settings
 from infrastructure.command_store import CommandStore
 from infrastructure.command_execution import WorkerLauncher
+from application.output import OutputOperations
+from domain.output_config import parse_settings as output_settings
+from infrastructure.output_files import OutputFiles
 
 
 SCHEMA = 'stride-poise/v1'
@@ -63,6 +66,7 @@ def read_packet(limit):
 def main(argv=None):
     arguments = sys.argv[1:] if argv is None else argv
     output = None
+    output_limits = None
     try:
         if len(arguments) != 2 or arguments[0] != '--config' or not arguments[1]:
             invalid_config('/config')
@@ -76,7 +80,8 @@ def main(argv=None):
         if operation not in ('session.ensure', 'session.assign_role', 'session.status', 'hook.event', 'hook.intercept',
                              'reader.context', 'reader.reset', 'reader.read', 'reader.next',
                              'paths.evaluate', 'files.write',
-                             'command.request', 'command.completion', 'command.delete'):
+                             'command.request', 'command.completion', 'command.delete',
+                             'output.minimal', 'output.range'):
             invalid('/operation')
         if operation in ('session.ensure', 'session.status'):
             exact_fields(packet['input'], set(), '/input')
@@ -91,6 +96,10 @@ def main(argv=None):
             raise_rejected(result)
         elif operation == 'files.write':
             result = write_files(packet['input'], policy, target_files)
+        elif operation.startswith('output.'):
+            output_limits = output_settings(raw_config)
+            output_operations = OutputOperations(output_limits, OutputFiles())
+            result = getattr(output_operations, operation.split('.')[1])(packet['input'])
         else:
             state_settings = StateSettings(settings.session_store, 1, settings.packet_bytes,
                                            settings.sqlite_timeout_seconds)
@@ -143,9 +152,19 @@ def main(argv=None):
                               'action': 'configure:files'},
                     'evidence': [] if output is None else output.references}
         exit_code = 1
-    sys.stdout.buffer.write((json.dumps(response, ensure_ascii=False, allow_nan=False,
-                            separators=(',', ':')) + '\n').encode('utf-8'))
+    raw = response_bytes(response)
+    if output_limits is not None and response['result'] is not None and len(raw) > output_limits.max_response_bytes:
+        response = {'schema': SCHEMA, 'status': 'rejected', 'result': None,
+                    'error': {'code': 'output_response_limit', 'details': {'limit': 'max_response_bytes'},
+                              'action': 'reduce:output'}, 'evidence': []}
+        raw, exit_code = response_bytes(response), 2
+    sys.stdout.buffer.write(raw)
     return exit_code
+
+
+def response_bytes(response):
+    return (json.dumps(response, ensure_ascii=False, allow_nan=False,
+                       separators=(',', ':')) + '\n').encode('utf-8')
 
 
 if __name__ == '__main__':

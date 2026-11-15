@@ -1,0 +1,11 @@
+{
+  "errors": {},
+  "failures": {
+    "tests/verification/test_copy_population_retention.py::test_existing_copy_scenarios_admit_only_required_files[membership]": "AssertionError: copy population includes generated or unrelated data",
+    "tests/verification/test_temporary_run_retention.py::test_terminal_run_removes_only_pytest_and_preserves_primary[success]": "AssertionError: terminal run retained disposable pytest tree",
+    "tests/backups/test_retention_lifecycle.py::test_expiry_uses_generated_utc_time_at_23_hour_boundary[at]": "AssertionError: backup owner lacks prune retention capability",
+    "tests/backups/test_retention_lifecycle.py::test_grant_metadata_is_not_a_restorable_backup_listing_entry": "AssertionError: retention metadata was advertised as a backup"
+  },
+  "passed": 0,
+  "tests_run": 4
+}

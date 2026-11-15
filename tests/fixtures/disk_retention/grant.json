@@ -1,0 +1,19 @@
+{
+  "schema": "poise-backup-retention-1",
+  "project": "fixture",
+  "backup_name": "@BACKUP@",
+  "sha256": "@SHA256@",
+  "valid_until": "2026-11-16T00:00:00+00:00",
+  "authorization": {
+    "reference": "fixture:user-decision:approved",
+    "text": "Keep this exact fixture backup until the stated deadline.",
+    "role": "user",
+    "project": "fixture",
+    "backup_name": "@BACKUP@",
+    "sha256": "@SHA256@",
+    "valid_until": "2026-11-16T00:00:00+00:00"
+  },
+  "actor": "fixture-operator",
+  "request_id": "fixture-retain-1",
+  "input_digest": "@INPUT_DIGEST@"
+}

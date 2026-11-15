@@ -1,0 +1,13 @@
+{
+  "schema": "ai-poise-test-packages-2",
+  "packages": [
+    {
+      "id": "verification-runner", "owner": "verification", "integration_boundaries": [],
+      "members": {"source": ["src/pkg/value.py"], "tests": ["tests/test_value.py"], "fixtures": ["fixtures/data.json"]}
+    },
+    {
+      "id": "runtime-services", "owner": "runtime", "integration_boundaries": [],
+      "members": {"source": ["src/poise/application/check_attempts.py"], "tests": ["tests/test_value.py"], "fixtures": ["fixtures/data.json"]}
+    }
+  ]
+}

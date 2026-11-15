@@ -1,0 +1,5 @@
+{
+  "actual_exit_code": 0, "timed_out": false, "cancelled": false,
+  "capture_complete": true, "duration_seconds": 0.125,
+  "termination": {"schema": "run-termination-1", "child_reaped": true, "process_group_stopped": true, "capture_complete": true}
+}

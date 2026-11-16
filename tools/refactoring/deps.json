@@ -1,0 +1,84 @@
+{
+  "requirements": [
+    {
+      "id": "refactoring-tools",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${root}/tools/refactoring/install.py",
+            "--root",
+            "${root}",
+            "--configuration",
+            "${root}/tools/refactoring/applications.json",
+            "--node",
+            "${node}",
+            "--npm",
+            "${npm}",
+            "--python",
+            "${python}",
+            "--php",
+            "${php}",
+            "--composer",
+            "${composer}",
+            "--runtime-path",
+            "${runtime_path}"
+          ],
+          "cwd": "${root}",
+          "env": {
+            "PATH": "${runtime_path}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "${root}/tools/refactoring/install.py",
+                "--root",
+                "${root}",
+                "--configuration",
+                "${root}/tools/refactoring/applications.json",
+                "--node",
+                "${node}",
+                "--npm",
+                "${npm}",
+                "--python",
+                "${python}",
+                "--php",
+                "${php}",
+                "--composer",
+                "${composer}",
+                "--runtime-path",
+                "${runtime_path}",
+                "--startup-only"
+              ],
+              "cwd": "${root}",
+              "env": {
+                "PATH": "${runtime_path}"
+              },
+              "interpreter": {
+                "name": "exit",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

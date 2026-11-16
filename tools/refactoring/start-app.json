@@ -1,0 +1,15 @@
+{
+  "operations": {
+    "deps": "deps.json"
+  },
+  "interpreters": {
+    "exit": {
+      "module": "environment_maintenance.actions.interpreters",
+      "attribute": "exit_result"
+    }
+  },
+  "invocation": {
+    "parameters": "parameters.example.json",
+    "base_dir": "../.."
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "application": "poise",
+  "languages": [
+    "python"
+  ],
+  "working_directory": "tools/refactoring",
+  "tools": [
+    "ast-grep",
+    "jscpd",
+    "ruff",
+    "radon",
+    "import-linter",
+    "sonarqube",
+    "codescene"
+  ],
+  "startup": {
+    "ast-grep": [
+      "node_modules/.bin/ast-grep",
+      "--version"
+    ],
+    "jscpd": [
+      "node_modules/.bin/jscpd",
+      "--version"
+    ],
+    "ruff": [
+      ".venv/bin/ruff",
+      "--version"
+    ],
+    "radon": [
+      ".venv/bin/radon",
+      "--version"
+    ],
+    "import-linter": [
+      ".venv/bin/lint-imports",
+      "--version"
+    ],
+    "sonarqube": [
+      "node_modules/.bin/sonar-scanner-npm",
+      "--version"
+    ],
+    "codescene": [
+      "bin/cs",
+      "version"
+    ]
+  },
+  "npm_manifest": "tools/refactoring/package.json",
+  "python_requirements": "tools/refactoring/requirements.txt",
+  "stage": "minimal_setup",
+  "external_providers": {
+    "sonarqube": "Client installed; analysis requires explicit service endpoint/project/token and quality profile.",
+    "codescene": "Client installed; analysis requires explicit authorized credentials/licensed service and ruleset."
+  },
+  "acceptance_boundary": "Startup only. No semantic refactoring acceptance or full architecture configuration is claimed.",
+  "codescene_distribution": {
+    "url": "https://downloads.codescene.io/enterprise/cli/cs-linux-amd64-b2580d71be8fbfd6a496d7a007062c0c81cd2b60.zip",
+    "archive_sha256": "e358b332230f06ac81f9ca119c787860e25d86176d344fc06be1dffe2affb352",
+    "binary_sha256": "75dd75546cd5c6fd0678b93f86dd69ba0f771e2d483d27f397e93d78d2b20696",
+    "member": "cs",
+    "revision": "b2580d71be8fbfd6a496d7a007062c0c81cd2b60",
+    "version": "1.0.58"
+  },
+  "full_configuration_tasks": {
+    "ast-grep": "POISE-REFACTOR-CONFIG-POISE-AST-GREP-001",
+    "jscpd": "POISE-REFACTOR-CONFIG-POISE-JSCPD-001",
+    "ruff": "POISE-REFACTOR-CONFIG-POISE-RUFF-001",
+    "radon": "POISE-REFACTOR-CONFIG-POISE-RADON-001",
+    "import-linter": "POISE-REFACTOR-CONFIG-POISE-IMPORT-LINTER-001",
+    "sonarqube": "POISE-REFACTOR-CONFIG-POISE-SONARQUBE-001",
+    "codescene": "POISE-REFACTOR-CONFIG-POISE-CODESCENE-001"
+  }
+}

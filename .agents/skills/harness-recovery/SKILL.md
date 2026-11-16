@@ -19,11 +19,18 @@ recovery](../../../docs/governance/development-rules.md#сбой-harness-и-ру
 Read that section before choosing a recovery; it owns classification, authority,
 logs, rollback, repair drafts and reconciliation. This skill adds no repair API.
 Record confirmed defects in the appropriate existing Task, or register one draft.
-Keep full incident/recovery material and necessary attachments in that Task; keep
+Keep substantive incident/recovery descriptions in that Task; keep
 only a concise Task-linked known-bug summary in versioned documentation. Follow
 [Task-owned incident materials](../../../docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
 Remove completed Task/session working files after delivery. Do not create external
 permanent operation archives unless the user explicitly requests them.
+For lasting history preserve conditions, cause or uncertainty, effects, actions
+and outcomes: up to ten representative examples per equivalent failure type plus
+an actual-event counter and observation period. Copies and repeated output lines
+are not extra incidents; unknown frequency stays unknown. Extract unique useful
+facts before deleting full outputs, snapshots, databases, environments, traces
+and checksum material. Independently sample-check a dry run before old-attachment
+cleanup. Follow [narrative-only retention](../../../docs/operations/harness-incident-journal.md#содержательная-история-без-технического-архива).
 Before an agreed restart, both roles inspect the actual progression/position using
 the [canonical preflight](../../../docs/workflows/pilot-task-preflight.md#сверка-продолжения-перед-restart).
 

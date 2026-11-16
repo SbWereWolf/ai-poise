@@ -229,6 +229,14 @@ Make Poise operations atomic and idempotent. Repeating the same request and inpu
 same business
 result without duplicate effects. Refusals identify a concrete obstacle and an executable
 remedy/continuation;
+Keep lasting incident history as descriptions of conditions, cause or uncertainty,
+effects, actions and verified outcomes, with at most ten representative examples
+per equivalent failure type and a real-event counter. Do not count copied files
+or repeated output lines as incidents; mark unknown historical frequency honestly.
+Do not retain full tool output, snapshots, databases, test environments, trace
+archives or checksums after extracting their useful facts. Preserve substantive
+variants and independently sample-check a dry run before retiring old attachments.
+Follow [narrative-only incident retention](docs/operations/harness-incident-journal.md#содержательная-история-без-технического-архива).
 unknown outcomes require an owner-managed public recovery route rather than a stuck lock or internal
 investigation.
 Follow [atomicity, idempotency and actionable

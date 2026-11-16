@@ -152,6 +152,28 @@ def publish(repository, packet):
             current = path.read_bytes().hex() if path.exists() else None
             if current not in (item['before'], item['after']):
                 raise PoiseError('Pending SessionStart publication drift; restore recorded inputs then repeat request ' + key)
+        native_after = next(item for item in operation['files'] if item['path'] == str(settings.hooks_file))
+        snapshot_after = next(item for item in operation['files'] if item['path'] == str(snapshot_path(settings)))
+        prepared_revision = repository._configuration_revision(
+            hashlib.sha256(bytes.fromhex(native_after['after'])).hexdigest(),
+            proxy_snapshot=strict_json(bytes.fromhex(snapshot_after['after']).decode('utf-8')))
+        if prepared_revision != operation['receipt']['revision']:
+            untouched = all((Path(item['path']).read_bytes().hex() if Path(item['path']).exists() else None)
+                            == item['before'] for item in operation['files'])
+            if not untouched:
+                raise PoiseError('Pending SessionStart configuration inputs changed after partial file effects; '
+                                 'preserve those files, restore the recorded configuration inputs through their '
+                                 'existing owner, then repeat saved request ' + key)
+            receipt = {'status': 'rejected', 'request_id': key,
+                'reason': 'Pending SessionStart full configuration inputs changed before file effects',
+                'current_revision': repository.revision(),
+                'continuation': 'Read current configuration revision and submit the action with a new request_id '
+                                'and matching expected_revision; the original request remains rejected'}
+            operation.update(phase='completed', receipt=receipt)
+            with registry.transaction() as db:
+                db.execute('UPDATE operations SET data=? WHERE id=?', (encoded(operation), key))
+                registry.event_in(db, None, 'session-start-proxy.refused', {'request_id': key})
+            return receipt
         for item in operation['files']:
             path = Path(item['path'])
             if not path.exists() or path.read_bytes().hex() != item['after']:

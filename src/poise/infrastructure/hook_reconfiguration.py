@@ -90,6 +90,12 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
     groups = transport.FileHookRepository(proposed, None)._groups(definition, definition_path)
     from .session_start_proxy import snapshot, project_document, snapshot_path, body as proxy_body
     active_proxy = snapshot(source)
+    if (active_proxy and active_proxy['active']
+            and active_proxy['owner_settings_path'] == str(source.path)
+            and proposed.raw['source_root'] != source.raw['source_root']):
+        raise PoiseError('Active SessionStart coordinator source cannot change: use runtime-config '
+                         '--settings ' + str(source.path) + ' with session-start-proxy action restore, '
+                         'then read the current revision and resubmit reconfigure before publishing again')
     target_proxy = snapshot(proposed)
     if target_proxy and target_proxy['active'] and source.hooks_file != proposed.hooks_file:
         raise PoiseError('Restore target SessionStart through its owner before moving this installation')

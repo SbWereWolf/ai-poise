@@ -87,7 +87,7 @@ def execute(command,args,stream,output,error, *, started_at=None):
         if packet['operation'] == 'session-start-proxy':
             result = service.session_start_proxy(packet['input'])
             _write(service,result,output)
-            return cfg['exit_codes']['success']
+            return cfg['exit_codes']['rejected' if result['status'] == 'rejected' else 'success']
         if packet['operation'] in ('install','reconcile','reconfigure'):
             action=getattr(service,packet['operation'])
             result=action(packet['input'])

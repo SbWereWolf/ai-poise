@@ -4,7 +4,8 @@ Use full, meaningful names for stages, activities, requirements, criteria and re
 in human-facing messages instead of short code designations. Preserve required
 technical identifiers in machine-facing records; when needed for an exact reference
 in a human-facing message, accompany them with the full meaningful name. Follow
-[meaningful names in communication](docs/governance/development-rules.md#осмысленные-названия-в-общении).
+[meaningful names in
+communication](docs/governance/development-rules.md#осмысленные-названия-в-общении).
 
 ## Shared Task execution rules
 
@@ -214,6 +215,14 @@ Record every accepted global decision in its canonical documentation and a conci
 linking to the
 exact section; co-deliver the Russian source and English projection. Follow
 [global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Temporary service copies and disposable working data belong to the current development step.
+Remove each exact owned object through its owner immediately after use or confirmed non-use,
+before finishing that step. A 24-hour ceiling or fallback pruning is not a normal retention period.
+Transfer only the immediately required useful result; naming a working folder an artifact/result
+never authorizes a technical archive. Preserve actual ownership and storage integrity; an unresolved
+cleanup is an unmet step outcome. Follow [single-step copy
+lifetime](docs/architecture/storage-lifecycle.md#срок-жизни-служебных-копий).
+
 Record each confirmed harness defect in its appropriate Task, reusing an existing
 Task or registering one draft when none fits. Put reproduction, recovery records
 and necessary attachments in that Task. Keep only a concise active known-bug
@@ -1081,14 +1090,11 @@ decision, superseding the external-state default for this project. Local configu
 in that directory
 and `config/examples/`.
 
-Discover and operate Task DB backups through the public `poise backup` CLI. Start with `poise backup
-help`; use `poise
-backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup
-restore --config
-PROJECT_JSON BACKUP_NAME` rather than copying or replacing the database manually. Run create and
-restore only while no
-agent or process is writing the Task DB. The complete operator contract is [Task DB
-backups](docs/task-db-backups.md).
+Discover Task DB backup operations through `poise backup help` and use the existing owner for
+create/list/restore/remove/prune/retain. Retire the exact temporary copy immediately when its step's
+purpose ends; fallback expiry is not permission to keep it. Create/restore retain their exclusive
+operator window, and unresolved grants/readers require the documented preserving continuation.
+Read the canonical [Task DB backup contract](docs/task-db-backups.md).
 
 The initial manifest has `push_required=false`, base ref `master`, and repository readiness
 `not_checked` because no

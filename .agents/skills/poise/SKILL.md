@@ -877,18 +877,29 @@ checks](../../../docs/configuration/runtime-hooks.md#проверки-capabiliti
 
 ## Task DB backups
 
-Discover the public backup surface with `poise backup help`. Use `poise backup list --config
-PROJECT_JSON`, `poise
-backup create --config PROJECT_JSON`, and `poise backup restore --config PROJECT_JSON BACKUP_NAME`;
-do not substitute
-manual filesystem copies or database replacement. Create and restore require an exclusive operator
-window in which no
-agent or workflow writes the Task DB. Read the exact [exclusive operator
-window](../../../docs/task-db-backups.md#обязательное-условие) and [Task DB restore
-contract](../../../docs/task-db-backups.md#восстановление). Task-only backup is not a full
-checkpoint: preserve the
-other databases, Git and materials under the [full backup
+Discover the actual public surface with `poise backup help`. Use the existing owner for
+create/list/restore/remove/prune/retain, not manual database replacement. Remove the exact temporary
+copy immediately after its current step's purpose ends; scheduled expiry is only fallback.
+Create and restore still require the documented exclusive operator window. A genuine finite user
+exception is read from its actual source; a JSON field, test fixture or agent claim grants nothing.
+Use the canonical [backup procedure](../../../docs/task-db-backups.md#срок-жизни-и-удаление),
+[preserving failure/authority
+contract](../../../docs/task-db-backups.md#явное-исключение-срока-хранения)
+and [single-step lifetime
+rule](../../../docs/architecture/storage-lifecycle.md#срок-жизни-служебных-копий).
+Task-only backup is not a full checkpoint; retain the existing
+[full-backup
 boundary](../../../docs/architecture/storage-lifecycle.md#резервное-копирование-и-восстановление).
+
+## Temporary test-package data
+
+Use the existing cache owner to retire only the exact terminal run's pytest subtree; keep only
+useful primary results with an actual consumer. Addressed `--root ROOT --cleanup-run RUN_ID` is
+separate from package execution, not a force option. Unknown writers or cleanup failure remain
+unresolved step outcomes. Read the exact
+[cache lifetime and cleanup
+procedure](../../../docs/configuration/test-package-cache.md#срок-жизни-временных-данных).
+Do not pass complete copied checkouts or raw working environments to another role as an archive.
 
 ## Handoff and transfer
 

@@ -1,0 +1,50 @@
+{
+  "empty": {},
+  "first": {
+    "systemMessage": "first diagnostic context",
+    "hookSpecificOutput": {
+      "hookEventName": "SessionStart",
+      "additionalContext": "ERP-CAPS"
+    }
+  },
+  "second": {
+    "systemMessage": "second diagnostic context",
+    "hookSpecificOutput": {
+      "hookEventName": "SessionStart",
+      "additionalContext": "POISE-TASK"
+    }
+  },
+  "third": {
+    "hookSpecificOutput": {
+      "hookEventName": "SessionStart",
+      "additionalContext": "ERP-SELECTION"
+    }
+  },
+  "combined": {
+    "systemMessage": "first diagnostic context\nsecond diagnostic context",
+    "hookSpecificOutput": {
+      "hookEventName": "SessionStart",
+      "additionalContext": "ERP-CAPS\nPOISE-TASK\nERP-SELECTION"
+    }
+  },
+  "stop": {
+    "continue": false,
+    "stopReason": "literal legacy stop"
+  },
+  "foreign": {
+    "description": "operator-owned",
+    "hooks": {
+      "PostToolUse": [
+        {
+          "matcher": "sentinel",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "echo foreign"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

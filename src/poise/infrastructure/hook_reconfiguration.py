@@ -84,14 +84,30 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
         if old_definition.data[field] != definition.data[field]:
             raise PoiseError('Reconfiguration cannot change hook ' + field)
     definition_path = proposed.definitions / (digest(definition.data) + '.json')
-    definition_body = _bytes(definition.data)
+    definition_body = _bytes(definition.data, sorted_keys=True)
     if definition_path.exists() and definition_path.read_bytes() != definition_body:
         raise PoiseError('Immutable hook definition conflicts with the requested definition')
     groups = transport.FileHookRepository(proposed, None)._groups(definition, definition_path)
-    native = read_document(source.hooks_file)
+    from .session_start_proxy import snapshot, project_document, snapshot_path, body as proxy_body
+    active_proxy = snapshot(source)
+    if (active_proxy and active_proxy['active']
+            and active_proxy['owner_settings_path'] == str(source.path)
+            and proposed.raw['source_root'] != source.raw['source_root']):
+        raise PoiseError('Active SessionStart coordinator source cannot change: use runtime-config '
+                         '--settings ' + str(source.path) + ' with session-start-proxy action restore, '
+                         'then read the current revision and resubmit reconfigure before publishing again')
+    target_proxy = snapshot(proposed)
+    if target_proxy and target_proxy['active'] and source.hooks_file != proposed.hooks_file:
+        raise PoiseError('Restore target SessionStart through its owner before moving this installation')
+    if active_proxy and active_proxy['active'] and source.hooks_file != proposed.hooks_file:
+        raise PoiseError('Restore SessionStart through its owner before changing the shared native file')
+    native = service.repository.logical_document(read_document(source.hooks_file))
     service.repository._reject_unregistered_groups(native, installation['groups'], definition)
     if source.hooks_file == proposed.hooks_file:
         candidate = merge_hook_document(native, installation['groups'], groups)
+        if active_proxy and active_proxy['active']:
+            from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
+            candidate = InitialSessionStartProjection.preserve_member_order(native, candidate, installation['groups'], groups)
         native_files = [_file(source.hooks_file, _bytes(candidate, sorted_keys=True), proposed.raw['file_mode'])]
     else:
         target = read_document(proposed.hooks_file) if proposed.hooks_file.exists() else None
@@ -103,6 +119,14 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
         # Publish the new discovery source before retiring this installation's old groups.
         native_files = [_file(proposed.hooks_file, _bytes(candidate, sorted_keys=True), proposed.raw['file_mode']),
                         _file(source.hooks_file, _bytes(retired, sorted_keys=True), source.raw['file_mode'])]
+    proxy_after = None
+    if source.hooks_file == proposed.hooks_file:
+        candidate, proxy_after = project_document(proposed, candidate, settings_overrides={str(source.path): proposed.raw})
+        if proxy_after is not None and proxy_after['active']:
+            proxy_after['publication'] = {'owner_settings_path': str(source.path), 'request_id': packet['request_id']}
+        native_files = [_file(source.hooks_file, _bytes(candidate, sorted_keys=True), proposed.raw['file_mode'])]
+        if proxy_after is not None and proxy_after['active']:
+            native_files.insert(0, _file(snapshot_path(source), proxy_body(proxy_after), proposed.raw['file_mode']))
     files = [_file(definition_path, definition_body, proposed.raw['file_mode']), *native_files]
     changed = []
     for key, raw in bindings.items():
@@ -120,8 +144,9 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
     # Native revision uses the same complete file bytes as the ordinary installer.
     receipt['revision'] = hashlib.sha256(_bytes(candidate, sorted_keys=True)).hexdigest()
     receipt['configuration_revision'] = transport.FileHookRepository(proposed, service.registry)._configuration_revision(
-        receipt['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw)
-    operation = {'kind': 'hook_reconfiguration', 'packet': request_digest, 'phase': 'prepared',
+        receipt['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw,
+        proxy_snapshot=proxy_after if source.hooks_file == proposed.hooks_file else ...)
+    operation = {'proxy_after': proxy_after, 'kind': 'hook_reconfiguration', 'packet': request_digest, 'phase': 'prepared',
                  'locks': locks, 'files': files, 'bindings': changed,
                  'installation_id': definition.data['id'], 'installation_before': installed_raw,
                  'installation_after': encoded({**installation, 'groups': groups, 'receipt': receipt}), 'receipt': receipt}
@@ -222,7 +247,8 @@ def _refresh_bindings(service, proposed, operation):
 
 def _publish(service, proposed, definition, operation):
     revision = transport.FileHookRepository(proposed, service.registry)._configuration_revision(
-        operation['receipt']['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw)
+        operation['receipt']['revision'], {definition.data['id']: definition.data}, settings_raw=proposed.raw,
+        proxy_snapshot=operation.get('proxy_after', ...))
     if revision != operation['receipt']['configuration_revision']:
         raise PoiseError('Pending reconfiguration inputs changed; restore the recorded handler/project inputs and retry')
     with service.registry.transaction() as db:

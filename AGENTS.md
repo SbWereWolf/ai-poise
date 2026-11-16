@@ -231,6 +231,14 @@ operation journals or completed-work archives. Retire completed Task/session wor
 materials after delivery; separate archives require explicit user authority. Follow
 [Task-owned incident
 materials](docs/operations/harness-incident-journal.md#материалы-в-задаче-дефекта).
+Keep lasting incident history as descriptions of conditions, cause or uncertainty,
+effects, actions and verified outcomes, with at most ten representative examples
+per equivalent failure type and a real-event counter. Do not count copied files
+or repeated output lines as incidents; mark unknown historical frequency honestly.
+Do not retain full tool output, snapshots, databases, test environments, trace
+archives or checksums after extracting their useful facts. Preserve substantive
+variants and independently sample-check a dry run before retiring old attachments.
+Follow [narrative-only incident retention](docs/operations/harness-incident-journal.md#содержательная-история-без-технического-архива).
 Deliver accepted common recording-rule changes immediately under the
 [direct-master
 scope](docs/operations/harness-incident-journal.md#немедленная-поставка-общего-правила).

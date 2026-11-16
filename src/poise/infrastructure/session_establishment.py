@@ -25,8 +25,8 @@ def remove_session_runtime(runtime):
         pass
 
 
-def cleanup_project_session_runtime(config_path, session_id):
-    """Retire session files without establishing or restoring a Task runtime."""
+def project_session_runtime_path(config_path, session_id):
+    """Resolve session working data without establishing a Task runtime."""
     from .harness_config import load_harness_config
     from .task_harness_adapter import TaskHarnessAdapter
     selected = Path(config_path).resolve()
@@ -35,7 +35,34 @@ def cleanup_project_session_runtime(config_path, session_id):
         selected = TaskHarnessAdapter.resolve_harness_configuration(selected)
     root, cfg, _ = load_harness_config(selected)
     state = configured_root(root, cfg['paths']['state'])
-    remove_session_runtime(descendant(state, cfg['paths']['runtime']) / session_id)
+    return descendant(state, cfg['paths']['runtime']) / session_id
+
+
+
+def observed_project_session_id(config_path, native_session):
+    """Read an existing native assignment without creating a binding or Task."""
+    from .harness_config import load_harness_config
+    from .task_harness_adapter import TaskHarnessAdapter
+    from .sqlite.runtime_adapter import RuntimeRegistry
+    from .diagnostic_io import readonly_database
+    root, profile, _ = load_harness_config(config_path)
+    caller = CallerIdentity.native(profile['project'], native_session)
+    if profile['task_adapter'] is not None:
+        task_path = TaskHarnessAdapter.resolve_task_configuration(config_path)
+        root, cfg, _ = load_config(task_path)
+    else:
+        cfg = profile
+    state = configured_root(root, cfg['paths']['state'])
+    database = descendant(state, cfg['paths']['database'])
+    if not database.exists():
+        return native_session
+    with readonly_database(database) as connection:
+        assigned = RuntimeRegistry.session_for_identity(connection, caller.key)
+    return native_session if assigned is None else assigned
+
+
+def cleanup_project_session_runtime(config_path, session_id):
+    remove_session_runtime(project_session_runtime_path(config_path, session_id))
 
 
 @dataclass(frozen=True)

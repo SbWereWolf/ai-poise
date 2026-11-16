@@ -1,0 +1,9 @@
+{
+  "root": "/absolute/erp/root",
+  "node": "/absolute/node",
+  "npm": "/absolute/npm-cli.js",
+  "python": "/absolute/python3.15",
+  "php": "/absolute/php",
+  "composer": "/absolute/composer",
+  "runtime_path": "/explicit/runtime/bin:/usr/local/bin:/usr/bin:/bin"
+}

@@ -1,0 +1,20 @@
+{
+  "session_id": "proxy-fixture-session",
+  "transcript_path": null,
+  "cwd": "@CWD@",
+  "hook_event_name": "SessionStart",
+  "source": "startup",
+  "opaque": {
+    "unicode": "данные 🐈",
+    "zero": 0,
+    "false": false,
+    "null": null,
+    "empty": "",
+    "nested": [
+      {
+        "future": "value"
+      }
+    ]
+  },
+  "escaped": "\\ud800"
+}

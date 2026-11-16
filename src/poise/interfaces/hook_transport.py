@@ -61,11 +61,17 @@ def execute(command,args,stream,output,error, *, started_at=None):
             raise PoiseError('Native hook JSON object required')
         if (command == 'hook' and packet.get('hook_event_name') not in ('PreToolUse','PostToolUse')
                 and not matches_repository_scope(settings, packet.get('cwd'))):
+            if packet.get('hook_event_name') == 'SessionEnd':
+                from ..infrastructure.session_start_proxy import retire_capture
+                retire_capture(settings, packet, args.definition)
             output.write('{}\n')
             return cfg['exit_codes']['success']
         service=HookService(args.settings)
         if command=='hook':
             result=service.event(args.definition,packet,started_at=started_at)
+            if packet.get('hook_event_name') == 'SessionEnd':
+                from ..infrastructure.session_start_proxy import retire_capture
+                retire_capture(settings, packet, args.definition)
             _write_native(service,result,args.definition,output)
             return cfg['exit_codes']['success']
         if command=='hook-work':
@@ -78,6 +84,10 @@ def execute(command,args,stream,output,error, *, started_at=None):
         exact_keys(packet,{'operation','input'},'runtime-config packet')
         predicted=service.settings.observations/uuid.uuid4().hex/cfg['response_file']
         require_result_budget(predicted,cfg['output_chars'],'inconclusive')
+        if packet['operation'] == 'session-start-proxy':
+            result = service.session_start_proxy(packet['input'])
+            _write(service,result,output)
+            return cfg['exit_codes']['rejected' if result['status'] == 'rejected' else 'success']
         if packet['operation'] in ('install','reconcile','reconfigure'):
             action=getattr(service,packet['operation'])
             result=action(packet['input'])
@@ -138,3 +148,36 @@ def setup(args,stream,output,error):
         return service.settings.raw['exit_codes']['success' if checks is None or checks['ready'] else 'incomplete']
     except (PoiseError,OSError,UnicodeError,RecursionError) as exc:
         error.write(str(exc)+'\n');return 2
+
+
+def proxy_execute(args, stream, output, error):
+    from ..application.session_start_proxy import InitialSessionStartProxy
+    from ..infrastructure.session_start_proxy import snapshot, snapshot_path, SessionStartMemberExecutor
+    try:
+        settings = HookSettings(args.settings)
+        if Path(args.snapshot).resolve() != snapshot_path(settings):
+            raise PoiseError('Select the owned SessionStart snapshot path')
+        with settings.native_file_locked():
+            from ..infrastructure.session_start_proxy import require_settled
+            require_settled(settings)
+            state = snapshot(settings)
+            if state is None or not state['active']:
+                raise PoiseError('SessionStart projection is inactive; reload current native registration')
+            from ..modules.hook_transport.session_start_proxy import InitialSessionStartProjection
+            InitialSessionStartProjection.logical(strict_json(settings.hooks_file.read_text()), state)
+        raw = stream.read(state['max_input_bytes'] + 1)
+        if len(raw) > state['max_input_bytes']:
+            raise PoiseError('Native proxy packet exceeds configured input limit')
+        event = strict_json(raw.decode('utf-8'))
+        if not isinstance(event, dict) or event.get('hook_event_name') != 'SessionStart':
+            raise PoiseError('Native SessionStart object required')
+        result, diagnostics, code = InitialSessionStartProxy(SessionStartMemberExecutor(settings)).run(state, raw, event)
+        text = utf8_json_text(result) + '\n'
+        if len(text) > state['output_chars']:
+            raise PoiseError('Composed native response exceeds admitted member output budgets')
+        output.write(text.encode('utf-8'))
+        error.write(diagnostics)
+        return code
+    except (PoiseError, OSError, UnicodeError, ValueError, KeyError) as exc:
+        error.write((str(exc) + '\n').encode('utf-8'))
+        return 1
